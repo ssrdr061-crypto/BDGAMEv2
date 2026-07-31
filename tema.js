@@ -1226,6 +1226,7 @@ if (document.readyState === "loading") {
 
 /* ═══════════════════════════════════════════════════════════════
    9) BİRLİK PANELİ v2 — alta sabit kart, açık mavi tema, Baloo 2
+      Ölçüler CSS değişkeninde; ?ayar=1 ile canlı ayar paneli açılır.
    ═══════════════════════════════════════════════════════════════ */
 (function () {
   const s = document.createElement("style");
@@ -1509,43 +1510,67 @@ if (document.readyState === "loading") {
   box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45) !important;
 }
 
-/* ── İNCE AYAR (ayar aracından gelen değerler) ── */
-
-/* portre kutuları */
+/* ── İNCE AYAR — değerler CSS değişkeni, canlı ayar paneli bunları değiştirir ── */
 #panel-troops .uv-portrait{
-  width:55px !important; height:55px !important; border-radius:15px !important;
+  width:var(--tp-box,55px) !important; height:var(--tp-box,55px) !important;
+  border-radius:calc(var(--tp-box,55px) * .27) !important;
 }
 
 /* ŞÖVALYE */
 #panel-troops .us-knight .knight-wrap{
-  height:115% !important; bottom:-25px !important;
-  left:50% !important; transform:translateX(-50%) !important;
+  height:var(--tp-k-h,115%) !important; bottom:var(--tp-k-b,-25px) !important;
+  left:50% !important; transform:translateX(calc(-50% + var(--tp-k-x,0px))) !important;
 }
 #panel-troops .uv-portrait[data-i="0"] img{
-  width:150% !important; margin:-29% 0 0 -26% !important;
+  width:var(--tp-kp-w,150%) !important;
+  margin:var(--tp-kp-t,-29%) 0 0 var(--tp-kp-l,-26%) !important;
 }
 
 /* ASKER */
 #panel-troops .us-soldier .soldier-wrap{
-  height:95% !important; bottom:2px !important;
-  left:50% !important; transform:translateX(calc(-50% - 5px)) !important;
+  height:var(--tp-a-h,95%) !important; bottom:var(--tp-a-b,2px) !important;
+  left:50% !important; transform:translateX(calc(-50% + var(--tp-a-x,-5px))) !important;
 }
 #panel-troops .uv-portrait[data-i="1"] img{
-  width:130% !important; margin:-16% 0 0 -21% !important;
+  width:var(--tp-ap-w,130%) !important;
+  margin:var(--tp-ap-t,-16%) 0 0 var(--tp-ap-l,-21%) !important;
 }
 
 /* ROBOT */
 #panel-troops .us-robot .hero-img{
-  height:99% !important; bottom:-2px !important;
-  left:50% !important; transform:translateX(calc(-50% - 4px)) !important;
+  height:var(--tp-r-h,99%) !important; bottom:var(--tp-r-b,-2px) !important;
+  left:50% !important; transform:translateX(calc(-50% + var(--tp-r-x,-4px))) !important;
 }
 #panel-troops .uv-portrait[data-i="2"] img{
-  width:140% !important; margin:-10% 0 0 -18% !important;
+  width:var(--tp-rp-w,140%) !important;
+  margin:var(--tp-rp-t,-10%) 0 0 var(--tp-rp-l,-18%) !important;
 }
+
+/* ── canlı ayar paneli (sadece ?ayar=1 ile) ── */
+#tpTuner{
+  position:fixed; left:8px; right:8px; bottom:8px; z-index:9999;
+  background:#151d2e; border:1px solid #2b4260; border-radius:14px;
+  padding:10px; font-family:'Baloo 2',sans-serif; color:#e8f4ff;
+  box-shadow:0 -6px 24px rgba(0,0,0,.5); max-height:52vh; overflow:auto;
+}
+#tpTuner.min{ max-height:44px; overflow:hidden; }
+#tpTuner .tt-head{ display:flex; gap:6px; align-items:center; margin-bottom:8px; }
+#tpTuner .tt-head b{ font-size:13px; color:#ffd257; flex:1; }
+#tpTuner button{ border:0; border-radius:9px; padding:7px 10px; cursor:pointer;
+  font-family:inherit; font-weight:800; font-size:12px; background:#26364f; color:#cfe8ff; }
+#tpTuner button.on{ background:#ffd257; color:#3a2408; }
+#tpTuner .tt-tabs{ display:flex; gap:5px; margin-bottom:7px; }
+#tpTuner .tt-tabs button{ flex:1; }
+#tpTuner .tt-row{ display:flex; align-items:center; gap:7px; margin:4px 0; }
+#tpTuner .tt-row label{ width:78px; flex:none; font-size:11.5px; color:#a9c3e0; font-weight:700; }
+#tpTuner .tt-row input{ flex:1; accent-color:#ffd257; height:20px; }
+#tpTuner .tt-row span{ width:48px; text-align:right; font-size:12px; font-weight:800; color:#7fd8ff; }
+#tpTuner textarea{ width:100%; height:74px; margin-top:6px; background:#0b1220;
+  border:1px solid #2b4260; border-radius:9px; color:#9fe8ff;
+  font:11px/1.45 ui-monospace,monospace; padding:7px; }
   `;
   document.head.appendChild(s);
 
-  /* Alt şeridin gerçek yüksekliğini ölç — panel tam onun üstünde bitsin */
   function measureDock() {
     const d = document.querySelector(".nav-dock");
     if (d) document.documentElement.style.setProperty("--tp-dock-h", d.offsetHeight + "px");
@@ -1554,6 +1579,120 @@ if (document.readyState === "loading") {
   else measureDock();
   window.addEventListener("resize", measureDock);
   window.addEventListener("orientationchange", () => setTimeout(measureDock, 200));
+
+  /* ═══ CANLI AYAR PANELİ — adres sonuna ?ayar=1 ekleyince açılır ═══ */
+  if (/[?&]ayar=1/.test(location.search)) {
+    const P = ["k", "a", "r"];                       /* knight, asker, robot */
+    const AD = ["Şövalye", "Asker", "Robot"];
+    const VARSAYILAN = {
+      box: 55,
+      k: { h: 115, b: -25, x: 0, pw: 150, pl: -26, pt: -29 },
+      a: { h: 95,  b: 2,   x: -5, pw: 130, pl: -21, pt: -16 },
+      r: { h: 99,  b: -2,  x: -4, pw: 140, pl: -18, pt: -10 }
+    };
+    const S = JSON.parse(JSON.stringify(VARSAYILAN));
+    let cur = 0;
+
+    const kok = document.documentElement;
+    function uygula() {
+      kok.style.setProperty("--tp-box", S.box + "px");
+      P.forEach(p => {
+        const c = S[p];
+        kok.style.setProperty(`--tp-${p}-h`, c.h + "%");
+        kok.style.setProperty(`--tp-${p}-b`, c.b + "px");
+        kok.style.setProperty(`--tp-${p}-x`, c.x + "px");
+        kok.style.setProperty(`--tp-${p}p-w`, c.pw + "%");
+        kok.style.setProperty(`--tp-${p}p-l`, c.pl + "%");
+        kok.style.setProperty(`--tp-${p}p-t`, c.pt + "%");
+      });
+      yaz();
+    }
+    function yaz() {
+      let t = "portre kutusu: " + S.box + "px\n";
+      P.forEach((p, i) => {
+        const c = S[p];
+        t += `\n${AD[i]}\n  büyük: ${c.h}% | ${c.b}px | ${c.x}px\n  portre: ${c.pw}% | ${c.pl}% | ${c.pt}%\n`;
+      });
+      const o = document.getElementById("ttOut");
+      if (o) o.value = t;
+    }
+
+    const ALAN = [
+      ["h",  "Boyut",       40, 160, "%"],
+      ["b",  "Dikey ↑↓",  -120, 120, "px"],
+      ["x",  "Yatay ←→",  -100, 100, "px"],
+      ["pw", "P. yakın",   100, 360, "%"],
+      ["pl", "P. yatay",  -200,  60, "%"],
+      ["pt", "P. dikey",  -140,  60, "%"]
+    ];
+
+    const box = document.createElement("div");
+    box.id = "tpTuner";
+    box.innerHTML =
+      `<div class="tt-head"><b>⚙ Birlik ayarı</b>
+         <button id="ttCopy">📋 Kopyala</button>
+         <button id="ttReset">Sıfırla</button>
+         <button id="ttMin">▼</button>
+       </div>
+       <div class="tt-tabs">${AD.map((a, i) => `<button data-u="${i}"${i === 0 ? ' class="on"' : ""}>${a}</button>`).join("")}</div>
+       <div class="tt-row"><label>Kutu</label><input type="range" id="ttBox" min="34" max="90" step="1"><span id="ttBoxV"></span></div>
+       <div id="ttFields"></div>
+       <textarea id="ttOut" readonly></textarea>`;
+    document.body.appendChild(box);
+
+    const alanlar = document.getElementById("ttFields");
+    alanlar.innerHTML = ALAN.map(([k, ad, mn, mx, br]) =>
+      `<div class="tt-row"><label>${ad}</label>
+         <input type="range" data-k="${k}" min="${mn}" max="${mx}" step="1">
+         <span data-v="${k}"></span></div>`).join("");
+
+    function sync() {
+      const c = S[P[cur]];
+      ALAN.forEach(([k, , , , br]) => {
+        const inp = alanlar.querySelector(`[data-k="${k}"]`);
+        const sp  = alanlar.querySelector(`[data-v="${k}"]`);
+        inp.value = c[k]; sp.textContent = c[k] + br;
+      });
+      document.getElementById("ttBox").value = S.box;
+      document.getElementById("ttBoxV").textContent = S.box + "px";
+      box.querySelectorAll(".tt-tabs button").forEach((b, i) => b.classList.toggle("on", i === cur));
+      uygula();
+    }
+
+    alanlar.querySelectorAll("input").forEach(inp => {
+      inp.addEventListener("input", () => {
+        const k = inp.dataset.k;
+        S[P[cur]][k] = parseInt(inp.value, 10);
+        const br = (ALAN.find(a => a[0] === k) || [])[4] || "";
+        alanlar.querySelector(`[data-v="${k}"]`).textContent = inp.value + br;
+        uygula();
+      });
+    });
+    document.getElementById("ttBox").addEventListener("input", e => {
+      S.box = parseInt(e.target.value, 10);
+      document.getElementById("ttBoxV").textContent = S.box + "px";
+      uygula();
+    });
+    box.querySelectorAll(".tt-tabs button").forEach(b => {
+      b.addEventListener("click", () => { cur = parseInt(b.dataset.u, 10); sync(); });
+    });
+    document.getElementById("ttMin").addEventListener("click", e => {
+      box.classList.toggle("min");
+      e.target.textContent = box.classList.contains("min") ? "▲" : "▼";
+    });
+    document.getElementById("ttReset").addEventListener("click", () => {
+      Object.assign(S, JSON.parse(JSON.stringify(VARSAYILAN))); sync();
+    });
+    document.getElementById("ttCopy").addEventListener("click", async e => {
+      const ta = document.getElementById("ttOut");
+      try { await navigator.clipboard.writeText(ta.value); }
+      catch (_) { ta.removeAttribute("readonly"); ta.select(); document.execCommand("copy"); ta.setAttribute("readonly", ""); }
+      const o = e.target.textContent; e.target.textContent = "✔"; setTimeout(() => e.target.textContent = o, 1200);
+    });
+
+    sync();
+  }
+
 })();
 
 console.log("[tema.js] Görünüm dosyası yüklendi ✔");
