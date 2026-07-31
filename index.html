@@ -5107,13 +5107,20 @@ const TroopViewer = (function () {
 
   function setupSwipe(el) {
     let x0 = 0, y0 = 0, tracking = false;
+    /* Sürgü, buton, kutu gibi kontrollerin üstünde kaydırma çalışmasın —
+       yoksa sürgüyü çekerken diğer birliğe atlıyor. */
+    const NO_SWIPE = "input, button, select, textarea, .uv-portrait, .unit-qty-bar, .unit-train-bar, .stats";
+    const inControl = (t) => !!(t && t.closest && t.closest(NO_SWIPE));
+
     el.addEventListener("touchstart", (e) => {
       if (e.touches.length !== 1) return;
-if (e.target.classList.contains("unit3d-canvas")) return;
+      if (e.target.classList.contains("unit3d-canvas")) return;
+      if (inControl(e.target)) { tracking = false; return; }
       x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; tracking = true;
     }, { passive: true });
     el.addEventListener("touchend", (e) => {
       if (!tracking) return; tracking = false;
+      if (inControl(e.target)) return;
       const t = e.changedTouches[0];
       const dx = t.clientX - x0, dy = t.clientY - y0;
       if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) go(idx + (dx < 0 ? 1 : -1));
