@@ -4940,7 +4940,7 @@ const TroopViewer = (function () {
   function renderUnitStats() {
     const STAT_MAP = {
       knight:  { el: "knightStats",  icons: ["⚔️","❤️","🛡️"], labels: ["Saldırı","Can","Savunma"] },
-      soldier: { el: "soldierStats", icons: ["⚔️","❤️","🎯"], labels: ["Saldırı","Can","Nişan"] },
+      soldier: { el: "soldierStats", icons: ["⚔️","❤️","🛡️"], labels: ["Saldırı","Can","Savunma"] },
       robot:   { el: "robotStats",   icons: ["⚡","❤️","🛡️"], labels: ["Saldırı","Can","Savunma"] },
     };
     ORDER.forEach(uid => {
@@ -4954,11 +4954,9 @@ const TroopViewer = (function () {
       const countEl = document.getElementById("uvCount_" + uid);
       if (countEl) countEl.textContent = "x" + count;
       const stats = [def.attack, def.hp, def.defense];
-      const maxStat = Math.max(...stats, 1);
       let html = '<div class="stats-grid">';
       stats.forEach((val, i) => {
-        const pct = Math.min(100, Math.round(val / maxStat * 100));
-        html += `<div class="stat-row"><div class="stat-ico">${cfg.icons[i]}</div><div class="stat-body"><div class="stat-top"><span class="stat-name">${cfg.labels[i]}</span><span class="stat-val">${fmt(val)}</span></div><div class="bar"><i style="--w:${pct}%"></i></div></div></div>`;
+        html += `<div class="stat-row"><span class="stat-ico">${cfg.icons[i]}</span><span class="stat-name">${cfg.labels[i]}</span><span class="stat-val">${fmt(val)}</span></div>`;
       });
       html += `</div>`;
 
@@ -4973,48 +4971,26 @@ const TroopViewer = (function () {
       unitTrainQty[uid] = qty;
       const totalCost = def.cost * qty;
 
-      html += `<div class="unit-train-bar" style="position:relative;height:127px;margin-top:6px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);overflow:hidden;">`;
+      html += `<div class="unit-train-bar">`;
 
       if (!isTraining) {
-        /* 💎 Elmas Maliyeti — x:164 y:60 w:156 h:60 */
-        html += `<div style="position:absolute;left:164px;top:60px;width:156px;height:60px;display:flex;align-items:center;justify-content:center;">
-          <span style="font-size:14px;font-weight:800;color:#4fd1e8;font-family:'JetBrains Mono',monospace;white-space:nowrap;">💎 ${fmt(totalCost)}</span>
-        </div>`;
-      }
-
-      /* EĞİT Butonu — x:0 y:12 w:160 h:100 */
-      if (!isTraining) {
-        html += `<button class="unit-train-btn" data-unit="${uid}" style="position:absolute;left:0px;top:12px;width:160px;height:100px;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#d4af37,#c49b2f);border:1.5px solid #d4af37;color:#1b1430;font-family:'Lilita One','Nunito',sans-serif;font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;border-radius:8px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.3);">EĞİT ×${qty}</button>`;
+        html += `<button class="unit-train-btn" data-unit="${uid}">EĞİT ×${qty}</button>`;
+        html += `<div class="utb-info">
+            <div class="utb-time">⏱ ${def.trainMinutes} dk</div>
+            <div class="utb-cost">💎 ${fmt(totalCost)}</div>
+          </div>`;
+        html += `<div class="utb-qty">
+            <span class="uv-qty-label" data-unit="${uid}">${qty}</span>
+            <input type="range" class="uv-qty-slider" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}" orient="vertical">
+          </div>`;
       } else {
-        html += `<div style="position:absolute;left:0px;top:12px;width:160px;height:100px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1.5px solid rgba(212,175,55,.4);color:#888;font-family:'Lilita One','Nunito',sans-serif;font-weight:800;font-size:14px;letter-spacing:.04em;border-radius:8px;">⏳ Eğitiliyor...</div>`;
-      }
-
-      /* ⏱ Süre — x:156 y:0 w:168 h:64 */
-      if (isTraining) {
         const nearest = trainQueueForUnit.reduce((a, b) => a.finishAt < b.finishAt ? a : b);
         const remaining = nearest.finishAt - Date.now();
-        html += `<div style="position:absolute;left:156px;top:0px;width:168px;height:64px;display:flex;align-items:center;justify-content:center;">
-          <span class="unit-train-timer" data-unit="${uid}" style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#e8c84f;background:rgba(232,200,79,.12);border:1px solid rgba(232,200,79,.4);border-radius:7px;padding:5px 10px;white-space:nowrap;">⏱ x${trainQueueForUnit.length} ${formatRemaining(remaining)}</span>
-        </div>`;
-      } else {
-        html += `<div style="position:absolute;left:156px;top:0px;width:168px;height:64px;display:flex;align-items:center;justify-content:center;">
-          <span style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;color:rgba(255,255,255,.35);white-space:nowrap;">⏱ ${def.trainMinutes} dk</span>
-        </div>`;
-      }
-
-      /* ⏩ Hızlandır — x:136 y:56 w:208 h:64 */
-      if (isTraining) {
-        html += `<div style="position:absolute;left:136px;top:56px;width:208px;height:64px;display:flex;align-items:center;justify-content:center;">
-          <button class="speedup-trigger unit-speedup-btn" data-unit="${uid}" style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#e8c84f;background:rgba(232,200,79,.06);border:1px solid rgba(232,200,79,.35);border-radius:8px;padding:6px 12px;cursor:pointer;white-space:nowrap;" title="${speedUpCount > 0 ? 'Hızlandırmak için tıkla' : 'Mağazadan ⏩ Hızlandırma satın al'}">⏩ Hızlandır</button>
-        </div>`;
-      }
-
-      /* Adet slider — sağ kenar, dikey */
-      if (!isTraining) {
-        html += `<div style="position:absolute;right:6px;top:0;bottom:0;width:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
-          <span class="uv-qty-label" data-unit="${uid}" style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:14px;color:#e9cf7c;text-shadow:0 0 6px rgba(212,175,55,.5);">${qty}</span>
-          <input type="range" class="uv-qty-slider" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}" orient="vertical" style="writing-mode:vertical-lr;direction:rtl;-webkit-appearance:slider-vertical;appearance:auto;width:22px;height:70px;accent-color:#d4af37;cursor:pointer;">
-        </div>`;
+        html += `<div class="utb-training">⏳ Eğitiliyor</div>`;
+        html += `<div class="utb-info">
+            <div class="utb-time"><span class="unit-train-timer" data-unit="${uid}">⏱ x${trainQueueForUnit.length} ${formatRemaining(remaining)}</span></div>
+            <button class="speedup-trigger unit-speedup-btn" data-unit="${uid}" title="${speedUpCount > 0 ? 'Hızlandırmak için tıkla' : 'Mağazadan ⏩ Hızlandırma satın al'}">⏩ Hızlandır</button>
+          </div>`;
       }
 
       html += `</div>`;
@@ -5033,8 +5009,8 @@ const TroopViewer = (function () {
           unitTrainQty[uid] = v;
           const lbl = el.querySelector(".uv-qty-label");
           if (lbl) lbl.textContent = v;
-          const costEl = el.querySelector("[style*='left:164px']");
-          if (costEl) { const sp = costEl.querySelector("span"); if (sp) sp.textContent = "💎 " + fmt(def.cost * v); }
+          const costEl = el.querySelector(".utb-cost");
+          if (costEl) costEl.textContent = "💎 " + fmt(def.cost * v);
           const btn = el.querySelector(".unit-train-btn");
           if (btn) btn.textContent = "EĞİT ×" + v;
         });
@@ -5413,5 +5389,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 <!-- ═══ MAĞAZA EKLENTİSİ: görünüm + haftalık limit sistemi (ayrı dosyalar) ═══ -->
 
 <script src="magaza.js"></script>
+
+
 </body>
 </html>
