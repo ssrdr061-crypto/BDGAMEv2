@@ -1266,8 +1266,14 @@ if (document.readyState === "loading") {
   background:transparent !important;
   border:0 !important; border-radius:0 !important; box-shadow:none !important;
   padding-top:46px !important;
-  overflow:hidden !important;
+  overflow:visible !important;      /* kırpma yok — görsel serbest hareket eder */
+  z-index:1 !important;
 }
+/* sekmeler ve kapat, görselin üstünde kalsın */
+#panel-troops .tp-tabs{ z-index:55 !important; }
+#panel-troops .uv-title{ z-index:54 !important; }
+#panel-troops .uv-portraits{ position:relative !important; z-index:20 !important; }
+#panel-troops .stats{ position:relative !important; z-index:20 !important; }
 #panel-troops .us-soldier .spot{ opacity:.3 !important; }
 #panel-troops .us-knight .dust{ display:none !important; }
 
@@ -1618,12 +1624,12 @@ if (document.readyState === "loading") {
     }
 
     const ALAN = [
-      ["h",  "Boyut",       40, 160, "%"],
-      ["b",  "Dikey ↑↓",  -120, 120, "px"],
-      ["x",  "Yatay ←→",  -100, 100, "px"],
-      ["pw", "P. yakın",   100, 360, "%"],
-      ["pl", "P. yatay",  -200,  60, "%"],
-      ["pt", "P. dikey",  -140,  60, "%"]
+      ["h",  "Boyut",       30, 260, "%"],
+      ["b",  "Dikey ↑↓",  -260, 260, "px"],
+      ["x",  "Yatay ←→",  -200, 200, "px"],
+      ["pw", "P. yakın",    60, 500, "%"],
+      ["pl", "P. yatay",  -300, 150, "%"],
+      ["pt", "P. dikey",  -300, 150, "%"]
     ];
 
     const box = document.createElement("div");
