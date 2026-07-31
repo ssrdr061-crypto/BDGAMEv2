@@ -1223,7 +1223,6 @@ if (document.readyState === "loading") {
 
 /* ═══════════════════════════════════════════════════════════════
    9) BİRLİK PANELİ v2 + SAVAŞ RAPORU
-      Ölçüler CSS değişkeninde; ?ayar=1 ile canlı ayar paneli açılır.
    ═══════════════════════════════════════════════════════════════ */
 (function () {
   const s = document.createElement("style");
@@ -1549,28 +1548,31 @@ if (document.readyState === "loading") {
   margin:var(--tp-rp-t,-10%) 0 0 var(--tp-rp-l,-18%) !important;
 }
 
-/* ── canlı ayar paneli (sadece ?ayar=1 ile) ── */
+/* ── canlı ayar paneli (sadece ?ayar=1 ile) — küçük, köşede ── */
 #tpTuner{
-  position:fixed; left:8px; right:8px; bottom:8px; z-index:9999;
-  background:#151d2e; border:1px solid #2b4260; border-radius:14px;
-  padding:10px; font-family:'Baloo 2',sans-serif; color:#e8f4ff;
-  box-shadow:0 -6px 24px rgba(0,0,0,.5); max-height:52vh; overflow:auto;
+  position:fixed; right:8px; bottom:8px; z-index:9999;
+  width:min(268px, 76vw); max-height:44vh; overflow:auto;
+  background:rgba(12,20,34,.93); border:1px solid #2b4260; border-radius:12px;
+  padding:7px 8px; font-family:'Baloo 2',sans-serif; color:#e8f4ff;
+  box-shadow:0 6px 20px rgba(0,0,0,.55); backdrop-filter:blur(4px);
 }
-#tpTuner.min{ max-height:44px; overflow:hidden; }
-#tpTuner .tt-head{ display:flex; gap:6px; align-items:center; margin-bottom:8px; }
-#tpTuner .tt-head b{ font-size:13px; color:#ffd257; flex:1; }
-#tpTuner button{ border:0; border-radius:9px; padding:7px 10px; cursor:pointer;
-  font-family:inherit; font-weight:800; font-size:12px; background:#26364f; color:#cfe8ff; }
+#tpTuner.min{ max-height:34px; overflow:hidden; width:auto; }
+#tpTuner.top{ bottom:auto; top:8px; }
+#tpTuner .tt-head{ display:flex; gap:4px; align-items:center; margin-bottom:5px; }
+#tpTuner .tt-head b{ font-size:11px; color:#ffd257; flex:1; white-space:nowrap; }
+#tpTuner button{ border:0; border-radius:7px; padding:5px 7px; cursor:pointer;
+  font-family:inherit; font-weight:800; font-size:10.5px; background:#26364f; color:#cfe8ff; }
 #tpTuner button.on{ background:#ffd257; color:#3a2408; }
-#tpTuner .tt-tabs{ display:flex; gap:5px; margin-bottom:7px; }
-#tpTuner .tt-tabs button{ flex:1; }
-#tpTuner .tt-row{ display:flex; align-items:center; gap:7px; margin:4px 0; }
-#tpTuner .tt-row label{ width:78px; flex:none; font-size:11.5px; color:#a9c3e0; font-weight:700; }
-#tpTuner .tt-row input{ flex:1; accent-color:#ffd257; height:20px; }
-#tpTuner .tt-row span{ width:48px; text-align:right; font-size:12px; font-weight:800; color:#7fd8ff; }
-#tpTuner textarea{ width:100%; height:74px; margin-top:6px; background:#0b1220;
-  border:1px solid #2b4260; border-radius:9px; color:#9fe8ff;
-  font:11px/1.45 ui-monospace,monospace; padding:7px; }
+#tpTuner .tt-tabs{ display:flex; gap:3px; margin-bottom:5px; }
+#tpTuner .tt-tabs button{ flex:1; padding:5px 2px; font-size:10px; }
+#tpTuner .tt-row{ display:flex; align-items:center; gap:5px; margin:2px 0; }
+#tpTuner .tt-row label{ width:56px; flex:none; font-size:10px; color:#a9c3e0; font-weight:700; }
+#tpTuner .tt-row input{ flex:1; accent-color:#ffd257; height:16px; }
+#tpTuner .tt-row span{ width:40px; text-align:right; font-size:10.5px; font-weight:800; color:#7fd8ff; }
+#tpTuner textarea{ width:100%; height:52px; margin-top:5px; background:#0b1220;
+  border:1px solid #2b4260; border-radius:7px; color:#9fe8ff;
+  font:9.5px/1.4 ui-monospace,monospace; padding:5px; }
+
 
 
 /* ═══ SAVAŞ RAPORU ═══ */
@@ -1658,8 +1660,11 @@ if (document.readyState === "loading") {
   border-radius:calc(var(--rh-box,52px) * .2); overflow:hidden;
   background:linear-gradient(180deg,#3d7ccc,#152e5e);
   border:2px solid rgba(190,240,255,.5);
-  display:flex; align-items:center; justify-content:center;
+  display:block;                 /* flex DEĞİL — görsel kutudan taşıp yakınlaşabilsin */
+  position:relative;
 }
+.rep-hpor .rep-hemoji{ display:flex; align-items:center; justify-content:center;
+  width:100%; height:100%; }
 .rep-hpor img{ width:var(--rh-w,100%); height:auto; display:block;
   margin:var(--rh-t,0%) 0 0 var(--rh-l,0%); }
 .rep-hemoji{ font-size:20px; }
@@ -1744,6 +1749,7 @@ if (document.readyState === "loading") {
       `<div class="tt-head"><b>⚙ Birlik ayarı</b>
          <button id="ttCopy">📋 Kopyala</button>
          <button id="ttReset">Sıfırla</button>
+         <button id="ttPos">↕</button>
          <button id="ttMin">▼</button>
        </div>
        <div class="tt-tabs">${AD.map((a, i) => `<button data-u="${i}"${i === 0 ? ' class="on"' : ""}>${a}</button>`).join("")}</div>
@@ -1797,6 +1803,9 @@ if (document.readyState === "loading") {
     });
     box.querySelectorAll(".tt-tabs button").forEach(b => {
       b.addEventListener("click", () => { cur = parseInt(b.dataset.u, 10); sync(); });
+    });
+    document.getElementById("ttPos").addEventListener("click", () => {
+      box.classList.toggle("top");
     });
     document.getElementById("ttMin").addEventListener("click", e => {
       box.classList.toggle("min");
