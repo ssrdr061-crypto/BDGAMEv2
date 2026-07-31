@@ -735,12 +735,18 @@ function heroImgOf(name) {
   return null;
 }
 
+function heroIdOf(name) {
+  if (typeof HERO_STATS === "undefined") return "";
+  return Object.keys(HERO_STATS).find(k => HERO_STATS[k] && HERO_STATS[k].name === name) || "";
+}
+
 function heroChip(name) {
   const img = heroImgOf(name);
+  const id = heroIdOf(name);
   const inner = img ? `<img src="${img}" alt="">` : `<span class="rep-hemoji">🦸</span>`;
-  /* Ölçüler CSS değişkeninde — ?ayar=1 paneliyle canlı ayarlanır */
+  /* Ölçüler her kahraman için AYRI CSS değişkeninde — ?ayar=1 ile ayarlanır */
   return `<div class="rep-hchip">
-    <div class="rep-hpor">${inner}</div>
+    <div class="rep-hpor" data-h="${id}">${inner}</div>
     <div class="rep-hname">${name}</div>
   </div>`;
 }
@@ -1667,14 +1673,35 @@ if (document.readyState === "loading") {
   width:100%; height:100%; }
 .rep-hpor img{ width:var(--rh-w,100%); height:auto; display:block;
   margin:var(--rh-t,0%) 0 0 var(--rh-l,0%); }
+
+/* her kahraman ayrı ayarlanır */
+.rep-hpor[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,52px); height:var(--rh-buz_savascisi-box,52px); border-radius:calc(var(--rh-buz_savascisi-box,52px) * .2); }
+.rep-hpor[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,100%); margin:var(--rh-buz_savascisi-t,0%) 0 0 var(--rh-buz_savascisi-l,0%); }
+.rep-hpor[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,52px); height:var(--rh-celik_savasci-box,52px); border-radius:calc(var(--rh-celik_savasci-box,52px) * .2); }
+.rep-hpor[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,100%); margin:var(--rh-celik_savasci-t,0%) 0 0 var(--rh-celik_savasci-l,0%); }
+.rep-hpor[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,52px); height:var(--rh-ates_buyucusu-box,52px); border-radius:calc(var(--rh-ates_buyucusu-box,52px) * .2); }
+.rep-hpor[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,100%); margin:var(--rh-ates_buyucusu-t,0%) 0 0 var(--rh-ates_buyucusu-l,0%); }
+.rep-hpor[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,52px); height:var(--rh-ivanovna-box,52px); border-radius:calc(var(--rh-ivanovna-box,52px) * .2); }
+.rep-hpor[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,100%); margin:var(--rh-ivanovna-t,0%) 0 0 var(--rh-ivanovna-l,0%); }
+.rep-hpor[data-h="revolia"]{ width:var(--rh-revolia-box,52px); height:var(--rh-revolia-box,52px); border-radius:calc(var(--rh-revolia-box,52px) * .2); }
+.rep-hpor[data-h="revolia"] img{ width:var(--rh-revolia-w,100%); margin:var(--rh-revolia-t,0%) 0 0 var(--rh-revolia-l,0%); }
 .rep-hemoji{ font-size:20px; }
 .rep-hname{ font-size:9px; font-weight:800; color:#eaf7ff; text-align:center; line-height:1.1; }
 
 /* kendi raporumdaki kahraman portresi de aynı ayarları kullansın */
-.rep-por-hero{ width:var(--rh-box,52px) !important; height:var(--rh-box,52px) !important;
-  border-radius:calc(var(--rh-box,52px) * .2) !important; }
-.rep-por-hero img{ width:var(--rh-w,100%) !important;
-  margin:var(--rh-t,0%) 0 0 var(--rh-l,0%) !important; }
+.rep-por-hero[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,52px) !important; height:var(--rh-buz_savascisi-box,52px) !important; border-radius:calc(var(--rh-buz_savascisi-box,52px) * .2) !important; }
+.rep-por-hero[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,100%) !important; margin:var(--rh-buz_savascisi-t,0%) 0 0 var(--rh-buz_savascisi-l,0%) !important; }
+.rep-por-hero[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,52px) !important; height:var(--rh-celik_savasci-box,52px) !important; border-radius:calc(var(--rh-celik_savasci-box,52px) * .2) !important; }
+.rep-por-hero[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,100%) !important; margin:var(--rh-celik_savasci-t,0%) 0 0 var(--rh-celik_savasci-l,0%) !important; }
+.rep-por-hero[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,52px) !important; height:var(--rh-ates_buyucusu-box,52px) !important; border-radius:calc(var(--rh-ates_buyucusu-box,52px) * .2) !important; }
+.rep-por-hero[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,100%) !important; margin:var(--rh-ates_buyucusu-t,0%) 0 0 var(--rh-ates_buyucusu-l,0%) !important; }
+.rep-por-hero[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,52px) !important; height:var(--rh-ivanovna-box,52px) !important; border-radius:calc(var(--rh-ivanovna-box,52px) * .2) !important; }
+.rep-por-hero[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,100%) !important; margin:var(--rh-ivanovna-t,0%) 0 0 var(--rh-ivanovna-l,0%) !important; }
+.rep-por-hero[data-h="revolia"]{ width:var(--rh-revolia-box,52px) !important; height:var(--rh-revolia-box,52px) !important; border-radius:calc(var(--rh-revolia-box,52px) * .2) !important; }
+.rep-por-hero[data-h="revolia"] img{ width:var(--rh-revolia-w,100%) !important; margin:var(--rh-revolia-t,0%) 0 0 var(--rh-revolia-l,0%) !important; }
+
+#tpTuner .tt-sub{ margin-top:-2px; }
+#tpTuner .tt-sub button{ font-size:9.5px; padding:4px 2px; }
   `;
   document.head.appendChild(s);
 
@@ -1698,18 +1725,26 @@ if (document.readyState === "loading") {
       r: { h: 116, b: -44, x: -4, pw: 140, pl: -18, pt: -10 },
       hx:{ h: 52,  b: 0,   x: 0,  pw: 100, pl: 0,   pt: 0 }
     };
+    const HERO_IDS  = ["buz_savascisi", "celik_savasci", "ates_buyucusu", "ivanovna", "revolia"];
+    const HERO_ADI  = ["Halvorsen", "Stellin", "Mikian", "İvanovna", "Revolia"];
     const S = JSON.parse(JSON.stringify(VARSAYILAN));
+    /* her kahramanın kendi rapor kutusu ayarı */
+    S.hero = {};
+    HERO_IDS.forEach(id => { S.hero[id] = { h: 52, pw: 100, pl: 0, pt: 0 }; });
     let cur = 0;
+    let curHero = 0;
 
     const kok = document.documentElement;
     function uygula() {
       kok.style.setProperty("--tp-box", S.box + "px");
       /* rapor kahramanı ayrı değişken kümesi kullanır */
-      const hx = S.hx;
-      kok.style.setProperty("--rh-box", hx.h + "px");
-      kok.style.setProperty("--rh-w",   hx.pw + "%");
-      kok.style.setProperty("--rh-l",   hx.pl + "%");
-      kok.style.setProperty("--rh-t",   hx.pt + "%");
+      HERO_IDS.forEach(id => {
+        const c = S.hero[id];
+        kok.style.setProperty(`--rh-${id}-box`, c.h + "px");
+        kok.style.setProperty(`--rh-${id}-w`,   c.pw + "%");
+        kok.style.setProperty(`--rh-${id}-l`,   c.pl + "%");
+        kok.style.setProperty(`--rh-${id}-t`,   c.pt + "%");
+      });
 
       ["k", "a", "r"].forEach(p => {
         const c = S[p];
@@ -1728,8 +1763,11 @@ if (document.readyState === "loading") {
         const c = S[p];
         t += `\n${AD[i]}\n  büyük: ${c.h}% | ${c.b}px | ${c.x}px\n  portre: ${c.pw}% | ${c.pl}% | ${c.pt}%\n`;
       });
-      const h = S.hx;
-      t += `\nRAPOR KAHRAMANI\n  kutu: ${h.h}px | yakın: ${h.pw}% | yatay: ${h.pl}% | dikey: ${h.pt}%\n`;
+      t += "\nRAPOR KAHRAMAN KUTULARI\n";
+      HERO_IDS.forEach((id, i) => {
+        const c = S.hero[id];
+        t += `  ${HERO_ADI[i]}: kutu ${c.h}px | yakın ${c.pw}% | yatay ${c.pl}% | dikey ${c.pt}%\n`;
+      });
       const o = document.getElementById("ttOut");
       if (o) o.value = t;
     }
@@ -1752,8 +1790,9 @@ if (document.readyState === "loading") {
          <button id="ttPos">↕</button>
          <button id="ttMin">▼</button>
        </div>
-       <div class="tt-tabs">${AD.map((a, i) => `<button data-u="${i}"${i === 0 ? ' class="on"' : ""}>${a}</button>`).join("")}</div>
+       <div class="tt-tabs" id="ttUnitTabs">${AD.map((a, i) => `<button data-u="${i}"${i === 0 ? ' class="on"' : ""}>${a}</button>`).join("")}</div>
        <div class="tt-row"><label>Kutu</label><input type="range" id="ttBox" min="34" max="90" step="1"><span id="ttBoxV"></span></div>
+       <div class="tt-tabs tt-sub" id="ttHeroTabs" style="display:none;flex-wrap:wrap"></div>
        <div id="ttFields"></div>
        <textarea id="ttOut" readonly></textarea>`;
     document.body.appendChild(box);
@@ -1764,18 +1803,33 @@ if (document.readyState === "loading") {
          <input type="range" data-k="${k}" min="${mn}" max="${mx}" step="1">
          <span data-v="${k}"></span></div>`).join("");
 
+    const heroTabs = document.getElementById("ttHeroTabs");
+    heroTabs.innerHTML = HERO_ADI.map((a, i) =>
+      `<button data-h="${i}"${i === 0 ? ' class="on"' : ""} style="flex:1 1 30%">${a}</button>`).join("");
+    heroTabs.querySelectorAll("button").forEach(b => {
+      b.addEventListener("click", () => { curHero = parseInt(b.dataset.h, 10); sync(); });
+    });
+
+    function aktifKume() {
+      return (P[cur] === "hx") ? S.hero[HERO_IDS[curHero]] : S[P[cur]];
+    }
+
     function sync() {
-      const c = S[P[cur]];
+      const c = aktifKume();
       ALAN.forEach(([k, , , , br]) => {
         const inp = alanlar.querySelector(`[data-k="${k}"]`);
         const sp  = alanlar.querySelector(`[data-v="${k}"]`);
-        inp.value = c[k]; sp.textContent = c[k] + br;
+        if (!inp || !sp) return;
+        const deger = (typeof c[k] === "number") ? c[k] : 0;
+        inp.value = deger; sp.textContent = deger + br;
       });
       document.getElementById("ttBox").value = S.box;
       document.getElementById("ttBoxV").textContent = S.box + "px";
-      box.querySelectorAll(".tt-tabs button").forEach((b, i) => b.classList.toggle("on", i === cur));
+      document.getElementById("ttUnitTabs").querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i === cur));
       /* rapor kahramanında sadece kutu + portre ayarları anlamlı */
       const raporMu = (P[cur] === "hx");
+      heroTabs.style.display = raporMu ? "flex" : "none";
+      heroTabs.querySelectorAll("button").forEach((b, i) => b.classList.toggle("on", i === curHero));
       ["b", "x"].forEach(k => {
         const r = alanlar.querySelector(`[data-k="${k}"]`);
         if (r && r.parentElement) r.parentElement.style.display = raporMu ? "none" : "";
@@ -1790,7 +1844,7 @@ if (document.readyState === "loading") {
     alanlar.querySelectorAll("input").forEach(inp => {
       inp.addEventListener("input", () => {
         const k = inp.dataset.k;
-        S[P[cur]][k] = parseInt(inp.value, 10);
+        aktifKume()[k] = parseInt(inp.value, 10);
         const br = (ALAN.find(a => a[0] === k) || [])[4] || "";
         alanlar.querySelector(`[data-v="${k}"]`).textContent = inp.value + br;
         uygula();
@@ -1801,8 +1855,8 @@ if (document.readyState === "loading") {
       document.getElementById("ttBoxV").textContent = S.box + "px";
       uygula();
     });
-    box.querySelectorAll(".tt-tabs button").forEach(b => {
-      b.addEventListener("click", () => { cur = parseInt(b.dataset.u, 10); sync(); });
+    document.getElementById("ttUnitTabs").querySelectorAll("button").forEach(b => {
+      b.addEventListener("click", () => { cur = parseInt(b.dataset.u, 10) || 0; sync(); });
     });
     document.getElementById("ttPos").addEventListener("click", () => {
       box.classList.toggle("top");
@@ -1812,7 +1866,9 @@ if (document.readyState === "loading") {
       e.target.textContent = box.classList.contains("min") ? "▲" : "▼";
     });
     document.getElementById("ttReset").addEventListener("click", () => {
-      Object.assign(S, JSON.parse(JSON.stringify(VARSAYILAN))); sync();
+      Object.assign(S, JSON.parse(JSON.stringify(VARSAYILAN)));
+      S.hero = {}; HERO_IDS.forEach(id => { S.hero[id] = { h: 52, pw: 100, pl: 0, pt: 0 }; });
+      sync();
     });
     document.getElementById("ttCopy").addEventListener("click", async e => {
       const ta = document.getElementById("ttOut");
