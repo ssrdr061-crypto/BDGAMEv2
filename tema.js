@@ -1496,8 +1496,30 @@ if (document.readyState === "loading") {
 
 /* troops.js kendi ✕ butonunu ekliyor, ana kodda da biri var — biri gizlenir */
 #panel-troops .tp-close{ display:none !important; }
+
+/* ── Birlik geçişi anında olsun (yumuşak geçiş "yenileniyor" hissi veriyordu) ── */
+#panel-troops .unit-screen{ transition:none !important; }
+
+/* ── Panel alt şeridin (kahraman/çanta/mağaza/sıralama) üstünde bitsin ── */
+#panel-troops{ padding-bottom:var(--tp-dock-h, 58px) !important; }
+#panel-troops .uv-viewer{
+  height:min(84vh, 660px) !important;
+  border-radius:22px !important;
+  border-bottom:3px solid rgba(190,240,255,.85) !important;
+  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45) !important;
+}
   `;
   document.head.appendChild(s);
+
+  /* Alt şeridin gerçek yüksekliğini ölç — panel tam onun üstünde bitsin */
+  function measureDock() {
+    const d = document.querySelector(".nav-dock");
+    if (d) document.documentElement.style.setProperty("--tp-dock-h", d.offsetHeight + "px");
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", measureDock);
+  else measureDock();
+  window.addEventListener("resize", measureDock);
+  window.addEventListener("orientationchange", () => setTimeout(measureDock, 200));
 })();
 
 console.log("[tema.js] Görünüm dosyası yüklendi ✔");
