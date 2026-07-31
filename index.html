@@ -2442,24 +2442,89 @@ function defaultState() {
   };
 }
 
+/* Seçili kahramanın AKTİF yetenekleri (seviye 1 — leveling henüz yok).
+   heroes.js'teki HERO_STATS[skin].abilities değerlerini okur. */
+function activeHeroAbilities() {
+  try {
+    if (typeof HERO_STATS === "undefined") return [];
+    const skin = state.selectedHeroSkin;
+    const h = skin && HERO_STATS[skin];
+    if (!h || !h.abilities) return [];
+    const lv = 0; // seviye 1
+    return h.abilities.filter(a => a && a.effect).map(a => ({
+      type: a.effect.type, title: a.title || "",
+      v: (a.valuesByLevel || [])[lv],
+      v2: (a.valuesByLevel2 || [])[lv],
+      chance: (a.chanceByLevel || [])[lv],
+      effect: a.effect,
+    }));
+  } catch (e) { return []; }
+}
+
+/* Gölge Manevrası (İvanovna): füze yiyince şansa göre kaleyi boş bir kareye ışınla.
+   missile.js kurbanın vurulduğunu tespit edince bunu çağırır. */
+window.onMissileHitSelf = function () {
+  try {
+    const ab = activeHeroAbilities();
+    const rel = ab.find(a => a.type === "castle_relocate_on_missile");
+    if (!rel) return;
+    const chance = (rel.effect && rel.effect.chance != null) ? rel.effect.chance
+                  : (rel.chance != null ? rel.chance : 40);
+    if (Math.random() * 100 >= chance) return;                 // tetiklenmedi
+    if (!state.castle || typeof generateRandomCastlePos !== "function") return;
+    const pos = generateRandomCastlePos();
+    if (!pos) return;
+    state.castle.gx = pos.gx;
+    state.castle.gy = pos.gy;
+    if (typeof persistCurrentState === "function") persistCurrentState();
+    if (typeof renderBattleMap === "function") renderBattleMap();
+    if (typeof showToast === "function") showToast("🌀 Gölge Manevrası! Kalen güvenli bir konuma ışınlandı.");
+  } catch (e) {}
+};
+
+/* Kahramanın KENDİ statı YOKTUR; savaş gücü sadece BİRLİKLERDEN gelir.
+   Kahramanın işi bu birlik statlarını BUFF'lamaktır (heroes.js yetenekleri).
+   Dönen maxHp = buff'lı toplam birlik canı; hpMult = can buff çarpanı (roster'ı ölçekler). */
 function getEffectiveHeroStats(selectedTroops) {
-  const base = state.hero;
-  const result = { ...base };
+  const ab = activeHeroAbilities();
+  const find = t => ab.find(a => a.type === t);
+
+  let attack = 0, defense = 0, troopHp = 0;
   if (selectedTroops) {
     Object.keys(selectedTroops).forEach(unitId => {
       const n = ensure(Math.min(selectedTroops[unitId] || 0, state.troops[unitId] || 0));
       const def = UNIT_TYPES[unitId];
       if (!def || n <= 0) return;
-      result.attack += def.attack * n;
-      result.defense += def.defense * n;
-      result.maxHp += def.hp * n;
+      let a = def.attack, d = def.defense, hp = def.hp;
+      if (unitId === "robot") {                       // Revolia: robot'a özel
+        const rob = find("robot_atk_hp_pct");
+        if (rob && rob.v) { a *= (1 + rob.v / 100); hp *= (1 + rob.v / 100); }
+        const rd = find("defense_robot_multiplier");
+        if (rd && rd.effect) d *= (rd.effect.multiplier || 2);
+      }
+      attack += a * n; defense += d * n; troopHp += hp * n;
     });
   }
 
-  result.attack = Math.max(5, result.attack);
-  result.defense = ensure(result.defense);
-  result.maxHp = Math.max(50, result.maxHp);
-  return result;
+  // Global birlik buff'ları
+  let f, hpMult = 1;
+  if ((f = find("troop_atk_def_pct")) && f.v) { attack *= (1 + f.v / 100); defense *= (1 + f.v / 100); }
+  if ((f = find("troop_atk_def_hp_pct"))) {
+    attack *= (1 + (f.v || 0) / 100);
+    defense *= (1 + ((f.v2 != null ? f.v2 : f.v) || 0) / 100);
+    const hpp = (f.effect && f.effect.hpFlatPct) || 0; hpMult *= (1 + hpp / 100); troopHp *= (1 + hpp / 100);
+  }
+  if ((f = find("troop_def_pct")) && f.v) defense *= (1 + f.v / 100);
+  if ((f = find("troop_hp_pct")) && f.v) { hpMult *= (1 + f.v / 100); troopHp *= (1 + f.v / 100); }
+
+  return {
+    attack: Math.max(5, Math.round(attack)),
+    defense: ensure(Math.round(defense)),
+    maxHp: Math.max(1, Math.round(troopHp)),
+    hpMult: hpMult,
+    ultiChance: 0, ultiMultiplier: 1,   // kahraman KRİTİK vermez
+    heroAbilities: ab,
+  };
 }
 
 let currentUsername = null;
@@ -4031,39 +4096,132 @@ function computeHit(attackerAtk, defenderDef, ultiChance, ultiMultiplier) {
   return { dmg, isUlti };
 }
 
-function simulateBattle(hero, enemy, troopRoster) {
+/* Aktif kahraman yeteneğini rapor için okunur metne çevirir.
+   Henüz savaşa entegre EDİLMEYEN efektler için null döner (raporda gösterilmez). */
+function _describeBuff(a) {
+  const v = a.v, v2 = (a.v2 != null ? a.v2 : a.v);
+  switch (a.type) {
+    case "troop_hp_pct": return `${a.title}: birlik canı +%${v}`;
+    case "troop_def_pct": return `${a.title}: birlik savunması +%${v}`;
+    case "troop_atk_def_pct": return `${a.title}: birlik saldırı & savunma +%${v}`;
+    case "troop_atk_def_hp_pct": return `${a.title}: saldırı +%${v}, savunma +%${v2}, can +%${(a.effect && a.effect.hpFlatPct) || 0}`;
+    case "robot_atk_hp_pct": return `${a.title}: robot saldırı & can +%${v}`;
+    case "defense_robot_multiplier": return `${a.title}: robot savunması ×${(a.effect && a.effect.multiplier) || 2}`;
+    case "enemy_def_shred_pct": return `${a.title}: düşman savunması -%${v}`;
+    case "enemy_hp_atk_reduce_pct": return `${a.title}: düşman canı -%${v}, saldırısı -%${v2}`;
+    case "wounded_return_pct": return `${a.title}: yaralıların %${v} kadarı geri döner`;
+    case "enemy_freeze_turns": return `${a.title}: savaş başında düşmanı dondurur`;
+    case "damage_reflect_pct": return `${a.title}: alınan hasarın %${v}'si düşmana yansır`;
+    case "periodic_def_reduce_pct": return `${a.title}: her ${(a.effect && a.effect.everyTurns) || 2} turda düşman savunması -%${v}`;
+    case "enemy_instant_casualty": return `${a.title}: düşmanın %${v}'si anında yok olur`;
+    case "power_gap_cap": return `${a.title}: çok güçlü düşmana karşı alınan hasar -%${v}`;
+    default: return null; // henüz entegre edilmedi
+  }
+}
 
-  const troops = (troopRoster || []).map(t => ({ ...t, hpEach: t.hpEach }));
+function simulateBattle(hero, enemy, troopRoster) {
+  // Can buff'ı roster'a da yansısın (buff'lı birlik canı tutarlı olsun)
+  const hpMult = hero.hpMult || 1;
+  const troops = (troopRoster || []).map(t => ({ ...t, hpEach: Math.max(1, Math.round(t.hpEach * hpMult)) }));
   const totalTroopHp = troops.reduce((sum, t) => sum + t.hpEach, 0);
-  const combinedMaxHp = hero.maxHp + totalTroopHp;
+  const combinedMaxHp = Math.max(1, totalTroopHp); // kahramanın kendi canı YOK; tüm can birliklerde
+
+  // ── DÜŞMAN DEBUFF'LARI (kahraman yetenekleri) — savaş başında ──
+  const ab = hero.heroAbilities || [];
+  const findAb = t => ab.find(a => a.type === t);
+  let enemyAtk = enemy.attack, enemyDef = enemy.defense, enemyMaxHp = enemy.maxHp;
+  let f;
+  const debuffs = {};
+  if ((f = findAb("enemy_def_shred_pct")) && f.v) { enemyDef *= (1 - f.v / 100); debuffs.defShred = f.v; }
+  if ((f = findAb("enemy_hp_atk_reduce_pct"))) {
+    const hpR = f.v || 0, atkR = (f.v2 != null ? f.v2 : f.v) || 0;
+    enemyMaxHp *= (1 - hpR / 100); enemyAtk *= (1 - atkR / 100);
+    debuffs.hpReduce = hpR; debuffs.atkReduce = atkR;
+  }
+  enemyAtk = Math.max(1, Math.round(enemyAtk));
+  enemyDef = ensure(Math.round(enemyDef));
+  enemyMaxHp = Math.max(1, Math.round(enemyMaxHp));
 
   let combinedHp = combinedMaxHp;
-  let enemyHp = enemy.maxHp;
+
+  // ── KAHRAMAN AKIŞ YETENEKLERİ (savaş içi) ──
+  // Yasak Büyüler: düşmanın %v'si anında ölür
+  let instantCasualtyPct = 0;
+  if ((f = findAb("enemy_instant_casualty")) && f.v) instantCasualtyPct = f.v;
+  // Buz Engelleri: düşman ilk N tur donuk (şansa göre)
+  let enemyFrozenTurns = 0, freezeInit = 0;
+  if ((f = findAb("enemy_freeze_turns"))) {
+    const fb = (f.effect && f.effect.fallbackTurns) || 1;
+    const chance = (f.chance != null ? f.chance : 100);
+    enemyFrozenTurns = (Math.random() * 100 < chance) ? (f.v || fb) : fb;
+    freezeInit = enemyFrozenTurns;
+  }
+  // Çelik Yansıması: alınan hasarın %v'si düşmana yansır (savunma delici)
+  const reflectPct = ((f = findAb("damage_reflect_pct")) && f.v) ? f.v : 0;
+  let reflectTotal = 0;
+  // Yıldırım Fırtınası: her N turda düşman savunması -%v (kalıcı, birikir)
+  const periodicAb = findAb("periodic_def_reduce_pct");
+  const periodicPct = (periodicAb && periodicAb.v) ? periodicAb.v : 0;
+  const periodicEvery = (periodicAb && periodicAb.effect && periodicAb.effect.everyTurns) || 2;
+  let periodicCount = 0;
+  // Derin İstihbarat: çok güçlü düşmana karşı alınan hasar -%v
+  let dmgReduceVsStronger = 0;
+  if ((f = findAb("power_gap_cap"))) {
+    const gap = (f.effect && f.effect.triggerGapPct) || 50;
+    const myPow = hero.attack + hero.defense + Math.round(combinedMaxHp / 4);
+    const enPow = enemyAtk + enemyDef + Math.round(enemyMaxHp / 4);
+    if (enPow >= myPow * (1 + gap / 100)) dmgReduceVsStronger = f.v || 0;
+  }
+
+  let enemyHp = enemyMaxHp;
+  let instantKilled = 0;
+  if (instantCasualtyPct > 0) {
+    instantKilled = Math.round(enemyMaxHp * instantCasualtyPct / 100);
+    enemyHp = ensure(enemyHp - instantKilled);
+  }
+
   const rounds = [];
   let turn = 0;
-  let totalDamageDealtToEnemy = 0;
-  let totalDamageTakenCombined = 0;
+  let totalDamageDealtToEnemy = instantKilled;
 
   while (combinedHp > 0 && enemyHp > 0 && turn < 25) {
     turn++;
-    const heroHit = computeHit(hero.attack, enemy.defense, hero.ultiChance, hero.ultiMultiplier);
+    // periyodik savunma kırma (2., 4., ... tur)
+    if (periodicPct > 0 && turn % periodicEvery === 0) {
+      enemyDef = ensure(Math.round(enemyDef * (1 - periodicPct / 100)));
+      periodicCount++;
+    }
+    const heroHit = computeHit(hero.attack, enemyDef, hero.ultiChance, hero.ultiMultiplier);
     enemyHp = ensure(enemyHp - heroHit.dmg);
     totalDamageDealtToEnemy += heroHit.dmg;
     rounds.push({ side: "hero", dmg: heroHit.dmg, isUlti: heroHit.isUlti, enemyHpAfter: enemyHp, heroHpAfter: combinedHp });
     if (enemyHp <= 0) break;
 
-    const enemyHit = computeHit(enemy.attack, hero.defense, enemy.ultiChance, enemy.ultiMultiplier);
-    combinedHp = ensure(combinedHp - enemyHit.dmg);
-    totalDamageTakenCombined += enemyHit.dmg;
-    rounds.push({ side: "enemy", dmg: enemyHit.dmg, isUlti: enemyHit.isUlti, enemyHpAfter: enemyHp, heroHpAfter: combinedHp });
+    // düşman saldırısı (donuksa atlar)
+    if (enemyFrozenTurns > 0) {
+      enemyFrozenTurns--;
+      rounds.push({ side: "enemy", dmg: 0, frozen: true, enemyHpAfter: enemyHp, heroHpAfter: combinedHp });
+      continue;
+    }
+    const enemyHit = computeHit(enemyAtk, hero.defense, enemy.ultiChance, enemy.ultiMultiplier);
+    let inc = enemyHit.dmg;
+    if (dmgReduceVsStronger > 0) inc = Math.round(inc * (1 - dmgReduceVsStronger / 100));
+    combinedHp = ensure(combinedHp - inc);
+    if (reflectPct > 0 && inc > 0) {
+      const refl = Math.max(1, Math.round(inc * reflectPct / 100));
+      enemyHp = ensure(enemyHp - refl);
+      reflectTotal += refl;
+      totalDamageDealtToEnemy += refl;
+    }
+    rounds.push({ side: "enemy", dmg: inc, isUlti: enemyHit.isUlti, reflected: (reflectPct > 0), enemyHpAfter: enemyHp, heroHpAfter: combinedHp });
   }
 
   const win = enemyHp <= 0 && combinedHp > 0;
   const totalHpLost = combinedMaxHp - combinedHp;
 
-  const heroHpLost = Math.min(totalHpLost, hero.maxHp);
-  const heroHpFinal = hero.maxHp - heroHpLost;
-  let troopDamagePool = ensure(totalHpLost - hero.maxHp);
+  const heroHpLost = 0;              // kahraman canı yok
+  const heroHpFinal = combinedHp;    // kalan BİRLİK canı
+  let troopDamagePool = ensure(totalHpLost);
 
   const troopsWoundedByUnit = {};
   troops.forEach(t => {
@@ -4078,21 +4236,40 @@ function simulateBattle(hero, enemy, troopRoster) {
   });
   const troopsLost = 0;
   const troopsLostByUnit = {};
-  const troopsWounded = Object.values(troopsWoundedByUnit).reduce((a, arr) => a + arr.length, 0);
+  let troopsWounded = Object.values(troopsWoundedByUnit).reduce((a, arr) => a + arr.length, 0);
 
-  // Yetenek (ulti/kritik) kaç kez tetiklendi?
+  // ── İvanovna "Birliklerin Sevgilisi": yaralıların %v'si geri döner ──
+  let woundedReturned = 0;
+  const wr = findAb("wounded_return_pct");
+  if (wr && wr.v && troopsWounded > 0) {
+    woundedReturned = troopsWounded - Math.round(troopsWounded * (1 - wr.v / 100));
+    let toReturn = woundedReturned;
+    Object.keys(troopsWoundedByUnit).forEach(uid => {
+      const arr = troopsWoundedByUnit[uid];
+      arr.sort((a, b) => b.remainingHp - a.remainingHp); // en hafif yaralı önce döner
+      while (toReturn > 0 && arr.length > 0) { arr.shift(); toReturn--; }
+      if (arr.length === 0) delete troopsWoundedByUnit[uid];
+    });
+    troopsWounded = Object.values(troopsWoundedByUnit).reduce((a, arr) => a + arr.length, 0);
+  }
+
   const heroUltiTriggers = rounds.filter(r => r.side === "hero" && r.isUlti).length;
   const enemyUltiTriggers = rounds.filter(r => r.side === "enemy" && r.isUlti).length;
 
-  const totalDamageAbsorbedByTroops = Math.min(totalHpLost, totalTroopHp > 0 ? (totalHpLost - heroHpLost) : 0);
-  const totalDamageTakenByHero = heroHpLost;
-
   return {
-    rounds, win, heroHpLost, heroHpFinal, enemyHpFinal: enemyHp,
+    rounds, win, heroHpLost, heroHpFinal, heroMaxHpEff: combinedMaxHp, enemyHpFinal: enemyHp,
     turns: turn,
-    totalDamageDealtToEnemy, totalDamageTakenByHero, totalDamageAbsorbedByTroops,
+    totalDamageDealtToEnemy,
+    totalDamageTakenByHero: 0,
+    totalDamageAbsorbedByTroops: totalHpLost,
+    totalDamageTaken: totalHpLost,
     troopsLost, troopsLostByUnit, troopsWounded, troopsWoundedByUnit,
     heroUltiTriggers, enemyUltiTriggers,
+    enemyDebuffs: debuffs, woundedReturned, activeBuffs: ab,
+    flowFx: {
+      freezeTurns: freezeInit, reflectTotal, periodicCount,
+      instantKilled, dmgReduceVsStronger,
+    },
   };
 }
 
@@ -4185,7 +4362,7 @@ async function startBattle() {
     });
     sendWoundedToHospital(result.troopsWoundedByUnit);
 
-    const staminaCost = Math.max(2, Math.round(result.heroHpLost * STAMINA_DRAIN_RATIO / 10));
+    const staminaCost = Math.max(2, Math.round((result.totalDamageTaken || 0) * STAMINA_DRAIN_RATIO / 10));
     state.stamina.current = ensure(state.stamina.current - staminaCost);
 
     const troopsWoundedText = result.troopsWounded > 0
@@ -4195,16 +4372,33 @@ async function startBattle() {
     const _heroNm = (typeof HERO_STATS !== "undefined" && state.selectedHeroSkin && HERO_STATS[state.selectedHeroSkin])
       ? HERO_STATS[state.selectedHeroSkin].name : "Kahraman";
 
+    const _buffLines = (result.activeBuffs || [])
+      .map(_describeBuff).filter(Boolean);
+    const _buffHTML = _buffLines.length
+      ? `<div class="report-row" style="align-items:flex-start"><span>${_heroNm} yetenekleri</span><b class="col-cyan" style="text-align:right;max-width:62%">${_buffLines.map(x => "✓ " + x).join("<br>")}</b></div>`
+      : `<div class="report-row"><span>${_heroNm} yetenekleri</span><b>Bu kahramanın savaşa etkisi yok</b></div>`;
+
+    const _fx = result.flowFx || {};
+    const _fxLines = [];
+    if (_fx.freezeTurns) _fxLines.push(`❄️ Düşman ${_fx.freezeTurns} tur donduruldu`);
+    if (_fx.instantKilled) _fxLines.push(`💀 Anında yok edilen can: ${_fx.instantKilled}`);
+    if (_fx.reflectTotal) _fxLines.push(`🔁 Düşmana yansıyan hasar: ${_fx.reflectTotal}`);
+    if (_fx.periodicCount) _fxLines.push(`⚡ Savunma kırma tetiklendi: ${_fx.periodicCount} kez`);
+    if (_fx.dmgReduceVsStronger) _fxLines.push(`🛡️ Güçlü düşmana karşı alınan hasar -%${_fx.dmgReduceVsStronger}`);
+    const _fxHTML = _fxLines.length
+      ? `<div class="report-row" style="align-items:flex-start"><span>Savaşta tetiklenen</span><b class="col-green" style="text-align:right;max-width:62%">${_fxLines.join("<br>")}</b></div>`
+      : "";
+
     const reportHTML = `
       <div class="battle-report">
         <div class="report-row"><span>Sürdüğü tur</span><b>${result.turns}</b></div>
         <div class="report-row"><span>Düşmana verilen toplam hasar</span><b class="col-green">${result.totalDamageDealtToEnemy}</b></div>
-        <div class="report-row"><span>Birliklerin karşıladığı hasar</span><b class="col-cyan">${result.totalDamageAbsorbedByTroops}</b></div>
-        <div class="report-row"><span>Sana ulaşan hasar</span><b class="col-red">${result.totalDamageTakenByHero}</b></div>
-        <div class="report-row"><span>${_heroNm} özel vuruşu (kritik)</span><b class="col-cyan">${result.heroUltiTriggers} kez</b></div>
+        <div class="report-row"><span>Birliklerin aldığı hasar</span><b class="col-red">${result.totalDamageAbsorbedByTroops}</b></div>
+        ${_buffHTML}
+        ${_fxHTML}
         <div class="report-row"><span>Düşman özel vuruşu</span><b>${result.enemyUltiTriggers} kez</b></div>
-        <div class="report-row"><span>Kalan canın</span><b>${result.heroHpFinal}/${effectiveHero.maxHp}</b></div>
-        <div class="report-row"><span>Yaralı birlik sayısı</span><b class="${result.troopsWounded ? "col-yellow" : "col-green"}">${result.troopsWounded || 0}</b></div>
+        <div class="report-row"><span>Kalan birlik canı</span><b>${result.heroHpFinal}/${effectiveHero.maxHp}</b></div>
+        <div class="report-row"><span>Yaralı birlik sayısı</span><b class="${result.troopsWounded ? "col-yellow" : "col-green"}">${result.troopsWounded || 0}${result.woundedReturned ? ` (${result.woundedReturned} geri döndü)` : ""}</b></div>
         <div class="report-row"><span>Hastaneye düşen</span><b class="${troopsWoundedText ? "col-yellow" : ""}">${troopsWoundedText || "Yok, tüm birlikler sağlam"}</b></div>
       </div>`;
 
@@ -4212,7 +4406,7 @@ async function startBattle() {
 
     if (result.win) {
 
-      const hpLostRatio = result.heroHpLost / effectiveHero.maxHp;
+      const hpLostRatio = Math.min(1, (result.totalDamageTaken || 0) / Math.max(1, effectiveHero.maxHp));
       const baseReward = enemyForBattle.baseReward || (350 + Math.floor(Math.random() * 900));
       const bonus = Math.round(baseReward * (1 - hpLostRatio) * 0.4);
       const reward = baseReward + bonus;
