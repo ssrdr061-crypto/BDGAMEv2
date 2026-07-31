@@ -1236,8 +1236,7 @@ function refreshAfterCommanderChange() {
   if (typeof renderEnemyPowerPreview === "function") renderEnemyPowerPreview();
 }
 
-
-/* Kahraman varlıkları — dosya yolları (paketleyici v10) */
+/* Kahraman varlıkları — dosya yolları (düz mod, klasörsüz) */
 const HERO_GLB = {};
-const HERO_IMG = {"ates_buyucusu":"hero/ates_buyucusu.webp","buz_savascisi":"hero/buz_savascisi.webp","celik_savasci":"hero/celik_savasci.webp","ivanovna":"hero/ivanovna.webp","revolia":"hero/revolia.webp"};
-const HERO_BG = {"ates_buyucusu":{"data":"herobg/ates_buyucusu.webp","type":"image"},"buz_savascisi":{"data":"herobg/buz_savascisi.webp","type":"image"},"celik_savasci":{"data":"herobg/celik_savasci.webp","type":"image"},"ivanovna":{"data":"herobg/ivanovna.webp","type":"image"},"revolia":{"data":"herobg/revolia.webp","type":"image"}};
+const HERO_IMG = {"ates_buyucusu": "hero_ates_buyucusu.webp", "buz_savascisi": "hero_buz_savascisi.webp", "celik_savasci": "hero_celik_savasci.webp", "ivanovna": "hero_ivanovna.webp", "revolia": "hero_revolia.webp"};
+const HERO_BG = {"ates_buyucusu": {"data": "herobg_ates_buyucusu.webp", "type": "image"}, "buz_savascisi": {"data": "herobg_buz_savascisi.webp", "type": "image"}, "celik_savasci": {"data": "herobg_celik_savasci.webp", "type": "image"}, "ivanovna": {"data": "herobg_ivanovna.webp", "type": "image"}, "revolia": {"data": "herobg_revolia.webp", "type": "image"}};
