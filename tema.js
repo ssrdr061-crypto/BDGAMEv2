@@ -1226,8 +1226,6 @@ if (document.readyState === "loading") {
 
 /* ═══════════════════════════════════════════════════════════════
    9) BİRLİK PANELİ v2 — alta sabit kart, açık mavi tema, Baloo 2
-      Portre seçici, "Anında / Üret" butonları, adet çubuğu.
-      Yapısal HTML ana koddadır; burada SADECE görünüm vardır.
    ═══════════════════════════════════════════════════════════════ */
 (function () {
   const s = document.createElement("style");
@@ -1264,10 +1262,8 @@ if (document.readyState === "loading") {
   padding:64px 12px 0 !important;
 }
 #panel-troops .stage{
-  background:rgba(4,40,75,.26) !important;
-  border:2px solid rgba(190,240,255,.30) !important;
-  border-radius:16px !important;
-  box-shadow:inset 0 2px 4px rgba(150,205,255,.20) !important;
+  background:transparent !important;
+  border:0 !important; border-radius:0 !important; box-shadow:none !important;
   padding-top:46px !important;
   overflow:hidden !important;
 }
@@ -1390,10 +1386,10 @@ if (document.readyState === "loading") {
   margin:2px 0 10px !important;
 }
 #panel-troops .uv-portrait{
-  width:50px !important; height:72px !important; flex:none !important;
+  width:62px !important; height:62px !important; flex:none !important;
   padding:0 !important; overflow:hidden !important; cursor:pointer !important;
-  border-radius:13px !important;
-  background:rgba(255,255,255,.10) !important;
+  border-radius:16px !important;
+  background:transparent !important;
   border:2px solid rgba(190,240,255,.45) !important;
   box-shadow:none !important;
   transition:border-color .15s, box-shadow .15s, transform .15s;
@@ -1497,6 +1493,9 @@ if (document.readyState === "loading") {
   padding:8px 12px !important; cursor:pointer !important;
   box-shadow:0 3px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.5) !important;
 }
+
+/* troops.js kendi ✕ butonunu ekliyor, ana kodda da biri var — biri gizlenir */
+#panel-troops .tp-close{ display:none !important; }
   `;
   document.head.appendChild(s);
 })();
