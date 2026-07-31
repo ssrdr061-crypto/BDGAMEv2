@@ -1222,5 +1222,171 @@ if (document.readyState === "loading") {
 })();
 
 /* NOT: "HOŞ GELDİN PAKETİ" (Revolia hoş geldin akışı + 1.5M elmas) artık rehber.js'te yönetiliyor. */
+
+
+/* ═══════════════════════════════════════════════════════════════
+   9) BİRLİK PANELİ v2 — kart görünümü, açık mavi tema, Baloo 2
+      Yapısal HTML ana koddadır; burada SADECE görünüm vardır.
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+  const s = document.createElement("style");
+  s.id = "troopPanelV2";
+  s.textContent = `
+/* ═══════════════════════════════════════════════════════════
+   BİRLİK PANELİ v2 — kart görünümü, açık mavi tema, Baloo 2
+   ═══════════════════════════════════════════════════════════ */
+
+#panel-troops{ align-items:center !important; justify-content:center !important; padding:14px 12px !important; }
+
+#panel-troops .uv-viewer{
+  width:100% !important; max-width:420px !important;
+  height:min(86vh, 660px) !important;
+  background:
+    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
+    radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
+    linear-gradient(180deg,#1fa3ea,#0e6fc0) !important;
+  border:3px solid rgba(190,240,255,.85) !important;
+  border-radius:22px !important;
+  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45) !important;
+  overflow:hidden !important;
+}
+
+/* oklar gitti — sadece parmakla kaydırma */
+#panel-troops .uv-arrow{ display:none !important; }
+
+/* başlık + noktalar */
+#panel-troops .uv-title{
+  top:52px !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:24px !important;
+  color:#fff !important; text-shadow:0 2px 5px rgba(0,40,70,.6) !important;
+  letter-spacing:.5px !important;
+}
+#panel-troops .uv-dots{ top:84px !important; }
+#panel-troops .uv-dot{ background:rgba(255,255,255,.4) !important; }
+#panel-troops .uv-dot.is-active{ background:#fff !important; }
+
+#panel-troops .uv-close{
+  z-index:60 !important;
+  border:2px solid rgba(255,190,190,.75) !important;
+  background:linear-gradient(180deg,#ff6b6b,#e03131) !important;
+  color:#fff !important; border-radius:12px !important;
+  box-shadow:0 4px 0 #a01b1b, inset 0 1px 0 rgba(255,255,255,.4) !important;
+}
+#panel-troops .uv-close:active{ transform:translateY(3px) !important; box-shadow:0 1px 0 #a01b1b !important; }
+
+/* ekranlar: üstte sekme/başlık için yer bırak */
+#panel-troops .unit-screen{ padding-top:112px !important; }
+
+/* sahne şeffaf — panelin mavisi görünsün (robot efekti korunur) */
+#panel-troops .stage{ background:transparent !important; }
+#panel-troops .us-soldier .stage,
+#panel-troops .us-knight .stage,
+#panel-troops .us-robot .stage{ background:transparent !important; }
+#panel-troops .us-soldier .spot{ opacity:.35 !important; }
+
+/* ── görseller %20 küçük ── */
+#panel-troops .us-knight .knight-wrap{ width:min(59vw,272px) !important; bottom:-18px !important; }
+#panel-troops .us-soldier .soldier-wrap{ width:min(58vw,264px) !important; bottom:6px !important; }
+#panel-troops .us-robot .hero-img{ height:min(30vh,264px) !important; max-width:64vw !important; }
+
+/* ── İSTATİSTİKLER: bar yok, düz satır ── */
+#panel-troops .stats{
+  background:transparent !important;
+  border-top:1px solid rgba(190,240,255,.28) !important;
+  box-shadow:none !important;
+  padding:12px 16px calc(14px + env(safe-area-inset-bottom,0)) !important;
+}
+#panel-troops .stats-grid{
+  display:flex !important; flex-direction:column !important; gap:2px !important;
+  max-width:520px !important; margin:0 auto !important;
+}
+#panel-troops .stat-row{
+  display:flex !important; align-items:center !important; gap:10px !important;
+  padding:8px 12px !important; border:0 !important; border-radius:11px !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:700 !important; font-size:16px !important;
+  color:#fff !important; text-shadow:0 1px 3px rgba(0,40,70,.6) !important;
+  background:transparent !important;
+}
+#panel-troops .stat-row:nth-child(odd){ background:rgba(4,32,60,.22) !important; }
+#panel-troops .stat-ico{
+  width:22px !important; height:auto !important; flex:none !important;
+  font-size:17px !important; text-align:center !important;
+  background:none !important; border:0 !important; border-radius:0 !important;
+  display:inline-block !important; filter:none !important;
+}
+#panel-troops .stat-name{
+  flex:1 !important; font-size:16px !important; font-weight:700 !important;
+  text-transform:none !important; letter-spacing:0 !important; color:#fff !important;
+}
+#panel-troops .stat-val{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:19px !important; color:#fff !important;
+  font-variant-numeric:tabular-nums !important;
+}
+#panel-troops .bar{ display:none !important; }
+
+/* ── EĞİT ÇUBUĞU ── */
+#panel-troops .unit-train-bar{
+  display:flex !important; align-items:center !important; gap:10px !important;
+  height:auto !important; margin-top:12px !important;
+  background:transparent !important; border:0 !important; padding:0 !important;
+  position:static !important; overflow:visible !important;
+}
+#panel-troops .unit-train-btn{
+  position:static !important; flex:1 !important; width:auto !important; height:auto !important;
+  padding:14px 8px !important; border-radius:14px !important;
+  background:linear-gradient(180deg,#ffd257,#f0932b) !important;
+  border:2px solid rgba(255,220,150,.7) !important; color:#3a2408 !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:18px !important; letter-spacing:.5px !important;
+  text-transform:none !important; text-shadow:0 1px 0 rgba(255,255,255,.4) !important;
+  box-shadow:0 4px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.5) !important;
+}
+#panel-troops .unit-train-btn:active{ transform:translateY(3px) !important; box-shadow:0 1px 0 #a8641a !important; }
+
+#panel-troops .utb-training{
+  flex:1 !important; text-align:center !important; padding:14px 8px !important;
+  border-radius:14px !important; background:rgba(4,32,60,.3) !important;
+  border:2px solid rgba(190,240,255,.35) !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:16px !important; color:#dff4ff !important;
+}
+#panel-troops .utb-info{
+  flex:none !important; text-align:right !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:700 !important; font-size:15px !important; line-height:1.55 !important;
+  color:#fff !important; text-shadow:0 1px 3px rgba(0,40,70,.6) !important;
+  white-space:nowrap !important;
+}
+#panel-troops .unit-speedup-btn{
+  font-family:'Baloo 2','Nunito',sans-serif !important; font-weight:800 !important;
+  font-size:13px !important; color:#3a2408 !important;
+  background:linear-gradient(180deg,#ffd257,#f0932b) !important;
+  border:2px solid rgba(255,220,150,.7) !important; border-radius:10px !important;
+  padding:5px 10px !important; cursor:pointer !important; margin-top:3px !important;
+}
+#panel-troops .utb-qty{
+  flex:none !important; width:30px !important;
+  display:flex !important; flex-direction:column !important;
+  align-items:center !important; gap:3px !important;
+}
+#panel-troops .uv-qty-label{
+  font-family:'Baloo 2','Nunito',sans-serif !important; font-weight:800 !important;
+  font-size:15px !important; color:#fff !important; text-shadow:0 1px 3px rgba(0,40,70,.6) !important;
+}
+#panel-troops .uv-qty-slider{
+  writing-mode:vertical-lr; direction:rtl;
+  -webkit-appearance:slider-vertical; appearance:auto;
+  width:22px !important; height:64px !important; accent-color:#ffd257 !important; cursor:pointer;
+}
+
+/* sekme çubuğu — panelin içinde kalsın */
+#panel-troops .tp-tabs{ top:12px !important; }
+  `;
+  document.head.appendChild(s);
+})();
+
 console.log("[tema.js] Görünüm dosyası yüklendi ✔");
 })();
