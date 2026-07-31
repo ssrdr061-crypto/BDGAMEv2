@@ -1225,7 +1225,7 @@ if (document.readyState === "loading") {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   9) BİRLİK PANELİ v2 — kart görünümü, açık mavi tema, Baloo 2
+   9) BİRLİK PANELİ v2 — alta sabit kart, açık mavi tema, Baloo 2
       Portre seçici, "Anında / Üret" butonları, adet çubuğu.
       Yapısal HTML ana koddadır; burada SADECE görünüm vardır.
    ═══════════════════════════════════════════════════════════════ */
@@ -1234,7 +1234,12 @@ if (document.readyState === "loading") {
   s.id = "troopPanelV2";
   s.textContent = `
 /* ── PANEL: ekranın ortasında kart ── */
-#panel-troops{ align-items:center !important; justify-content:center !important; padding:14px 12px !important; }
+#panel-troops{
+  align-items:flex-end !important; justify-content:center !important;
+  padding:0 8px 0 !important;
+  /* tema.js'in panelin dışına çizdiği çerçeve/karartı kalkıyor */
+  border:0 !important; border-radius:0 !important; box-shadow:none !important; overflow:visible !important;
+}
 
 #panel-troops .uv-viewer{
   width:100% !important; max-width:420px !important;
@@ -1244,8 +1249,9 @@ if (document.readyState === "loading") {
     radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
     linear-gradient(180deg,#1fa3ea,#0e6fc0) !important;
   border:3px solid rgba(190,240,255,.85) !important;
-  border-radius:22px !important;
-  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45) !important;
+  border-radius:22px 22px 0 0 !important;
+  border-bottom:0 !important;
+  box-shadow:0 -6px 26px rgba(120,225,255,.4), inset 0 3px 0 rgba(255,255,255,.45) !important;
   overflow:hidden !important;
 }
 
@@ -1380,26 +1386,26 @@ if (document.readyState === "loading") {
 
 /* ── PORTRE SEÇİCİ (3 birlik) ── */
 #panel-troops .uv-portraits{
-  display:flex !important; justify-content:center !important; gap:10px !important;
-  margin:0 0 10px !important;
+  display:flex !important; justify-content:center !important; gap:9px !important;
+  margin:2px 0 10px !important;
 }
 #panel-troops .uv-portrait{
-  width:62px !important; height:62px !important; flex:none !important;
+  width:50px !important; height:72px !important; flex:none !important;
   padding:0 !important; overflow:hidden !important; cursor:pointer !important;
-  border-radius:16px !important;
-  background:linear-gradient(180deg, rgba(8,58,102,.55), rgba(4,34,64,.75)) !important;
-  border:2px solid rgba(190,240,255,.40) !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.25) !important;
+  border-radius:13px !important;
+  background:rgba(255,255,255,.10) !important;
+  border:2px solid rgba(190,240,255,.45) !important;
+  box-shadow:none !important;
   transition:border-color .15s, box-shadow .15s, transform .15s;
   -webkit-tap-highlight-color:transparent;
 }
 #panel-troops .uv-portrait img{
-  width:190% !important; height:auto !important; display:block !important;
-  margin:-6% 0 0 -45% !important; pointer-events:none;
+  width:200% !important; height:auto !important; display:block !important;
+  margin:-4% 0 0 -50% !important; pointer-events:none;
 }
 #panel-troops .uv-portrait span{
   display:flex; align-items:center; justify-content:center;
-  width:100%; height:100%; font-size:26px;
+  width:100%; height:100%; font-size:24px;
 }
 #panel-troops .uv-portrait.is-active{
   border-color:#ffd257 !important;
