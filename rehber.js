@@ -10,10 +10,10 @@
        window.REHBER.maybeWelcome(state, api)
        window.REHBER.maybeDaily(state, api)
    api = { fmt, renderDiamonds, updateShopButtons, persistCurrentState, showToast }
-   resimler/gorsel21.webp = Revolia gorseli.
+   gorsel21.webp = Revolia gorseli.
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
-  const REVOLIA_IMG = "resimler/gorsel21.webp";
+  const REVOLIA_IMG = "gorsel21.webp";
   const WELCOME_GIFT = 1500000;
   const DAILY_GIFT = 30000;
   const DAILY_HOUR = 17; // günlük ödül bu saatte (yerel) yenilenir
