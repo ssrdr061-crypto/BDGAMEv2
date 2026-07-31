@@ -1305,7 +1305,7 @@ if (document.readyState === "loading") {
 
 /* ── BAŞLIK: sahnenin içinde ── */
 #panel-troops .uv-title{
-  top:78px !important;
+  top:60px !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:800 !important; font-size:24px !important; letter-spacing:.5px !important;
   color:#fff !important; text-shadow:0 2px 5px rgba(0,40,70,.6) !important;
@@ -1518,13 +1518,13 @@ if (document.readyState === "loading") {
 
 /* ── İNCE AYAR — değerler CSS değişkeni, canlı ayar paneli bunları değiştirir ── */
 #panel-troops .uv-portrait{
-  width:var(--tp-box,55px) !important; height:var(--tp-box,55px) !important;
-  border-radius:calc(var(--tp-box,55px) * .27) !important;
+  width:var(--tp-box,44px) !important; height:var(--tp-box,44px) !important;
+  border-radius:calc(var(--tp-box,44px) * .27) !important;
 }
 
 /* ŞÖVALYE */
 #panel-troops .us-knight .knight-wrap{
-  height:var(--tp-k-h,115%) !important; bottom:var(--tp-k-b,-25px) !important;
+  height:var(--tp-k-h,126%) !important; bottom:var(--tp-k-b,-55px) !important;
   left:50% !important; transform:translateX(calc(-50% + var(--tp-k-x,0px))) !important;
 }
 #panel-troops .uv-portrait[data-i="0"] img{
@@ -1534,7 +1534,7 @@ if (document.readyState === "loading") {
 
 /* ASKER */
 #panel-troops .us-soldier .soldier-wrap{
-  height:var(--tp-a-h,95%) !important; bottom:var(--tp-a-b,2px) !important;
+  height:var(--tp-a-h,116%) !important; bottom:var(--tp-a-b,-36px) !important;
   left:50% !important; transform:translateX(calc(-50% + var(--tp-a-x,-5px))) !important;
 }
 #panel-troops .uv-portrait[data-i="1"] img{
@@ -1544,7 +1544,7 @@ if (document.readyState === "loading") {
 
 /* ROBOT */
 #panel-troops .us-robot .hero-img{
-  height:var(--tp-r-h,99%) !important; bottom:var(--tp-r-b,-2px) !important;
+  height:var(--tp-r-h,116%) !important; bottom:var(--tp-r-b,-44px) !important;
   left:50% !important; transform:translateX(calc(-50% + var(--tp-r-x,-4px))) !important;
 }
 #panel-troops .uv-portrait[data-i="2"] img{
@@ -1591,10 +1591,10 @@ if (document.readyState === "loading") {
     const P = ["k", "a", "r"];                       /* knight, asker, robot */
     const AD = ["Şövalye", "Asker", "Robot"];
     const VARSAYILAN = {
-      box: 55,
-      k: { h: 115, b: -25, x: 0, pw: 150, pl: -26, pt: -29 },
-      a: { h: 95,  b: 2,   x: -5, pw: 130, pl: -21, pt: -16 },
-      r: { h: 99,  b: -2,  x: -4, pw: 140, pl: -18, pt: -10 }
+      box: 44,
+      k: { h: 126, b: -55, x: 0,  pw: 150, pl: -26, pt: -29 },
+      a: { h: 116, b: -36, x: -5, pw: 130, pl: -21, pt: -16 },
+      r: { h: 116, b: -44, x: -4, pw: 140, pl: -18, pt: -10 }
     };
     const S = JSON.parse(JSON.stringify(VARSAYILAN));
     let cur = 0;
