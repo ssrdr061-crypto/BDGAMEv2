@@ -2524,7 +2524,7 @@ function _repHeroCard(skinId) {
   const img = (typeof HERO_IMG !== "undefined") ? HERO_IMG[skinId] : null;
   const ad = h ? (h.name || skinId) : skinId;
   return `<div class="rep-unit">
-      <div class="rep-por rep-por-hero">${img ? `<img src="${img}" alt="">` : ""}</div>
+      <div class="rep-por rep-por-hero" data-h="${skinId}">${img ? `<img src="${img}" alt="">` : ""}</div>
       <span class="rep-cap">${ad}</span>
     </div>`;
 }
