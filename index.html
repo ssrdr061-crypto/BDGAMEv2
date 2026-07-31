@@ -10,6 +10,7 @@ window.onerror = function(msg, src, line) {
 };
 </script>
 <meta charset="UTF-8">
+<link rel="preload" as="image" href="gorsel1.webp" fetchpriority="high">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BurstDiamond</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,6 +54,7 @@ body{
   position:fixed; top:0; left:0; right:0; bottom:0;
   z-index:10;
   box-sizing:border-box;
+  background-color:#0b1220;   /* resim yüklenene kadar görünen renk */
   background-image:url('gorsel1.webp');
   background-size:cover;
   background-position:center;
@@ -1701,7 +1703,7 @@ body.world-active{padding:0; overflow:hidden;}
     <button class="dock-btn" data-panel="hero"><img class="dock-icon" src="gorsel13.webp" alt="Kahraman"></button>
     <button class="dock-btn" data-panel="troops"><img class="dock-icon" src="gorsel14.webp" alt="Birlikler"></button>
     <button class="dock-btn" data-panel="battlelog"><img class="dock-icon" src="gorsel15.webp" alt="Savaş Günlüğü"></button>
-    <button class="dock-btn" data-panel="rank" id="rankDockBtn" aria-label="Sıralama"><img class="dock-icon" src="" alt="Sıralama" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏆',style:'font-size:26px;line-height:1'}))"></button>
+    <button class="dock-btn" data-panel="rank" id="rankDockBtn" aria-label="Sıralama"><img class="dock-icon" src="gorsel25.webp" alt="Sıralama" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏆',style:'font-size:26px;line-height:1'}))"></button>
   </nav>
 
   <div class="coord-panel" id="coordPanel">
@@ -5101,7 +5103,7 @@ const scale = (2.0 * uS) / maxDim;
       scene.add(group);
     }
 
-    if(texDataURL){
+    if(texDataURL && texDataURL.startsWith("data:")){
       texLoader.load(texDataURL, tex => {
         tex.encoding = THREE.sRGBEncoding;
         tex.flipY = true;
