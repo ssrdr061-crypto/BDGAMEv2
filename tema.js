@@ -737,14 +737,11 @@ function heroImgOf(name) {
 
 function heroChip(name) {
   const img = heroImgOf(name);
-  const inner = img
-    ? `<img src="${img}" style="width:100%;height:100%;object-fit:contain">`
-    : `<span style="font-size:20px">🦸</span>`;
-  return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;width:56px">
-    <div style="width:52px;height:52px;border-radius:10px;overflow:hidden;
-      background:linear-gradient(180deg,#3d7ccc,#152e5e);border:2px solid rgba(190,240,255,.5);
-      display:flex;align-items:center;justify-content:center">${inner}</div>
-    <div style="font-size:9px;font-weight:800;color:#eaf7ff;text-align:center;line-height:1.1">${name}</div>
+  const inner = img ? `<img src="${img}" alt="">` : `<span class="rep-hemoji">🦸</span>`;
+  /* Ölçüler CSS değişkeninde — ?ayar=1 paneliyle canlı ayarlanır */
+  return `<div class="rep-hchip">
+    <div class="rep-hpor">${inner}</div>
+    <div class="rep-hname">${name}</div>
   </div>`;
 }
 
@@ -1652,6 +1649,27 @@ if (document.readyState === "loading") {
   text-shadow:0 2px 4px rgba(0,40,70,.6);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
+
+/* ═══ RAPORDAKİ KAHRAMAN KARTI (ayarlanabilir) ═══ */
+.rep-hchip{ display:flex; flex-direction:column; align-items:center; gap:3px;
+  width:calc(var(--rh-box,52px) + 4px); }
+.rep-hpor{
+  width:var(--rh-box,52px); height:var(--rh-box,52px);
+  border-radius:calc(var(--rh-box,52px) * .2); overflow:hidden;
+  background:linear-gradient(180deg,#3d7ccc,#152e5e);
+  border:2px solid rgba(190,240,255,.5);
+  display:flex; align-items:center; justify-content:center;
+}
+.rep-hpor img{ width:var(--rh-w,100%); height:auto; display:block;
+  margin:var(--rh-t,0%) 0 0 var(--rh-l,0%); }
+.rep-hemoji{ font-size:20px; }
+.rep-hname{ font-size:9px; font-weight:800; color:#eaf7ff; text-align:center; line-height:1.1; }
+
+/* kendi raporumdaki kahraman portresi de aynı ayarları kullansın */
+.rep-por-hero{ width:var(--rh-box,52px) !important; height:var(--rh-box,52px) !important;
+  border-radius:calc(var(--rh-box,52px) * .2) !important; }
+.rep-por-hero img{ width:var(--rh-w,100%) !important;
+  margin:var(--rh-t,0%) 0 0 var(--rh-l,0%) !important; }
   `;
   document.head.appendChild(s);
 
@@ -1666,13 +1684,14 @@ if (document.readyState === "loading") {
 
   /* ═══ CANLI AYAR PANELİ — adres sonuna ?ayar=1 ekleyince açılır ═══ */
   if (/[?&]ayar=1/.test(location.search)) {
-    const P = ["k", "a", "r"];                       /* knight, asker, robot */
-    const AD = ["Şövalye", "Asker", "Robot"];
+    const P = ["k", "a", "r", "hx"];                 /* şövalye, asker, robot, rapor kahramanı */
+    const AD = ["Şövalye", "Asker", "Robot", "Rapor kah."];
     const VARSAYILAN = {
       box: 44,
       k: { h: 126, b: -55, x: 0,  pw: 150, pl: -26, pt: -29 },
       a: { h: 116, b: -36, x: -5, pw: 130, pl: -21, pt: -16 },
-      r: { h: 116, b: -44, x: -4, pw: 140, pl: -18, pt: -10 }
+      r: { h: 116, b: -44, x: -4, pw: 140, pl: -18, pt: -10 },
+      hx:{ h: 52,  b: 0,   x: 0,  pw: 100, pl: 0,   pt: 0 }
     };
     const S = JSON.parse(JSON.stringify(VARSAYILAN));
     let cur = 0;
@@ -1680,7 +1699,14 @@ if (document.readyState === "loading") {
     const kok = document.documentElement;
     function uygula() {
       kok.style.setProperty("--tp-box", S.box + "px");
-      P.forEach(p => {
+      /* rapor kahramanı ayrı değişken kümesi kullanır */
+      const hx = S.hx;
+      kok.style.setProperty("--rh-box", hx.h + "px");
+      kok.style.setProperty("--rh-w",   hx.pw + "%");
+      kok.style.setProperty("--rh-l",   hx.pl + "%");
+      kok.style.setProperty("--rh-t",   hx.pt + "%");
+
+      ["k", "a", "r"].forEach(p => {
         const c = S[p];
         kok.style.setProperty(`--tp-${p}-h`, c.h + "%");
         kok.style.setProperty(`--tp-${p}-b`, c.b + "px");
@@ -1693,10 +1719,12 @@ if (document.readyState === "loading") {
     }
     function yaz() {
       let t = "portre kutusu: " + S.box + "px\n";
-      P.forEach((p, i) => {
+      ["k", "a", "r"].forEach((p, i) => {
         const c = S[p];
         t += `\n${AD[i]}\n  büyük: ${c.h}% | ${c.b}px | ${c.x}px\n  portre: ${c.pw}% | ${c.pl}% | ${c.pt}%\n`;
       });
+      const h = S.hx;
+      t += `\nRAPOR KAHRAMANI\n  kutu: ${h.h}px | yakın: ${h.pw}% | yatay: ${h.pl}% | dikey: ${h.pt}%\n`;
       const o = document.getElementById("ttOut");
       if (o) o.value = t;
     }
@@ -1740,6 +1768,16 @@ if (document.readyState === "loading") {
       document.getElementById("ttBox").value = S.box;
       document.getElementById("ttBoxV").textContent = S.box + "px";
       box.querySelectorAll(".tt-tabs button").forEach((b, i) => b.classList.toggle("on", i === cur));
+      /* rapor kahramanında sadece kutu + portre ayarları anlamlı */
+      const raporMu = (P[cur] === "hx");
+      ["b", "x"].forEach(k => {
+        const r = alanlar.querySelector(`[data-k="${k}"]`);
+        if (r && r.parentElement) r.parentElement.style.display = raporMu ? "none" : "";
+      });
+      const hRow = alanlar.querySelector('[data-k="h"]');
+      if (hRow && hRow.parentElement) {
+        hRow.parentElement.querySelector("label").textContent = raporMu ? "Kutu (px)" : "Boyut";
+      }
       uygula();
     }
 
