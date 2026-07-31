@@ -1614,6 +1614,44 @@ if (document.readyState === "loading") {
 .rep-ab span{ flex:1; min-width:0; color:#cfe8ff; font-weight:700; }
 .rep-ab b{ flex:none; color:#7fffa8; font-weight:800; font-size:11px; text-align:right; }
 .rep-ab-none{ color:rgba(255,255,255,.4); font-weight:700; font-size:11.5px; }
+
+/* ═══ GÜNLÜK LİSTESİ + RAPOR PENCERESİ ═══ */
+.log-entry-actions{ margin-top:8px; }
+.log-open-btn{
+  width:100%; padding:9px; border:2px solid rgba(190,240,255,.6); border-radius:11px;
+  background:linear-gradient(180deg,#4fd8ff,#1fa3ea); color:#fff; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:14px;
+  text-shadow:0 2px 3px rgba(0,40,70,.5);
+  box-shadow:0 3px 0 #0e6fc0, inset 0 1px 0 rgba(255,255,255,.45);
+}
+.log-open-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #0e6fc0; }
+
+#logReportModal{
+  position:fixed; inset:0; z-index:9998; background:rgba(2,8,22,.74);
+  display:flex; align-items:center; justify-content:center; padding:16px 12px;
+  font-family:'Baloo 2','Nunito',sans-serif;
+}
+#logReportModal .lrm-box{
+  position:relative; width:min(430px,96vw); max-height:86vh; overflow:auto;
+  background:
+    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
+    linear-gradient(180deg,#1fa3ea,#0e6fc0);
+  border:3px solid rgba(190,240,255,.85); border-radius:20px;
+  padding:14px 14px 18px; color:#fff;
+  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45);
+}
+#logReportModal .lrm-close{
+  position:absolute; top:10px; right:10px; width:38px; height:38px; border-radius:11px;
+  border:2px solid rgba(255,190,190,.75); cursor:pointer;
+  background:linear-gradient(180deg,#ff6b6b,#e03131); color:#fff;
+  font-size:17px; font-weight:800; line-height:1;
+  box-shadow:0 3px 0 #a01b1b, inset 0 1px 0 rgba(255,255,255,.4);
+}
+#logReportModal .lrm-ttl{
+  font-weight:800; font-size:17px; margin:2px 46px 12px 2px;
+  text-shadow:0 2px 4px rgba(0,40,70,.6);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
   `;
   document.head.appendChild(s);
 

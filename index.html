@@ -2641,6 +2641,93 @@ function buildBattleReportHTML(result, effectiveHero, enemy) {
     </div>`;
 }
 
+
+/* Günlükteki bir kaydı tam rapor olarak açar */
+function openLogReportModal(entry) {
+  const r = entry.rep || {};
+  const fx = r.flowFx || {};
+
+  const kahramanlar = (r.heroIds || []).length
+    ? (r.heroIds || []).map(_repHeroCard).join("")
+    : `<span class="rep-empty">Kahraman yok</span>`;
+
+  const gnd = r.troopsSent || {};
+  const birlikler = Object.keys(gnd).filter(u => (gnd[u] || 0) > 0)
+    .map(u => _repTroopCard(u, "x" + fmt(gnd[u]))).join("")
+    || `<span class="rep-empty">Birlik yok</span>`;
+
+  const olen = r.lostByUnit || {};
+  const yarali = r.woundedByUnit || {};
+  const olenHTML = Object.keys(olen).filter(u => olen[u] > 0)
+    .map(u => _repTroopCard(u, "-" + fmt(olen[u]), "col-red")).join("")
+    || `<span class="rep-empty">Kayıp yok</span>`;
+  const yaraliHTML = Object.keys(yarali).filter(u => yarali[u] > 0)
+    .map(u => _repTroopCard(u, "-" + fmt(yarali[u]), "col-yellow")).join("")
+    || `<span class="rep-empty">Yaralı yok</span>`;
+
+  const kahramanBlok = (r.heroIds || []).map(id => {
+    const satir = [];
+    (r.abilities || []).forEach(m => {
+      (m.sources || []).forEach(src => {
+        if (src.heroId !== id) return;
+        const tet = _repTrigger(m.type, fx);
+        if (tet) satir.push(`<div class="rep-ab"><span>${src.title}</span><b>${tet}</b></div>`);
+      });
+    });
+    if (!satir.length) satir.push(`<div class="rep-ab rep-ab-none">Bu savaşta etkisi olmadı</div>`);
+    return `<div class="rep-hero-block">
+        <div class="rep-hero-head">${_repHeroCard(id)}</div>
+        <div class="rep-ab-list">${satir.join("")}</div>
+      </div>`;
+  }).join("");
+
+  const govde = `
+    <div class="battle-report">
+      <div class="rep-sides">
+        <div class="rep-side">
+          <div class="rep-side-ttl">⚔️ Saldıran — ${currentUsername || "Sen"}</div>
+          <div class="rep-line">${kahramanlar}</div>
+          <div class="rep-line">${birlikler}</div>
+        </div>
+        <div class="rep-side">
+          <div class="rep-side-ttl">🛡️ Savunan — ${entry.enemyName}</div>
+          <div class="rep-line"><span class="rep-empty">Bilgi yok</span></div>
+        </div>
+      </div>
+
+      <div class="rep-sec-ttl">Kayıplar</div>
+      <div class="rep-loss">
+        <div><span class="rep-loss-lbl col-red">Ölen</span><div class="rep-line">${olenHTML}</div></div>
+        <div><span class="rep-loss-lbl col-yellow">Yaralanan</span><div class="rep-line">${yaraliHTML}</div></div>
+      </div>
+
+      ${kahramanBlok ? `<div class="rep-sec-ttl">Kahraman yetenekleri</div>${kahramanBlok}` : ""}
+
+      <div class="rep-sec-ttl">Özet</div>
+      <div class="report-row"><span>Sonuç</span><b class="${entry.win ? "col-green" : "col-red"}">${entry.win ? "Zafer" : "Yenilgi"}</b></div>
+      <div class="report-row"><span>Elmas</span><b class="${entry.diamondDelta >= 0 ? "col-green" : "col-red"}">${entry.diamondDelta >= 0 ? "+" : ""}${fmt(entry.diamondDelta)}</b></div>
+      <div class="report-row"><span>Sürdüğü tur</span><b>${entry.turns}</b></div>
+      <div class="report-row"><span>Düşmana verilen hasar</span><b class="col-green">${fmt(entry.dmgDealt)}</b></div>
+      <div class="report-row"><span>Birliklerin aldığı hasar</span><b class="col-red">${fmt(entry.dmgAbsorbed)}</b></div>
+      <div class="report-row"><span>Düşman özel vuruşu</span><b>${r.enemyUltiTriggers || 0} kez</b></div>
+      <div class="report-row"><span>Kalan birlik canı</span><b>${fmt(entry.heroHpFinal)}/${fmt(entry.heroMaxHp)}</b></div>
+    </div>`;
+
+  const eski = document.getElementById("logReportModal");
+  if (eski) eski.remove();
+  const ov = document.createElement("div");
+  ov.id = "logReportModal";
+  ov.innerHTML = `<div class="lrm-box">
+      <button class="lrm-close" aria-label="Kapat">✕</button>
+      <div class="lrm-ttl">📜 ${entry.enemyName}</div>
+      <div class="lrm-body">${govde}</div>
+    </div>`;
+  document.body.appendChild(ov);
+  const kapat = () => ov.remove();
+  ov.addEventListener("click", e => { if (e.target === ov) kapat(); });
+  ov.querySelector(".lrm-close").addEventListener("click", kapat);
+}
+
 function getEffectiveHeroStats(selectedTroops) {
   const ab = activeHeroAbilities();
   const find = t => ab.find(a => a.type === t);
@@ -3424,31 +3511,25 @@ function renderBattleLogPanel() {
     listEl.innerHTML = emptyState("📜", "Henüz bir savaş raporu yok. Haritadan bir düşmanla savaş.", "18px");
     return;
   }
-  listEl.innerHTML = history.map(entry => {
-    const troopsWoundedText = entry.troopsWoundedByUnit && Object.keys(entry.troopsWoundedByUnit).length > 0
-      ? Object.entries(entry.troopsWoundedByUnit).map(([id, arr]) => `${UNIT_TYPES[id] ? UNIT_TYPES[id].icon : ""}x${arr.length}`).join(" ")
-      : null;
-    return `
+  listEl.innerHTML = history.map((entry, i) => `
       <div class="log-entry ${entry.win ? "log-win" : "log-loss"}">
         <div class="log-entry-top">
           <span class="log-entry-result">${entry.win ? "🏆 Zafer" : "💢 Yenilgi"}</span>
           <span class="log-entry-enemy">${entry.enemyName}</span>
           <span class="log-entry-time">${formatLogTime(entry.timestamp)}</span>
         </div>
-        <div class="log-entry-stats">
-          <span class="${entry.diamondDelta >= 0 ? "col-green" : "col-red"}">${entry.diamondDelta >= 0 ? "+" : ""}${fmt(entry.diamondDelta)} 💎</span>
-          <span>·</span>
-          <span>${entry.turns} tur</span>
-          <span>·</span>
-          <span class="col-green">⚔️${entry.dmgDealt}</span>
-          <span class="col-cyan">🛡️${entry.dmgAbsorbed}</span>
-          <span class="col-red">💥${entry.dmgTaken}</span>
-          <span>·</span>
-          <span>❤️${entry.heroHpFinal}/${entry.heroMaxHp}</span>
-          ${troopsWoundedText ? `<span>· <img src="gorsel18.webp" style="width:1em;height:1em;object-fit:contain;vertical-align:-0.15em;"/>${troopsWoundedText}</span>` : ""}
-        </div>
-      </div>`;
-  }).join("");
+        ${entry.pvp ? "" : `<div class="log-entry-actions"><button class="log-open-btn" data-idx="${i}">📜 Aç</button></div>`}
+      </div>`).join("");
+
+  if (!listEl.dataset.openHooked) {
+    listEl.dataset.openHooked = "1";
+    listEl.addEventListener("click", (e) => {
+      const b = e.target.closest(".log-open-btn");
+      if (!b) return;
+      const en = (state.battleLogHistory || [])[parseInt(b.dataset.idx, 10)];
+      if (en) openLogReportModal(en);
+    });
+  }
 }
 
 function clearBattleLogHistory() {
@@ -4603,6 +4684,21 @@ async function startBattle() {
       heroMaxHp: effectiveHero.maxHp,
       troopsWoundedByUnit: result.troopsWoundedByUnit,
       timestamp: Date.now(),
+      /* "Aç" ile tekrar çizilebilmesi için sadeleştirilmiş rapor verisi */
+      rep: {
+        heroIds: _repHeroIds(),
+        troopsSent: Object.assign({}, selectedTroopsForBattle),
+        lostByUnit: Object.assign({}, result.troopsLostByUnit || {}),
+        woundedByUnit: Object.keys(result.troopsWoundedByUnit || {})
+          .reduce((o, k) => { o[k] = result.troopsWoundedByUnit[k].length; return o; }, {}),
+        abilities: (result.activeBuffs || []).map(m => ({
+          type: m.type,
+          sources: (m.sources || []).map(x => ({ heroId: x.heroId, title: x.title || m.title }))
+        })),
+        flowFx: result.flowFx || {},
+        enemyUltiTriggers: result.enemyUltiTriggers,
+        maxHp: effectiveHero.maxHp
+      }
     });
     if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
     renderBattleLogPanel();
