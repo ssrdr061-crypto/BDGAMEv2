@@ -742,7 +742,7 @@ async function runPvpBattle() {
     enemyLosses: { killed: R.defender.killed, wounded: R.defender.wounded },
     usedTroops: Object.assign({}, sel),
   });
-  if (state.battleLogHistory.length > 50) state.battleLogHistory.length = 50;
+  if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
 
   /* ── RAKİBE BİLDİR (birlik kayıpları dahil) ── */
   sendRaidReport(enemy, R, delta);
@@ -768,6 +768,13 @@ function clampToReal(map, realTroops) {
 
 function sendRaidReport(enemy, R, delta) {
   if (!fbOK()) return;
+  /* Kendi kalene saldırırsan hem saldıran hem savunan sen olursun ve
+     savaş günlüğüne iki kayıt düşer. Kendine bildirim gönderme. */
+  const _hedef = enemy.accKey || fbKey(enemy.name);
+  if (_hedef && _hedef === myKey()) {
+    console.warn("[pvp] kendi kalene saldırı — savunma raporu gönderilmedi");
+    return;
+  }
   /* robot çarpanı yüzünden fazla kayıp yazılmasın */
   const real = Object.assign({}, enemy.realTroops);
   const killed = clampToReal(R.defender.killed, real);
@@ -908,7 +915,7 @@ function startRaidInbox() {
       diamondsLost: lost,
       troopsLostTotal: totalLost,
     });
-    if (state.battleLogHistory.length > 50) state.battleLogHistory.length = 50;
+    if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
 
     toast(r.attackerWon
       ? `💥 ${r.from} ordunu dağıttı! -${money(lost)} 💎, -${totalLost} birlik`

@@ -2444,47 +2444,203 @@ function defaultState() {
 
 /* Seçili kahramanın AKTİF yetenekleri (seviye 1 — leveling henüz yok).
    heroes.js'teki HERO_STATS[skin].abilities değerlerini okur. */
+/* Savaşa götürülen TÜM komutanların (en fazla 3) yetenekleri toplanır.
+   Aynı türdeki yetenekler birbirine EKLENİR (ör. iki kahraman da
+   "birlik saldırı +%20" veriyorsa sonuç +%40 olur).
+   Dönen her kayıtta .sources dizisi vardır: hangi kahramandan ne geldi. */
 function activeHeroAbilities() {
   try {
     if (typeof HERO_STATS === "undefined") return [];
-    const skin = state.selectedHeroSkin;
-    const h = skin && HERO_STATS[skin];
-    if (!h || !h.abilities) return [];
+
+    let skins = [];
+    if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders)) {
+      skins = selectedCommanders.filter(Boolean);
+    }
+    if (!skins.length && state.selectedHeroSkin) skins = [state.selectedHeroSkin];
+    skins = skins.filter((x, i) => skins.indexOf(x) === i).slice(0, 3);
+
     const lv = 0; // seviye 1
-    return h.abilities.filter(a => a && a.effect).map(a => ({
-      type: a.effect.type, title: a.title || "",
-      v: (a.valuesByLevel || [])[lv],
-      v2: (a.valuesByLevel2 || [])[lv],
-      chance: (a.chanceByLevel || [])[lv],
-      effect: a.effect,
-    }));
+    const merged = {};
+
+    skins.forEach(skin => {
+      const h = HERO_STATS[skin];
+      if (!h || !h.abilities) return;
+      const heroName = h.name || skin;
+
+      h.abilities.filter(a => a && a.effect).forEach(a => {
+        const t = a.effect.type;
+        const v  = (a.valuesByLevel  || [])[lv];
+        const v2 = (a.valuesByLevel2 || [])[lv];
+        const ch = (a.chanceByLevel  || [])[lv];
+
+        if (!merged[t]) {
+          merged[t] = { type: t, title: a.title || "", v: 0, v2: null, chance: null,
+                        effect: a.effect, sources: [] };
+        }
+        const m = merged[t];
+        if (typeof v  === "number") m.v  = (m.v || 0) + v;
+        if (typeof v2 === "number") m.v2 = (m.v2 || 0) + v2;
+        if (typeof ch === "number") m.chance = Math.min(100, (m.chance || 0) + ch);
+
+        /* çarpan tipi yetenekler çarpılarak birleşir */
+        if (a.effect.multiplier) {
+          m.effect = Object.assign({}, m.effect);
+          m.effect.multiplier = (m.effect.multiplier === a.effect.multiplier && m.sources.length === 0)
+            ? a.effect.multiplier
+            : (m.sources.length === 0 ? a.effect.multiplier : (m.effect.multiplier || 1) * a.effect.multiplier);
+        }
+        if (a.effect.hpFlatPct) {
+          m.effect = Object.assign({}, m.effect);
+          m.effect.hpFlatPct = (m.sources.length === 0)
+            ? a.effect.hpFlatPct
+            : (m.effect.hpFlatPct || 0) + a.effect.hpFlatPct;
+        }
+
+        m.sources.push({ heroId: skin, heroName: heroName, title: a.title || "", v: v, v2: v2, chance: ch });
+      });
+    });
+
+    return Object.keys(merged).map(k => merged[k]);
   } catch (e) { return []; }
 }
 
-/* Gölge Manevrası (İvanovna): füze yiyince şansa göre kaleyi boş bir kareye ışınla.
-   missile.js kurbanın vurulduğunu tespit edince bunu çağırır. */
-window.onMissileHitSelf = function () {
-  try {
-    const ab = activeHeroAbilities();
-    const rel = ab.find(a => a.type === "castle_relocate_on_missile");
-    if (!rel) return;
-    const chance = (rel.effect && rel.effect.chance != null) ? rel.effect.chance
-                  : (rel.chance != null ? rel.chance : 40);
-    if (Math.random() * 100 >= chance) return;                 // tetiklenmedi
-    if (!state.castle || typeof generateRandomCastlePos !== "function") return;
-    const pos = generateRandomCastlePos();
-    if (!pos) return;
-    state.castle.gx = pos.gx;
-    state.castle.gy = pos.gy;
-    if (typeof persistCurrentState === "function") persistCurrentState();
-    if (typeof renderBattleMap === "function") renderBattleMap();
-    if (typeof showToast === "function") showToast("🌀 Gölge Manevrası! Kalen güvenli bir konuma ışınlandı.");
-  } catch (e) {}
-};
 
-/* Kahramanın KENDİ statı YOKTUR; savaş gücü sadece BİRLİKLERDEN gelir.
-   Kahramanın işi bu birlik statlarını BUFF'lamaktır (heroes.js yetenekleri).
-   Dönen maxHp = buff'lı toplam birlik canı; hpMult = can buff çarpanı (roster'ı ölçekler). */
+/* ═══════════════════════════════════════════════════════════════
+   SAVAŞ RAPORU — iki taraflı görsel rapor
+   Kahraman portreleri, birlik portreleri, ölen/yaralanan sayıları
+   ve hangi kahramanın hangi yeteneğinin kaç kez tetiklendiği.
+   ═══════════════════════════════════════════════════════════════ */
+function _repHeroIds() {
+  let ids = [];
+  if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders)) {
+    ids = selectedCommanders.filter(Boolean);
+  }
+  if (!ids.length && state.selectedHeroSkin) ids = [state.selectedHeroSkin];
+  return ids.filter((x, i) => ids.indexOf(x) === i).slice(0, 3);
+}
+
+function _repHeroCard(skinId) {
+  const h = (typeof HERO_STATS !== "undefined") ? HERO_STATS[skinId] : null;
+  const img = (typeof HERO_IMG !== "undefined") ? HERO_IMG[skinId] : null;
+  const ad = h ? (h.name || skinId) : skinId;
+  return `<div class="rep-unit">
+      <div class="rep-por rep-por-hero">${img ? `<img src="${img}" alt="">` : ""}</div>
+      <span class="rep-cap">${ad}</span>
+    </div>`;
+}
+
+function _repTroopCard(unitId, adet, renk) {
+  const d = UNIT_TYPES[unitId];
+  if (!d) return "";
+  return `<div class="rep-unit">
+      <div class="rep-por" data-i="${["knight","soldier","robot"].indexOf(unitId)}">
+        ${d.img ? `<img src="${d.img}" alt="">` : ""}
+      </div>
+      <span class="rep-cap ${renk || ""}">${adet}</span>
+    </div>`;
+}
+
+/* Bir yeteneğin savaşta kaç kez / ne kadar tetiklendiği */
+function _repTrigger(type, fx) {
+  fx = fx || {};
+  switch (type) {
+    case "enemy_freeze_turns":     return fx.freezeTurns ? fx.freezeTurns + " tur dondurdu" : null;
+    case "enemy_instant_casualty": return fx.instantKilled ? fx.instantKilled + " can anında yok etti" : null;
+    case "damage_reflect_pct":     return fx.reflectTotal ? fx.reflectTotal + " hasar yansıttı" : null;
+    case "periodic_def_reduce_pct":return fx.periodicCount ? fx.periodicCount + " kez tetiklendi" : null;
+    case "power_gap_cap":          return fx.dmgReduceVsStronger ? "hasarı %" + fx.dmgReduceVsStronger + " azalttı" : null;
+    default: return "savaş boyunca aktif";
+  }
+}
+
+function buildBattleReportHTML(result, effectiveHero, enemy) {
+  const fx = result.flowFx || {};
+  const heroIds = _repHeroIds();
+
+  /* ── benim tarafım ── */
+  const benimKahramanlar = heroIds.length
+    ? heroIds.map(_repHeroCard).join("")
+    : `<span class="rep-empty">Kahraman yok</span>`;
+
+  const gonderilen = selectedTroopsForBattle || {};
+  const benimBirlikler = Object.keys(gonderilen)
+    .filter(u => (gonderilen[u] || 0) > 0)
+    .map(u => _repTroopCard(u, "x" + fmt(gonderilen[u]))).join("")
+    || `<span class="rep-empty">Birlik yok</span>`;
+
+  /* ── karşı taraf ── */
+  const dusmanKahramanlar = (enemy && Array.isArray(enemy.heroSkins) && enemy.heroSkins.length)
+    ? enemy.heroSkins.slice(0, 3).map(_repHeroCard).join("")
+    : "";
+  const dusmanBirlikRaw = (enemy && (enemy.realTroops || enemy.troops)) || null;
+  const dusmanBirlikler = dusmanBirlikRaw
+    ? Object.keys(dusmanBirlikRaw).filter(u => (dusmanBirlikRaw[u] || 0) > 0)
+        .map(u => _repTroopCard(u, "x" + fmt(dusmanBirlikRaw[u]))).join("")
+    : "";
+
+  /* ── kayıplar ── */
+  const olen = result.troopsLostByUnit || {};
+  const yarali = result.troopsWoundedByUnit || {};
+  const olenHTML = Object.keys(olen).filter(u => olen[u] > 0)
+    .map(u => _repTroopCard(u, "-" + fmt(olen[u]), "col-red")).join("")
+    || `<span class="rep-empty">Kayıp yok</span>`;
+  const yaraliHTML = Object.keys(yarali).filter(u => (yarali[u] || []).length > 0)
+    .map(u => _repTroopCard(u, "-" + fmt(yarali[u].length), "col-yellow")).join("")
+    || `<span class="rep-empty">Yaralı yok</span>`;
+
+  /* ── kahraman yetenekleri: hangisi kaç kez ── */
+  const ab = result.activeBuffs || [];
+  const kahramanBlok = heroIds.map(id => {
+    const h = (typeof HERO_STATS !== "undefined") ? HERO_STATS[id] : null;
+    const ad = h ? (h.name || id) : id;
+    const satirlar = [];
+    ab.forEach(m => {
+      (m.sources || []).forEach(src => {
+        if (src.heroId !== id) return;
+        const tet = _repTrigger(m.type, fx);
+        if (!tet) return;
+        satirlar.push(`<div class="rep-ab"><span>${src.title || m.title}</span><b>${tet}</b></div>`);
+      });
+    });
+    if (!satirlar.length) satirlar.push(`<div class="rep-ab rep-ab-none">Bu savaşta etkisi olmadı</div>`);
+    return `<div class="rep-hero-block">
+        <div class="rep-hero-head">${_repHeroCard(id)}</div>
+        <div class="rep-ab-list">${satirlar.join("")}</div>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="battle-report">
+      <div class="rep-sides">
+        <div class="rep-side">
+          <div class="rep-side-ttl">⚔️ Saldıran — ${currentUsername || "Sen"}</div>
+          <div class="rep-line">${benimKahramanlar}</div>
+          <div class="rep-line">${benimBirlikler}</div>
+        </div>
+        <div class="rep-side">
+          <div class="rep-side-ttl">🛡️ Savunan — ${enemy ? enemy.name : "Düşman"}</div>
+          ${dusmanKahramanlar ? `<div class="rep-line">${dusmanKahramanlar}</div>` : ""}
+          ${dusmanBirlikler ? `<div class="rep-line">${dusmanBirlikler}</div>` : ""}
+        </div>
+      </div>
+
+      <div class="rep-sec-ttl">Kayıplar</div>
+      <div class="rep-loss">
+        <div><span class="rep-loss-lbl col-red">Ölen</span><div class="rep-line">${olenHTML}</div></div>
+        <div><span class="rep-loss-lbl col-yellow">Yaralanan</span><div class="rep-line">${yaraliHTML}</div></div>
+      </div>
+
+      ${kahramanBlok ? `<div class="rep-sec-ttl">Kahraman yetenekleri</div>${kahramanBlok}` : ""}
+
+      <div class="rep-sec-ttl">Özet</div>
+      <div class="report-row"><span>Sürdüğü tur</span><b>${result.turns}</b></div>
+      <div class="report-row"><span>Düşmana verilen hasar</span><b class="col-green">${fmt(result.totalDamageDealtToEnemy)}</b></div>
+      <div class="report-row"><span>Birliklerin aldığı hasar</span><b class="col-red">${fmt(result.totalDamageAbsorbedByTroops)}</b></div>
+      <div class="report-row"><span>Düşman özel vuruşu</span><b>${result.enemyUltiTriggers} kez</b></div>
+      <div class="report-row"><span>Kalan birlik canı</span><b>${fmt(result.heroHpFinal)}/${fmt(effectiveHero.maxHp)}</b></div>
+    </div>`;
+}
+
 function getEffectiveHeroStats(selectedTroops) {
   const ab = activeHeroAbilities();
   const find = t => ab.find(a => a.type === t);
@@ -2534,13 +2690,25 @@ function todayDateStr() {
   return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,"0")}-${d.getDate().toString().padStart(2,"0")}`;
 }
 
+/* Günlük sandık döngüsü: her gün saat 13:00'te yenilenir.
+   13:00'ten önce girenler hâlâ dünkü döngüdedir. */
+const DAILY_CHEST_HOUR = 13;
+function dailyChestCycleId() {
+  const now = new Date();
+  const b = new Date(now); b.setHours(DAILY_CHEST_HOUR, 0, 0, 0);
+  if (now < b) b.setDate(b.getDate() - 1);
+  return b.getFullYear() + "-" + (b.getMonth() + 1) + "-" + b.getDate();
+}
+
 function hasUnclaimedDailyReward() {
-  return state.lastDailyRewardDate !== todayDateStr();
+  /* Revolia hoş geldin ödülü alınmadan günlük sandık açılmaz */
+  if (state.welcomeGiven !== true) return false;
+  return state.lastDailyRewardDate !== dailyChestCycleId();
 }
 
 function claimDailyReward() {
   if (!hasUnclaimedDailyReward()) return null;
-  state.lastDailyRewardDate = todayDateStr();
+  state.lastDailyRewardDate = dailyChestCycleId();
   state.troops.knight = (state.troops.knight || 0) + 1;
 
   applyStaminaRegen();
@@ -4389,18 +4557,7 @@ async function startBattle() {
       ? `<div class="report-row" style="align-items:flex-start"><span>Savaşta tetiklenen</span><b class="col-green" style="text-align:right;max-width:62%">${_fxLines.join("<br>")}</b></div>`
       : "";
 
-    const reportHTML = `
-      <div class="battle-report">
-        <div class="report-row"><span>Sürdüğü tur</span><b>${result.turns}</b></div>
-        <div class="report-row"><span>Düşmana verilen toplam hasar</span><b class="col-green">${result.totalDamageDealtToEnemy}</b></div>
-        <div class="report-row"><span>Birliklerin aldığı hasar</span><b class="col-red">${result.totalDamageAbsorbedByTroops}</b></div>
-        ${_buffHTML}
-        ${_fxHTML}
-        <div class="report-row"><span>Düşman özel vuruşu</span><b>${result.enemyUltiTriggers} kez</b></div>
-        <div class="report-row"><span>Kalan birlik canı</span><b>${result.heroHpFinal}/${effectiveHero.maxHp}</b></div>
-        <div class="report-row"><span>Yaralı birlik sayısı</span><b class="${result.troopsWounded ? "col-yellow" : "col-green"}">${result.troopsWounded || 0}${result.woundedReturned ? ` (${result.woundedReturned} geri döndü)` : ""}</b></div>
-        <div class="report-row"><span>Hastaneye düşen</span><b class="${troopsWoundedText ? "col-yellow" : ""}">${troopsWoundedText || "Yok, tüm birlikler sağlam"}</b></div>
-      </div>`;
+    const reportHTML = buildBattleReportHTML(result, effectiveHero, enemyForBattle);
 
     let diamondDelta = 0;
 
@@ -4447,7 +4604,7 @@ async function startBattle() {
       troopsWoundedByUnit: result.troopsWoundedByUnit,
       timestamp: Date.now(),
     });
-    if (state.battleLogHistory.length > 50) state.battleLogHistory.length = 50;
+    if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
     renderBattleLogPanel();
     renderHospitalPanel();
     renderTroopsPanel();
