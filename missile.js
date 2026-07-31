@@ -26,8 +26,8 @@
   // Görseller. Dosyalar missile.js ile AYNI klasörde olmalı (veya birleştiriciyle gömülür).
   // Bulunamazsa otomatik 🚀 / 💥 emojisine düşer. PNG/GIF şeffaflığı destekler.
   const SPRITE = {
-    rocket: "fuze/Fuze-roket.webp",    // şeffaf roket görseli (burnu YUKARI bakmalı)
-    impact: "fuze/fuze-patlama.gif",  // şeffaf patlama animasyonu
+    rocket: "fuze_Fuze-roket.webp",    // şeffaf roket görseli (burnu YUKARI bakmalı)
+    impact: "fuze_fuze-patlama.gif",  // şeffaf patlama animasyonu
     size: 64,                     // px (roket boyutu)
     impactSize: 550,              // px (patlama boyutu)
     boomLiftCells: 3,             // patlamayı bulunan noktadan KAÇ KARE yukarı kaydır (0 = kaydırma)
