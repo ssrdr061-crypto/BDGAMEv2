@@ -1,0 +1,647 @@
+/*  ═══════════════════════════════════════════════════════════
+    TROOPS.JS — BİRLİK YÖNETİM DOSYASI
+    SÜRÜM: 1.7   (sürümü buradan takip et, dosya adı hep troops.js kalsın)
+    BİRLİKLERLE İLGİLİ TÜM AYARLAR BU DOSYADAN YAPILIR. Ana koda dokunma!
+
+    BÖLÜMLER:
+      1) UNIT_TYPES        → Birlik tanımları (isim, ikon, maliyet, süre, statlar, görsel)
+      2) Görsel yardımcıları (unitImgFill, unitImg)
+      3) Eğitim sistemi     (trainUnit, kuyruk, hızlandırma, panel)
+      4) Savaş birlik seçimi (selectedTroopsForBattle, seçici, özet, roster)
+      5) Panel görünümü    (sekme çubuğu + birlik listesi ekranı)
+
+    NOT: Bu dosya heroes.js'ten SONRA, ana koddan ÖNCE yüklenir.
+    state, showToast gibi ana kod fonksiyonlarını çalışma anında kullanır.
+    ═══════════════════════════════════════════════════════════ */
+
+/*  ─────────────────────────────────────────────
+    1) BİRLİK TANIMLARI
+    Yeni birlik eklemek için buraya yeni satır ekle;
+    menü, eğitim ve savaş seçici otomatik uyum sağlar.
+    attack/defense/hp: birim başına stat
+    cost: elmas maliyeti • trainMinutes: eğitim süresi (dk)
+    modelScale: eğitim ekranındaki 3B modelin boyu (1 = normal,
+                0.8 = %20 küçük). Model çerçeveden taşıyorsa düşür.
+                ÇALIŞMASI İÇİN ana HTML'de tek satırlık düzenleme
+                gerekir — dosyanın en altındaki nota bak.
+    ───────────────────────────────────────────── */
+const UNIT_TYPES = {
+  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 5,  attack: 1, defense: 1, hp: 1, modelScale: 0.80, img: "resimler/gorsel8.webp" },
+  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 600,  trainMinutes: 10, attack: 3, defense: 3, hp: 3, modelScale: 0.80, img: "resimler/gorsel9.webp" },
+  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 1000, trainMinutes: 20, attack: 8, defense: 8, hp: 8, modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "resimler/gorsel10.webp" },
+};
+
+function unitImgFill(def){
+  return (def && def.img) ? `<img class="unit-photo" src="${def.img}" alt="">` : (def ? def.icon : "\ud83e\udd96");
+}
+function unitImg(def, size){
+  size = size || 26;
+  return (def && def.img)
+    ? `<span class="unit-photo-box" style="width:${size}px;height:${size}px;flex:0 0 ${size}px;"><img class="unit-photo" src="${def.img}" alt=""></span>`
+    : (def ? def.icon : "\ud83e\udd96");
+}
+
+/*  ── 3) EĞİTİM SİSTEMİ ── */
+function trainUnit(unitId, count) {
+  count = count || 1;
+  const def = UNIT_TYPES[unitId];
+  if (!def) return;
+  const totalCost = def.cost * count;
+  if (state.diamonds < totalCost) {
+    showToast(`Yeterli elmasın yok. ${count} ${def.name} için ${fmt(totalCost)} elmas gerekiyor.`);
+    return;
+  }
+  state.diamonds -= totalCost;
+  for (let i = 0; i < count; i++) {
+    state.trainingQueue.push({
+      unitId,
+      finishAt: Date.now() + def.trainMinutes * 60 * 1000,
+    });
+  }
+  renderDiamonds();
+  updateShopButtons();
+  renderTroopsPanel();
+  showToast(count === 1
+    ? `${def.name} eğitime başladı (${def.trainMinutes} dk).`
+    : `${count} ${def.name} eğitime başladı (her biri ${def.trainMinutes} dk).`);
+}
+
+function getTotalTroopStats() {
+  let attack = 0, defense = 0, hp = 0, count = 0;
+  Object.keys(state.troops).forEach(unitId => {
+    const n = state.troops[unitId] || 0;
+    const def = UNIT_TYPES[unitId];
+    if (!def || n <= 0) return;
+    attack += def.attack * n;
+    defense += def.defense * n;
+    hp += def.hp * n;
+    count += n;
+  });
+  return { attack, defense, hp, count };
+}
+
+function renderTroopsPanel() {
+  applyFinishedTraining();
+  const panel = document.getElementById("panel-troops");
+  if (!panel) return;
+
+  if (!document.getElementById("owned_knight")) return;
+
+  if (!panel.dataset.tplBound) { bindTroopsTemplate(); panel.dataset.tplBound = "1"; }
+
+  const totals = getTotalTroopStats();
+  setTroopText("power_attack", totals.attack);
+  setTroopText("power_defense", totals.defense);
+  setTroopText("power_hp", totals.hp);
+
+  Object.values(UNIT_TYPES).forEach(def => {
+    setTroopText("owned_" + def.id, "x" + (state.troops[def.id] || 0));
+    setTroopText(def.id + "_atk", def.attack);
+    setTroopText(def.id + "_def", def.defense);
+    setTroopText(def.id + "_hp", def.hp);
+    setTroopText(def.id + "_cost", fmt(def.cost));
+    setTroopText(def.id + "_time", def.trainMinutes + " dk");
+
+    const affordableMax = ensure(Math.floor(state.diamonds / def.cost));
+    const sliderMax = clamp(affordableMax, 1, 50);
+    const current = Math.min(troopTrainSelection[def.id] || 1, sliderMax);
+    troopTrainSelection[def.id] = current;
+
+    const slider = document.getElementById("troopTrainSlider_" + def.id);
+    if (slider) {
+      slider.min = 1;
+      slider.max = sliderMax;
+      slider.value = current;
+      slider.disabled = (affordableMax === 0);
+    }
+    const btn = document.getElementById(def.id + "_btn");
+    if (btn) btn.disabled = (affordableMax === 0);
+
+    setTroopText(def.id + "_qty", current);
+    setTroopText(def.id + "_total", fmt(def.cost * current));
+  });
+
+  renderTroopQueue();
+}
+
+function setTroopText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function bindTroopsTemplate() {
+  Object.values(UNIT_TYPES).forEach(def => {
+    const slider = document.getElementById("troopTrainSlider_" + def.id);
+    if (slider) {
+      slider.addEventListener("input", () => {
+        const v = ensure(parseInt(slider.value, 10) || 1, 1);
+        troopTrainSelection[def.id] = v;
+        setTroopText(def.id + "_qty", v);
+        setTroopText(def.id + "_total", fmt(def.cost * v));
+      });
+    }
+    const minus = document.getElementById(def.id + "_minus");
+    const plus  = document.getElementById(def.id + "_plus");
+    if (minus) bindTap(minus, () => stepTroopQty(def.id, -1));
+    if (plus)  bindTap(plus,  () => stepTroopQty(def.id, 1));
+    const btn = document.getElementById(def.id + "_btn");
+    if (btn) bindTap(btn, () => trainUnit(def.id, troopTrainSelection[def.id] || 1));
+  });
+}
+
+function stepTroopQty(unitId, delta) {
+  const slider = document.getElementById("troopTrainSlider_" + unitId);
+  if (!slider || slider.disabled) return;
+  const min = parseInt(slider.min, 10) || 1;
+  const max = parseInt(slider.max, 10) || 1;
+  const v = clamp((parseInt(slider.value, 10) || 1) + delta, min, max);
+  slider.value = v;
+  troopTrainSelection[unitId] = v;
+  const def = UNIT_TYPES[unitId];
+  setTroopText(unitId + "_qty", v);
+  setTroopText(unitId + "_total", fmt(def.cost * v));
+}
+
+function renderTroopQueue() {
+  const banner = document.getElementById("train_area");
+  const hasTraining = !!(state.trainingQueue && state.trainingQueue.length > 0);
+
+  if (banner) banner.style.display = hasTraining ? "none" : "";
+
+  const byUnit = hasTraining ? groupBy(state.trainingQueue, j => j.unitId) : {};
+  const speedUpCount = state.inventory["5 Dakika Hızlandırma"] || 0;
+
+  ["knight", "soldier", "robot"].forEach(unitId => {
+    const slot = document.getElementById("train_" + unitId);
+    if (!slot) return;
+    const group = byUnit[unitId];
+    if (!group || group.length === 0) {
+      slot.style.display = "none";
+      slot.innerHTML = "";
+      return;
+    }
+    const def = UNIT_TYPES[unitId];
+    group.sort((a, b) => a.finishAt - b.finishAt);
+    const remaining = group[0].finishAt - Date.now();
+    slot.style.display = "flex";
+    slot.innerHTML = `
+      <div class="q-img">${unitImgFill(def)}</div>
+      <div class="q-info">
+        <span class="q-count">x${group.length}</span>
+${speedupBtn(unitId, remaining, speedUpCount, "q-timer")}
+      </div>`;
+    const sp = slot.querySelector(".speedup-trigger");
+    if (sp) bindTap(sp, () => useSpeedUpOnTrainingGroup(unitId));
+  });
+}
+
+let troopTrainSelection = {};
+
+function useSpeedUpOnTrainingGroup(unitId) {
+  useSpeedUpOnGroup(
+    state.trainingQueue.filter(j => j.unitId === unitId),
+    [applyFinishedTraining, renderTroopsPanel, renderInventory]);
+}
+
+/*  ── 4) SAVAŞ BİRLİK SEÇİMİ ── */
+let selectedTroopsForBattle = { knight: 0, soldier: 0, robot: 0 };
+
+function renderTroopSelector() {
+  applyFinishedTraining();
+  const listEl = document.getElementById("troopSelectList");
+  const summaryEl = document.getElementById("troopSelectSummary");
+  if (!listEl || !summaryEl) return;
+
+  renderHeroPickerForBattle();
+
+  const owned = Object.values(UNIT_TYPES).filter(def => (state.troops[def.id] || 0) > 0);
+  if (owned.length === 0) {
+    listEl.innerHTML = emptyState("🪖", 'Henüz birliğin yok. "Birlikler" menüsünden eğitebilirsin.', "10px");
+    summaryEl.textContent = "";
+    return;
+  }
+
+  listEl.innerHTML = owned.map(def => {
+    const max = state.troops[def.id] || 0;
+    const current = Math.min(selectedTroopsForBattle[def.id] || 0, max);
+    return `
+      <div class="troop-select-row">
+        <div class="troop-select-top">
+          <span class="t-icon">${unitImg(def,24)}</span>
+          <span class="t-name">${def.name}</span>
+          <span class="t-count" id="troopCount_${def.id}">${current} / ${max}</span>
+        </div>
+        <input type="range" class="troop-slider" id="troopSlider_${def.id}"
+               min="0" max="${max}" step="1" value="${current}" data-unit="${def.id}">
+      </div>`;
+  }).join("");
+
+  listEl.querySelectorAll(".troop-slider").forEach(slider => {
+    slider.addEventListener("input", () => {
+      const unitId = slider.dataset.unit;
+      selectedTroopsForBattle[unitId] = parseInt(slider.value, 10);
+      document.getElementById(`troopCount_${unitId}`).textContent = `${slider.value} / ${state.troops[unitId]}`;
+      updateTroopSelectSummary();
+      renderEnemyPowerPreview();
+    });
+  });
+
+  updateTroopSelectSummary();
+}
+
+function updateTroopSelectSummary() {
+  const summaryEl = document.getElementById("troopSelectSummary");
+  if (!summaryEl) return;
+  let attack = 0, defense = 0, hp = 0, count = 0;
+  Object.keys(selectedTroopsForBattle).forEach(unitId => {
+    const n = selectedTroopsForBattle[unitId] || 0;
+    const def = UNIT_TYPES[unitId];
+    if (!def || n <= 0) return;
+    attack += def.attack * n; defense += def.defense * n; hp += def.hp * n; count += n;
+  });
+
+  const cmds = (typeof selectedCommanders !== "undefined" ? selectedCommanders : []).map(id => HERO_STATS[id]).filter(Boolean);
+  const cmdPart = cmds.length ? " + " + cmds.map(c => `<span style="color:${c.color};">${c.specialtyIcon} ${c.name}</span>`).join(", ") : "";
+  if (count === 0 && cmds.length === 0) {
+    summaryEl.innerHTML = `Tek başına gidiyorsun.`;
+  } else {
+    summaryEl.innerHTML = `<b>${count}</b> birlik · ⚔️+${attack} 🛡️+${defense} ❤️+${hp}${cmdPart}`;
+  }
+}
+
+function buildTroopRoster(selectedTroops) {
+  const roster = [];
+  Object.keys(selectedTroops || {}).forEach(unitId => {
+    const n = ensure(Math.min(selectedTroops[unitId] || 0, state.troops[unitId] || 0));
+    const def = UNIT_TYPES[unitId];
+    if (!def || n <= 0) return;
+    for (let i = 0; i < n; i++) {
+      roster.push({ unitId, hpEach: def.hp });
+    }
+  });
+  return roster;
+}
+
+
+/*  ═══════════════════════════════════════════════════════════
+    5) BİRLİK PANELİ GÖRÜNÜMÜ — SEKMELİ EKRAN
+    #panel-troops'a bir sekme çubuğu ekler:
+      Sekme 1 "Eğitim"    → mevcut 3B görüntüleyici (dokunulmadı)
+      Sekme 2 "Birlikler" → birlik PNG'si + x{adet} + Geliştir
+    Renkler ve font magaza.js ile birebir aynıdır.
+    ═══════════════════════════════════════════════════════════ */
+
+/* ── 1) GÖRÜNÜM ──────────────────────────────────────────────── */
+(function () {
+  const st = document.createElement("style");
+  st.textContent = `
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
+
+/* sekme çubuğu — mağazadaki .shop-tab ile aynı hap stili */
+.tp-tabs{
+  position:absolute; z-index:40;
+  top:calc(10px + env(safe-area-inset-top,0)); left:0; right:0;
+  display:flex; justify-content:center; gap:8px;
+  pointer-events:none;
+}
+.tp-tab{
+  pointer-events:auto; flex-shrink:0; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:12px;
+  color:#dff4ff; padding:4px 16px; border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.06));
+  border:2px solid rgba(190,240,255,.45);
+  text-shadow:0 1px 2px rgba(0,30,55,.5);
+  backdrop-filter:blur(3px);
+  transition:all .15s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.tp-tab:hover{ border-color:#fff; color:#fff; }
+.tp-tab.active{
+  background:linear-gradient(180deg,#ffffff,#cfeefb);
+  color:#0e6fc0; border-color:#fff; text-shadow:none;
+  box-shadow:0 3px 8px rgba(0,30,60,.35);
+}
+/* sonradan sembol eklemek için: <span class="tp-ico">🛡️</span> */
+.tp-tab .tp-ico{ margin-right:4px; }
+
+/* sekme çubuğu için mevcut başlık/noktaları aşağı it */
+#panel-troops .uv-title{ top:calc(44px + env(safe-area-inset-top,0)); }
+#panel-troops .uv-dots { top:calc(72px + env(safe-area-inset-top,0)); }
+
+/* eğitim ekranındaki "x{miktar}" yazısı kaldırıldı */
+#panel-troops .uv-troop-count{ display:none !important; }
+
+/* ROBOT 2D'dir (3B model değil, düz PNG) → modelScale ona işlemez,
+   boyu buradan ayarlanır. Orijinali min(50vh,440px) idi.
+   Küçültmek için sayıları düşür, büyütmek için yükselt. */
+#panel-troops .us-robot .hero-img{
+  height:min(38vh, 330px) !important;
+}
+
+/* NOT: Modelleri küçültmek için canvas'a CSS scale VERME — canvas zaten
+   kendi alt kenarında kırptığı için ayaklar kesik kalır. Bunun yerine ana
+   HTML'de "const scale = 2.0 / maxDim;" satırındaki 2.0 değerini düşür. */
+
+/* eğitim sekmesi pasifken görüntüleyiciyi gizle */
+#unitViewer.tp-off .unit-screen{ visibility:hidden; pointer-events:none; }
+#unitViewer.tp-off .uv-title,
+#unitViewer.tp-off .uv-dots,
+#unitViewer.tp-off .uv-arrow{ display:none; }
+
+/* ── 2. sekme ekranı ── */
+.tp-screen{
+  position:absolute; inset:0; z-index:30;
+  display:none; flex-direction:column;
+  padding:calc(52px + env(safe-area-inset-top,0)) 12px 14px;
+  background:
+    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
+    radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
+    linear-gradient(180deg, #1fa3ea, #0e6fc0);
+}
+.tp-screen.is-active{ display:flex; }
+
+.tp-list{
+  display:flex; flex-direction:column; gap:8px;
+  overflow-y:auto; padding:4px 2px 10px;
+  scrollbar-width:thin; scrollbar-color:#5bb9e6 transparent;
+}
+.tp-list::-webkit-scrollbar{ width:8px; }
+.tp-list::-webkit-scrollbar-thumb{ background:linear-gradient(180deg,#7fd0f2,#3d9fd6); border-radius:8px; }
+.tp-list::-webkit-scrollbar-track{ background:rgba(0,0,0,.15); }
+
+/* ── birlik satırı (mağaza kartı ile aynı gövde) ── */
+.tp-row{
+  position:relative;
+  display:flex; align-items:center; gap:9px;
+  padding:5px 9px;
+  border-radius:12px;
+  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
+  box-shadow:
+    0 5px 0 #0b1c3a,
+    0 10px 16px rgba(0,20,45,.5),
+    inset 0 2px 3px rgba(150,205,255,.55),
+    inset 0 -4px 8px rgba(0,10,30,.55);
+  animation:tpRowIn .3s cubic-bezier(.2,1.2,.35,1) backwards;
+}
+@keyframes tpRowIn{
+  from{ opacity:0; transform:translateY(16px) scale(.94); }
+  to  { opacity:1; transform:translateY(0) scale(1); }
+}
+
+/* birlik görseli — tabla yok, sadece PNG */
+.tp-img{
+  position:relative; flex:0 0 54px;
+  width:54px; height:54px;
+  display:flex; align-items:center; justify-content:center;
+}
+.tp-img img{
+  width:100%; height:100%; object-fit:contain;
+  filter:drop-shadow(0 3px 4px rgba(0,10,30,.55));
+}
+.tp-img .tp-emoji{ font-size:34px; filter:drop-shadow(0 3px 4px rgba(0,10,30,.55)); }
+
+.tp-mid{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:0; }
+.tp-name{
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:15px;
+  color:#a8e7ff; letter-spacing:1.6px; text-transform:uppercase;
+  line-height:1.15;
+  text-shadow:0 1px 0 #12305a, 0 2px 3px rgba(0,10,30,.8);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* kalın 3B rakam — mağazadaki .sc-left konturu */
+.tp-count, .tp-up{
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; color:#fff;
+  text-shadow:
+    -2px -1px 0 #1d3a63, 2px -1px 0 #1d3a63,
+    -2px 2px 0 #1d3a63, 2px 2px 0 #1d3a63,
+    0 -2px 0 #1d3a63, 0 2px 0 #1d3a63,
+    -2px 0 0 #1d3a63, 2px 0 0 #1d3a63,
+    0 3px 0 #142a4a;
+}
+.tp-count{
+  font-size:23px; line-height:1.05; white-space:nowrap;
+  letter-spacing:.5px;
+  -webkit-text-stroke:1.2px #1d3a63;
+  paint-order:stroke fill;
+}
+
+/* Geliştir butonu — mağazadaki yeşil .sc-buy */
+.tp-up{
+  flex:0 0 auto; border:none; cursor:pointer;
+  background:linear-gradient(180deg,#6ee07f,#2cab44);
+  font-size:12px; letter-spacing:.4px;
+  border-radius:9px; padding:7px 16px;
+  box-shadow:0 3px 0 #1c7d31, inset 0 1px 0 rgba(255,255,255,.5);
+  transition:transform .06s, box-shadow .06s, filter .1s;
+  white-space:nowrap;
+  text-shadow:
+    -1px -1px 0 #1c6e31, 1px -1px 0 #1c6e31,
+    -1px 1px 0 #1c6e31, 1px 1px 0 #1c6e31,
+    0 2px 0 #145425;
+  -webkit-tap-highlight-color:transparent;
+}
+.tp-up:hover{ filter:brightness(1.08); }
+.tp-up:active{ transform:translateY(3px); box-shadow:0 0 0 #1c7d31; }
+
+/* sahip olunmayan birlik */
+.tp-row.tp-none{ filter:saturate(.35) brightness(.8); }
+.tp-row.tp-none .tp-up{ opacity:.5; cursor:not-allowed; }
+
+/* kırmızı kapatma butonu */
+.tp-close{
+  position:absolute; z-index:45;
+  top:calc(8px + env(safe-area-inset-top,0)); right:12px;
+  width:36px; height:36px; border:none; cursor:pointer;
+  border-radius:11px;
+  background:linear-gradient(180deg,#ff7b6b,#e03a2c);
+  box-shadow:0 4px 0 #9c1e14, 0 6px 10px rgba(0,15,40,.45), inset 0 1px 0 rgba(255,255,255,.5);
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:18px; color:#fff;
+  display:flex; align-items:center; justify-content:center; line-height:1;
+  text-shadow:0 2px 0 #8e1a11;
+  transition:transform .06s, box-shadow .06s, filter .1s;
+  -webkit-tap-highlight-color:transparent;
+}
+.tp-close:hover{ filter:brightness(1.08); }
+.tp-close:active{ transform:translateY(4px); box-shadow:0 0 0 #9c1e14; }
+
+.tp-empty{
+  text-align:center; color:#eaf4ff; padding:24px 10px;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px;
+  text-shadow:0 1px 3px rgba(0,30,55,.6);
+}
+`;
+  document.head.appendChild(st);
+})();
+
+/* ── 2) KOD ──────────────────────────────────────────────────── */
+const TroopTabs = (function () {
+
+  const TABS = [
+    { key: "train", icon: "",  label: "Eğitim"    },  /* icon: sonradan emoji/png koy */
+    { key: "units", icon: "",  label: "Birlikler" },
+  ];
+
+  let active = "train";
+  let built = false;
+  let tickTimer = null;
+
+  function $(id) { return document.getElementById(id); }
+  function money(n) { return (typeof fmt === "function") ? fmt(n) : String(n); }
+  function tap(el, fn) { (typeof bindTap === "function") ? bindTap(el, fn) : el.addEventListener("click", fn); }
+
+  /* sekme çubuğunu ve 2. ekranı bir kez kur */
+  function build() {
+    if (built) return;
+    const panel = $("panel-troops");
+    const viewer = $("unitViewer");
+    if (!panel || !viewer) return;
+
+    const bar = document.createElement("div");
+    bar.className = "tp-tabs";
+    bar.innerHTML = TABS.map(t =>
+      `<button class="tp-tab${t.key === active ? " active" : ""}" data-tab="${t.key}">
+         ${t.icon ? `<span class="tp-ico">${t.icon}</span>` : ""}${t.label}
+       </button>`).join("");
+    viewer.appendChild(bar);
+    bar.querySelectorAll(".tp-tab").forEach(btn => tap(btn, () => show(btn.dataset.tab)));
+
+    const screen = document.createElement("div");
+    screen.className = "tp-screen";
+    screen.id = "tpUnitsScreen";
+    screen.innerHTML =
+      `<button class="tp-close" id="tpCloseBtn" aria-label="Kapat">✕</button>
+       <div class="tp-list" id="tpUnitsList"></div>`;
+    viewer.appendChild(screen);
+
+    /* kapatma — bindTap "pointerup" kullandığı için .click() işe yaramaz,
+       bu yüzden closeOverlayPanel'i doğrudan çağırıyoruz */
+    function doClose() {
+      if (typeof closeOverlayPanel === "function") closeOverlayPanel(panel);
+      else panel.classList.remove("active");
+    }
+    const myBtn = screen.querySelector("#tpCloseBtn");
+    myBtn.addEventListener("pointerup", doClose);
+    myBtn.addEventListener("click", doClose);
+
+    /* panelin kendi ✕ butonuna yedek bağlantı (closeOverlayPanel
+       tekrar çağrılsa da zararsız: sadece .active sınıfını kaldırır) */
+    panel.querySelectorAll("[data-close]").forEach(b => {
+      b.addEventListener("click", doClose);
+    });
+
+    built = true;
+  }
+
+  function show(key) {
+    build();
+    active = key;
+    const viewer = $("unitViewer");
+    const screen = $("tpUnitsScreen");
+    if (!viewer || !screen) return;
+
+    viewer.querySelectorAll(".tp-tab").forEach(b =>
+      b.classList.toggle("active", b.dataset.tab === key));
+
+    const onUnits = (key === "units");
+    viewer.classList.toggle("tp-off", onUnits);
+    screen.classList.toggle("is-active", onUnits);
+
+    clearInterval(tickTimer);
+    if (onUnits) { render(); tickTimer = setInterval(refreshCounts, 1000); }
+  }
+
+  /* birlik listesi */
+  function render() {
+    const list = $("tpUnitsList");
+    if (!list || typeof UNIT_TYPES === "undefined") return;
+    if (typeof applyFinishedTraining === "function") applyFinishedTraining();
+
+    const defs = Object.values(UNIT_TYPES);
+    if (!defs.length) { list.innerHTML = `<div class="tp-empty">Tanımlı birlik yok.</div>`; return; }
+
+    list.innerHTML = defs.map((def, i) => {
+      const n = (state.troops && state.troops[def.id]) || 0;
+      const pic = def.img
+        ? `<img src="${def.img}" alt="${def.name}">`
+        : `<span class="tp-emoji">${def.icon || "🪖"}</span>`;
+      return `
+        <div class="tp-row${n > 0 ? "" : " tp-none"}" data-unit="${def.id}" style="animation-delay:${i * 0.05}s">
+          <div class="tp-img">${pic}</div>
+          <div class="tp-mid">
+            <div class="tp-name">${def.name}</div>
+            <div class="tp-count" data-count="${def.id}">x${money(n)}</div>
+          </div>
+          <button class="tp-up" data-unit="${def.id}">Geliştir</button>
+        </div>`;
+    }).join("");
+
+    list.querySelectorAll(".tp-up").forEach(btn =>
+      tap(btn, () => upgrade(btn.dataset.unit)));
+  }
+
+  /* sadece rakamları tazele (DOM'u yeniden çizmeden) */
+  function refreshCounts() {
+    const list = $("tpUnitsList");
+    if (!list) return;
+    list.querySelectorAll("[data-count]").forEach(el => {
+      const n = (state.troops && state.troops[el.dataset.count]) || 0;
+      const txt = "x" + money(n);
+      if (el.textContent !== txt) el.textContent = txt;
+      el.closest(".tp-row").classList.toggle("tp-none", n <= 0);
+    });
+  }
+
+  /* ── GELİŞTİRME ──
+     Birliklerde henüz seviye sistemi yok (heroes.js'teki gibi).
+     Seviye/maliyet tablosu belirlenince gövdesi buraya yazılacak. */
+  function upgrade(unitId) {
+    const def = UNIT_TYPES[unitId];
+    if (!def) return;
+    if ((state.troops && state.troops[unitId]) > 0) {
+      if (typeof showToast === "function") showToast(`${def.name} geliştirme sistemi yakında!`);
+    } else {
+      if (typeof showToast === "function") showToast(`Önce ${def.name} eğitmelisin.`);
+    }
+  }
+
+  function onOpen()  { build(); show("train"); }
+  function onClose() { clearInterval(tickTimer); }
+
+  return { onOpen, onClose, show, render };
+})();
+
+
+/* ── OYUNA BAĞLANMA ──────────────────────────────────────────
+   Bu dosya ana koddan ÖNCE yüklendiği için openOverlayPanel'i
+   sarmalayamayız; panelin açılışını DOM üzerinden izliyoruz. */
+document.addEventListener("DOMContentLoaded", function () {
+  const panel = document.getElementById("panel-troops");
+  if (!panel) return;
+  let wasOpen = panel.classList.contains("active");
+  new MutationObserver(() => {
+    const isOpen = panel.classList.contains("active");
+    if (isOpen === wasOpen) return;
+    wasOpen = isOpen;
+    isOpen ? TroopTabs.onOpen() : TroopTabs.onClose();
+  }).observe(panel, { attributes: true, attributeFilter: ["class"] });
+  if (wasOpen) TroopTabs.onOpen();
+});
+
+/*  ═══════════════════════════════════════════════════════════
+    GEREKLİ TEK SEFERLİK HTML DÜZENLEMESİ
+
+    Yukarıdaki "modelScale" ayarının çalışması için ana HTML'de
+    3B yükleyicideki şu satırı (yaklaşık 4746. satır):
+
+        const scale = 2.0 / maxDim;
+
+    bununla değiştir:
+
+        const uS = (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES[unit]
+                    && UNIT_TYPES[unit].modelScale) || 1;
+        const scale = (2.0 * uS) / maxDim;
+
+    Bu düzenlemeyi bir kez yaptıktan sonra tüm birlik boyutlarını
+    sadece bu dosyadan (modelScale değerini değiştirerek) ayarlarsın.
+    ═══════════════════════════════════════════════════════════ */
