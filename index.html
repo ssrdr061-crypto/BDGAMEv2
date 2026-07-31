@@ -4927,14 +4927,27 @@ const TroopViewer = (function () {
     if (next) bindTap(next, () => go(idx + 1));
     setupSwipe(viewerEl);
     inited = true;
-    apply();
+    apply(true);
   }
 
-  function apply() {
+  /* Birlik değiştirirken panel BAŞTAN çizilmez — sadece hangi ekranın
+     etkin olduğu değişir. Görseller, statlar, fiyat ve süre yerinde kalır,
+     yeniden yüklenmez. Tam çizim sadece panel açılınca ve satın alma /
+     hızlandırma sonrası yapılır. */
+  let _drawn = false;
+
+  function syncPortraits() {
+    document.querySelectorAll("#panel-troops .uv-portrait").forEach(b => {
+      b.classList.toggle("is-active", (parseInt(b.dataset.i, 10) || 0) === idx);
+    });
+  }
+
+  function apply(fullRedraw) {
     screens.forEach((s, i) => { if (s) s.classList.toggle("is-active", i === idx); });
     dots.forEach((d, i) => d.classList.toggle("is-active", i === idx));
     if (titleEl) titleEl.textContent = NAMES[ORDER[idx]];
-    renderUnitStats();
+    if (fullRedraw || !_drawn) { renderUnitStats(); _drawn = true; }
+    else syncPortraits();
   }
 
   function renderUnitStats() {
@@ -5088,7 +5101,7 @@ const TroopViewer = (function () {
 
   function show() {
     init();
-    requestAnimationFrame(() => { apply(); });
+    requestAnimationFrame(() => { apply(true); });   /* panel açılışında tam çizim */
   }
   function hide() { }
 
