@@ -1226,6 +1226,7 @@ if (document.readyState === "loading") {
 
 /* ═══════════════════════════════════════════════════════════════
    9) BİRLİK PANELİ v2 — kart görünümü, açık mavi tema, Baloo 2
+      Portre seçici, "Anında / Üret" butonları, adet çubuğu.
       Yapısal HTML ana koddadır; burada SADECE görünüm vardır.
    ═══════════════════════════════════════════════════════════════ */
 (function () {
@@ -1301,25 +1302,9 @@ if (document.readyState === "loading") {
   color:#fff !important; text-shadow:0 2px 5px rgba(0,40,70,.6) !important;
 }
 
-/* ── NOKTALAR: sahnenin altına taşınır (JS) ── */
-#panel-troops .uv-dots{
-  position:absolute !important; top:auto !important; bottom:10px !important;
-  left:0 !important; right:0 !important; z-index:6 !important;
-}
-#panel-troops .uv-dot{
-  width:7px !important; height:7px !important; border-radius:99px !important;
-  background:rgba(255,255,255,.4) !important; transition:width .25s, background .25s;
-}
-#panel-troops .uv-dot.is-active{ width:20px !important; background:#fff !important; }
+/* noktalar kaldırıldı — yerini portre seçici aldı */
+#panel-troops .uv-dots{ display:none !important; }
 
-/* kaydırma ipucu */
-#panel-troops .stage::after{
-  content:"‹  kaydır  ›";
-  position:absolute; left:0; right:0; bottom:26px; z-index:5;
-  text-align:center; pointer-events:none;
-  font-family:'Baloo 2','Nunito',sans-serif; font-weight:700; font-size:12px;
-  color:rgba(255,255,255,.55);
-}
 
 /* ── KAPAT ── */
 #panel-troops .uv-close{
@@ -1335,7 +1320,7 @@ if (document.readyState === "loading") {
 /* ── GÖRSELLER: boya göre ölçek, kırpılma yok ── */
 #panel-troops .us-knight .knight-wrap{
   width:auto !important; height:78% !important;
-  left:50% !important; bottom:34px !important; transform:translateX(-50%) !important;
+  left:50% !important; bottom:14px !important; transform:translateX(-50%) !important;
 }
 #panel-troops .us-knight .knight-sway{ height:100% !important; }
 #panel-troops .us-knight .knight{
@@ -1344,7 +1329,7 @@ if (document.readyState === "loading") {
 }
 #panel-troops .us-soldier .soldier-wrap{
   width:auto !important; height:78% !important;
-  left:50% !important; bottom:34px !important; transform:translateX(-50%) !important;
+  left:50% !important; bottom:14px !important; transform:translateX(-50%) !important;
 }
 #panel-troops .us-soldier .soldier{
   height:100% !important; width:auto !important; max-width:64vw !important;
@@ -1352,10 +1337,11 @@ if (document.readyState === "loading") {
 }
 #panel-troops .us-robot .hero-img{
   position:absolute !important; left:50% !important; top:auto !important;
-  bottom:34px !important; transform:translateX(-50%) !important;
+  bottom:14px !important; transform:translateX(-50%) !important;
   height:76% !important; width:auto !important; max-width:64vw !important;
 }
-#panel-troops .ground-shadow{ bottom:30px !important; }
+#panel-troops .ground-shadow{ display:none !important; }
+#panel-troops .robot-fx{ background:transparent !important; }
 
 /* ── İSTATİSTİKLER: bar yok, düz satır ── */
 #panel-troops .stats{
@@ -1368,9 +1354,9 @@ if (document.readyState === "loading") {
 }
 #panel-troops .stat-row{
   display:flex !important; align-items:center !important; gap:10px !important;
-  padding:9px 12px !important; border:0 !important; border-radius:11px !important;
+  padding:7px 12px !important; border:0 !important; border-radius:10px !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:700 !important; font-size:16px !important;
+  font-weight:700 !important; font-size:15px !important;
   color:#fff !important; text-shadow:0 1px 3px rgba(0,40,70,.6) !important;
   background:transparent !important;
 }
@@ -1387,78 +1373,126 @@ if (document.readyState === "loading") {
 }
 #panel-troops .stat-val{
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:800 !important; font-size:19px !important; color:#fff !important;
+  font-weight:800 !important; font-size:18px !important; color:#fff !important;
   font-variant-numeric:tabular-nums !important;
 }
 #panel-troops .bar{ display:none !important; }
 
-/* ── EĞİT ÇUBUĞU ── */
-#panel-troops .unit-train-bar{
-  display:flex !important; align-items:center !important; gap:10px !important;
-  position:static !important; height:auto !important; margin:10px 8px 0 !important;
-  background:transparent !important; border:0 !important; padding:0 !important; overflow:visible !important;
+/* ── PORTRE SEÇİCİ (3 birlik) ── */
+#panel-troops .uv-portraits{
+  display:flex !important; justify-content:center !important; gap:10px !important;
+  margin:0 0 10px !important;
 }
-#panel-troops .unit-train-btn{
-  position:static !important; flex:1 !important; width:auto !important; height:auto !important;
-  padding:14px 8px !important; border-radius:14px !important;
+#panel-troops .uv-portrait{
+  width:62px !important; height:62px !important; flex:none !important;
+  padding:0 !important; overflow:hidden !important; cursor:pointer !important;
+  border-radius:16px !important;
+  background:linear-gradient(180deg, rgba(8,58,102,.55), rgba(4,34,64,.75)) !important;
+  border:2px solid rgba(190,240,255,.40) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25) !important;
+  transition:border-color .15s, box-shadow .15s, transform .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+#panel-troops .uv-portrait img{
+  width:190% !important; height:auto !important; display:block !important;
+  margin:-6% 0 0 -45% !important; pointer-events:none;
+}
+#panel-troops .uv-portrait span{
+  display:flex; align-items:center; justify-content:center;
+  width:100%; height:100%; font-size:26px;
+}
+#panel-troops .uv-portrait.is-active{
+  border-color:#ffd257 !important;
+  box-shadow:0 0 0 2px rgba(255,210,87,.35), 0 4px 10px rgba(0,25,50,.4) !important;
+  transform:translateY(-2px) !important;
+}
+
+/* ── ADET ÇUBUĞU: − / kutu / + / sürgü ── */
+#panel-troops .unit-qty-bar{
+  display:flex !important; align-items:center !important; gap:8px !important;
+  margin:8px 8px 0 !important;
+}
+#panel-troops .uq-btn{
+  width:38px !important; height:38px !important; flex:none !important;
+  border-radius:11px !important; cursor:pointer !important;
   background:linear-gradient(180deg,#ffd257,#f0932b) !important;
   border:2px solid rgba(255,220,150,.7) !important; color:#3a2408 !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:800 !important; font-size:18px !important; letter-spacing:.5px !important;
-  text-transform:none !important; text-shadow:0 1px 0 rgba(255,255,255,.4) !important;
+  font-weight:800 !important; font-size:21px !important; line-height:1 !important;
+  box-shadow:0 3px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.5) !important;
+}
+#panel-troops .uq-btn:active{ transform:translateY(2px) !important; box-shadow:0 1px 0 #a8641a !important; }
+#panel-troops .uq-input{
+  width:62px !important; flex:none !important; text-align:center !important;
+  padding:8px 4px !important; border-radius:11px !important;
+  background:rgba(255,255,255,.18) !important;
+  border:2px solid rgba(190,240,255,.7) !important; color:#fff !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:16px !important; outline:none !important;
+  -moz-appearance:textfield;
+}
+#panel-troops .uq-input::-webkit-outer-spin-button,
+#panel-troops .uq-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+#panel-troops .uv-qty-slider{
+  flex:1 !important; width:auto !important; height:24px !important;
+  writing-mode:horizontal-tb !important; direction:ltr !important;
+  -webkit-appearance:auto !important; appearance:auto !important;
+  accent-color:#ffd257 !important; cursor:pointer !important;
+}
+
+/* ── İKİ BUTON: Anında / Üret ── */
+#panel-troops .unit-train-bar{
+  display:flex !important; align-items:stretch !important; gap:8px !important;
+  position:static !important; height:auto !important; margin:9px 8px 0 !important;
+  background:transparent !important; border:0 !important; padding:0 !important; overflow:visible !important;
+}
+#panel-troops .unit-instant-btn,
+#panel-troops .unit-train-btn{
+  position:static !important; flex:1 1 0 !important; width:auto !important; height:auto !important;
+  display:flex !important; flex-direction:column !important;
+  align-items:center !important; justify-content:center !important; gap:1px !important;
+  padding:9px 6px !important; border-radius:14px !important; cursor:pointer !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  text-transform:none !important; letter-spacing:.3px !important;
+}
+#panel-troops .unit-instant-btn{
+  background:linear-gradient(180deg,#ffd257,#f0932b) !important;
+  border:2px solid rgba(255,220,150,.7) !important; color:#3a2408 !important;
+  text-shadow:0 1px 0 rgba(255,255,255,.4) !important;
   box-shadow:0 4px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.5) !important;
 }
-#panel-troops .unit-train-btn:active{ transform:translateY(3px) !important; box-shadow:0 1px 0 #a8641a !important; }
+#panel-troops .unit-instant-btn:active{ transform:translateY(3px) !important; box-shadow:0 1px 0 #a8641a !important; }
+#panel-troops .unit-train-btn{
+  background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;
+  border:2px solid rgba(190,240,255,.9) !important; color:#fff !important;
+  text-shadow:0 2px 3px rgba(0,40,70,.5) !important;
+  box-shadow:0 4px 0 #0e6fc0, inset 0 1px 0 rgba(255,255,255,.45) !important;
+}
+#panel-troops .unit-train-btn:active{ transform:translateY(3px) !important; box-shadow:0 1px 0 #0e6fc0 !important; }
+#panel-troops .utb-top{ font-weight:800 !important; font-size:17px !important; }
+#panel-troops .utb-sub{ font-weight:700 !important; font-size:12px !important; opacity:.9 !important; }
+
+/* ── EĞİTİM SÜRÜYOR ── */
 #panel-troops .utb-training{
-  flex:1 !important; text-align:center !important; padding:14px 8px !important;
-  border-radius:14px !important; background:rgba(4,32,60,.3) !important;
-  border:2px solid rgba(190,240,255,.35) !important;
+  flex:1 !important; display:flex !important; flex-direction:column !important;
+  align-items:center !important; justify-content:center !important;
+  padding:10px 8px !important; border-radius:14px !important;
+  background:rgba(4,32,60,.3) !important; border:2px solid rgba(190,240,255,.35) !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:800 !important; font-size:16px !important; color:#dff4ff !important;
+  font-weight:800 !important; font-size:15px !important; color:#dff4ff !important;
 }
-#panel-troops .utb-info{
-  flex:none !important; text-align:right !important;
-  font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:700 !important; font-size:15px !important; line-height:1.55 !important;
-  color:#fff !important; text-shadow:0 1px 3px rgba(0,40,70,.6) !important; white-space:nowrap !important;
-}
+#panel-troops .unit-train-timer{ font-weight:700 !important; font-size:12.5px !important; opacity:.9 !important; }
 #panel-troops .unit-speedup-btn{
+  flex:none !important;
   font-family:'Baloo 2','Nunito',sans-serif !important; font-weight:800 !important;
   font-size:13px !important; color:#3a2408 !important;
   background:linear-gradient(180deg,#ffd257,#f0932b) !important;
-  border:2px solid rgba(255,220,150,.7) !important; border-radius:10px !important;
-  padding:5px 10px !important; cursor:pointer !important; margin-top:3px !important;
-}
-#panel-troops .utb-qty{
-  flex:none !important; width:30px !important;
-  display:flex !important; flex-direction:column !important; align-items:center !important; gap:3px !important;
-}
-#panel-troops .uv-qty-label{
-  font-family:'Baloo 2','Nunito',sans-serif !important; font-weight:800 !important;
-  font-size:15px !important; color:#fff !important; text-shadow:0 1px 3px rgba(0,40,70,.6) !important;
-}
-#panel-troops .uv-qty-slider{
-  writing-mode:vertical-lr; direction:rtl;
-  -webkit-appearance:slider-vertical; appearance:auto;
-  width:22px !important; height:64px !important; accent-color:#ffd257 !important; cursor:pointer;
+  border:2px solid rgba(255,220,150,.7) !important; border-radius:12px !important;
+  padding:8px 12px !important; cursor:pointer !important;
+  box-shadow:0 3px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.5) !important;
 }
   `;
   document.head.appendChild(s);
-
-  /* Noktaları etkin sahnenin içine taşı (önizlemedeki gibi sahnenin altında dursun) */
-  function moveDots() {
-    const dots = document.getElementById("uvDots");
-    if (!dots) return;
-    const active = document.querySelector("#panel-troops .unit-screen.is-active .stage");
-    if (active && dots.parentElement !== active) active.appendChild(dots);
-  }
-  const viewer = document.getElementById("unitViewer");
-  if (viewer) {
-    new MutationObserver(moveDots).observe(viewer, {
-      subtree: true, attributes: true, attributeFilter: ["class"]
-    });
-    moveDots();
-  }
 })();
 
 console.log("[tema.js] Görünüm dosyası yüklendi ✔");

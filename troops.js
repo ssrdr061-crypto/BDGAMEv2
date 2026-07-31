@@ -26,9 +26,9 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 5,  attack: 1, defense: 1, hp: 1, modelScale: 0.80, img: "gorsel8.webp" },
-  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 600,  trainMinutes: 10, attack: 3, defense: 3, hp: 3, modelScale: 0.80, img: "gorsel9.webp" },
-  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 1000, trainMinutes: 20, attack: 8, defense: 8, hp: 8, modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp" },
+  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 5,  attack: 1, defense: 1, hp: 1, modelScale: 0.80, img: "data:image/png;base64,{{IMG8}}" },
+  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 600,  trainMinutes: 10, attack: 3, defense: 3, hp: 3, modelScale: 0.80, img: "data:image/png;base64,{{IMG9}}" },
+  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 1000, trainMinutes: 20, attack: 8, defense: 8, hp: 8, modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "data:image/png;base64,{{IMG10}}" },
 };
 
 function unitImgFill(def){
@@ -42,6 +42,35 @@ function unitImg(def, size){
 }
 
 /*  ── 3) EĞİTİM SİSTEMİ ── */
+/* ── ANINDA ÜRETİM ──────────────────────────────────────────────
+   Beklemeden birlik verir. Fiyatı normal maliyetin katıdır.
+   Dengeyi buradan ayarla: 3 = üç katı. */
+const INSTANT_COST_MULT = 3;
+
+function instantCostFor(unitId, count) {
+  const def = UNIT_TYPES[unitId];
+  if (!def) return 0;
+  return Math.round(def.cost * (count || 1) * INSTANT_COST_MULT);
+}
+
+function trainUnitInstant(unitId, count) {
+  count = count || 1;
+  const def = UNIT_TYPES[unitId];
+  if (!def) return;
+  const totalCost = instantCostFor(unitId, count);
+  if (state.diamonds < totalCost) {
+    showToast(`Yeterli elmasın yok. ${count} ${def.name} anında üretmek ${fmt(totalCost)} elmas.`);
+    return;
+  }
+  state.diamonds -= totalCost;
+  state.troops[unitId] = (state.troops[unitId] || 0) + count;
+  renderDiamonds();
+  updateShopButtons();
+  renderTroopsPanel();
+  if (typeof persistCurrentState === "function") { try { persistCurrentState(); } catch (e) {} }
+  showToast(`⚡ ${count} ${def.name} anında hazır!`);
+}
+
 function trainUnit(unitId, count) {
   count = count || 1;
   const def = UNIT_TYPES[unitId];

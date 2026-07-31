@@ -4953,15 +4953,25 @@ const TroopViewer = (function () {
       /* Birlik sayısını stage içindeki elemente yaz */
       const countEl = document.getElementById("uvCount_" + uid);
       if (countEl) countEl.textContent = "x" + count;
+      /* ── ÜST: 3 birliğin portresi (seçici) ── */
+      let html = `<div class="uv-portraits">` + ORDER.map((u, k) => {
+        const d = UNIT_TYPES[u];
+        const src = (d && d.img) ? d.img : "";
+        return `<button class="uv-portrait${k === idx ? " is-active" : ""}" data-i="${k}" aria-label="${NAMES[u]}">` +
+               (src ? `<img src="${src}" alt="">` : `<span>${d ? d.icon : "?"}</span>`) +
+               `</button>`;
+      }).join("") + `</div>`;
+
+      /* ── İSTATİSTİKLER ── */
       const stats = [def.attack, def.hp, def.defense];
-      let html = '<div class="stats-grid">';
-      stats.forEach((val, i) => {
-        html += `<div class="stat-row"><span class="stat-ico">${cfg.icons[i]}</span><span class="stat-name">${cfg.labels[i]}</span><span class="stat-val">${fmt(val)}</span></div>`;
+      html += '<div class="stats-grid">';
+      stats.forEach((val, i2) => {
+        html += `<div class="stat-row"><span class="stat-ico">${cfg.icons[i2]}</span><span class="stat-name">${cfg.labels[i2]}</span><span class="stat-val">${fmt(val)}</span></div>`;
       });
       html += `</div>`;
 
-      /* ── EĞİT bar ── */
-      const trainQueueForUnit = (state.trainingQueue || []).filter(j => j.unitId === uid);
+      /* ── EĞİT BÖLÜMÜ ── */
+      const trainQueueForUnit = (state.trainingQueue || []).filter(j2 => j2.unitId === uid);
       const isTraining = trainQueueForUnit.length > 0;
       const speedUpCount = state.inventory["5 Dakika Hızlandırma"] || 0;
       const selQty = unitTrainQty[uid] || 1;
@@ -4970,51 +4980,76 @@ const TroopViewer = (function () {
       const qty = Math.min(selQty, sliderMax);
       unitTrainQty[uid] = qty;
       const totalCost = def.cost * qty;
+      const instCost = (typeof instantCostFor === "function") ? instantCostFor(uid, qty) : totalCost * 3;
 
-      html += `<div class="unit-train-bar">`;
-
-      if (!isTraining) {
-        html += `<button class="unit-train-btn" data-unit="${uid}">EĞİT ×${qty}</button>`;
-        html += `<div class="utb-info">
-            <div class="utb-time">⏱ ${def.trainMinutes} dk</div>
-            <div class="utb-cost">💎 ${fmt(totalCost)}</div>
-          </div>`;
-        html += `<div class="utb-qty">
-            <span class="uv-qty-label" data-unit="${uid}">${qty}</span>
-            <input type="range" class="uv-qty-slider" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}" orient="vertical">
-          </div>`;
-      } else {
+      if (isTraining) {
         const nearest = trainQueueForUnit.reduce((a, b) => a.finishAt < b.finishAt ? a : b);
         const remaining = nearest.finishAt - Date.now();
-        html += `<div class="utb-training">⏳ Eğitiliyor</div>`;
-        html += `<div class="utb-info">
-            <div class="utb-time"><span class="unit-train-timer" data-unit="${uid}">⏱ x${trainQueueForUnit.length} ${formatRemaining(remaining)}</span></div>
-            <button class="speedup-trigger unit-speedup-btn" data-unit="${uid}" title="${speedUpCount > 0 ? 'Hızlandırmak için tıkla' : 'Mağazadan ⏩ Hızlandırma satın al'}">⏩ Hızlandır</button>
+        html += `<div class="unit-train-bar">
+            <div class="utb-training">⏳ Eğitiliyor
+              <span class="unit-train-timer" data-unit="${uid}">x${trainQueueForUnit.length} · ${formatRemaining(remaining)}</span>
+            </div>
+            <button class="speedup-trigger unit-speedup-btn" data-unit="${uid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
+          </div>`;
+      } else {
+        html += `<div class="unit-qty-bar">
+            <button class="uq-btn uq-minus" data-unit="${uid}">−</button>
+            <input type="number" class="uq-input" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}" inputmode="numeric">
+            <button class="uq-btn uq-plus" data-unit="${uid}">+</button>
+            <input type="range" class="uv-qty-slider" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}">
+          </div>`;
+        html += `<div class="unit-train-bar">
+            <button class="unit-instant-btn" data-unit="${uid}">
+              <span class="utb-top">⚡ Anında</span>
+              <span class="utb-sub utb-inst-cost">💎 ${fmt(instCost)}</span>
+            </button>
+            <button class="unit-train-btn" data-unit="${uid}">
+              <span class="utb-top">Üret ×<span class="utb-qty">${qty}</span></span>
+              <span class="utb-sub"><span class="utb-cost">💎 ${fmt(totalCost)}</span> · ⏱ ${def.trainMinutes} dk</span>
+            </button>
           </div>`;
       }
-
-      html += `</div>`;
 
       el.innerHTML = html;
 
       /* Bind events */
+      el.querySelectorAll(".uv-portrait").forEach(btn => {
+        bindTap(btn, () => go(parseInt(btn.dataset.i, 10) || 0));
+      });
+
       const trainBtn = el.querySelector(".unit-train-btn");
       if (trainBtn) bindTap(trainBtn, () => { trainUnit(uid, unitTrainQty[uid] || 1); renderUnitStats(); });
+
+      const instBtn = el.querySelector(".unit-instant-btn");
+      if (instBtn) bindTap(instBtn, () => {
+        if (typeof trainUnitInstant === "function") trainUnitInstant(uid, unitTrainQty[uid] || 1);
+        renderUnitStats();
+      });
+
       const spBtn = el.querySelector(".unit-speedup-btn");
       if (spBtn) bindTap(spBtn, () => { useSpeedUpOnTrainingGroup(uid); renderUnitStats(); });
+
+      /* adet: kaydırıcı + / − / kutu — hepsi birbirini günceller */
       const slider = el.querySelector(".uv-qty-slider");
-      if (slider) {
-        slider.addEventListener("input", () => {
-          const v = parseInt(slider.value, 10) || 1;
-          unitTrainQty[uid] = v;
-          const lbl = el.querySelector(".uv-qty-label");
-          if (lbl) lbl.textContent = v;
-          const costEl = el.querySelector(".utb-cost");
-          if (costEl) costEl.textContent = "💎 " + fmt(def.cost * v);
-          const btn = el.querySelector(".unit-train-btn");
-          if (btn) btn.textContent = "EĞİT ×" + v;
-        });
-      }
+      const numBox = el.querySelector(".uq-input");
+      const setQty = (v) => {
+        v = Math.max(1, Math.min(sliderMax, parseInt(v, 10) || 1));
+        unitTrainQty[uid] = v;
+        if (slider) slider.value = v;
+        if (numBox && document.activeElement !== numBox) numBox.value = v;
+        const c1 = el.querySelector(".utb-cost");
+        if (c1) c1.textContent = "💎 " + fmt(def.cost * v);
+        const c2 = el.querySelector(".utb-inst-cost");
+        if (c2) c2.textContent = "💎 " + fmt((typeof instantCostFor === "function") ? instantCostFor(uid, v) : def.cost * v * 3);
+        const q = el.querySelector(".utb-qty");
+        if (q) q.textContent = v;
+      };
+      if (slider) slider.addEventListener("input", () => setQty(slider.value));
+      if (numBox) numBox.addEventListener("input", () => setQty(numBox.value));
+      const minus = el.querySelector(".uq-minus");
+      const plus = el.querySelector(".uq-plus");
+      if (minus) bindTap(minus, () => setQty((unitTrainQty[uid] || 1) - 1));
+      if (plus) bindTap(plus, () => setQty((unitTrainQty[uid] || 1) + 1));
     });
   }
 
