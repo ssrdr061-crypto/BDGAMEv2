@@ -1509,25 +1509,38 @@ if (document.readyState === "loading") {
   box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45) !important;
 }
 
-/* ── İNCE AYAR ── */
+/* ── İNCE AYAR (ayar aracından gelen değerler) ── */
 
-/* büyük görseller: biraz aşağı + büyüt */
-#panel-troops .us-knight .knight-wrap,
-#panel-troops .us-soldier .soldier-wrap{ height:88% !important; bottom:2px !important; }
-#panel-troops .us-robot .hero-img{ height:86% !important; bottom:2px !important; }
-
-/* portre kutuları: bir kademe küçük */
-#panel-troops .uv-portrait{ width:56px !important; height:56px !important; border-radius:15px !important; }
-
-/* portre içi — şövalye ve asker: 1 sola, 2 yukarı */
-#panel-troops .uv-portrait[data-i="0"] img,
-#panel-troops .uv-portrait[data-i="1"] img{
-  width:200% !important; margin:-16% 0 0 -58% !important;
+/* portre kutuları */
+#panel-troops .uv-portrait{
+  width:55px !important; height:55px !important; border-radius:15px !important;
 }
 
-/* portre içi — robot: 1 küçük, 1 sola, 1 yukarı */
+/* ŞÖVALYE */
+#panel-troops .us-knight .knight-wrap{
+  height:115% !important; bottom:-25px !important;
+  left:50% !important; transform:translateX(-50%) !important;
+}
+#panel-troops .uv-portrait[data-i="0"] img{
+  width:150% !important; margin:-29% 0 0 -26% !important;
+}
+
+/* ASKER */
+#panel-troops .us-soldier .soldier-wrap{
+  height:95% !important; bottom:2px !important;
+  left:50% !important; transform:translateX(calc(-50% - 5px)) !important;
+}
+#panel-troops .uv-portrait[data-i="1"] img{
+  width:130% !important; margin:-16% 0 0 -21% !important;
+}
+
+/* ROBOT */
+#panel-troops .us-robot .hero-img{
+  height:99% !important; bottom:-2px !important;
+  left:50% !important; transform:translateX(calc(-50% - 4px)) !important;
+}
 #panel-troops .uv-portrait[data-i="2"] img{
-  width:185% !important; margin:-10% 0 0 -56% !important;
+  width:140% !important; margin:-10% 0 0 -18% !important;
 }
   `;
   document.head.appendChild(s);
