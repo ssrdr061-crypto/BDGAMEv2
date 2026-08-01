@@ -769,6 +769,70 @@ function unitChips(troopsObj) {
 }
 
 /* rapor verisini pencerede göster (açık-mavi güncel arayüz) */
+
+/* ── DETAY: birlik dökümü (kayıplar + rakibe verilen zayiat) ── */
+function unitDetailHTML(r) {
+  const AD = { knight: "Şövalye", soldier: "Asker", robot: "Robot" };
+  function tablo(baslik, kayip, dagitim) {
+    const ids = ["knight", "soldier", "robot"].filter(u =>
+      ((kayip && kayip.killed && kayip.killed[u]) || (kayip && kayip.wounded && kayip.wounded[u]) ||
+       (dagitim && dagitim[u] && (dagitim[u].killed || dagitim[u].wounded))));
+    if (!ids.length) return "";
+    const satir = ids.map(u => {
+      const ol = (kayip && kayip.killed && kayip.killed[u]) || 0;
+      const ya = (kayip && kayip.wounded && kayip.wounded[u]) || 0;
+      const d  = (dagitim && dagitim[u]) || { killed: 0, wounded: 0 };
+      return `<tr><td>${AD[u] || u}</td><td class="rp-r">${ya}</td><td class="rp-r">${ol}</td>` +
+             `<td class="rp-r rp-g">${d.killed || 0}</td><td class="rp-r rp-y">${d.wounded || 0}</td></tr>`;
+    }).join("");
+    return `<div class="rp-dsub">${baslik}</div>
+      <table class="rp-tbl"><thead><tr><th>Birlik</th><th class="rp-r">Yaralı</th>
+      <th class="rp-r">Ölen</th><th class="rp-r">Öldürdü</th><th class="rp-r">Yaraladı</th></tr></thead>
+      <tbody>${satir}</tbody></table>`;
+  }
+  const a = tablo("Saldıran", r.attackerLosses, r.attackerAttribution);
+  const d = tablo("Savunan", r.defenderLosses, r.defenderAttribution);
+  if (!a && !d) return "";
+  return `<div class="rp-dttl">⚔️ BİRLİK DÖKÜMÜ</div>${a}${d}
+    <div class="rp-note">Öldürdü/Yaraladı, birliklerin savaştaki hasar payına göre hesaplanır.</div>`;
+}
+
+/* ── DETAY: kahraman yetenekleri ── */
+function abilityDetailHTML(r) {
+  const fx = r.heroFx;
+  if (!fx) return "";
+  const ETKI = {
+    enemy_freeze_turns:      n => n ? n + " tur düşmanı dondurdu" : null,
+    damage_reflect_pct:      n => n ? n + " hasar yansıttı" : null,
+    enemy_instant_casualty:  n => n ? n + " birliği anında yok etti" : null,
+    periodic_def_reduce_pct: n => n ? n + " kez savunma kırdı" : null,
+    power_gap_cap:           n => n ? n + " tur hasar azalttı" : null
+  };
+  const ANAHTAR = {
+    enemy_freeze_turns: "freeze", damage_reflect_pct: "reflect",
+    enemy_instant_casualty: "instant", periodic_def_reduce_pct: "periodic",
+    power_gap_cap: "gapCap"
+  };
+  function blok(baslik, abList, used, kills) {
+    if (!abList || !abList.length) return "";
+    const satir = abList.map(m => {
+      const k = ANAHTAR[m.type];
+      let etki = (k && ETKI[m.type]) ? ETKI[m.type](used ? used[k] : 0) : null;
+      if (!etki) etki = "savaş boyunca aktif";
+      const ek = (kills && kills[m.type]) ? " · " + kills[m.type] + " kayıp verdirdi" : "";
+      const kim = (m.sources || []).map(x => x.heroName || "").filter(Boolean).join(", ");
+      return `<tr><td>${kim || "—"}</td><td>${m.title || m.type}</td><td class="rp-g">${etki}${ek}</td></tr>`;
+    }).join("");
+    return `<div class="rp-dsub">${baslik}</div>
+      <table class="rp-tbl rp-tbl-ab"><thead><tr><th>Kahraman</th><th>Yetenek</th>
+      <th>Savaştaki etkisi</th></tr></thead><tbody>${satir}</tbody></table>`;
+  }
+  const a = blok("Saldıran", fx.attackerAbilities, fx.attacker, fx.attackerKills);
+  const d = blok("Savunan", fx.defenderAbilities, fx.defender, fx.defenderKills);
+  if (!a && !d) return "";
+  return `<div class="rp-dttl">🦸 KAHRAMAN YETENEKLERİ</div>${a}${d}`;
+}
+
 function openReportModal(r) {
   document.getElementById("temaReportBack")?.remove();
   const f = (n)=> (typeof fmt==="function")?fmt(n):String(n);
@@ -827,10 +891,22 @@ function openReportModal(r) {
         <span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>
         <span class="rp-turn">⏱️ ${r.turns||0} tur</span>
       </div>
+
+      <button class="rp-detail-btn" id="rpDetailBtn">DETAY ▾</button>
+      <div class="rp-detail" id="rpDetail" hidden>
+        ${unitDetailHTML(r)}
+        ${abilityDetailHTML(r)}
+      </div>
     </div>`;
   document.body.appendChild(back);
   back.addEventListener("click",e=>{ if(e.target===back) back.remove(); });
   document.getElementById("repClose").onclick=()=>back.remove();
+  const dBtn = back.querySelector("#rpDetailBtn"), dBox = back.querySelector("#rpDetail");
+  if (dBtn && dBox) dBtn.addEventListener("click", () => {
+    const acik = !dBox.hidden;
+    dBox.hidden = acik;
+    dBtn.textContent = acik ? "DETAY ▾" : "DETAY ▴";
+  });
 }
 
 /* günlük kaydından paylaşılabilir rapor objesi üret */
@@ -843,6 +919,9 @@ function entryToReport(entry) {
       attackerLosses: entry.myLosses||null, defenderLosses: entry.enemyLosses||null,
       attackerTroops: entry.usedTroops||null, defenderTroops: entry.enemyTroops||null,
       diamonds: entry.diamondDelta||0, turns: entry.turns||0,
+      attackerAttribution: entry.myAttribution||null,
+      defenderAttribution: entry.enemyAttribution||null,
+      heroFx: entry.heroFx||null,
     };
   }
   return {
@@ -852,6 +931,9 @@ function entryToReport(entry) {
     attackerLosses: null,
     defenderLosses: entry.myLosses||null,
     diamonds: entry.diamondsLost||0, turns: entry.turns||0,
+    attackerAttribution: entry.enemyAttribution||null,
+    defenderAttribution: entry.myAttribution||null,
+    heroFx: entry.heroFx||null,
   };
 }
 
@@ -1691,7 +1773,9 @@ if (document.readyState === "loading") {
   --rp-lif:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23f)' opacity='0.105'/%3E%3C/svg%3E");
 }
 .rp-box{
-  position:relative; width:min(380px,94vw); max-height:88vh; overflow-y:auto;
+  position:relative; width:min(380px,94vw); max-height:88vh;
+  overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+  touch-action:pan-y;
   border-radius:14px; padding:16px 15px 15px; color:var(--rp-murekkep);
   background-color:var(--rp-kagit);
   background-image:
@@ -1759,6 +1843,33 @@ if (document.readyState === "loading") {
   border:1px solid color-mix(in srgb, var(--rp-murekkep) 26%, transparent);
   border-radius:9px; padding:9px; margin-top:13px; color:var(--rp-murekkep); }
 .rp-turn{ color:var(--rp-murekkep-2); }
+
+/* ── DETAY bölümü ── */
+.rp-detail-btn{
+  width:100%; margin-top:10px; padding:10px; cursor:pointer;
+  border:1.5px solid color-mix(in srgb, var(--rp-murekkep) 40%, transparent);
+  border-radius:9px; background:rgba(255,255,255,.28);
+  color:var(--rp-murekkep); font-family:inherit; font-weight:800;
+  font-size:12.5px; letter-spacing:1px;
+}
+.rp-detail-btn:active{ background:rgba(255,255,255,.4); }
+.rp-detail{ margin-top:10px; }
+.rp-dttl{ font-size:11px; font-weight:800; color:var(--rp-murekkep-2);
+  margin:12px 0 6px; padding-bottom:4px;
+  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 22%, transparent); }
+.rp-dsub{ font-size:10.5px; font-weight:800; color:var(--rp-murekkep-2); margin:8px 0 3px; }
+.rp-tbl{ width:100%; border-collapse:collapse; font-size:10.5px; color:var(--rp-murekkep); }
+.rp-tbl th{ font-weight:800; font-size:9.5px; text-align:left; padding:3px 4px;
+  color:var(--rp-murekkep-2); border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 20%, transparent); }
+.rp-tbl td{ padding:4px; border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 10%, transparent);
+  font-weight:700; }
+.rp-tbl .rp-r{ text-align:right; font-variant-numeric:tabular-nums; }
+.rp-tbl-ab td{ font-size:10px; line-height:1.35; }
+.rp-tbl-ab td:first-child{ font-weight:800; white-space:nowrap; }
+.rp-g{ color:#1f7a34; }
+.rp-y{ color:#9a6a10; }
+.rp-note{ font-size:9.5px; color:var(--rp-murekkep-2); opacity:.85;
+  margin-top:5px; line-height:1.4; font-weight:700; }
 
 /* kahraman kutuları kağıda otursun (sadece bu pencerede) */
 .rp-box .rep-hpor{

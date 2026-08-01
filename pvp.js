@@ -553,6 +553,8 @@ function makeArmy(troopsObj, heroStats, label, abilities) {
       ultiChance: num(heroStats.ultiChance, 0.15),
       ultiMul:    num(heroStats.ultiMultiplier, 1.8),
     },
+    dealtByUnit: {},      /* hangi birlik tipi ne kadar hasar verdi */
+    abilityKills: {},     /* yetenek kaynaklı kayıplar */
     pending: 0,           /* birim canını doldurmayan artık hasar */
     killed:  {},          /* kalıcı ölen */
     wounded: {},          /* hastaneye düşen */
@@ -593,7 +595,16 @@ function rollDamage(from, to) {
   let dmg = Math.max(raw * CFG.minDamagePct, raw - soak) * CFG.damageScale;
   dmg *= (1 - CFG.variance/2) + Math.random() * CFG.variance;
   if (from.hero.hp > 0 && Math.random() < from.hero.ultiChance) dmg *= from.hero.ultiMul;
-  return Math.max(1, Math.round(dmg));
+  dmg = Math.max(1, Math.round(dmg));
+
+  /* Hasarı, birlik tiplerinin saldırı payına göre dağıt.
+     NOT: Bu bir PAY hesabıdır — hangi birliğin tam olarak kimi vurduğu
+     ayrı ayrı izlenmez, katkı oranına göre bölüştürülür. */
+  from.units.forEach(u => {
+    const pay = (u.atk * u.count) / raw;
+    if (pay > 0) from.dealtByUnit[u.unitId] = (from.dealtByUnit[u.unitId] || 0) + dmg * pay;
+  });
+  return dmg;
 }
 
 function pvpSimulate(attackerTroops, attackerHero, defender) {
@@ -631,6 +642,8 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
           u.count = Math.max(0, u.count - yok);
           tgt.killed[u.unitId] = (tgt.killed[u.unitId] || 0) + yok;
           fl.used.instant += yok;
+          src.abilityKills["enemy_instant_casualty"] =
+            (src.abilityKills["enemy_instant_casualty"] || 0) + yok;
         }
       });
     }
@@ -709,9 +722,42 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     win = ra > rd;
   }
 
+  /* Rakip kayıplarını, benim birliklerimin hasar payına göre bölüştür.
+     Yaklaşık bir dağıtımdır — kesin hedef takibi yapılmaz. */
+  function attribute(src, tgt) {
+    const toplam = Object.keys(src.dealtByUnit).reduce((n, k) => n + src.dealtByUnit[k], 0);
+    const cikti = {};
+    src.units.forEach(u => { cikti[u.unitId] = { killed: 0, wounded: 0 }; });
+    if (toplam <= 0) return cikti;
+
+    const oOldu = Object.keys(tgt.killed).reduce((n, k) => n + tgt.killed[k], 0);
+    const oYarali = Object.keys(tgt.wounded).reduce((n, k) => n + tgt.wounded[k], 0);
+    const yetenek = Object.keys(src.abilityKills).reduce((n, k) => n + src.abilityKills[k], 0);
+    const dagit = Math.max(0, oOldu - yetenek);   /* yetenek kaynaklılar ayrı sayılır */
+
+    let kalanO = dagit, kalanY = oYarali;
+    const ids = Object.keys(cikti);
+    ids.forEach((uid, i) => {
+      const pay = (src.dealtByUnit[uid] || 0) / toplam;
+      if (i === ids.length - 1) { cikti[uid].killed = kalanO; cikti[uid].wounded = kalanY; }
+      else {
+        const k = Math.round(dagit * pay), y = Math.round(oYarali * pay);
+        cikti[uid].killed = Math.min(k, kalanO);  kalanO -= cikti[uid].killed;
+        cikti[uid].wounded = Math.min(y, kalanY); kalanY -= cikti[uid].wounded;
+      }
+    });
+    return cikti;
+  }
+
+  const attribA = attribute(A, D);
+  const attribD = attribute(D, A);
+
   return {
+    attackerAttribution: attribA,
+    defenderAttribution: attribD,
     heroFx: {
       attacker: A.flow.used, defender: D.flow.used,
+      attackerKills: A.abilityKills, defenderKills: D.abilityKills,
       attackerAbilities: (A.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })),
       defenderAbilities: (D.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources }))
     },
@@ -886,6 +932,9 @@ async function runPvpBattle() {
     myCommanders: myCommanders,
     enemyCommanders: enemyCommanders,
     myLosses: { killed: myKilled, wounded: myWounded },
+    myAttribution: R.attackerAttribution || null,
+    enemyAttribution: R.defenderAttribution || null,
+    heroFx: R.heroFx || null,
     enemyLosses: { killed: R.defender.killed, wounded: R.defender.wounded },
     usedTroops: Object.assign({}, sel),
     enemyTroops: Object.assign({}, enemy.realTroops || enemy.troops || {}),
