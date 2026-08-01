@@ -997,7 +997,10 @@ function sendRaidReport(enemy, R, delta) {
     FRONT_ORDER.forEach(uid => {
       const gone = num(killed[uid], 0) + num(wounded[uid], 0);
       if (gone > 0) st.troops[uid] = Math.max(0, num(st.troops[uid], 0) - gone);
-    });
+    }, function (err, committed) {
+    if (err) pvpUyar("Savunanın hesabı güncellenemedi: " + (err.message || err));
+    else if (!committed) pvpUyar("Savunanın hesabı bulunamadı, kayıp işlenmedi.");
+  });
 
     /* yaralıları savunanın hastanesine ekle (girince iyileşsinler).
        Oyunun beklediği biçim: { unitId, finishAt, severe, confirmed } */
@@ -1031,7 +1034,7 @@ function sendRaidReport(enemy, R, delta) {
     turns: R.turns,
     troopsLost: totalLost,
     applied: true,        /* kayıp zaten işlendi — inbox tekrar düşürmeyecek */
-  }).catch(e => console.warn("[pvp] bildirim gönderilemedi:", e));
+  }).catch(e => pvpUyar("Savunana rapor GÖNDERİLEMEDİ: " + (e && e.message ? e.message : e)));
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1074,13 +1077,49 @@ function pullFreshStateFromCloud() {
    ve savaş günlüğüne bir savunma kaydı eklemek.
    ═══════════════════════════════════════════════════════════════ */
 let _raidRef = null;
+const _islenmisRaporlar = {};
+
+/* Telefonda konsol görünmediği için hataları ekrana basar */
+function pvpUyar(msg) {
+  console.warn("[pvp]", msg);
+  try {
+    let el = document.getElementById("pvpUyariCubugu");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "pvpUyariCubugu";
+      el.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:99999;" +
+        "background:#b3261e;color:#fff;font:12px/1.4 system-ui;padding:7px 30px 7px 10px;" +
+        "white-space:pre-wrap;word-break:break-word;";
+      const x = document.createElement("button");
+      x.textContent = "✕";
+      x.style.cssText = "position:absolute;right:6px;top:5px;background:none;border:0;color:#fff;font-size:14px;";
+      x.onclick = () => el.remove();
+      el.appendChild(x);
+      document.body.appendChild(el);
+    }
+    const p = document.createElement("div");
+    p.textContent = msg;
+    el.appendChild(p);
+  } catch (e) {}
+}
 function startRaidInbox() {
   if (!fbOK() || !myKey() || _raidRef) return;
   _raidRef = firebaseDb.ref("pvpRaids/" + myKey());
   _raidRef.on("child_added", snap => {
     const r = snap.val() || {};
-    snap.ref.remove().catch(()=>{});
-    if (!pvpState()) return;
+
+    /* Oyun henüz hazır değilse kaydı SİLME — sonra tekrar denenir.
+       (Eskiden önce siliniyordu, hazır olmayan anda gelen rapor yok oluyordu.) */
+    if (!pvpState()) { console.warn("[pvp] rapor bekletildi, state hazır değil"); return; }
+
+    /* Aynı rapor iki kez işlenmesin */
+    if (_islenmisRaporlar[snap.key]) return;
+    _islenmisRaporlar[snap.key] = true;
+
+    snap.ref.remove().catch(e => {
+      /* Silinemezse her açılışta tekrar düşer — sebebini göster */
+      pvpUyar("Rapor silinemedi (izin?): " + (e && e.message ? e.message : e));
+    });
 
     const totalLost = num(r.troopsLost, 0);
     const lost = Math.max(0, num(r.diamondsLost, 0));
