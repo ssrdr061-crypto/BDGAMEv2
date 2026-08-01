@@ -751,19 +751,21 @@ function heroChip(name) {
   </div>`;
 }
 
-function troopChips(lossObj) {
-  if (!lossObj) return '<span class="rp-dash">—</span>';
-  const both = {};
-  ["killed","wounded"].forEach(k => Object.keys(lossObj[k]||{}).forEach(uid=>{
-    both[uid]=(both[uid]||0)+(lossObj[k][uid]||0);
-  }));
-  const ids = Object.keys(both).filter(u=>both[u]>0);
-  if (!ids.length) return '<span class="rp-nolost">Kayıp yok 🎉</span>';
-  return ids.map(uid=>{
-    const d=(typeof UNIT_TYPES!=="undefined")?UNIT_TYPES[uid]:null;
-    const nm=d?d.name:uid;
-    return `<span class="rp-tchip">${nm} ×${both[uid]}</span>`;
-  }).join("");
+/* savaşa sürülen birlikler — eğitim panelindeki kafa kutucuğu biçimi.
+   .rep-por[data-i] kadrajı ?ayar=1 tuner'ından gelen değişkenleri kullanır. */
+function unitChips(troopsObj) {
+  const t = troopsObj || {};
+  const sira = ["knight","soldier","robot"];
+  const out = sira.filter(uid => (t[uid] || 0) > 0).map(uid => {
+    const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
+    const im = (d && d.img) ? `<img src="${d.img}" alt="">` : "";
+    const n  = (typeof fmt === "function") ? fmt(t[uid]) : String(t[uid]);
+    return `<div class="rp-unit">
+      <div class="rep-por" data-i="${sira.indexOf(uid)}">${im}</div>
+      <span class="rp-ucap">${n}</span>
+    </div>`;
+  });
+  return out.join("") || '<span class="rp-dash">—</span>';
 }
 
 /* rapor verisini pencerede göster (açık-mavi güncel arayüz) */
@@ -806,7 +808,6 @@ function openReportModal(r) {
       </div>
 
       ${(r.attackerCommanders&&r.attackerCommanders.length)||(r.defenderCommanders&&r.defenderCommanders.length)?`
-      <div class="rp-sec">🦸 KAHRAMANLAR</div>
       <div class="rp-cols rp-cols-hero">
         <div class="rp-col">
           <div class="rp-chips">${(r.attackerCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
@@ -816,10 +817,10 @@ function openReportModal(r) {
         </div>
       </div>`:''}
 
-      <div class="rp-sec">💀 BİRLİK KAYIPLARI</div>
+      <div class="rp-div"></div>
       <div class="rp-cols rp-cols-troop">
-        <div class="rp-col"><div class="rp-chips">${troopChips(r.attackerLosses)}</div></div>
-        <div class="rp-col"><div class="rp-chips">${troopChips(r.defenderLosses)}</div></div>
+        <div class="rp-col"><div class="rp-chips">${unitChips(r.attackerTroops)}</div></div>
+        <div class="rp-col"><div class="rp-chips">${unitChips(r.defenderTroops)}</div></div>
       </div>
 
       <div class="rp-foot">
@@ -840,6 +841,7 @@ function entryToReport(entry) {
       attackerName: entry.myName, defenderName: entry.enemyPlainName,
       attackerCommanders: entry.myCommanders||[], defenderCommanders: entry.enemyCommanders||[],
       attackerLosses: entry.myLosses||null, defenderLosses: entry.enemyLosses||null,
+      attackerTroops: entry.usedTroops||null, defenderTroops: entry.enemyTroops||null,
       diamonds: entry.diamondDelta||0, turns: entry.turns||0,
     };
   }
@@ -1740,6 +1742,18 @@ if (document.readyState === "loading") {
   font-size:10.5px; font-weight:800; white-space:nowrap; color:var(--rp-murekkep);
   background:rgba(255,255,255,.28);
   border:1px solid color-mix(in srgb, var(--rp-murekkep) 32%, transparent); }
+
+/* kahramanlar ile birlikler arasındaki ayırıcı */
+.rp-div{ height:1px; margin:12px 0 8px;
+  background:color-mix(in srgb, var(--rp-murekkep) 30%, transparent); }
+
+/* savaşa sürülen birlikler — kafa kutusu + altında sayı */
+.rp-unit{ display:flex; flex-direction:column; align-items:center; gap:2px; }
+.rp-ucap{ font-size:11px; font-weight:800; color:var(--rp-murekkep); }
+.rp-box .rp-cols-troop .rep-por{
+  background:rgba(255,255,255,.22) !important;
+  border:2px solid color-mix(in srgb, var(--rp-murekkep) 45%, transparent) !important;
+}
 .rp-foot{ display:flex; justify-content:space-around; font-weight:800; font-size:13px;
   background:rgba(255,255,255,.22);
   border:1px solid color-mix(in srgb, var(--rp-murekkep) 26%, transparent);
@@ -1763,18 +1777,16 @@ if (document.readyState === "loading") {
 .rp-cols-hero .rp-chips{
   flex-direction:column !important; gap:7px !important;
 }
-/* saldıran sola, savunan sağa yaslı — kenarda az pay bırakılır */
-.rp-cols-hero .rp-col:first-child .rp-chips{ align-items:flex-start !important; padding-left:8px; }
-.rp-cols-hero .rp-col:last-child  .rp-chips{ align-items:flex-end   !important; padding-right:8px; }
-.rp-cols-troop .rp-col:first-child .rp-chips{ justify-content:flex-start !important; padding-left:8px; }
-.rp-cols-troop .rp-col:last-child  .rp-chips{ justify-content:flex-end   !important; padding-right:8px; }
+/* saldıran sola, savunan sağa — kenara yapışık */
+.rp-cols-hero .rp-col:first-child .rp-chips{ align-items:flex-start !important; padding-left:0; }
+.rp-cols-hero .rp-col:last-child  .rp-chips{ align-items:flex-end   !important; padding-right:0; }
+.rp-cols-troop .rp-col:first-child .rp-chips{ justify-content:flex-start !important; padding-left:0; }
+.rp-cols-troop .rp-col:last-child  .rp-chips{ justify-content:flex-end   !important; padding-right:0; }
 
-/* ── BİRLİK KAYIPLARI: yan yana, 3'e 3 sığsın ── */
-.rp-cols-troop .rp-chips{ gap:4px !important; }
-.rp-cols-troop .rp-chips > *{
-  font-size:10.5px !important; padding:5px 7px !important; border-radius:8px !important;
-  white-space:nowrap !important;
-}
+/* ── BİRLİKLER: yan yana, 3'e 3 sığsın ── */
+.rp-cols-troop .rp-chips{ gap:8px !important; }
+/* kenarlara doğru taşır — panel iç boşluğunu kısmen yok sayar */
+.rp-cols-hero, .rp-cols-troop{ margin-left:-9px; margin-right:-9px; }
   `;
   document.head.appendChild(s);
 

@@ -741,6 +741,7 @@ async function runPvpBattle() {
     myLosses: { killed: myKilled, wounded: myWounded },
     enemyLosses: { killed: R.defender.killed, wounded: R.defender.wounded },
     usedTroops: Object.assign({}, sel),
+    enemyTroops: Object.assign({}, enemy.realTroops || enemy.troops || {}),
   });
   if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
 
