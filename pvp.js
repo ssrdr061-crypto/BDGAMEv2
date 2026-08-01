@@ -46,7 +46,7 @@ const CFG = {
   maxLoseCost: 20000,
 
   /* ── Kısıtlar ── */
-  attackCooldownMs: 10 * 60 * 1000,      /* aynı oyuncuya tekrar saldırı bekleme */
+  attackCooldownMs: 0,                   /* aynı oyuncuya tekrar saldırı beklemesi — 0 = yok */
   newbieShieldMs:   24 * 60 * 60 * 1000, /* yeni hesap kalkanı                   */
 
   /* ── Sadece GÖSTERİM: missile.js'teki kale HP ayarlarıyla aynı olmalı ── */
@@ -753,6 +753,7 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   const attribD = attribute(D, A);
 
   return {
+    attackerTroopsUsed: Object.assign({}, attackerTroops || {}),
     attackerAttribution: attribA,
     defenderAttribution: attribD,
     heroFx: {
@@ -1026,6 +1027,11 @@ function sendRaidReport(enemy, R, delta) {
   /* ── 2) BİLDİRİM KUTUSU ──────────────────────────────────────
      Artık veriyi DÜŞÜRMEK için değil, yalnızca savunan oyuna
      girince "saldırıya uğradın" mesajını göstermek için. */
+  /* Savunanın raporu boş kalmasın: saldırının TÜM ayrıntısı gönderilir */
+  const atkCmd = (typeof selectedCommanders !== "undefined" ? selectedCommanders : [])
+    .map(id => (typeof HERO_STATS !== "undefined" && HERO_STATS[id]) ? HERO_STATS[id].name : null)
+    .filter(Boolean);
+
   firebaseDb.ref("pvpRaids/" + key).push({
     from: currentUsername || "Bilinmeyen",
     at: Date.now(),
@@ -1034,6 +1040,17 @@ function sendRaidReport(enemy, R, delta) {
     turns: R.turns,
     troopsLost: totalLost,
     applied: true,        /* kayıp zaten işlendi — inbox tekrar düşürmeyecek */
+
+    /* ── rapor ayrıntıları ── */
+    atkCommanders: atkCmd,
+    defCommanders: (enemy.commanderNames || []),
+    atkTroops:     R.attackerTroopsUsed || null,
+    defTroops:     enemy.realTroops || null,
+    atkLosses:     { killed: R.attacker.killed, wounded: R.attacker.wounded },
+    defLosses:     { killed: killed, wounded: wounded },
+    atkAttrib:     R.attackerAttribution || null,
+    defAttrib:     R.defenderAttribution || null,
+    heroFx:        R.heroFx || null,
   }).catch(e => pvpUyar("Savunana rapor GÖNDERİLEMEDİ: " + (e && e.message ? e.message : e)));
 }
 
@@ -1150,6 +1167,16 @@ function startRaidInbox() {
       enemyPlainName: r.from || "Bilinmeyen",
       diamondsLost: lost,
       troopsLostTotal: totalLost,
+      /* saldırıdan gelen tam rapor — DETAY ekranı bunları kullanır */
+      enemyCommanders: r.atkCommanders || [],
+      myCommanders:    r.defCommanders || [],
+      enemyTroops:     r.atkTroops || null,
+      usedTroops:      r.defTroops || null,
+      enemyLosses:     r.atkLosses || null,
+      myLosses:        r.defLosses || null,
+      enemyAttribution: r.atkAttrib || null,
+      myAttribution:    r.defAttrib || null,
+      heroFx:           r.heroFx || null,
     });
     if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
 
