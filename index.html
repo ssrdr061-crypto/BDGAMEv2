@@ -2196,29 +2196,74 @@ function stopListeningForGifts() {
 let otherCastles = [];
 let _castleListenerRef = null;
 
-function startListeningForCastles() {
+/* ═══════════════════════════════════════════════════════════════
+   KALE KONUMLARI — hafif düğüm
+   Harita eskiden accounts/ düğümünün TAMAMINI dinliyordu: bir oyuncu
+   elmas kazansa bile herkesin bütün verisi (savaş günlüğü dahil) tüm
+   cihazlara yeniden gönderiliyordu. Kale taşıma bu yüzden karşı tarafta
+   geç görünüyordu. Artık sadece castles/ dinlenir — kale başına ~30 bayt.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Kendi kalemi hafif düğüme yaz */
+function publishCastle() {
+  try {
+    if (!firebaseReady || !currentUsername) return;
+    if (!state || !state.castle || typeof state.castle.gx !== "number") return;
+    firebaseDb.ref("castles/" + toFirebaseKey(currentUsername.toLowerCase())).set({
+      name: currentUsername,
+      gx: state.castle.gx,
+      gy: state.castle.gy
+    }).catch(err => console.warn("[kale] yayınlanamadı:", err));
+  } catch (e) {}
+}
+
+/* castles/ henüz boşsa eski verilerden bir kereliğine doldur */
+function migrateCastlesOnce() {
   if (!firebaseReady) return;
-  stopListeningForCastles();
-  if (typeof stopPvpListeners === "function") stopPvpListeners();
-  _castleListenerRef = firebaseDb.ref("accounts");
-  _castleListenerRef.on("value", (snapshot) => {
-    const all = snapshot.val() || {};
+  firebaseDb.ref("accounts").get().then(snap => {
+    const all = snap.val() || {};
     const list = [];
     Object.keys(all).forEach(k => {
       const acc = all[k];
-      if (!acc || !acc.state || !acc.state.castle) return;
-      if (typeof acc.state.castle.gx !== "number") return;
-
-      if (currentUsername && acc.displayName &&
-          acc.displayName.toLowerCase() === currentUsername.toLowerCase()) return;
-      list.push({ name: acc.displayName || "Oyuncu", castle: acc.state.castle });
+      const c = acc && acc.state && acc.state.castle;
+      if (!c || typeof c.gx !== "number") return;
+      const ad = acc.displayName || "Oyuncu";
+      if (currentUsername && ad.toLowerCase() === currentUsername.toLowerCase()) return;
+      list.push({ name: ad, castle: { gx: c.gx, gy: c.gy } });
     });
     otherCastles = list;
+    if (typeof renderBattleMap === "function") renderBattleMap();
+    publishCastle();
+  }).catch(e => console.warn("[kale] eski veri okunamadı:", e));
+}
 
+function startListeningForCastles() {
+  if (!firebaseReady) return;
+  stopListeningForCastles();
+
+  _castleListenerRef = firebaseDb.ref("castles");
+  _castleListenerRef.on("value", (snapshot) => {
+    const all = snapshot.val() || {};
+    const anahtarlar = Object.keys(all);
+    const list = [];
+    anahtarlar.forEach(k => {
+      const c = all[k];
+      if (!c || typeof c.gx !== "number" || typeof c.gy !== "number") return;
+      const ad = c.name || k;
+      if (currentUsername && ad.toLowerCase() === currentUsername.toLowerCase()) return;
+      list.push({ name: ad, castle: { gx: c.gx, gy: c.gy } });
+    });
+
+    if (!anahtarlar.length) { migrateCastlesOnce(); return; }
+
+    otherCastles = list;
     if (typeof renderBattleMap === "function") renderBattleMap();
   }, (err) => {
-    console.warn("Diğer kaleler dinlenemedi:", err);
+    console.warn("Kale düğümü dinlenemedi, eski yönteme dönülüyor:", err);
+    migrateCastlesOnce();
   });
+
+  publishCastle();
 }
 
 function stopListeningForCastles() {
@@ -2946,6 +2991,7 @@ function registerAccount(username, password) {
             currentUsername.toLowerCase() === String(username).toLowerCase()) {
           state.castle = pos;
           if (typeof persistCurrentState === "function") persistCurrentState();
+          if (typeof publishCastle === "function") publishCastle();
           if (typeof renderBattleMap === "function") renderBattleMap();
         }
       }
@@ -3069,6 +3115,9 @@ function logout() {
   stopListeningForGifts();
   stopListeningForChat();
   stopListeningForCastles();
+  /* PvP dinleyicileri bırakılmazsa yeni giren hesap ESKİ hesabın
+     rapor kutusunu dinlemeye devam eder. */
+  if (typeof stopPvpListeners === "function") stopPvpListeners();
   closeChat();
   currentUsername = null;
   clearSessionKey();
@@ -3208,7 +3257,7 @@ function _doluNoktalar(GRID) {
 
   try { enemies.forEach(e => ekle((e.mapX / 100) * GRID, (e.mapY / 100) * GRID)); } catch (e) {}
 
-  /* Firebase'den gelen canlı kale listesi */
+  /* Firebase'den gelen canlı kale listesi (castles/ düğümü) */
   try {
     if (Array.isArray(otherCastles)) {
       otherCastles.forEach(c => { if (c && c.castle) ekle(c.castle.gx, c.castle.gy); });
@@ -3262,12 +3311,21 @@ async function generateCastlePosLive() {
   let ekstra = [];
   try {
     if (typeof firebaseReady !== "undefined" && firebaseReady && typeof firebaseDb !== "undefined") {
-      const snap = await firebaseDb.ref("accounts").get();
+      const snap = await firebaseDb.ref("castles").get();
       const all = snap.val() || {};
       Object.keys(all).forEach(k => {
-        const c = all[k] && all[k].state && all[k].state.castle;
+        const c = all[k];
         if (c && typeof c.gx === "number") ekstra.push({ gx: c.gx, gy: c.gy });
       });
+      if (!Object.keys(all).length) {
+        /* düğüm henüz boşsa eski kaynağa düş */
+        const snap2 = await firebaseDb.ref("accounts").get();
+        const all2 = snap2.val() || {};
+        Object.keys(all2).forEach(k => {
+          const c = all2[k] && all2[k].state && all2[k].state.castle;
+          if (c && typeof c.gx === "number") ekstra.push({ gx: c.gx, gy: c.gy });
+        });
+      }
     }
   } catch (e) { console.warn("[kale] canlı liste alınamadı, yerel veriyle devam:", e); }
   return generateRandomCastlePos(ekstra);
@@ -3284,6 +3342,7 @@ async function fixOverlappingCastle() {
     if (!cakisma) return;
     state.castle = await generateCastlePosLive();
     if (typeof persistCurrentState === "function") persistCurrentState();
+    if (typeof publishCastle === "function") publishCastle();
     if (typeof renderBattleMap === "function") renderBattleMap();
     console.log("[kale] çakışma vardı, yeni konuma taşındı:", state.castle);
   } catch (e) {}
@@ -4221,6 +4280,7 @@ function setupMapPanning() {
     state.castle.gx = g.gx; state.castle.gy = g.gy;
     if(typeof renderDiamonds === "function") renderDiamonds();
     if(typeof persistCurrentState === "function") persistCurrentState();
+    if(typeof publishCastle === "function") publishCastle();   /* anında yayınla */
     if(typeof renderBattleMap === "function") renderBattleMap();
     cancelCastleMove();
     showToast("🏰 Kale taşındı!");

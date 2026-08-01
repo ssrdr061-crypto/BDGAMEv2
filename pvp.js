@@ -228,20 +228,43 @@ function fmtLeft(ms) { const m = Math.ceil(ms/60000); return m >= 60 ? Math.ceil
 /* ═══════════════════════════════════════════════════════════════
    3) FIREBASE DİNLEYİCİLERİ
    ═══════════════════════════════════════════════════════════════ */
-let ACCOUNTS  = {};   /* accounts/ → rakip ordusu ve elması            */
-let CASTLE_HP = {};   /* pvp/      → missile.js'in kale HP kaydı (bilgi) */
-let _accRef = null, _hpRef = null;
+/* ═══════════════════════════════════════════════════════════════
+   HESAP VERİSİ — istek üzerine
+   Eskiden accounts/ düğümünün tamamı CANLI dinleniyordu: herhangi bir
+   oyuncunun herhangi bir değişikliğinde bütün hesapların bütün verisi
+   (savaş günlükleri dahil) her cihaza yeniden iniyordu. Artık rakibin
+   verisi yalnızca kalesine dokunulduğunda, tek hesap olarak çekilir.
+   ═══════════════════════════════════════════════════════════════ */
+let ACCOUNTS  = {};   /* istek üzerine dolan önbellek                  */
+let CASTLE_HP = {};   /* pvp/ → missile.js'in kale HP kaydı (bilgi)    */
+let _hpRef = null;
+const _accZaman = {};              /* key → en son ne zaman çekildi */
+const ACC_TAZELIK = 20000;         /* 20 sn önbellek */
 
 function startWatchers() {
   if (!fbOK()) return;
-  if (!_accRef) {
-    _accRef = firebaseDb.ref("accounts");
-    _accRef.on("value", s => { ACCOUNTS = s.val() || {}; }, e => console.warn("[pvp]", e));
-  }
   if (!_hpRef) {
     _hpRef = firebaseDb.ref("pvp");
     _hpRef.on("value", s => { CASTLE_HP = s.val() || {}; }, e => console.warn("[pvp]", e));
   }
+}
+
+function accTaze(key) {
+  return _accZaman[key] && (Date.now() - _accZaman[key] < ACC_TAZELIK);
+}
+
+/* Tek bir hesabı çeker ve önbelleğe alır */
+function fetchAccount(name) {
+  const key = fbKey(String(name || "").toLowerCase());
+  if (!key) return Promise.resolve(null);
+  if (!fbOK()) return Promise.resolve(ACCOUNTS[key] || null);
+  return firebaseDb.ref("accounts/" + key).get()
+    .then(snap => {
+      const v = snap.val();
+      if (v) { ACCOUNTS[key] = v; _accZaman[key] = Date.now(); }
+      return v || ACCOUNTS[key] || null;
+    })
+    .catch(e => { console.warn("[pvp] hesap alınamadı:", e); return ACCOUNTS[key] || null; });
 }
 
 /* missile.js ile aynı "tembel yenilenme" hesabı — sadece göstermek için */
@@ -365,6 +388,19 @@ let _popEl = null;
 function closeCastlePopup() { if (_popEl) { _popEl.remove(); _popEl = null; } }
 
 function openCastlePopup(name, gx, gy, isOwn) {
+  /* Rakip verisi artık canlı dinlenmiyor; pencereyi açmadan önce
+     o tek hesabı çekeriz. Önbellek tazeyse beklemeden açılır. */
+  if (!isOwn) {
+    const _k = fbKey(String(name || "").toLowerCase());
+    if (!accTaze(_k)) {
+      fetchAccount(name).then(() => {
+        _accZaman[_k] = Date.now();   /* hesap yoksa bile tekrar tekrar deneme */
+        openCastlePopup(name, gx, gy, isOwn);
+      });
+      return;
+    }
+  }
+
   closeCastlePopup();
 
   const hp      = castleHpOf(isOwn ? (currentUsername || "") : name);
@@ -1389,7 +1425,9 @@ function pvpDepsReady() {
    ═══════════════════════════════════════════════════════════════ */
 function stopPvpListeners() {
   /* Sadece KULLANICIYA ÖZEL dinleyiciler bırakılır.
-     _accRef / _hpRef genel veriyi dinler, hesaba bağlı değildir. */
+     _hpRef genel veriyi dinler, hesaba bağlı değildir. */
+  Object.keys(_accZaman).forEach(k => delete _accZaman[k]);
+  ACCOUNTS = {};
   [_raidRef, _reqRef, _ackRef].forEach(ref => {
     try { if (ref && ref.off) ref.off(); } catch (e) {}
   });
