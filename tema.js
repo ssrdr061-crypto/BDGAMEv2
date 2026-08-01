@@ -924,11 +924,15 @@ function entryToReport(entry) {
       heroFx: entry.heroFx||null,
     };
   }
+  /* SAVUNAN gözünden: "saldıran" karşı taraftır */
   return {
     attackerWon: !entry.win,
     attackerName: entry.enemyPlainName, defenderName: entry.myName,
-    attackerCommanders: [], defenderCommanders: [],
-    attackerLosses: null,
+    attackerCommanders: entry.enemyCommanders||[],
+    defenderCommanders: entry.myCommanders||[],
+    attackerTroops: entry.enemyTroops||null,
+    defenderTroops: entry.usedTroops||null,
+    attackerLosses: entry.enemyLosses||null,
     defenderLosses: entry.myLosses||null,
     diamonds: entry.diamondsLost||0, turns: entry.turns||0,
     attackerAttribution: entry.enemyAttribution||null,
