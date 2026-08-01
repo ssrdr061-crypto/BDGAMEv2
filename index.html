@@ -2199,6 +2199,7 @@ let _castleListenerRef = null;
 function startListeningForCastles() {
   if (!firebaseReady) return;
   stopListeningForCastles();
+  if (typeof stopPvpListeners === "function") stopPvpListeners();
   _castleListenerRef = firebaseDb.ref("accounts");
   _castleListenerRef.on("value", (snapshot) => {
     const all = snapshot.val() || {};
@@ -3048,9 +3049,6 @@ function logout() {
   stopListeningForGifts();
   stopListeningForChat();
   stopListeningForCastles();
-  /* PvP dinleyicileri bırakılmazsa yeni giren hesap ESKİ hesabın
-     rapor kutusunu dinlemeye devam eder ve kendi raporlarını alamaz. */
-  if (typeof stopPvpListeners === "function") stopPvpListeners();
   closeChat();
   currentUsername = null;
   clearSessionKey();
@@ -3080,6 +3078,11 @@ function compactStateForExport(s) {
   if (s.ownedHeroSkins && s.ownedHeroSkins.length) out.ohs = s.ownedHeroSkins;
   if (s.selectedHeroSkin) out.shs = s.selectedHeroSkin;
   if (s.selectedCommanders && s.selectedCommanders.length) out.sc = s.selectedCommanders;
+  /* ── ÖDÜL BAYRAKLARI — kaydedilmezse her girişte ödül tekrar verilir ── */
+  if (s.welcomeGiven)        out.wg  = true;
+  if (s.welcomePending)      out.wp  = true;
+  if (s.lastDailyRewardDate) out.ldr = s.lastDailyRewardDate;
+  if (s.lastDailyExplore)    out.lde = s.lastDailyExplore;
   if (s.defeatedEnemies && Object.keys(s.defeatedEnemies).length) out.de = s.defeatedEnemies;
   if (s.maxFrontierLevel) out.mfl = s.maxFrontierLevel;
   if (s.lootChests && Object.keys(s.lootChests).length) out.lc = s.lootChests;
@@ -3104,6 +3107,10 @@ function expandCompactState(c) {
   if (c.st) s.stamina = { current: c.st[0], max: c.st[1], lastRegenAt: c.st[2] };
   if (c.ohs) s.ownedHeroSkins = c.ohs;
   if (c.shs) s.selectedHeroSkin = c.shs;
+  if (c.wg)  s.welcomeGiven = true;
+  if (c.wp)  s.welcomePending = true;
+  if (c.ldr) s.lastDailyRewardDate = c.ldr;
+  if (c.lde) s.lastDailyExplore = c.lde;
   if (c.sc) s.selectedCommanders = c.sc;
   if (c.de) s.defeatedEnemies = c.de;
   if (c.mfl) s.maxFrontierLevel = c.mfl;

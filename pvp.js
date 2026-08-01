@@ -1119,7 +1119,7 @@ function pullFreshStateFromCloud() {
    Buranın tek işi: savunana "saldırıya uğradın" bildirimi göstermek
    ve savaş günlüğüne bir savunma kaydı eklemek.
    ═══════════════════════════════════════════════════════════════ */
-let _raidRef = null;
+let _raidRef = null, _raidKey = null;
 const _islenmisRaporlar = {};
 
 /* Telefonda konsol görünmediği için hataları ekrana basar */
@@ -1146,7 +1146,20 @@ function pvpUyar(msg) {
   } catch (e) {}
 }
 function startRaidInbox() {
-  if (!fbOK() || !myKey() || _raidRef) return;
+  if (!fbOK() || !myKey()) return;
+
+  /* Hesap değiştiyse ESKİ dinleyiciyi bırak. Bırakılmazsa oyuncu,
+     önceki hesabın rapor kutusunu dinlemeye devam eder: raporlar
+     yanlış hesaba düşer ve asıl sahibinden silinir. */
+  if (_raidRef && _raidKey !== myKey()) {
+    try { _raidRef.off(); } catch (e) {}
+    _raidRef = null;
+    Object.keys(_islenmisRaporlar).forEach(k => delete _islenmisRaporlar[k]);
+    console.log("[pvp] hesap değişti, rapor kutusu yeniden bağlanıyor");
+  }
+  if (_raidRef) return;
+
+  _raidKey = myKey();
   _raidRef = firebaseDb.ref("pvpRaids/" + myKey());
   _raidRef.on("child_added", snap => {
     const r = snap.val() || {};
@@ -1240,10 +1253,21 @@ function breakFriendship(name) {
   if (typeof persistCurrentState === "function") persistCurrentState();
 }
 
-let _reqRef = null, _ackRef = null;
+let _reqRef = null, _ackRef = null, _inboxKey = null;
+
+/* hesap değiştiyse arkadaşlık dinleyicilerini de bırak */
+function _inboxHesapKontrol() {
+  if ((_reqRef || _ackRef) && _inboxKey !== myKey()) {
+    try { if (_reqRef) _reqRef.off(); } catch (e) {}
+    try { if (_ackRef) _ackRef.off(); } catch (e) {}
+    _reqRef = _ackRef = null;
+  }
+}
 function startFriendInbox() {
+  _inboxHesapKontrol();
   if (!fbOK() || !myKey()) return;
   if (!_reqRef) {
+    _inboxKey = myKey();
     _reqRef = firebaseDb.ref("pvpFriendReq/" + myKey());
     _reqRef.on("child_added", snap => {
       const r = snap.val() || {}; snap.ref.remove().catch(()=>{});
@@ -1370,6 +1394,7 @@ function stopPvpListeners() {
     try { if (ref && ref.off) ref.off(); } catch (e) {}
   });
   _raidRef = _reqRef = _ackRef = null;
+  _raidKey = _inboxKey = null;
   _pulledOnce = false;
   Object.keys(_islenmisRaporlar).forEach(k => delete _islenmisRaporlar[k]);
   console.log("[pvp] dinleyiciler bırakıldı (oturum kapandı)");

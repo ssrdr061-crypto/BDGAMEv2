@@ -1910,6 +1910,16 @@ if (document.readyState === "loading") {
   window.addEventListener("resize", measureDock);
   window.addEventListener("orientationchange", () => setTimeout(measureDock, 200));
 
+  /* Panel her açıldığında yeniden ölç. Ölçüm ilk açılışta yapılırsa ve o an
+     alt şerit henüz çizilmemişse panel yanlış boyutta kalıyordu — bu yüzden
+     iki hesapta farklı görünüyordu. */
+  document.addEventListener("click", (e) => {
+    if (e.target && e.target.closest && e.target.closest("[data-panel='troops']")) {
+      setTimeout(measureDock, 60);
+      setTimeout(measureDock, 320);
+    }
+  }, true);
+
   /* ═══ CANLI AYAR PANELİ — adres sonuna ?ayar=1 ekleyince açılır ═══ */
   if (/[?&]ayar=1/.test(location.search)) {
     const P = ["k", "a", "r", "hx"];                 /* şövalye, asker, robot, rapor kahramanı */
