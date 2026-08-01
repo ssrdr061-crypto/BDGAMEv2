@@ -817,7 +817,7 @@ function openReportModal(r) {
 
       ${(r.attackerCommanders&&r.attackerCommanders.length)||(r.defenderCommanders&&r.defenderCommanders.length)?`
       <div class="rp-sec">🦸 KAHRAMANLAR</div>
-      <div class="rp-cols">
+      <div class="rp-cols rp-cols-hero">
         <div class="rp-col">
           <div class="rp-chips">${(r.attackerCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
         </div>
@@ -827,7 +827,7 @@ function openReportModal(r) {
       </div>`:''}
 
       <div class="rp-sec">💀 BİRLİK KAYIPLARI</div>
-      <div class="rp-cols">
+      <div class="rp-cols rp-cols-troop">
         <div class="rp-col"><div class="rp-chips">${troopChips(r.attackerLosses)}</div></div>
         <div class="rp-col"><div class="rp-chips">${troopChips(r.defenderLosses)}</div></div>
       </div>
@@ -1650,7 +1650,7 @@ if (document.readyState === "loading") {
   width:calc(var(--rh-box,52px) + 4px); }
 .rep-hpor{
   width:var(--rh-box,52px); height:var(--rh-box,52px);
-  border-radius:calc(var(--rh-box,52px) * .2); overflow:hidden;
+  border-radius:calc(var(--rh-box,45px) * .15); overflow:hidden;
   background:linear-gradient(180deg,#3d7ccc,#152e5e);
   border:2px solid rgba(190,240,255,.5);
   display:block;                 /* flex DEĞİL — görsel kutudan taşıp yakınlaşabilsin */
@@ -1662,29 +1662,29 @@ if (document.readyState === "loading") {
   margin:var(--rh-t,0%) 0 0 var(--rh-l,0%); }
 
 /* her kahraman ayrı ayarlanır */
-.rep-hpor[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,53px); height:var(--rh-buz_savascisi-box,53px); border-radius:calc(var(--rh-buz_savascisi-box,53px) * .2); }
+.rep-hpor[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,45px); height:var(--rh-buz_savascisi-box,45px); border-radius:calc(var(--rh-buz_savascisi-box,45px) * .15); }
 .rep-hpor[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,187%); margin:var(--rh-buz_savascisi-t,-11%) 0 0 var(--rh-buz_savascisi-l,-44%); }
-.rep-hpor[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,53px); height:var(--rh-celik_savasci-box,53px); border-radius:calc(var(--rh-celik_savasci-box,53px) * .2); }
+.rep-hpor[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,45px); height:var(--rh-celik_savasci-box,45px); border-radius:calc(var(--rh-celik_savasci-box,45px) * .15); }
 .rep-hpor[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,167%); margin:var(--rh-celik_savasci-t,-38%) 0 0 var(--rh-celik_savasci-l,-33%); }
-.rep-hpor[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,53px); height:var(--rh-ates_buyucusu-box,53px); border-radius:calc(var(--rh-ates_buyucusu-box,53px) * .2); }
+.rep-hpor[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,45px); height:var(--rh-ates_buyucusu-box,45px); border-radius:calc(var(--rh-ates_buyucusu-box,45px) * .15); }
 .rep-hpor[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,222%); margin:var(--rh-ates_buyucusu-t,-22%) 0 0 var(--rh-ates_buyucusu-l,-69%); }
-.rep-hpor[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,52px); height:var(--rh-ivanovna-box,52px); border-radius:calc(var(--rh-ivanovna-box,52px) * .2); }
+.rep-hpor[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,45px); height:var(--rh-ivanovna-box,45px); border-radius:calc(var(--rh-ivanovna-box,45px) * .15); }
 .rep-hpor[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,227%); margin:var(--rh-ivanovna-t,-13%) 0 0 var(--rh-ivanovna-l,-62%); }
-.rep-hpor[data-h="revolia"]{ width:var(--rh-revolia-box,52px); height:var(--rh-revolia-box,52px); border-radius:calc(var(--rh-revolia-box,52px) * .2); }
+.rep-hpor[data-h="revolia"]{ width:var(--rh-revolia-box,45px); height:var(--rh-revolia-box,45px); border-radius:calc(var(--rh-revolia-box,45px) * .15); }
 .rep-hpor[data-h="revolia"] img{ width:var(--rh-revolia-w,277%); margin:var(--rh-revolia-t,-40%) 0 0 var(--rh-revolia-l,-83%); }
 .rep-hemoji{ font-size:20px; }
 .rep-hname{ font-size:9px; font-weight:800; color:#eaf7ff; text-align:center; line-height:1.1; }
 
 /* kendi raporumdaki kahraman portresi de aynı ayarları kullansın */
-.rep-por-hero[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,53px) !important; height:var(--rh-buz_savascisi-box,53px) !important; border-radius:calc(var(--rh-buz_savascisi-box,53px) * .2) !important; }
+.rep-por-hero[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,45px) !important; height:var(--rh-buz_savascisi-box,45px) !important; border-radius:calc(var(--rh-buz_savascisi-box,45px) * .15) !important; }
 .rep-por-hero[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,187%) !important; margin:var(--rh-buz_savascisi-t,-11%) 0 0 var(--rh-buz_savascisi-l,-44%) !important; }
-.rep-por-hero[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,53px) !important; height:var(--rh-celik_savasci-box,53px) !important; border-radius:calc(var(--rh-celik_savasci-box,53px) * .2) !important; }
+.rep-por-hero[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,45px) !important; height:var(--rh-celik_savasci-box,45px) !important; border-radius:calc(var(--rh-celik_savasci-box,45px) * .15) !important; }
 .rep-por-hero[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,167%) !important; margin:var(--rh-celik_savasci-t,-38%) 0 0 var(--rh-celik_savasci-l,-33%) !important; }
-.rep-por-hero[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,53px) !important; height:var(--rh-ates_buyucusu-box,53px) !important; border-radius:calc(var(--rh-ates_buyucusu-box,53px) * .2) !important; }
+.rep-por-hero[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,45px) !important; height:var(--rh-ates_buyucusu-box,45px) !important; border-radius:calc(var(--rh-ates_buyucusu-box,45px) * .15) !important; }
 .rep-por-hero[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,222%) !important; margin:var(--rh-ates_buyucusu-t,-22%) 0 0 var(--rh-ates_buyucusu-l,-69%) !important; }
-.rep-por-hero[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,52px) !important; height:var(--rh-ivanovna-box,52px) !important; border-radius:calc(var(--rh-ivanovna-box,52px) * .2) !important; }
+.rep-por-hero[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,45px) !important; height:var(--rh-ivanovna-box,45px) !important; border-radius:calc(var(--rh-ivanovna-box,45px) * .15) !important; }
 .rep-por-hero[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,227%) !important; margin:var(--rh-ivanovna-t,-13%) 0 0 var(--rh-ivanovna-l,-62%) !important; }
-.rep-por-hero[data-h="revolia"]{ width:var(--rh-revolia-box,52px) !important; height:var(--rh-revolia-box,52px) !important; border-radius:calc(var(--rh-revolia-box,52px) * .2) !important; }
+.rep-por-hero[data-h="revolia"]{ width:var(--rh-revolia-box,45px) !important; height:var(--rh-revolia-box,45px) !important; border-radius:calc(var(--rh-revolia-box,45px) * .15) !important; }
 .rep-por-hero[data-h="revolia"] img{ width:var(--rh-revolia-w,277%) !important; margin:var(--rh-revolia-t,-40%) 0 0 var(--rh-revolia-l,-83%) !important; }
 
 #tpTuner .tt-sub{ margin-top:-2px; }
@@ -1708,6 +1708,24 @@ if (document.readyState === "loading") {
 .rp-foot{ display:flex; justify-content:space-around; font-weight:900; font-size:13px;
   background:rgba(0,10,26,.3); border-radius:10px; padding:9px; margin-top:12px; }
 .rp-turn{ color:#dff2ff; }
+
+/* ── kahraman isimleri kaldırıldı ── */
+.rep-hname{ display:none !important; }
+.rep-hchip{ width:auto !important; gap:0 !important; }
+
+/* ── KAHRAMANLAR: alt alta ── */
+.rp-cols-hero{ display:flex; gap:12px; }
+.rp-cols-hero .rp-col{ flex:1 1 0; min-width:0; }
+.rp-cols-hero .rp-chips{
+  flex-direction:column !important; align-items:center !important; gap:7px !important;
+}
+
+/* ── BİRLİK KAYIPLARI: yan yana, 3'e 3 sığsın ── */
+.rp-cols-troop .rp-chips{ gap:4px !important; }
+.rp-cols-troop .rp-chips > *{
+  font-size:10.5px !important; padding:5px 7px !important; border-radius:8px !important;
+  white-space:nowrap !important;
+}
   `;
   document.head.appendChild(s);
 
@@ -1736,11 +1754,11 @@ if (document.readyState === "loading") {
     const S = JSON.parse(JSON.stringify(VARSAYILAN));
     /* her kahramanın kendi rapor kutusu ayarı */
     const HERO_VARS = {
-      buz_savascisi: { h: 53, pw: 187, pl: -44, pt: -11 },
-      celik_savasci: { h: 53, pw: 167, pl: -33, pt: -38 },
-      ates_buyucusu: { h: 53, pw: 222, pl: -69, pt: -22 },
-      ivanovna:      { h: 52, pw: 227, pl: -62, pt: -13 },
-      revolia:       { h: 52, pw: 277, pl: -83, pt: -40 }
+      buz_savascisi: { h: 45, pw: 187, pl: -44, pt: -11 },
+      celik_savasci: { h: 45, pw: 167, pl: -33, pt: -38 },
+      ates_buyucusu: { h: 45, pw: 222, pl: -69, pt: -22 },
+      ivanovna:      { h: 45, pw: 227, pl: -62, pt: -13 },
+      revolia:       { h: 45, pw: 277, pl: -83, pt: -40 }
     };
     S.hero = JSON.parse(JSON.stringify(HERO_VARS));
     let cur = 0;
