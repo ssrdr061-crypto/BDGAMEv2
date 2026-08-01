@@ -801,53 +801,40 @@ function openReportModal(r) {
       </div>
 
       <!-- saldıran vs savunan -->
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;
-        background:linear-gradient(180deg,rgba(34,72,143,.7),rgba(13,34,70,.8));
-        border:2px solid rgba(190,240,255,.4);border-radius:14px;padding:12px 10px;margin-bottom:12px">
-        <div style="flex:1;text-align:center">
-          <div style="width:64px;height:64px;margin:0 auto;border-radius:12px;
-            background:rgba(255,255,255,.12);border:2px dashed rgba(190,240,255,.6);
-            display:flex;align-items:center;justify-content:center;font-size:26px">🏰</div>
-          <div style="font-weight:900;font-size:12px;margin-top:5px;color:#ffd257">${attacker}</div>
-          <div style="font-size:10px;font-weight:800;color:#dff2ff">SALDIRAN</div>
+      <div class="rp-vs">
+        <div class="rp-vs-side">
+          <div class="rp-castle">🏰</div>
+          <div class="rp-name">${attacker}</div>
+          <div class="rp-role">SALDIRAN</div>
         </div>
-        <div style="font-weight:900;font-size:20px;color:#fff;flex:0 0 auto">VS</div>
-        <div style="flex:1;text-align:center">
-          <div style="width:64px;height:64px;margin:0 auto;border-radius:12px;
-            background:rgba(255,255,255,.12);border:2px dashed rgba(190,240,255,.6);
-            display:flex;align-items:center;justify-content:center;font-size:26px">🏰</div>
-          <div style="font-weight:900;font-size:12px;margin-top:5px;color:#ffd257">${defender}</div>
-          <div style="font-size:10px;font-weight:800;color:#dff2ff">SAVUNAN</div>
+        <div class="rp-vs-mid">VS</div>
+        <div class="rp-vs-side">
+          <div class="rp-castle">🏰</div>
+          <div class="rp-name">${defender}</div>
+          <div class="rp-role">SAVUNAN</div>
         </div>
       </div>
 
       ${(r.attackerCommanders&&r.attackerCommanders.length)||(r.defenderCommanders&&r.defenderCommanders.length)?`
-      <div style="background:linear-gradient(180deg,rgba(34,72,143,.62),rgba(13,34,70,.75));
-        border:2px solid rgba(190,240,255,.35);border-radius:12px;padding:10px;margin-bottom:10px">
-        <div style="font-size:11px;font-weight:900;color:#bfe6ff;margin-bottom:6px">🦸 KAHRAMANLAR</div>
-        <div style="display:flex;justify-content:space-around;gap:8px">
-          <div style="flex:1"><div style="font-size:9px;color:#dff2ff;text-align:center;margin-bottom:4px">Saldıran</div>
-            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px">
-              ${(r.attackerCommanders||[]).map(heroChip).join("")||'<span style="color:#bfe6ff;font-size:10px">—</span>'}</div></div>
-          <div style="flex:1"><div style="font-size:9px;color:#dff2ff;text-align:center;margin-bottom:4px">Savunan</div>
-            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px">
-              ${(r.defenderCommanders||[]).map(heroChip).join("")||'<span style="color:#bfe6ff;font-size:10px">—</span>'}</div></div>
+      <div class="rp-sec">🦸 KAHRAMANLAR</div>
+      <div class="rp-cols">
+        <div class="rp-col">
+          <div class="rp-chips">${(r.attackerCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
+        </div>
+        <div class="rp-col">
+          <div class="rp-chips">${(r.defenderCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
         </div>
       </div>`:''}
 
-      <div style="background:linear-gradient(180deg,rgba(34,72,143,.62),rgba(13,34,70,.75));
-        border:2px solid rgba(190,240,255,.35);border-radius:12px;padding:10px;margin-bottom:10px">
-        <div style="font-size:11px;font-weight:900;color:#bfe6ff;margin-bottom:6px">💀 BİRLİK KAYIPLARI</div>
-        <div style="font-size:10px;font-weight:800;color:#dff2ff;margin-bottom:3px">Saldıran:</div>
-        <div style="margin-bottom:8px">${troopChips(r.attackerLosses)}</div>
-        <div style="font-size:10px;font-weight:800;color:#dff2ff;margin-bottom:3px">Savunan:</div>
-        <div>${troopChips(r.defenderLosses)}</div>
+      <div class="rp-sec">💀 BİRLİK KAYIPLARI</div>
+      <div class="rp-cols">
+        <div class="rp-col"><div class="rp-chips">${troopChips(r.attackerLosses)}</div></div>
+        <div class="rp-col"><div class="rp-chips">${troopChips(r.defenderLosses)}</div></div>
       </div>
 
-      <div style="display:flex;justify-content:space-around;font-weight:900;font-size:13px;
-        background:rgba(0,10,26,.35);border-radius:10px;padding:9px">
+      <div class="rp-foot">
         <span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>
-        <span style="color:#dff2ff">⏱️ ${r.turns||0} tur</span>
+        <span class="rp-turn">⏱️ ${r.turns||0} tur</span>
       </div>
     </div>`;
   document.body.appendChild(back);
@@ -1675,33 +1662,52 @@ if (document.readyState === "loading") {
   margin:var(--rh-t,0%) 0 0 var(--rh-l,0%); }
 
 /* her kahraman ayrı ayarlanır */
-.rep-hpor[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,52px); height:var(--rh-buz_savascisi-box,52px); border-radius:calc(var(--rh-buz_savascisi-box,52px) * .2); }
-.rep-hpor[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,100%); margin:var(--rh-buz_savascisi-t,0%) 0 0 var(--rh-buz_savascisi-l,0%); }
-.rep-hpor[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,52px); height:var(--rh-celik_savasci-box,52px); border-radius:calc(var(--rh-celik_savasci-box,52px) * .2); }
-.rep-hpor[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,100%); margin:var(--rh-celik_savasci-t,0%) 0 0 var(--rh-celik_savasci-l,0%); }
-.rep-hpor[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,52px); height:var(--rh-ates_buyucusu-box,52px); border-radius:calc(var(--rh-ates_buyucusu-box,52px) * .2); }
-.rep-hpor[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,100%); margin:var(--rh-ates_buyucusu-t,0%) 0 0 var(--rh-ates_buyucusu-l,0%); }
+.rep-hpor[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,53px); height:var(--rh-buz_savascisi-box,53px); border-radius:calc(var(--rh-buz_savascisi-box,53px) * .2); }
+.rep-hpor[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,187%); margin:var(--rh-buz_savascisi-t,-11%) 0 0 var(--rh-buz_savascisi-l,-44%); }
+.rep-hpor[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,53px); height:var(--rh-celik_savasci-box,53px); border-radius:calc(var(--rh-celik_savasci-box,53px) * .2); }
+.rep-hpor[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,167%); margin:var(--rh-celik_savasci-t,-38%) 0 0 var(--rh-celik_savasci-l,-33%); }
+.rep-hpor[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,53px); height:var(--rh-ates_buyucusu-box,53px); border-radius:calc(var(--rh-ates_buyucusu-box,53px) * .2); }
+.rep-hpor[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,222%); margin:var(--rh-ates_buyucusu-t,-22%) 0 0 var(--rh-ates_buyucusu-l,-69%); }
 .rep-hpor[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,52px); height:var(--rh-ivanovna-box,52px); border-radius:calc(var(--rh-ivanovna-box,52px) * .2); }
-.rep-hpor[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,100%); margin:var(--rh-ivanovna-t,0%) 0 0 var(--rh-ivanovna-l,0%); }
+.rep-hpor[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,227%); margin:var(--rh-ivanovna-t,-13%) 0 0 var(--rh-ivanovna-l,-62%); }
 .rep-hpor[data-h="revolia"]{ width:var(--rh-revolia-box,52px); height:var(--rh-revolia-box,52px); border-radius:calc(var(--rh-revolia-box,52px) * .2); }
-.rep-hpor[data-h="revolia"] img{ width:var(--rh-revolia-w,100%); margin:var(--rh-revolia-t,0%) 0 0 var(--rh-revolia-l,0%); }
+.rep-hpor[data-h="revolia"] img{ width:var(--rh-revolia-w,277%); margin:var(--rh-revolia-t,-40%) 0 0 var(--rh-revolia-l,-83%); }
 .rep-hemoji{ font-size:20px; }
 .rep-hname{ font-size:9px; font-weight:800; color:#eaf7ff; text-align:center; line-height:1.1; }
 
 /* kendi raporumdaki kahraman portresi de aynı ayarları kullansın */
-.rep-por-hero[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,52px) !important; height:var(--rh-buz_savascisi-box,52px) !important; border-radius:calc(var(--rh-buz_savascisi-box,52px) * .2) !important; }
-.rep-por-hero[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,100%) !important; margin:var(--rh-buz_savascisi-t,0%) 0 0 var(--rh-buz_savascisi-l,0%) !important; }
-.rep-por-hero[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,52px) !important; height:var(--rh-celik_savasci-box,52px) !important; border-radius:calc(var(--rh-celik_savasci-box,52px) * .2) !important; }
-.rep-por-hero[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,100%) !important; margin:var(--rh-celik_savasci-t,0%) 0 0 var(--rh-celik_savasci-l,0%) !important; }
-.rep-por-hero[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,52px) !important; height:var(--rh-ates_buyucusu-box,52px) !important; border-radius:calc(var(--rh-ates_buyucusu-box,52px) * .2) !important; }
-.rep-por-hero[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,100%) !important; margin:var(--rh-ates_buyucusu-t,0%) 0 0 var(--rh-ates_buyucusu-l,0%) !important; }
+.rep-por-hero[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,53px) !important; height:var(--rh-buz_savascisi-box,53px) !important; border-radius:calc(var(--rh-buz_savascisi-box,53px) * .2) !important; }
+.rep-por-hero[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,187%) !important; margin:var(--rh-buz_savascisi-t,-11%) 0 0 var(--rh-buz_savascisi-l,-44%) !important; }
+.rep-por-hero[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,53px) !important; height:var(--rh-celik_savasci-box,53px) !important; border-radius:calc(var(--rh-celik_savasci-box,53px) * .2) !important; }
+.rep-por-hero[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,167%) !important; margin:var(--rh-celik_savasci-t,-38%) 0 0 var(--rh-celik_savasci-l,-33%) !important; }
+.rep-por-hero[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,53px) !important; height:var(--rh-ates_buyucusu-box,53px) !important; border-radius:calc(var(--rh-ates_buyucusu-box,53px) * .2) !important; }
+.rep-por-hero[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,222%) !important; margin:var(--rh-ates_buyucusu-t,-22%) 0 0 var(--rh-ates_buyucusu-l,-69%) !important; }
 .rep-por-hero[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,52px) !important; height:var(--rh-ivanovna-box,52px) !important; border-radius:calc(var(--rh-ivanovna-box,52px) * .2) !important; }
-.rep-por-hero[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,100%) !important; margin:var(--rh-ivanovna-t,0%) 0 0 var(--rh-ivanovna-l,0%) !important; }
+.rep-por-hero[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,227%) !important; margin:var(--rh-ivanovna-t,-13%) 0 0 var(--rh-ivanovna-l,-62%) !important; }
 .rep-por-hero[data-h="revolia"]{ width:var(--rh-revolia-box,52px) !important; height:var(--rh-revolia-box,52px) !important; border-radius:calc(var(--rh-revolia-box,52px) * .2) !important; }
-.rep-por-hero[data-h="revolia"] img{ width:var(--rh-revolia-w,100%) !important; margin:var(--rh-revolia-t,0%) 0 0 var(--rh-revolia-l,0%) !important; }
+.rep-por-hero[data-h="revolia"] img{ width:var(--rh-revolia-w,277%) !important; margin:var(--rh-revolia-t,-40%) 0 0 var(--rh-revolia-l,-83%) !important; }
 
 #tpTuner .tt-sub{ margin-top:-2px; }
 #tpTuner .tt-sub button{ font-size:9.5px; padding:4px 2px; }
+
+/* ═══ PVP RAPORU — sade düzen, iç kutular yok ═══ */
+.rp-vs{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+.rp-vs-side{ flex:1; text-align:center; }
+.rp-vs-mid{ flex:0 0 auto; font-weight:900; font-size:20px; color:#fff; }
+.rp-castle{ width:58px; height:58px; margin:0 auto; border-radius:12px;
+  background:rgba(255,255,255,.12); border:2px dashed rgba(190,240,255,.55);
+  display:flex; align-items:center; justify-content:center; font-size:24px; }
+.rp-name{ font-weight:900; font-size:12px; margin-top:5px; color:#ffd257; }
+.rp-role{ font-size:10px; font-weight:800; color:#dff2ff; }
+.rp-sec{ font-size:11px; font-weight:900; color:#bfe6ff; margin:12px 0 6px;
+  padding-bottom:5px; border-bottom:1px solid rgba(190,240,255,.22); }
+.rp-cols{ display:flex; gap:10px; }
+.rp-col{ flex:1 1 0; min-width:0; }
+.rp-chips{ display:flex; flex-wrap:wrap; justify-content:center; gap:5px; }
+.rp-dash{ color:#bfe6ff; font-size:10px; }
+.rp-foot{ display:flex; justify-content:space-around; font-weight:900; font-size:13px;
+  background:rgba(0,10,26,.3); border-radius:10px; padding:9px; margin-top:12px; }
+.rp-turn{ color:#dff2ff; }
   `;
   document.head.appendChild(s);
 
@@ -1729,8 +1735,14 @@ if (document.readyState === "loading") {
     const HERO_ADI  = ["Halvorsen", "Stellin", "Mikian", "İvanovna", "Revolia"];
     const S = JSON.parse(JSON.stringify(VARSAYILAN));
     /* her kahramanın kendi rapor kutusu ayarı */
-    S.hero = {};
-    HERO_IDS.forEach(id => { S.hero[id] = { h: 52, pw: 100, pl: 0, pt: 0 }; });
+    const HERO_VARS = {
+      buz_savascisi: { h: 53, pw: 187, pl: -44, pt: -11 },
+      celik_savasci: { h: 53, pw: 167, pl: -33, pt: -38 },
+      ates_buyucusu: { h: 53, pw: 222, pl: -69, pt: -22 },
+      ivanovna:      { h: 52, pw: 227, pl: -62, pt: -13 },
+      revolia:       { h: 52, pw: 277, pl: -83, pt: -40 }
+    };
+    S.hero = JSON.parse(JSON.stringify(HERO_VARS));
     let cur = 0;
     let curHero = 0;
 
@@ -1867,7 +1879,7 @@ if (document.readyState === "loading") {
     });
     document.getElementById("ttReset").addEventListener("click", () => {
       Object.assign(S, JSON.parse(JSON.stringify(VARSAYILAN)));
-      S.hero = {}; HERO_IDS.forEach(id => { S.hero[id] = { h: 52, pw: 100, pl: 0, pt: 0 }; });
+      S.hero = JSON.parse(JSON.stringify(HERO_VARS));
       sync();
     });
     document.getElementById("ttCopy").addEventListener("click", async e => {
