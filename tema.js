@@ -752,26 +752,17 @@ function heroChip(name) {
 }
 
 /* savaşa sürülen birlikler — eğitim panelindeki kafa kutucuğu biçimi.
-   .rep-por[data-i] kadrajı ?ayar=1 tuner'ından gelen değişkenleri kullanır.
-   Kutunun altında: gönderilen sayı, altında ölen ve yaralanan. */
-function unitChips(troopsObj, lossObj) {
+   .rep-por[data-i] kadrajı ?ayar=1 tuner'ından gelen değişkenleri kullanır. */
+function unitChips(troopsObj) {
   const t = troopsObj || {};
-  const olen  = (lossObj && lossObj.killed)  || {};
-  const yarali= (lossObj && lossObj.wounded) || {};
   const sira = ["knight","soldier","robot"];
   const out = sira.filter(uid => (t[uid] || 0) > 0).map(uid => {
     const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
     const im = (d && d.img) ? `<img src="${d.img}" alt="">` : "";
-    const f  = (n) => (typeof fmt === "function") ? fmt(n) : String(n);
-    const o = Math.max(0, Math.floor(olen[uid]   || 0));
-    const y = Math.max(0, Math.floor(yarali[uid] || 0));
-    const kayipSatiri = (o || y)
-      ? `<span class="rp-uloss">${o ? `<b class="rp-dead">☠${f(o)}</b>` : ""}${(o && y) ? " " : ""}${y ? `<b class="rp-hurt">✚${f(y)}</b>` : ""}</span>`
-      : `<span class="rp-uloss rp-uzero">sağlam</span>`;
+    const n  = (typeof fmt === "function") ? fmt(t[uid]) : String(t[uid]);
     return `<div class="rp-unit">
       <div class="rep-por" data-i="${sira.indexOf(uid)}">${im}</div>
-      <span class="rp-ucap">${f(t[uid])}</span>
-      ${kayipSatiri}
+      <span class="rp-ucap">${n}</span>
     </div>`;
   });
   return out.join("") || '<span class="rp-dash">—</span>';
@@ -828,8 +819,8 @@ function openReportModal(r) {
 
       <div class="rp-div"></div>
       <div class="rp-cols rp-cols-troop">
-        <div class="rp-col"><div class="rp-chips">${unitChips(r.attackerTroops, r.attackerLosses)}</div></div>
-        <div class="rp-col"><div class="rp-chips">${unitChips(r.defenderTroops, r.defenderLosses)}</div></div>
+        <div class="rp-col"><div class="rp-chips">${unitChips(r.attackerTroops)}</div></div>
+        <div class="rp-col"><div class="rp-chips">${unitChips(r.defenderTroops)}</div></div>
       </div>
 
       <div class="rp-foot">
@@ -1759,12 +1750,8 @@ if (document.readyState === "loading") {
   background:color-mix(in srgb, var(--rp-murekkep) 30%, transparent); }
 
 /* savaşa sürülen birlikler — kafa kutusu + altında sayı */
-.rp-unit{ display:flex; flex-direction:column; align-items:center; gap:1px; }
+.rp-unit{ display:flex; flex-direction:column; align-items:center; gap:2px; }
 .rp-ucap{ font-size:11px; font-weight:800; color:var(--rp-murekkep); }
-.rp-uloss{ font-size:9.5px; font-weight:800; line-height:1.2; white-space:nowrap; }
-.rp-dead{ color:#7a1a12; }
-.rp-hurt{ color:#8a5a0c; }
-.rp-uzero{ color:color-mix(in srgb, var(--rp-murekkep) 45%, transparent); font-weight:600; }
 .rp-box .rp-cols-troop .rep-por{
   background:rgba(255,255,255,.22) !important;
   border:2px solid color-mix(in srgb, var(--rp-murekkep) 45%, transparent) !important;
