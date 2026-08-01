@@ -2463,16 +2463,16 @@ function defaultState() {
    Aynı türdeki yetenekler birbirine EKLENİR (ör. iki kahraman da
    "birlik saldırı +%20" veriyorsa sonuç +%40 olur).
    Dönen her kayıtta .sources dizisi vardır: hangi kahramandan ne geldi. */
-function activeHeroAbilities() {
+/* Verilen kahraman listesinin yeteneklerini birleştirir.
+   PvP'de savunan oyuncunun komutanları için de kullanılır —
+   bu yüzden liste dışarıdan verilebilir. */
+function abilitiesForSkins(skinList) {
   try {
     if (typeof HERO_STATS === "undefined") return [];
 
-    let skins = [];
-    if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders)) {
-      skins = selectedCommanders.filter(Boolean);
-    }
-    if (!skins.length && state.selectedHeroSkin) skins = [state.selectedHeroSkin];
+    let skins = (Array.isArray(skinList) ? skinList : []).filter(Boolean);
     skins = skins.filter((x, i) => skins.indexOf(x) === i).slice(0, 3);
+    if (!skins.length) return [];
 
     const lv = 0; // seviye 1
     const merged = {};
@@ -2518,6 +2518,20 @@ function activeHeroAbilities() {
     return Object.keys(merged).map(k => merged[k]);
   } catch (e) { return []; }
 }
+
+/* Kendi savaşa götürdüğüm komutanların yetenekleri */
+function activeHeroAbilities() {
+  let skins = [];
+  if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders)) {
+    skins = selectedCommanders.filter(Boolean);
+  }
+  if (!skins.length && state.selectedHeroSkin) skins = [state.selectedHeroSkin];
+  return abilitiesForSkins(skins);
+}
+
+/* pvp.js bu ikisini kullanır */
+window.abilitiesForSkins  = abilitiesForSkins;
+window.activeHeroAbilities = activeHeroAbilities;
 
 
 /* ═══════════════════════════════════════════════════════════════
@@ -3062,6 +3076,7 @@ function compactStateForExport(s) {
   out.st = [s.stamina.current, s.stamina.max, s.stamina.lastRegenAt];
   if (s.ownedHeroSkins && s.ownedHeroSkins.length) out.ohs = s.ownedHeroSkins;
   if (s.selectedHeroSkin) out.shs = s.selectedHeroSkin;
+  if (s.selectedCommanders && s.selectedCommanders.length) out.sc = s.selectedCommanders;
   if (s.defeatedEnemies && Object.keys(s.defeatedEnemies).length) out.de = s.defeatedEnemies;
   if (s.maxFrontierLevel) out.mfl = s.maxFrontierLevel;
   if (s.lootChests && Object.keys(s.lootChests).length) out.lc = s.lootChests;
@@ -3086,6 +3101,7 @@ function expandCompactState(c) {
   if (c.st) s.stamina = { current: c.st[0], max: c.st[1], lastRegenAt: c.st[2] };
   if (c.ohs) s.ownedHeroSkins = c.ohs;
   if (c.shs) s.selectedHeroSkin = c.shs;
+  if (c.sc) s.selectedCommanders = c.sc;
   if (c.de) s.defeatedEnemies = c.de;
   if (c.mfl) s.maxFrontierLevel = c.mfl;
   if (c.lc) s.lootChests = c.lc;
