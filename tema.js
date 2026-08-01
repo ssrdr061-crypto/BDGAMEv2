@@ -1662,29 +1662,29 @@ if (document.readyState === "loading") {
   margin:var(--rh-t,0%) 0 0 var(--rh-l,0%); }
 
 /* her kahraman ayrı ayarlanır */
-.rep-hpor[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,45px); height:var(--rh-buz_savascisi-box,45px); border-radius:calc(var(--rh-buz_savascisi-box,45px) * .15); }
+.rep-hpor[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,50px); height:var(--rh-buz_savascisi-box,50px); border-radius:calc(var(--rh-buz_savascisi-box,50px) * .15); }
 .rep-hpor[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,187%); margin:var(--rh-buz_savascisi-t,-11%) 0 0 var(--rh-buz_savascisi-l,-44%); }
-.rep-hpor[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,45px); height:var(--rh-celik_savasci-box,45px); border-radius:calc(var(--rh-celik_savasci-box,45px) * .15); }
+.rep-hpor[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,50px); height:var(--rh-celik_savasci-box,50px); border-radius:calc(var(--rh-celik_savasci-box,50px) * .15); }
 .rep-hpor[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,167%); margin:var(--rh-celik_savasci-t,-38%) 0 0 var(--rh-celik_savasci-l,-33%); }
-.rep-hpor[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,45px); height:var(--rh-ates_buyucusu-box,45px); border-radius:calc(var(--rh-ates_buyucusu-box,45px) * .15); }
+.rep-hpor[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,50px); height:var(--rh-ates_buyucusu-box,50px); border-radius:calc(var(--rh-ates_buyucusu-box,50px) * .15); }
 .rep-hpor[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,222%); margin:var(--rh-ates_buyucusu-t,-22%) 0 0 var(--rh-ates_buyucusu-l,-69%); }
-.rep-hpor[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,45px); height:var(--rh-ivanovna-box,45px); border-radius:calc(var(--rh-ivanovna-box,45px) * .15); }
+.rep-hpor[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,50px); height:var(--rh-ivanovna-box,50px); border-radius:calc(var(--rh-ivanovna-box,50px) * .15); }
 .rep-hpor[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,227%); margin:var(--rh-ivanovna-t,-13%) 0 0 var(--rh-ivanovna-l,-62%); }
-.rep-hpor[data-h="revolia"]{ width:var(--rh-revolia-box,45px); height:var(--rh-revolia-box,45px); border-radius:calc(var(--rh-revolia-box,45px) * .15); }
+.rep-hpor[data-h="revolia"]{ width:var(--rh-revolia-box,50px); height:var(--rh-revolia-box,50px); border-radius:calc(var(--rh-revolia-box,50px) * .15); }
 .rep-hpor[data-h="revolia"] img{ width:var(--rh-revolia-w,277%); margin:var(--rh-revolia-t,-40%) 0 0 var(--rh-revolia-l,-83%); }
 .rep-hemoji{ font-size:20px; }
 .rep-hname{ font-size:9px; font-weight:800; color:#eaf7ff; text-align:center; line-height:1.1; }
 
 /* kendi raporumdaki kahraman portresi de aynı ayarları kullansın */
-.rep-por-hero[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,45px) !important; height:var(--rh-buz_savascisi-box,45px) !important; border-radius:calc(var(--rh-buz_savascisi-box,45px) * .15) !important; }
+.rep-por-hero[data-h="buz_savascisi"]{ width:var(--rh-buz_savascisi-box,50px) !important; height:var(--rh-buz_savascisi-box,50px) !important; border-radius:calc(var(--rh-buz_savascisi-box,50px) * .15) !important; }
 .rep-por-hero[data-h="buz_savascisi"] img{ width:var(--rh-buz_savascisi-w,187%) !important; margin:var(--rh-buz_savascisi-t,-11%) 0 0 var(--rh-buz_savascisi-l,-44%) !important; }
-.rep-por-hero[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,45px) !important; height:var(--rh-celik_savasci-box,45px) !important; border-radius:calc(var(--rh-celik_savasci-box,45px) * .15) !important; }
+.rep-por-hero[data-h="celik_savasci"]{ width:var(--rh-celik_savasci-box,50px) !important; height:var(--rh-celik_savasci-box,50px) !important; border-radius:calc(var(--rh-celik_savasci-box,50px) * .15) !important; }
 .rep-por-hero[data-h="celik_savasci"] img{ width:var(--rh-celik_savasci-w,167%) !important; margin:var(--rh-celik_savasci-t,-38%) 0 0 var(--rh-celik_savasci-l,-33%) !important; }
-.rep-por-hero[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,45px) !important; height:var(--rh-ates_buyucusu-box,45px) !important; border-radius:calc(var(--rh-ates_buyucusu-box,45px) * .15) !important; }
+.rep-por-hero[data-h="ates_buyucusu"]{ width:var(--rh-ates_buyucusu-box,50px) !important; height:var(--rh-ates_buyucusu-box,50px) !important; border-radius:calc(var(--rh-ates_buyucusu-box,50px) * .15) !important; }
 .rep-por-hero[data-h="ates_buyucusu"] img{ width:var(--rh-ates_buyucusu-w,222%) !important; margin:var(--rh-ates_buyucusu-t,-22%) 0 0 var(--rh-ates_buyucusu-l,-69%) !important; }
-.rep-por-hero[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,45px) !important; height:var(--rh-ivanovna-box,45px) !important; border-radius:calc(var(--rh-ivanovna-box,45px) * .15) !important; }
+.rep-por-hero[data-h="ivanovna"]{ width:var(--rh-ivanovna-box,50px) !important; height:var(--rh-ivanovna-box,50px) !important; border-radius:calc(var(--rh-ivanovna-box,50px) * .15) !important; }
 .rep-por-hero[data-h="ivanovna"] img{ width:var(--rh-ivanovna-w,227%) !important; margin:var(--rh-ivanovna-t,-13%) 0 0 var(--rh-ivanovna-l,-62%) !important; }
-.rep-por-hero[data-h="revolia"]{ width:var(--rh-revolia-box,45px) !important; height:var(--rh-revolia-box,45px) !important; border-radius:calc(var(--rh-revolia-box,45px) * .15) !important; }
+.rep-por-hero[data-h="revolia"]{ width:var(--rh-revolia-box,50px) !important; height:var(--rh-revolia-box,50px) !important; border-radius:calc(var(--rh-revolia-box,50px) * .15) !important; }
 .rep-por-hero[data-h="revolia"] img{ width:var(--rh-revolia-w,277%) !important; margin:var(--rh-revolia-t,-40%) 0 0 var(--rh-revolia-l,-83%) !important; }
 
 #tpTuner .tt-sub{ margin-top:-2px; }
@@ -1720,10 +1720,10 @@ if (document.readyState === "loading") {
   flex-direction:column !important; gap:7px !important;
 }
 /* saldıran sola, savunan sağa yaslı — kenarda az pay bırakılır */
-.rp-cols-hero .rp-col:first-child .rp-chips{ align-items:flex-start !important; padding-left:14px; }
-.rp-cols-hero .rp-col:last-child  .rp-chips{ align-items:flex-end   !important; padding-right:14px; }
-.rp-cols-troop .rp-col:first-child .rp-chips{ justify-content:flex-start !important; padding-left:14px; }
-.rp-cols-troop .rp-col:last-child  .rp-chips{ justify-content:flex-end   !important; padding-right:14px; }
+.rp-cols-hero .rp-col:first-child .rp-chips{ align-items:flex-start !important; padding-left:8px; }
+.rp-cols-hero .rp-col:last-child  .rp-chips{ align-items:flex-end   !important; padding-right:8px; }
+.rp-cols-troop .rp-col:first-child .rp-chips{ justify-content:flex-start !important; padding-left:8px; }
+.rp-cols-troop .rp-col:last-child  .rp-chips{ justify-content:flex-end   !important; padding-right:8px; }
 
 /* ── BİRLİK KAYIPLARI: yan yana, 3'e 3 sığsın ── */
 .rp-cols-troop .rp-chips{ gap:4px !important; }
@@ -1759,11 +1759,11 @@ if (document.readyState === "loading") {
     const S = JSON.parse(JSON.stringify(VARSAYILAN));
     /* her kahramanın kendi rapor kutusu ayarı */
     const HERO_VARS = {
-      buz_savascisi: { h: 45, pw: 187, pl: -44, pt: -11 },
-      celik_savasci: { h: 45, pw: 167, pl: -33, pt: -38 },
-      ates_buyucusu: { h: 45, pw: 222, pl: -69, pt: -22 },
-      ivanovna:      { h: 45, pw: 227, pl: -62, pt: -13 },
-      revolia:       { h: 45, pw: 277, pl: -83, pt: -40 }
+      buz_savascisi: { h: 50, pw: 187, pl: -44, pt: -11 },
+      celik_savasci: { h: 50, pw: 167, pl: -33, pt: -38 },
+      ates_buyucusu: { h: 50, pw: 222, pl: -69, pt: -22 },
+      ivanovna:      { h: 50, pw: 227, pl: -62, pt: -13 },
+      revolia:       { h: 50, pw: 277, pl: -83, pt: -40 }
     };
     S.hero = JSON.parse(JSON.stringify(HERO_VARS));
     let cur = 0;
