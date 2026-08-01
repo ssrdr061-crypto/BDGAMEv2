@@ -291,6 +291,12 @@ function buildDefender(acc, fallbackName) {
   const realTroops = {};
   FRONT_ORDER.forEach(uid => realTroops[uid] = Math.max(0, Math.floor(num(src[uid], 0))));
 
+  /* TEŞHİS 3: buluttaki kayıtta hiç birlik yoksa savaş 0 turda biter.
+     Bu, savunanın verisinin buluta yazılamadığı anlamına gelir. */
+  if (troopCount === 0 && typeof toast === "function") {
+    toast("⚠️ TEŞHİS 3: " + dName + " buluttaki kaydında hiç birlik görünmüyor");
+  }
+
   /* kutucukta gösterilecek toplam güç */
   let atk = num(h.attack, 40), def = num(h.defense, 25), hp = num(h.maxHp, 200);
   FRONT_ORDER.forEach(uid => {
@@ -822,7 +828,10 @@ function sendRaidReport(enemy, R, delta) {
       });
     }
     return st;
-  }).catch(e => console.warn("[pvp] savunan kaydı güncellenemedi:", e));
+  }).catch(e => {
+    console.warn("[pvp] savunan kaydı güncellenemedi:", e);
+    if (typeof toast === "function") toast("⚠️ TEŞHİS 1: savunanın kaydı güncellenemedi — " + (e && e.message ? e.message : e));
+  });
 
   /* ── 2) BİLDİRİM KUTUSU ──────────────────────────────────────
      Artık veriyi DÜŞÜRMEK için değil, yalnızca savunan oyuna
@@ -835,7 +844,10 @@ function sendRaidReport(enemy, R, delta) {
     turns: R.turns,
     troopsLost: totalLost,
     applied: true,        /* kayıp zaten işlendi — inbox tekrar düşürmeyecek */
-  }).catch(e => console.warn("[pvp] bildirim gönderilemedi:", e));
+  }).catch(e => {
+    console.warn("[pvp] bildirim gönderilemedi:", e);
+    if (typeof toast === "function") toast("⚠️ TEŞHİS 2: baskın bildirimi gönderilemedi — " + (e && e.message ? e.message : e));
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════════

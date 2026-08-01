@@ -2123,6 +2123,7 @@ function queueCloudSave(username) {
       saveAccounts(accounts);
       firebaseDb.ref("accounts/" + toFirebaseKey(key)).set(acc).catch(err => {
         console.warn("Buluta kaydedilemedi (localStorage'da güvende):", err);
+        if (typeof toast === "function") toast("⚠️ Buluta kaydedilemedi: " + (err && err.message ? err.message : err));
       });
     } catch (e) {
       console.warn("Bulut senkron hatası:", e);
