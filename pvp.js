@@ -298,8 +298,13 @@ function buildDefender(acc, fallbackName) {
     atk += d.attack * troops[uid]; def += d.defense * troops[uid]; hp += d.hp * troops[uid];
   });
 
-  /* savunanın komutan adları (paylaşım raporu için) */
-  const defCommanders = (Array.isArray(st.ownedHeroSkins) ? st.ownedHeroSkins : [])
+  /* Savunanın SAVAŞA SEÇTİĞİ komutanlar (yetenekleri savaşta işler).
+     Eski hesaplarda selectedCommanders yoksa sahip olduklarına düşülür. */
+  let defSkins = Array.isArray(st.selectedCommanders) ? st.selectedCommanders.filter(Boolean) : [];
+  if (!defSkins.length && Array.isArray(st.ownedHeroSkins)) defSkins = st.ownedHeroSkins.slice(0, 3);
+  defSkins = defSkins.slice(0, 3);
+
+  const defCommanders = defSkins
     .map(id => (typeof HERO_STATS !== "undefined" && HERO_STATS[id]) ? HERO_STATS[id].name : null)
     .filter(Boolean);
 
@@ -308,6 +313,7 @@ function buildDefender(acc, fallbackName) {
     name: dName,
     accKey: dKey,
     commanderNames: defCommanders,
+    commanderSkins: defSkins,
     avatar: "🏰", tier: "hard",
     /* arena önizlemesi bu 3 alanı kullanıyor */
     attack:  Math.max(5,  Math.round(atk * CFG.castleAtkBonus)),
@@ -468,14 +474,75 @@ function fireMissileAt(name, gx, gy, isOwn) {
 /* ═══════════════════════════════════════════════════════════════
    6) ORDU SAVAŞ MOTORU — birlikler birbirini kırar
    ═══════════════════════════════════════════════════════════════ */
-function makeArmy(troopsObj, heroStats, label) {
+
+/* ═══════════════════════════════════════════════════════════════
+   KAHRAMAN YETENEKLERİ — PvP
+   İki taraf da savaşa götürdüğü komutanların yeteneklerini kullanır.
+   Yetenek verisi index.html'deki abilitiesForSkins() ile hesaplanır.
+   ═══════════════════════════════════════════════════════════════ */
+function buffsOf(skinList) {
+  if (typeof window.abilitiesForSkins !== "function") return [];
+  return window.abilitiesForSkins(skinList) || [];
+}
+function findBuff(ab, t) { return (ab || []).find(a => a.type === t); }
+
+/* Birim statlarına yetenekleri uygular (makeArmy içinde çağrılır) */
+function applyTroopBuffs(units, ab) {
+  let f;
+  units.forEach(u => {
+    if (u.unitId === "robot") {
+      const rob = findBuff(ab, "robot_atk_hp_pct");
+      if (rob && rob.v) { u.atk *= (1 + rob.v / 100); u.hp *= (1 + rob.v / 100); }
+      const rd = findBuff(ab, "defense_robot_multiplier");
+      if (rd && rd.effect) u.def *= (rd.effect.multiplier || 2);
+    }
+    if ((f = findBuff(ab, "troop_atk_def_pct")) && f.v) {
+      u.atk *= (1 + f.v / 100); u.def *= (1 + f.v / 100);
+    }
+    if ((f = findBuff(ab, "troop_atk_def_hp_pct"))) {
+      u.atk *= (1 + (f.v || 0) / 100);
+      u.def *= (1 + ((f.v2 != null ? f.v2 : f.v) || 0) / 100);
+      const hpp = (f.effect && f.effect.hpFlatPct) || 0;
+      u.hp *= (1 + hpp / 100);
+    }
+    if ((f = findBuff(ab, "troop_def_pct")) && f.v) u.def *= (1 + f.v / 100);
+    if ((f = findBuff(ab, "troop_hp_pct")) && f.v) u.hp *= (1 + f.v / 100);
+
+    u.atk = Math.max(1, Math.round(u.atk));
+    u.def = Math.max(0, Math.round(u.def));
+    u.hp  = Math.max(1, Math.round(u.hp));
+  });
+}
+
+/* Savaş akışını etkileyen yetenekler — tur döngüsünde kullanılır */
+function flowOf(ab) {
+  const g = (t, k) => { const f = findBuff(ab, t); return f ? (f[k || "v"] || 0) : 0; };
+  return {
+    freezeTurns:   Math.round(g("enemy_freeze_turns")),
+    reflectPct:    g("damage_reflect_pct"),
+    defShredPct:   g("enemy_def_shred_pct"),
+    enemyReducePct:g("enemy_hp_atk_reduce_pct"),
+    instantPct:    g("enemy_instant_casualty"),
+    periodicPct:   g("periodic_def_reduce_pct"),
+    gapCapPct:     g("power_gap_cap"),
+    woundedPct:    g("wounded_return_pct"),
+    /* sayaçlar — rapora yazılır */
+    used: { freeze: 0, reflect: 0, instant: 0, periodic: 0, gapCap: 0 }
+  };
+}
+
+function makeArmy(troopsObj, heroStats, label, abilities) {
   const units = [];
   FRONT_ORDER.forEach(uid => {
     const d = UT()[uid]; if (!d) return;
     const c = Math.max(0, Math.floor(num((troopsObj || {})[uid], 0)));
     if (c > 0) units.push({ unitId: uid, count: c, start: c, atk: d.attack, def: d.defense, hp: d.hp });
   });
+  const ab = abilities || [];
+  applyTroopBuffs(units, ab);
   return {
+    abilities: ab,
+    flow: flowOf(ab),
     label: label,
     units: units,
     hero: {
@@ -486,6 +553,8 @@ function makeArmy(troopsObj, heroStats, label) {
       ultiChance: num(heroStats.ultiChance, 0.15),
       ultiMul:    num(heroStats.ultiMultiplier, 1.8),
     },
+    dealtByUnit: {},      /* hangi birlik tipi ne kadar hasar verdi */
+    abilityKills: {},     /* yetenek kaynaklı kayıplar */
     pending: 0,           /* birim canını doldurmayan artık hasar */
     killed:  {},          /* kalıcı ölen */
     wounded: {},          /* hastaneye düşen */
@@ -526,18 +595,61 @@ function rollDamage(from, to) {
   let dmg = Math.max(raw * CFG.minDamagePct, raw - soak) * CFG.damageScale;
   dmg *= (1 - CFG.variance/2) + Math.random() * CFG.variance;
   if (from.hero.hp > 0 && Math.random() < from.hero.ultiChance) dmg *= from.hero.ultiMul;
-  return Math.max(1, Math.round(dmg));
+  dmg = Math.max(1, Math.round(dmg));
+
+  /* Hasarı, birlik tiplerinin saldırı payına göre dağıt.
+     NOT: Bu bir PAY hesabıdır — hangi birliğin tam olarak kimi vurduğu
+     ayrı ayrı izlenmez, katkı oranına göre bölüştürülür. */
+  from.units.forEach(u => {
+    const pay = (u.atk * u.count) / raw;
+    if (pay > 0) from.dealtByUnit[u.unitId] = (from.dealtByUnit[u.unitId] || 0) + dmg * pay;
+  });
+  return dmg;
 }
 
 function pvpSimulate(attackerTroops, attackerHero, defender) {
-  const A = makeArmy(attackerTroops, attackerHero, "attacker");
+  /* İKİ TARAFIN da komutan yetenekleri hesaba katılır */
+  const atkSkins = (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
+    ? selectedCommanders.filter(Boolean) : [];
+  const defSkins = Array.isArray(defender.commanderSkins) ? defender.commanderSkins : [];
+  const abA = buffsOf(atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
+  const abD = buffsOf(defSkins);
+
+  const A = makeArmy(attackerTroops, attackerHero, "attacker", abA);
   const D = makeArmy(defender.defTroops, {
     attack:  defender.hero.attack  * CFG.castleAtkBonus,
     defense: defender.hero.defense * CFG.castleDefBonus,
     maxHp:   defender.hero.maxHp   * CFG.castleHpBonus,
     ultiChance: defender.hero.ultiChance,
     ultiMultiplier: defender.hero.ultiMultiplier,
-  }, "defender");
+  }, "defender", abD);
+
+  /* ── Karşı tarafı zayıflatan yetenekler ── */
+  function weaken(src, tgt) {
+    const fl = src.flow;
+    if (fl.defShredPct)  tgt.units.forEach(u => u.def = Math.max(0, Math.round(u.def * (1 - fl.defShredPct / 100))));
+    if (fl.enemyReducePct) {
+      tgt.units.forEach(u => {
+        u.atk = Math.max(1, Math.round(u.atk * (1 - fl.enemyReducePct / 100)));
+        u.hp  = Math.max(1, Math.round(u.hp  * (1 - fl.enemyReducePct / 100)));
+      });
+    }
+    /* savaş başında anlık kayıp */
+    if (fl.instantPct) {
+      tgt.units.forEach(u => {
+        const yok = Math.floor(u.count * fl.instantPct / 100);
+        if (yok > 0) {
+          u.count = Math.max(0, u.count - yok);
+          tgt.killed[u.unitId] = (tgt.killed[u.unitId] || 0) + yok;
+          fl.used.instant += yok;
+          src.abilityKills["enemy_instant_casualty"] =
+            (src.abilityKills["enemy_instant_casualty"] || 0) + yok;
+        }
+      });
+    }
+  }
+  weaken(A, D);
+  weaken(D, A);
 
   /* Savunanın HİÇ birliği yoksa kale savunmasızdır: komutan da
      dövüşmez, saldırana hasar vermez. Böylece boş kaleyi yağmalarken
@@ -551,12 +663,53 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   /* EŞ ZAMANLI tur: iki taraf da tur başındaki güce göre vurur.
      Böylece saldıran taraf "önce vurma" avantajı kazanmaz. */
   let turn = 0;
+  /* dondurma: rakip ilk N tur vuramaz */
+  let freezeD = A.flow.freezeTurns, freezeA = D.flow.freezeTurns;
+  if (freezeD) A.flow.used.freeze = freezeD;
+  if (freezeA) D.flow.used.freeze = freezeA;
+
   while (turn < CFG.maxTurns && armyAlive(A) && armyAlive(D)) {
     turn++;
-    const dmgAtoD = rollDamage(A, D);
-    const dmgDtoA = rollDamage(D, A);
-    A.damageDealt += dmgAtoD; damageArmy(D, dmgAtoD);
-    D.damageDealt += dmgDtoA; damageArmy(A, dmgDtoA);
+
+    /* periyodik savunma kırma — her 3 turda bir */
+    if (A.flow.periodicPct && turn % 3 === 0) {
+      D.units.forEach(u => u.def = Math.max(0, Math.round(u.def * (1 - A.flow.periodicPct / 100))));
+      A.flow.used.periodic++;
+    }
+    if (D.flow.periodicPct && turn % 3 === 0) {
+      A.units.forEach(u => u.def = Math.max(0, Math.round(u.def * (1 - D.flow.periodicPct / 100))));
+      D.flow.used.periodic++;
+    }
+
+    let dmgAtoD = rollDamage(A, D);
+    let dmgDtoA = rollDamage(D, A);
+
+    if (freezeD > 0) { dmgDtoA = 0; freezeD--; }
+    if (freezeA > 0) { dmgAtoD = 0; freezeA--; }
+
+    /* güç farkı kalkanı: çok güçlü rakipten alınan hasarı azaltır */
+    if (A.flow.gapCapPct && armyAtk(D) > armyAtk(A) * 1.5) {
+      dmgDtoA = Math.round(dmgDtoA * (1 - A.flow.gapCapPct / 100));
+      A.flow.used.gapCap++;
+    }
+    if (D.flow.gapCapPct && armyAtk(A) > armyAtk(D) * 1.5) {
+      dmgAtoD = Math.round(dmgAtoD * (1 - D.flow.gapCapPct / 100));
+      D.flow.used.gapCap++;
+    }
+
+    /* hasar yansıtma */
+    let yansiAtoD = 0, yansiDtoA = 0;
+    if (A.flow.reflectPct && dmgDtoA > 0) {
+      yansiAtoD = Math.round(dmgDtoA * A.flow.reflectPct / 100);
+      A.flow.used.reflect += yansiAtoD;
+    }
+    if (D.flow.reflectPct && dmgAtoD > 0) {
+      yansiDtoA = Math.round(dmgAtoD * D.flow.reflectPct / 100);
+      D.flow.used.reflect += yansiDtoA;
+    }
+
+    A.damageDealt += dmgAtoD + yansiAtoD; damageArmy(D, dmgAtoD + yansiAtoD);
+    D.damageDealt += dmgDtoA + yansiDtoA; damageArmy(A, dmgDtoA + yansiDtoA);
   }
 
   /* kazanan: rakip ordusu tükendiyse; ikisi de ayaktaysa oran karşılaştırması */
@@ -569,7 +722,45 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     win = ra > rd;
   }
 
+  /* Rakip kayıplarını, benim birliklerimin hasar payına göre bölüştür.
+     Yaklaşık bir dağıtımdır — kesin hedef takibi yapılmaz. */
+  function attribute(src, tgt) {
+    const toplam = Object.keys(src.dealtByUnit).reduce((n, k) => n + src.dealtByUnit[k], 0);
+    const cikti = {};
+    src.units.forEach(u => { cikti[u.unitId] = { killed: 0, wounded: 0 }; });
+    if (toplam <= 0) return cikti;
+
+    const oOldu = Object.keys(tgt.killed).reduce((n, k) => n + tgt.killed[k], 0);
+    const oYarali = Object.keys(tgt.wounded).reduce((n, k) => n + tgt.wounded[k], 0);
+    const yetenek = Object.keys(src.abilityKills).reduce((n, k) => n + src.abilityKills[k], 0);
+    const dagit = Math.max(0, oOldu - yetenek);   /* yetenek kaynaklılar ayrı sayılır */
+
+    let kalanO = dagit, kalanY = oYarali;
+    const ids = Object.keys(cikti);
+    ids.forEach((uid, i) => {
+      const pay = (src.dealtByUnit[uid] || 0) / toplam;
+      if (i === ids.length - 1) { cikti[uid].killed = kalanO; cikti[uid].wounded = kalanY; }
+      else {
+        const k = Math.round(dagit * pay), y = Math.round(oYarali * pay);
+        cikti[uid].killed = Math.min(k, kalanO);  kalanO -= cikti[uid].killed;
+        cikti[uid].wounded = Math.min(y, kalanY); kalanY -= cikti[uid].wounded;
+      }
+    });
+    return cikti;
+  }
+
+  const attribA = attribute(A, D);
+  const attribD = attribute(D, A);
+
   return {
+    attackerAttribution: attribA,
+    defenderAttribution: attribD,
+    heroFx: {
+      attacker: A.flow.used, defender: D.flow.used,
+      attackerKills: A.abilityKills, defenderKills: D.abilityKills,
+      attackerAbilities: (A.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })),
+      defenderAbilities: (D.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources }))
+    },
     win, turns: turn,
     attacker: {
       killed: A.killed, wounded: A.wounded,
@@ -689,7 +880,8 @@ async function runPvpBattle() {
 
   const myHero = (typeof state.hero === "object") ? state.hero : {};
   const R = pvpSimulate(sel, myHero, enemy);
-  R._sentTroops = Object.assign({}, sel);
+  /* yetenek tetiklenme sayaçları — savaş raporunda gösterilir */
+  const heroFx = R.heroFx || null;
 
   /* ── KENDİ KAYIPLARIN ── */
   const myKilled = R.attacker.killed, myWounded = R.attacker.wounded;
@@ -740,6 +932,9 @@ async function runPvpBattle() {
     myCommanders: myCommanders,
     enemyCommanders: enemyCommanders,
     myLosses: { killed: myKilled, wounded: myWounded },
+    myAttribution: R.attackerAttribution || null,
+    enemyAttribution: R.defenderAttribution || null,
+    heroFx: R.heroFx || null,
     enemyLosses: { killed: R.defender.killed, wounded: R.defender.wounded },
     usedTroops: Object.assign({}, sel),
     enemyTroops: Object.assign({}, enemy.realTroops || enemy.troops || {}),
@@ -814,10 +1009,9 @@ function sendRaidReport(enemy, R, delta) {
         for (let i = 0; i < num(wounded[uid], 0); i++) {
           st.hospital.push({
             unitId: uid,
-            recoveryMs: recMs,
-            finishAt: 0,         /* sayaç savunan onaylayınca başlar */
+            finishAt: Date.now() + recMs,
             severe: false,
-            confirmed: false,    /* otomatik tedavi YOK */
+            confirmed: true,     /* saldırıdan gelen yaralı otomatik tedaviye alınır */
             fromRaid: true,
           });
         }
@@ -837,11 +1031,6 @@ function sendRaidReport(enemy, R, delta) {
     turns: R.turns,
     troopsLost: totalLost,
     applied: true,        /* kayıp zaten işlendi — inbox tekrar düşürmeyecek */
-    /* savunanın raporu doldurabilmesi için detay */
-    attackerTroops: Object.assign({}, R._sentTroops || {}),
-    defenderTroops: Object.assign({}, enemy.realTroops || {}),
-    attackerLosses: { killed: R.attacker.killed || {}, wounded: R.attacker.wounded || {} },
-    defenderLosses: { killed: killed, wounded: wounded },
   }).catch(e => console.warn("[pvp] bildirim gönderilemedi:", e));
 }
 
@@ -890,72 +1079,47 @@ function startRaidInbox() {
   _raidRef = firebaseDb.ref("pvpRaids/" + myKey());
   _raidRef.on("child_added", snap => {
     const r = snap.val() || {};
+    snap.ref.remove().catch(()=>{});
+    if (!pvpState()) return;
 
-    /* ONEMLI: bildirimi ISLEMEDEN silme. Eskiden ilk is olarak
-       snap.ref.remove() cagriliyordu; sonrasinda herhangi bir hata
-       cikarsa (state hazir degil, battleLogHistory yok, vs.) bildirim
-       kalici olarak kayboluyordu. Savunanin raporu bu yuzden dusmuyordu. */
-    const bitir = () => { snap.ref.remove().catch(()=>{}); };
+    const totalLost = num(r.troopsLost, 0);
+    const lost = Math.max(0, num(r.diamondsLost, 0));
 
-    const st = pvpState();
-    if (!st) {
-      /* state henuz hazir degil — birazdan tekrar dene, SILME */
-      setTimeout(() => { try { _raidRef.off("child_added"); } catch(e){} _raidRef = null; startRaidInbox(); }, 2000);
-      return;
+    /* Eski sürümden kalan, henüz işlenmemiş kayıtlar olabilir.
+       Yeni kayıtlarda applied:true var → veriyi düşürme. */
+    if (!r.applied) {
+      const killed = r.killed || {}, wounded = r.wounded || {};
+      if (r.attackerWon && lost > 0) state.diamonds = Math.max(0, state.diamonds - Math.min(state.diamonds, lost));
+      Object.keys(killed).forEach(uid  => state.troops[uid] = Math.max(0,(state.troops[uid]||0) - num(killed[uid],0)));
+      Object.keys(wounded).forEach(uid => state.troops[uid] = Math.max(0,(state.troops[uid]||0) - num(wounded[uid],0)));
+      if (typeof sendWoundedToHospital === "function") sendWoundedToHospital(toHospitalFormat(wounded));
+    } else {
+      /* güncel state'i buluttan tazele — saldıran zaten düşürdü */
+      if (typeof pullFreshStateFromCloud === "function") pullFreshStateFromCloud();
     }
 
-    try {
-      if (!Array.isArray(st.battleLogHistory)) st.battleLogHistory = [];
+    state.battleLogHistory.unshift({
+      enemyName: "🛡️ " + (r.from || "Bilinmeyen") + " (savunma)",
+      win: !r.attackerWon,
+      diamondDelta: r.attackerWon ? -lost : 0,
+      turns: num(r.turns, 0), dmgDealt: 0, dmgAbsorbed: 0, dmgTaken: 0,
+      heroHpFinal: 0, heroMaxHp: 0, troopsWoundedByUnit: {},
+      timestamp: num(r.at, Date.now()), pvp: true,
+      /* paylaşım detayları — savunan gözünden */
+      role: "defender",
+      myName: currentUsername || "Ben",
+      enemyPlainName: r.from || "Bilinmeyen",
+      diamondsLost: lost,
+      troopsLostTotal: totalLost,
+    });
+    if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
 
-      const totalLost = num(r.troopsLost, 0);
-      const lost = Math.max(0, num(r.diamondsLost, 0));
+    toast(r.attackerWon
+      ? `💥 ${r.from} ordunu dağıttı! -${money(lost)} 💎, -${totalLost} birlik`
+      : `🛡️ ${r.from} saldırdı, ordun püskürttü! (-${totalLost} birlik)`);
 
-      /* Eski surumden kalan, henuz islenmemis kayitlar olabilir.
-         Yeni kayitlarda applied:true var → veriyi dusurme. */
-      if (!r.applied) {
-        const killed = r.killed || {}, wounded = r.wounded || {};
-        if (r.attackerWon && lost > 0) st.diamonds = Math.max(0, st.diamonds - Math.min(st.diamonds, lost));
-        Object.keys(killed).forEach(uid  => st.troops[uid] = Math.max(0,(st.troops[uid]||0) - num(killed[uid],0)));
-        Object.keys(wounded).forEach(uid => st.troops[uid] = Math.max(0,(st.troops[uid]||0) - num(wounded[uid],0)));
-        if (typeof sendWoundedToHospital === "function") sendWoundedToHospital(toHospitalFormat(wounded));
-      } else {
-        if (typeof pullFreshStateFromCloud === "function") pullFreshStateFromCloud();
-      }
-
-      st.battleLogHistory.unshift({
-        enemyName: "🛡️ " + (r.from || "Bilinmeyen") + " (savunma)",
-        win: !r.attackerWon,
-        diamondDelta: r.attackerWon ? -lost : 0,
-        turns: num(r.turns, 0), dmgDealt: 0, dmgAbsorbed: 0, dmgTaken: 0,
-        heroHpFinal: 0, heroMaxHp: 0, troopsWoundedByUnit: {},
-        timestamp: num(r.at, Date.now()), pvp: true,
-        role: "defender",
-        myName: currentUsername || "Ben",
-        enemyPlainName: r.from || "Bilinmeyen",
-        diamondsLost: lost,
-        troopsLostTotal: totalLost,
-        /* rapor ekraninin doldurabilmesi icin detay */
-        myLosses:      r.defenderLosses || null,
-        enemyLosses:   r.attackerLosses || null,
-        myTroops:      r.defenderTroops || null,
-        enemyTroops:   r.attackerTroops || null,
-        enemyCommanders: r.attackerCommanders || [],
-        myCommanders:    r.defenderCommanders || [],
-      });
-      if (st.battleLogHistory.length > 200) st.battleLogHistory.length = 200;
-
-      toast(r.attackerWon
-        ? `💥 ${r.from} ordunu dağıttı! -${money(lost)} 💎, -${totalLost} birlik`
-        : `🛡️ ${r.from} saldırdı, ordun püskürttü! (-${totalLost} birlik)`);
-
-      ["renderDiamonds","renderTroopsPanel","renderHospitalPanel","renderBattleLogPanel","persistCurrentState"]
-        .forEach(f => { if (typeof window[f] === "function") window[f](); });
-
-      bitir();   /* ancak her sey basariyla islendikten SONRA sil */
-    } catch (e) {
-      console.warn("[pvp] baskın bildirimi işlenemedi, kayıt silinmedi:", e);
-      /* silmiyoruz — bir sonraki girişte tekrar denenecek */
-    }
+    ["renderDiamonds","renderTroopsPanel","renderHospitalPanel","renderBattleLogPanel","persistCurrentState"]
+      .forEach(f => { if (typeof window[f] === "function") window[f](); });
   });
 }
 

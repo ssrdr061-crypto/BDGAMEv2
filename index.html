@@ -2463,16 +2463,16 @@ function defaultState() {
    Aynı türdeki yetenekler birbirine EKLENİR (ör. iki kahraman da
    "birlik saldırı +%20" veriyorsa sonuç +%40 olur).
    Dönen her kayıtta .sources dizisi vardır: hangi kahramandan ne geldi. */
-function activeHeroAbilities() {
+/* Verilen kahraman listesinin yeteneklerini birleştirir.
+   PvP'de savunan oyuncunun komutanları için de kullanılır —
+   bu yüzden liste dışarıdan verilebilir. */
+function abilitiesForSkins(skinList) {
   try {
     if (typeof HERO_STATS === "undefined") return [];
 
-    let skins = [];
-    if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders)) {
-      skins = selectedCommanders.filter(Boolean);
-    }
-    if (!skins.length && state.selectedHeroSkin) skins = [state.selectedHeroSkin];
+    let skins = (Array.isArray(skinList) ? skinList : []).filter(Boolean);
     skins = skins.filter((x, i) => skins.indexOf(x) === i).slice(0, 3);
+    if (!skins.length) return [];
 
     const lv = 0; // seviye 1
     const merged = {};
@@ -2518,6 +2518,20 @@ function activeHeroAbilities() {
     return Object.keys(merged).map(k => merged[k]);
   } catch (e) { return []; }
 }
+
+/* Kendi savaşa götürdüğüm komutanların yetenekleri */
+function activeHeroAbilities() {
+  let skins = [];
+  if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders)) {
+    skins = selectedCommanders.filter(Boolean);
+  }
+  if (!skins.length && state.selectedHeroSkin) skins = [state.selectedHeroSkin];
+  return abilitiesForSkins(skins);
+}
+
+/* pvp.js bu ikisini kullanır */
+window.abilitiesForSkins  = abilitiesForSkins;
+window.activeHeroAbilities = activeHeroAbilities;
 
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2876,7 +2890,7 @@ function applyFinishedHospitalRecoveries() {
   const now = Date.now();
   const stillRecovering = [];
   state.hospital.forEach(patient => {
-    if (patient.confirmed && patient.finishAt > 0 && now >= patient.finishAt) {
+    if (patient.confirmed && now >= patient.finishAt) {
       state.troops[patient.unitId] = (state.troops[patient.unitId] || 0) + 1;
     } else {
       stillRecovering.push(patient);
@@ -2885,30 +2899,15 @@ function applyFinishedHospitalRecoveries() {
   state.hospital = stillRecovering;
 }
 
-/* Bir birligin iyilesme suresi (ms). */
-function hospitalRecoveryMs(unitId) {
-  const def = UNIT_TYPES[unitId];
-  return def ? Math.round(def.trainMinutes * 60 * 1000 / 3) : 10 * 60 * 1000;
-}
-
-/* ONEMLI: yarali hastaneye DUSERKEN sayac BASLAMAZ.
-   finishAt yalnizca oyuncu tedaviyi onayladiginda hesaplanir
-   (bkz. confirmHospitalSelection). Aksi halde oyuncu onay verdiginde
-   sure coktan dolmus olur ve birlik aninda iyilesir. */
 function sendWoundedToHospital(troopsWoundedByUnit) {
   if (!troopsWoundedByUnit) return;
-  if (!Array.isArray(state.hospital)) state.hospital = [];
   Object.keys(troopsWoundedByUnit).forEach(unitId => {
     const def = UNIT_TYPES[unitId];
     if (!def) return;
     troopsWoundedByUnit[unitId].forEach(wound => {
-      state.hospital.push({
-        unitId,
-        recoveryMs: hospitalRecoveryMs(unitId),
-        finishAt: 0,
-        severe: !!wound.severe,
-        confirmed: false,
-      });
+
+      const recoveryMs = Math.round(def.trainMinutes * 60 * 1000 / 3);
+      state.hospital.push({ unitId, finishAt: Date.now() + recoveryMs, severe: !!wound.severe });
     });
   });
 }
@@ -3077,6 +3076,7 @@ function compactStateForExport(s) {
   out.st = [s.stamina.current, s.stamina.max, s.stamina.lastRegenAt];
   if (s.ownedHeroSkins && s.ownedHeroSkins.length) out.ohs = s.ownedHeroSkins;
   if (s.selectedHeroSkin) out.shs = s.selectedHeroSkin;
+  if (s.selectedCommanders && s.selectedCommanders.length) out.sc = s.selectedCommanders;
   if (s.defeatedEnemies && Object.keys(s.defeatedEnemies).length) out.de = s.defeatedEnemies;
   if (s.maxFrontierLevel) out.mfl = s.maxFrontierLevel;
   if (s.lootChests && Object.keys(s.lootChests).length) out.lc = s.lootChests;
@@ -3101,6 +3101,7 @@ function expandCompactState(c) {
   if (c.st) s.stamina = { current: c.st[0], max: c.st[1], lastRegenAt: c.st[2] };
   if (c.ohs) s.ownedHeroSkins = c.ohs;
   if (c.shs) s.selectedHeroSkin = c.shs;
+  if (c.sc) s.selectedCommanders = c.sc;
   if (c.de) s.defeatedEnemies = c.de;
   if (c.mfl) s.maxFrontierLevel = c.mfl;
   if (c.lc) s.lootChests = c.lc;
@@ -3682,12 +3683,8 @@ function confirmHospitalSelection() {
   Object.keys(hospitalPendingSelection).forEach(unitId => {
     const wantCount = hospitalPendingSelection[unitId] || 0;
     if (wantCount <= 0) return;
-    const waitingOfUnit = state.hospital.filter(p => p.unitId === unitId && !p.confirmed);
-    waitingOfUnit.slice(0, wantCount).forEach(p => {
-      p.confirmed = true;
-      /* sayac SIMDI baslar */
-      p.finishAt = Date.now() + (p.recoveryMs || hospitalRecoveryMs(p.unitId));
-    });
+    const waitingOfUnit = state.hospital.filter(p => p.unitId === unitId && !p.confirmed).sort((a, b) => a.finishAt - b.finishAt);
+    waitingOfUnit.slice(0, wantCount).forEach(p => { p.confirmed = true; });
   });
   hospitalPendingSelection = {};
   renderHospitalPanel();
