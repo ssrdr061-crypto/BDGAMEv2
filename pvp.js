@@ -964,6 +964,25 @@ function clampToReal(map, realTroops) {
   return out;
 }
 
+
+/* Firebase "undefined" değer kabul etmez; içinde bir tane bile olsa
+   gönderimin tamamını reddeder ve SENKRON hata fırlatır (catch'e düşmez).
+   Bu yüzden gönderilecek veri önce temizlenir. */
+function temizVeri(x) {
+  if (x === undefined || x === null) return null;
+  if (Array.isArray(x)) return x.map(temizVeri).filter(v => v !== null);
+  if (typeof x === "number") return isFinite(x) ? x : 0;
+  if (typeof x === "object") {
+    const o = {};
+    Object.keys(x).forEach(k => {
+      const v = temizVeri(x[k]);
+      if (v !== null) o[k] = v;
+    });
+    return Object.keys(o).length ? o : null;
+  }
+  return x;
+}
+
 function sendRaidReport(enemy, R, delta) {
   if (!fbOK()) return;
   /* Kendi kalene saldırırsan hem saldıran hem savunan sen olursun ve
@@ -1032,7 +1051,7 @@ function sendRaidReport(enemy, R, delta) {
     .map(id => (typeof HERO_STATS !== "undefined" && HERO_STATS[id]) ? HERO_STATS[id].name : null)
     .filter(Boolean);
 
-  firebaseDb.ref("pvpRaids/" + key).push({
+  const bildirim = temizVeri({
     from: currentUsername || "Bilinmeyen",
     at: Date.now(),
     attackerWon: !!R.win,
@@ -1051,7 +1070,14 @@ function sendRaidReport(enemy, R, delta) {
     atkAttrib:     R.attackerAttribution || null,
     defAttrib:     R.defenderAttribution || null,
     heroFx:        R.heroFx || null,
-  }).catch(e => pvpUyar("Savunana rapor GÖNDERİLEMEDİ: " + (e && e.message ? e.message : e)));
+  }) || {};
+
+  try {
+    firebaseDb.ref("pvpRaids/" + key).push(bildirim)
+      .catch(e => pvpUyar("Savunana rapor GÖNDERİLEMEDİ: " + (e && e.message ? e.message : e)));
+  } catch (e) {
+    pvpUyar("Rapor gönderimi HATA verdi: " + (e && e.message ? e.message : e));
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
