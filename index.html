@@ -3048,6 +3048,9 @@ function logout() {
   stopListeningForGifts();
   stopListeningForChat();
   stopListeningForCastles();
+  /* PvP dinleyicileri bırakılmazsa yeni giren hesap ESKİ hesabın
+     rapor kutusunu dinlemeye devam eder ve kendi raporlarını alamaz. */
+  if (typeof stopPvpListeners === "function") stopPvpListeners();
   closeChat();
   currentUsername = null;
   clearSessionKey();

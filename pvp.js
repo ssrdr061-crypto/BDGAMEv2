@@ -1303,6 +1303,26 @@ function pvpDepsReady() {
       && typeof HERO_STATS !== "undefined";   /* pvp bunları da kullanıyor olabilir */
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   OTURUM KAPANIŞI
+   Çıkış yapılınca dinleyiciler bırakılmazsa, yeni giren hesap hâlâ
+   ESKİ hesabın kutusunu dinler ve kendi raporlarını hiç alamaz.
+   index.html'deki logout() bunu çağırır.
+   ═══════════════════════════════════════════════════════════════ */
+function stopPvpListeners() {
+  /* Sadece KULLANICIYA ÖZEL dinleyiciler bırakılır.
+     _accRef / _hpRef genel veriyi dinler, hesaba bağlı değildir. */
+  [_raidRef, _reqRef, _ackRef].forEach(ref => {
+    try { if (ref && ref.off) ref.off(); } catch (e) {}
+  });
+  _raidRef = _reqRef = _ackRef = null;
+  _pulledOnce = false;
+  Object.keys(_islenmisRaporlar).forEach(k => delete _islenmisRaporlar[k]);
+  console.log("[pvp] dinleyiciler bırakıldı (oturum kapandı)");
+}
+window.stopPvpListeners = stopPvpListeners;
+
 function startPvp() {
   tick();
   setInterval(tick, 2500);
