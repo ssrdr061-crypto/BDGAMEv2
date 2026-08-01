@@ -752,18 +752,17 @@ function heroChip(name) {
 }
 
 function troopChips(lossObj) {
-  if (!lossObj) return '<span style="color:#bfe6ff">—</span>';
+  if (!lossObj) return '<span class="rp-dash">—</span>';
   const both = {};
   ["killed","wounded"].forEach(k => Object.keys(lossObj[k]||{}).forEach(uid=>{
     both[uid]=(both[uid]||0)+(lossObj[k][uid]||0);
   }));
   const ids = Object.keys(both).filter(u=>both[u]>0);
-  if (!ids.length) return '<span style="color:#7fe3a6;font-weight:800">Kayıp yok 🎉</span>';
+  if (!ids.length) return '<span class="rp-nolost">Kayıp yok 🎉</span>';
   return ids.map(uid=>{
     const d=(typeof UNIT_TYPES!=="undefined")?UNIT_TYPES[uid]:null;
     const nm=d?d.name:uid;
-    return `<span style="display:inline-block;background:rgba(0,10,26,.4);border:1px solid rgba(190,240,255,.3);
-      border-radius:8px;padding:3px 8px;margin:2px;font-size:11px;font-weight:800;color:#fff">${nm} ×${both[uid]}</span>`;
+    return `<span class="rp-tchip">${nm} ×${both[uid]}</span>`;
   }).join("");
 }
 
@@ -782,21 +781,12 @@ function openReportModal(r) {
     "backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:18px;"+
     "font-family:'Baloo 2','Nunito',sans-serif";
   back.innerHTML=`
-    <div style="width:min(380px,94vw);max-height:88vh;overflow-y:auto;border-radius:20px;padding:16px 15px;
-      background:radial-gradient(ellipse 100% 50% at 50% 0%,rgba(170,240,255,.5),transparent 72%),
-        radial-gradient(ellipse 80% 40% at 50% 105%,rgba(8,45,80,.55),transparent 75%),
-        linear-gradient(180deg,#1fa3ea,#0e6fc0);
-      border:3px solid rgba(190,240,255,.85);box-shadow:0 0 26px rgba(120,225,255,.45),inset 0 3px 0 rgba(255,255,255,.45);
-      color:#fff;position:relative">
-      <button id="repClose" style="position:absolute;top:10px;right:10px;width:34px;height:34px;border:none;
-        border-radius:9px;background:linear-gradient(180deg,#f03434,#c00d0d);color:#fff;font-weight:900;
-        font-size:18px;box-shadow:0 3px 8px rgba(120,0,0,.4)">✕</button>
+    <div class="rp-box">
+      <button id="repClose" class="rp-close">✕</button>
 
-      <div style="text-align:center;font-weight:900;font-size:17px;margin:2px 0 12px;
-        text-shadow:0 2px 4px rgba(0,40,70,.6)">📜 SAVAŞ RAPORU</div>
+      <div class="rp-ttl">📜 SAVAŞ RAPORU</div>
 
-      <div style="text-align:center;font-weight:900;font-size:15px;margin-bottom:12px;
-        color:${win?'#c8ffd8':'#ffd0d0'};text-shadow:0 2px 4px rgba(0,40,70,.6)">
+      <div class="rp-sonuc ${win?'rp-win':'rp-lose'}">
         ${win?'🏆 SALDIRAN KAZANDI':'🛡️ SAVUNAN KAZANDI'}
       </div>
 
@@ -1690,24 +1680,78 @@ if (document.readyState === "loading") {
 #tpTuner .tt-sub{ margin-top:-2px; }
 #tpTuner .tt-sub button{ font-size:9.5px; padding:4px 2px; }
 
-/* ═══ PVP RAPORU — sade düzen, iç kutular yok ═══ */
+/* ═══ PVP RAPORU — KESE KAĞIDI ═══ */
+:root{
+  --rp-kagit:#bd9660; --rp-kagit-alt:#94703f;
+  --rp-murekkep:#33230f; --rp-murekkep-2:#584021;
+  --rp-altin:#6d420f; --rp-muhur:#8e2418;
+  --rp-kenar:.6; --rp-burusuk:.28;
+  --rp-lif:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23f)' opacity='0.105'/%3E%3C/svg%3E");
+}
+.rp-box{
+  position:relative; width:min(380px,94vw); max-height:88vh; overflow-y:auto;
+  border-radius:14px; padding:16px 15px 15px; color:var(--rp-murekkep);
+  background-color:var(--rp-kagit);
+  background-image:
+    linear-gradient(112deg, rgba(255,255,255,calc(var(--rp-burusuk) * .5)) 0 1px, transparent 1px 42%,
+      rgba(0,0,0,calc(var(--rp-burusuk) * .13)) 42% 43%, transparent 43%),
+    linear-gradient(-67deg, rgba(255,255,255,calc(var(--rp-burusuk) * .42)) 0 1px, transparent 1px 68%,
+      rgba(0,0,0,calc(var(--rp-burusuk) * .1)) 68% 69%, transparent 69%),
+    radial-gradient(ellipse 120% 90% at 50% 45%, transparent 52%, rgba(80,48,16,var(--rp-kenar)) 100%),
+    var(--rp-lif),
+    linear-gradient(168deg, color-mix(in srgb, var(--rp-kagit) 88%, #fff) 0%, var(--rp-kagit) 38%, var(--rp-kagit-alt) 100%);
+  background-size:auto,auto,auto,180px 180px,auto;
+  border:2px solid color-mix(in srgb, var(--rp-kagit-alt) 76%, #3a2a14);
+  box-shadow:0 10px 26px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.32),
+    inset 0 -2px 6px rgba(90,55,18,.28);
+}
+.rp-box::before{ content:""; position:absolute; inset:3px; border-radius:11px;
+  pointer-events:none; border:1px dashed rgba(90,58,24,.22); }
+.rp-close{
+  position:absolute; top:10px; right:10px; width:34px; height:34px; border:none;
+  border-radius:50%; color:#ffe9d8; font-weight:800; font-size:16px; cursor:pointer; z-index:2;
+  background:radial-gradient(circle at 35% 30%, color-mix(in srgb,var(--rp-muhur) 70%,#ff9d7a), var(--rp-muhur) 70%);
+  box-shadow:0 2px 6px rgba(60,10,0,.5), inset 0 -2px 4px rgba(0,0,0,.3), inset 0 2px 3px rgba(255,255,255,.25);
+}
+.rp-ttl{ text-align:center; font-weight:800; font-size:17px; margin:2px 0 10px;
+  letter-spacing:.5px; color:var(--rp-murekkep); text-shadow:0 1px 0 rgba(255,255,255,.4); }
+.rp-sonuc{ text-align:center; font-weight:800; font-size:14.5px; margin-bottom:14px;
+  color:var(--rp-altin); text-shadow:0 1px 0 rgba(255,255,255,.35); }
+.rp-lose{ color:var(--rp-muhur); }
+
 .rp-vs{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
 .rp-vs-side{ flex:1; text-align:center; }
-.rp-vs-mid{ flex:0 0 auto; font-weight:900; font-size:20px; color:#fff; }
-.rp-castle{ width:58px; height:58px; margin:0 auto; border-radius:12px;
-  background:rgba(255,255,255,.12); border:2px dashed rgba(190,240,255,.55);
+.rp-vs-mid{ flex:0 0 auto; font-weight:800; font-size:19px; color:var(--rp-murekkep-2); }
+.rp-castle{ width:58px; height:58px; margin:0 auto; border-radius:10px;
+  background:rgba(255,255,255,.22);
+  border:2px dashed color-mix(in srgb, var(--rp-murekkep) 45%, transparent);
   display:flex; align-items:center; justify-content:center; font-size:24px; }
-.rp-name{ font-weight:900; font-size:12px; margin-top:5px; color:#ffd257; }
-.rp-role{ font-size:10px; font-weight:800; color:#dff2ff; }
-.rp-sec{ font-size:11px; font-weight:900; color:#bfe6ff; margin:12px 0 6px;
-  padding-bottom:5px; border-bottom:1px solid rgba(190,240,255,.22); }
+.rp-name{ font-weight:800; font-size:12px; margin-top:5px; color:var(--rp-altin); }
+.rp-role{ font-size:10px; font-weight:600; color:var(--rp-murekkep-2); letter-spacing:.4px; }
+.rp-sec{ font-size:11px; font-weight:800; color:var(--rp-murekkep-2); margin:13px 0 7px;
+  padding-bottom:5px; letter-spacing:.6px;
+  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 30%, transparent); }
 .rp-cols{ display:flex; gap:10px; }
 .rp-col{ flex:1 1 0; min-width:0; }
 .rp-chips{ display:flex; flex-wrap:wrap; justify-content:center; gap:5px; }
-.rp-dash{ color:#bfe6ff; font-size:10px; }
-.rp-foot{ display:flex; justify-content:space-around; font-weight:900; font-size:13px;
-  background:rgba(0,10,26,.3); border-radius:10px; padding:9px; margin-top:12px; }
-.rp-turn{ color:#dff2ff; }
+.rp-dash{ color:var(--rp-murekkep-2); font-size:12px; font-weight:800; }
+.rp-nolost{ color:var(--rp-altin); font-weight:800; font-size:11px; }
+.rp-tchip{ display:inline-block; padding:5px 7px; border-radius:7px; margin:1px;
+  font-size:10.5px; font-weight:800; white-space:nowrap; color:var(--rp-murekkep);
+  background:rgba(255,255,255,.28);
+  border:1px solid color-mix(in srgb, var(--rp-murekkep) 32%, transparent); }
+.rp-foot{ display:flex; justify-content:space-around; font-weight:800; font-size:13px;
+  background:rgba(255,255,255,.22);
+  border:1px solid color-mix(in srgb, var(--rp-murekkep) 26%, transparent);
+  border-radius:9px; padding:9px; margin-top:13px; color:var(--rp-murekkep); }
+.rp-turn{ color:var(--rp-murekkep-2); }
+
+/* kahraman kutuları kağıda otursun (sadece bu pencerede) */
+.rp-box .rep-hpor{
+  background:linear-gradient(180deg, color-mix(in srgb, var(--rp-kagit-alt) 70%, #6b4a22), #4a3418) !important;
+  border-color:color-mix(in srgb, var(--rp-murekkep) 55%, transparent) !important;
+  box-shadow:0 2px 4px rgba(70,44,14,.35);
+}
 
 /* ── kahraman isimleri kaldırıldı ── */
 .rep-hname{ display:none !important; }
