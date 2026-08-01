@@ -2110,7 +2110,7 @@ let _cloudSaveTimer = null;
 function queueCloudSave(username) {
   if (!username) return;
   if (!firebaseReady) {
-    if (typeof toast === "function") toast("⚠️ TEŞHİS 4: bulut bağlantısı yok, kayıt gönderilmedi");
+    if (typeof showToast === "function") showToast("⚠️ TEŞHİS 4: bulut bağlantısı yok, kayıt gönderilmedi");
     return;
   }
   clearTimeout(_cloudSaveTimer);
@@ -2121,11 +2121,19 @@ function queueCloudSave(username) {
       const key = username.toLowerCase();
       const acc = accounts[key];
       if (!acc) {
-        if (typeof toast === "function") toast("⚠️ TEŞHİS 5: '" + key + "' yerel hesap listesinde yok");
+        if (typeof showToast === "function") showToast("⚠️ TEŞHİS 5: '" + key + "' yerel hesap listesinde yok");
         return;
       }
 
       acc.lastSeen = Date.now();
+
+      /* localStorage yazılamamış olabilir (depo dolu). O yüzden buluta
+         gidecek veriyi diskten değil, bellekteki gerçek durumdan al. */
+      if (typeof currentUsername === "string" && currentUsername.toLowerCase() === key
+          && typeof state === "object" && state) {
+        acc.state = state;
+      }
+
       accounts[key] = acc;
       saveAccounts(accounts);
 
@@ -2134,16 +2142,16 @@ function queueCloudSave(username) {
 
       firebaseDb.ref("accounts/" + toFirebaseKey(key)).set(acc)
         .then(() => {
-          if (typeof toast === "function")
-            toast("✅ TEŞHİS 6: buluta yazıldı → " + toFirebaseKey(key) + " · " + ozet);
+          if (typeof showToast === "function")
+            showToast("✅ TEŞHİS 6: buluta yazıldı → " + toFirebaseKey(key) + " · " + ozet);
         })
         .catch(err => {
           console.warn("Buluta kaydedilemedi (localStorage'da güvende):", err);
-          if (typeof toast === "function") toast("⚠️ TEŞHİS 7: buluta yazılamadı — " + (err && err.message ? err.message : err));
+          if (typeof showToast === "function") showToast("⚠️ TEŞHİS 7: buluta yazılamadı — " + (err && err.message ? err.message : err));
         });
     } catch (e) {
       console.warn("Bulut senkron hatası:", e);
-      if (typeof toast === "function") toast("⚠️ TEŞHİS 8: kayıt sırasında hata — " + (e && e.message ? e.message : e));
+      if (typeof showToast === "function") showToast("⚠️ TEŞHİS 8: kayıt sırasında hata — " + (e && e.message ? e.message : e));
     }
   }, 1200);
 }
@@ -2400,6 +2408,10 @@ function saveAccounts(accounts) {
     return true;
   } catch (e) {
     console.warn("Veri kaydedilemedi (tarayıcı depolamayı engelliyor olabilir):", e);
+    let boyut = "?";
+    try { boyut = Math.round(JSON.stringify(accounts).length / 1024) + " KB"; } catch (e2) {}
+    if (typeof showToast === "function")
+      showToast("⚠️ KAYIT BAŞARISIZ — telefon deposu dolu olabilir (" + boyut + ")", 5000);
     return false;
   }
 }
