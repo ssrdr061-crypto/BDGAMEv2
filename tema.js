@@ -1717,8 +1717,13 @@ if (document.readyState === "loading") {
 .rp-cols-hero{ display:flex; gap:12px; }
 .rp-cols-hero .rp-col{ flex:1 1 0; min-width:0; }
 .rp-cols-hero .rp-chips{
-  flex-direction:column !important; align-items:center !important; gap:7px !important;
+  flex-direction:column !important; gap:7px !important;
 }
+/* saldıran sola, savunan sağa yaslı — kenarda az pay bırakılır */
+.rp-cols-hero .rp-col:first-child .rp-chips{ align-items:flex-start !important; padding-left:14px; }
+.rp-cols-hero .rp-col:last-child  .rp-chips{ align-items:flex-end   !important; padding-right:14px; }
+.rp-cols-troop .rp-col:first-child .rp-chips{ justify-content:flex-start !important; padding-left:14px; }
+.rp-cols-troop .rp-col:last-child  .rp-chips{ justify-content:flex-end   !important; padding-right:14px; }
 
 /* ── BİRLİK KAYIPLARI: yan yana, 3'e 3 sığsın ── */
 .rp-cols-troop .rp-chips{ gap:4px !important; }
