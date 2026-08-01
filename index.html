@@ -2108,11 +2108,7 @@ function toFirebaseKey(username) {
 
 let _cloudSaveTimer = null;
 function queueCloudSave(username) {
-  if (!username) return;
-  if (!firebaseReady) {
-    if (typeof showToast === "function") showToast("⚠️ TEŞHİS 4: bulut bağlantısı yok, kayıt gönderilmedi");
-    return;
-  }
+  if (!firebaseReady || !username) return;
   clearTimeout(_cloudSaveTimer);
 
   _cloudSaveTimer = setTimeout(() => {
@@ -2120,15 +2116,14 @@ function queueCloudSave(username) {
       const accounts = loadAccounts();
       const key = username.toLowerCase();
       const acc = accounts[key];
-      if (!acc) {
-        if (typeof showToast === "function") showToast("⚠️ TEŞHİS 5: '" + key + "' yerel hesap listesinde yok");
-        return;
-      }
+      if (!acc) return;
 
       acc.lastSeen = Date.now();
 
-      /* localStorage yazılamamış olabilir (depo dolu). O yüzden buluta
-         gidecek veriyi diskten değil, bellekteki gerçek durumdan al. */
+      /* ONEMLI: localStorage yazilamamis olabilir (depo dolunca
+         saveAccounts sessizce basarisiz oluyordu). O yuzden buluta
+         gidecek veriyi diskten degil, bellekteki gercek durumdan al.
+         Aksi halde bulut kaydi eski kalir ve PvP'de kale bos gorunur. */
       if (typeof currentUsername === "string" && currentUsername.toLowerCase() === key
           && typeof state === "object" && state) {
         acc.state = state;
@@ -2137,21 +2132,11 @@ function queueCloudSave(username) {
       accounts[key] = acc;
       saveAccounts(accounts);
 
-      const t = (acc.state && acc.state.troops) || {};
-      const ozet = "şöv:" + (t.knight || 0) + " ask:" + (t.soldier || 0) + " rob:" + (t.robot || 0);
-
-      firebaseDb.ref("accounts/" + toFirebaseKey(key)).set(acc)
-        .then(() => {
-          if (typeof showToast === "function")
-            showToast("✅ TEŞHİS 6: buluta yazıldı → " + toFirebaseKey(key) + " · " + ozet);
-        })
-        .catch(err => {
-          console.warn("Buluta kaydedilemedi (localStorage'da güvende):", err);
-          if (typeof showToast === "function") showToast("⚠️ TEŞHİS 7: buluta yazılamadı — " + (err && err.message ? err.message : err));
-        });
+      firebaseDb.ref("accounts/" + toFirebaseKey(key)).set(acc).catch(err => {
+        console.warn("Buluta kaydedilemedi (localStorage'da guvende):", err);
+      });
     } catch (e) {
-      console.warn("Bulut senkron hatası:", e);
-      if (typeof showToast === "function") showToast("⚠️ TEŞHİS 8: kayıt sırasında hata — " + (e && e.message ? e.message : e));
+      console.warn("Bulut senkron hatasi:", e);
     }
   }, 1200);
 }
@@ -2410,8 +2395,8 @@ function saveAccounts(accounts) {
     console.warn("Veri kaydedilemedi (tarayıcı depolamayı engelliyor olabilir):", e);
     let boyut = "?";
     try { boyut = Math.round(JSON.stringify(accounts).length / 1024) + " KB"; } catch (e2) {}
-    if (typeof showToast === "function")
-      showToast("⚠️ KAYIT BAŞARISIZ — telefon deposu dolu olabilir (" + boyut + ")", 5000);
+    if (typeof showToastForce === "function")
+      showToastForce("⚠️ KAYIT BAŞARISIZ — telefon deposu dolu olabilir (" + boyut + ")", 5000);
     return false;
   }
 }
@@ -3220,12 +3205,23 @@ function calculateTLPrice(diamondPrice) {
   return 4490.00;
 }
 
-function showToast(msg, ms = 2200) {
+/* Kucuk bildirimler kapatildi. Ekranda yalnizca showToastForce ile
+   cagrilanlar gorunur: fuze uyarilari (missile.js) ve kritik kayit hatasi.
+   Digerlerini geri acmak icin BILDIRIMLER_ACIK = true yap. */
+const BILDIRIMLER_ACIK = false;
+
+function showToastForce(msg, ms = 2200) {
   const t = document.getElementById("toast");
+  if (!t) return;
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove("show"), ms);
+}
+
+function showToast(msg, ms = 2200) {
+  if (!BILDIRIMLER_ACIK) { console.log("[bildirim gizlendi]", msg); return; }
+  showToastForce(msg, ms);
 }
 
 function formatTime(ms) {

@@ -86,7 +86,7 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
         const hpNow = effectiveHp(mine);
         if (_lastKnownOwnHp !== null && hpNow < _lastKnownOwnHp) {
           const kayip = _lastKnownOwnHp - hpNow;
-          showToast(`🚨 Kalen füze saldırısına uğradı! -${kayip} HP`, 4000);
+          showToastForce(`🚨 Kalen füze saldırısına uğradı! -${kayip} HP`, 4000);
         }
         _lastKnownOwnHp = hpNow;
         // Biriken genel can hasarını tüket (çevrimiçiyken anında,
@@ -117,7 +117,7 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
       state.stamina.current = Math.max(0, state.stamina.current - alinan);
       if (typeof renderStamina === "function") renderStamina();
       if (typeof persistCurrentState === "function") persistCurrentState();
-      showToast(`💔 Füze saldırısı genel canını -${alinan} düşürdü!`, 4000);
+      showToastForce(`💔 Füze saldırısı genel canını -${alinan} düşürdü!`, 4000);
     });
   }
 
@@ -128,21 +128,21 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
 
   /* ---------- SALDIRI ---------- */
   function fireMissile(targetName, tx, ty) {
-    if (!fbReady() || !myKey) { showToast("Bağlantı yok, füze atılamaz."); return; }
-    if (myMissiles() <= 0) { showToast("Füzen kalmadı! 🚀"); return; }
+    if (!fbReady() || !myKey) { showToastForce("Bağlantı yok, füze atılamaz."); return; }
+    if (myMissiles() <= 0) { showToastForce("Füzen kalmadı! 🚀"); return; }
     const tKey = keyOf(targetName);
-    if (tKey === myKey) { showToast("Kendi kaleni vuramazsın."); return; }
-    if (!state.castle) { showToast("Önce kalen olmalı."); return; }
+    if (tKey === myKey) { showToastForce("Kendi kaleni vuramazsın."); return; }
+    if (!state.castle) { showToastForce("Önce kalen olmalı."); return; }
 
     const tRec = pvpData[tKey];
-    if (effectiveHp(tRec) <= 0) { showToast("Bu kale zaten yıkık, onarılmasını bekle."); return; }
+    if (effectiveHp(tRec) <= 0) { showToastForce("Bu kale zaten yıkık, onarılmasını bekle."); return; }
 
     // Önce kendi füzeni düş (yarış koşullarına karşı transaction).
     firebaseDb.ref("pvp/" + myKey + "/missiles").transaction(cur => {
       if ((cur || 0) <= 0) return; // iptal
       return cur - 1;
     }, (err, committed) => {
-      if (err || !committed) { showToast("Füze atılamadı."); return; }
+      if (err || !committed) { showToastForce("Füze atılamadı."); return; }
       const dist = Math.hypot(tx - state.castle.gx, ty - state.castle.gy);
       const flightMs = Math.max(800, dist * SECONDS_PER_CELL * 1000);
 
@@ -159,7 +159,7 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
         flightMs: flightMs,
         at: Date.now(),
       }).catch(() => {
-        showToast("Füze fırlatılamadı (bağlantı hatası).");
+        showToastForce("Füze fırlatılamadı (bağlantı hatası).");
       });
     });
   }
@@ -423,8 +423,8 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
      open() önce onay panelini gösterir, onaylanırsa füzeyi fırlatır. */
   window.MISSILE_API = {
     open: function (targetName, tx, ty) {
-      if (!fbReady() || !myKey) { showToast("Bağlantı yok, füze atılamaz."); return; }
-      if (myMissiles() <= 0) { showToast("Füzen kalmadı! 🚀"); return; }
+      if (!fbReady() || !myKey) { showToastForce("Bağlantı yok, füze atılamaz."); return; }
+      if (myMissiles() <= 0) { showToastForce("Füzen kalmadı! 🚀"); return; }
       showMissileConfirm(targetName, function () {
         fireMissile(targetName, tx, ty);
       });
