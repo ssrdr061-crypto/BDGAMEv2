@@ -2934,6 +2934,24 @@ function registerAccount(username, password) {
   accounts[key] = newAcc;
   saveAccounts(accounts);
 
+  /* Firebase'deki güncel kalelere göre yeri doğrula — yeni cihazda
+     kayıt olanın kalesi başkasının üstüne binmesin. */
+  generateCastlePosLive().then(pos => {
+    try {
+      const accs = loadAccounts();
+      if (accs[key] && accs[key].state) {
+        accs[key].state.castle = pos;
+        saveAccounts(accs);
+        if (typeof state === "object" && state && currentUsername &&
+            currentUsername.toLowerCase() === String(username).toLowerCase()) {
+          state.castle = pos;
+          if (typeof persistCurrentState === "function") persistCurrentState();
+          if (typeof renderBattleMap === "function") renderBattleMap();
+        }
+      }
+    } catch (e) {}
+  });
+
   if (firebaseReady) {
     firebaseDb.ref("accounts/" + toFirebaseKey(key)).set(newAcc).catch(err => {
       console.warn("Kayıt Firebase'e yazılamadı:", err);
@@ -3004,6 +3022,8 @@ function startSessionFor(username) {
     state.castle = generateRandomCastlePos();
     _castleJustAssigned = true;
   }
+  /* Kaleler yüklendikten sonra çakışma varsa kendini taşı */
+  setTimeout(() => { if (typeof fixOverlappingCastle === "function") fixOverlappingCastle(); }, 4000);
 
   if (state.chestsOpened < state.maxChests && state.chestResetAt) {
     state.chestResetAt = null;
@@ -3174,42 +3194,100 @@ const enemies = [
   { name: "Kaos Avatarı",       avatar: "👹", attack: 92, defense: 60, maxHp: 350, ultiChance: 0.26, ultiMultiplier: 2.8, baseReward: 3000, tier: "hard",   mapX: 94, mapY: 88 },
 ];
 
-function generateRandomCastlePos() {
-  const GRID = 30;
-  const pad = 2.5;
-  const minDist = 2.4;
+/* Haritadaki DOLU noktaları toplar: canavarlar + BÜTÜN oyuncu kaleleri.
+   Not: eskiden sadece localStorage'daki hesaplara bakılıyordu; yeni bir
+   cihazda kayıt olan oyuncu diğer kaleleri hiç görmediği için üst üste
+   biniyordu. Artık canlı Firebase verisi de hesaba katılır. */
+function _doluNoktalar(GRID) {
   const taken = [];
+  const ekle = (gx, gy) => {
+    if (typeof gx === "number" && typeof gy === "number" && isFinite(gx) && isFinite(gy)) {
+      taken.push({ gx: gx, gy: gy });
+    }
+  };
 
+  try { enemies.forEach(e => ekle((e.mapX / 100) * GRID, (e.mapY / 100) * GRID)); } catch (e) {}
+
+  /* Firebase'den gelen canlı kale listesi */
   try {
-    enemies.forEach(e => {
-      taken.push({ gx: (e.mapX / 100) * GRID, gy: (e.mapY / 100) * GRID });
-    });
+    if (Array.isArray(otherCastles)) {
+      otherCastles.forEach(c => { if (c && c.castle) ekle(c.castle.gx, c.castle.gy); });
+    }
   } catch (e) {}
 
+  /* pvp.js'in tuttuğu hesap görüntüsü */
+  try {
+    if (typeof ACCOUNTS === "object" && ACCOUNTS) {
+      Object.keys(ACCOUNTS).forEach(k => {
+        const a = ACCOUNTS[k];
+        if (a && a.state && a.state.castle) ekle(a.state.castle.gx, a.state.castle.gy);
+      });
+    }
+  } catch (e) {}
+
+  /* yerel kopya (çevrimdışıyken tek kaynak) */
   try {
     const accs = loadAccounts();
     Object.values(accs).forEach(a => {
-      if (a && a.state && a.state.castle &&
-          typeof a.state.castle.gx === "number") {
-        taken.push({ gx: a.state.castle.gx, gy: a.state.castle.gy });
-      }
+      if (a && a.state && a.state.castle) ekle(a.state.castle.gx, a.state.castle.gy);
     });
   } catch (e) {}
 
-  const round1 = v => Math.round(v * 10) / 10;
-  for (let i = 0; i < 80; i++) {
-    const gx = pad + Math.random() * (GRID - pad * 2);
-    const gy = pad + Math.random() * (GRID - pad * 2);
-    const clear = taken.every(t => Math.hypot(t.gx - gx, t.gy - gy) >= minDist);
-    if (clear) return { gx: round1(gx), gy: round1(gy) };
-  }
-
-  return {
-    gx: round1(pad + Math.random() * (GRID - pad * 2)),
-    gy: round1(pad + Math.random() * (GRID - pad * 2)),
-  };
+  return taken;
 }
 
+function generateRandomCastlePos(ekstraDolu) {
+  const GRID = 30, pad = 2.5, minDist = 2.4;
+  const taken = _doluNoktalar(GRID).concat(ekstraDolu || []);
+  const round1 = v => Math.round(v * 10) / 10;
+  const uzaklik = (gx, gy) => taken.length
+    ? Math.min.apply(null, taken.map(t => Math.hypot(t.gx - gx, t.gy - gy)))
+    : 999;
+
+  let enIyi = null, enIyiMesafe = -1;
+  for (let i = 0; i < 400; i++) {
+    const gx = pad + Math.random() * (GRID - pad * 2);
+    const gy = pad + Math.random() * (GRID - pad * 2);
+    const d = uzaklik(gx, gy);
+    if (d >= minDist) return { gx: round1(gx), gy: round1(gy) };
+    if (d > enIyiMesafe) { enIyiMesafe = d; enIyi = { gx: round1(gx), gy: round1(gy) }; }
+  }
+  /* Hiç boş yer yoksa en az sıkışık noktayı seç — rastgele atıp
+     üst üste bindirmekten iyidir. */
+  return enIyi || { gx: round1(GRID / 2), gy: round1(GRID / 2) };
+}
+
+/* Kayıt sırasında önce Firebase'den güncel kaleleri çeker, sonra yer verir. */
+async function generateCastlePosLive() {
+  let ekstra = [];
+  try {
+    if (typeof firebaseReady !== "undefined" && firebaseReady && typeof firebaseDb !== "undefined") {
+      const snap = await firebaseDb.ref("accounts").get();
+      const all = snap.val() || {};
+      Object.keys(all).forEach(k => {
+        const c = all[k] && all[k].state && all[k].state.castle;
+        if (c && typeof c.gx === "number") ekstra.push({ gx: c.gx, gy: c.gy });
+      });
+    }
+  } catch (e) { console.warn("[kale] canlı liste alınamadı, yerel veriyle devam:", e); }
+  return generateRandomCastlePos(ekstra);
+}
+
+/* Oturum açınca kendi kalem başkasının üstündeyse sessizce taşı. */
+async function fixOverlappingCastle() {
+  try {
+    if (!state || !state.castle || typeof state.castle.gx !== "number") return;
+    const taken = _doluNoktalar(30).filter(t =>
+      Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) > 0.01);
+    const cakisma = taken.some(t =>
+      Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) < 2.4);
+    if (!cakisma) return;
+    state.castle = await generateCastlePosLive();
+    if (typeof persistCurrentState === "function") persistCurrentState();
+    if (typeof renderBattleMap === "function") renderBattleMap();
+    console.log("[kale] çakışma vardı, yeni konuma taşındı:", state.castle);
+  } catch (e) {}
+}
 function diamondColorClass(amount) {
   if (amount <= 500) return "col-red";
   if (amount <= 1500) return "col-yellow";
