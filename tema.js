@@ -1301,23 +1301,24 @@ if (document.readyState === "loading") {
   s.textContent = `
 /* ── PANEL: ekranın ortasında kart ── */
 #panel-troops{
-  align-items:flex-end !important; justify-content:center !important;
-  padding:0 8px 0 !important;
+  /* HİZA: kahraman kartıyla aynı — heroes.js → HERO_UI.kartUst/kartAlt/kartKenar
+     Orada bir değer değiştirirsen buradaki padding'i de aynı yap. */
+  align-items:stretch !important; justify-content:center !important;
+  padding:60px 12px 70px !important;
   /* tema.js'in panelin dışına çizdiği çerçeve/karartı kalkıyor */
   border:0 !important; border-radius:0 !important; box-shadow:none !important; overflow:visible !important;
 }
 
 #panel-troops .uv-viewer{
   width:100% !important; max-width:420px !important;
-  height:min(88vh, 680px) !important;
+  height:100% !important;
   background:
     radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
     radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
     linear-gradient(180deg,#1fa3ea,#0e6fc0) !important;
   border:3px solid rgba(190,240,255,.85) !important;
-  border-radius:22px 22px 0 0 !important;
-  border-bottom:0 !important;
-  box-shadow:0 -6px 26px rgba(120,225,255,.4), inset 0 3px 0 rgba(255,255,255,.45) !important;
+  border-radius:22px !important;
+  box-shadow:0 10px 34px rgba(0,0,0,.55), inset 0 3px 0 rgba(255,255,255,.45) !important;
   overflow:hidden !important;
 }
 

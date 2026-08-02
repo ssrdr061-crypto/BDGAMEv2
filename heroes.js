@@ -16,16 +16,18 @@
     ───────────────────────────────────────────── */
 const HERO_UI = {
 
-  /* ── KART GEOMETRİSİ ──
-     BİRLİK MENÜSÜYLE AYNI HİZA. Değerler tema.js'teki
-     "#panel-troops .uv-viewer" kuralından birebir alındı.
-     Orada bir şey değiştirirsen buraya da aynısını yaz. */
-  kartYukseklik:  "min(88vh, 680px)",   /* alta yaslı kartın yüksekliği   */
-  kartMaxGenislik:"420px",              /* en fazla genişlik              */
-  kartKenarBosluk:"8px",                /* sağ/sol boşluk                 */
-  kartRadius:     "22px 22px 0 0",      /* üst köşeler yuvarlak, alt düz  */
+  /* ── KART GEOMETRİSİ — ÖLÇÜ REFERANSI ──
+     Kahraman kartının ekranda kapladığı yer. Birlik menüsü de
+     BU DEĞERLERE göre ayarlandı (tema.js → "#panel-troops").
+     Burada bir şey değiştirirsen tema.js'te aynı değeri de değiştir,
+     yoksa iki menü arasındaki hiza kayar. */
+  kartUst:        "60px",    /* üstten boşluk — elmas paneli açıkta kalsın */
+  kartAlt:        "70px",    /* alttan boşluk — dock'un üstünde dursun     */
+  kartKenar:      "12px",    /* sağ/sol boşluk                            */
+  kartMaxGenislik:"420px",   /* en fazla genişlik                         */
+  kartRadius:     "22px",    /* köşe yuvarlaklığı (dört köşe)             */
   kartCerceve:    "3px solid rgba(190,240,255,.85)",
-  kartTamEkran:   false,                /* true = eski tam ekran görünüm  */
+  kartTamEkran:   false,     /* true = eski tam ekran görünüm             */
 
   /* YETENEK KUTUCUKLARI (kahramanın altındaki 2 kutu) */
   boxes: {
@@ -449,8 +451,7 @@ function openHeroDetail(skinId) {
   }
 
   /* ── KART GÖRÜNÜMÜ ──
-     Kabuk, birlik menüsüyle AYNI dikdörtgene oturur: alta yaslı,
-     ortalanmış, aynı yükseklik ve genişlik. İçerideki öğeler kabuğa
+     Dört tarafı boşluklu, ortalanmış kart. İçerideki öğeler kabuğa
      göre konumlandığı için hepsi kendiliğinden uyar.
      Dev gölge, kartın dışını karartır (ayrı element gerekmez). */
   {
@@ -459,15 +460,15 @@ function openHeroDetail(skinId) {
       ov.style.cssText = "position:fixed;inset:0;background:#000;z-index:400;display:flex;flex-direction:column;";
     } else {
       ov.style.cssText =
-        "position:fixed;left:50%;transform:translateX(-50%);bottom:0;" +
-        "width:calc(100% - " + (U0.kartKenarBosluk || "8px") + " * 2);" +
+        "position:fixed;left:50%;transform:translateX(-50%);" +
+        "top:" + (U0.kartUst || "60px") + ";bottom:" + (U0.kartAlt || "70px") + ";" +
+        "width:calc(100% - " + (U0.kartKenar || "12px") + " * 2);" +
         "max-width:" + (U0.kartMaxGenislik || "420px") + ";" +
-        "height:" + (U0.kartYukseklik || "min(88vh, 680px)") + ";" +
         "background:#000;z-index:400;display:flex;flex-direction:column;" +
-        "border:" + (U0.kartCerceve || "none") + ";border-bottom:0;" +
-        "border-radius:" + (U0.kartRadius || "22px 22px 0 0") + ";" +
+        "border:" + (U0.kartCerceve || "none") + ";" +
+        "border-radius:" + (U0.kartRadius || "22px") + ";" +
         "overflow:hidden;box-sizing:border-box;" +
-        "box-shadow:0 0 0 9999px rgba(5,4,10,.72), 0 -6px 26px rgba(120,225,255,.4);";
+        "box-shadow:0 0 0 9999px rgba(5,4,10,.72), 0 10px 34px rgba(0,0,0,.55);";
     }
   }
   ov.innerHTML = `
