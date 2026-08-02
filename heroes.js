@@ -102,14 +102,14 @@ const HERO_STATS = {
 
     abilities: [
       {
-        icon: "",
+        icon: "yetenek_kutup.webp",
         title: "Kutup Dayanıklılığı",
         descTemplate: "Soğuk havalarda hayatta kalma bilgisini kullanarak birlik sağlığını {value} arttırır.",
         valuesByLevel: [7, 13, 18, 22, 26],
         effect: { type: "troop_hp_pct" }
       },
       {
-        icon: "",
+        icon: "yetenek_engel.webp",
         title: "Buz Engelleri",
         descTemplate: "Buzdan engeller yapma becerisiyle rakibi ayakta durmakta zorlaştırır: savaşın başında rakip {value} tur boyunca saldıramaz.",
         /* Seviye 1-2: 1 tur garanti • Seviye 3-4: %40 ihtimalle 2 tur (tutmazsa 1 tur) • Seviye 5: 2 tur garanti */
@@ -118,7 +118,7 @@ const HERO_STATS = {
         effect: { type: "enemy_freeze_turns", fallbackTurns: 1 }
       },
       {
-        icon: "",
+        icon: "yetenek_zirh.webp",
         title: "Buz Zırhı",
         descTemplate: "Birliklerin vücut direncini arttırarak tüm birliğin savunmasını {value} yükseltir.",
         valuesByLevel: [8, 12, 15, 18, 25],
@@ -140,14 +140,14 @@ const HERO_STATS = {
 
     abilities: [
       {
-        icon: "",
+        icon: "yetenek_durus.webp",
         title: "Çelik Duruş",
         descTemplate: "Çeliğin eşsiz sertliğiyle oluşturduğu kalkan ve kılıca dayanarak birliklerin saldırı ve savunma oranını aynı anda {value} arttırır.",
         valuesByLevel: [15, 20, 23, 29, 32],
         effect: { type: "troop_atk_def_pct" }
       },
       {
-        icon: "",
+        icon: "yetenek_yansima.webp",
         title: "Çelik Yansıması",
         descTemplate: "Birliklerine ördüğü çelik zırhlar sayesinde düşmandan alınan her hasarın {value} kadarı rakibe geri yansır.",
         valuesByLevel: [8, 11, 14, 17, 20],
@@ -171,7 +171,7 @@ const HERO_STATS = {
 
     abilities: [
       {
-        icon: "",
+        icon: "yetenek_atesbuyusu.webp",
         title: "Ateş Büyüsü",
         descTemplate: "Geleneksel olarak öğrendiği tüm metotları deneyerek ateş büyüsü oluşturur ve {chance} ihtimalle rakibin savunmasını {value} yıpratır.",
         valuesByLevel: [30, 33, 36, 41, 45],
@@ -179,7 +179,7 @@ const HERO_STATS = {
         effect: { type: "enemy_def_shred_pct" }
       },
       {
-        icon: "",
+        icon: "yetenek_yasak.webp",
         title: "Yasak Büyüler",
         descTemplate: "Büyü kitabındaki en büyük büyüleri denemeye kalkar; düşman birliklerinin {value} kadarını hemen öldürür, {value2} kadarını hastaneye düşürür.",
         valuesByLevel:  [6, 9, 12, 15, 19],    /* öldürülen % */
@@ -202,7 +202,7 @@ const HERO_STATS = {
 
     abilities: [
       {
-        icon: "",
+        icon: "yetenek_disiplin.webp",
         title: "Demir Disiplin",
         descTemplate: "Ordu içinde harika bir düzen sağlayarak birlikleri agresifleştirir; {value} saldırı, {value2} savunma ve %35 can bonusu sağlar.",
         valuesByLevel:  [20, 35, 38, 42, 50],  /* saldırı % */
@@ -210,14 +210,14 @@ const HERO_STATS = {
         effect: { type: "troop_atk_def_hp_pct", hpFlatPct: 35 }  /* can bonusu her seviyede sabit %35 */
       },
       {
-        icon: "",
+        icon: "yetenek_sevgili.webp",
         title: "Birliklerin Sevgilisi",
         descTemplate: "Birlikler tarafından en çok sevilen komutan olduğundan, yaralanan birliklerin {value} kadarı hızlıca savaşa geri döner ve çarpışmaya devam eder.",
         valuesByLevel: [20, 20, 20, 20, 20],   /* her seviyede sabit %20 */
         effect: { type: "wounded_return_pct" }
       },
       {
-        icon: "",
+        icon: "yetenek_istihbarat.webp",
         title: "Derin İstihbarat",
         descTemplate: "Derin istihbarat bilgilerini kullanır: düşmanın gücü seninkinden %50 veya daha fazlaysa, aradaki güç farkını {value} seviyesine kadar düşürür.",
         /* DİKKAT: Bu yetenekte KÜÇÜK sayı = DAHA GÜÇLÜ etki (fark daha çok kapanır).
@@ -229,7 +229,7 @@ const HERO_STATS = {
 
     /* PASİF YETENEK — detay ekranında ✕ butonunun altında yuvarlak kutu olarak görünür */
     passive: {
-      icon: "",   /* görsel sonra eklenecek */
+      icon: "yetenek_golge.webp",
       title: "Gölge Manevrası",
       desc: "Kale roket saldırısı aldığında %40 ihtimalle kalenin yerini füze gelmeden otomatik olarak değiştirir.",
       effect: { type: "castle_relocate_on_missile", chance: 40 }
@@ -247,7 +247,7 @@ const HERO_STATS = {
     bonuses: {},   /* Bonus özellikler buraya gelecek (sonra doldurulacak) */
     abilities: [
       {
-        icon: "",
+        icon: "yetenek_akim.webp",
         title: "Elektrik Akımı",
         descTemplate: "Düşmanlara yüklü elektrik akımı göndererek rakip birlik canını {value}, saldırısını {value2} azaltır.",
         valuesByLevel:  [17, 18, 19, 20, 25],  /* rakip can azaltma %    */
@@ -255,14 +255,14 @@ const HERO_STATS = {
         effect: { type: "enemy_hp_atk_reduce_pct" }
       },
       {
-        icon: "",
+        icon: "yetenek_yukleme.webp",
         title: "Aşırı Yükleme",
         descTemplate: "Ordudaki robot birliklerinin saldırı ve can istatistiğini {value} arttırır.",
         valuesByLevel: [30, 34, 36, 38, 40],
         effect: { type: "robot_atk_hp_pct", troopType: "robot" }
       },
       {
-        icon: "",
+        icon: "yetenek_firtina.webp",
         title: "Yıldırım Fırtınası",
         descTemplate: "Elektriğin sınırlarını zorlar: her 2 turda bir rakibin tüm birliklerine yıldırım indirir ve o tur rakibin savunmasını {value} azaltır.",
         /* Her seviyede sabit %30 — birikmez, sadece yıldırım turunda uygulanır, sonraki tur savunma normale döner. */
@@ -273,7 +273,7 @@ const HERO_STATS = {
 
     /* PASİF YETENEK — detay ekranında ✕ butonunun altında yuvarlak kutu olarak görünür */
     passive: {
-      icon: "",   /* görsel sonra eklenecek */
+      icon: "yetenek_kopya.webp",
       title: "Robot Kopyalama",
       desc: "Sahip olunan robotlar kopyalanarak kale savunmasında 2 katı kadar çoğalır.",
       /* Sadece KALE SAVUNMASINDA: robot sayısı hesapta 2 ile çarpılır, gerçek envanter değişmez. */
