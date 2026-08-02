@@ -26,10 +26,36 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 5,  attack: 2, defense: 5, hp: 7, modelScale: 0.80, img: "gorsel8.webp" },
-  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 150,  trainMinutes: 6,  attack: 5, defense: 3, hp: 6, modelScale: 0.80, img: "gorsel9.webp" },
-  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 200,  trainMinutes: 7,  attack: 9, defense: 4, hp: 3, modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp" },
+  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, modelScale: 0.80, img: "gorsel8.webp" },
+  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, modelScale: 0.80, img: "gorsel9.webp" },
+  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp" },
 };
+
+/*  ─────────────────────────────────────────────
+    1.b) SÜRE BİÇİMLENDİRME
+    Eğitim artık SIRALI: birlikler teker teker çıkar, bu yüzden
+    süreler saatleri bulabiliyor. index.html'deki formatRemaining
+    saat göstermiyor (250:00 gibi yazardı), o yüzden burada kendi
+    biçimleyicilerimiz var.
+    ───────────────────────────────────────────── */
+
+/* Dakikadan okunur metin — "4 sa 10 dk" / "25 dk" */
+function sureDk(dakika) {
+  const d = Math.max(0, Math.round(dakika));
+  const sa = Math.floor(d / 60), kalan = d % 60;
+  if (sa > 0) return kalan > 0 ? `${sa} sa ${kalan} dk` : `${sa} sa`;
+  return `${d} dk`;
+}
+
+/* Milisaniyeden geri sayım — "4 sa 09 dk" / "12:30" */
+function sureMs(ms) {
+  const top = Math.max(0, Math.ceil(ms / 1000));
+  const sa = Math.floor(top / 3600);
+  const dk = Math.floor((top % 3600) / 60);
+  const sn = top % 60;
+  if (sa > 0) return `${sa} sa ${dk.toString().padStart(2, "0")} dk`;
+  return `${dk}:${sn.toString().padStart(2, "0")}`;
+}
 
 function unitImgFill(def){
   return (def && def.img) ? `<img class="unit-photo" src="${def.img}" alt="">` : (def ? def.icon : "\ud83e\udd96");
@@ -81,18 +107,26 @@ function trainUnit(unitId, count) {
     return;
   }
   state.diamonds -= totalCost;
+
+  /* SIRALI EĞİTİM: birlikler teker teker çıkar. Yeni sipariş, o
+     birlik türünün kuyruğundaki son işin ARKASINA eklenir.
+     Farklı türler birbirini beklemez (her türün kendi kuyruğu var). */
+  const birimMs = def.trainMinutes * 60 * 1000;
+  let sonBitis = Date.now();
+  state.trainingQueue.forEach(j => {
+    if (j.unitId === unitId && j.finishAt > sonBitis) sonBitis = j.finishAt;
+  });
   for (let i = 0; i < count; i++) {
-    state.trainingQueue.push({
-      unitId,
-      finishAt: Date.now() + def.trainMinutes * 60 * 1000,
-    });
+    sonBitis += birimMs;
+    state.trainingQueue.push({ unitId, finishAt: sonBitis });
   }
+
   renderDiamonds();
   updateShopButtons();
   renderTroopsPanel();
   showToast(count === 1
-    ? `${def.name} eğitime başladı (${def.trainMinutes} dk).`
-    : `${count} ${def.name} eğitime başladı (her biri ${def.trainMinutes} dk).`);
+    ? `${def.name} eğitime başladı (${sureDk(def.trainMinutes)}).`
+    : `${count} ${def.name} eğitime başladı (toplam ${sureDk(def.trainMinutes * count)}).`);
 }
 
 function getTotalTroopStats() {
@@ -129,7 +163,6 @@ function renderTroopsPanel() {
     setTroopText(def.id + "_def", def.defense);
     setTroopText(def.id + "_hp", def.hp);
     setTroopText(def.id + "_cost", fmt(def.cost));
-    setTroopText(def.id + "_time", def.trainMinutes + " dk");
 
     const affordableMax = ensure(Math.floor(state.diamonds / def.cost));
     const sliderMax = clamp(affordableMax, 1, 50);
@@ -148,6 +181,8 @@ function renderTroopsPanel() {
 
     setTroopText(def.id + "_qty", current);
     setTroopText(def.id + "_total", fmt(def.cost * current));
+    /* süre, seçilen ADET kadar birliğin TOPLAM süresi */
+    setTroopText(def.id + "_time", sureDk(def.trainMinutes * current));
   });
 
   renderTroopQueue();
@@ -167,6 +202,7 @@ function bindTroopsTemplate() {
         troopTrainSelection[def.id] = v;
         setTroopText(def.id + "_qty", v);
         setTroopText(def.id + "_total", fmt(def.cost * v));
+        setTroopText(def.id + "_time", sureDk(def.trainMinutes * v));
       });
     }
     const minus = document.getElementById(def.id + "_minus");
@@ -189,6 +225,7 @@ function stepTroopQty(unitId, delta) {
   const def = UNIT_TYPES[unitId];
   setTroopText(unitId + "_qty", v);
   setTroopText(unitId + "_total", fmt(def.cost * v));
+  setTroopText(unitId + "_time", sureDk(def.trainMinutes * v));
 }
 
 function renderTroopQueue() {
@@ -211,13 +248,19 @@ function renderTroopQueue() {
     }
     const def = UNIT_TYPES[unitId];
     group.sort((a, b) => a.finishAt - b.finishAt);
-    const remaining = group[0].finishAt - Date.now();
+    /* TOPLAM kalan süre = kuyruktaki SON birliğin bitişine kalan.
+       (Eskiden group[0] kullanılıyordu; o sadece sıradaki tek
+        birliğin süresiydi, tüm kuyruğunki değil.) */
+    const remaining = group[group.length - 1].finishAt - Date.now();
     slot.style.display = "flex";
     slot.innerHTML = `
       <div class="q-img">${unitImgFill(def)}</div>
       <div class="q-info">
         <span class="q-count">x${group.length}</span>
-${speedupBtn(unitId, remaining, speedUpCount, "q-timer")}
+        <button class="q-timer speedup-trigger" data-unit="${unitId}"
+                title="${speedUpCount > 0 ? 'Hızlandırmak için tıkla' : 'Mağazadan ⏩ Hızlandırma satın al'}">
+          ${sureMs(remaining)} ⏩
+        </button>
       </div>`;
     const sp = slot.querySelector(".speedup-trigger");
     if (sp) bindTap(sp, () => useSpeedUpOnTrainingGroup(unitId));
