@@ -16,15 +16,16 @@
     ───────────────────────────────────────────── */
 const HERO_UI = {
 
-  /* ── KART ÖLÇEĞİ ──
-     Kahraman detay ekranının ekranı ne kadar kaplayacağı.
-     1    = eskisi gibi tam ekran
-     0.92 = birlik menüsü gibi kenar boşluklu kart (varsayılan)
-     İçerideki HER ŞEY bu oranda birlikte küçülür; aşağıdaki px
-     değerlerini veya kahraman başına ayarları değiştirmeye GEREK YOK. */
-  kartOlcek: 0.92,
-  kartRadius: "22px",                    /* köşe yuvarlaklığı */
-  kartCerceve: "3px solid #d4af37",      /* altın çerçeve; istemezsen "none" */
+  /* ── KART GEOMETRİSİ ──
+     BİRLİK MENÜSÜYLE AYNI HİZA. Değerler tema.js'teki
+     "#panel-troops .uv-viewer" kuralından birebir alındı.
+     Orada bir şey değiştirirsen buraya da aynısını yaz. */
+  kartYukseklik:  "min(88vh, 680px)",   /* alta yaslı kartın yüksekliği   */
+  kartMaxGenislik:"420px",              /* en fazla genişlik              */
+  kartKenarBosluk:"8px",                /* sağ/sol boşluk                 */
+  kartRadius:     "22px 22px 0 0",      /* üst köşeler yuvarlak, alt düz  */
+  kartCerceve:    "3px solid rgba(190,240,255,.85)",
+  kartTamEkran:   false,                /* true = eski tam ekran görünüm  */
 
   /* YETENEK KUTUCUKLARI (kahramanın altındaki 2 kutu) */
   boxes: {
@@ -448,19 +449,26 @@ function openHeroDetail(skinId) {
   }
 
   /* ── KART GÖRÜNÜMÜ ──
-     Kabuk ölçeklenince içindeki tüm öğeler orantısını koruyarak küçülür.
-     Dev gölge, kartın dışında kalan alanı karartır (ayrı element gerekmez). */
+     Kabuk, birlik menüsüyle AYNI dikdörtgene oturur: alta yaslı,
+     ortalanmış, aynı yükseklik ve genişlik. İçerideki öğeler kabuğa
+     göre konumlandığı için hepsi kendiliğinden uyar.
+     Dev gölge, kartın dışını karartır (ayrı element gerekmez). */
   {
-    const s = (HERO_UI.kartOlcek == null) ? 1 : HERO_UI.kartOlcek;
-    ov.style.transform       = "scale(" + s + ")";
-    ov.style.transformOrigin = "50% 50%";
-    ov.style.borderRadius    = (s < 1) ? (HERO_UI.kartRadius || "22px") : "0";
-    ov.style.border          = (s < 1) ? (HERO_UI.kartCerceve || "none") : "none";
-    ov.style.overflow        = "hidden";
-    ov.style.boxSizing       = "border-box";
-    ov.style.boxShadow       = (s < 1)
-      ? "0 0 0 9999px rgba(0,0,0,.82), 0 24px 60px rgba(0,0,0,.6)"
-      : "none";
+    const U0 = HERO_UI;
+    if (U0.kartTamEkran) {
+      ov.style.cssText = "position:fixed;inset:0;background:#000;z-index:400;display:flex;flex-direction:column;";
+    } else {
+      ov.style.cssText =
+        "position:fixed;left:50%;transform:translateX(-50%);bottom:0;" +
+        "width:calc(100% - " + (U0.kartKenarBosluk || "8px") + " * 2);" +
+        "max-width:" + (U0.kartMaxGenislik || "420px") + ";" +
+        "height:" + (U0.kartYukseklik || "min(88vh, 680px)") + ";" +
+        "background:#000;z-index:400;display:flex;flex-direction:column;" +
+        "border:" + (U0.kartCerceve || "none") + ";border-bottom:0;" +
+        "border-radius:" + (U0.kartRadius || "22px 22px 0 0") + ";" +
+        "overflow:hidden;box-sizing:border-box;" +
+        "box-shadow:0 0 0 9999px rgba(5,4,10,.72), 0 -6px 26px rgba(120,225,255,.4);";
+    }
   }
   ov.innerHTML = `
     <button id="hdClose" style="position:absolute;top:12px;right:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:18px;">✕</button>
