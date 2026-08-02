@@ -26,9 +26,9 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 5,  attack: 1, defense: 1, hp: 1, modelScale: 0.80, img: "gorsel8.webp" },
-  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 600,  trainMinutes: 10, attack: 3, defense: 3, hp: 3, modelScale: 0.80, img: "gorsel9.webp" },
-  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 1000, trainMinutes: 20, attack: 8, defense: 8, hp: 8, modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp" },
+  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 5,  attack: 2, defense: 5, hp: 7, modelScale: 0.80, img: "gorsel8.webp" },
+  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 150,  trainMinutes: 6,  attack: 5, defense: 3, hp: 6, modelScale: 0.80, img: "gorsel9.webp" },
+  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 200,  trainMinutes: 7,  attack: 9, defense: 4, hp: 3, modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp" },
 };
 
 function unitImgFill(def){

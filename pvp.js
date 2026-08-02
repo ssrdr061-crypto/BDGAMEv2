@@ -10,6 +10,16 @@
    FÜZE ve SALDIRI birbirinden TAMAMEN AYRI iki güçtür:
      🚀 FÜZE   → missile.js'in işi. Kale HP'sini ve genel canı düşürür.
                  pvp.js buna karışmaz, sadece kutucukta bilgi olarak gösterir.
+   ── SÜRÜM 2.0 — SAVAŞ MOTORU YENİLENDİ ──
+   1) BOZGUN EŞİĞİ: Ordusu başlangıcın %25'ine düşen taraf dağılır,
+      savaş biter, kalanlar SAĞ KURTULUR. Artık kimse sıfırlanmıyor.
+      Ayar: CFG.routPct
+   2) HEDEF ÖNCELİĞİ: Şövalye→Asker, Asker→Robot, Robot→Şövalye.
+      Öncelikli hedefi biten birlik döngüde sıradakine TAŞAR.
+      Ayar: TARGET_ORDER
+   3) KESİN RAPOR: "kim kimi düşürdü" artık tahmin değil, savaş
+      sırasında birebir kaydediliyor.
+
      ⚔️ SALDIR → pvp.js'in işi. Kale HP'sine HİÇ dokunmaz.
                  Sadece iki tarafın BİRLİKLERİ birbirini kırar.
    ═══════════════════════════════════════════════════════════════ */
@@ -26,11 +36,29 @@ const CFG = {
 
   /* ── SAVAŞ MOTORU ── */
   maxTurns:       30,     /* bu tur sayısından sonra savaş biter          */
-  defenseFactor:  0.50,   /* savunma, gelen hasarın ne kadarını emer      */
+  defenseFactor:  0.35,   /* savunma, gelen hasarın ne kadarını emer      */
   minDamagePct:   0.12,   /* savunma ne kadar yüksek olursa olsun bu oran geçer */
   variance:       0.30,   /* hasar dalgalanması (±%15)                     */
   damageScale:    0.35,   /* GENEL HIZ: küçültürsen savaş uzar, kayıplar azalır */
   deathPct:       0.35,   /* düşen birliklerin %35'i ÖLÜR, kalanı hastaneye */
+
+  /* ── BOZGUN EŞİĞİ ──────────────────────────────────────────────
+     Ordusu, savaşa girdiği birlik sayısının bu oranına DÜŞEN ilk
+     taraf bozguna uğrar: savaş o anda biter, kalan birlikler sağ
+     kurtulur. Böylece kaybeden taraf sıfırlanmaz, toparlanabilir.
+     0.25 = %25 kalınca dağılır • 0 yaparsan eski davranışa döner
+     (bir taraf tamamen yok olana kadar savaş sürer).              */
+  routPct:        0.25,
+
+  /* ── TİP BAZINDA PASİFLEŞME EŞİĞİ ─────────────────────────────
+     Bir birlik TÜRÜ, savaşa girdiği sayının bu oranına düşerse
+     GERİ ÇEKİLİR: artık vurulamaz (korunur) ve artık vurmaz
+     (saldırısı ve savunması orduya sayılmaz). Ordunun geri kalanı
+     savaşmaya devam eder; o türü hedefleyen düşman birlikleri
+     hedef sırasında bir SONRAKİ türe taşar.
+     Amaç: bir tür (özellikle şövalye) komple silinmesin.
+     0.08 = %8 kalınca çekilir • 0 yaparsan tür tükenene kadar savaşır */
+  typeFloorPct:   0.08,
 
   /* ── Savunan avantajı (kalesinde savunuyor) ── */
   castleAtkBonus: 1.00,
@@ -57,6 +85,34 @@ const CFG = {
 
 /* Birliklerin savaş dizilişi: baştakiler ÖN SAFTA, önce onlar kırılır */
 const FRONT_ORDER = ["knight", "soldier", "robot"];
+
+/* ═══════════════════════════════════════════════════════════════
+   HEDEF ÖNCELİĞİ (taş-kağıt-makas)
+   ---------------------------------------------------------------
+     Şövalye (savunmacı) → önce ASKER'i vurur
+     Asker   (organize)  → önce ROBOT'u vurur
+     Robot   (nişancı)   → önce ŞÖVALYE'yi vurur
+
+   Öncelikli hedefi tükenen birlik boş durmaz: döngüde sıradaki
+   tipe geçer. Yani şövalyenin sırası  asker → robot → şövalye.
+   Bu bir ÖNCELİK sırasıdır, hasar bonusu YOKTUR.
+   ═══════════════════════════════════════════════════════════════ */
+const TARGET_ORDER = {
+  knight:  ["soldier", "robot",   "knight"],
+  soldier: ["robot",   "knight",  "soldier"],
+  robot:   ["knight",  "soldier", "robot"],
+};
+
+/* Komutanların hangi sınıfa sayıldığı — kahramanın kendi saldırısı
+   bu sınıfın hedef sırasını kullanır. Yeni kahraman eklenirse
+   buraya da yazılmalı; yazılmazsa ön saf sırasıyla vurur. */
+const HERO_CATEGORY = {
+  buz_savascisi: "knight",   /* HALVORSEN */
+  celik_savasci: "knight",   /* STELLİN   */
+  ates_buyucusu: "soldier",  /* MİKİAN    */
+  ivanovna:      "soldier",  /* İVANOVNA  */
+  revolia:       "robot",    /* REVOLİA   */
+};
 
 /* ═══════════════════════════════════════════════════════════════
    1) CSS
@@ -567,12 +623,13 @@ function flowOf(ab) {
   };
 }
 
-function makeArmy(troopsObj, heroStats, label, abilities) {
+function makeArmy(troopsObj, heroStats, label, abilities, heroSkins) {
   const units = [];
   FRONT_ORDER.forEach(uid => {
     const d = UT()[uid]; if (!d) return;
     const c = Math.max(0, Math.floor(num((troopsObj || {})[uid], 0)));
-    if (c > 0) units.push({ unitId: uid, count: c, start: c, atk: d.attack, def: d.defense, hp: d.hp });
+    if (c > 0) units.push({ unitId: uid, count: c, start: c, atk: d.attack, def: d.defense, hp: d.hp,
+                            floor: 0, passive: false });
   });
   const ab = abilities || [];
   applyTroopBuffs(units, ab);
@@ -589,9 +646,20 @@ function makeArmy(troopsObj, heroStats, label, abilities) {
       ultiChance: num(heroStats.ultiChance, 0.15),
       ultiMul:    num(heroStats.ultiMultiplier, 1.8),
     },
+    /* Komutanların sınıfları (HERO_CATEGORY). Kahramanın kendi
+       saldırısı bu sınıfların hedef sırasını kullanır. Boşsa
+       kahraman hasarı ön saf sırasıyla vurur. */
+    heroCats: (heroSkins || []).map(id => HERO_CATEGORY[id]).filter(Boolean),
     dealtByUnit: {},      /* hangi birlik tipi ne kadar hasar verdi */
     abilityKills: {},     /* yetenek kaynaklı kayıplar */
-    pending: 0,           /* birim canını doldurmayan artık hasar */
+    /* Kim kimi düşürdü — KESİN kayıt (tahmini dağıtım değil).
+       Anahtar: vuran kaynağın adı (knight/soldier/robot/hero/reflect) */
+    killsBy: {},
+    /* Birim canını doldurmayan artık hasar, KAYNAK BAZINDA tutulur.
+       Tek havuzda toplansaydı şövalyenin artığı robotun vuruşuna
+       eklenir, hedef önceliği bozulurdu. */
+    pendingBy: {},
+
     killed:  {},          /* kalıcı ölen */
     wounded: {},          /* hastaneye düşen */
     damageTaken: 0,
@@ -599,48 +667,124 @@ function makeArmy(troopsObj, heroStats, label, abilities) {
   };
 }
 function armyTroopCount(a) { return a.units.reduce((s,u) => s + u.count, 0); }
-function armyAtk(a) { return a.units.reduce((s,u) => s + u.atk*u.count, 0) + (a.hero.hp > 0 ? a.hero.atk : 0); }
-function armyDef(a) { return a.units.reduce((s,u) => s + u.def*u.count, 0) + (a.hero.hp > 0 ? a.hero.def : 0); }
-function armyAlive(a) { return armyTroopCount(a) > 0 || a.hero.hp > 0; }
+/* Savaşan (pasifleşmemiş) birlik sayısı — bozgun ve güç hesapları buna bakar */
+function armyActiveCount(a) { return a.units.reduce((s,u) => s + (u.passive ? 0 : u.count), 0); }
+function armyAtk(a) { return a.units.reduce((s,u) => s + (u.passive ? 0 : u.atk*u.count), 0) + (a.hero.hp > 0 ? a.hero.atk : 0); }
+function armyDef(a) { return a.units.reduce((s,u) => s + (u.passive ? 0 : u.def*u.count), 0) + (a.hero.hp > 0 ? a.hero.def : 0); }
+function armyAlive(a) { return armyActiveCount(a) > 0 || a.hero.hp > 0; }
 
-/* hasarı orduya uygula → ÖN SAFTAN başlayarak birlikleri kırar */
-function damageArmy(a, dmg) {
+/* Bir kaynağın (vuran birlik tipinin) hedef sırası.
+   "knight"/"soldier"/"robot" → TARGET_ORDER
+   "hero:knight" gibi → o sınıfın sırası
+   tanınmayan/sınıfsız → ön saf sırası */
+function orderFor(srcKey) {
+  const t = String(srcKey).split(":")[1] || String(srcKey);
+  return TARGET_ORDER[t] || FRONT_ORDER;
+}
+
+/* Tek bir kaynağın hasarını hedef ordusuna uygula.
+   Öncelikli hedefi biterse döngüde sıradaki tipe TAŞAR.
+   taban: ordu bu birlik sayısına inince kırım durur (bozgun eşiği);
+          artan hasar boşa gider — böylece eşik AŞILMAZ.            */
+function damageBySource(a, srcKey, dmg, taban, src) {
+  if (dmg <= 0) return;
   a.damageTaken += dmg;
-  a.pending += dmg;
-  for (const u of a.units) {
-    while (u.count > 0 && a.pending >= u.hp) {
-      a.pending -= u.hp;
+  a.pendingBy[srcKey] = (a.pendingBy[srcKey] || 0) + dmg;
+
+  const sira = orderFor(srcKey);
+  for (const uid of sira) {
+    if (a.pendingBy[srcKey] <= 0) break;            /* hasar tükendi */
+    if (armyTroopCount(a) <= taban) break;          /* ordu bozguna uğradı */
+
+    const u = a.units.find(x => x.unitId === uid);
+    if (!u || u.passive || u.count <= u.floor) continue;  /* çekilmiş tip → sıradakine TAŞ */
+
+    while (u.count > u.floor && a.pendingBy[srcKey] >= u.hp && armyTroopCount(a) > taban) {
+      a.pendingBy[srcKey] -= u.hp;
       u.count--;
-      if (Math.random() < CFG.deathPct) a.killed[u.unitId]  = (a.killed[u.unitId]  || 0) + 1;
-      else                              a.wounded[u.unitId] = (a.wounded[u.unitId] || 0) + 1;
+      const oldu = Math.random() < CFG.deathPct;
+      if (oldu) a.killed[u.unitId]  = (a.killed[u.unitId]  || 0) + 1;
+      else      a.wounded[u.unitId] = (a.wounded[u.unitId] || 0) + 1;
+      /* kesin kayıt: bu düşüşü hangi kaynak yaptı */
+      if (src) {
+        const k = src.killsBy[srcKey] || (src.killsBy[srcKey] = { killed: 0, wounded: 0 });
+        if (oldu) k.killed++; else k.wounded++;
+      }
     }
-    if (a.pending < u.hp) break;
+
+    /* tip kendi tabanına indi → GERİ ÇEKİLİR, hasar sıradaki tipe taşar */
+    if (u.count <= u.floor) { u.passive = true; continue; }
+    break;   /* tipte hâlâ birlik var ama hasar yetmedi → artık birikir */
   }
-  /* birlik kalmadıysa artan hasar komutana gider */
-  if (armyTroopCount(a) === 0 && a.pending > 0) {
-    a.hero.hp = Math.max(0, a.hero.hp - a.pending);
-    a.pending = 0;
+
+  /* bozguna uğradıysa biriken hasar boşa gider */
+  if (armyTroopCount(a) <= taban) a.pendingBy[srcKey] = 0;
+
+  /* birlik kalmadıysa (taban 0 ise mümkün) artan hasar komutana gider */
+  if (armyTroopCount(a) === 0 && a.pendingBy[srcKey] > 0) {
+    a.hero.hp = Math.max(0, a.hero.hp - a.pendingBy[srcKey]);
+    a.pendingBy[srcKey] = 0;
   }
 }
 
-/* bu turda ne kadar hasar çıkacağını hesapla (henüz uygulama) */
+/* Turun toplam hasarını, kaynak paylarına göre bölüp uygular.
+   paylar: { "knight": 0.42, "hero:robot": 0.05, ... } — toplamı 1  */
+function damageArmy(a, dmg, paylar, taban, src) {
+  if (dmg <= 0) return;
+  const keys = Object.keys(paylar || {});
+  if (!keys.length) { damageBySource(a, "reflect", dmg, taban, src); return; }
+
+  /* Kaynak sırası her tur KARIŞTIRILIR. Sabit sırayla uygulansaydı
+     tek turda biten ezici savaşlarda hep ilk sıradaki birlik vurur,
+     sondaki (robot) hiç vuramadan savaş biterdi — hem hedefleme hem
+     rapor sistematik olarak yanlı çıkardı. */
+  for (let i = keys.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = keys[i]; keys[i] = keys[j]; keys[j] = t;
+  }
+
+  /* yuvarlama artığı son kaynağa verilir → toplam hep tutar */
+  let kalan = dmg;
+  keys.forEach((k, i) => {
+    const pay = (i === keys.length - 1) ? kalan : Math.round(dmg * paylar[k]);
+    kalan -= pay;
+    damageBySource(a, k, Math.max(0, pay), taban, src);
+  });
+}
+
+/* Bu turda ne kadar hasar çıkacağını ve bu hasarın hangi kaynaktan
+   ne kadarının geldiğini hesapla (henüz uygulamaz).
+   Dönen: { dmg, paylar } — paylar toplamı 1'dir.                    */
 function rollDamage(from, to) {
   const raw = armyAtk(from);
-  if (raw <= 0) return 0;
+  if (raw <= 0) return { dmg: 0, paylar: {} };
   const soak = armyDef(to) * CFG.defenseFactor;
   let dmg = Math.max(raw * CFG.minDamagePct, raw - soak) * CFG.damageScale;
   dmg *= (1 - CFG.variance/2) + Math.random() * CFG.variance;
   if (from.hero.hp > 0 && Math.random() < from.hero.ultiChance) dmg *= from.hero.ultiMul;
   dmg = Math.max(1, Math.round(dmg));
 
-  /* Hasarı, birlik tiplerinin saldırı payına göre dağıt.
-     NOT: Bu bir PAY hesabıdır — hangi birliğin tam olarak kimi vurduğu
-     ayrı ayrı izlenmez, katkı oranına göre bölüştürülür. */
+  /* Hasarın kaynak dağılımı: her birlik tipi kendi saldırı payı kadar.
+     Bu pay, o tipin KENDİ hedef sırasıyla uygulanacak. */
+  const paylar = {};
   from.units.forEach(u => {
+    if (u.passive) return;                      /* çekilmiş tip vurmaz */
     const pay = (u.atk * u.count) / raw;
-    if (pay > 0) from.dealtByUnit[u.unitId] = (from.dealtByUnit[u.unitId] || 0) + dmg * pay;
+    if (pay > 0) {
+      paylar[u.unitId] = (paylar[u.unitId] || 0) + pay;
+      from.dealtByUnit[u.unitId] = (from.dealtByUnit[u.unitId] || 0) + dmg * pay;
+    }
   });
-  return dmg;
+
+  /* Kahramanın kendi saldırısı: komutan sınıflarına eşit bölünür.
+     Komutan yoksa sınıfsız kaynak → ön saf sırasıyla vurur. */
+  if (from.hero.hp > 0 && from.hero.atk > 0) {
+    const hPay = from.hero.atk / raw;
+    const cats = from.heroCats || [];
+    if (cats.length) cats.forEach(c => { paylar["hero:" + c] = (paylar["hero:" + c] || 0) + hPay / cats.length; });
+    else             paylar["hero"] = (paylar["hero"] || 0) + hPay;
+  }
+  return { dmg, paylar };
 }
 
 function pvpSimulate(attackerTroops, attackerHero, defender) {
@@ -651,14 +795,15 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   const abA = buffsOf(atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
   const abD = buffsOf(defSkins);
 
-  const A = makeArmy(attackerTroops, attackerHero, "attacker", abA);
+  const A = makeArmy(attackerTroops, attackerHero, "attacker", abA,
+                     atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
   const D = makeArmy(defender.defTroops, {
     attack:  defender.hero.attack  * CFG.castleAtkBonus,
     defense: defender.hero.defense * CFG.castleDefBonus,
     maxHp:   defender.hero.maxHp   * CFG.castleHpBonus,
     ultiChance: defender.hero.ultiChance,
     ultiMultiplier: defender.hero.ultiMultiplier,
-  }, "defender", abD);
+  }, "defender", abD, defSkins);
 
   /* ── Karşı tarafı zayıflatan yetenekler ── */
   function weaken(src, tgt) {
@@ -696,6 +841,31 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   /* savunanın birlik statlarına kale bonusu */
   D.units.forEach(u => { u.def = Math.round(u.def * CFG.castleDefBonus); u.hp = Math.max(1, Math.round(u.hp * CFG.castleHpBonus)); });
 
+  /* ── TİP TABANI ───────────────────────────────────────────────
+     Her birlik türü kendi başlangıç sayısının %typeFloorPct'ine
+     inince geri çekilir (pasifleşir). Kale bonusu ve savaş öncesi
+     yetenek kayıpları uygulandıktan SONRA hesaplanır. */
+  [A, D].forEach(ord => ord.units.forEach(u => {
+    u.floor = Math.floor(u.start * CFG.typeFloorPct);
+  }));
+
+  /* ── BOZGUN TABANI ────────────────────────────────────────────
+     Savaşa girilen birlik sayısının %routPct'i. Ordu bu sayıya
+     inince dağılır ve savaş biter; kalanlar sağ kurtulur.
+     Hiç birliği olmayan taraf için taban 0'dır (eski davranış). */
+  function routFloor(a) {
+    const bas = a.units.reduce((s, u) => s + u.start, 0);
+    return bas > 0 ? Math.floor(bas * CFG.routPct) : 0;
+  }
+  /* Bozgun: toplam birlik tabana indiyse YA DA savaşacak (pasifleşmemiş)
+     birlik kalmadıysa. İkincisi olmazsa, tüm türleri çekilmiş bir ordu
+     hiç hasar vermeden tur sınırına kadar ayakta kalırdı. */
+  function routed(a, taban) {
+    if (a.units.reduce((s, u) => s + u.start, 0) <= 0) return false;
+    return armyTroopCount(a) <= taban || armyActiveCount(a) <= 0;
+  }
+  const tabanA = routFloor(A), tabanD = routFloor(D);
+
   /* EŞ ZAMANLI tur: iki taraf da tur başındaki güce göre vurur.
      Böylece saldıran taraf "önce vurma" avantajı kazanmaz. */
   let turn = 0;
@@ -704,7 +874,8 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   if (freezeD) A.flow.used.freeze = freezeD;
   if (freezeA) D.flow.used.freeze = freezeA;
 
-  while (turn < CFG.maxTurns && armyAlive(A) && armyAlive(D)) {
+  while (turn < CFG.maxTurns && armyAlive(A) && armyAlive(D)
+         && !routed(A, tabanA) && !routed(D, tabanD)) {
     turn++;
 
     /* periyodik savunma kırma — her 3 turda bir */
@@ -717,8 +888,8 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
       D.flow.used.periodic++;
     }
 
-    let dmgAtoD = rollDamage(A, D);
-    let dmgDtoA = rollDamage(D, A);
+    const rollA = rollDamage(A, D), rollD = rollDamage(D, A);
+    let dmgAtoD = rollA.dmg, dmgDtoA = rollD.dmg;
 
     if (freezeD > 0) { dmgDtoA = 0; freezeD--; }
     if (freezeA > 0) { dmgAtoD = 0; freezeA--; }
@@ -744,49 +915,66 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
       D.flow.used.reflect += yansiDtoA;
     }
 
-    A.damageDealt += dmgAtoD + yansiAtoD; damageArmy(D, dmgAtoD + yansiAtoD);
-    D.damageDealt += dmgDtoA + yansiDtoA; damageArmy(A, dmgDtoA + yansiDtoA);
+    /* Normal hasar kaynak paylarıyla, yansıyan hasar ayrı kaynak
+       olarak (yansıma bir birliğin vuruşu değildir) uygulanır. */
+    A.damageDealt += dmgAtoD + yansiAtoD;
+    damageArmy(D, dmgAtoD, rollA.paylar, tabanD, A);
+    if (yansiAtoD > 0) damageBySource(D, "reflect", yansiAtoD, tabanD, A);
+
+    D.damageDealt += dmgDtoA + yansiDtoA;
+    damageArmy(A, dmgDtoA, rollD.paylar, tabanA, D);
+    if (yansiDtoA > 0) damageBySource(A, "reflect", yansiDtoA, tabanA, D);
   }
 
-  /* kazanan: rakip ordusu tükendiyse; ikisi de ayaktaysa oran karşılaştırması */
+  /* Kazanan: bozguna uğrayan (ya da tükenen) taraf kaybeder.
+     İkisi de aynı turda dağıldıysa kalan ORANI yüksek olan kazanır;
+     tam eşitlikte SAVUNAN kazanır (ra > rd testi bunu sağlar). */
+  const bittiA = routed(A, tabanA) || !armyAlive(A);
+  const bittiD = routed(D, tabanD) || !armyAlive(D);
   let win;
-  if (!armyAlive(D) && armyAlive(A))       win = true;
-  else if (!armyAlive(A) && armyAlive(D))  win = false;
+  if (bittiD && !bittiA)       win = true;
+  else if (bittiA && !bittiD)  win = false;
   else {
     const ra = armyTroopCount(A) / Math.max(1, A.units.reduce((s,u)=>s+u.start,0));
     const rd = armyTroopCount(D) / Math.max(1, D.units.reduce((s,u)=>s+u.start,0));
     win = ra > rd;
   }
 
-  /* Rakip kayıplarını, benim birliklerimin hasar payına göre bölüştür.
-     Yaklaşık bir dağıtımdır — kesin hedef takibi yapılmaz. */
-  function attribute(src, tgt) {
-    const toplam = Object.keys(src.dealtByUnit).reduce((n, k) => n + src.dealtByUnit[k], 0);
+  /* Rakip kayıplarının dökümü — artık TAHMİN DEĞİL, kesin kayıt.
+     damageBySource her düşüşü hangi kaynağın yaptığını yazdı.
+     Kahraman ve yansıma kaynaklı düşüşler bir birliğin vuruşu
+     olmadığı için, birliklerin verdiği hasar oranında paylaştırılır
+     (rapor üç satır halinde gösteriliyor, dördüncü satır yok). */
+  function attribute(src) {
     const cikti = {};
     src.units.forEach(u => { cikti[u.unitId] = { killed: 0, wounded: 0 }; });
-    if (toplam <= 0) return cikti;
-
-    const oOldu = Object.keys(tgt.killed).reduce((n, k) => n + tgt.killed[k], 0);
-    const oYarali = Object.keys(tgt.wounded).reduce((n, k) => n + tgt.wounded[k], 0);
-    const yetenek = Object.keys(src.abilityKills).reduce((n, k) => n + src.abilityKills[k], 0);
-    const dagit = Math.max(0, oOldu - yetenek);   /* yetenek kaynaklılar ayrı sayılır */
-
-    let kalanO = dagit, kalanY = oYarali;
     const ids = Object.keys(cikti);
-    ids.forEach((uid, i) => {
-      const pay = (src.dealtByUnit[uid] || 0) / toplam;
-      if (i === ids.length - 1) { cikti[uid].killed = kalanO; cikti[uid].wounded = kalanY; }
-      else {
-        const k = Math.round(dagit * pay), y = Math.round(oYarali * pay);
-        cikti[uid].killed = Math.min(k, kalanO);  kalanO -= cikti[uid].killed;
-        cikti[uid].wounded = Math.min(y, kalanY); kalanY -= cikti[uid].wounded;
-      }
+    if (!ids.length) return cikti;
+
+    let ekO = 0, ekY = 0;   /* birliğe ait olmayan (kahraman/yansıma) düşüşler */
+    Object.keys(src.killsBy).forEach(k => {
+      const v = src.killsBy[k];
+      if (cikti[k]) { cikti[k].killed += v.killed; cikti[k].wounded += v.wounded; }
+      else          { ekO += v.killed;             ekY += v.wounded; }
     });
+
+    if (ekO > 0 || ekY > 0) {
+      const toplam = ids.reduce((n, uid) => n + (src.dealtByUnit[uid] || 0), 0);
+      let kalanO = ekO, kalanY = ekY;
+      ids.forEach((uid, i) => {
+        if (i === ids.length - 1) { cikti[uid].killed += kalanO; cikti[uid].wounded += kalanY; return; }
+        const pay = toplam > 0 ? (src.dealtByUnit[uid] || 0) / toplam : 1 / ids.length;
+        const k = Math.min(Math.round(ekO * pay), kalanO);
+        const y = Math.min(Math.round(ekY * pay), kalanY);
+        cikti[uid].killed += k;  kalanO -= k;
+        cikti[uid].wounded += y; kalanY -= y;
+      });
+    }
     return cikti;
   }
 
-  const attribA = attribute(A, D);
-  const attribD = attribute(D, A);
+  const attribA = attribute(A);
+  const attribD = attribute(D);
 
   return {
     attackerTroopsUsed: Object.assign({}, attackerTroops || {}),
