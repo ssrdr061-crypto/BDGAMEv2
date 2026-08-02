@@ -1328,7 +1328,7 @@ if (document.readyState === "loading") {
 #panel-troops .us-soldier,
 #panel-troops .us-robot{
   background:transparent !important;
-  padding:64px 12px 0 !important;
+  padding:44px 12px 0 !important;
 }
 #panel-troops .stage{
   background:transparent !important;
@@ -1425,7 +1425,7 @@ if (document.readyState === "loading") {
 /* ── İSTATİSTİKLER: bar yok, düz satır ── */
 #panel-troops .stats{
   background:transparent !important; border-top:0 !important; box-shadow:none !important;
-  padding:12px 4px calc(10px + env(safe-area-inset-bottom,0)) !important;
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom,0)) !important;
 }
 #panel-troops .stats-grid{
   display:flex !important; flex-direction:column !important; gap:2px !important;
@@ -1577,13 +1577,25 @@ if (document.readyState === "loading") {
 /* ── Birlik geçişi anında olsun (yumuşak geçiş "yenileniyor" hissi veriyordu) ── */
 #panel-troops .unit-screen{ transition:none !important; }
 
-/* ── Panel alt şeridin (kahraman/çanta/mağaza/sıralama) üstünde bitsin ── */
-#panel-troops{ padding-bottom:var(--tp-dock-h, 58px) !important; }
+/* ── HİZA: KAHRAMAN KARTIYLA BİREBİR AYNI ──
+   Değerler heroes.js → HERO_UI.kartUst / kartAlt / kartKenar ile aynı.
+   Orada bir değeri değiştirirsen buradaki padding'i de aynı yap.
+   NOT: Bu blok dosyanın en sonunda olduğu için yukarıdaki
+   #panel-troops kurallarını EZER — ölçüyü buradan ayarla. */
+#panel-troops{ padding:0 !important; }
+/* Kartın kendisi doğrudan konumlanır: üstten 60, alttan 70, ortalanmış.
+   Böylece hiçbir padding/dock hesabı bu hizayı bozamaz.
+   (Eskiden alt boşluk --tp-dock-h'den geliyordu; panel açılınca dock
+    gizlendiği için o değer 0 oluyor ve kart ekranın dibine yapışıyordu.) */
 #panel-troops .uv-viewer{
-  height:min(84vh, 660px) !important;
+  position:fixed !important;
+  top:60px !important; bottom:70px !important;
+  left:50% !important; transform:translateX(-50%) !important;
+  width:calc(100% - 24px) !important; max-width:420px !important;
+  height:auto !important;
   border-radius:22px !important;
-  border-bottom:3px solid rgba(190,240,255,.85) !important;
-  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45) !important;
+  border:3px solid rgba(190,240,255,.85) !important;
+  box-shadow:0 10px 34px rgba(0,0,0,.55), inset 0 3px 0 rgba(255,255,255,.45) !important;
 }
 
 /* ── İNCE AYAR — değerler CSS değişkeni, canlı ayar paneli bunları değiştirir ── */
