@@ -1333,7 +1333,7 @@ if (document.readyState === "loading") {
 #panel-troops .stage{
   background:transparent !important;
   border:0 !important; border-radius:0 !important; box-shadow:none !important;
-  padding-top:46px !important;
+  padding-top:22px !important;
   overflow:visible !important;      /* kırpma yok — görsel serbest hareket eder */
   z-index:1 !important;
 }
@@ -1350,7 +1350,7 @@ if (document.readyState === "loading") {
 
 /* ── SEKMELER: tek parça hap ── */
 #panel-troops .tp-tabs{
-  top:10px !important; left:12px !important; right:64px !important;
+  top:10px !important; left:12px !important; right:56px !important;
   gap:0 !important; padding:3px !important;
   background:rgba(4,32,60,.35) !important;
   border:1px solid rgba(190,240,255,.28) !important;
@@ -1374,7 +1374,7 @@ if (document.readyState === "loading") {
 
 /* ── BAŞLIK: sahnenin içinde ── */
 #panel-troops .uv-title{
-  top:60px !important;
+  top:40px !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:800 !important; font-size:24px !important; letter-spacing:.5px !important;
   color:#fff !important; text-shadow:0 2px 5px rgba(0,40,70,.6) !important;
@@ -1387,7 +1387,8 @@ if (document.readyState === "loading") {
 /* ── KAPAT ── */
 #panel-troops .uv-close{
   top:12px !important; right:12px !important;
-  width:44px !important; height:44px !important; border-radius:12px !important;
+  width:36px !important; height:36px !important; border-radius:11px !important;
+  font-size:16px !important; line-height:1 !important;
   border:2px solid rgba(255,190,190,.75) !important;
   background:linear-gradient(180deg,#ff6b6b,#e03131) !important;
   box-shadow:0 4px 0 #a01b1b, inset 0 1px 0 rgba(255,255,255,.4) !important;
