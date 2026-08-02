@@ -16,6 +16,16 @@
     ───────────────────────────────────────────── */
 const HERO_UI = {
 
+  /* ── KART ÖLÇEĞİ ──
+     Kahraman detay ekranının ekranı ne kadar kaplayacağı.
+     1    = eskisi gibi tam ekran
+     0.92 = birlik menüsü gibi kenar boşluklu kart (varsayılan)
+     İçerideki HER ŞEY bu oranda birlikte küçülür; aşağıdaki px
+     değerlerini veya kahraman başına ayarları değiştirmeye GEREK YOK. */
+  kartOlcek: 0.92,
+  kartRadius: "22px",                    /* köşe yuvarlaklığı */
+  kartCerceve: "3px solid #d4af37",      /* altın çerçeve; istemezsen "none" */
+
   /* YETENEK KUTUCUKLARI (kahramanın altındaki 2 kutu) */
   boxes: {
     bottom: "25px",     /* Ekranın ALTINDAN yüksekliği. Artır = yukarı çıkar  */
@@ -435,6 +445,22 @@ function openHeroDetail(skinId) {
     ov.id = "heroDetailOverlay";
     ov.style.cssText = "position:fixed;inset:0;background:#000;z-index:400;display:flex;flex-direction:column;";
     document.body.appendChild(ov);
+  }
+
+  /* ── KART GÖRÜNÜMÜ ──
+     Kabuk ölçeklenince içindeki tüm öğeler orantısını koruyarak küçülür.
+     Dev gölge, kartın dışında kalan alanı karartır (ayrı element gerekmez). */
+  {
+    const s = (HERO_UI.kartOlcek == null) ? 1 : HERO_UI.kartOlcek;
+    ov.style.transform       = "scale(" + s + ")";
+    ov.style.transformOrigin = "50% 50%";
+    ov.style.borderRadius    = (s < 1) ? (HERO_UI.kartRadius || "22px") : "0";
+    ov.style.border          = (s < 1) ? (HERO_UI.kartCerceve || "none") : "none";
+    ov.style.overflow        = "hidden";
+    ov.style.boxSizing       = "border-box";
+    ov.style.boxShadow       = (s < 1)
+      ? "0 0 0 9999px rgba(0,0,0,.82), 0 24px 60px rgba(0,0,0,.6)"
+      : "none";
   }
   ov.innerHTML = `
     <button id="hdClose" style="position:absolute;top:12px;right:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:18px;">✕</button>
