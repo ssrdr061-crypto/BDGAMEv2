@@ -1350,8 +1350,8 @@ if (document.readyState === "loading") {
 
 /* ── SEKMELER: tek parça hap ── */
 #panel-troops .tp-tabs{
-  top:12px !important; left:12px !important; right:64px !important;
-  gap:0 !important; padding:4px !important;
+  top:10px !important; left:12px !important; right:64px !important;
+  gap:0 !important; padding:3px !important;
   background:rgba(4,32,60,.35) !important;
   border:1px solid rgba(190,240,255,.28) !important;
   border-radius:999px !important;
@@ -1359,7 +1359,8 @@ if (document.readyState === "loading") {
 }
 #panel-troops .tp-tab{
   flex:1 1 0 !important; text-align:center !important;
-  padding:8px 4px !important; border:0 !important; border-radius:999px !important;
+  padding:5px 4px !important; line-height:1.15 !important;
+  border:0 !important; border-radius:999px !important;
   background:transparent !important; box-shadow:none !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:800 !important; font-size:14px !important;
@@ -1520,15 +1521,15 @@ if (document.readyState === "loading") {
 /* ── İKİ BUTON: Anında / Üret ── */
 #panel-troops .unit-train-bar{
   display:flex !important; align-items:stretch !important; gap:8px !important;
-  position:static !important; height:auto !important; margin:9px 8px 0 !important;
+  position:static !important; height:auto !important; margin:6px 8px 0 !important;
   background:transparent !important; border:0 !important; padding:0 !important; overflow:visible !important;
 }
 #panel-troops .unit-instant-btn,
 #panel-troops .unit-train-btn{
   position:static !important; flex:1 1 0 !important; width:auto !important; height:auto !important;
   display:flex !important; flex-direction:column !important;
-  align-items:center !important; justify-content:center !important; gap:1px !important;
-  padding:9px 6px !important; border-radius:14px !important; cursor:pointer !important;
+  align-items:center !important; justify-content:center !important; gap:0 !important;
+  padding:5px 6px !important; border-radius:14px !important; cursor:pointer !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   text-transform:none !important; letter-spacing:.3px !important;
 }
@@ -1546,14 +1547,14 @@ if (document.readyState === "loading") {
   box-shadow:0 4px 0 #0e6fc0, inset 0 1px 0 rgba(255,255,255,.45) !important;
 }
 #panel-troops .unit-train-btn:active{ transform:translateY(3px) !important; box-shadow:0 1px 0 #0e6fc0 !important; }
-#panel-troops .utb-top{ font-weight:800 !important; font-size:17px !important; }
-#panel-troops .utb-sub{ font-weight:700 !important; font-size:12px !important; opacity:.9 !important; }
+#panel-troops .utb-top{ font-weight:800 !important; font-size:17px !important; line-height:1.12 !important; }
+#panel-troops .utb-sub{ font-weight:700 !important; font-size:12px !important; line-height:1.12 !important; opacity:.9 !important; }
 
 /* ── EĞİTİM SÜRÜYOR ── */
 #panel-troops .utb-training{
   flex:1 !important; display:flex !important; flex-direction:column !important;
   align-items:center !important; justify-content:center !important;
-  padding:10px 8px !important; border-radius:14px !important;
+  padding:6px 8px !important; border-radius:14px !important;
   background:rgba(4,32,60,.3) !important; border:2px solid rgba(190,240,255,.35) !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:800 !important; font-size:15px !important; color:#dff4ff !important;
