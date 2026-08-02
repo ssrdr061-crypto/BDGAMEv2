@@ -39,7 +39,7 @@ const HERO_UI = {
     border: "1px solid rgba(255,255,255,.35)",  /* Kenarlık                    */
     bg:     "rgba(0,0,0,.35)",                  /* Kutu arkaplan rengi         */
     box1: { dx: -70, dy: -80 },  /* 1. kutunun ek kaydırması (🎛 editörden)   */
-    box2: { dx: 75,  dy: -85 },  /* 2. kutunun ek kaydırması (🎛 editörden)   */
+    box2: { dx: 75,  dy: -80 },  /* 2. kutunun ek kaydırması (🎛 editörden)   */
     box3: { dx: 0,   dy: -80 }   /* 3. kutu (ortadaki) ek kaydırması           */
   },
 
