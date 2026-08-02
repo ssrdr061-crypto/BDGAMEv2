@@ -31,15 +31,15 @@ const HERO_UI = {
 
   /* YETENEK KUTUCUKLARI (kahramanın altındaki 2 kutu) */
   boxes: {
-    bottom: "25px",     /* Ekranın ALTINDAN yüksekliği. Artır = yukarı çıkar  */
+    bottom: "-10px",    /* Ekranın ALTINDAN yüksekliği. Artır = yukarı çıkar  */
     gap:    "8px",      /* İki kutu arasındaki boşluk                          */
-    width:  "60px",     /* Kutu genişliği                                      */
-    height: "60px",     /* Kutu yüksekliği                                     */
+    width:  "50px",     /* Kutu genişliği                                      */
+    height: "50px",     /* Kutu yüksekliği                                     */
     radius: "12px",     /* Köşe yuvarlaklığı (0 = keskin köşe)                 */
     border: "1px solid rgba(255,255,255,.35)",  /* Kenarlık                    */
     bg:     "rgba(0,0,0,.35)",                  /* Kutu arkaplan rengi         */
-    box1: { dx: -75, dy: -80 },  /* 1. kutunun ek kaydırması (🎛 editörden)   */
-    box2: { dx: 75, dy: -85 },   /* 2. kutunun ek kaydırması (🎛 editörden)   */
+    box1: { dx: -70, dy: -80 },  /* 1. kutunun ek kaydırması (🎛 editörden)   */
+    box2: { dx: 75,  dy: -85 },  /* 2. kutunun ek kaydırması (🎛 editörden)   */
     box3: { dx: 0,   dy: -80 }   /* 3. kutu (ortadaki) ek kaydırması           */
   },
 
@@ -57,11 +57,11 @@ const HERO_UI = {
   panel: {
     bottom:   "125px",  /* Ekranın ALTINDAN yüksekliği. Artır = yukarı çıkar   */
     maxWidth: "80%",    /* Maksimum genişlik                                   */
-    fontSize: "13px",   /* Yazı boyutu                                         */
+    fontSize: "12px",   /* Yazı boyutu                                         */
     bg:       "rgba(0,0,0,.8)",                 /* Panel arkaplan rengi        */
     border:   "1px solid rgba(255,255,255,.25)",/* Panel kenarlığı             */
     valueColor: "#ffd700", /* Seviyeye göre değişen SAYININ rengi              */
-    dx: 0, dy: 80        /* Panelin ek kaydırması (🎛 editörden gelir)         */
+    dx: 0, dy: 65        /* Panelin ek kaydırması (🎛 editörden gelir)         */
   }
 };
 
@@ -72,11 +72,11 @@ const HERO_UI = {
     Burada olmayan bir kahraman global HERO_UI değerlerini kullanır.
     ───────────────────────────────────────────── */
 const HERO_UI_BY_HERO = {
-  buz_savascisi: {                                       panel: { dy: 65 } },  /* HALVORSEN */
-  revolia:       { boxes: { box2: { dx: 75, dy: -80 } }, panel: { dy: 50 } },
-  celik_savasci: {                                       panel: { dy: 65 } },  /* STELLİN */
-  ates_buyucusu: {                                       panel: { dy: 70 } },  /* MİKİAN  */
-  ivanovna:      {                                       panel: { dy: 70 } }
+  /* BOŞ = beş kahraman da yukarıdaki HERO_UI değerlerini kullanır,
+     yani yetenek kutuları hepsinde AYNI hizada.
+     Tek bir kahramanı ayrı ayarlamak istersen buraya ekle, örn:
+       revolia: { boxes: { box2: { dx: 80, dy: -85 } } }
+     Eski kahraman başına ayarlar bilerek kaldırıldı — hiza bozuluyordu. */
 };
 
 
