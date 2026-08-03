@@ -250,6 +250,7 @@
      ═════════════════════════════════════════════════════════════════════ */
 
   let sonKare = 0, fps = 0, fpsSayac = 0, fpsZaman = 0;
+  let kurtarmaKilidi = false;
 
   function ciz() {
     if (!ctx || !cv || !aktif) return;
@@ -287,6 +288,18 @@
     gy0 = Math.max(0, Math.floor(gy0) - 2);
     gx1 = Math.min(G - 1, Math.ceil(gx1) + 2);
     gy1 = Math.min(G - 1, Math.ceil(gy1) + 2);
+
+    /* Güvenlik ağı: aralık boşsa kamera harita dışına kaçmış demektir.
+       Bir kez ortalayıp yeniden çiziyoruz. kurtarmaKilidi sonsuz
+       döngüyü engeller. */
+    if (gx1 < gx0 || gy1 < gy0) {
+      if (!kurtarmaKilidi) {
+        kurtarmaKilidi = true;
+        ortala();
+        setTimeout(() => { kurtarmaKilidi = false; }, 400);
+      }
+      return;
+    }
 
     ctx.translate(panX, panY);
     ctx.scale(zoom, zoom);
@@ -361,17 +374,45 @@
      dönülüyor. Böylece bu dosyayı silmek dışında bir "geri alma" da var.
      ═════════════════════════════════════════════════════════════════════ */
 
-  let eskiApply = null, eskiClamp = null;
+  let eskiApply = null, eskiClamp = null, eskiScroll = null, eskiGo = null;
 
   function bagla() {
     eskiApply = window.applyMapPan;
     eskiClamp = window.clampMapPan;
+
+    /* Oyunun kendi merkezleme fonksiyonları kamerayı ESKİ 1586x992
+       koordinatlarına göre konumlandırıyor. scrollMapToBase üstelik
+       requestAnimationFrame ile 180 kare boyunca tekrar deniyor —
+       yani biz ortaladıktan SONRA devreye girip kamerayı izometrik
+       haritanın dışına atıyordu. YENİ modda ikisini de kendi
+       ortala() fonksiyonumuza yönlendiriyoruz. */
+    eskiScroll = window.scrollMapToBase;
+    eskiGo     = window.goToCastle;
+
+    window.scrollMapToBase = function () {
+      if (aktif) { ortala(); return; }
+      if (eskiScroll) eskiScroll.apply(this, arguments);
+    };
+    window.goToCastle = function () {
+      if (aktif) { ortala(); return; }
+      if (eskiGo) eskiGo.apply(this, arguments);
+    };
 
     window.applyMapPan = function () {
       if (eskiApply) eskiApply.apply(this, arguments);
       cizIste();
     };
 
+    /* KRİTİK — clamp IZGARA uzayında yapılıyor, dünya dikdörtgeninde değil.
+
+       Sebep: izometrik harita bir EŞKENAR DÖRTGEN. Onu çevreleyen
+       dikdörtgenin dört köşesi BOŞTUR. Dikdörtgene göre kısıtlarsak
+       kamera bu boş köşelere kayabiliyor ve ekranda hiçbir karo
+       kalmıyor (ilk sürümde "0 karo" hatası tam olarak buydu).
+
+       Artık ekranın MERKEZİ ızgara koordinatına çevriliyor, 0..G-1
+       aralığına sıkıştırılıyor ve pan oradan geri hesaplanıyor.
+       Böylece merkez her zaman harita üstünde kalır. */
     window.clampMapPan = function () {
       if (!aktif) { if (eskiClamp) eskiClamp.apply(this, arguments); return; }
 
@@ -380,16 +421,22 @@
       const ww = wrapEl.clientWidth, wh = wrapEl.clientHeight;
       if (ww <= 0 || wh <= 0) return;
 
+      if (!(mapZoom > 0)) mapZoom = 1;
       if (mapZoom < CFG.minZoom) mapZoom = CFG.minZoom;
       if (mapZoom > CFG.maxZoom) mapZoom = CFG.maxZoom;
 
-      const sw = WORLD_W * mapZoom, sh = WORLD_H * mapZoom;
+      /* Ekran merkezinin dünya konumu → ızgara hücresi */
+      const cwx = (ww / 2 - mapPanX) / mapZoom;
+      const cwy = (wh / 2 - mapPanY) / mapZoom;
+      const c = worldToGrid(cwx, cwy);
 
-      const minX = ww - sw;
-      mapPanX = (minX >= 0) ? minX / 2 : Math.max(minX, Math.min(0, mapPanX));
+      const cgx = Math.max(0, Math.min(G - 1, c.gx));
+      const cgy = Math.max(0, Math.min(G - 1, c.gy));
 
-      const minY = wh - sh;
-      mapPanY = (minY >= 0) ? minY / 2 : Math.max(minY, Math.min(0, mapPanY));
+      /* Sıkıştırılmış merkezden pan'i geri üret */
+      const p = gridToWorld(cgx, cgy);
+      mapPanX = ww / 2 - (p.x + HALF_W) * mapZoom;
+      mapPanY = wh / 2 - (p.y + HALF_H) * mapZoom;
     };
   }
 
@@ -398,11 +445,12 @@
   function ortala() {
     const wrapEl = document.getElementById("battleMapWrap");
     if (!wrapEl || !wrapEl.clientWidth) return;
-    const p = gridToWorld(G / 2, G / 2);
-    mapPanX = wrapEl.clientWidth  / 2 - p.x * mapZoom;
-    mapPanY = wrapEl.clientHeight / 2 - p.y * mapZoom;
-    window.clampMapPan();
-    window.applyMapPan();
+    if (!(mapZoom > 0)) mapZoom = 1;
+    const p = gridToWorld(Math.floor(G / 2), Math.floor(G / 2));
+    mapPanX = wrapEl.clientWidth  / 2 - (p.x + HALF_W) * mapZoom;
+    mapPanY = wrapEl.clientHeight / 2 - (p.y + HALF_H) * mapZoom;
+    if (eskiClamp || true) window.clampMapPan();
+    cizIste();
   }
 
   /* ═════════════════════════════════════════════════════════════════════
