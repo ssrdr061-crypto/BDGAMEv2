@@ -2290,6 +2290,64 @@ st.textContent = `
 .hpk-card{
   background:linear-gradient(180deg, #4a8bd8 0%, #2a5596 55%, #1a3a70 100%) !important;
 }
+
+/* ── MAVİ BUTON AİLESİ ───────────────────────────────────────
+   Oyundaki tüm açık mavi butonlar (#4fd8ff → #1fa3ea) burada.
+   Koyu panelin üstünde "basılabilir" kalsınlar diye tepe tonu
+   panelden bir tık AÇIK, altındaki 3B kalınlık ise koyu.
+   Bunlar: hastane "Tedaviyi Onayla", birlik "Üret", kahraman
+   "Satın Al", günlük ödül kapat, savaş günlüğü aç, can potu,
+   hoş geldin "Devam", giriş ekranı "Giriş Yap". */
+#panel-hospital .hospital-confirm-btn,
+#panel-troops .unit-train-btn,
+#heroDetailOverlay #hdBuyBtn,
+.daily-reward-close-btn,
+.log-open-btn,
+.stamina-potion-popup .spp-btn,
+#welcomeBack .wc-next,
+#loginScreen .login-btn{
+  background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%) !important;
+  border:2px solid rgba(170,220,255,.75) !important;
+  color:#ffffff !important;
+  text-shadow:0 2px 3px rgba(0,15,40,.65) !important;
+  box-shadow:
+    0 5px 0 #0f2a55,
+    0 8px 18px rgba(0,15,40,.45),
+    inset 0 1px 0 rgba(170,220,255,.55) !important;
+}
+#panel-hospital .hospital-confirm-btn:active,
+#panel-troops .unit-train-btn:active,
+#heroDetailOverlay #hdBuyBtn:active,
+.daily-reward-close-btn:active,
+.log-open-btn:active,
+.stamina-potion-popup .spp-btn:active,
+#welcomeBack .wc-next:active,
+#loginScreen .login-btn:active{
+  box-shadow:0 1px 0 #0f2a55 !important;
+}
+/* "Satın Al" ortalanmış duruyor; :active dönüşümünü bozmayalım */
+#heroDetailOverlay #hdBuyBtn:active{ box-shadow:0 2px 0 #0f2a55 !important; }
+
+/* ── GİRİŞ EKRANI ────────────────────────────────────────────
+   Kutucuklar fotoğrafın üstünde duruyor. Çerçeveyi koyulaştırdık
+   ama içini de koyulaştırmak gerekti; yoksa açık çerçeve gidince
+   kutular arka plandaki kayaya karışıyordu. */
+#loginScreen .field input{
+  background:linear-gradient(180deg, rgba(61,124,204,.72), rgba(21,46,94,.80)) !important;
+  border:2px solid rgba(130,185,245,.75) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(160,215,255,.30),
+    0 4px 12px rgba(0,10,30,.45) !important;
+}
+#loginScreen .field input::placeholder{ color:rgba(215,235,255,.75) !important; }
+#loginScreen .field input:focus{
+  background:linear-gradient(180deg, rgba(74,139,216,.82), rgba(26,58,112,.86)) !important;
+  border-color:#8fc4ff !important;
+  box-shadow:0 0 0 3px rgba(90,156,224,.40),
+             inset 0 2px 0 rgba(160,215,255,.35) !important;
+}
+/* "Kayıt ol" bağlantısı eski camgöbeğiydi, aileye alındı */
+#loginScreen .login-switch a{ color:#9fd0ff !important; }
 `;
 
 function ekle() {
