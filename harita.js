@@ -722,25 +722,7 @@
     st.textContent =
       ".battle-map.iso-node-layer::after{ display:none !important; }\n" +
       ".battle-map.iso-node-layer .map-zone-label{ display:none !important; }\n" +
-      ".battle-map.iso-node-layer .map-node{ position:absolute !important; }\n" +
-
-      /* ── Düğüm karartıları ──
-         Eski harita koyu olduğu için görsellerin arkasındaki koyu
-         daireler ve sert gölgeler fark edilmiyordu. Yeni parlak
-         zeminde her ikonun etrafında kirli bir halka gibi duruyor.
-         Gölgeyi silmiyoruz (kale zemine yapışık durur), yumuşatıp
-         yere yakın bir temas gölgesine çeviriyoruz. */
-      ".battle-map.iso-node-layer .castle-avatar img{\n" +
-      "  filter: drop-shadow(0 2px 3px rgba(0,0,0,.32)) !important;\n" +
-      "}\n" +
-      ".battle-map.iso-node-layer .node-avatar{\n" +
-      "  background: transparent !important;\n" +
-      "  box-shadow: none !important;\n" +
-      "  border-color: rgba(255,255,255,.35) !important;\n" +
-      "}\n" +
-      ".battle-map.iso-node-layer .node-ring::before{\n" +
-      "  opacity:.45 !important;\n" +
-      "}\n";
+      ".battle-map.iso-node-layer .map-node{ position:absolute !important; }\n";
     document.head.appendChild(st);
   }
 
