@@ -2564,16 +2564,28 @@ let x0 = 0, y0 = 0, izliyor = false;
 
 function kart() {
   const o = document.getElementById("heroDetailOverlay");
-  if (!o || o.style.display === "none" || !o.offsetParent) return null;
+  if (!o) return null;
+  /* DİKKAT: burada offsetParent KULLANMA. Kart position:fixed olduğu
+     için offsetParent her zaman null döner ve kontrol hep başarısız
+     olur (ilk sürümdeki hata buydu, kaydırma hiç çalışmıyordu). */
+  if (o.offsetWidth === 0) return null;
+  if (getComputedStyle(o).display === "none") return null;
   return o;
 }
 
-/* Görselin yarı genişliği. Kahraman görseli, kartın içindeki
-   pointer-events:none olan <img> — arka plan görselinden (z-index 0)
-   ayırmak için genişliği en büyük olanı değil, ortada duranı alıyoruz. */
+/* Görselin yarı genişliği. Karttaki görselleri gezip object-fit'i
+   "contain" olanı buluyoruz — arka plan görseli "cover" olduğu için
+   elenir.
+   DİKKAT: style ATTRIBUTE'una göre seçme (img[style*="..."]) burada
+   çalışmaz; stil cssText ile atandığı için tarayıcı onu boşluklu
+   biçimde ("object-fit: contain") saklıyor ve eşleşme tutmuyordu. */
 function esik(o) {
-  const im = o.querySelector('img[style*="object-fit:contain"]');
-  const g = im ? im.getBoundingClientRect().width : 0;
+  let g = 0;
+  o.querySelectorAll("img").forEach(im => {
+    if (getComputedStyle(im).objectFit !== "contain") return;
+    const w = im.getBoundingClientRect().width;
+    if (w > g) g = w;
+  });
   return (g > 40 ? g : o.clientWidth) / 2;
 }
 
