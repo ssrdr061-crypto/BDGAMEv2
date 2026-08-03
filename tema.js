@@ -2486,6 +2486,40 @@ st.textContent = `
 }
 /* "Kayıt ol" bağlantısı eski camgöbeğiydi, aileye alındı */
 #loginScreen .login-switch a{ color:#9fd0ff !important; }
+
+/* ── KAHRAMAN KARTI: KAPAT BUTONU + OKLAR ────────────────────
+   Kapat butonu gri yuvarlaktı; panellerdeki kırmızı kare X ile
+   aynı yapıldı. Oklar kaldırıldı, yerine parmakla kaydırma
+   geldi (aşağıdaki kahramanKaydir bloğu).
+
+   Butonun kendi stili HTML'in içine gömülü (inline style), o
+   yüzden buradaki her satır !important olmak zorunda. */
+#heroDetailOverlay #hdClose{
+  top:12px !important; right:12px !important;
+  width:38px !important; height:38px !important;
+  padding:0 !important;
+  border-radius:10px !important;
+  background:linear-gradient(180deg,#f03434,#c00d0d) !important;
+  border:2px solid rgba(255,220,220,.9) !important;
+  box-shadow:0 4px 10px rgba(120,0,0,.4) !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  font-size:0 !important;
+  line-height:0 !important;
+  color:#fff !important;
+}
+#heroDetailOverlay #hdClose::after{
+  content:"✕";
+  font-size:22px; font-weight:900; color:#fff; line-height:1;
+  -webkit-text-stroke:1px #fff;
+}
+#heroDetailOverlay #hdClose:active{ transform:scale(.92) !important; }
+
+/* Oklar gizlendi — silinmediler, çünkü kaydırma onların
+   tıklamasını tetikliyor (geçiş mantığı tek yerde kalsın). */
+#heroDetailOverlay #hdPrev,
+#heroDetailOverlay #hdNext{ display:none !important; }
 `;
 
 function ekle() {
@@ -2499,4 +2533,72 @@ window.addEventListener("load", ekle);
 setTimeout(ekle, 1500);
 
 console.log("[tema.js] Koyu mavi tema uygulandı ✔");
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   13) KAHRAMAN KARTINDA PARMAKLA GEÇİŞ
+   ---------------------------------------------------------------
+   Sağ/sol okları yerine kaydırma. Sola kaydır → sonraki kahraman,
+   sağa kaydır → önceki.
+
+   Geçişi kendim yapmıyorum: gizlenmiş #hdPrev / #hdNext
+   butonlarının click'ini tetikliyorum. Böylece heroes.js'teki
+   temizlik (3B sahneyi kapatma) ve açma mantığı tek yerde kalıyor;
+   ileride orası değişirse burası kendiliğinden uyar.
+
+   ── AYARLAR ──
+   ESIK      : kaç piksel kaydırınca geçiş olsun
+   DIKEY_PAY : yatay hareket, dikeyin kaç katı olmalı (yanlışlıkla
+               yukarı/aşağı kaydırırken kahraman değişmesin diye)
+   ═══════════════════════════════════════════════════════════════ */
+(function kahramanKaydir() {
+"use strict";
+
+const ESIK = 70;
+const DIKEY_PAY = 1.4;
+
+let x0 = 0, y0 = 0, izliyor = false;
+
+function kart() {
+  const o = document.getElementById("heroDetailOverlay");
+  if (!o || o.style.display === "none" || !o.offsetParent) return null;
+  return o;
+}
+
+document.addEventListener("touchstart", e => {
+  izliyor = false;
+  if (e.touches.length !== 1) return;
+  const o = kart();
+  if (!o || !o.contains(e.target)) return;
+  x0 = e.touches[0].clientX;
+  y0 = e.touches[0].clientY;
+  izliyor = true;
+}, { passive: true });
+
+document.addEventListener("touchend", e => {
+  if (!izliyor) return;
+  izliyor = false;
+
+  const t = e.changedTouches[0];
+  const dx = t.clientX - x0;
+  const dy = t.clientY - y0;
+  if (Math.abs(dx) < ESIK) return;
+  if (Math.abs(dx) < Math.abs(dy) * DIKEY_PAY) return;
+
+  const o = kart();
+  if (!o) return;
+  const btn = o.querySelector(dx < 0 ? "#hdNext" : "#hdPrev");
+  if (!btn) return;
+
+  /* Kısa bir sönme, geçiş sert olmasın. openHeroDetail kartın
+     style'ını baştan yazdığı için opacity kendiliğinden geri gelir. */
+  o.style.transition = "opacity .12s ease";
+  o.style.opacity = "0";
+  setTimeout(() => btn.click(), 120);
+}, { passive: true });
+
+document.addEventListener("touchcancel", () => { izliyor = false; }, { passive: true });
+
+console.log("[tema.js] Kahraman kartı kaydırma açık ✔");
 })();
