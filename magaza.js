@@ -2,7 +2,7 @@
 /* Stil bu dosyaya gömülüdür — görünüm ayarları için aşağıdaki CSS bloğunu düzenle.
    NOT: Bu blok bir zamanlar dosyada İKİ KEZ duruyordu (biri kaçış karakterli
    kopyasıydı) ve aynı stylesheet head'e iki kere ekleniyordu. Kopya silindi. */
-(function(){ const st = document.createElement("style"); st.textContent = '/* ═══════════════════════════════════════════════════════\n   MAĞAZA GÖRÜNÜMÜ — oyundan bağımsız eklenti dosyası.\n   Oyunun kendi CSS\'ine dokunmaz; sadece mağaza panelini\n   (#panel-shop) yeniden giydirir.\n   ═══════════════════════════════════════════════════════ */\n#panel-shop .overlay-card{\n  background:\n    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),\n    radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),\n    linear-gradient(180deg, #1fa3ea, #0e6fc0);\n  border:3px solid rgba(190,240,255,.85);\n  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45);\n}\n#panel-shop h2{ color:#fff; text-shadow:0 2px 4px rgba(0,40,70,.6); }\n\n.shop-refresh-band{\n  text-align:center; margin:2px 0 8px;\n  color:#fff; font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:13px;\n  text-shadow:0 1px 3px rgba(0,30,55,.5);\n}\n.shop-refresh-band .clock{ color:#ffd257; }\n\n#panel-shop .shop-tabs{\n  display:flex; gap:8px; overflow-x:auto; padding:2px 2px 8px;\n  border:none; background:none;\n}\n#panel-shop .shop-tab{\n  flex-shrink:0; cursor:pointer;\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:12px;\n  color:#dff4ff; padding:4px 14px; border-radius:16px;\n  background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.06));\n  border:2px solid rgba(190,240,255,.45);\n  text-shadow:0 1px 2px rgba(0,30,55,.5);\n  transition:all .15s ease;\n}\n#panel-shop .shop-tab:hover{ border-color:#fff; color:#fff; }\n#panel-shop .shop-tab.active{\n  background:linear-gradient(180deg,#ffffff,#cfeefb);\n  color:#0e6fc0; border-color:#fff; text-shadow:none;\n  box-shadow:0 3px 8px rgba(0,30,60,.35);\n}\n\n#panel-shop .shop-grid{\n  position:relative;\n  display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;\n  align-items:start; align-content:start;\n  overflow-y:auto; max-height:56vh; padding:4px 2px 14px;\n  scrollbar-width:thin; scrollbar-color:#5bb9e6 transparent;\n}\n#panel-shop .shop-grid::-webkit-scrollbar{width:8px;}\n#panel-shop .shop-grid::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#7fd0f2,#3d9fd6); border-radius:8px;}\n#panel-shop .shop-grid::-webkit-scrollbar-track{background:rgba(0,0,0,.15);}\n\n#panel-shop .shop-tier-header{\n  grid-column:1 / -1;\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:12.5px;\n  color:#fff; text-shadow:0 1px 3px rgba(0,30,55,.6);\n  margin:4px 0 0; border:none; background:none; padding:0;\n}\n\n/* ── ürün kartı ── */\n.shop-card2{\n  position:relative;\n  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);\n  border-radius:14px;\n  padding:8px 6px 0;\n  display:flex; flex-direction:column; align-items:center; gap:4px;\n  overflow:hidden;\n  box-shadow:\n    0 5px 0 #0b1c3a,\n    0 10px 16px rgba(0,20,45,.5),\n    inset 0 2px 3px rgba(150,205,255,.55),\n    inset 0 -4px 8px rgba(0,10,30,.55);\n  cursor:pointer;\n  transition:transform .12s, filter .12s;\n  animation:shopCardIn .3s cubic-bezier(.2,1.2,.35,1) backwards;\n}\n@keyframes shopCardIn{\n  from{ opacity:0; transform:translateY(16px) scale(.92); }\n  to  { opacity:1; transform:translateY(0) scale(1); }\n}\n.shop-card2:hover{ transform:translateY(-3px); filter:brightness(1.1) saturate(1.12); }\n.shop-card2:active{ transform:translateY(1px) scale(.98); }\n\n.shop-card2 .sc-icon{\n  position:relative;\n  width:58%; aspect-ratio:1/1;\n  border-radius:8px;\n  background:linear-gradient(180deg, #ffd257, #f0932b);\n  box-shadow:inset 0 3px 0 rgba(255,255,255,.6), inset 0 -5px 8px rgba(140,60,0,.45), 0 3px 6px rgba(0,15,40,.45);\n  display:flex; align-items:center; justify-content:center;\n}\n.shop-card2 .sc-icon::before{\n  content:""; position:absolute; top:-40%; left:-15%;\n  width:130%; height:75%;\n  background:radial-gradient(ellipse at center, rgba(255,255,255,.5), transparent 65%);\n  transform:rotate(-8deg); pointer-events:none;\n}\n.shop-card2 .sc-icon svg{ width:62%; height:62%; position:relative; }\n.shop-card2 .sc-badge{\n  position:absolute; right:2px; bottom:2px;\n  background:rgba(0,0,0,.5); color:#fff;\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:9px;\n  border-radius:4px; padding:0 4px;\n}\n.shop-card2 .sc-tag{\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:8.5px;\n  color:#9fe3ff; letter-spacing:.4px;\n  text-shadow:0 1px 2px rgba(0,10,30,.7);\n  margin-bottom:-3px;\n}\n.shop-card2 .sc-name{\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:10px;\n  color:#eaf4ff; text-align:center; line-height:1.05;\n  max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;\n  text-shadow:0 1px 2px rgba(0,10,30,.7); padding:0 2px;\n}\n\n/* rakamlar: beyaz dolgu + lacivert kontur (3B) */\n.shop-card2 .sc-left, .shop-card2 .sc-price{\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; color:#fff;\n  text-shadow:\n    -2px -1px 0 #1d3a63, 2px -1px 0 #1d3a63,\n    -2px 2px 0 #1d3a63, 2px 2px 0 #1d3a63,\n    0 -2px 0 #1d3a63, 0 2px 0 #1d3a63,\n    -2px 0 0 #1d3a63, 2px 0 0 #1d3a63,\n    0 3px 0 #142a4a;\n}\n.shop-card2 .sc-left{ font-size:13px; white-space:nowrap; line-height:1.1; }\n.shop-card2 .sc-price{\n  width:calc(100% + 12px); margin:1px -6px 0;\n  border:none; cursor:pointer;\n  background:linear-gradient(180deg,#0e2246 0%, #1a3a75 100%);\n  padding:4px 0 5px; font-size:12.5px;\n  box-shadow:inset 0 3px 6px rgba(0,8,25,.6), inset 0 -2px 0 rgba(120,180,255,.25);\n  transition:filter .1s, transform .06s;\n}\n.shop-card2 .sc-price:hover{ filter:brightness(1.15); }\n.shop-card2 .sc-price:active{ transform:translateY(2px); }\n.shop-card2 .sc-price:disabled{ cursor:not-allowed; opacity:.75; }\n\n/* tükendi durumu: kart kalır, grileşir */\n.shop-card2.soldout .sc-icon{ filter:saturate(.1) brightness(.85); }\n.shop-card2.soldout::before{\n  content:""; position:absolute; inset:0; z-index:2;\n  background:rgba(120,130,140,.32); border-radius:14px; pointer-events:none;\n}\n.shop-card2 .sc-soldtag{\n  position:absolute; top:34%; left:50%; transform:translate(-50%,-50%) rotate(-8deg);\n  z-index:3; background:rgba(90,100,110,.92); color:#fff;\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:10px; letter-spacing:1px;\n  padding:2px 10px; border-radius:5px;\n  box-shadow:0 2px 4px rgba(0,0,0,.35);\n}\n.shop-card2.bought{ animation:shopPop .3s ease; }\n@keyframes shopPop{ 40%{ transform:scale(1.07); box-shadow:0 0 18px rgba(255,210,87,.85); } }\n\n/* ── özellik baloncuğu ── */\n.shop-info-pop{\n  position:absolute; z-index:20;\n  background:linear-gradient(180deg, rgba(26,58,117,.97), rgba(14,34,70,.97));\n  border-radius:12px;\n  box-shadow:0 10px 20px rgba(0,15,40,.55);\n  animation:shopCardIn .18s ease both;\n}\n.shop-info-pop{ padding:8px 12px 9px; cursor:pointer; }\n.shop-info-pop .in-name{\n  color:#ffd257; font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:13px;\n  text-shadow:0 1px 2px rgba(0,10,30,.7); margin-bottom:2px;\n}\n.shop-info-pop .in-desc{\n  color:#eaf4ff; font-family:\'Nunito\',sans-serif; font-weight:700; font-size:11px; line-height:1.3;\n  text-shadow:0 1px 2px rgba(0,10,30,.6);\n}\n.shop-info-pop .in-tl{\n  color:#9fe3ff; font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:10px; margin-top:3px;\n}\n\n@media (max-width:480px){\n  #panel-shop .shop-grid{ gap:8px; }\n}\n'; document.head.appendChild(st); })();
+(function(){ const st = document.createElement("style"); st.textContent = '/* ═══════════════════════════════════════════════════════\n   MAĞAZA GÖRÜNÜMÜ — oyundan bağımsız eklenti dosyası.\n   Oyunun kendi CSS\'ine dokunmaz; sadece mağaza panelini\n   (#panel-shop) yeniden giydirir.\n   ═══════════════════════════════════════════════════════ */\n#panel-shop h2{ color:var(--km-yazi,#eaf4ff); text-shadow:0 2px 4px rgba(0,15,40,.7); }\n\n.shop-refresh-band{\n  text-align:center; margin:2px 0 8px;\n  color:#fff; font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:13px;\n  text-shadow:0 1px 3px rgba(0,30,55,.5);\n}\n.shop-refresh-band .clock{ color:#ffd257; }\n\n#panel-shop .shop-tabs{\n  display:flex; gap:8px; overflow-x:auto; padding:2px 2px 8px;\n  border:none; background:none;\n}\n#panel-shop .shop-tab{\n  flex-shrink:0; cursor:pointer;\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:12.5px; letter-spacing:.2px;\n  color:#dff4ff; padding:4px 14px; border-radius:16px;\n  background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.06));\n  border:2px solid rgba(160,215,255,.45);\n  text-shadow:0 1px 2px rgba(0,30,55,.5);\n  transition:all .15s ease;\n}\n#panel-shop .shop-tab:hover{ border-color:#fff; color:#fff; }\n#panel-shop .shop-tab.active{\n  background:linear-gradient(180deg,#ffffff,#cfeefb);\n  color:#152e5e; border-color:#fff; text-shadow:none;\n  box-shadow:0 3px 8px rgba(0,30,60,.35);\n}\n\n#panel-shop .shop-grid{\n  position:relative;\n  display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;\n  align-items:start; align-content:start;\n  overflow-y:auto; max-height:56vh; padding:4px 2px 14px;\n  scrollbar-width:thin; scrollbar-color:#5bb9e6 transparent;\n}\n#panel-shop .shop-grid::-webkit-scrollbar{width:8px;}\n#panel-shop .shop-grid::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#7fd0f2,#3d9fd6); border-radius:8px;}\n#panel-shop .shop-grid::-webkit-scrollbar-track{background:rgba(0,0,0,.15);}\n\n#panel-shop .shop-tier-header{\n  grid-column:1 / -1;\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:12.5px;\n  color:#fff; text-shadow:0 1px 3px rgba(0,30,55,.6);\n  margin:4px 0 0; border:none; background:none; padding:0;\n}\n\n/* ── ürün kartı ── */\n.shop-card2{\n  position:relative;\n  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);\n  border-radius:14px;\n  padding:8px 6px 0;\n  display:flex; flex-direction:column; align-items:center; gap:4px;\n  overflow:hidden;\n  box-shadow:\n    0 5px 0 #0b1c3a,\n    0 10px 16px rgba(0,20,45,.5),\n    inset 0 2px 3px rgba(150,205,255,.55),\n    inset 0 -4px 8px rgba(0,10,30,.55);\n  cursor:pointer;\n  transition:transform .12s, filter .12s;\n  animation:shopCardIn .3s cubic-bezier(.2,1.2,.35,1) backwards;\n}\n@keyframes shopCardIn{\n  from{ opacity:0; transform:translateY(16px) scale(.92); }\n  to  { opacity:1; transform:translateY(0) scale(1); }\n}\n.shop-card2:hover{ transform:translateY(-3px); filter:brightness(1.1) saturate(1.12); }\n.shop-card2:active{ transform:translateY(1px) scale(.98); }\n\n.shop-card2 .sc-icon{\n  position:relative;\n  width:58%; aspect-ratio:1/1;\n  border-radius:8px;\n  background:linear-gradient(180deg, #ffd257, #f0932b);\n  box-shadow:inset 0 3px 0 rgba(255,255,255,.6), inset 0 -5px 8px rgba(140,60,0,.45), 0 3px 6px rgba(0,15,40,.45);\n  display:flex; align-items:center; justify-content:center;\n}\n.shop-card2 .sc-icon::before{\n  content:""; position:absolute; top:-40%; left:-15%;\n  width:130%; height:75%;\n  background:radial-gradient(ellipse at center, rgba(255,255,255,.5), transparent 65%);\n  transform:rotate(-8deg); pointer-events:none;\n}\n.shop-card2 .sc-icon svg{ width:62%; height:62%; position:relative; }\n.shop-card2 .sc-badge{\n  position:absolute; right:2px; bottom:2px;\n  background:rgba(0,0,0,.5); color:#fff;\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:9px;\n  border-radius:4px; padding:0 4px;\n}\n.shop-card2 .sc-tag{\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:8.5px;\n  color:#9fe3ff; letter-spacing:.4px;\n  text-shadow:0 1px 2px rgba(0,10,30,.7);\n  margin-bottom:-3px;\n}\n/* rakamlar: beyaz dolgu + lacivert kontur (3B) */\n.shop-card2 .sc-left, .shop-card2 .sc-price{\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; color:#fff;\n  text-shadow:\n    -2px -1px 0 #1d3a63, 2px -1px 0 #1d3a63,\n    -2px 2px 0 #1d3a63, 2px 2px 0 #1d3a63,\n    0 -2px 0 #1d3a63, 0 2px 0 #1d3a63,\n    -2px 0 0 #1d3a63, 2px 0 0 #1d3a63,\n    0 3px 0 #142a4a;\n}\n.shop-card2 .sc-left{ font-size:11.5px; letter-spacing:.2px; white-space:nowrap; line-height:1.15; }\n.shop-card2 .sc-price{\n  width:calc(100% + 12px); margin:1px -6px 0;\n  border:none; cursor:pointer;\n  background:linear-gradient(180deg,#0e2246 0%, #1a3a75 100%);\n  padding:4px 0 5px; font-size:12.5px;\n  box-shadow:inset 0 3px 6px rgba(0,8,25,.6), inset 0 -2px 0 rgba(120,180,255,.25);\n  transition:filter .1s, transform .06s;\n}\n.shop-card2 .sc-price:hover{ filter:brightness(1.15); }\n.shop-card2 .sc-price:active{ transform:translateY(2px); }\n.shop-card2 .sc-price:disabled{ cursor:not-allowed; opacity:.75; }\n\n/* tükendi durumu: kart kalır, grileşir */\n.shop-card2.soldout .sc-icon{ filter:saturate(.1) brightness(.85); }\n.shop-card2.soldout::before{\n  content:""; position:absolute; inset:0; z-index:2;\n  background:rgba(120,130,140,.32); border-radius:14px; pointer-events:none;\n}\n.shop-card2 .sc-soldtag{\n  position:absolute; top:34%; left:50%; transform:translate(-50%,-50%) rotate(-8deg);\n  z-index:3; background:rgba(90,100,110,.92); color:#fff;\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:10px; letter-spacing:1px;\n  padding:2px 10px; border-radius:5px;\n  box-shadow:0 2px 4px rgba(0,0,0,.35);\n}\n.shop-card2.bought{ animation:shopPop .3s ease; }\n@keyframes shopPop{ 40%{ transform:scale(1.07); box-shadow:0 0 18px rgba(255,210,87,.85); } }\n\n/* ── özellik baloncuğu ── */\n.shop-info-pop{\n  position:absolute; z-index:20;\n  background:linear-gradient(180deg, rgba(26,58,117,.97), rgba(14,34,70,.97));\n  border-radius:12px;\n  box-shadow:0 10px 20px rgba(0,15,40,.55);\n  animation:shopCardIn .18s ease both;\n}\n.shop-info-pop{ padding:8px 12px 9px; cursor:pointer; }\n.shop-info-pop .in-name{\n  color:#ffd257; font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:13px;\n  text-shadow:0 1px 2px rgba(0,10,30,.7); margin-bottom:2px;\n}\n.shop-info-pop .in-desc{\n  color:#cbe4ff; font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:600; font-size:11.5px; line-height:1.35;\n  text-shadow:0 1px 2px rgba(0,10,30,.6);\n}\n.shop-info-pop .in-tl{\n  color:#9fe3ff; font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:10px; margin-top:3px;\n}\n\n@media (max-width:480px){\n  #panel-shop .shop-grid{ gap:8px; }\n}\n'; document.head.appendChild(st); })();
 
 
 /* ═══════════════════════════════════════════════════════════════
@@ -226,8 +226,7 @@ function renderShop() {
       <div class="shop-card2 ${soldOut ? "soldout" : ""}" data-idx="${realIdx}" style="animation-delay:${i * 0.04}s">
         <div class="sc-icon">${itemIconSVG(item)}<span class="sc-badge">${badge}</span></div>
         ${item.isBoost ? `<div class="sc-tag">${item.heroName}</div>` : ""}
-        <div class="sc-name">${item.name}</div>
-        <div class="sc-left">${shopLimitOf(item) ? fmt(left) : "∞"}</div>
+        <div class="sc-left">Limit: ${shopLimitOf(item) ? fmt(left) : "∞"}</div>
         <button class="sc-price" data-idx="${realIdx}" ${soldOut ? "disabled" : ""}>
           ${soldOut ? "Tükendi" : "💎 " + fmt(item.price)}
         </button>
@@ -336,7 +335,6 @@ function showBuyDialog(item, idx, maxQty) {
           <div class="bd-qnum">1</div>
           <button class="bd-qmax" type="button">MAX</button>
         </div>
-        <div class="bd-buy-meta"></div>
         <button class="bd-buy-go" type="button"></button>
       </div>
     </div>`;
@@ -344,7 +342,6 @@ function showBuyDialog(item, idx, maxQty) {
 
   const range = mask.querySelector(".bd-q-range");
   const num   = mask.querySelector(".bd-qnum");
-  const meta  = mask.querySelector(".bd-buy-meta");
   const go    = mask.querySelector(".bd-buy-go");
 
   function sync() {
@@ -358,12 +355,6 @@ function showBuyDialog(item, idx, maxQty) {
     const total = qty * item.price;
     go.textContent = "💎 " + fmt(total);
     go.disabled = total > state.diamonds;
-
-    const bits = [];
-    if (shopLimitOf(item)) bits.push(`Haftalık: ${shopBought(item.name)} / ${shopLimitOf(item)}`);
-    bits.push(`En fazla ${fmt(maxQty)} adet`);
-    if (item.tier) bits.push(`≈ ${calculateTLPrice(total).toFixed(2)} ₺`);
-    meta.textContent = bits.join("  ·  ");
   }
 
   range.addEventListener("input", () => { qty = parseInt(range.value, 10) || 1; sync(); });
@@ -469,10 +460,12 @@ function buyItem(idx, count) {
 renderShopTabs();
 renderShop();
 
+
 /* ═══════════════════════════════════════════════════════════════
    SATIN ALMA PENCERESİ — GÖRÜNÜM
-   Tema: mavi gövde + altın onay butonu (oyunun geri kalanıyla aynı).
-   Ölçüyü/rengi buradan ayarla, başka dosyaya dokunma.
+   Palet: KOYU MAVİ TEMA (tema.js) — #3d7ccc → #22488f → #152e5e
+   Yazı:  'Baloo 2' 800 (Baloo 2'nin en kalın kesimi; 900 yok,
+          o yüzden dolgunluk konturla veriliyor).
    ═══════════════════════════════════════════════════════════════ */
 (function () {
   const st = document.createElement("style");
@@ -480,131 +473,135 @@ renderShop();
 .bd-buy-mask{
   position:fixed; inset:0; z-index:9000;
   display:flex; align-items:center; justify-content:center; padding:18px;
-  background:rgba(2,12,26,.62);
+  background:rgba(2,10,24,.60);
   animation:bdFade .14s ease both;
 }
 @keyframes bdFade{ from{ opacity:0 } to{ opacity:1 } }
 
 .bd-buy-box{
-  width:min(340px, 92vw); overflow:hidden;
+  width:min(330px, 90vw); overflow:hidden;
   border-radius:16px;
   font-family:'Baloo 2','Nunito',sans-serif;
-  background:linear-gradient(180deg, #1fa3ea, #0e6fc0);
-  border:3px solid rgba(190,240,255,.85);
-  box-shadow:0 0 26px rgba(120,225,255,.45), 0 18px 40px rgba(0,15,40,.6),
-             inset 0 3px 0 rgba(255,255,255,.45);
+  font-weight:700; color:#eaf4ff;
+  background:
+    radial-gradient(ellipse 115% 55% at 50% -6%, rgba(130,200,255,.30), transparent 68%),
+    radial-gradient(ellipse 90% 45% at 50% 106%, rgba(3,10,26,.55), transparent 74%),
+    linear-gradient(180deg, #3d7ccc 0%, #22488f 52%, #152e5e 100%);
+  border:3px solid rgba(160,215,255,.60);
+  box-shadow:0 0 26px rgba(20,60,120,.5), 0 18px 40px rgba(0,10,30,.6),
+             inset 0 3px 0 rgba(150,205,255,.55), inset 0 -14px 26px rgba(0,10,30,.45);
   animation:bdPop .2s cubic-bezier(.2,1.2,.35,1) both;
 }
 @keyframes bdPop{ from{ opacity:0; transform:translateY(14px) scale(.94) } to{ opacity:1; transform:none } }
 
-/* başlık şeridi */
+/* ── başlık şeridi ── */
 .bd-buy-head{
-  position:relative; padding:7px 42px 8px; text-align:center;
-  background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.06));
-  border-bottom:2px solid rgba(190,240,255,.4);
-  color:#fff; font-weight:800; font-size:14.5px;
-  text-shadow:0 1px 3px rgba(0,30,55,.6);
+  position:relative; padding:9px 46px 10px; text-align:center;
+  background:linear-gradient(180deg, rgba(150,205,255,.22), rgba(3,14,34,.18));
+  border-bottom:2px solid rgba(160,215,255,.35);
+  font-weight:800; font-size:15px; letter-spacing:.4px; color:#ffffff;
+  text-shadow:0 2px 3px rgba(0,15,40,.75);
 }
 .bd-buy-x{
-  position:absolute; top:5px; right:7px; width:26px; height:26px;
-  border:2px solid rgba(255,255,255,.55); border-radius:50%;
-  background:linear-gradient(180deg,#ff7a6b,#e03b2c);
-  color:#fff; font-size:12px; font-weight:900; line-height:1; cursor:pointer;
-  box-shadow:0 2px 0 #96271b, inset 0 1px 0 rgba(255,255,255,.45);
+  position:absolute; top:6px; right:8px; width:30px; height:30px; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:9px; cursor:pointer;
+  background:linear-gradient(180deg,#f03434,#c00d0d);
+  border:2px solid rgba(255,220,220,.9);
+  color:#fff; font-family:inherit; font-weight:800; font-size:13px; line-height:1;
+  box-shadow:0 3px 8px rgba(120,0,0,.4);
 }
-.bd-buy-x:active{ transform:translateY(2px); box-shadow:0 0 0 #96271b; }
+.bd-buy-x:active{ transform:translateY(2px); }
 
-.bd-buy-body{ padding:12px 13px 14px; }
+.bd-buy-body{ padding:13px 14px 15px; }
 
-/* ürün satırı */
-.bd-buy-top{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+/* ── ürün satırı: ikon + yazı, dikey ortalı ── */
+.bd-buy-top{ display:flex; align-items:center; gap:11px; margin-bottom:14px; }
 .bd-buy-icon{
-  flex:0 0 54px; width:54px; height:54px; border-radius:10px;
+  flex:0 0 52px; width:52px; height:52px; border-radius:10px;
   display:flex; align-items:center; justify-content:center;
   background:linear-gradient(180deg, #ffd257, #f0932b);
   box-shadow:inset 0 3px 0 rgba(255,255,255,.6), inset 0 -5px 8px rgba(140,60,0,.45),
-             0 3px 6px rgba(0,15,40,.45);
+             0 3px 6px rgba(0,10,30,.5);
 }
 .bd-buy-icon svg{ width:60%; height:60%; }
-.bd-buy-txt{ min-width:0; }
+.bd-buy-txt{ flex:1; min-width:0; }
 .bd-buy-name{
-  color:#fff; font-weight:800; font-size:14px; line-height:1.15;
-  text-shadow:0 1px 3px rgba(0,20,45,.7);
+  font-weight:800; font-size:15px; line-height:1.2; color:#ffffff;
+  letter-spacing:.2px; text-shadow:0 2px 3px rgba(0,15,40,.75);
 }
 .bd-buy-desc{
-  margin-top:3px; color:#dff1ff;
-  font-family:'Nunito',sans-serif; font-weight:700; font-size:10.5px; line-height:1.35;
-  text-shadow:0 1px 2px rgba(0,20,45,.6);
-  max-height:52px; overflow:auto;
+  margin-top:3px; font-weight:600; font-size:12px; line-height:1.35;
+  color:#cbe4ff; text-shadow:0 1px 2px rgba(0,10,30,.6);
+  max-height:54px; overflow:auto;
 }
 
-/* adet satırı */
-.bd-q-row{ display:flex; align-items:center; gap:6px; }
+/* ── adet satırı ── */
+.bd-q-row{ display:flex; align-items:center; gap:7px; }
 .bd-qbtn{
-  flex:0 0 auto; width:30px; height:30px; border-radius:9px; cursor:pointer;
-  border:2px solid rgba(190,240,255,.6);
-  background:linear-gradient(180deg,#4fd8ff,#1a7fc4);
-  color:#fff; font-weight:900; font-size:17px; line-height:1;
-  box-shadow:0 3px 0 #0b4a7d, inset 0 1px 0 rgba(255,255,255,.5);
+  flex:0 0 auto; width:32px; height:32px; border-radius:9px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%);
+  border:2px solid rgba(170,220,255,.75);
+  color:#fff; font-family:inherit; font-weight:800; font-size:19px; line-height:1;
+  text-shadow:0 2px 3px rgba(0,15,40,.65);
+  box-shadow:0 4px 0 #0f2a55, inset 0 1px 0 rgba(170,220,255,.55);
 }
-.bd-qbtn:active{ transform:translateY(3px); box-shadow:0 0 0 #0b4a7d; }
+.bd-qbtn:active{ transform:translateY(3px); box-shadow:0 1px 0 #0f2a55; }
 
 .bd-q-range{
-  flex:1; min-width:40px; height:9px; border-radius:5px;
+  flex:1; min-width:36px; height:9px; border-radius:5px;
   -webkit-appearance:none; appearance:none; outline:none; cursor:pointer;
   background:linear-gradient(90deg,
-    #6ee0ff 0%, #6ee0ff var(--fill,0%), rgba(3,22,48,.55) var(--fill,0%));
-  box-shadow:inset 0 1px 3px rgba(0,20,45,.6), 0 0 8px rgba(110,224,255,.25);
+    #8fc4ff 0%, #8fc4ff var(--fill,0%), rgba(6,20,44,.75) var(--fill,0%));
+  box-shadow:inset 0 1px 3px rgba(0,10,30,.7), 0 0 0 1px rgba(160,215,255,.25);
 }
 .bd-q-range::-webkit-slider-thumb{
   -webkit-appearance:none; appearance:none;
   width:20px; height:20px; border-radius:50%;
-  background:linear-gradient(180deg,#ffffff,#cfe9f6);
-  border:2px solid #1a7fc4; box-shadow:0 2px 4px rgba(0,20,45,.5); cursor:grab;
+  background:linear-gradient(180deg,#ffffff,#c9dff7);
+  border:2px solid #3568b4; box-shadow:0 2px 4px rgba(0,10,30,.55); cursor:grab;
 }
 .bd-q-range::-moz-range-thumb{
   width:20px; height:20px; border-radius:50%;
-  background:linear-gradient(180deg,#ffffff,#cfe9f6);
-  border:2px solid #1a7fc4; box-shadow:0 2px 4px rgba(0,20,45,.5); cursor:grab;
+  background:linear-gradient(180deg,#ffffff,#c9dff7);
+  border:2px solid #3568b4; box-shadow:0 2px 4px rgba(0,10,30,.55); cursor:grab;
 }
 
 .bd-qnum{
-  flex:0 0 auto; min-width:48px; text-align:center;
-  padding:4px 6px; border-radius:9px;
-  background:rgba(3,20,45,.55); border:2px solid rgba(190,240,255,.45);
-  color:#fff; font-weight:800; font-size:13.5px;
+  flex:0 0 auto; min-width:46px; height:32px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:9px;
+  background:rgba(6,20,44,.6); border:2px solid rgba(160,215,255,.45);
+  color:#fff; font-weight:800; font-size:14px; letter-spacing:.3px;
+  text-shadow:0 1px 2px rgba(0,10,30,.7);
 }
 .bd-qmax{
-  flex:0 0 auto; height:30px; padding:0 9px; border-radius:9px; cursor:pointer;
-  border:2px solid rgba(255,220,150,.7);
+  flex:0 0 auto; height:32px; padding:0 10px; border-radius:9px; cursor:pointer;
   background:linear-gradient(180deg,#ffd257,#f0932b);
-  color:#3a2408; font-weight:900; font-size:11px; letter-spacing:.3px;
-  box-shadow:0 3px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.5);
-}
-.bd-qmax:active{ transform:translateY(3px); box-shadow:0 0 0 #a8641a; }
-
-.bd-buy-meta{
-  margin:8px 2px 0; text-align:center;
-  color:#bfe6ff; font-family:'Nunito',sans-serif; font-weight:700; font-size:10px;
-  text-shadow:0 1px 2px rgba(0,20,45,.6);
-}
-
-/* onay butonu */
-.bd-buy-go{
-  width:100%; margin-top:10px; padding:10px 0; border-radius:13px; cursor:pointer;
   border:2px solid rgba(255,220,150,.75);
+  color:#3a2408; font-family:inherit; font-weight:800; font-size:12px; letter-spacing:.4px;
+  box-shadow:0 4px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.5);
+}
+.bd-qmax:active{ transform:translateY(3px); box-shadow:0 1px 0 #a8641a; }
+
+/* ── onay butonu: ortada, dar ── */
+.bd-buy-go{
+  display:block; margin:16px auto 2px;
+  min-width:150px; padding:9px 26px; border-radius:12px; cursor:pointer;
   background:linear-gradient(180deg,#ffd257,#f0932b);
-  color:#3a2408; font-family:'Baloo 2','Nunito',sans-serif; font-weight:900; font-size:16px;
-  text-shadow:0 1px 0 rgba(255,255,255,.4);
+  border:2px solid rgba(255,220,150,.75);
+  color:#3a2408; font-family:inherit; font-weight:800; font-size:16px; letter-spacing:.3px;
+  text-shadow:0 1px 0 rgba(255,255,255,.45);
   box-shadow:0 5px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.55);
-  transition:filter .1s;
 }
 .bd-buy-go:active{ transform:translateY(4px); box-shadow:0 1px 0 #a8641a; }
 .bd-buy-go:disabled{ filter:saturate(.2) brightness(.85); cursor:not-allowed; }
 
 @media (max-width:360px){
-  .bd-qnum{ min-width:40px; font-size:12.5px; }
-  .bd-qmax{ padding:0 7px; font-size:10px; }
+  .bd-qnum{ min-width:40px; font-size:13px; }
+  .bd-qmax{ padding:0 8px; font-size:11px; }
+  .bd-buy-go{ min-width:130px; padding:9px 20px; }
 }
 `;
   document.head.appendChild(st);
