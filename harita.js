@@ -58,8 +58,8 @@
     /* ── Karo ölçüsü (piksel) ──
        tileH her zaman tileW'nin YARISI olmalı. Klasik 2:1 izometri.
        Bu oran bozulursa gridToScreen / screenToGrid çifti tutarsızlaşır. */
-    tileW: 128,
-    tileH: 64,
+    tileW: 64,
+    tileH: 32,
 
     /* ── Yakınlaştırma sınırları ──
        minZoom'u düşürmek haritayı uzaktan gösterir ama aynı karede
@@ -107,7 +107,18 @@
     /* Ön-render kalitesi. 2 = karo 256x128 olarak hazırlanır, 128x64
        olarak çizilir → yakınlaştırınca net kalır. 3 yaparsan daha net
        ama bellek üç katına çıkar. */
-    kalite: 1.25,
+    kalite: 2,
+
+    /* ── Chunk (parça) önbelleği ──
+       Karolar tek tek çizilmez; CHUNK x CHUNK'lık parçalar BİR KEZ
+       çizilip saklanır, sonra tek drawImage ile ekrana basılır.
+       8 seçildi: 64 karo tek çağrıya iniyor, parça canvas'ı da
+       telefon belleğini zorlamayacak kadar küçük kalıyor.
+
+       onbellekBoyu: bellekte tutulacak parça sayısı. Artırırsan
+       kaydırma daha akıcı ama RAM artar. */
+    CHUNK: 8,
+    onbellekBoyu: 48,
 
     /* Her biyom için kaç farklı karo hazırlansın. Tek varyantta doku
        her karede birebir aynı tekrar eder ve ızgara deseni göze batar.
@@ -318,6 +329,7 @@
     }
 
     karolar[ad] = { hazir: true, parcalar };
+    onbellegiBosalt();
     ciz();
   }
 
@@ -390,27 +402,108 @@
 
   /* Tek karo çizer. saydamlik < 1 ise karışım katmanıdır.
      Doku hazır değilse düz renge düşer — oyun asla boş kalmaz. */
-  function karoCiz(tip, vi, x, y, tw, th, saydamlik) {
+  function karoCiz(x2, tip, vi, x, y, tw, th, saydamlik) {
     const kayit = karolar[tip];
 
-    if (saydamlik < 1) ctx.globalAlpha = saydamlik;
+    if (saydamlik < 1) x2.globalAlpha = saydamlik;
 
     if (kayit && kayit.hazir) {
       /* +1 px: komşu karolarla dikiş yerinde boşluk kalmasın */
-      ctx.drawImage(kayit.parcalar[vi % kayit.parcalar.length], x, y, tw + 1, th + 1);
+      x2.drawImage(kayit.parcalar[vi % kayit.parcalar.length], x, y, tw + 1, th + 1);
     } else {
-      ctx.fillStyle = CFG.karoRenk[tip];
-      ctx.beginPath();
-      ctx.moveTo(x + HALF_W, y);
-      ctx.lineTo(x + tw,     y + HALF_H);
-      ctx.lineTo(x + HALF_W, y + th);
-      ctx.lineTo(x,          y + HALF_H);
-      ctx.closePath();
-      ctx.fill();
+      x2.fillStyle = CFG.karoRenk[tip];
+      x2.beginPath();
+      x2.moveTo(x + tw / 2, y);
+      x2.lineTo(x + tw,     y + th / 2);
+      x2.lineTo(x + tw / 2, y + th);
+      x2.lineTo(x,          y + th / 2);
+      x2.closePath();
+      x2.fill();
     }
 
-    if (saydamlik < 1) ctx.globalAlpha = 1;
+    if (saydamlik < 1) x2.globalAlpha = 1;
   }
+
+  /* ═════════════════════════════════════════════════════════════════════
+     CHUNK ÖNBELLEĞİ
+
+     CHUNK x CHUNK karoluk bir bölge, kendi küçük canvas'ına BİR KEZ
+     çizilir ve saklanır. Kaydırırken o parça yeniden hesaplanmaz,
+     hazır resim olarak basılır.
+
+     Ölçek kovası: zoom sürekli değişen bir sayı, her değerine ayrı
+     parça üretmek belleği patlatır. Bu yüzden zoom iki kovaya
+     yuvarlanıyor (1x ve 2x). Yakınlaştırınca 2x kova devreye girer,
+     görüntü net kalır.
+     ═════════════════════════════════════════════════════════════════════ */
+
+  const onbellek = new Map();
+
+  function olcekKovasi(zoom) { return zoom > 1.2 ? 2 : 1; }
+
+  function chunkAl(cx, cy, zoom) {
+    const s = olcekKovasi(zoom);
+    const anahtar = cx + "," + cy + "," + s;
+
+    const varOlan = onbellek.get(anahtar);
+    if (varOlan) {
+      /* En son kullanılanı sona taşı — eskiler önce atılsın */
+      onbellek.delete(anahtar);
+      onbellek.set(anahtar, varOlan);
+      return varOlan;
+    }
+
+    const par = chunkUret(cx, cy, s);
+    onbellek.set(anahtar, par);
+
+    /* Bellek sınırı: en eski parçaları at */
+    while (onbellek.size > CFG.onbellekBoyu) {
+      const ilk = onbellek.keys().next().value;
+      onbellek.delete(ilk);
+    }
+    return par;
+  }
+
+  function chunkUret(cx, cy, s) {
+    const C = CFG.CHUNK;
+    const tw = CFG.tileW, th = CFG.tileH;
+
+    const gx0 = cx * C, gx1 = gx0 + C - 1;
+    const gy0 = cy * C, gy1 = gy0 + C - 1;
+
+    /* Parçanın dünya sınırları — eşkenar dörtgen dizisinin kutusu */
+    const minX = gridToWorld(gx0, gy1).x;
+    const maxX = gridToWorld(gx1, gy0).x + tw;
+    const minY = gridToWorld(gx0, gy0).y;
+    const maxY = gridToWorld(gx1, gy1).y + th;
+
+    const w = maxX - minX, h = maxY - minY;
+
+    const c = document.createElement("canvas");
+    c.width  = Math.ceil(w * s);
+    c.height = Math.ceil(h * s);
+    const x2 = c.getContext("2d");
+    x2.setTransform(s, 0, 0, s, 0, 0);
+
+    for (let gy = gy0; gy <= gy1; gy++) {
+      for (let gx = gx0; gx <= gx1; gx++) {
+        const p = gridToWorld(gx, gy);
+        const px = p.x - minX, py = p.y - minY;
+        const kr = biyomKarisim(gx, gy);
+        const vi = Math.floor(hash2(gx * 7 + 3, gy * 11 + 5) * CFG.varyant) % CFG.varyant;
+
+        karoCiz(x2, kr.alt, vi, px, py, tw, th, 1);
+        if (kr.ust && kr.k > 0.02) {
+          karoCiz(x2, kr.ust, vi, px, py, tw, th, Math.min(1, kr.k));
+        }
+      }
+    }
+
+    return { cv: c, x: minX, y: minY, w, h };
+  }
+
+  /* Dokular sonradan yüklenince eski parçalar geçersiz kalır */
+  function onbellegiBosalt() { onbellek.clear(); }
 
   function ciz() {
     if (!ctx || !cv || !aktif) return;
@@ -443,11 +536,15 @@
       if (p.gy < gy0) gy0 = p.gy;
       if (p.gy > gy1) gy1 = p.gy;
     }
-    /* +2 pay: karonun yüksekliği hücre sınırını taşar */
-    gx0 = Math.max(0, Math.floor(gx0) - 2);
-    gy0 = Math.max(0, Math.floor(gy0) - 2);
-    gx1 = Math.min(G - 1, Math.ceil(gx1) + 2);
-    gy1 = Math.min(G - 1, Math.ceil(gy1) + 2);
+    /* +2 pay: karonun yüksekliği hücre sınırını taşar.
+       DİKKAT: 0..G-1 aralığına KISITLAMIYORUZ. Izgara sınırı sadece
+       OYUN kuralıdır (kale nereye kurulabilir); zemin görsel olarak
+       dışarı doğru devam eder. Yoksa haritanın kenarında lacivert
+       boşluk görünüyordu. */
+    gx0 = Math.floor(gx0) - 2;
+    gy0 = Math.floor(gy0) - 2;
+    gx1 = Math.ceil(gx1) + 2;
+    gy1 = Math.ceil(gy1) + 2;
 
     /* Güvenlik ağı: aralık boşsa kamera harita dışına kaçmış demektir.
        Bir kez ortalayıp yeniden çiziyoruz. kurtarmaKilidi sonsuz
@@ -464,39 +561,22 @@
     ctx.translate(panX, panY);
     ctx.scale(zoom, zoom);
 
+    /* ── CHUNK ÇİZİMİ ──
+       Karo karo çizmek yerine hazır parçalar basılıyor. Ekranda
+       ~1200 karo varsa bu 64 karo/parça hesabıyla ~20 drawImage
+       demek — telefon için nefes aldırıcı fark. */
+    const C = CFG.CHUNK;
+    const cx0 = Math.floor(gx0 / C), cx1 = Math.floor(gx1 / C);
+    const cy0 = Math.floor(gy0 / C), cy1 = Math.floor(gy1 / C);
+
     let cizilen = 0;
-    const tw = CFG.tileW, th = CFG.tileH;
-
-    /* Boyama sırası: gy → gx. Zemin için sıra fark etmez ama ADIM D'de
-       derinlik sıralaması bu döngüye bağlanacak, şimdiden doğru sırada. */
-    for (let gy = gy0; gy <= gy1; gy++) {
-      for (let gx = gx0; gx <= gx1; gx++) {
-        const p = gridToWorld(gx, gy);
-        const kr = biyomKarisim(gx, gy);
-
-        /* Varyant seçimi tohumlu — her cihazda aynı desen çıkar */
-        const vi = Math.floor(hash2(gx * 7 + 3, gy * 11 + 5) * CFG.varyant) % CFG.varyant;
-
-        /* Alt katman */
-        karoCiz(kr.alt, vi, p.x, p.y, tw, th, 1);
-
-        /* Üst katman — sadece sınır bandında, saydam */
-        if (kr.ust && kr.k > 0.02) {
-          karoCiz(kr.ust, vi, p.x, p.y, tw, th, Math.min(1, kr.k));
-        }
-
-        if (CFG.izgaraCizgisi) {
-          ctx.strokeStyle = "rgba(0,0,0,.18)";
-          ctx.lineWidth = 1 / zoom;
-          ctx.beginPath();
-          ctx.moveTo(p.x + HALF_W, p.y);
-          ctx.lineTo(p.x + tw,     p.y + HALF_H);
-          ctx.lineTo(p.x + HALF_W, p.y + th);
-          ctx.lineTo(p.x,          p.y + HALF_H);
-          ctx.closePath();
-          ctx.stroke();
-        }
-        cizilen++;
+    for (let cy = cy0; cy <= cy1; cy++) {
+      for (let cx = cx0; cx <= cx1; cx++) {
+        const par = chunkAl(cx, cy, zoom);
+        if (!par) continue;
+        /* +1 px: komşu parçalar arasında saç teli boşluk kalmasın */
+        ctx.drawImage(par.cv, par.x, par.y, par.w + 1, par.h + 1);
+        cizilen += C * C;
       }
     }
 
