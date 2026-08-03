@@ -2203,32 +2203,45 @@ st.textContent = `
   justify-content:space-between !important;
   gap:0 !important;
   pointer-events:auto !important;
-  padding:calc(7px + env(safe-area-inset-top,0)) 12px 8px !important;
+  padding:calc(3px + env(safe-area-inset-top,0)) 8px 4px !important;
   background:linear-gradient(180deg, var(--km-1) 0%, var(--km-2) 55%, var(--km-3) 100%) !important;
-  border-bottom:2px solid var(--km-kenar) !important;
-  border-radius:0 0 16px 16px !important;
-  box-shadow:0 6px 18px rgba(0,15,40,.5), inset 0 -2px 0 var(--km-parlak) !important;
+  border-bottom:1px solid var(--km-kenar) !important;
+  border-radius:0 0 13px 13px !important;
+  box-shadow:0 4px 12px rgba(0,15,40,.42), inset 0 -1px 0 var(--km-parlak) !important;
 }
 
-/* kutuları söküyoruz — geriye sadece ikon + yazı kalıyor */
+/* kutuları söküyoruz — geriye sadece ikon + yazı kalıyor.
+   YAZI BOYUTU VE KALINLIĞI SABİT (14px / 800); şerit yalnızca
+   dolgudan daraldı, harflere dokunulmadı. */
 .hud-top .hud-pill,
 .hud-pill,
 .hud-pill.diamond-pill,
 .user-pill,
+#staminaPill,
 #mslHudPill{
   pointer-events:auto !important;
   background:none !important;
   border:none !important;
   box-shadow:none !important;
   border-radius:0 !important;
-  padding:3px 10px !important;
+  padding:1px 8px !important;
+  margin:0 !important;
   color:var(--km-yazi) !important;
   font-size:14px !important;
+  font-weight:800 !important;
+  line-height:1.25 !important;
   text-shadow:0 2px 3px rgba(0,10,30,.75) !important;
 }
 .hud-pill.diamond-pill .amount,
+#staminaPill #staminaText,
 .user-pill #currentUserLabel{
   color:var(--km-yazi) !important;
+}
+
+/* can rozeti ortada esnemesin, diğerleri gibi içeriği kadar dursun */
+#staminaPill.hud-pill-center{
+  flex:0 0 auto !important;
+  justify-content:center !important;
 }
 
 /* ince ayraç — ilk öğe hariç hepsinin soluna */
@@ -2245,11 +2258,11 @@ st.textContent = `
 }
 .user-pill:hover{ color:#fff !important; }
 
-/* ── CAN BARI KALDIRILDI ─────────────────────────────────────
-   Üstteki ❤️ rozeti ve ona bağlı can potu baloncuğu artık
-   görünmüyor. Geri getirmek istersen bu iki satırı sil. */
-#staminaPill,
-.stamina-potion-popup{ display:none !important; }
+/* ── CAN ROZETİ ──────────────────────────────────────────────
+   ❤️ %100 geri geldi ve şeritteki diğer öğelerle aynı biçimde.
+   İçindeki eski çubuk (.stamina-bar-track) tema.js'in başında
+   zaten gizli; sadece kalp + yüzde görünüyor. Rozete basınca
+   can potu baloncuğu açılmaya devam ediyor. */
 
 /* ── ALT MENÜ (harita dock çubuğu) ───────────────────────────── */
 .nav-dock{
