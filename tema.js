@@ -2759,13 +2759,13 @@ st.textContent = `
 }
 /* elle sayı girilen kutucuk — rakamı alacak kadar, fazlası değil */
 #troopSelectList .t-num{
-  width:42px; height:24px; padding:0 2px; text-align:center;
-  border-radius:8px; outline:none;
+  width:34px; height:22px; padding:0 1px; text-align:center;
+  border-radius:6px; outline:none;
   background:rgba(6,20,44,.6) !important;
-  border:2px solid rgba(160,215,255,.45) !important;
+  border:1.5px solid rgba(160,215,255,.45) !important;
   color:#fff !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:800 !important; font-size:13.5px !important;
+  font-weight:800 !important; font-size:13px !important;
   -webkit-appearance:none; appearance:none;
   -webkit-tap-highlight-color:transparent;
 }
