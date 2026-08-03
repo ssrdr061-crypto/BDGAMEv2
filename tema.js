@@ -2196,28 +2196,48 @@ st.textContent = `
    Geri istersen bu kuralı sil. */
 .overlay-panel{ background:transparent !important; }
 
-/* ── HASTANE VE SANDIK: BİRLİK MENÜSÜ GİBİ HİZALI ────────────
-   Eskiden ekranın altına yapışık, sadece üst köşeleri yuvarlak
-   bir çekmeceydiler. Artık birlik paneli (#panel-troops) ile aynı
-   yerleşim: ortalanmış, dört köşesi yuvarlak, üstten ve alttan
-   boşluklu bir kart.
+/* ── ORTALANMIŞ PANELLER ─────────────────────────────────────
+   Hastane, sandık, mağaza ve çanta artık birlik paneli
+   (#panel-troops) ile aynı yerleşimde. Eskiden ekranın altına
+   yapışık, sadece üst köşeleri yuvarlak birer çekmeceydiler;
+   şimdi ortalanmış, dört köşesi yuvarlak, üstten ve alttan
+   boşluklu kartlar.
 
    Boşluk değerleri birlik paneliyle BİREBİR aynı tutuldu
-   (60px üst / 70px alt) — birini değiştirirsen diğerini de
+   (60px üst / 70px alt) — birini değiştirirsen diğerlerini de
    değiştir, yoksa paneller arası geçişte kart zıplar. */
 #panel-hospital,
-#panel-chest{
+#panel-chest,
+#panel-shop,
+#panel-inventory{
   align-items:center !important;
   justify-content:center !important;
   padding:60px 12px 70px !important;
 }
 #panel-hospital .overlay-card,
-#panel-chest .overlay-card{
+#panel-chest .overlay-card,
+#panel-shop .overlay-card,
+#panel-inventory .overlay-card{
   width:100% !important;
   max-width:420px !important;
   max-height:100% !important;
   border-radius:22px !important;
   border-top:3px solid var(--km-kenar) !important;
+}
+
+/* Mağaza ızgarası sabit 56vh'ye kilitliydi. Kart artık ekranın
+   altına yapışmadığı için o sabit yükseklik kartın dibinde ölü
+   boşluk bırakıyordu. Kartı sütun yapıp ızgaraya kalan yeri
+   verdik — böylece başlık ve sekmeler yukarıda sabit kalır,
+   sadece ürünler kayar. */
+#panel-shop .overlay-card{
+  display:flex !important;
+  flex-direction:column !important;
+}
+#panel-shop .shop-grid{
+  max-height:none !important;
+  flex:1 1 auto !important;
+  min-height:0 !important;
 }
 
 /* ── ÜST HUD: DÜZ ŞERİT ──────────────────────────────────────
