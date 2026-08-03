@@ -2759,7 +2759,8 @@ st.textContent = `
 }
 /* elle sayı girilen kutucuk — rakamı alacak kadar, fazlası değil */
 #troopSelectList .t-num{
-  width:34px; height:22px; padding:0 1px; text-align:center;
+  box-sizing:content-box !important;
+  width:1ch; height:20px; padding:1px 4px; text-align:center;
   border-radius:6px; outline:none;
   background:rgba(6,20,44,.6) !important;
   border:1.5px solid rgba(160,215,255,.45) !important;

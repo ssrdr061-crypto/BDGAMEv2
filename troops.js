@@ -278,6 +278,14 @@ function useSpeedUpOnTrainingGroup(unitId) {
 /*  ── 4) SAVAŞ BİRLİK SEÇİMİ ── */
 let selectedTroopsForBattle = { knight: 0, soldier: 0, robot: 0 };
 
+/* Sayı kutucuğu içindeki rakam kadar genişler — boşluk kalmaz.
+   "ch" birimi yazı tipindeki "0" genişliğidir, o yüzden birebir oturur. */
+function tNumBoyutla(kutu) {
+  if (!kutu) return;
+  const n = Math.max(1, String(kutu.value || "").replace(/[^0-9]/g, "").length);
+  kutu.style.width = n + "ch";
+}
+
 function renderTroopSelector() {
   applyFinishedTraining();
   const listEl = document.getElementById("troopSelectList");
@@ -325,6 +333,7 @@ function renderTroopSelector() {
       /* yazarken kutuyu ezme: sadece odakta değilse güncelle */
       const kutu = document.querySelector(`.t-num[data-unit="${unitId}"]`);
       if (kutu && document.activeElement !== kutu) kutu.value = slider.value;
+      if (kutu) tNumBoyutla(kutu);
       updateTroopSelectSummary();
       renderEnemyPowerPreview();
     });
@@ -335,6 +344,7 @@ function renderTroopSelector() {
      yazabilirsin. Sürgüyle çift yönlü bağlı; sınırı aşan değer
      birlik sayısına kırpılır. */
   listEl.querySelectorAll(".t-num").forEach(kutu => {
+    tNumBoyutla(kutu);
     const unitId = kutu.dataset.unit;
     const s = document.getElementById("troopSlider_" + unitId);
     if (!s) return;
@@ -350,8 +360,8 @@ function renderTroopSelector() {
         s.dispatchEvent(new Event("input", { bubbles: true }));
       }
     }
-    kutu.addEventListener("input", () => uygula(false));
-    kutu.addEventListener("blur",  () => uygula(true));
+    kutu.addEventListener("input", () => { tNumBoyutla(kutu); uygula(false); });
+    kutu.addEventListener("blur",  () => { uygula(true); tNumBoyutla(kutu); });
     kutu.addEventListener("focus", () => setTimeout(() => kutu.select(), 0));
     kutu.addEventListener("click", (e) => e.stopPropagation());
     kutu.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); kutu.blur(); } });
