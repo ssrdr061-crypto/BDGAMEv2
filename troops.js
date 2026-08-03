@@ -302,7 +302,11 @@ function renderTroopSelector() {
         <div class="t-right">
         <div class="troop-select-top">
           <span class="t-name">${def.name}</span>
-          <span class="t-count" id="troopCount_${def.id}">${current} / ${max}</span>
+          <span class="t-count" id="troopCount_${def.id}">
+            <input type="text" class="t-num" inputmode="numeric" pattern="[0-9]*"
+                   data-unit="${def.id}" value="${current}" maxlength="7">
+            <span class="t-max">/ ${max}</span>
+          </span>
         </div>
         <div class="t-slider-row">
           <button type="button" class="t-step" data-unit="${def.id}" data-d="-1">−</button>
@@ -318,10 +322,39 @@ function renderTroopSelector() {
     slider.addEventListener("input", () => {
       const unitId = slider.dataset.unit;
       selectedTroopsForBattle[unitId] = parseInt(slider.value, 10);
-      document.getElementById(`troopCount_${unitId}`).textContent = `${slider.value} / ${state.troops[unitId]}`;
+      /* yazarken kutuyu ezme: sadece odakta değilse güncelle */
+      const kutu = document.querySelector(`.t-num[data-unit="${unitId}"]`);
+      if (kutu && document.activeElement !== kutu) kutu.value = slider.value;
       updateTroopSelectSummary();
       renderEnemyPowerPreview();
     });
+  });
+
+  /* ── ELLE SAYI GİRME ──────────────────────────────────────────
+     "0 / 9" içindeki 0 artık bir kutucuk: tıklayıp istediğin sayıyı
+     yazabilirsin. Sürgüyle çift yönlü bağlı; sınırı aşan değer
+     birlik sayısına kırpılır. */
+  listEl.querySelectorAll(".t-num").forEach(kutu => {
+    const unitId = kutu.dataset.unit;
+    const s = document.getElementById("troopSlider_" + unitId);
+    if (!s) return;
+    const enCok = parseInt(s.max, 10) || 0;
+
+    function uygula(duzelt) {
+      let v = parseInt(String(kutu.value).replace(/[^0-9]/g, ""), 10);
+      if (!isFinite(v)) v = 0;
+      v = Math.max(0, Math.min(enCok, v));
+      if (duzelt) kutu.value = v;
+      if ((parseInt(s.value, 10) || 0) !== v) {
+        s.value = v;
+        s.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+    kutu.addEventListener("input", () => uygula(false));
+    kutu.addEventListener("blur",  () => uygula(true));
+    kutu.addEventListener("focus", () => setTimeout(() => kutu.select(), 0));
+    kutu.addEventListener("click", (e) => e.stopPropagation());
+    kutu.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); kutu.blur(); } });
   });
 
   /* ── − / + düğmeleri ──────────────────────────────────────────
