@@ -617,6 +617,103 @@
   }
 
   /* ═════════════════════════════════════════════════════════════════════
+     ADIM D — DÜĞÜMLERİ İZOMETRİĞE OTURTMA
+
+     Kaleler, canavarlar ve sandıklar #battleMap içinde DOM elemanı
+     olarak duruyor (sadece ~50 tane, canvas'a taşımaya gerek yok).
+     Eskiden yüzdeyle konumlanıyorlardı; artık her pan/zoom sonrası
+     ekran pikseli olarak yeniden yerleştiriliyorlar.
+
+     KOORDİNAT KORUNUYOR: oyunun kendi gx/gy değerleri 0..COORD_GRID
+     aralığında kalıyor, Firebase'deki veriye DOKUNULMUYOR. Sadece
+     çizerken ORAN ile izometrik ızgaraya ölçekleniyor. Böylece kale
+     taşıma, koordinat kutusu, mesafe hesabı gibi mevcut mantık
+     olduğu gibi çalışmaya devam ediyor.
+     ═════════════════════════════════════════════════════════════════════ */
+
+  const ORAN = G / 30;   // eski 30'luk ızgara → 141'lik ızgara
+
+  /* Düğümün mantıksal koordinatını (0..30) bul */
+  function dugumKoordinati(el) {
+    if (el.dataset.cx !== undefined) {
+      return { gx: parseFloat(el.dataset.cx), gy: parseFloat(el.dataset.cy) };
+    }
+    if (el.dataset.idx !== undefined && typeof enemies !== "undefined") {
+      const e = enemies[parseInt(el.dataset.idx, 10)];
+      if (e) return { gx: (e.mapX / 100) * 30, gy: (e.mapY / 100) * 30 };
+    }
+    if (el.dataset.loot !== undefined && typeof enemies !== "undefined") {
+      const e = enemies.find(x => x.name === el.dataset.loot);
+      if (e) return { gx: (e.mapX / 100) * 30, gy: (e.mapY / 100) * 30 };
+    }
+    return null;
+  }
+
+  function dugumleriYerlestir() {
+    if (!aktif) return;
+    const mapEl = document.getElementById("battleMap");
+    if (!mapEl) return;
+
+    const panX = (typeof mapPanX !== "undefined") ? mapPanX : 0;
+    const panY = (typeof mapPanY !== "undefined") ? mapPanY : 0;
+    const zoom = (typeof mapZoom !== "undefined") ? mapZoom : 1;
+
+    /* Düğüm boyu zoom ile büyüsün ama uçlara kaçmasın */
+    const olcek = Math.max(0.55, Math.min(1.5, zoom));
+
+    mapEl.querySelectorAll(".map-node").forEach(el => {
+      const k = dugumKoordinati(el);
+      if (!k) { el.style.display = "none"; return; }
+
+      const p = gridToWorld(k.gx * ORAN, k.gy * ORAN);
+      /* Karonun ORTASINA otursun, üst köşesine değil */
+      const sx = (p.x + HALF_W) * zoom + panX;
+      const sy = (p.y + HALF_H) * zoom + panY;
+
+      el.style.display = "";
+      el.style.left = sx + "px";
+      el.style.top  = sy + "px";
+      el.style.transform = "translate(-50%,-50%) scale(" + olcek + ")";
+
+      /* DERİNLİK: aşağıdaki (ekranda öndeki) düğüm üste gelsin.
+         İzometride ekran derinliği gx+gy ile artar. */
+      el.style.zIndex = String(10 + Math.round((k.gx + k.gy) * 10));
+    });
+  }
+
+  /* #battleMap'i düğüm katmanına çevirir/geri alır */
+  function dugumKatmani(ac) {
+    const mapEl = document.getElementById("battleMap");
+    if (!mapEl) return;
+
+    if (ac) {
+      if (!mapEl.dataset.eskiStil) mapEl.dataset.eskiStil = mapEl.style.cssText || " ";
+      mapEl.style.cssText =
+        "position:absolute; left:0; top:0; width:100%; height:100%; " +
+        "transform:none; background:none; overflow:visible; z-index:5;";
+      mapEl.classList.add("iso-node-layer");
+      dugumleriYerlestir();
+    } else {
+      mapEl.style.cssText = (mapEl.dataset.eskiStil || "").trim();
+      mapEl.classList.remove("iso-node-layer");
+    }
+  }
+
+  /* Zemin karartma gölgesi (.battle-map::after) düğüm katmanında
+     ekranı komple karartıyordu — kapatıyoruz. Bölge etiketleri de
+     eski yüzdeli konumlarına göre yazılmıştı, gizleniyor. */
+  function stilEnjekte() {
+    if (document.getElementById("isoNodeStyles")) return;
+    const st = document.createElement("style");
+    st.id = "isoNodeStyles";
+    st.textContent =
+      ".battle-map.iso-node-layer::after{ display:none !important; }\n" +
+      ".battle-map.iso-node-layer .map-zone-label{ display:none !important; }\n" +
+      ".battle-map.iso-node-layer .map-node{ position:absolute !important; }\n";
+    document.head.appendChild(st);
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════
      OYUNA BAĞLANMA
 
      applyMapPan ve clampMapPan oyunun kendi fonksiyonları. Function
@@ -626,6 +723,7 @@
      ═════════════════════════════════════════════════════════════════════ */
 
   let eskiApply = null, eskiClamp = null, eskiScroll = null, eskiGo = null;
+  let eskiRender = null;
 
   function bagla() {
     eskiApply = window.applyMapPan;
@@ -649,7 +747,27 @@
       if (eskiGo) eskiGo.apply(this, arguments);
     };
 
+    /* renderBattleMap innerHTML'i baştan yazıyor → düğümler eski
+       yüzdeli konumlarına dönüyor. Her çizimden sonra yeniden
+       yerleştiriyoruz. */
+    eskiRender = window.renderBattleMap;
+    if (eskiRender) {
+      window.renderBattleMap = function () {
+        const r = eskiRender.apply(this, arguments);
+        if (aktif) { dugumKatmani(true); dugumleriYerlestir(); }
+        return r;
+      };
+    }
+
     window.applyMapPan = function () {
+      if (aktif) {
+        /* Orijinal applyMapPan #battleMap'e transform basıyor —
+           düğüm katmanında bu her şeyi kaydırır. Atlıyoruz. */
+        if (typeof updateHomeBtn === "function") { try { updateHomeBtn(); } catch (e) {} }
+        dugumleriYerlestir();
+        cizIste();
+        return;
+      }
       if (eskiApply) eskiApply.apply(this, arguments);
       cizIste();
     };
@@ -697,10 +815,22 @@
     const wrapEl = document.getElementById("battleMapWrap");
     if (!wrapEl || !wrapEl.clientWidth) return;
     if (!(mapZoom > 0)) mapZoom = 1;
-    const p = gridToWorld(Math.floor(G / 2), Math.floor(G / 2));
+
+    /* Varsa oyuncunun kendi kalesine, yoksa haritanın ortasına */
+    let hx = G / 2, hy = G / 2;
+    try {
+      if (typeof state !== "undefined" && state.castle &&
+          typeof state.castle.gx === "number") {
+        hx = state.castle.gx * ORAN;
+        hy = state.castle.gy * ORAN;
+      }
+    } catch (e) {}
+
+    const p = gridToWorld(hx, hy);
     mapPanX = wrapEl.clientWidth  / 2 - (p.x + HALF_W) * mapZoom;
     mapPanY = wrapEl.clientHeight / 2 - (p.y + HALF_H) * mapZoom;
-    if (eskiClamp || true) window.clampMapPan();
+    window.clampMapPan();
+    dugumleriYerlestir();
     cizIste();
   }
 
@@ -746,14 +876,14 @@
     wrap.appendChild(kutu);
   }
 
-  /* Mod değişince görünürlükleri ayarla.
-     YENİ modda #battleMap gizlenir: içindeki kale/canavar düğümleri hâlâ
-     eski düz koordinatta, izometrik zemine oturmuyorlar. ADIM D'de
-     taşınacaklar. */
+  /* Mod değişince katmanları ayarla. YENİ modda #battleMap artık
+     gizlenmiyor — düğüm katmanı olarak devam ediyor (ADIM D). */
   function uygulaMod() {
     const mapEl = document.getElementById("battleMap");
     if (cv) cv.style.display = aktif ? "block" : "none";
-    if (mapEl) mapEl.style.visibility = aktif ? "hidden" : "visible";
+    if (mapEl) mapEl.style.visibility = "visible";
+
+    dugumKatmani(aktif);
 
     mapZoom = aktif ? Math.max(CFG.minZoom, 1) : 1;
     if (aktif) ortala();
@@ -766,6 +896,7 @@
 
   function baslat() {
     if (!kurCanvas()) { setTimeout(baslat, 300); return; }
+    stilEnjekte();
     karolariYukle();
     bagla();
     kurArayuz();
@@ -789,5 +920,6 @@
 
   /* Konsoldan ayar yapabilmek için dışarı aç.
      Örn: HARITA.CFG.izgaraCizgisi = true; HARITA.ciz(); */
-  window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala };
+  window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala,
+                    dugumleriYerlestir, ORAN, onbellegiBosalt };
 })();
