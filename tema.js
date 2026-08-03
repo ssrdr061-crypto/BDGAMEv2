@@ -2190,28 +2190,66 @@ st.textContent = `
   box-shadow:inset 0 -14px 26px rgba(0,10,30,.4) !important;
 }
 
-/* ── ÜST HUD ROZETLERİ ───────────────────────────────────────
-   Eskiden düz camgöbeğiydi (#2DC9FC) ve yazısı koyuydu.
-   Artık koyu mavi gradyan + açık yazı. */
+/* ── ÜST HUD: DÜZ ŞERİT ──────────────────────────────────────
+   Eskiden ayrı ayrı hap kutucuklarıydı. Artık alt menü (.nav-dock)
+   ile aynı mantıkta tek parça bir çubuk: kutular kalkıyor, içerik
+   doğrudan şeridin üstünde duruyor, aralarına ince ayraç giriyor.
+
+   Şerit ARTIK OPAK olduğu için pointer-events:auto verildi —
+   yoksa şeridin üstünden haritayı sürükleyebiliyordun. */
+.hud-top{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:0 !important;
+  pointer-events:auto !important;
+  padding:calc(7px + env(safe-area-inset-top,0)) 12px 8px !important;
+  background:linear-gradient(180deg, var(--km-1) 0%, var(--km-2) 55%, var(--km-3) 100%) !important;
+  border-bottom:2px solid var(--km-kenar) !important;
+  border-radius:0 0 16px 16px !important;
+  box-shadow:0 6px 18px rgba(0,15,40,.5), inset 0 -2px 0 var(--km-parlak) !important;
+}
+
+/* kutuları söküyoruz — geriye sadece ikon + yazı kalıyor */
+.hud-top .hud-pill,
 .hud-pill,
 .hud-pill.diamond-pill,
 .user-pill,
-#staminaPill{
-  background:linear-gradient(180deg, var(--km-1), var(--km-2) 60%, var(--km-3)) !important;
+#mslHudPill{
+  pointer-events:auto !important;
+  background:none !important;
+  border:none !important;
+  box-shadow:none !important;
+  border-radius:0 !important;
+  padding:3px 10px !important;
   color:var(--km-yazi) !important;
-  border:2px solid var(--km-kenar) !important;
-  box-shadow:
-    0 4px 0 var(--km-dip),
-    0 8px 16px rgba(0,15,40,.45),
-    inset 0 1px 0 var(--km-parlak) !important;
-  text-shadow:0 1px 2px rgba(0,10,30,.65) !important;
+  font-size:14px !important;
+  text-shadow:0 2px 3px rgba(0,10,30,.75) !important;
 }
 .hud-pill.diamond-pill .amount,
-#staminaPill #staminaText,
 .user-pill #currentUserLabel{
   color:var(--km-yazi) !important;
 }
-.user-pill:hover{ border-color:#fff !important; color:#fff !important; }
+
+/* ince ayraç — ilk öğe hariç hepsinin soluna */
+.hud-top > *:not(:first-child){
+  border-left:1px solid rgba(160,215,255,.25) !important;
+}
+
+/* uzun kullanıcı adı şeridi taşırmasın */
+.hud-pill-right{
+  min-width:0 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+.user-pill:hover{ color:#fff !important; }
+
+/* ── CAN BARI KALDIRILDI ─────────────────────────────────────
+   Üstteki ❤️ rozeti ve ona bağlı can potu baloncuğu artık
+   görünmüyor. Geri getirmek istersen bu iki satırı sil. */
+#staminaPill,
+.stamina-potion-popup{ display:none !important; }
 
 /* ── ALT MENÜ (harita dock çubuğu) ───────────────────────────── */
 .nav-dock{
