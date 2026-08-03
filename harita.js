@@ -65,21 +65,26 @@
        minZoom'u düşürmek haritayı uzaktan gösterir ama aynı karede
        çizilecek karo sayısını KATLAR. 0.5'in altına inmeden önce
        telefonda FPS'e bak. */
-    minZoom: 0.5,
+    minZoom: 0.75,
     maxZoom: 3.0,
 
     /* ── Biyom üretimi ──
        seed: bu sayı DEĞİŞTİRİLİRSE tüm oyuncularda harita değişir.
        Yayına çıktıktan sonra ASLA dokunma — kaleler başka arazide kalır. */
     seed: 20260803,
-    frekans: 0.045,     // düşük = büyük kıtalar, yüksek = kırık dökük
-    esikKar: 0.38,      // bu değerin altı kar
-    esikCimen: 0.72,    // bu değerin altı çimen, üstü lav
+    frekans: 0.05,      // sınır dalgasının sıklığı
+    esikKar: 0.33,      // soldan bu orana kadar KAR
+    esikCimen: 0.67,    // buraya kadar ÇİMEN, sonrası LAV
+
+    /* Sınır ne kadar kırışsın. 0 = bıçak gibi düz dikey çizgi,
+       0.30 = çok dalgalı. Bantların birbirine karışmaması için
+       0.20'yi aşma. */
+    sinirDalgasi: 0.12,
 
     /* Geçiş bandı genişliği. Büyütürsen biyomlar birbirine daha uzun
        mesafede karışır (referans görseldeki gibi yumuşak), küçültürsen
        sınırlar keskinleşir. 0 yaparsan karışım tamamen kapanır. */
-    gecisBandi: 0.07,
+    gecisBandi: 0.06,
 
     /* ── Arazi dokuları ──
        DİKKAT: bunlar KARO değil, DÜZ DİKİŞSİZ DOKU olmalı. Yani üstten
@@ -102,7 +107,7 @@
     /* Ön-render kalitesi. 2 = karo 256x128 olarak hazırlanır, 128x64
        olarak çizilir → yakınlaştırınca net kalır. 3 yaparsan daha net
        ama bellek üç katına çıkar. */
-    kalite: 2,
+    kalite: 1.25,
 
     /* Her biyom için kaç farklı karo hazırlansın. Tek varyantta doku
        her karede birebir aynı tekrar eder ve ızgara deseni göze batar.
@@ -190,12 +195,24 @@
          + (c * (1 - ux) + d * ux) * uy;
   }
 
-  /* İki oktav: büyük kıtalar + kenarlarda doğal kırıklık.
-     Tek oktavda biyom sınırları fazla düzgün, sabun köpüğü gibi duruyor. */
+  /* ── BİYOM KONUMU ─────────────────────────────────────────────────
+     Biyom artık saf gürültüden değil, karonun EKRANDAKİ YATAY
+     konumundan geliyor: kar solda, çimen ortada, lav sağda.
+
+     İzometride ekran yatay ekseni (gx - gy). Bunu 0..1 aralığına
+     normalize edip eşiklerle kesiyoruz. Sınır cetvelle çizilmiş gibi
+     durmasın diye üstüne hafif gürültü dalgası bindiriyoruz —
+     dalga da tohumlu, yani herkeste aynı. */
   function biyomDeger(gx, gy) {
+    /* (gx - gy) aralığı: -(G-1) .. +(G-1) → 0..1 */
+    let u = ((gx - gy) + (G - 1)) / (2 * (G - 1));
+
+    /* Sınırları kırıştıran dalga */
     const f = CFG.frekans;
-    return smoothNoise(gx * f, gy * f) * 0.70
-         + smoothNoise(gx * f * 3.1, gy * f * 3.1) * 0.30;
+    const dalga = smoothNoise(gx * f, gy * f) - 0.5;
+    u += dalga * CFG.sinirDalgasi;
+
+    return Math.max(0, Math.min(1, u));
   }
 
   function biyom(gx, gy) {
