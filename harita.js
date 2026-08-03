@@ -68,9 +68,13 @@
     minZoom: 0.75,
     maxZoom: 3.0,
 
-    /* Açılışta kullanılacak zoom. maxZoom'a eşitse oyun en yakın
-       görünümle başlar. */
-    baslangicZoom: 3.0,
+    /* Açılışta kullanılacak zoom. Büyütürsen daha yakından başlar. */
+    baslangicZoom: 1.6,
+
+    /* Kaydırma sürtünmesi: parmağı bıraktıktan sonra harita akmaya
+       devam eder. 1'e yaklaştıkça daha uzun kayar, düşürdükçe daha
+       çabuk durur. */
+    surtunme: 0.94,
 
     /* Düğüm (kale/canavar) ölçek çarpanı. Kale CSS'te 100px;
        0.64 çarpanı onu 64px'lik karoya tam oturtur. Büyütürsen kale
@@ -827,8 +831,25 @@
         cgx = c.gx; cgy = c.gy;
       }
 
-      cgx = Math.max(0, Math.min(G - 1, cgx));
-      cgy = Math.max(0, Math.min(G - 1, cgy));
+      /* ── KENAR KİLİDİ ──
+         Merkezi sadece 0..G-1 arasında tutmak yetmiyor: uzaklaşınca
+         ekran haritadan çok daha geniş oluyor ve kamera kenara
+         dayandığında haritanın yarısı ekran dışında kalıyordu.
+         Bu yüzden izin verilen merkez aralığını, o anki görüş
+         alanının ızgara cinsinden yarıçapı kadar İÇERİ çekiyoruz. */
+      const yariX = (ww / 2) / mapZoom / CFG.tileW;
+      const yariY = (wh / 2) / mapZoom / CFG.tileH;
+      const pay = Math.min(G / 2, yariX + yariY);
+
+      const alt = pay, ust = (G - 1) - pay;
+
+      if (alt >= ust) {
+        /* Harita ekrandan küçük — ortala */
+        cgx = G / 2; cgy = G / 2;
+      } else {
+        cgx = Math.max(alt, Math.min(ust, cgx));
+        cgy = Math.max(alt, Math.min(ust, cgy));
+      }
 
       const p = gridToWorld(cgx, cgy);
       mapPanX = ww / 2 - (p.x + HALF_W) * mapZoom;
@@ -862,6 +883,94 @@
     window.clampMapPan();
     dugumleriYerlestir();
     cizIste();
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════
+     ATALETLİ KAYDIRMA (momentum)
+
+     Oyunun kendi kaydırma kodu parmak kalkınca haritayı ANINDA
+     durduruyor. Burada parmağın son hızını ölçüp, bırakıldıktan sonra
+     haritayı sürtünmeyle yavaşlayarak akıtıyoruz.
+
+     Oyunun kendi kaydırma mantığına KARIŞMIYOR: sadece parmak
+     kalktıktan sonra devreye giriyor, yani çakışma olmuyor.
+     ═════════════════════════════════════════════════════════════════════ */
+
+  let hizX = 0, hizY = 0;
+  let sonX = 0, sonY = 0, sonAn = 0;
+  let akisId = null, parmakVar = false;
+
+  function akisiDurdur() {
+    if (akisId) { cancelAnimationFrame(akisId); akisId = null; }
+    hizX = hizY = 0;
+  }
+
+  function akisAdimi() {
+    akisId = null;
+    if (!aktif || parmakVar) return;
+
+    /* Yeterince yavaşladıysa dur — sonsuz kare israfı olmasın */
+    if (Math.abs(hizX) < 0.15 && Math.abs(hizY) < 0.15) return;
+
+    const oncekiX = mapPanX, oncekiY = mapPanY;
+    mapPanX += hizX;
+    mapPanY += hizY;
+    window.clampMapPan();
+    window.applyMapPan();
+
+    /* Kenara dayandıysak o eksende hızı kes, duvara yaslanıp
+       titremesin */
+    if (Math.abs(mapPanX - oncekiX) < 0.01) hizX = 0;
+    if (Math.abs(mapPanY - oncekiY) < 0.01) hizY = 0;
+
+    hizX *= CFG.surtunme;
+    hizY *= CFG.surtunme;
+
+    akisId = requestAnimationFrame(akisAdimi);
+  }
+
+  function ataletKur() {
+    const wrap = document.getElementById("battleMapWrap");
+    if (!wrap) return;
+
+    wrap.addEventListener("pointerdown", e => {
+      parmakVar = true;
+      akisiDurdur();
+      sonX = e.clientX; sonY = e.clientY; sonAn = performance.now();
+    }, { passive: true });
+
+    wrap.addEventListener("pointermove", e => {
+      if (!parmakVar) return;
+      const simdi = performance.now();
+      const dt = simdi - sonAn;
+      if (dt > 0) {
+        /* Kare başına piksel cinsinden hız (60 fps varsayımıyla).
+           Ani sıçramaları yumuşatmak için önceki hızla harmanlıyoruz. */
+        const ax = (e.clientX - sonX) / dt * 16;
+        const ay = (e.clientY - sonY) / dt * 16;
+        hizX = hizX * 0.3 + ax * 0.7;
+        hizY = hizY * 0.3 + ay * 0.7;
+      }
+      sonX = e.clientX; sonY = e.clientY; sonAn = simdi;
+    }, { passive: true });
+
+    const birak = () => {
+      if (!parmakVar) return;
+      parmakVar = false;
+      if (!aktif) { hizX = hizY = 0; return; }
+
+      /* Parmak hareketsiz bekleyip kalktıysa akıtma */
+      if (performance.now() - sonAn > 90) { hizX = hizY = 0; return; }
+
+      /* Çok küçük hızlar dokunuş sayılır, akıtma */
+      if (Math.abs(hizX) < 1.5 && Math.abs(hizY) < 1.5) { hizX = hizY = 0; return; }
+
+      akisId = requestAnimationFrame(akisAdimi);
+    };
+
+    wrap.addEventListener("pointerup", birak, { passive: true });
+    wrap.addEventListener("pointercancel", birak, { passive: true });
+    wrap.addEventListener("pointerleave", birak, { passive: true });
   }
 
   /* ═════════════════════════════════════════════════════════════════════
@@ -932,6 +1041,7 @@
     karolariYukle();
     bagla();
     kurArayuz();
+    ataletKur();
     uygulaMod();
 
     window.addEventListener("resize", () => { boyutlandir(); cizIste(); });
