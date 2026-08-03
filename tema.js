@@ -2845,3 +2845,37 @@ document.head.appendChild(st);
 
 console.log("[tema.js] Saldırı paneli hizası uygulandı ✔");
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   14) EĞİTİM KUTUSU — sade hâli
+   Üstte kuyruğun toplam süresi, altta adet. Yazı beyaz, kutu ince.
+   ═══════════════════════════════════════════════════════════════ */
+(function egitimKutusu() {
+"use strict";
+const st = document.createElement("style");
+st.id = "temaEgitimKutusu";
+st.textContent = `
+#panel-troops .utb-training{
+  padding:4px 8px !important;
+  gap:0 !important;
+  border-width:2px !important;
+  border-color:rgba(190,240,255,.30) !important;
+  color:#fff !important;
+  line-height:1.15 !important;
+}
+#panel-troops .unit-train-timer{
+  font-size:14.5px !important; font-weight:800 !important;
+  color:#fff !important; opacity:1 !important;
+  text-shadow:0 2px 3px rgba(0,20,45,.6) !important;
+  white-space:nowrap !important;
+}
+#panel-troops .unit-train-count{
+  font-size:12.5px !important; font-weight:800 !important;
+  color:#fff !important; opacity:.9 !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.6) !important;
+}
+#panel-troops .unit-speedup-btn{ padding:7px 11px !important; }
+`;
+document.head.appendChild(st);
+})();

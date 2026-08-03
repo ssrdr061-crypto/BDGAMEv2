@@ -3828,12 +3828,10 @@ function formatRemaining(ms) {
   return `${m}:${ss}`;
 }
 
-/* Eğitim sayacı metni — SIRALI eğitimde tek bir süre yanıltıcıydı:
-   "sıradaki" bir sonraki birliğin, "tümü" kuyruğun tamamının süresi. */
-function trainTimerText(adet, siradakiMs, tumuMs) {
-  const bicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
-  if (adet <= 1) return `⏱ x1 ${bicim(siradakiMs)}`;
-  return `⏱ x${adet} · sıradaki ${bicim(siradakiMs)} · tümü ${bicim(tumuMs)}`;
+/* Eğitim kutusundaki süre — kuyruğun TAMAMININ kalan süresi.
+   Saat gösteren biçimleyici troops.js'te (sureMs). */
+function trainSure(ms) {
+  return (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
 }
 
 function formatLogTime(ts) {
@@ -5613,8 +5611,9 @@ const TroopViewer = (function () {
         const remaining = nearest.finishAt - Date.now();
         const totalRemaining = latest.finishAt - Date.now();
         html += `<div class="unit-train-bar">
-            <div class="utb-training">⏳ Eğitiliyor
-              <span class="unit-train-timer" data-unit="${uid}">${trainTimerText(trainQueueForUnit.length, remaining, totalRemaining)}</span>
+            <div class="utb-training">
+              <span class="unit-train-timer" data-unit="${uid}">⏳ ${trainSure(totalRemaining)}</span>
+              <span class="unit-train-count" data-unit="${uid}">x${trainQueueForUnit.length}</span>
             </div>
             <button class="speedup-trigger unit-speedup-btn" data-unit="${uid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
           </div>`;
@@ -5700,7 +5699,9 @@ const TroopViewer = (function () {
           return;
         }
         const latest = trainQueueForUnit.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
-        span.textContent = trainTimerText(trainQueueForUnit.length, remaining, latest.finishAt - Date.now());
+        span.textContent = "⏳ " + trainSure(latest.finishAt - Date.now());
+        const adetEl = document.querySelector(`.unit-train-count[data-unit="${uid}"]`);
+        if (adetEl) adetEl.textContent = "x" + trainQueueForUnit.length;
       });
     }, 1000);
   }
