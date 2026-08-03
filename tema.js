@@ -2667,14 +2667,45 @@ st.textContent = `
 .battle-arena-overlay{ background:transparent !important; }
 
 /* ── PANEL İÇİNDEKİ İKİNCİ KUTU KALDIRILDI ───────────────────
-   .troop-select-box "panel içinde panel" gibi duruyordu; çerçevesi
-   ve zemini kalktı, genişlik tam kullanılıyor. */
-#battleArena .troop-select-box{
-  background:none !important; border:none !important;
+   Çerçeve gitmişti ama tema.js'in üst bloğundaki İÇ GÖLGE
+   (box-shadow: inset ...) dikdörtgeni çizmeye devam ediyordu;
+   asıl "kutu görüntüsü" oydu. Zemin + çerçeve + gölge hepsi kapalı. */
+#battleArena .troop-select-box,
+#battleArena .power-compare-box,
+#battleArena #enemyPowerPreview,
+#battleArena #troopSelectList,
+#battleArena #heroPicker{
+  background:none !important; background-image:none !important;
+  border:0 !important; outline:0 !important;
+  box-shadow:none !important;
   border-radius:0 !important; padding:0 !important;
   max-width:none !important; margin:0 !important;
 }
 #battleArena .battle-arena{ gap:10px !important; }
+
+/* ── KAPAT (X): panelin sağ üst köşesine, çapraz taşkın ────────
+   Panelin kendisi artık kaydırmıyor (yoksa X kırpılıyordu);
+   kaydırma birlik listesine devredildi. */
+#battleArena .battle-arena{ overflow:visible !important; }
+#battleArena .troop-select-box{
+  flex:1 1 auto !important; min-height:0 !important;
+  width:100% !important; overflow-y:auto !important;
+  scrollbar-width:none !important;
+}
+#battleArena .troop-select-box::-webkit-scrollbar{ width:0 !important; display:none !important; }
+#battleArena #mapBackBtn{
+  top:-15px !important; right:-13px !important;
+  border-radius:12px !important;
+  box-shadow:0 4px 12px rgba(120,0,0,.5) !important;
+}
+
+/* ── SALDIR: kutu daraldı, yazı büyük harf ── */
+#battleArena .battle-btn{
+  padding:12px 22px !important;
+  min-width:0 !important; width:auto !important;
+  text-transform:uppercase !important;
+  letter-spacing:1px !important;
+}
 #battleArena .troop-select-title{
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:800 !important; font-size:13px !important;

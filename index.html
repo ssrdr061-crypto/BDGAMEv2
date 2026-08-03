@@ -4160,7 +4160,8 @@ function collectLootChest(enemyName) {
 function selectEnemyFromMap(enemy) {
   currentEnemy = enemy;
 
-  $id("battleMapWrap").style.display = "none";
+  /* Harita GİZLENMİYOR: saldırı paneli haritanın üstünde açılıyor,
+     arkada siyah boşluk kalmıyor. */
   document.getElementById("battleArena").style.display = "flex";
 
   toggleMapOverlays(false);
