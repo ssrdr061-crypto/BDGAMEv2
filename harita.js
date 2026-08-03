@@ -123,7 +123,7 @@
     /* Her biyom için kaç farklı karo hazırlansın. Tek varyantta doku
        her karede birebir aynı tekrar eder ve ızgara deseni göze batar.
        4 varyant bunu büyük ölçüde kırar. */
-    varyant: 4,
+    varyant: 9,
 
     /* Görsel yokken kullanılacak düz renkler (aynı zamanda mini-harita
        rengi olarak da işe yarar) */
@@ -283,20 +283,30 @@
 
   const karolar = {};   // { kar: {hazir, parcalar:[canvas,...]}, ... }
 
-  function karoUret(img, tw, th, kaydirX, kaydirY) {
+  /* PAY: karo canvas'ının her yanına eklenen boşluk (dünya pikseli).
+     Maskeyi dışarı taşırıyoruz ama canvas kenarı onu keserdi; bu pay
+     taşan kısmın çizilebileceği yeri açıyor. Karo ekrana çizilirken
+     aynı pay kadar sola/yukarı kaydırılıp o kadar büyük basılıyor,
+     böylece komşularla tam opak örtüşme oluyor ve dikiş çizgisi
+     kalmıyor. */
+  const PAY = 1;
+
+  function karoUret(img, tw, th, s, kaydirX, kaydirY) {
+    const p = PAY * s;                       // ön-render ölçeğinde pay
     const c = document.createElement("canvas");
-    c.width = tw; c.height = th;
+    c.width  = tw + 2 * p;
+    c.height = th + 2 * p;
     const x = c.getContext("2d");
 
-    /* Eşkenar dörtgen maskesi. Yarım piksel dışarı taşırıyoruz:
-       karolar yan yana gelince aralarında saç teli kalınlığında
-       beyaz çizgi kalmasın. */
-    const d = 0.5;
+    x.translate(p, p);
+
+    /* Eşkenar dörtgen maskesi, pay kadar dışarı taşkın */
+    const d = p;
     x.beginPath();
-    x.moveTo(tw / 2,      -d);
-    x.lineTo(tw + d,      th / 2);
-    x.lineTo(tw / 2,      th + d);
-    x.lineTo(-d,          th / 2);
+    x.moveTo(tw / 2,  -d);
+    x.lineTo(tw + d,   th / 2);
+    x.lineTo(tw / 2,   th + d);
+    x.lineTo(-d,       th / 2);
     x.closePath();
     x.clip();
 
@@ -305,27 +315,29 @@
     const sx = Math.min(img.width  - S, Math.round(kaydirX * (img.width  - S)));
     const sy = Math.min(img.height - S, Math.round(kaydirY * (img.height - S)));
 
-    /* Kareyi dörtgene büken matris */
-    x.setTransform(
+    /* Kareyi dörtgene büken matris (pay kaydırması korunuyor) */
+    x.transform(
       tw / (2 * S),   th / (2 * S),
      -tw / (2 * S),   th / (2 * S),
       tw / 2,         0
     );
-    x.drawImage(img, sx, sy, S, S, 0, 0, S, S);
+    /* Dokuyu maskeden biraz taşkın çiz ki taşan kenar boş kalmasın */
+    x.drawImage(img, sx, sy, S, S, -S * 0.03, -S * 0.03, S * 1.06, S * 1.06);
 
     return c;
   }
 
   function dokularıHazirla(ad, img) {
-    const tw = Math.round(CFG.tileW * CFG.kalite);
-    const th = Math.round(CFG.tileH * CFG.kalite);
+    const s  = CFG.kalite;
+    const tw = Math.round(CFG.tileW * s);
+    const th = Math.round(CFG.tileH * s);
     const parcalar = [];
 
     for (let i = 0; i < CFG.varyant; i++) {
       /* Varyantlar dokunun farklı bölgelerinden alınır → tekrar kırılır */
-      const kx = (i % 2) * 0.6 + 0.1;
-      const ky = (Math.floor(i / 2) % 2) * 0.6 + 0.1;
-      parcalar.push(karoUret(img, tw, th, kx, ky));
+      const kx = (i % 3) * 0.45 + 0.05;
+      const ky = (Math.floor(i / 3) % 3) * 0.45 + 0.05;
+      parcalar.push(karoUret(img, tw, th, s, kx, ky));
     }
 
     karolar[ad] = { hazir: true, parcalar };
@@ -408,8 +420,11 @@
     if (saydamlik < 1) x2.globalAlpha = saydamlik;
 
     if (kayit && kayit.hazir) {
-      /* +1 px: komşu karolarla dikiş yerinde boşluk kalmasın */
-      x2.drawImage(kayit.parcalar[vi % kayit.parcalar.length], x, y, tw + 1, th + 1);
+      /* Karo, PAY kadar taşkın hazırlandı: aynı kadar sola/yukarı
+         kaydırıp o kadar büyük basıyoruz. Komşularla tam opak
+         örtüşme oluyor, dikiş çizgisi kalmıyor. */
+      x2.drawImage(kayit.parcalar[vi % kayit.parcalar.length],
+                   x - PAY, y - PAY, tw + 2 * PAY, th + 2 * PAY);
     } else {
       x2.fillStyle = CFG.karoRenk[tip];
       x2.beginPath();
