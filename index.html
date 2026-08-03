@@ -4929,11 +4929,8 @@ async function startBattle() {
   log.textContent = `${currentEnemy.name} ile çatışıyorsun...`;
   log.style.color = "var(--ink)";
 
-  const arena = $q(".battle-arena");
-  if (arena) { arena.classList.add("shake"); setTimeout(() => arena.classList.remove("shake"), 350); }
-
-  await delay(900);
-
+  /* Bekleme/sarsıntı kaldırıldı: butona basınca savaş anında çözülür,
+     panel kapanır, sonuç mesaj kutusuna düşer. */
   const enemyForBattle = currentEnemy;
     const effectiveHero = getEffectiveHeroStats(selectedTroopsForBattle);
     const troopRoster = buildTroopRoster(selectedTroopsForBattle);
@@ -4996,8 +4993,6 @@ async function startBattle() {
         <div style="font-size:11.5px;color:var(--ink-dim); margin-top:8px;">${enemyForBattle.name} 45 dakika sonra haritaya geri dönecek. Yerinde bir hazine sandığı belirdi!</div>
         ${frontierGrew ? `<div style="font-size:11.5px;color:var(--gold-soft); margin-top:4px;">🚩 Sınırların genişledi!</div>` : ""}`;
       renderBattleMap();
-
-      setTimeout(() => { backToMap(); }, 4200);
     } else {
       const loss = Math.min(state.diamonds, Math.floor(Math.random() * 500) + 100);
       state.diamonds -= loss;
@@ -5043,6 +5038,9 @@ async function startBattle() {
   updateShopButtons();
   renderStamina();
   btn.disabled = (state.stamina.current <= 0);
+
+  /* kazan-kaybet fark etmez: panel hemen kapanır, sonuç mesaj kutusunda */
+  backToMap();
 }
 
 /* ═══ GÜÇ PUANI + SIRALAMA (RANK) ═══

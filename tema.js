@@ -2626,3 +2626,44 @@ document.addEventListener("touchcancel", () => { izliyor = false; }, { passive: 
 
 console.log("[tema.js] Kahraman kartı kaydırma açık ✔");
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   13) SALDIRI PANELİ HİZASI  —  diğer panellerle aynı dikdörtgen
+   ---------------------------------------------------------------
+   Savaş paneli (#battleArena) ekranın altına yapışıktı; mağaza,
+   çanta, kahraman ve birlik panelleriyle aynı yerleşime alındı:
+
+        üstten 60px · alttan 70px · yanlardan 12px
+        en fazla 420px · köşe 22px
+
+   Ölçüyü değiştirirsen 12. bloktaki "ORTALANMIŞ PANELLER"
+   değerlerini de aynı yap, yoksa paneller arası geçişte zıplar.
+   Bu blok DOSYANIN EN SONUNDA durmalı.
+   ═══════════════════════════════════════════════════════════════ */
+(function saldiriPaneliHizasi() {
+"use strict";
+
+const st = document.createElement("style");
+st.id = "temaSaldiriHiza";
+st.textContent = `
+#battleArena{
+  align-items:center !important;
+  justify-content:center !important;
+  padding:60px 12px 70px !important;
+}
+#battleArena .battle-arena{
+  width:100% !important;
+  max-width:420px !important;
+  max-height:100% !important;
+  border-radius:22px !important;
+  padding:20px 14px 16px !important;
+  overflow-y:auto !important;
+  scrollbar-width:none !important;
+}
+#battleArena .battle-arena::-webkit-scrollbar{ width:0 !important; display:none !important; }
+`;
+document.head.appendChild(st);
+
+console.log("[tema.js] Saldırı paneli hizası uygulandı ✔");
+})();

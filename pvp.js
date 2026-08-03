@@ -1098,10 +1098,8 @@ async function runPvpBattle() {
 
   _running = true;
   btn.disabled = true;
-  log.innerHTML = `⚔️ Ordular çarpışıyor...`;
-  const arena = document.querySelector(".battle-arena");
-  if (arena) { arena.classList.add("shake"); setTimeout(()=>arena.classList.remove("shake"), 350); }
-  await new Promise(r => setTimeout(r, 900));
+  log.innerHTML = "";
+  /* Bekleme/sarsıntı kaldırıldı: saldırı anında çözülür. */
 
   const myHero = (typeof state.hero === "object") ? state.hero : {};
   const R = pvpSimulate(sel, myHero, enemy);
@@ -1175,8 +1173,8 @@ async function runPvpBattle() {
 
   _running = false;
   btn.disabled = (state.stamina.current <= 0);
-  /* kazan-kaybet fark etmeksizin 3 saniye sonra panel kapanır */
-  setTimeout(() => { if (typeof backToMap === "function") backToMap(); }, 3000);
+  /* kazan-kaybet fark etmez: panel hemen kapanır, sonuç mesaj kutusunda */
+  if (typeof backToMap === "function") backToMap();
 }
 
 /* savunanın kaybı: robot çarpanı sahte olduğu için gerçek envanteri aşmasın */
@@ -1658,4 +1656,98 @@ window.PVP = {
   simulate: pvpSimulate, config: CFG,
   friends: () => (pvpState() || {}).friends,
 };
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   MESAJ KUTUSU BİLDİRİMİ  —  alt menüdeki ✉ ikonunda kırmızı rozet
+   ---------------------------------------------------------------
+   Sayaç: state.battleLogHistory içinde "son okuma"dan YENİ olan
+   kayıt sayısı. Kendi saldırın, sana gelen baskın raporu, füze —
+   günlüğe düşen her şey sayılır. Panel açılınca sıfırlanır.
+
+   Son okuma zamanı localStorage'da (hesap adına göre) tutulur;
+   kayıt biçimine dokunulmadı, Firebase'e bir şey yazılmıyor.
+   ═══════════════════════════════════════════════════════════════ */
+(function mesajRozeti() {
+"use strict";
+
+const st = document.createElement("style");
+st.id = "mesajRozetiStil";
+st.textContent = `
+.nav-dock .dock-btn[data-panel="battlelog"]{ position:relative; }
+.mail-badge{
+  position:absolute; top:0; right:4px; z-index:5; pointer-events:none;
+  min-width:19px; height:19px; padding:0 5px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:10px;
+  background:linear-gradient(180deg,#ff5c5c,#c00d0d);
+  border:2px solid rgba(255,225,225,.92);
+  color:#fff; font-family:'Baloo 2','Nunito',sans-serif;
+  font-weight:800; font-size:11px; line-height:1; letter-spacing:.2px;
+  text-shadow:0 1px 2px rgba(90,0,0,.6);
+  box-shadow:0 2px 7px rgba(120,0,0,.55);
+  animation:mailBadgePulse 1.6s ease-in-out infinite;
+}
+@keyframes mailBadgePulse{
+  0%,100%{ transform:scale(1); }
+  50%    { transform:scale(1.13); }
+}
+`;
+document.head.appendChild(st);
+
+function anahtar() {
+  const u = (typeof currentUsername !== "undefined" && currentUsername) ? currentUsername : "misafir";
+  return "bd_mail_seen_" + u;
+}
+function sonOkuma() {
+  try { const v = parseInt(localStorage.getItem(anahtar()) || "", 10); return isFinite(v) ? v : null; }
+  catch (e) { return null; }
+}
+function okunduYaz(t) { try { localStorage.setItem(anahtar(), String(t)); } catch (e) {} }
+
+function okunmamisSayisi() {
+  const h = (window.state && Array.isArray(state.battleLogHistory)) ? state.battleLogHistory : [];
+  const t = sonOkuma();
+  if (t === null) return 0;
+  let n = 0;
+  for (let i = 0; i < h.length; i++) {
+    const e = h[i];
+    if (e && typeof e.timestamp === "number" && e.timestamp > t) n++;
+  }
+  return n;
+}
+
+function dockDugmesi() { return document.querySelector('.dock-btn[data-panel="battlelog"]'); }
+
+function ciz() {
+  const btn = dockDugmesi();
+  if (!btn) return;
+  /* ilk açılış: geçmiş kayıtlar okunmuş sayılır, rozet 0'dan başlar */
+  if (sonOkuma() === null) { okunduYaz(Date.now()); }
+
+  /* mesaj kutusu açıksa okundu kabul et */
+  const panel = document.getElementById("panel-battlelog");
+  if (panel && panel.classList.contains("active")) okunduYaz(Date.now());
+
+  const n = okunmamisSayisi();
+  let rozet = btn.querySelector(".mail-badge");
+  if (n <= 0) { if (rozet) rozet.remove(); return; }
+  if (!rozet) { rozet = document.createElement("span"); rozet.className = "mail-badge"; btn.appendChild(rozet); }
+  const yazi = n > 99 ? "99+" : String(n);
+  if (rozet.textContent !== yazi) rozet.textContent = yazi;
+}
+
+/* mesaj kutusuna dokunulduğu anda sıfırla (panel açılışını beklemeden) */
+document.addEventListener("click", (e) => {
+  const t = e.target && e.target.closest ? e.target.closest('[data-panel="battlelog"]') : null;
+  if (t) { okunduYaz(Date.now()); setTimeout(ciz, 40); }
+}, true);
+
+/* state geç yükleniyor (giriş sonrası), o yüzden aralıklı kontrol */
+setInterval(ciz, 1000);
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ciz);
+else ciz();
+
+window.refreshMailBadge = ciz;
+
 })();
