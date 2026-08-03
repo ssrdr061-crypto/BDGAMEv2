@@ -1582,17 +1582,10 @@ if (document.readyState === "loading") {
    Orada bir değeri değiştirirsen buradaki padding'i de aynı yap.
    NOT: Bu blok dosyanın en sonunda olduğu için yukarıdaki
    #panel-troops kurallarını EZER — ölçüyü buradan ayarla. */
-#panel-troops{ padding:0 !important; }
-/* Kartın kendisi doğrudan konumlanır: üstten 60, alttan 70, ortalanmış.
-   Böylece hiçbir padding/dock hesabı bu hizayı bozamaz.
-   (Eskiden alt boşluk --tp-dock-h'den geliyordu; panel açılınca dock
-    gizlendiği için o değer 0 oluyor ve kart ekranın dibine yapışıyordu.) */
+#panel-troops{ padding:60px 12px 70px !important; align-items:stretch !important; }
 #panel-troops .uv-viewer{
-  position:fixed !important;
-  top:60px !important; bottom:70px !important;
-  left:50% !important; transform:translateX(-50%) !important;
-  width:calc(100% - 24px) !important; max-width:420px !important;
-  height:auto !important;
+  height:100% !important;
+  max-width:420px !important;
   border-radius:22px !important;
   border:3px solid rgba(190,240,255,.85) !important;
   box-shadow:0 10px 34px rgba(0,0,0,.55), inset 0 3px 0 rgba(255,255,255,.45) !important;
@@ -2114,4 +2107,200 @@ if (document.readyState === "loading") {
 })();
 
 console.log("[tema.js] Görünüm dosyası yüklendi ✔");
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   12) KOYU MAVİ TEMA  —  "tp-row" rengi tüm oyuna
+   ---------------------------------------------------------------
+   Oyunun eski açık mavisi (#1fa3ea → #0e6fc0) yerine, birlik
+   kartındaki (.tp-row) koyu mavi gradyan kullanılır:
+
+        #3d7ccc  →  #22488f  →  #152e5e
+
+   Bu blok DOSYANIN EN SONUNDA durmalı. Hiçbir eski satırı silmez;
+   sadece üstüne yazar. Eski görünüme dönmek için bu bloğu sil.
+
+   Kapsam: panel gövdeleri (mağaza, çanta, sandık, hastane, sıralama,
+   savaş günlüğü, rapor, kale kutucuğu, kahraman seçici, birlik
+   paneli), üst HUD rozetleri, alt menü çubuğu, füze onay paneli
+   ve bildirim baloncuğu.
+
+   ── AYAR ──
+   Tek bir renk değiştirmek istersen aşağıdaki :root değişkenlerini
+   düzenle; tüm blok onlardan besleniyor.
+   ═══════════════════════════════════════════════════════════════ */
+(function koyuMaviTema() {
+"use strict";
+
+const st = document.createElement("style");
+st.id = "temaKoyuMavi";
+st.textContent = `
+:root{
+  --km-1:#3d7ccc;          /* gradyanın üstü   */
+  --km-2:#22488f;          /* ortası           */
+  --km-3:#152e5e;          /* altı             */
+  --km-dip:#0b1c3a;        /* 3B kalınlık / dip gölgesi */
+  --km-parlak:rgba(150,205,255,.55);  /* üst iç parlama */
+  --km-kenar:rgba(160,215,255,.60);   /* çerçeve        */
+  --km-yazi:#eaf4ff;       /* koyu zeminde okunan yazı */
+}
+
+/* ── PANEL GÖVDESİ ────────────────────────────────────────────
+   Üstte hafif bir ışık, altta derinlik, arada üç duraklı gradyan.
+   Birlik kartıyla aynı ailede ama panel büyük olduğu için ışık
+   biraz daha yayvan. */
+.overlay-card,
+#panel-shop .overlay-card,
+#panel-inventory .overlay-card,
+#panel-rank .overlay-card,
+#panel-chest .overlay-card,
+#panel-battlelog .overlay-card,
+#panel-hospital .overlay-card,
+.battle-arena,
+.backup-modal,
+.pvp-pop,
+.daily-reward-banner,
+.hpk-modal,
+#welcomeBack .wc-box,
+#logReportModal .lrm-box,
+#panel-troops .uv-viewer,
+.tp-screen{
+  background:
+    radial-gradient(ellipse 115% 55% at 50% -6%, rgba(130,200,255,.30), transparent 68%),
+    radial-gradient(ellipse 90% 45% at 50% 106%, rgba(3,10,26,.55), transparent 74%),
+    linear-gradient(180deg, var(--km-1) 0%, var(--km-2) 52%, var(--km-3) 100%) !important;
+  border-color:var(--km-kenar) !important;
+  box-shadow:
+    0 0 26px rgba(20,60,120,.5),
+    inset 0 3px 0 var(--km-parlak),
+    inset 0 -14px 26px rgba(0,10,30,.45) !important;
+}
+
+/* Kahraman ekranı zeminsizdi, öyle kalsın (yukarıdaki kural onu da
+   yakalıyordu, burada geri alıyoruz). */
+#panel-hero .overlay-card{
+  background:none !important; border:none !important; box-shadow:none !important;
+}
+
+/* Birlikler sekmesinin zemini panelin içinde duruyor; çerçeve ve
+   dış gölge istemiyor. */
+.tp-screen{
+  border:0 !important;
+  box-shadow:inset 0 -14px 26px rgba(0,10,30,.4) !important;
+}
+
+/* ── ÜST HUD ROZETLERİ ───────────────────────────────────────
+   Eskiden düz camgöbeğiydi (#2DC9FC) ve yazısı koyuydu.
+   Artık koyu mavi gradyan + açık yazı. */
+.hud-pill,
+.hud-pill.diamond-pill,
+.user-pill,
+#staminaPill{
+  background:linear-gradient(180deg, var(--km-1), var(--km-2) 60%, var(--km-3)) !important;
+  color:var(--km-yazi) !important;
+  border:2px solid var(--km-kenar) !important;
+  box-shadow:
+    0 4px 0 var(--km-dip),
+    0 8px 16px rgba(0,15,40,.45),
+    inset 0 1px 0 var(--km-parlak) !important;
+  text-shadow:0 1px 2px rgba(0,10,30,.65) !important;
+}
+.hud-pill.diamond-pill .amount,
+#staminaPill #staminaText,
+.user-pill #currentUserLabel{
+  color:var(--km-yazi) !important;
+}
+.user-pill:hover{ border-color:#fff !important; color:#fff !important; }
+
+/* ── ALT MENÜ (harita dock çubuğu) ───────────────────────────── */
+.nav-dock{
+  background:linear-gradient(180deg, var(--km-1) 0%, var(--km-2) 45%, var(--km-3) 100%) !important;
+  border-top:2px solid var(--km-kenar) !important;
+  box-shadow:0 -6px 18px rgba(0,15,40,.5), inset 0 2px 0 var(--km-parlak) !important;
+}
+.dock-btn{ color:var(--km-yazi) !important; }
+.dock-icon{ filter:drop-shadow(0 3px 5px rgba(0,5,20,.7)) !important; }
+
+/* ── FÜZE ONAY PANELİ (missile.js) ───────────────────────────
+   Eskiden parlak camgöbeği zemin + siyah yazıydı. Zemin koyulaşınca
+   yazı ve butonlar da açığa çevrildi, yoksa okunmuyor. */
+.msl-confirm-panel{
+  background:
+    radial-gradient(ellipse 115% 55% at 50% -6%, rgba(130,200,255,.28), transparent 68%),
+    linear-gradient(180deg, var(--km-1) 0%, var(--km-2) 52%, var(--km-3) 100%) !important;
+  border:3px solid var(--km-kenar) !important;
+  box-shadow:
+    0 10px 40px rgba(0,10,30,.55),
+    inset 0 3px 0 var(--km-parlak) !important;
+}
+.msl-confirm-msg{
+  color:var(--km-yazi) !important;
+  text-shadow:0 2px 4px rgba(0,10,30,.6) !important;
+}
+.msl-cbtn-ok{
+  background:linear-gradient(180deg,#ffd257,#f0932b) !important;
+  color:#3a2408 !important;
+  box-shadow:0 4px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.5) !important;
+}
+.msl-cbtn-ok:active{ box-shadow:0 1px 0 #a8641a !important; }
+.msl-cbtn-cancel{
+  background:rgba(255,255,255,.16) !important;
+  color:var(--km-yazi) !important;
+  border:2px solid rgba(160,215,255,.4) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25) !important;
+}
+
+/* ── BİLDİRİM BALONCUĞU (toast) ─────────────────────────────── */
+#toast{
+  background:linear-gradient(180deg, var(--km-1), var(--km-2) 55%, var(--km-3)) !important;
+  border:2px solid var(--km-kenar) !important;
+  box-shadow:
+    0 10px 30px -8px rgba(0,10,30,.6),
+    inset 0 1px 0 var(--km-parlak) !important;
+}
+
+/* ── SEKME ÇUBUKLARI ────────────────────────────────────────
+   Pasif sekmeler koyu zeminde silikleşiyordu, biraz açıldı.
+   Aktif sekme beyaz kalıyor — koyu zeminde kontrastı iyi. */
+.tp-tab,
+#panel-shop .shop-tab{
+  background:linear-gradient(180deg, rgba(255,255,255,.20), rgba(255,255,255,.05)) !important;
+  border-color:rgba(160,215,255,.45) !important;
+  color:#cfe8ff !important;
+}
+.tp-tab.active,
+#panel-shop .shop-tab.active{
+  background:linear-gradient(180deg,#ffffff,#cfeefb) !important;
+  color:#1a3a75 !important;
+}
+
+/* ── KAYDIRMA ÇUBUKLARI ─────────────────────────────────────── */
+.tp-list::-webkit-scrollbar-thumb,
+#panel-shop .shop-grid::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,#6fa8e0,#2a5596) !important;
+}
+
+/* ── KART İÇİ KARTLAR ───────────────────────────────────────
+   Panel koyulaşınca içindeki .tp-row / .shop-card2 / .hpk-card
+   kartları zemine karışıyordu; üstlerini bir tık açıyoruz ki
+   panelden ayrışsınlar. */
+.tp-row,
+.shop-card2,
+.hpk-card{
+  background:linear-gradient(180deg, #4a8bd8 0%, #2a5596 55%, #1a3a70 100%) !important;
+}
+`;
+
+function ekle() {
+  /* magaza.js, missile.js ve rehber.js kendi stillerini tema.js'ten
+     SONRA ekliyor. Kurallar zaten !important, ama etiketi en sona
+     tekrar taşımak garanti olsun diye. */
+  document.head.appendChild(st);
+}
+ekle();
+window.addEventListener("load", ekle);
+setTimeout(ekle, 1500);
+
+console.log("[tema.js] Koyu mavi tema uygulandı ✔");
 })();
