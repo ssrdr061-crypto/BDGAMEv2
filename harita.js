@@ -76,15 +76,38 @@
     esikKar: 0.38,      // bu değerin altı kar
     esikCimen: 0.72,    // bu değerin altı çimen, üstü lav
 
-    /* ── Karo görselleri ──
+    /* Geçiş bandı genişliği. Büyütürsen biyomlar birbirine daha uzun
+       mesafede karışır (referans görseldeki gibi yumuşak), küçültürsen
+       sınırlar keskinleşir. 0 yaparsan karışım tamamen kapanır. */
+    gecisBandi: 0.07,
+
+    /* ── Arazi dokuları ──
+       DİKKAT: bunlar KARO değil, DÜZ DİKİŞSİZ DOKU olmalı. Yani üstten
+       çekilmiş, kenarları birbirine oturan kare bir resim (örn. 1024x683
+       çimen dokusu). İzometrik eşkenar dörtgene büken kod aşağıda.
+
+       3D "kalıp" render'ları (kenarında toprak kalınlığı, altında gölge
+       olanlar) KULLANILMAZ: her birinin kendi ışığı ve perspektifi var,
+       yan yana dizilince kenarlarda gölge çizgileri sıralanır.
+
        Kendi deponuza koyun. Dış URL kullanmayın: hotlink kırılır ve
        CORS canvas'ı kirletir (tainted canvas → drawImage patlar).
        Dosya bulunamazsa düz renk kullanılır, oyun çökmez. */
-    karoDosya: {
-      kar:   "karo_kar.png",
-      cimen: "karo_cimen.png",
-      lav:   "karo_lav.png",
+    dokuDosya: {
+      kar:   "doku_kar.webp",
+      cimen: "doku_cimen.webp",
+      lav:   "doku_lav.webp",
     },
+
+    /* Ön-render kalitesi. 2 = karo 256x128 olarak hazırlanır, 128x64
+       olarak çizilir → yakınlaştırınca net kalır. 3 yaparsan daha net
+       ama bellek üç katına çıkar. */
+    kalite: 2,
+
+    /* Her biyom için kaç farklı karo hazırlansın. Tek varyantta doku
+       her karede birebir aynı tekrar eder ve ızgara deseni göze batar.
+       4 varyant bunu büyük ölçüde kırar. */
+    varyant: 4,
 
     /* Görsel yokken kullanılacak düz renkler (aynı zamanda mini-harita
        rengi olarak da işe yarar) */
@@ -169,33 +192,129 @@
 
   /* İki oktav: büyük kıtalar + kenarlarda doğal kırıklık.
      Tek oktavda biyom sınırları fazla düzgün, sabun köpüğü gibi duruyor. */
-  function biyom(gx, gy) {
+  function biyomDeger(gx, gy) {
     const f = CFG.frekans;
-    let v = smoothNoise(gx * f, gy * f) * 0.70
-          + smoothNoise(gx * f * 3.1, gy * f * 3.1) * 0.30;
+    return smoothNoise(gx * f, gy * f) * 0.70
+         + smoothNoise(gx * f * 3.1, gy * f * 3.1) * 0.30;
+  }
 
+  function biyom(gx, gy) {
+    const v = biyomDeger(gx, gy);
     if (v < CFG.esikKar)   return "kar";
     if (v < CFG.esikCimen) return "cimen";
     return "lav";
+  }
+
+  /* ── KARIŞIM (BLEND) ──────────────────────────────────────────────
+     Referans görseldeki gibi kar → çimen → lav yumuşak geçsin diye,
+     eşik değerinin yakınındaki karolarda İKİ doku üst üste çizilir.
+     Üsttekinin saydamlığı, karonun eşiğe uzaklığına göre hesaplanır.
+
+     Ekstra görsel gerekmez; geçiş tamamen matematikten doğar.
+     Sadece sınır bandındaki karolar iki kez çizilir, yani maliyet
+     haritanın küçük bir kısmında ve iki katı — ihmal edilebilir.
+
+     Dönen değer: { alt, ust, k }
+       alt = zemine çizilecek doku
+       ust = üstüne saydam çizilecek doku (yoksa null)
+       k   = üstteki dokunun saydamlığı (0..1)  */
+  function biyomKarisim(gx, gy) {
+    const v = biyomDeger(gx, gy);
+    const b = CFG.gecisBandi;
+
+    /* kar ↔ çimen sınırı */
+    if (v > CFG.esikKar - b && v < CFG.esikKar + b) {
+      return { alt: "kar", ust: "cimen", k: (v - (CFG.esikKar - b)) / (2 * b) };
+    }
+    /* çimen ↔ lav sınırı */
+    if (v > CFG.esikCimen - b && v < CFG.esikCimen + b) {
+      return { alt: "cimen", ust: "lav", k: (v - (CFG.esikCimen - b)) / (2 * b) };
+    }
+
+    if (v < CFG.esikKar)   return { alt: "kar",   ust: null, k: 0 };
+    if (v < CFG.esikCimen) return { alt: "cimen", ust: null, k: 0 };
+    return { alt: "lav", ust: null, k: 0 };
   }
 
   /* ═════════════════════════════════════════════════════════════════════
      KARO GÖRSELLERİ
      ═════════════════════════════════════════════════════════════════════ */
 
-  const karolar = {};   // { kar: {img, hazir}, ... }
+  /* ═════════════════════════════════════════════════════════════════════
+     DOKUDAN İZOMETRİK KAROYA ÖN-RENDER
+
+     Düz kare doku → izometrik eşkenar dörtgen. Her biyom için bu iş
+     BİR KEZ yapılır, sonuç küçük bir canvas'ta saklanır. Çizim sırasında
+     sadece hazır karo kopyalanır (drawImage), her karede yeniden
+     büküm yapılmaz — asıl performans kazancı burada.
+
+     Dönüşüm matrisi bir S x S kareyi tw x th eşkenar dörtgene taşır:
+       (0,0) → üst köşe      (S,0) → sağ köşe
+       (0,S) → sol köşe      (S,S) → alt köşe
+     ═════════════════════════════════════════════════════════════════════ */
+
+  const karolar = {};   // { kar: {hazir, parcalar:[canvas,...]}, ... }
+
+  function karoUret(img, tw, th, kaydirX, kaydirY) {
+    const c = document.createElement("canvas");
+    c.width = tw; c.height = th;
+    const x = c.getContext("2d");
+
+    /* Eşkenar dörtgen maskesi. Yarım piksel dışarı taşırıyoruz:
+       karolar yan yana gelince aralarında saç teli kalınlığında
+       beyaz çizgi kalmasın. */
+    const d = 0.5;
+    x.beginPath();
+    x.moveTo(tw / 2,      -d);
+    x.lineTo(tw + d,      th / 2);
+    x.lineTo(tw / 2,      th + d);
+    x.lineTo(-d,          th / 2);
+    x.closePath();
+    x.clip();
+
+    /* Kaynak dokudan kare bir bölge seç (varyant için kaydırmalı) */
+    const S = Math.min(img.width, img.height);
+    const sx = Math.min(img.width  - S, Math.round(kaydirX * (img.width  - S)));
+    const sy = Math.min(img.height - S, Math.round(kaydirY * (img.height - S)));
+
+    /* Kareyi dörtgene büken matris */
+    x.setTransform(
+      tw / (2 * S),   th / (2 * S),
+     -tw / (2 * S),   th / (2 * S),
+      tw / 2,         0
+    );
+    x.drawImage(img, sx, sy, S, S, 0, 0, S, S);
+
+    return c;
+  }
+
+  function dokularıHazirla(ad, img) {
+    const tw = Math.round(CFG.tileW * CFG.kalite);
+    const th = Math.round(CFG.tileH * CFG.kalite);
+    const parcalar = [];
+
+    for (let i = 0; i < CFG.varyant; i++) {
+      /* Varyantlar dokunun farklı bölgelerinden alınır → tekrar kırılır */
+      const kx = (i % 2) * 0.6 + 0.1;
+      const ky = (Math.floor(i / 2) % 2) * 0.6 + 0.1;
+      parcalar.push(karoUret(img, tw, th, kx, ky));
+    }
+
+    karolar[ad] = { hazir: true, parcalar };
+    ciz();
+  }
 
   function karolariYukle() {
-    Object.keys(CFG.karoDosya).forEach(ad => {
-      const kayit = { img: null, hazir: false };
-      karolar[ad] = kayit;
+    Object.keys(CFG.dokuDosya).forEach(ad => {
+      karolar[ad] = { hazir: false, parcalar: [] };
 
       const img = new Image();
-      img.onload  = () => { kayit.img = img; kayit.hazir = true; ciz(); };
+      img.onload  = () => dokularıHazirla(ad, img);
       img.onerror = () => {
-        console.warn("[harita.js] Karo görseli yok, düz renk kullanılıyor:", CFG.karoDosya[ad]);
+        console.warn("[harita.js] Doku yok, düz renk kullanılıyor:",
+                     CFG.dokuDosya[ad]);
       };
-      img.src = CFG.karoDosya[ad];
+      img.src = CFG.dokuDosya[ad];
     });
   }
 
@@ -251,6 +370,30 @@
 
   let sonKare = 0, fps = 0, fpsSayac = 0, fpsZaman = 0;
   let kurtarmaKilidi = false;
+
+  /* Tek karo çizer. saydamlik < 1 ise karışım katmanıdır.
+     Doku hazır değilse düz renge düşer — oyun asla boş kalmaz. */
+  function karoCiz(tip, vi, x, y, tw, th, saydamlik) {
+    const kayit = karolar[tip];
+
+    if (saydamlik < 1) ctx.globalAlpha = saydamlik;
+
+    if (kayit && kayit.hazir) {
+      /* +1 px: komşu karolarla dikiş yerinde boşluk kalmasın */
+      ctx.drawImage(kayit.parcalar[vi % kayit.parcalar.length], x, y, tw + 1, th + 1);
+    } else {
+      ctx.fillStyle = CFG.karoRenk[tip];
+      ctx.beginPath();
+      ctx.moveTo(x + HALF_W, y);
+      ctx.lineTo(x + tw,     y + HALF_H);
+      ctx.lineTo(x + HALF_W, y + th);
+      ctx.lineTo(x,          y + HALF_H);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    if (saydamlik < 1) ctx.globalAlpha = 1;
+  }
 
   function ciz() {
     if (!ctx || !cv || !aktif) return;
@@ -312,21 +455,17 @@
     for (let gy = gy0; gy <= gy1; gy++) {
       for (let gx = gx0; gx <= gx1; gx++) {
         const p = gridToWorld(gx, gy);
-        const tip = biyom(gx, gy);
-        const kayit = karolar[tip];
+        const kr = biyomKarisim(gx, gy);
 
-        if (kayit && kayit.hazir) {
-          ctx.drawImage(kayit.img, p.x, p.y, tw, th);
-        } else {
-          /* Görsel yok → düz eşkenar dörtgen */
-          ctx.fillStyle = CFG.karoRenk[tip];
-          ctx.beginPath();
-          ctx.moveTo(p.x + HALF_W, p.y);
-          ctx.lineTo(p.x + tw,     p.y + HALF_H);
-          ctx.lineTo(p.x + HALF_W, p.y + th);
-          ctx.lineTo(p.x,          p.y + HALF_H);
-          ctx.closePath();
-          ctx.fill();
+        /* Varyant seçimi tohumlu — her cihazda aynı desen çıkar */
+        const vi = Math.floor(hash2(gx * 7 + 3, gy * 11 + 5) * CFG.varyant) % CFG.varyant;
+
+        /* Alt katman */
+        karoCiz(kr.alt, vi, p.x, p.y, tw, th, 1);
+
+        /* Üst katman — sadece sınır bandında, saydam */
+        if (kr.ust && kr.k > 0.02) {
+          karoCiz(kr.ust, vi, p.x, p.y, tw, th, Math.min(1, kr.k));
         }
 
         if (CFG.izgaraCizgisi) {
