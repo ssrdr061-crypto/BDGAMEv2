@@ -298,8 +298,9 @@ function renderTroopSelector() {
     const current = Math.min(selectedTroopsForBattle[def.id] || 0, max);
     return `
       <div class="troop-select-row" data-unit="${def.id}">
+        <span class="t-icon" data-unit="${def.id}">${def.img ? `<img class="t-head" src="${def.img}" alt="">` : (def.icon || "")}</span>
+        <div class="t-right">
         <div class="troop-select-top">
-          <span class="t-icon" data-unit="${def.id}">${def.img ? `<img class="t-head" src="${def.img}" alt="">` : (def.icon || "")}</span>
           <span class="t-name">${def.name}</span>
           <span class="t-count" id="troopCount_${def.id}">${current} / ${max}</span>
         </div>
@@ -308,6 +309,7 @@ function renderTroopSelector() {
           <input type="range" class="troop-slider" id="troopSlider_${def.id}"
                  min="0" max="${max}" step="1" value="${current}" data-unit="${def.id}">
           <button type="button" class="t-step" data-unit="${def.id}" data-d="1">+</button>
+        </div>
         </div>
       </div>`;
   }).join("");

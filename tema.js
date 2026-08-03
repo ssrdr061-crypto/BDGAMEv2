@@ -2701,10 +2701,13 @@ st.textContent = `
 
 /* ── SALDIR: kutu daraldı, yazı büyük harf ── */
 #battleArena .battle-btn{
-  padding:12px 22px !important;
+  padding:11px 16px !important;
   min-width:0 !important; width:auto !important;
   text-transform:uppercase !important;
-  letter-spacing:1px !important;
+  letter-spacing:.6px !important;
+  font-weight:800 !important;
+  -webkit-text-stroke:.75px #fff !important;   /* Baloo 2'de 800 üstü yok; kalınlık kontur ile */
+  text-shadow:0 2px 3px rgba(90,0,0,.55) !important;
 }
 #battleArena .troop-select-title{
   font-family:'Baloo 2','Nunito',sans-serif !important;
@@ -2712,15 +2715,27 @@ st.textContent = `
   color:#ffd257 !important; margin-bottom:8px !important;
 }
 
-/* ── BİRLİK SATIRI: sadece KAFA görünen kutucuk ──────────────
+/* ── BİRLİK SATIRI ───────────────────────────────────────────
+   Düzen: solda KAFA kutucuğu (satırın tamamı kadar), sağda üstte
+   ad + sayı, altta − sürgü + . Böylece satır alçalıyor, panel
+   gereksiz uzamıyor.
+
    Kırpma oranları birlik eğitim ekranındakiyle aynı
    (tema.js 11. blok: --tp-kp-w / -l / -t). Birini değiştirirsen
    diğerini de değiştir ki iki ekran aynı görünsün. */
-#troopSelectList .troop-select-row{ margin-bottom:12px !important; }
-#troopSelectList .troop-select-top{ gap:10px !important; }
+#troopSelectList .troop-select-row{
+  display:flex !important; flex-direction:row !important;
+  align-items:center !important; gap:10px !important;
+  margin-bottom:10px !important;
+}
+#troopSelectList .t-right{ flex:1 1 auto !important; min-width:0 !important; }
+#troopSelectList .troop-select-top{
+  display:flex !important; align-items:center !important;
+  gap:8px !important; margin-bottom:4px !important;
+}
 #troopSelectList .t-icon{
-  position:relative; flex:0 0 44px !important;
-  width:44px !important; height:44px !important;
+  position:relative; flex:0 0 46px !important;
+  width:46px !important; height:46px !important;
   border-radius:12px !important; overflow:hidden !important;
   background:linear-gradient(180deg, rgba(150,205,255,.20), rgba(8,30,62,.55)) !important;
   border:2px solid rgba(160,215,255,.45) !important;
@@ -2734,37 +2749,39 @@ st.textContent = `
 #troopSelectList .t-icon[data-unit="robot"]   img.t-head{ width:140%; margin:-10% 0 0 -18%; }
 #troopSelectList .t-name{
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:800 !important; font-size:14px !important; letter-spacing:.4px !important;
+  font-weight:800 !important; font-size:13.5px !important; letter-spacing:.3px !important;
 }
 #troopSelectList .t-count{
   margin-left:auto !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:800 !important; font-size:14px !important; color:#ffd257 !important;
+  font-weight:800 !important; font-size:13.5px !important; color:#ffd257 !important;
 }
 
 /* ── SÜRGÜNÜN İKİ YANINDA − / + ─────────────────────────────── */
 #troopSelectList .t-slider-row{
   display:flex !important; align-items:center !important; gap:8px !important;
-  margin-top:2px !important;
 }
-#troopSelectList .t-slider-row .troop-slider{ flex:1 !important; min-width:0 !important; }
+#troopSelectList .t-slider-row .troop-slider{ flex:1 1 auto !important; min-width:0 !important; margin:0 !important; }
 #troopSelectList .t-step{
-  flex:0 0 auto; width:30px; height:30px; border-radius:9px; cursor:pointer;
+  flex:0 0 auto; width:28px; height:28px; border-radius:8px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%);
   border:2px solid rgba(170,220,255,.75);
   color:#fff; font-family:'Baloo 2','Nunito',sans-serif;
-  font-weight:800; font-size:18px; line-height:1;
+  font-weight:800; font-size:17px; line-height:1;
   text-shadow:0 2px 3px rgba(0,15,40,.65);
-  box-shadow:0 4px 0 #0f2a55, inset 0 1px 0 rgba(170,220,255,.55);
+  box-shadow:0 3px 0 #0f2a55, inset 0 1px 0 rgba(170,220,255,.55);
   -webkit-tap-highlight-color:transparent; touch-action:none; user-select:none;
 }
-#troopSelectList .t-step:active{ transform:translateY(3px); box-shadow:0 1px 0 #0f2a55; }
+#troopSelectList .t-step:active{ transform:translateY(2px); box-shadow:0 1px 0 #0f2a55; }
 
 /* ── KAHRAMAN ÇIKARMA: kare ✕ yerine yuvarlak − , köşeye taşkın ──
    Yuva overflow:hidden'dı, düğme kırpılıyordu; portrenin kendisine
    köşe yarıçapı verilip yuva serbest bırakıldı. */
-#heroPicker .hpk-slot{ overflow:visible !important; }
+#heroPicker, #heroPicker .hpk-slots, #heroPicker .hpk-slot{ overflow:visible !important; }
+/* düğme dışarı taştığı için satırın çevresinde pay bırakılıyor;
+   yoksa panelin kaydırma alanı düğmeyi kesiyor */
+#heroPicker .hpk-slots{ padding:11px 11px 4px !important; box-sizing:border-box !important; }
 #heroPicker .hpk-slot .hpk-portrait{ border-radius:12px !important; }
 #heroPicker .hpk-x{
   top:-9px !important; right:-9px !important;
