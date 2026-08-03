@@ -86,24 +86,29 @@ body{
   color:#c9bdf0; font-weight:700; margin-bottom:6px; font-family:'JetBrains Mono',monospace;
   text-shadow:0 1px 3px rgba(0,0,0,.6);
 }
-/* ── GİRİŞ EKRANI: tema.js ile BİREBİR aynı (aynı #loginScreen özgüllüğü + !important),
-   böylece ilk boyama ile tema.js sonrası arasında hiç fark/flash olmaz. Font: Baloo 2 ── */
+/* ── GİRİŞ EKRANI: tema.js'in KOYU MAVİ TEMA bloğuyla BİREBİR aynı
+   (aynı #loginScreen özgüllüğü + !important), böylece ilk boyama ile
+   tema.js sonrası arasında hiç fark/flash olmaz.
+   DİKKAT: burayı değiştirirsen tema.js'in sonundaki aynı kuralları da
+   değiştir, yoksa açılışta bir anlık eski renk görünür. Font: Baloo 2 ── */
 #loginScreen .field input{
   width:100%; padding:11px 14px;
-  background:rgba(255,255,255,.18) !important;
-  border:2px solid rgba(190,240,255,.85) !important;
+  background:linear-gradient(180deg, rgba(61,124,204,.72), rgba(21,46,94,.80)) !important;
+  border:2px solid rgba(130,185,245,.75) !important;
   border-radius:14px !important;
   color:#fff !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:800 !important; font-size:15px !important;
   text-shadow:0 1px 3px rgba(0,20,45,.7) !important;
+  box-shadow:inset 0 2px 0 rgba(160,215,255,.30), 0 4px 12px rgba(0,10,30,.45) !important;
   outline:none; transition:border-color .15s ease, background .15s ease;
 }
-#loginScreen .field input::placeholder{ color:rgba(255,255,255,.85) !important; font-weight:700 !important; }
+#loginScreen .field input::placeholder{ color:rgba(215,235,255,.75) !important; font-weight:700 !important; }
 #loginScreen .field input:focus{
-  background:rgba(255,255,255,.28) !important;
-  border-color:#2DC9FC !important;
-  box-shadow:0 0 0 3px rgba(45,201,252,.35) !important;
+  background:linear-gradient(180deg, rgba(74,139,216,.82), rgba(26,58,112,.86)) !important;
+  border-color:#8fc4ff !important;
+  box-shadow:0 0 0 3px rgba(90,156,224,.40),
+             inset 0 2px 0 rgba(160,215,255,.35) !important;
   outline:none !important;
 }
 .login-error{
@@ -112,22 +117,22 @@ body{
 }
 #loginScreen .login-btn{
   width:100%; padding:13px; margin-top:6px;
-  background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;
-  border:2px solid rgba(190,240,255,.9) !important;
+  background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%) !important;
+  border:2px solid rgba(170,220,255,.75) !important;
   border-radius:15px !important;
   color:#fff !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:900 !important; font-size:17px !important; letter-spacing:.5px;
-  text-shadow:0 2px 3px rgba(0,40,70,.5) !important;
-  box-shadow:0 5px 0 #0e6fc0, 0 8px 18px rgba(0,20,45,.4), inset 0 1px 0 rgba(255,255,255,.45) !important;
+  text-shadow:0 2px 3px rgba(0,15,40,.65) !important;
+  box-shadow:0 5px 0 #0f2a55, 0 8px 18px rgba(0,15,40,.45), inset 0 1px 0 rgba(170,220,255,.55) !important;
   cursor:pointer; transition:transform .08s, box-shadow .08s !important;
 }
-#loginScreen .login-btn:active{ transform:translateY(4px) !important; box-shadow:0 1px 0 #0e6fc0 !important; }
+#loginScreen .login-btn:active{ transform:translateY(4px) !important; box-shadow:0 1px 0 #0f2a55 !important; }
 .login-switch{
   text-align:center; margin-top:16px; font-size:13px; font-weight:700;
   color:#c4a0ff; text-shadow:0 1px 5px rgba(0,0,0,0.8);
 }
-#loginScreen .login-switch a{ color:#2DC9FC !important; cursor:pointer; text-decoration:none; font-weight:900 !important; text-shadow:0 1px 5px rgba(0,0,0,0.8); }
+#loginScreen .login-switch a{ color:#9fd0ff !important; cursor:pointer; text-decoration:none; font-weight:900 !important; text-shadow:0 1px 5px rgba(0,0,0,0.8); }
 .login-switch a:hover{text-decoration:underline; color:#7fe4ff;}
 #appScreen{display:none;}
 .user-pill{
