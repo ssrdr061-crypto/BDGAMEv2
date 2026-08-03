@@ -76,6 +76,11 @@
        çabuk durur. */
     surtunme: 0.94,
 
+    /* Ataletin kare başına gidebileceği en fazla piksel. Bu sınır
+       olmadan çok kısa dokunuşlarda hız uçuk çıkıp harita ekranın
+       bir ucundan diğerine fırlıyor. */
+    enYuksekHiz: 40,
+
     /* Düğüm (kale/canavar) ölçek çarpanı. Kale CSS'te 100px;
        0.64 çarpanı onu 64px'lik karoya tam oturtur. Büyütürsen kale
        karodan taşar, küçültürsen karo içinde küçük kalır. */
@@ -784,7 +789,7 @@
       if (aktif) {
         /* Orijinal applyMapPan #battleMap'e transform basıyor —
            düğüm katmanında bu her şeyi kaydırır. Atlıyoruz. */
-        if (typeof updateHomeBtn === "function") { try { updateHomeBtn(); } catch (e) {} }
+        evButonu();
         dugumleriYerlestir();
         cizIste();
         return;
@@ -885,6 +890,41 @@
     cizIste();
   }
 
+  /* ── EV BUTONU ──
+     Kale ekran dışına çıkınca kenarda beliren "kaleme dön" ikonu.
+     Oyunun kendi updateHomeBtn'i konumu eski 1586x992 haritasına göre
+     hesaplıyordu; izometrikte kale görünürken bile butonu yanlış yere
+     koyup gizliyordu. Aynı işi izometrik koordinatla yapıyoruz. */
+  function evButonu() {
+    const btn = document.getElementById("homeMapBtn");
+    const wrapEl = document.getElementById("battleMapWrap");
+    if (!btn || !wrapEl) return;
+
+    if (typeof state === "undefined" || !state.castle ||
+        typeof state.castle.gx !== "number") {
+      btn.classList.remove("visible");
+      return;
+    }
+
+    const ww = wrapEl.clientWidth, wh = wrapEl.clientHeight;
+    if (ww <= 0 || wh <= 0) return;
+
+    const p = gridToWorld(state.castle.gx * ORAN, state.castle.gy * ORAN);
+    const sx = mapPanX + (p.x + HALF_W) * mapZoom;
+    const sy = mapPanY + (p.y + HALF_H) * mapZoom;
+
+    const pad = 30;
+    if (sx >= pad && sx <= ww - pad && sy >= pad && sy <= wh - pad) {
+      btn.classList.remove("visible");
+      return;
+    }
+
+    const m = 26;
+    btn.style.left = Math.max(m, Math.min(ww - m, sx)) + "px";
+    btn.style.top  = Math.max(m, Math.min(wh - m, sy)) + "px";
+    btn.classList.add("visible");
+  }
+
   /* ═════════════════════════════════════════════════════════════════════
      ATALETLİ KAYDIRMA (momentum)
 
@@ -946,8 +986,15 @@
       if (dt > 0) {
         /* Kare başına piksel cinsinden hız (60 fps varsayımıyla).
            Ani sıçramaları yumuşatmak için önceki hızla harmanlıyoruz. */
-        const ax = (e.clientX - sonX) / dt * 16;
-        const ay = (e.clientY - sonY) / dt * 16;
+        let ax = (e.clientX - sonX) / dt * 16;
+        let ay = (e.clientY - sonY) / dt * 16;
+
+        /* SINIR: dt çok küçükken (1-2 ms) bölme sonucu uçuk çıkıyor
+           ve harita ekranın bir ucundan diğerine fırlıyordu. */
+        const M = CFG.enYuksekHiz;
+        ax = Math.max(-M, Math.min(M, ax));
+        ay = Math.max(-M, Math.min(M, ay));
+
         hizX = hizX * 0.3 + ax * 0.7;
         hizY = hizY * 0.3 + ay * 0.7;
       }
