@@ -2225,19 +2225,56 @@ st.textContent = `
   border-top:3px solid var(--km-kenar) !important;
 }
 
-/* Mağaza ızgarası sabit 56vh'ye kilitliydi. Kart artık ekranın
-   altına yapışmadığı için o sabit yükseklik kartın dibinde ölü
-   boşluk bırakıyordu. Kartı sütun yapıp ızgaraya kalan yeri
-   verdik — böylece başlık ve sekmeler yukarıda sabit kalır,
-   sadece ürünler kayar. */
+/* ── MAĞAZA: SABİT BOY, TEK KAYDIRMA, SÜRGÜ YOK ──────────────
+   Üç sorun birden çözülüyor:
+
+   1) SEKME DEĞİŞİNCE BOY OYNUYORDU. Kart içeriği kadar
+      uzuyordu; "Tümü" uzun, "İksir" kısa olduğu için panel her
+      sekmede zıplıyordu. Artık kartın boyu SABİT (height:100%),
+      içerik az da olsa çok da olsa aynı kalıyor.
+
+   2) İÇ İÇE İKİ KAYDIRMA VARDI. Hem kart hem ürün ızgarası
+      ayrı ayrı kayıyordu; ızgara sıkışınca kartlar üst üste
+      biniyordu. Artık ızgara serbest (overflow:visible), tek
+      kaydırma kartın kendisinde.
+
+   3) YAN SÜRGÜ KALDIRILDI. Parmakla kaydırma zaten çalışıyor,
+      görünen çubuk yer kaplıyordu. */
 #panel-shop .overlay-card{
-  display:flex !important;
-  flex-direction:column !important;
+  display:block !important;
+  height:100% !important;
+  max-height:100% !important;
+  overflow-y:auto !important;
+  scrollbar-width:none !important;
+  -ms-overflow-style:none !important;
 }
 #panel-shop .shop-grid{
+  height:auto !important;
   max-height:none !important;
-  flex:1 1 auto !important;
-  min-height:0 !important;
+  overflow:visible !important;
+  align-content:start !important;
+  align-items:start !important;
+  /* satırlar içeriği kadar yükseklik alsın — ezilip kartların
+     üst üste binmesinin sebebi buydu */
+  grid-auto-rows:max-content !important;
+  gap:10px !important;
+}
+
+/* Kaydırma çubuklarını gizle — dört panelde de parmakla kayıyor */
+#panel-shop .overlay-card::-webkit-scrollbar,
+#panel-inventory .overlay-card::-webkit-scrollbar,
+#panel-hospital .overlay-card::-webkit-scrollbar,
+#panel-chest .overlay-card::-webkit-scrollbar,
+#panel-shop .shop-grid::-webkit-scrollbar,
+.tp-list::-webkit-scrollbar{
+  width:0 !important; height:0 !important; display:none !important;
+}
+#panel-inventory .overlay-card,
+#panel-hospital .overlay-card,
+#panel-chest .overlay-card,
+.tp-list{
+  scrollbar-width:none !important;
+  -ms-overflow-style:none !important;
 }
 
 /* ── ÜST HUD: DÜZ ŞERİT ──────────────────────────────────────
