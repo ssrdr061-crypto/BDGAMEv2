@@ -11,6 +11,10 @@ window.onerror = function(msg, src, line) {
 </script>
 <meta charset="UTF-8">
 <link rel="preload" as="image" href="gorsel1.webp" fetchpriority="high">
+<!-- Giriş ekranı logosu: arka planla AYNI anda gelsin diye önceden yükleniyor.
+     Yoksa arka plan gelir, logo sonra düşer ve kart aşağı kayar (açılışta
+     gördüğün fazladan "yükleme" adımlarından biri buydu). -->
+<link rel="preload" as="image" href="gorsel2.webp" fetchpriority="high">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BurstDiamond</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1617,6 +1621,7 @@ body.world-active{padding:0; overflow:hidden;}
         <div id="secretAdminTrigger" style="text-align:center; margin-bottom:-12px; margin-top:-10px; pointer-events:auto;">
           <img src="gorsel2.webp"
                alt="BurstDiamond"
+               fetchpriority="high" decoding="sync"
                style="width:110%; max-width:360px; margin-left:-5%; display:block;
                       filter:drop-shadow(0 0 20px rgba(0,210,255,0.5));
                       position:relative; z-index:2;">

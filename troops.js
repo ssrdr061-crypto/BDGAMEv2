@@ -367,8 +367,6 @@ function buildTroopRoster(selectedTroops) {
 (function () {
   const st = document.createElement("style");
   st.textContent = `
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap');
-
 /* sekme çubuğu — mağazadaki .shop-tab ile aynı hap stili */
 .tp-tabs{
   position:absolute; z-index:40;
