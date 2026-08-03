@@ -2190,6 +2190,36 @@ st.textContent = `
   box-shadow:inset 0 -14px 26px rgba(0,10,30,.4) !important;
 }
 
+/* ── ARKA PLAN KARARTISI KALDIRILDI ──────────────────────────
+   Panel açıkken haritanın üstüne serilen koyu perde
+   (rgba(5,4,10,.72)) kalktı; harita net görünüyor.
+   Geri istersen bu kuralı sil. */
+.overlay-panel{ background:transparent !important; }
+
+/* ── HASTANE VE SANDIK: BİRLİK MENÜSÜ GİBİ HİZALI ────────────
+   Eskiden ekranın altına yapışık, sadece üst köşeleri yuvarlak
+   bir çekmeceydiler. Artık birlik paneli (#panel-troops) ile aynı
+   yerleşim: ortalanmış, dört köşesi yuvarlak, üstten ve alttan
+   boşluklu bir kart.
+
+   Boşluk değerleri birlik paneliyle BİREBİR aynı tutuldu
+   (60px üst / 70px alt) — birini değiştirirsen diğerini de
+   değiştir, yoksa paneller arası geçişte kart zıplar. */
+#panel-hospital,
+#panel-chest{
+  align-items:center !important;
+  justify-content:center !important;
+  padding:60px 12px 70px !important;
+}
+#panel-hospital .overlay-card,
+#panel-chest .overlay-card{
+  width:100% !important;
+  max-width:420px !important;
+  max-height:100% !important;
+  border-radius:22px !important;
+  border-top:3px solid var(--km-kenar) !important;
+}
+
 /* ── ÜST HUD: DÜZ ŞERİT ──────────────────────────────────────
    Eskiden ayrı ayrı hap kutucuklarıydı. Artık alt menü (.nav-dock)
    ile aynı mantıkta tek parça bir çubuk: kutular kalkıyor, içerik
