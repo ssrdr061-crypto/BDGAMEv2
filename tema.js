@@ -2662,6 +2662,94 @@ st.textContent = `
   scrollbar-width:none !important;
 }
 #battleArena .battle-arena::-webkit-scrollbar{ width:0 !important; display:none !important; }
+
+/* ── ARKA PLAN KARARTISI KALDIRILDI ── */
+.battle-arena-overlay{ background:transparent !important; }
+
+/* ── PANEL İÇİNDEKİ İKİNCİ KUTU KALDIRILDI ───────────────────
+   .troop-select-box "panel içinde panel" gibi duruyordu; çerçevesi
+   ve zemini kalktı, genişlik tam kullanılıyor. */
+#battleArena .troop-select-box{
+  background:none !important; border:none !important;
+  border-radius:0 !important; padding:0 !important;
+  max-width:none !important; margin:0 !important;
+}
+#battleArena .battle-arena{ gap:10px !important; }
+#battleArena .troop-select-title{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:13px !important;
+  color:#ffd257 !important; margin-bottom:8px !important;
+}
+
+/* ── BİRLİK SATIRI: sadece KAFA görünen kutucuk ──────────────
+   Kırpma oranları birlik eğitim ekranındakiyle aynı
+   (tema.js 11. blok: --tp-kp-w / -l / -t). Birini değiştirirsen
+   diğerini de değiştir ki iki ekran aynı görünsün. */
+#troopSelectList .troop-select-row{ margin-bottom:12px !important; }
+#troopSelectList .troop-select-top{ gap:10px !important; }
+#troopSelectList .t-icon{
+  position:relative; flex:0 0 44px !important;
+  width:44px !important; height:44px !important;
+  border-radius:12px !important; overflow:hidden !important;
+  background:linear-gradient(180deg, rgba(150,205,255,.20), rgba(8,30,62,.55)) !important;
+  border:2px solid rgba(160,215,255,.45) !important;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.25), 0 3px 6px rgba(0,10,30,.45) !important;
+}
+#troopSelectList .t-icon img.t-head{
+  display:block; position:absolute; top:0; left:0;
+  width:150%; margin:-29% 0 0 -26%;
+}
+#troopSelectList .t-icon[data-unit="soldier"] img.t-head{ width:130%; margin:-16% 0 0 -21%; }
+#troopSelectList .t-icon[data-unit="robot"]   img.t-head{ width:140%; margin:-10% 0 0 -18%; }
+#troopSelectList .t-name{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:14px !important; letter-spacing:.4px !important;
+}
+#troopSelectList .t-count{
+  margin-left:auto !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:14px !important; color:#ffd257 !important;
+}
+
+/* ── SÜRGÜNÜN İKİ YANINDA − / + ─────────────────────────────── */
+#troopSelectList .t-slider-row{
+  display:flex !important; align-items:center !important; gap:8px !important;
+  margin-top:2px !important;
+}
+#troopSelectList .t-slider-row .troop-slider{ flex:1 !important; min-width:0 !important; }
+#troopSelectList .t-step{
+  flex:0 0 auto; width:30px; height:30px; border-radius:9px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%);
+  border:2px solid rgba(170,220,255,.75);
+  color:#fff; font-family:'Baloo 2','Nunito',sans-serif;
+  font-weight:800; font-size:18px; line-height:1;
+  text-shadow:0 2px 3px rgba(0,15,40,.65);
+  box-shadow:0 4px 0 #0f2a55, inset 0 1px 0 rgba(170,220,255,.55);
+  -webkit-tap-highlight-color:transparent; touch-action:none; user-select:none;
+}
+#troopSelectList .t-step:active{ transform:translateY(3px); box-shadow:0 1px 0 #0f2a55; }
+
+/* ── KAHRAMAN ÇIKARMA: kare ✕ yerine yuvarlak − , köşeye taşkın ──
+   Yuva overflow:hidden'dı, düğme kırpılıyordu; portrenin kendisine
+   köşe yarıçapı verilip yuva serbest bırakıldı. */
+#heroPicker .hpk-slot{ overflow:visible !important; }
+#heroPicker .hpk-slot .hpk-portrait{ border-radius:12px !important; }
+#heroPicker .hpk-x{
+  top:-9px !important; right:-9px !important;
+  width:28px !important; height:28px !important;
+  border-radius:50% !important;
+  border:2px solid rgba(255,225,225,.92) !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  font-size:0 !important; line-height:0 !important;
+  box-shadow:0 3px 7px rgba(120,0,0,.5) !important;
+}
+#heroPicker .hpk-x::before{
+  content:"\u2212";
+  font-family:'Baloo 2','Nunito',sans-serif;
+  font-size:22px; font-weight:800; line-height:1; color:#fff;
+  text-shadow:0 1px 2px rgba(90,0,0,.6);
+}
 `;
 document.head.appendChild(st);
 

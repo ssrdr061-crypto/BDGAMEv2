@@ -297,14 +297,18 @@ function renderTroopSelector() {
     const max = state.troops[def.id] || 0;
     const current = Math.min(selectedTroopsForBattle[def.id] || 0, max);
     return `
-      <div class="troop-select-row">
+      <div class="troop-select-row" data-unit="${def.id}">
         <div class="troop-select-top">
-          <span class="t-icon">${unitImg(def,24)}</span>
+          <span class="t-icon" data-unit="${def.id}">${def.img ? `<img class="t-head" src="${def.img}" alt="">` : (def.icon || "")}</span>
           <span class="t-name">${def.name}</span>
           <span class="t-count" id="troopCount_${def.id}">${current} / ${max}</span>
         </div>
-        <input type="range" class="troop-slider" id="troopSlider_${def.id}"
-               min="0" max="${max}" step="1" value="${current}" data-unit="${def.id}">
+        <div class="t-slider-row">
+          <button type="button" class="t-step" data-unit="${def.id}" data-d="-1">−</button>
+          <input type="range" class="troop-slider" id="troopSlider_${def.id}"
+                 min="0" max="${max}" step="1" value="${current}" data-unit="${def.id}">
+          <button type="button" class="t-step" data-unit="${def.id}" data-d="1">+</button>
+        </div>
       </div>`;
   }).join("");
 
@@ -316,6 +320,40 @@ function renderTroopSelector() {
       updateTroopSelectSummary();
       renderEnemyPowerPreview();
     });
+  });
+
+  /* ── − / + düğmeleri ──────────────────────────────────────────
+     Basılı tutunca hızlanarak sayar (443 robotu tek tek tıklamamak
+     için). Sürgünün "input" olayını taklit ediyor, böylece sayaç,
+     özet ve güç önizlemesi kendiliğinden güncelleniyor. */
+  listEl.querySelectorAll(".t-step").forEach(btn => {
+    const yon = parseInt(btn.dataset.d, 10) || 1;
+    let tekrar = null, hiz = 220, adim = 1;
+
+    function uygula() {
+      const s = document.getElementById("troopSlider_" + btn.dataset.unit);
+      if (!s) return;
+      const enCok = parseInt(s.max, 10) || 0;
+      const yeni = Math.max(0, Math.min(enCok, (parseInt(s.value, 10) || 0) + yon * adim));
+      if (yeni === parseInt(s.value, 10)) return;
+      s.value = yeni;
+      s.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    function basla(e) {
+      e.preventDefault(); e.stopPropagation();
+      hiz = 220; adim = 1; uygula();
+      const tik = () => {
+        uygula();
+        hiz = Math.max(45, hiz - 30);
+        if (hiz <= 90) adim = Math.min(25, adim + 1);
+        tekrar = setTimeout(tik, hiz);
+      };
+      tekrar = setTimeout(tik, 420);
+    }
+    function bitir() { if (tekrar) { clearTimeout(tekrar); tekrar = null; } }
+
+    btn.addEventListener("pointerdown", basla);
+    ["pointerup", "pointerleave", "pointercancel"].forEach(ev => btn.addEventListener(ev, bitir));
   });
 
   updateTroopSelectSummary();

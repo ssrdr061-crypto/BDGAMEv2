@@ -1674,9 +1674,10 @@ window.PVP = {
 const st = document.createElement("style");
 st.id = "mesajRozetiStil";
 st.textContent = `
-.nav-dock .dock-btn[data-panel="battlelog"]{ position:relative; }
+.nav-dock, .nav-dock .dock-btn{ overflow:visible !important; }
+.nav-dock .dock-btn[data-panel="battlelog"]{ position:relative !important; }
 .mail-badge{
-  position:absolute; top:0; right:4px; z-index:5; pointer-events:none;
+  position:absolute !important; top:-2px; right:2px; z-index:60; pointer-events:none;
   min-width:19px; height:19px; padding:0 5px;
   display:flex; align-items:center; justify-content:center;
   border-radius:10px;
@@ -1706,7 +1707,8 @@ function sonOkuma() {
 function okunduYaz(t) { try { localStorage.setItem(anahtar(), String(t)); } catch (e) {} }
 
 function okunmamisSayisi() {
-  const h = (window.state && Array.isArray(state.battleLogHistory)) ? state.battleLogHistory : [];
+  const h = (typeof state !== "undefined" && state && Array.isArray(state.battleLogHistory))
+            ? state.battleLogHistory : [];
   const t = sonOkuma();
   if (t === null) return 0;
   let n = 0;
