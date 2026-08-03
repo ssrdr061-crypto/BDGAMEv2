@@ -68,6 +68,15 @@
     minZoom: 0.75,
     maxZoom: 3.0,
 
+    /* Açılışta kullanılacak zoom. maxZoom'a eşitse oyun en yakın
+       görünümle başlar. */
+    baslangicZoom: 3.0,
+
+    /* Düğüm (kale/canavar) ölçek çarpanı. Kale CSS'te 100px;
+       0.64 çarpanı onu 64px'lik karoya tam oturtur. Büyütürsen kale
+       karodan taşar, küçültürsen karo içinde küçük kalır. */
+    dugumOlcek: 0.64,
+
     /* ── Biyom üretimi ──
        seed: bu sayı DEĞİŞTİRİLİRSE tüm oyuncularda harita değişir.
        Yayına çıktıktan sonra ASLA dokunma — kaleler başka arazide kalır. */
@@ -658,8 +667,12 @@
     const panY = (typeof mapPanY !== "undefined") ? mapPanY : 0;
     const zoom = (typeof mapZoom !== "undefined") ? mapZoom : 1;
 
-    /* Düğüm boyu zoom ile büyüsün ama uçlara kaçmasın */
-    const olcek = Math.max(0.55, Math.min(1.5, zoom));
+    /* Düğüm boyu zoom ile TAM ORANTILI. Eskiden 0.55–1.5 arasına
+       sıkıştırılıyordu; uzaklaşınca kale küçülmeyi bırakıp 4 karoyu
+       kaplıyordu. Artık kale her zoom seviyesinde aynı sayıda karo
+       kaplar. dugumOlcek, kalenin CSS boyunu (100px) karo genişliğine
+       oturtan çarpan. */
+    const olcek = zoom * CFG.dugumOlcek;
 
     mapEl.querySelectorAll(".map-node").forEach(el => {
       const k = dugumKoordinati(el);
@@ -709,7 +722,25 @@
     st.textContent =
       ".battle-map.iso-node-layer::after{ display:none !important; }\n" +
       ".battle-map.iso-node-layer .map-zone-label{ display:none !important; }\n" +
-      ".battle-map.iso-node-layer .map-node{ position:absolute !important; }\n";
+      ".battle-map.iso-node-layer .map-node{ position:absolute !important; }\n" +
+
+      /* ── Düğüm karartıları ──
+         Eski harita koyu olduğu için görsellerin arkasındaki koyu
+         daireler ve sert gölgeler fark edilmiyordu. Yeni parlak
+         zeminde her ikonun etrafında kirli bir halka gibi duruyor.
+         Gölgeyi silmiyoruz (kale zemine yapışık durur), yumuşatıp
+         yere yakın bir temas gölgesine çeviriyoruz. */
+      ".battle-map.iso-node-layer .castle-avatar img{\n" +
+      "  filter: drop-shadow(0 2px 3px rgba(0,0,0,.32)) !important;\n" +
+      "}\n" +
+      ".battle-map.iso-node-layer .node-avatar{\n" +
+      "  background: transparent !important;\n" +
+      "  box-shadow: none !important;\n" +
+      "  border-color: rgba(255,255,255,.35) !important;\n" +
+      "}\n" +
+      ".battle-map.iso-node-layer .node-ring::before{\n" +
+      "  opacity:.45 !important;\n" +
+      "}\n";
     document.head.appendChild(st);
   }
 
@@ -724,6 +755,10 @@
 
   let eskiApply = null, eskiClamp = null, eskiScroll = null, eskiGo = null;
   let eskiRender = null;
+
+  /* Kamera merkezinin ızgara koordinatı. Zoom sırasında bunu sabit
+     tutarak "köşeye fırlama" hatasını engelliyoruz. */
+  let merkezGx = null, merkezGy = null, sonZoom = null;
 
   function bagla() {
     eskiApply = window.applyMapPan;
@@ -794,18 +829,30 @@
       if (mapZoom < CFG.minZoom) mapZoom = CFG.minZoom;
       if (mapZoom > CFG.maxZoom) mapZoom = CFG.maxZoom;
 
-      /* Ekran merkezinin dünya konumu → ızgara hücresi */
-      const cwx = (ww / 2 - mapPanX) / mapZoom;
-      const cwy = (wh / 2 - mapPanY) / mapZoom;
-      const c = worldToGrid(cwx, cwy);
+      let cgx, cgy;
 
-      const cgx = Math.max(0, Math.min(G - 1, c.gx));
-      const cgy = Math.max(0, Math.min(G - 1, c.gy));
+      if (sonZoom !== null && Math.abs(mapZoom - sonZoom) > 1e-6 && merkezGx !== null) {
+        /* ZOOM DEĞİŞTİ — oyunun kendi kıstırma (pinch) kodu pan'i
+           #battleMap'in dikdörtgenine göre hesaplıyor. O eleman artık
+           tam ekran bir düğüm katmanı olduğu için hesap tutmuyor ve
+           kamera haritanın köşesine fırlıyordu.
+           Çözüm: zoom sırasında ekran merkezini SABİT tutuyoruz. */
+        cgx = merkezGx; cgy = merkezGy;
+      } else {
+        /* Normal kaydırma — merkezi pan'den türet */
+        const c = worldToGrid((ww / 2 - mapPanX) / mapZoom,
+                              (wh / 2 - mapPanY) / mapZoom);
+        cgx = c.gx; cgy = c.gy;
+      }
 
-      /* Sıkıştırılmış merkezden pan'i geri üret */
+      cgx = Math.max(0, Math.min(G - 1, cgx));
+      cgy = Math.max(0, Math.min(G - 1, cgy));
+
       const p = gridToWorld(cgx, cgy);
       mapPanX = ww / 2 - (p.x + HALF_W) * mapZoom;
       mapPanY = wh / 2 - (p.y + HALF_H) * mapZoom;
+
+      merkezGx = cgx; merkezGy = cgy; sonZoom = mapZoom;
     };
   }
 
@@ -829,6 +876,7 @@
     const p = gridToWorld(hx, hy);
     mapPanX = wrapEl.clientWidth  / 2 - (p.x + HALF_W) * mapZoom;
     mapPanY = wrapEl.clientHeight / 2 - (p.y + HALF_H) * mapZoom;
+    merkezGx = hx; merkezGy = hy; sonZoom = mapZoom;
     window.clampMapPan();
     dugumleriYerlestir();
     cizIste();
@@ -885,7 +933,9 @@
 
     dugumKatmani(aktif);
 
-    mapZoom = aktif ? Math.max(CFG.minZoom, 1) : 1;
+    mapZoom = aktif
+      ? Math.max(CFG.minZoom, Math.min(CFG.maxZoom, CFG.baslangicZoom))
+      : 1;
     if (aktif) ortala();
     else { window.clampMapPan(); window.applyMapPan(); }
   }
