@@ -272,7 +272,8 @@ let troopTrainSelection = {};
 function useSpeedUpOnTrainingGroup(unitId) {
   useSpeedUpOnGroup(
     state.trainingQueue.filter(j => j.unitId === unitId),
-    [applyFinishedTraining, renderTroopsPanel, renderInventory]);
+    [applyFinishedTraining, renderTroopsPanel, renderInventory],
+    true);   /* zincirli: kuyruğun tamamı 5 dk öne kayar */
 }
 
 /*  ── 4) SAVAŞ BİRLİK SEÇİMİ ── */

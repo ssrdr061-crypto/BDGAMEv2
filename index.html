@@ -3816,10 +3816,24 @@ function useStaminaPotion() {
 const SLOT_LABELS_SHORT = { weapon: "Silah", armor: "Zırh", accessory: "Aks." };
 
 function formatRemaining(ms) {
+  /* Eskiden saat yoktu: 1 sa 5 dk 55 sn → "65:55" yazıyordu, oyuncu
+     bunu 65 dakika mı 65 saat mi diye okuyamıyordu. Artık 1 saati
+     geçen süreler "1:05:55" biçiminde. */
   const totalSec = ensure(Math.ceil(ms / 1000));
-  const m = Math.floor(totalSec / 60);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  const ss = s.toString().padStart(2, "0");
+  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${ss}`;
+  return `${m}:${ss}`;
+}
+
+/* Eğitim sayacı metni — SIRALI eğitimde tek bir süre yanıltıcıydı:
+   "sıradaki" bir sonraki birliğin, "tümü" kuyruğun tamamının süresi. */
+function trainTimerText(adet, siradakiMs, tumuMs) {
+  const bicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
+  if (adet <= 1) return `⏱ x1 ${bicim(siradakiMs)}`;
+  return `⏱ x${adet} · sıradaki ${bicim(siradakiMs)} · tümü ${bicim(tumuMs)}`;
 }
 
 function formatLogTime(ts) {
@@ -3982,17 +3996,29 @@ function confirmHospitalSelection() {
   showToast("Seçilen birlikler tedaviye alındı.");
 }
 
-function useSpeedUpOnGroup(group, afterFns) {
+/* zincirli = SIRALI kuyruk (eğitim). Eskiden yalnızca en yakın iş
+   5 dk öne çekiliyordu; arkasındakiler yerinde kaldığı için 10 tane
+   hızlandırma ancak 1 birlik çıkarıyordu. Sıralı kuyrukta artık
+   ZİNCİRİN TAMAMI 5 dk öne kayıyor, yani item gerçekten 5 dakika
+   kazandırıyor.
+   Hastane paralel çalıştığı için orada eski davranış korunuyor
+   (yoksa tek item bütün yaralıları birden iyileştirirdi). */
+function useSpeedUpOnGroup(group, afterFns, zincirli) {
   const item = "5 Dakika Hızlandırma";
   if (!state.inventory[item] || state.inventory[item] <= 0) {
     showToast("Hızlandırman yok. Mağazadan ⏩ 5 Dakika Hızlandırma satın al.");
     return;
   }
   if (group.length === 0) return;
-  const soonest = group.sort((a, b) => a.finishAt - b.finishAt)[0];
+  group.sort((a, b) => a.finishAt - b.finishAt);
+  const kes = 5 * 60 * 1000;
   state.inventory[item]--;
   if (state.inventory[item] <= 0) delete state.inventory[item];
-  soonest.finishAt = Math.max(Date.now(), soonest.finishAt - 5 * 60 * 1000);
+  if (zincirli) {
+    group.forEach(job => { job.finishAt -= kes; });
+  } else {
+    group[0].finishAt = Math.max(Date.now(), group[0].finishAt - kes);
+  }
   afterFns.forEach(fn => fn());
   showToast("⏩ 5 dakika hızlandırıldı!");
 }
@@ -5583,10 +5609,12 @@ const TroopViewer = (function () {
 
       if (isTraining) {
         const nearest = trainQueueForUnit.reduce((a, b) => a.finishAt < b.finishAt ? a : b);
+        const latest  = trainQueueForUnit.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
         const remaining = nearest.finishAt - Date.now();
+        const totalRemaining = latest.finishAt - Date.now();
         html += `<div class="unit-train-bar">
             <div class="utb-training">⏳ Eğitiliyor
-              <span class="unit-train-timer" data-unit="${uid}">x${trainQueueForUnit.length} · ${formatRemaining(remaining)}</span>
+              <span class="unit-train-timer" data-unit="${uid}">${trainTimerText(trainQueueForUnit.length, remaining, totalRemaining)}</span>
             </div>
             <button class="speedup-trigger unit-speedup-btn" data-unit="${uid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
           </div>`;
@@ -5671,7 +5699,8 @@ const TroopViewer = (function () {
           renderUnitStats();
           return;
         }
-        span.textContent = "⏱ x" + trainQueueForUnit.length + " " + formatRemaining(remaining);
+        const latest = trainQueueForUnit.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
+        span.textContent = trainTimerText(trainQueueForUnit.length, remaining, latest.finishAt - Date.now());
       });
     }, 1000);
   }
