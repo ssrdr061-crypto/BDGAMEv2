@@ -39,7 +39,7 @@ const HERO_UI = {
     border: "1px solid rgba(255,255,255,.35)",  /* Kenarlık                    */
     bg:     "rgba(0,0,0,.35)",                  /* Kutu arkaplan rengi         */
     box1: { dx: -70, dy: -80 },  /* 1. kutunun ek kaydırması (🎛 editörden)   */
-    box2: { dx: 75,  dy: -80 },  /* 2. kutunun ek kaydırması (🎛 editörden)   */
+    box2: { dx: 75,  dy: -85 },  /* 2. kutunun ek kaydırması (🎛 editörden)   */
     box3: { dx: 0,   dy: -80 }   /* 3. kutu (ortadaki) ek kaydırması           */
   },
 
@@ -554,7 +554,8 @@ function openHeroDetail(skinId) {
   const idx = heroSkins.findIndex(s => s.id === skinId);
   const prevId = heroSkins[(idx - 1 + heroSkins.length) % heroSkins.length].id;
   const nextId = heroSkins[(idx + 1) % heroSkins.length].id;
-  const cleanup = () => { if (window._hdRen) { window._hdRen.dispose(); window._hdRen.domElement.remove(); window._hdRen = null; } };
+  /* 3B kaldırıldığı için temizlenecek sahne yok; çağrılar dursun diye boş bırakıldı */
+  const cleanup = () => {};
   ov.querySelector("#hdPrev").onclick = () => { cleanup(); openHeroDetail(prevId); };
   ov.querySelector("#hdNext").onclick = () => { cleanup(); openHeroDetail(nextId); };
 
@@ -786,10 +787,9 @@ ${modelTxt}`;
     cleanup();
   };
 
-  // 3D model — yoksa HERO_IMG'den görsel göster
-  const glb = (typeof HERO_GLB !== "undefined") ? HERO_GLB[skinId] : null;
+  // Kahraman görseli (WebP) — HERO_IMG'den
   const heroImg = (typeof HERO_IMG !== "undefined") ? HERO_IMG[skinId] : null;
-  if (!glb && heroImg) {
+  if (heroImg) {
     const vw0 = ov.clientWidth, vh0 = ov.clientHeight;
     let cw0 = vw0, ch0 = vw0 * 16 / 9;
     if (ch0 > vh0) { ch0 = vh0; cw0 = vh0 * 9 / 16; }
@@ -863,116 +863,11 @@ ${modelTxt}`;
     applyOff();
     return;
   }
-  if (!glb || typeof THREE === "undefined" || !THREE.GLTFLoader) return;
-
-  // Editörle aynı 9:16 oran — birebir aynı görünüm için
-  const vw = ov.clientWidth, vh = ov.clientHeight;
-  let cw = vw, ch = vw * 16 / 9;
-  if (ch > vh) { ch = vh; cw = vh * 9 / 16; }
-
-  const sc = new THREE.Scene();
-  const cam = new THREE.PerspectiveCamera(45, cw/ch, 0.1, 100);
-  cam.position.set(0, 1, 4); cam.lookAt(0, 0.5, 0);
-  const ren = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  ren.setSize(cw, ch);
-  ren.setPixelRatio(Math.min(devicePixelRatio, 2));
-  ren.outputEncoding = THREE.sRGBEncoding;
-  ren.domElement.style.cssText = `position:absolute;left:${(vw-cw)/2}px;top:${(vh-ch)/2}px;z-index:1;touch-action:none;`;
-  ov.appendChild(ren.domElement);
-  window._hdRen = ren;
-
-  const L = cfg.lighting;
-  const amb = new THREE.AmbientLight(L.ambient.color, L.ambient.intensity); sc.add(amb);
-  const dir = new THREE.DirectionalLight(L.main.color, L.main.intensity); dir.position.set(3,4,5); sc.add(dir);
-  const bck = new THREE.DirectionalLight(L.back.color, L.back.intensity); bck.position.set(-3,2,-3); sc.add(bck);
-  const hem = new THREE.HemisphereLight(L.hemi.color, "#0d0d2b", L.hemi.intensity); sc.add(hem);
-
-  new THREE.GLTFLoader().load(glb, gltf => {
-    const m = gltf.scene;
-    /* Önce merkeze al, sonra heroes.js'deki offsetleri uygula */
-    const bx = new THREE.Box3().setFromObject(m);
-    const c = bx.getCenter(new THREE.Vector3());
-    const s = cfg.model.scale;
-    m.scale.setScalar(s);
-    m.position.set(
-      -c.x * s + cfg.model.position.x,
-      -c.y * s + cfg.model.position.y,
-      -c.z * s + cfg.model.position.z
-    );
-    m.rotation.set(THREE.MathUtils.degToRad(cfg.model.rotation.x), THREE.MathUtils.degToRad(cfg.model.rotation.y), 0);
-    sc.add(m);
-
-    let tx=0, br=0;
-    ren.domElement.addEventListener("pointerdown", e => { tx=e.clientX; br=m.rotation.y; });
-    ren.domElement.addEventListener("pointermove", e => {
-      if (e.buttons !== 1) return;
-      m.rotation.y = br + (e.clientX - tx) * 0.01;
-    });
-
-    /* ── Ayar modu ── */
-    const off = { x: cfg.model.position.x, y: cfg.model.position.y, z: cfg.model.position.z, s: cfg.model.scale,
-                  rx: cfg.model.rotation.x, ry: cfg.model.rotation.y };
-    const applyOff = () => {
-      m.scale.setScalar(off.s);
-      m.position.set(-c.x*off.s + off.x, -c.y*off.s + off.y, -c.z*off.s + off.z);
-      m.rotation.set(THREE.MathUtils.degToRad(off.rx), THREE.MathUtils.degToRad(off.ry), 0);
-    };
-    modelAPI = { off, applyOff }; // 🎛 canlı editörün "Kahraman" hedefi bunu kullanır
-    ov.querySelector("#hdTune").onclick = () => {
-      const p = ov.querySelector("#hdTunePanel");
-      p.style.display = p.style.display === "none" ? "block" : "none";
-    };
-    const showVals = () => {
-      ov.querySelector("#hdVals").textContent =
-        `position:{x:${off.x},y:${off.y},z:${off.z}}, rotation:{x:${off.rx},y:${off.ry}}, scale:${off.s}`;
-    };
-    let fineMode = false;
-    const fineBtn = ov.querySelector("#hdFine");
-    if (fineBtn) fineBtn.onclick = () => {
-      fineMode = !fineMode;
-      fineBtn.textContent = fineMode ? "🔬 İnce ayar: AÇIK" : "🔬 İnce ayar: KAPALI";
-      fineBtn.style.background = fineMode ? "#d4af37" : "#333";
-      fineBtn.style.color = fineMode ? "#000" : "#fff";
-    };
-    ov.querySelectorAll(".hdT").forEach(btn => {
-      btn.onclick = () => {
-        const k = btn.dataset.k, v = parseFloat(btn.dataset.v) * (fineMode ? 0.2 : 1);
-        off[k] = Math.round((off[k] + v) * 1000) / 1000;
-        applyOff(); showVals();
-      };
-    });
-    ov.querySelectorAll(".hdR").forEach(btn => {
-      btn.onclick = () => {
-        const k = btn.dataset.k === "x" ? "rx" : "ry", v = parseFloat(btn.dataset.v) * (fineMode ? 0.2 : 1);
-        off[k] = Math.round((off[k] + v) * 10) / 10;
-        applyOff(); showVals();
-      };
-    });
-    ov.querySelector("#hdShowVals").onclick = showVals;
-    const copyBtn = ov.querySelector("#hdCopyVals");
-    if (copyBtn) copyBtn.onclick = () => {
-      showVals();
-      const txt = ov.querySelector("#hdVals").textContent;
-      const done = () => { copyBtn.textContent = "✓ Kopyalandı"; setTimeout(() => copyBtn.textContent = "📋 Kopyala", 1500); };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(done).catch(() => {
-          /* eski tarayıcı yedeği */
-          const ta = document.createElement("textarea");
-          ta.value = txt; document.body.appendChild(ta);
-          ta.select(); document.execCommand("copy");
-          document.body.removeChild(ta); done();
-        });
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = txt; document.body.appendChild(ta);
-        ta.select(); document.execCommand("copy");
-        document.body.removeChild(ta); done();
-      }
-    };
-    showVals();
-  });
-
-  (function anim(){ if(window._hdRen){ requestAnimationFrame(anim); ren.render(sc, cam); } })();
+  /* 3B model desteği kaldırıldı — kahramanlar artık WebP görsel.
+     Eskiden burada three.js ile GLB yükleyen ~115 satır vardı; HERO_GLB
+     boş olduğu için o kod zaten hiç çalışmıyordu. Yukarıdaki HERO_IMG
+     bloğu her kahraman için return ediyor, buraya düşülmüyor. */
+  if (!heroImg) console.warn("[heroes.js] Görsel yok:", skinId);
 }
 
 
@@ -1272,6 +1167,5 @@ function refreshAfterCommanderChange() {
 }
 
 /* Kahraman varlıkları — dosya yolları (düz mod, klasörsüz) */
-const HERO_GLB = {};
 const HERO_IMG = {"ates_buyucusu": "hero_ates_buyucusu.webp", "buz_savascisi": "hero_buz_savascisi.webp", "celik_savasci": "hero_celik_savasci.webp", "ivanovna": "hero_ivanovna.webp", "revolia": "hero_revolia.webp"};
 const HERO_BG = {"ates_buyucusu": {"data": "herobg_ates_buyucusu.webp", "type": "image"}, "buz_savascisi": {"data": "herobg_buz_savascisi.webp", "type": "image"}, "celik_savasci": {"data": "herobg_celik_savasci.webp", "type": "image"}, "ivanovna": {"data": "herobg_ivanovna.webp", "type": "image"}, "revolia": {"data": "herobg_revolia.webp", "type": "image"}};

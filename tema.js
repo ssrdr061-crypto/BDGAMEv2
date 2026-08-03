@@ -2542,20 +2542,22 @@ console.log("[tema.js] Koyu mavi tema uygulandı ✔");
    Sağ/sol okları yerine kaydırma. Sola kaydır → sonraki kahraman,
    sağa kaydır → önceki.
 
-   Geçişi kendim yapmıyorum: gizlenmiş #hdPrev / #hdNext
-   butonlarının click'ini tetikliyorum. Böylece heroes.js'teki
-   temizlik (3B sahneyi kapatma) ve açma mantığı tek yerde kalıyor;
-   ileride orası değişirse burası kendiliğinden uyar.
+   EŞİK = görselin yarısı. Kahraman görseli kartın ortasında durur;
+   parmağını görselin ortasına kadar götürünce geçiş olur. Görsel
+   bulunamazsa kartın yarısına düşülür.
 
-   ── AYARLAR ──
-   ESIK      : kaç piksel kaydırınca geçiş olsun
-   DIKEY_PAY : yatay hareket, dikeyin kaç katı olmalı (yanlışlıkla
-               yukarı/aşağı kaydırırken kahraman değişmesin diye)
+   Geçişi kendim yapmıyorum: gizlenmiş #hdPrev / #hdNext
+   butonlarının click'ini tetikliyorum. Böylece heroes.js'teki açma
+   mantığı tek yerde kalıyor; ileride orası değişirse burası
+   kendiliğinden uyar.
+
+   ── AYAR ──
+   DIKEY_PAY : yatay hareket, dikeyin kaç katı olmalı (yukarı/aşağı
+               kaydırırken kahraman değişmesin diye)
    ═══════════════════════════════════════════════════════════════ */
 (function kahramanKaydir() {
 "use strict";
 
-const ESIK = 70;
 const DIKEY_PAY = 1.4;
 
 let x0 = 0, y0 = 0, izliyor = false;
@@ -2564,6 +2566,15 @@ function kart() {
   const o = document.getElementById("heroDetailOverlay");
   if (!o || o.style.display === "none" || !o.offsetParent) return null;
   return o;
+}
+
+/* Görselin yarı genişliği. Kahraman görseli, kartın içindeki
+   pointer-events:none olan <img> — arka plan görselinden (z-index 0)
+   ayırmak için genişliği en büyük olanı değil, ortada duranı alıyoruz. */
+function esik(o) {
+  const im = o.querySelector('img[style*="object-fit:contain"]');
+  const g = im ? im.getBoundingClientRect().width : 0;
+  return (g > 40 ? g : o.clientWidth) / 2;
 }
 
 document.addEventListener("touchstart", e => {
@@ -2580,14 +2591,15 @@ document.addEventListener("touchend", e => {
   if (!izliyor) return;
   izliyor = false;
 
+  const o = kart();
+  if (!o) return;
+
   const t = e.changedTouches[0];
   const dx = t.clientX - x0;
   const dy = t.clientY - y0;
-  if (Math.abs(dx) < ESIK) return;
+  if (Math.abs(dx) < esik(o)) return;
   if (Math.abs(dx) < Math.abs(dy) * DIKEY_PAY) return;
 
-  const o = kart();
-  if (!o) return;
   const btn = o.querySelector(dx < 0 ? "#hdNext" : "#hdPrev");
   if (!btn) return;
 
