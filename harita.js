@@ -757,11 +757,8 @@
      ═════════════════════════════════════════════════════════════════════ */
 
   let eskiApply = null, eskiClamp = null, eskiScroll = null, eskiGo = null;
-  let eskiRender = null;
+  let eskiRender = null, eskiZoomAt = null;
 
-  /* Kamera merkezinin ızgara koordinatı. Zoom sırasında bunu sabit
-     tutarak "köşeye fırlama" hatasını engelliyoruz. */
-  let merkezGx = null, merkezGy = null, sonZoom = null;
 
   function bagla() {
     eskiApply = window.applyMapPan;
@@ -796,6 +793,36 @@
         return r;
       };
     }
+
+    /* ── YAKINLAŞTIRMAYI DEVRAL ──
+       zoomAtPoint, zoom'u değiştiren TEK yol (hem kıstırma hem fare
+       tekerleği oradan geçiyor). Kendi sürümümüzü koyuyoruz:
+       parmakların ortasındaki dünya noktası sabit kalıyor ve zoom
+       sınırları CFG'den geliyor. Böylece oyunun 0.5–3 sabit aralığı
+       ile bizim sınırlarımız birbiriyle çekişmiyor. */
+    eskiZoomAt = window.zoomAtPoint;
+    window.zoomAtPoint = function (yeniZoom, odakX, odakY) {
+      if (!aktif) {
+        if (eskiZoomAt) eskiZoomAt.apply(this, arguments);
+        return;
+      }
+
+      const z0 = mapZoom;
+      let z1 = Math.max(CFG.minZoom, Math.min(CFG.maxZoom, yeniZoom));
+      if (Math.abs(z1 - z0) < 1e-6) return;
+
+      /* Odak noktasının altındaki dünya konumu sabit kalsın */
+      const wx = (odakX - mapPanX) / z0;
+      const wy = (odakY - mapPanY) / z0;
+
+      mapZoom = z1;
+      mapPanX = odakX - wx * z1;
+      mapPanY = odakY - wy * z1;
+
+      akisiDurdur();          // zoom sırasında atalet devam etmesin
+      window.clampMapPan();
+      window.applyMapPan();
+    };
 
     window.applyMapPan = function () {
       if (aktif) {
@@ -838,21 +865,13 @@
       if (mapZoom < CFG.minZoom) mapZoom = CFG.minZoom;
       if (mapZoom > CFG.maxZoom) mapZoom = CFG.maxZoom;
 
-      let cgx, cgy;
-
-      if (sonZoom !== null && Math.abs(mapZoom - sonZoom) > 1e-6 && merkezGx !== null) {
-        /* ZOOM DEĞİŞTİ — oyunun kendi kıstırma (pinch) kodu pan'i
-           #battleMap'in dikdörtgenine göre hesaplıyor. O eleman artık
-           tam ekran bir düğüm katmanı olduğu için hesap tutmuyor ve
-           kamera haritanın köşesine fırlıyordu.
-           Çözüm: zoom sırasında ekran merkezini SABİT tutuyoruz. */
-        cgx = merkezGx; cgy = merkezGy;
-      } else {
-        /* Normal kaydırma — merkezi pan'den türet */
-        const c = worldToGrid((ww / 2 - mapPanX) / mapZoom,
-                              (wh / 2 - mapPanY) / mapZoom);
-        cgx = c.gx; cgy = c.gy;
-      }
+      /* Merkez her zaman mevcut pan'den türetilir. Zoom işini artık
+         zoomAtPoint devraldığı için "zoom sırasında merkezi dondur"
+         hilesine gerek kalmadı — o hile parmağın odak noktasıyla
+         çelişip haritayı sıçratıyordu. */
+      const c = worldToGrid((ww / 2 - mapPanX) / mapZoom,
+                            (wh / 2 - mapPanY) / mapZoom);
+      let cgx = c.gx, cgy = c.gy;
 
       /* ── KENAR KİLİDİ ──
          Merkezi sadece 0..G-1 arasında tutmak yetmiyor: uzaklaşınca
@@ -878,7 +897,7 @@
       mapPanX = ww / 2 - (p.x + HALF_W) * mapZoom;
       mapPanY = wh / 2 - (p.y + HALF_H) * mapZoom;
 
-      merkezGx = cgx; merkezGy = cgy; sonZoom = mapZoom;
+
     };
   }
 
@@ -902,7 +921,6 @@
     const p = gridToWorld(hx, hy);
     mapPanX = wrapEl.clientWidth  / 2 - (p.x + HALF_W) * mapZoom;
     mapPanY = wrapEl.clientHeight / 2 - (p.y + HALF_H) * mapZoom;
-    merkezGx = hx; merkezGy = hy; sonZoom = mapZoom;
     window.clampMapPan();
     dugumleriYerlestir();
     cizIste();
