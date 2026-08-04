@@ -81,6 +81,11 @@
        bir ucundan diğerine fırlıyor. */
     enYuksekHiz: 40,
 
+    /* Kale taşırken ekran kenarında kaç piksellik bantta harita
+       kendiliğinden kaysın, ve kare başına en fazla kaç piksel. */
+    kenarBandi: 90,
+    kenarHizi: 14,
+
     /* "Kaleme dön" butonunun ekran kenarından uzak duracağı mesafe.
        Üstte HUD, altta sohbet şeridi var; buton onların arkasında
        kaybolmasın diye. */
@@ -707,6 +712,22 @@
          İzometride ekran derinliği gx+gy ile artar. */
       el.style.zIndex = String(10 + Math.round((k.gx + k.gy) * 10));
     });
+
+    /* "Git" ile konulan sarı nişangah işareti de eski yüzdeli
+       konumuyla kalıyordu — onu da izometriğe taşıyoruz. */
+    const nisan = mapEl.querySelector(".coord-marker");
+    if (nisan) {
+      let ak = null;
+      try { if (typeof activeCoordMarker !== "undefined") ak = activeCoordMarker; } catch (e) {}
+      if (ak && typeof ak.gx === "number") {
+        const pm = gridToWorld(ak.gx * ORAN, ak.gy * ORAN);
+        nisan.style.left = ((pm.x + HALF_W) * zoom + panX) + "px";
+        nisan.style.top  = ((pm.y + HALF_H) * zoom + panY) + "px";
+        nisan.style.display = "";
+      } else {
+        nisan.style.display = "none";
+      }
+    }
   }
 
   /* #battleMap'i düğüm katmanına çevirir/geri alır */
@@ -757,7 +778,8 @@
      ═════════════════════════════════════════════════════════════════════ */
 
   let eskiApply = null, eskiClamp = null, eskiScroll = null, eskiGo = null;
-  let eskiRender = null, eskiZoomAt = null;
+  let eskiRender = null, eskiZoomAt = null, eskiTween = null;
+  let tweenId = null;
 
 
   function bagla() {
@@ -822,6 +844,49 @@
       akisiDurdur();          // zoom sırasında atalet devam etmesin
       window.clampMapPan();
       window.applyMapPan();
+    };
+
+    /* ── KOORDİNATA KAYDIRMA ──
+       "Git" tuşu ve kale taşıma onayı buradan geçiyor. Eski sürüm
+       hedefi MAP_W/MAP_H (1586x992) üzerinden hesaplıyordu; izometrikte
+       kamera alakasız bir yere uçuyordu. */
+    eskiTween = window.panTweenToGrid;
+    window.panTweenToGrid = function (gx, gy, sure) {
+      if (!aktif) {
+        if (eskiTween) eskiTween.apply(this, arguments);
+        return;
+      }
+
+      const wrapEl = document.getElementById("battleMapWrap");
+      if (!wrapEl) return;
+      const ww = wrapEl.clientWidth, wh = wrapEl.clientHeight;
+      if (ww <= 0 || wh <= 0) return;
+
+      akisiDurdur();
+
+      const p = gridToWorld(gx * ORAN, gy * ORAN);
+      const baslaX = mapPanX, baslaY = mapPanY;
+
+      /* Hedefi kısıtlamadan geçir ki kenarda takılıp zıplamasın */
+      mapPanX = ww / 2 - (p.x + HALF_W) * mapZoom;
+      mapPanY = wh / 2 - (p.y + HALF_H) * mapZoom;
+      window.clampMapPan();
+      const hedefX = mapPanX, hedefY = mapPanY;
+      mapPanX = baslaX; mapPanY = baslaY;
+
+      const sureMs = sure || 420;
+      const t0 = performance.now();
+
+      if (tweenId) cancelAnimationFrame(tweenId);
+      const adim = (simdi) => {
+        const t = Math.min(1, (simdi - t0) / sureMs);
+        const e = 1 - Math.pow(1 - t, 3);
+        mapPanX = baslaX + (hedefX - baslaX) * e;
+        mapPanY = baslaY + (hedefY - baslaY) * e;
+        window.applyMapPan();
+        tweenId = (t < 1) ? requestAnimationFrame(adim) : null;
+      };
+      tweenId = requestAnimationFrame(adim);
     };
 
     window.applyMapPan = function () {
@@ -1003,6 +1068,57 @@
     return { gx: Math.round(gx * 10) / 10, gy: Math.round(gy * 10) / 10 };
   }
 
+  /* ── TAŞIMA MODUNDA KENAR KAYDIRMASI ──
+     Kale taşırken oyun kaydırmayı kapatıyor: parmak hayaleti sürüklüyor,
+     harita sabit kalıyor. Bu yüzden kaleyi sadece o an ekranda görünen
+     alana koyabiliyordun.
+
+     Çözüm: parmak ekranın kenarına yaklaşınca harita o yöne kendiliğinden
+     kaymaya başlıyor — masaüstü strateji oyunlarındaki gibi. Kenara ne
+     kadar yaklaşırsan o kadar hızlı kayar. */
+
+  let kenarId = null, kenarX = 0, kenarY = 0;
+
+  function tasimaModuAcikMi() {
+    return !!document.getElementById("castleMoveBar");
+  }
+
+  function kenarAdimi() {
+    kenarId = null;
+    if (!aktif || !parmakVar || !tasimaModuAcikMi()) return;
+
+    const wrap = document.getElementById("battleMapWrap");
+    if (!wrap) return;
+    const r = wrap.getBoundingClientRect();
+
+    const E = CFG.kenarBandi;
+    let dx = 0, dy = 0;
+
+    if (kenarX - r.left < E)      dx =  (E - (kenarX - r.left)) / E;
+    else if (r.right - kenarX < E) dx = -(E - (r.right - kenarX)) / E;
+
+    if (kenarY - r.top < E)        dy =  (E - (kenarY - r.top)) / E;
+    else if (r.bottom - kenarY < E) dy = -(E - (r.bottom - kenarY)) / E;
+
+    if (dx || dy) {
+      mapPanX += dx * CFG.kenarHizi;
+      mapPanY += dy * CFG.kenarHizi;
+      window.clampMapPan();
+      window.applyMapPan();
+    }
+
+    kenarId = requestAnimationFrame(kenarAdimi);
+  }
+
+  function kenarBaslat(x, y) {
+    kenarX = x; kenarY = y;
+    if (!kenarId && tasimaModuAcikMi()) kenarId = requestAnimationFrame(kenarAdimi);
+  }
+
+  function kenarDurdur() {
+    if (kenarId) { cancelAnimationFrame(kenarId); kenarId = null; }
+  }
+
   /* ═════════════════════════════════════════════════════════════════════
      ATALETLİ KAYDIRMA (momentum)
 
@@ -1077,11 +1193,13 @@
         hizY = hizY * 0.3 + ay * 0.7;
       }
       sonX = e.clientX; sonY = e.clientY; sonAn = simdi;
+      kenarBaslat(e.clientX, e.clientY);
     }, { passive: true });
 
     const birak = () => {
       if (!parmakVar) return;
       parmakVar = false;
+      kenarDurdur();
       if (!aktif) { hizX = hizY = 0; return; }
 
       /* Parmak hareketsiz bekleyip kalktıysa akıtma */
