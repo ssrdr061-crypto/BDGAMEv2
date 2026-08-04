@@ -455,12 +455,15 @@
       x2.drawImage(kayit.parcalar[vi % kayit.parcalar.length],
                    x - PAY, y - PAY, tw + 2 * PAY, th + 2 * PAY);
     } else {
+      /* Düz renk yedeği — burada da PAY kadar taşırıyoruz, yoksa
+         doku yüklenmediğinde karo kenarlarında çizgiler görünüyor. */
+      const d = PAY;
       x2.fillStyle = CFG.karoRenk[tip];
       x2.beginPath();
-      x2.moveTo(x + tw / 2, y);
-      x2.lineTo(x + tw,     y + th / 2);
-      x2.lineTo(x + tw / 2, y + th);
-      x2.lineTo(x,          y + th / 2);
+      x2.moveTo(x + tw / 2, y - d);
+      x2.lineTo(x + tw + d, y + th / 2);
+      x2.lineTo(x + tw / 2, y + th + d);
+      x2.lineTo(x - d,      y + th / 2);
       x2.closePath();
       x2.fill();
     }
@@ -515,11 +518,14 @@
     const gx0 = cx * C, gx1 = gx0 + C - 1;
     const gy0 = cy * C, gy1 = gy0 + C - 1;
 
-    /* Parçanın dünya sınırları — eşkenar dörtgen dizisinin kutusu */
-    const minX = gridToWorld(gx0, gy1).x;
-    const maxX = gridToWorld(gx1, gy0).x + tw;
-    const minY = gridToWorld(gx0, gy0).y;
-    const maxY = gridToWorld(gx1, gy1).y + th;
+    /* Parçanın dünya sınırları — eşkenar dörtgen dizisinin kutusu.
+       PAY kadar genişletiliyor: kenardaki karoların taşma payı canvas
+       sınırında kesilirse parça sınırları boyunca ince çizgiler
+       (dikdörtgen desen) görünüyordu. */
+    const minX = gridToWorld(gx0, gy1).x - PAY;
+    const maxX = gridToWorld(gx1, gy0).x + tw + PAY;
+    const minY = gridToWorld(gx0, gy0).y - PAY;
+    const maxY = gridToWorld(gx1, gy1).y + th + PAY;
 
     const w = maxX - minX, h = maxY - minY;
 
