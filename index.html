@@ -4366,7 +4366,7 @@ function setupMapPanning() {
   let pinchActive = false;
 
   /* ═══ KALE TAŞIMA ═══ 3sn basılı tut → yarı saydam kale → sürükle → boşsa 20.000💎 */
-  const HOLD_MS = 3000, MOVE_COST = 20000, MOVE_MINDIST = 2.4, MGRID = 30;
+  const HOLD_MS = 3000, MOVE_COST = 20000, MOVE_MINDIST = 0.25, MGRID = 30;
   let holdTimer = null, castleMoveMode = false, moveGhost = null;
 
   function clearHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer = null; } }
@@ -4389,7 +4389,7 @@ function setupMapPanning() {
     const taken = [];
     try { enemies.forEach(e => taken.push({ gx:(e.mapX/100)*MGRID, gy:(e.mapY/100)*MGRID })); } catch(e){}
     try {
-      const accs = loadAccounts();
+        const accs = {};
       Object.values(accs).forEach(a => {
         if(a && a.state && a.state.castle && typeof a.state.castle.gx === "number"){
           if(a.displayName && currentUsername && a.displayName.toLowerCase() === currentUsername.toLowerCase()) return; // kendi kalem hariç
