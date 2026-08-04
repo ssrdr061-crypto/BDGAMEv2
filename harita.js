@@ -81,6 +81,12 @@
        bir ucundan diğerine fırlıyor. */
     enYuksekHiz: 40,
 
+    /* "Kaleme dön" butonunun ekran kenarından uzak duracağı mesafe.
+       Üstte HUD, altta sohbet şeridi var; buton onların arkasında
+       kaybolmasın diye. */
+    evButonUstBosluk: 10,
+    evButonAltBosluk: 70,
+
     /* Düğüm (kale/canavar) ölçek çarpanı. Kale CSS'te 100px;
        0.64 çarpanı onu 64px'lik karoya tam oturtur. Büyütürsen kale
        karodan taşar, küçültürsen karo içinde küçük kalır. */
@@ -731,7 +737,13 @@
     st.textContent =
       ".battle-map.iso-node-layer::after{ display:none !important; }\n" +
       ".battle-map.iso-node-layer .map-zone-label{ display:none !important; }\n" +
-      ".battle-map.iso-node-layer .map-node{ position:absolute !important; }\n";
+      ".battle-map.iso-node-layer .map-node{ position:absolute !important; }\n" +
+
+      /* Düğümlerin konumunu ve ölçeğini artık JS her karede yazıyor.
+         CSS'teki transform geçişi ve :hover büyütmesi bu yazımla
+         yarışıyor ve kale bir anlığına büyüyüp küçülüyordu. */
+      ".battle-map.iso-node-layer .map-node{ transition:none !important; }\n" +
+      ".battle-map.iso-node-layer .map-node:hover{ transform:none; }\n";
     document.head.appendChild(st);
   }
 
@@ -787,6 +799,12 @@
 
     window.applyMapPan = function () {
       if (aktif) {
+        /* Kısıtlamayı BURADA da uyguluyoruz. Oyunun kıstırma kodu bazı
+           yollardan mapZoom/mapPan'i değiştirip clampMapPan'i
+           çağırmadan doğrudan applyMapPan'e geliyor; o durumda kamera
+           kısıtsız kalıp haritanın alakasız bir yerine atlıyordu. */
+        window.clampMapPan();
+
         /* Orijinal applyMapPan #battleMap'e transform basıyor —
            düğüm katmanında bu her şeyi kaydırır. Atlıyoruz. */
         evButonu();
@@ -919,9 +937,15 @@
       return;
     }
 
-    const m = 26;
+    /* Dikey sınırlar: buton üstteki HUD'un altında, alttaki sohbet
+       şeridinin üstünde kalsın. Eskiden sadece kenara sıkıştırılıyordu
+       ve şeritlerin arkasında kaybolabiliyordu. */
+    const m  = 26;
+    const ust = m + CFG.evButonUstBosluk;
+    const alt = wh - m - CFG.evButonAltBosluk;
+
     btn.style.left = Math.max(m, Math.min(ww - m, sx)) + "px";
-    btn.style.top  = Math.max(m, Math.min(wh - m, sy)) + "px";
+    btn.style.top  = Math.max(ust, Math.min(Math.max(ust, alt), sy)) + "px";
     btn.classList.add("visible");
   }
 
