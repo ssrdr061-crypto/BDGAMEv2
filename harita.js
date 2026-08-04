@@ -967,6 +967,42 @@
     btn.classList.add("visible");
   }
 
+  /* ── EKRAN → IZGARA (kale taşıma için) ──
+     Oyunun kendi screenToGrid'i kapalı bir fonksiyon, üzerine
+     yazılamıyor. Bu yüzden index.html içinden BURAYA yönlendiriliyor.
+
+     Dönen değer oyunun kendi ölçeğinde (0..mgrid, yani 0..30) —
+     böylece cellFree, MOVE_MINDIST ve Firebase kaydı hiç değişmeden
+     çalışmaya devam ediyor. Sadece dokunulan noktanın hangi hücreye
+     denk geldiği izometrik olarak hesaplanıyor. */
+  function ekranaGoreIzgara(cx, cy, mgrid) {
+    if (!aktif) return null;
+
+    const wrapEl = document.getElementById("battleMapWrap");
+    if (!wrapEl) return null;
+    const r = wrapEl.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+
+    const zoom = (typeof mapZoom !== "undefined") ? mapZoom : 1;
+    const panX = (typeof mapPanX !== "undefined") ? mapPanX : 0;
+    const panY = (typeof mapPanY !== "undefined") ? mapPanY : 0;
+
+    /* Ekran → dünya → izometrik ızgara → oyunun 0..30 ölçeği */
+    const wx = (cx - r.left - panX) / zoom;
+    const wy = (cy - r.top  - panY) / zoom;
+    const k = worldToGrid(wx, wy);
+
+    const M = mgrid || 30;
+    let gx = k.gx / ORAN;
+    let gy = k.gy / ORAN;
+
+    /* Oyunun kendi kenar payı: kale haritanın ucuna dayanmasın */
+    gx = Math.max(2.5, Math.min(M - 2.5, gx));
+    gy = Math.max(2.5, Math.min(M - 2.5, gy));
+
+    return { gx: Math.round(gx * 10) / 10, gy: Math.round(gy * 10) / 10 };
+  }
+
   /* ═════════════════════════════════════════════════════════════════════
      ATALETLİ KAYDIRMA (momentum)
 
@@ -1152,5 +1188,6 @@
   /* Konsoldan ayar yapabilmek için dışarı aç.
      Örn: HARITA.CFG.izgaraCizgisi = true; HARITA.ciz(); */
   window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala,
-                    dugumleriYerlestir, ORAN, onbellegiBosalt };
+                    dugumleriYerlestir, ORAN, onbellegiBosalt,
+                    ekranaGoreIzgara };
 })();
