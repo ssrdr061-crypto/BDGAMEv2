@@ -17,8 +17,18 @@
   const MISSILE_DAMAGE  = 1000;    // bir füzenin hasarı
   const START_MISSILES  = 1;      // yeni hesaba verilen füze
   const SECONDS_PER_CELL = 0.5;   // füzenin harita karesinde uçuş süresi (sn)
-  const LAUNCH_OFFSET_Y = -1; // kalkış hizası: eksi = kendi kalenin üstünden fırlar
-  const IMPACT_OFFSET_Y = -1; // füzenin vuruş noktası: eksi = kalenin üstü (kare cinsinden)
+  /* KAYIT BİÇİMİ — DEĞİŞTİRME.
+     pvp_launches'a fy/ty bu kaydırma UYGULANMIŞ yazılır. Eskiden çizim de
+     doğrudan bunu kullanıyordu. İzometride gy-1 ekranda yukarı değil ÇAPRAZ
+     gittiği için çizim artık ekran dikeyini kullanıyor (UCUS_KALDIR_KARE) —
+     ama kablo biçimi aynı bırakıldı. Sebep: önbellekte kalmış eski sürüm bir
+     oyuncu aynı kaydı okuyup yazabilir. Biçim değişseydi roket onun ekranında
+     kalenin ortasından, bizimkinde iki kare yukarıdan çıkardı.
+     Çizimden önce animateMissile bu kaydırmayı geri söker. */
+  const KAYIT_OFFSET_Y = -1;
+
+  // Füzenin uçuş yolu kalenin kaç KARE üstünden geçsin (ekran dikeyi).
+  const UCUS_KALDIR_KARE = 1; // 0 = kalenin tam üstünde uçsun
   const CASTLE_REGEN_PER_HOUR = 150; // kale HP'si saatte bu kadar kendini onarır (genel canla aynı hız)
   const BROKEN_THRESHOLD = 150; // Kalenin saldırıya açılması için gereken minimum HP
                                // 150 HP = tam 1 saat yenilenme süresi
@@ -86,7 +96,7 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
         const hpNow = effectiveHp(mine);
         if (_lastKnownOwnHp !== null && hpNow < _lastKnownOwnHp) {
           const kayip = _lastKnownOwnHp - hpNow;
-          showToastForce(`🚨 Kalen füze saldırısına uğradı! -${kayip} HP`, 4000);
+          showToast(`🚨 Kalen füze saldırısına uğradı! -${kayip} HP`, 4000);
         }
         _lastKnownOwnHp = hpNow;
         // Biriken genel can hasarını tüket (çevrimiçiyken anında,
@@ -117,7 +127,7 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
       state.stamina.current = Math.max(0, state.stamina.current - alinan);
       if (typeof renderStamina === "function") renderStamina();
       if (typeof persistCurrentState === "function") persistCurrentState();
-      showToastForce(`💔 Füze saldırısı genel canını -${alinan} düşürdü!`, 4000);
+      showToast(`💔 Füze saldırısı genel canını -${alinan} düşürdü!`, 4000);
     });
   }
 
@@ -128,21 +138,21 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
 
   /* ---------- SALDIRI ---------- */
   function fireMissile(targetName, tx, ty) {
-    if (!fbReady() || !myKey) { showToastForce("Bağlantı yok, füze atılamaz."); return; }
-    if (myMissiles() <= 0) { showToastForce("Füzen kalmadı! 🚀"); return; }
+    if (!fbReady() || !myKey) { showToast("Bağlantı yok, füze atılamaz."); return; }
+    if (myMissiles() <= 0) { showToast("Füzen kalmadı! 🚀"); return; }
     const tKey = keyOf(targetName);
-    if (tKey === myKey) { showToastForce("Kendi kaleni vuramazsın."); return; }
-    if (!state.castle) { showToastForce("Önce kalen olmalı."); return; }
+    if (tKey === myKey) { showToast("Kendi kaleni vuramazsın."); return; }
+    if (!state.castle) { showToast("Önce kalen olmalı."); return; }
 
     const tRec = pvpData[tKey];
-    if (effectiveHp(tRec) <= 0) { showToastForce("Bu kale zaten yıkık, onarılmasını bekle."); return; }
+    if (effectiveHp(tRec) <= 0) { showToast("Bu kale zaten yıkık, onarılmasını bekle."); return; }
 
     // Önce kendi füzeni düş (yarış koşullarına karşı transaction).
     firebaseDb.ref("pvp/" + myKey + "/missiles").transaction(cur => {
       if ((cur || 0) <= 0) return; // iptal
       return cur - 1;
     }, (err, committed) => {
-      if (err || !committed) { showToastForce("Füze atılamadı."); return; }
+      if (err || !committed) { showToast("Füze atılamadı."); return; }
       const dist = Math.hypot(tx - state.castle.gx, ty - state.castle.gy);
       const flightMs = Math.max(800, dist * SECONDS_PER_CELL * 1000);
 
@@ -153,13 +163,13 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
         target: tKey,
         targetName: targetName,
         fx: state.castle.gx,
-        fy: state.castle.gy + LAUNCH_OFFSET_Y,
+        fy: state.castle.gy + KAYIT_OFFSET_Y,
         tx: tx,
-        ty: ty + IMPACT_OFFSET_Y,
+        ty: ty + KAYIT_OFFSET_Y,
         flightMs: flightMs,
         at: Date.now(),
       }).catch(() => {
-        showToastForce("Füze fırlatılamadı (bağlantı hatası).");
+        showToast("Füze fırlatılamadı (bağlantı hatası).");
       });
     });
   }
@@ -242,28 +252,76 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
   // Açıyı -180..180 aralığına indirger (en kısa dönüş yönü için).
   function normDeg(a) { a = ((a % 360) + 360) % 360; return a > 180 ? a - 360 : a; }
 
+  /* ---------- KONUM: TEK GEÇİT ----------
+     YENİ (izometrik) modda harita.js'in ekranKonumu'una, ESKİ modda
+     eski yüzde hesabına düşer. Çizim yapan HER yer buradan geçer;
+     ikinci bir dönüşüm yazılmaz. */
+  function isoHarita() {
+    const H = window.HARITA;
+    return (H && typeof H.aktifMi === "function" && H.aktifMi() &&
+            typeof H.ekranKonumu === "function") ? H : null;
+  }
+
+  // Oyun koordinatı (0..COORD_GRID) → sprite'ın CSS konumu.
+  // kaldirKare: ekranda kaç kare YUKARI kaydırılsın (izometride dikey).
+  function konum(gx, gy, kaldirKare) {
+    const H = isoHarita();
+    if (H) {
+      const p = H.ekranKonumu(gx, gy);
+      if (p) {
+        const y = p.y - (kaldirKare || 0) * p.kareYuksekligi;
+        return { left: p.x + "px", top: y + "px",
+                 x: p.x, y: y, zoom: p.zoom, iso: true };
+      }
+    }
+    // ESKİ mod: davranış birebir korunuyor (yüzde, 1 kare = 100/COORD_GRID).
+    const px = (gx / COORD_GRID) * 100;
+    const py = (gy / COORD_GRID) * 100 - (kaldirKare || 0) * (100 / COORD_GRID);
+    return { left: px + "%", top: py + "%", x: px, y: py, zoom: 1, iso: false };
+  }
+
   function animateMissile(fx, fy, tx, ty, durMs, onImpact, targetName) {
-    const toPct = v => (v / COORD_GRID) * 100;
+    /* Kayıttaki eski -1 kaydırmasını GERİ SÖK. Bundan sonrası ham oyun
+       koordinatıdır; yukarı kaydırma ekran uzayında (UCUS_KALDIR_KARE)
+       uygulanır. Böylece hem eski hem yeni sürümün yazdığı kayıt aynı
+       yerde çizilir. */
+    fy -= KAYIT_OFFSET_Y;
+    ty -= KAYIT_OFFSET_Y;
+
     const getMap = () => document.getElementById("battleMap");
     if (!getMap()) { onImpact(); return; }
 
     // Uçuş: her karede JS konumlandırır (rAF). Harita yeniden çizilse bile
     // roket kaybolmaz — DOM'dan düştüyse kendini geri ekler.
     const fly = makeSprite("rocket");
-    // Roket görseli yukarı baktığı için: ekran açısı = rota açısı - rocketFacing
-    const cruiseRot = Math.atan2(ty - fy, tx - fx) * 180 / Math.PI - (SPRITE.rocketFacing || 0);
+
+    /* Seyir açısı EKRAN uzayında hesaplanır, ızgarada değil.
+       İzometride ızgara açısı ekranda eğilir; eski kod ızgara açısını
+       kullandığı için roket hedefe bakmıyordu. Pan/zoom uçuş sırasında
+       değişebildiği için her karede yeniden hesaplanır. */
+    function seyirAcisi() {
+      const a = konum(fx, fy, UCUS_KALDIR_KARE);
+      const b = konum(tx, ty, UCUS_KALDIR_KARE);
+      return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI -
+             (SPRITE.rocketFacing || 0);
+    }
     // Düşüş hedef açısı: burnu ekranda tam AŞAĞI göstersin (aşağı = 90° - rocketFacing)
     const diveRot = 90 - (SPRITE.rocketFacing || 0);
-    const diveDiff = normDeg(diveRot - cruiseRot); // en kısa yönden dönüş farkı
-    fly.style.setProperty("--msl-rot", cruiseRot + "deg");
+    fly.style.setProperty("--msl-rot", seyirAcisi() + "deg");
     const t0 = performance.now();
 
     function step(now) {
       const p = Math.min(1, (now - t0) / durMs); // 0→1 ilerleme
       const gx = fx + (tx - fx) * p;
       const gy = fy + (ty - fy) * p;
-      fly.style.left = toPct(gx) + "%";
-      fly.style.top  = toPct(gy) + "%";
+      const k = konum(gx, gy, UCUS_KALDIR_KARE);
+      fly.style.left = k.left;
+      fly.style.top  = k.top;
+      // Roket de kaleler gibi zoom ile ölçeklensin (dugumleriYerlestir mantığı).
+      fly.style.setProperty("--msl-scale", k.iso ? k.zoom : 1);
+
+      const cruiseRot = seyirAcisi();
+      const diveDiff = normDeg(diveRot - cruiseRot); // en kısa yönden dönüş farkı
 
       // Düşüş evresi: diveStartAt sonrası burun kademe kademe aşağı kırılır.
       let rot = cruiseRot;
@@ -282,8 +340,12 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
       } else {
         fly.remove();
         const boom = makeSprite("impact");
-        // Patlamayı ızgara noktasına değil, hedef kale GÖRSELİNİN merkezine oturt.
-        let bx = toPct(tx) + "%", by = toPct(ty) + "%";
+        // Patlamayı ızgara noktasına değil, hedef kale GÖRSELİNİN merkezine
+        // oturt. Kale bulunamazsa koordinata düşer — o yedek de artık
+        // izometrik (eskiden toPct'ti, roket kalenin yanına düşüyordu).
+        const kY = konum(tx, ty, SPRITE.boomLiftCells || 0);
+        let bx = kY.left, by = kY.top;
+        boom.style.setProperty("--msl-scale", kY.iso ? kY.zoom : 1);
         const mEl0 = getMap();
         if (mEl0 && targetName) {
           const node = [...mEl0.querySelectorAll(".castle-node")].find(n => n.dataset.cname === targetName);
@@ -305,8 +367,21 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
           if (imgEl) {
             const mr = mEl0.getBoundingClientRect(), ir = imgEl.getBoundingClientRect();
             if (mr.width && mr.height) {
-              bx = ((ir.left + ir.width / 2 - mr.left) / mr.width * 100) + "%";
-              by = (((ir.top + ir.height / 2 - mr.top) / mr.height * 100) - (SPRITE.boomLiftCells || 0) * (100 / COORD_GRID)) + "%";
+              const cx = ir.left + ir.width / 2 - mr.left;
+              const cy = ir.top + ir.height / 2 - mr.top;
+              if (kY.iso) {
+                /* YENİ mod: #battleMap tam ekran ve transform:none, yani
+                   getBoundingClientRect farkı doğrudan px konumdur.
+                   Kaldırma da kare değil PİKSEL (kare = tileH * zoom). */
+                const kare = (window.HARITA.CFG.tileH || 32) * (kY.zoom || 1);
+                bx = cx + "px";
+                by = (cy - (SPRITE.boomLiftCells || 0) * kare) + "px";
+              } else {
+                /* ESKİ mod: #battleMap'e scale() uygulanıyor, px yanlış
+                   olur — oran (yüzde) kullanılmalı. Davranış değişmedi. */
+                bx = (cx / mr.width * 100) + "%";
+                by = ((cy / mr.height * 100) - (SPRITE.boomLiftCells || 0) * (100 / COORD_GRID)) + "%";
+              }
             }
           }
         }
@@ -423,8 +498,8 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
      open() önce onay panelini gösterir, onaylanırsa füzeyi fırlatır. */
   window.MISSILE_API = {
     open: function (targetName, tx, ty) {
-      if (!fbReady() || !myKey) { showToastForce("Bağlantı yok, füze atılamaz."); return; }
-      if (myMissiles() <= 0) { showToastForce("Füzen kalmadı! 🚀"); return; }
+      if (!fbReady() || !myKey) { showToast("Bağlantı yok, füze atılamaz."); return; }
+      if (myMissiles() <= 0) { showToast("Füzen kalmadı! 🚀"); return; }
       showMissileConfirm(targetName, function () {
         fireMissile(targetName, tx, ty);
       });
@@ -468,8 +543,11 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
   function injectStyles() {
     const s = document.createElement("style");
     s.textContent = `
-      .msl-sprite{position:absolute;transform:translate(-50%,-50%) rotate(var(--msl-rot,0deg));
-        font-size:28px;z-index:60;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,140,40,.8));}
+      /* z-index: izometrik düğümler derinlik için 10+(gx+gy)*10 alıyor
+         (en fazla ~2830). Roket onların ARKASINDA kalmasın diye 5000. */
+      .msl-sprite{position:absolute;
+        transform:translate(-50%,-50%) rotate(var(--msl-rot,0deg)) scale(var(--msl-scale,1));
+        font-size:28px;z-index:5000;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,140,40,.8));}
       .msl-hpbar{position:absolute;left:50%;transform:translateX(-50%);bottom:-8px;
         width:44px;height:5px;border-radius:3px;background:rgba(0,0,0,.55);
         border:1px solid rgba(255,255,255,.25);overflow:hidden;}

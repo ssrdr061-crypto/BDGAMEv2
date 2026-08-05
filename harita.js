@@ -736,6 +736,39 @@
     }
   }
 
+  /* ═════════════════════════════════════════════════════════════════════
+     ADIM E — DIŞARIYA AÇILAN KONUM SERVİSİ
+
+     Füze (missile.js) gibi #battleMap içine efekt koyan modüller,
+     dugumleriYerlestir ile BİREBİR aynı dönüşümü kullanmalı. Yoksa
+     roket kalenin yanına düşer — eski hatanın kaynağı tam olarak
+     buydu: dönüşüm iki ayrı yerde, iki ayrı şekilde yazılıydı.
+
+     Artık tek kaynak burası. HALF_W / ORIGIN_X / mapPan / mapZoom
+     dışarı sızmıyor; çağıran sadece oyun koordinatını (0..COORD_GRID)
+     veriyor, ekran pikselini alıyor.
+
+     ESKİ modda null döner → çağıran eski yüzde mantığına düşsün.
+     ═════════════════════════════════════════════════════════════════════ */
+  function ekranKonumu(gx, gy) {
+    if (!aktif) return null;
+    const panX = (typeof mapPanX !== "undefined") ? mapPanX : 0;
+    const panY = (typeof mapPanY !== "undefined") ? mapPanY : 0;
+    const zoom = (typeof mapZoom !== "undefined") ? mapZoom : 1;
+    const p = gridToWorld(gx * ORAN, gy * ORAN);
+    return {
+      x: (p.x + HALF_W) * zoom + panX,   // karonun ORTASI
+      y: (p.y + HALF_H) * zoom + panY,
+      zoom: zoom,
+      /* Bir karenin ekrandaki DİKEY yüksekliği. "Kalenin 1 kare üstü"
+         gibi kaydırmalar izometride gy-1 ile yapılamaz (o çapraz gider),
+         bu değerle piksel olarak yapılır. */
+      kareYuksekligi: CFG.tileH * zoom,
+    };
+  }
+
+  function aktifMi() { return aktif; }
+
   /* #battleMap'i düğüm katmanına çevirir/geri alır */
   function dugumKatmani(ac) {
     const mapEl = document.getElementById("battleMap");
@@ -1313,5 +1346,5 @@
      Örn: HARITA.CFG.izgaraCizgisi = true; HARITA.ciz(); */
   window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala,
                     dugumleriYerlestir, ORAN, onbellegiBosalt,
-                    ekranaGoreIzgara };
+                    ekranaGoreIzgara, ekranKonumu, aktifMi };
 })();
