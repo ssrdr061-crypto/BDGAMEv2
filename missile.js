@@ -28,11 +28,13 @@
   const KAYIT_OFFSET_Y = -1;
 
   /* Uçuş yolunun ekran dikeyinde kaç KARE yukarıdan geçtiği.
-     Kalkışta kendi kalenin üstünden çıkar, vuruşta 0'a iner — yani roket
-     hedef kalenin TAM ORTASINA oturur. Eskiden sabit -1'di, bu yüzden
-     füze kalenin bir kare üstüne düşüyordu. */
+     VURUS_KALDIR_KARE, roketin çakıldığı ve patlamanın oluştuğu noktanın
+     ORTAK çapasıdır — ikisi aynı yerden beslenir, yoksa roket bir yerde
+     bitip patlama başka yerde açılıyor ("kalenin önünde patlıyor" hissi
+     bundandı). 0 = karonun tam ortası (kale görselinin dibi kalıyor),
+     1 = kale gövdesinin üstü. */
   const KALKIS_KALDIR_KARE = 1;
-  const VURUS_KALDIR_KARE  = 0;
+  const VURUS_KALDIR_KARE  = 1;
   const CASTLE_REGEN_PER_HOUR = 150; // kale HP'si saatte bu kadar kendini onarır (genel canla aynı hız)
   const BROKEN_THRESHOLD = 150; // Kalenin saldırıya açılması için gereken minimum HP
                                // 150 HP = tam 1 saat yenilenme süresi
@@ -43,13 +45,20 @@
     rocket: "fuze_Fuze-roket.webp",    // şeffaf roket görseli (burnu YUKARI bakmalı)
     impact: "fuze_fuze-patlama.gif",  // şeffaf patlama animasyonu
     size: 64,                     // px (roket boyutu)
-    impactSize: 550,              // px (patlama boyutu)
-    boomLiftCells: 3,             // patlamayı bulunan noktadan KAÇ KARE yukarı kaydır (0 = kaydırma)
+    impactSize: 110,              // px (patlama boyutu — eskiden 550)
+    /* Patlamanın vuruş noktasından EK kaydırması. 0 = roketin çakıldığı
+       noktanın tam üstünde patlar. Bunu ancak GIF'in parlak merkezi
+       görselin ortasında değilse oynat; uçuş yüksekliği için
+       VURUS_KALDIR_KARE kullanılır. */
+    boomLiftCells: 0,
     rocketFacing: -90,            // roket görselinin baktığı yön: -90=yukarı, 0=sağa, 90=aşağı, 180=sola
-    // Düşüş evresi: hedefe yaklaşınca roket burnunu kademe kademe aşağı kırar.
-    diveStartAt: 0.94,   // son %6'da dönsün (aşağıda neden)
-diveSteps: 10,       // 6 yerine 10 kademe (4 ekstra açı)
-diveStepDeg: 12,     // 10 x 12 = yine 120 derece
+    /* Düşüş evresi: hedefe yaklaşınca roket burnunu kademe kademe kırar.
+       diveOran = tam dikeye göre ne kadar döneceği. 1 = burun tam aşağı
+       (çok dik, çakılma gibi durmuyor), 0 = hiç dönme. 0.55 civarı,
+       roketin hedefe yatık bir açıyla dalmasını verir. */
+    diveStartAt: 0.85,   // son %15'lik yolda dönmeye başlasın
+    diveSteps: 2,        // kaç kademede dönsün (2 = "bir iki eğim alıp dalsın")
+    diveOran: 0.55,      // tam dikeyin ne kadarına gitsin
   };
 
   /* ---------- İÇ DURUM ---------- */
@@ -242,7 +251,13 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
     el.className = "msl-sprite";
     if (src) {
       const img = document.createElement("img");
-      img.src = src.startsWith("data:") ? src : src + (kind === "impact" ? ("?t=" + Date.now()) : ""); // GIF baştan oynasın (gömülü data URL'ye dokunma)
+      if (kind === "impact" && _patlamaBlob) {
+        const u = URL.createObjectURL(_patlamaBlob);   // ön yüklenmiş kopya: gecikme yok
+        img.src = u;
+        setTimeout(() => URL.revokeObjectURL(u), 8000);
+      } else {
+        img.src = src.startsWith("data:") ? src : src + (kind === "impact" ? ("?t=" + Date.now()) : ""); // GIF baştan oynasın (gömülü data URL'ye dokunma)
+      }
       const sz = kind === "impact" ? (SPRITE.impactSize || SPRITE.size) : SPRITE.size;
       img.style.cssText = `width:${sz}px;height:${sz}px;object-fit:contain;display:block;`;
       img.onerror = () => { img.remove(); el.textContent = kind === "impact" ? "💥" : "🚀"; };
@@ -290,7 +305,7 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
   function patlamaYerlestir(boom, tx, ty, targetName) {
     const mapEl = document.getElementById("battleMap");
     if (!mapEl) return;
-    const kY = konum(tx, ty, SPRITE.boomLiftCells || 0);
+    const kY = konum(tx, ty, VURUS_KALDIR_KARE + (SPRITE.boomLiftCells || 0));
     let bx = kY.left, by = kY.top;
     if (targetName) {
       const node = [...mapEl.querySelectorAll(".castle-node")]
@@ -324,6 +339,26 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
     boom.style.top  = by;
   }
 
+  /* ---------- PATLAMA GIF'İ ÖN YÜKLEME ----------
+     Sorun: her patlamada src'ye "?t=" ekliyorduk. Bu, GIF'in baştan
+     oynaması için gerekliydi ama sorgu farklı olduğu için tarayıcı
+     önbelleği ISKALIYOR ve dosyayı HER SEFERİNDE yeniden indiriyordu.
+     Gördüğün yarım saniyelik gecikme o indirmeydi.
+
+     Çözüm: dosyayı açılışta BİR KEZ indirip Blob olarak tut. Her
+     patlamada aynı Blob'tan yeni bir object URL üret — URL farklı
+     olduğu için tarayıcı yeni bir görsel sayar ve GIF baştan oynar,
+     ama veri zaten bellekte olduğu için ağ isteği yok, gecikme yok. */
+  let _patlamaBlob = null;
+  function patlamaOnYukle() {
+    const src = SPRITE.impact;
+    if (!src || src.startsWith("data:") || _patlamaBlob) return;
+    fetch(src)
+      .then(r => r.ok ? r.blob() : null)
+      .then(b => { if (b) _patlamaBlob = b; })
+      .catch(() => {}); // başarısızsa eski yola düşer, sadece gecikmeli olur
+  }
+
   /* Patlama görselini üretir. olcek: dış kutuya uygulanacak scale —
      görseli onunla bölerek ekrandaki boyutu sabit tutuyoruz. */
   function patlamaGorseli(olcek) {
@@ -335,7 +370,13 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
       return d;
     }
     const img = document.createElement("img");
-    img.src = src.startsWith("data:") ? src : src + "?t=" + Date.now(); // GIF baştan oynasın
+    if (_patlamaBlob) {
+      const url = URL.createObjectURL(_patlamaBlob);
+      img.src = url;
+      setTimeout(() => URL.revokeObjectURL(url), 8000); // belleği bırak
+    } else {
+      img.src = src.startsWith("data:") ? src : src + "?t=" + Date.now();
+    }
     const sz = (SPRITE.impactSize || SPRITE.size) / olcek;
     img.style.cssText = "width:" + sz + "px;height:" + sz + "px;object-fit:contain;display:block;";
     img.onerror = () => {
@@ -385,7 +426,7 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
          yani bu sayı her yakınlaştırma seviyesinde doğru kalır. */
       const ic = document.createElement("div");
       ic.style.cssText =
-        "transform:translateY(" + (-(SPRITE.boomLiftCells || 0) * tileH / olcek) + "px);" +
+        "transform:translateY(" + (-(VURUS_KALDIR_KARE + (SPRITE.boomLiftCells || 0)) * tileH / olcek) + "px);" +
         "pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,140,40,.8));";
       ic.appendChild(patlamaGorseli(olcek));
       dis.appendChild(ic);
@@ -461,14 +502,15 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
       const cruiseRot = seyirAcisi();
       const diveDiff = normDeg(diveRot - cruiseRot); // en kısa yönden dönüş farkı
 
-      // Düşüş evresi: diveStartAt sonrası burun kademe kademe aşağı kırılır.
+      // Düşüş evresi: diveStartAt sonrası burun kademe kademe kırılır.
+      // Tam dikeye değil, diveOran kadarına gider — yatık dalış.
       let rot = cruiseRot;
       if (p >= SPRITE.diveStartAt) {
         const t = (p - SPRITE.diveStartAt) / (1 - SPRITE.diveStartAt); // 0→1
-        const stepNo = Math.min(SPRITE.diveSteps, Math.ceil(t * SPRITE.diveSteps)); // 1..6 kademe
-        const sign = diveDiff >= 0 ? 1 : -1;
-        const extra = sign * Math.min(Math.abs(diveDiff), stepNo * SPRITE.diveStepDeg);
-        rot = cruiseRot + extra;
+        const kademe = Math.max(1, SPRITE.diveSteps || 1);
+        const stepNo = Math.min(kademe, Math.ceil(t * kademe));        // 1..kademe
+        const hedefFark = diveDiff * (SPRITE.diveOran != null ? SPRITE.diveOran : 0.55);
+        rot = cruiseRot + hedefFark * (stepNo / kademe);
       }
       fly.style.setProperty("--msl-rot", rot + "deg");
       const mapEl = getMap();
@@ -671,6 +713,7 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
   // currentUsername login sonrası dolduğu için hazır olana dek bekleriz.
   function boot() {
     injectStyles();
+    patlamaOnYukle();
     const t = setInterval(() => {
       if (typeof currentUsername !== "undefined" && currentUsername && fbReady()) {
         clearInterval(t);
