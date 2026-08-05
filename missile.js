@@ -20,15 +20,19 @@
   /* KAYIT BİÇİMİ — DEĞİŞTİRME.
      pvp_launches'a fy/ty bu kaydırma UYGULANMIŞ yazılır. Eskiden çizim de
      doğrudan bunu kullanıyordu. İzometride gy-1 ekranda yukarı değil ÇAPRAZ
-     gittiği için çizim artık ekran dikeyini kullanıyor (UCUS_KALDIR_KARE) —
+     gittiği için çizim ekran dikeyini kullanıyor (KALKIS/VURUS_KALDIR_KARE) —
      ama kablo biçimi aynı bırakıldı. Sebep: önbellekte kalmış eski sürüm bir
      oyuncu aynı kaydı okuyup yazabilir. Biçim değişseydi roket onun ekranında
      kalenin ortasından, bizimkinde iki kare yukarıdan çıkardı.
      Çizimden önce animateMissile bu kaydırmayı geri söker. */
   const KAYIT_OFFSET_Y = -1;
 
-  // Füzenin uçuş yolu kalenin kaç KARE üstünden geçsin (ekran dikeyi).
-  const UCUS_KALDIR_KARE = 1; // 0 = kalenin tam üstünde uçsun
+  /* Uçuş yolunun ekran dikeyinde kaç KARE yukarıdan geçtiği.
+     Kalkışta kendi kalenin üstünden çıkar, vuruşta 0'a iner — yani roket
+     hedef kalenin TAM ORTASINA oturur. Eskiden sabit -1'di, bu yüzden
+     füze kalenin bir kare üstüne düşüyordu. */
+  const KALKIS_KALDIR_KARE = 1;
+  const VURUS_KALDIR_KARE  = 0;
   const CASTLE_REGEN_PER_HOUR = 150; // kale HP'si saatte bu kadar kendini onarır (genel canla aynı hız)
   const BROKEN_THRESHOLD = 150; // Kalenin saldırıya açılması için gereken minimum HP
                                // 150 HP = tam 1 saat yenilenme süresi
@@ -280,9 +284,63 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
     return { left: px + "%", top: py + "%", x: px, y: py, zoom: 1, iso: false };
   }
 
+  /* Patlamayı hedef kale GÖRSELİNİN merkezine oturtur. Kale DOM'da
+     bulunamazsa koordinata düşer. Her karede çağrılabilir olsun diye
+     ayrı fonksiyon: harita kaydırılınca patlama da kaleyle birlikte
+     kayar. */
+  function patlamaYerlestir(boom, tx, ty, targetName) {
+    const mapEl = document.getElementById("battleMap");
+    if (!mapEl) return;
+    const kY = konum(tx, ty, SPRITE.boomLiftCells || 0);
+    let bx = kY.left, by = kY.top;
+    boom.style.setProperty("--msl-scale", kY.iso ? kY.zoom : 1);
+
+    if (targetName) {
+      const node = [...mapEl.querySelectorAll(".castle-node")]
+        .find(n => n.dataset.cname === targetName);
+      // Kale RESMİNİ bul: bizim eklediklerimiz (hp barı, buton) ve isim
+      // etiketi hariç, alan olarak EN BÜYÜK alt eleman kalenin görselidir.
+      let imgEl = node ? node.querySelector("img") : null;
+      if (node && !imgEl) {
+        let best = null, bestArea = 0;
+        node.querySelectorAll("*").forEach(ch => {
+          if (ch.closest(".msl-hpbar") || ch.closest(".msl-btn")) return;
+          const t = (ch.textContent || "").trim();
+          if (t && t === targetName) return; // isim etiketi
+          const r = ch.getBoundingClientRect();
+          const area = r.width * r.height;
+          if (area > bestArea) { bestArea = area; best = ch; }
+        });
+        imgEl = best || node;
+      }
+      if (imgEl) {
+        const mr = mapEl.getBoundingClientRect(), ir = imgEl.getBoundingClientRect();
+        if (mr.width && mr.height) {
+          const cx = ir.left + ir.width / 2 - mr.left;
+          const cy = ir.top + ir.height / 2 - mr.top;
+          if (kY.iso) {
+            /* YENİ mod: #battleMap tam ekran ve transform:none, yani
+               getBoundingClientRect farkı doğrudan px konumdur.
+               Kaldırma da kare değil PİKSEL (kare = tileH * zoom). */
+            const kare = (window.HARITA.CFG.tileH || 32) * (kY.zoom || 1);
+            bx = cx + "px";
+            by = (cy - (SPRITE.boomLiftCells || 0) * kare) + "px";
+          } else {
+            /* ESKİ mod: #battleMap'e scale() uygulanıyor, px yanlış olur —
+               oran (yüzde) kullanılmalı. Davranış değişmedi. */
+            bx = (cx / mr.width * 100) + "%";
+            by = ((cy / mr.height * 100) - (SPRITE.boomLiftCells || 0) * (100 / COORD_GRID)) + "%";
+          }
+        }
+      }
+    }
+    boom.style.left = bx;
+    boom.style.top  = by;
+  }
+
   function animateMissile(fx, fy, tx, ty, durMs, onImpact, targetName) {
     /* Kayıttaki eski -1 kaydırmasını GERİ SÖK. Bundan sonrası ham oyun
-       koordinatıdır; yukarı kaydırma ekran uzayında (UCUS_KALDIR_KARE)
+       koordinatıdır; yukarı kaydırma ekran uzayında (KALKIS_KALDIR_KARE)
        uygulanır. Böylece hem eski hem yeni sürümün yazdığı kayıt aynı
        yerde çizilir. */
     fy -= KAYIT_OFFSET_Y;
@@ -300,8 +358,8 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
        kullandığı için roket hedefe bakmıyordu. Pan/zoom uçuş sırasında
        değişebildiği için her karede yeniden hesaplanır. */
     function seyirAcisi() {
-      const a = konum(fx, fy, UCUS_KALDIR_KARE);
-      const b = konum(tx, ty, UCUS_KALDIR_KARE);
+      const a = konum(fx, fy, KALKIS_KALDIR_KARE);
+      const b = konum(tx, ty, VURUS_KALDIR_KARE);
       return Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI -
              (SPRITE.rocketFacing || 0);
     }
@@ -314,7 +372,8 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
       const p = Math.min(1, (now - t0) / durMs); // 0→1 ilerleme
       const gx = fx + (tx - fx) * p;
       const gy = fy + (ty - fy) * p;
-      const k = konum(gx, gy, UCUS_KALDIR_KARE);
+      const kaldir = KALKIS_KALDIR_KARE + (VURUS_KALDIR_KARE - KALKIS_KALDIR_KARE) * p;
+      const k = konum(gx, gy, kaldir);
       fly.style.left = k.left;
       fly.style.top  = k.top;
       // Roket de kaleler gibi zoom ile ölçeklensin (dugumleriYerlestir mantığı).
@@ -340,60 +399,23 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
       } else {
         fly.remove();
         const boom = makeSprite("impact");
-        // Patlamayı ızgara noktasına değil, hedef kale GÖRSELİNİN merkezine
-        // oturt. Kale bulunamazsa koordinata düşer — o yedek de artık
-        // izometrik (eskiden toPct'ti, roket kalenin yanına düşüyordu).
-        const kY = konum(tx, ty, SPRITE.boomLiftCells || 0);
-        let bx = kY.left, by = kY.top;
-        boom.style.setProperty("--msl-scale", kY.iso ? kY.zoom : 1);
-        const mEl0 = getMap();
-        if (mEl0 && targetName) {
-          const node = [...mEl0.querySelectorAll(".castle-node")].find(n => n.dataset.cname === targetName);
-          // Kale RESMİNİ bul: bizim eklediklerimiz (hp barı, buton) ve isim etiketi hariç,
-          // alan olarak EN BÜYÜK alt eleman kalenin görselidir.
-          let imgEl = node ? node.querySelector("img") : null;
-          if (node && !imgEl) {
-            let best = null, bestArea = 0;
-            node.querySelectorAll("*").forEach(ch => {
-              if (ch.closest(".msl-hpbar") || ch.closest(".msl-btn")) return;
-              const t = (ch.textContent || "").trim();
-              if (t && t === targetName) return; // isim etiketi
-              const r = ch.getBoundingClientRect();
-              const area = r.width * r.height;
-              if (area > bestArea) { bestArea = area; best = ch; }
-            });
-            imgEl = best || node;
-          }
-          if (imgEl) {
-            const mr = mEl0.getBoundingClientRect(), ir = imgEl.getBoundingClientRect();
-            if (mr.width && mr.height) {
-              const cx = ir.left + ir.width / 2 - mr.left;
-              const cy = ir.top + ir.height / 2 - mr.top;
-              if (kY.iso) {
-                /* YENİ mod: #battleMap tam ekran ve transform:none, yani
-                   getBoundingClientRect farkı doğrudan px konumdur.
-                   Kaldırma da kare değil PİKSEL (kare = tileH * zoom). */
-                const kare = (window.HARITA.CFG.tileH || 32) * (kY.zoom || 1);
-                bx = cx + "px";
-                by = (cy - (SPRITE.boomLiftCells || 0) * kare) + "px";
-              } else {
-                /* ESKİ mod: #battleMap'e scale() uygulanıyor, px yanlış
-                   olur — oran (yüzde) kullanılmalı. Davranış değişmedi. */
-                bx = (cx / mr.width * 100) + "%";
-                by = ((cy / mr.height * 100) - (SPRITE.boomLiftCells || 0) * (100 / COORD_GRID)) + "%";
-              }
-            }
-          }
-        }
-        boom.style.left = bx; boom.style.top = by;
         const m = getMap();
         if (m) {
           m.appendChild(boom);
-          // Patlama da render'a karşı korunur (kısa ömürlü koruma döngüsü).
+          patlamaYerlestir(boom, tx, ty, targetName);
+          /* KRİTİK: patlama konumu TEK SEFER hesaplanamaz.
+             YENİ modda #battleMap transform:none olan sabit bir katman;
+             sprite ekran pikseliyle duruyor. Harita kaydırılınca kaleler
+             (dugumleriYerlestir) yeniden yerleşiyor ama patlama yerinde
+             kalıyordu — "patlama başka yerde" hatası buydu.
+             Roket zaten her karede yeniden konumlanıyordu, o yüzden
+             uçuşta belli olmuyordu. Patlama da artık aynısını yapıyor. */
           const bt = setInterval(() => {
             const mm = getMap();
-            if (mm && !boom.isConnected) mm.appendChild(boom);
-          }, 200);
+            if (!mm) return;
+            if (!boom.isConnected) mm.appendChild(boom);
+            patlamaYerlestir(boom, tx, ty, targetName);
+          }, 16);
           setTimeout(() => { clearInterval(bt); boom.remove(); }, 5000);
         }
         onImpact();
