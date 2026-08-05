@@ -284,30 +284,13 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
     return { left: px + "%", top: py + "%", x: px, y: py, zoom: 1, iso: false };
   }
 
-  /* Patlamayı hedef kalenin üstüne oturtur. Her karede çağrılır.
-
-     YENİ mod: kale düğümünün merkezi zaten karonun merkezidir
-     (dugumleriYerlestir onu translate(-50%,-50%) ile oturtuyor), yani
-     konum(tx,ty) ile BİREBİR aynı nokta. DOM kutusu OKUNMAZ — çünkü
-     kaleyi harita.js konumlandırıyor ve biz onu bir kare GERİDEN
-     okuyorduk; kaydırırken patlamanın kayıp sonra kendini toparlaması
-     bu gecikmeydi. Aynı matematiği kullanmak gecikmeyi tamamen kaldırır.
-
-     ESKİ mod: orada kale yüzdeyle konumlanıyor ve #battleMap'e scale()
-     uygulanıyor; rect okuması hâlâ en isabetlisi, davranış korunuyor. */
+  /* SADECE ESKİ MOD. Patlamayı hedef kale görselinin merkezine oturtur.
+     YENİ modda kullanılmaz — orada patlama bir .map-node ve konumunu
+     harita.js veriyor (bkz. patlat). */
   function patlamaYerlestir(boom, tx, ty, targetName) {
     const mapEl = document.getElementById("battleMap");
     if (!mapEl) return;
     const kY = konum(tx, ty, SPRITE.boomLiftCells || 0);
-    boom.style.setProperty("--msl-scale", kY.iso ? kY.zoom : 1);
-
-    if (kY.iso) {                       // ── YENİ: saf matematik, DOM yok
-      boom.style.left = kY.left;
-      boom.style.top  = kY.top;
-      return;
-    }
-
-    // ── ESKİ mod (değişmedi)
     let bx = kY.left, by = kY.top;
     if (targetName) {
       const node = [...mapEl.querySelectorAll(".castle-node")]
@@ -339,6 +322,99 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
     }
     boom.style.left = bx;
     boom.style.top  = by;
+  }
+
+  /* Patlama görselini üretir. olcek: dış kutuya uygulanacak scale —
+     görseli onunla bölerek ekrandaki boyutu sabit tutuyoruz. */
+  function patlamaGorseli(olcek) {
+    const src = SPRITE.impact;
+    if (!src) {
+      const d = document.createElement("div");
+      d.textContent = "💥";
+      d.style.cssText = "font-size:" + (64 / olcek) + "px;line-height:1;";
+      return d;
+    }
+    const img = document.createElement("img");
+    img.src = src.startsWith("data:") ? src : src + "?t=" + Date.now(); // GIF baştan oynasın
+    const sz = (SPRITE.impactSize || SPRITE.size) / olcek;
+    img.style.cssText = "width:" + sz + "px;height:" + sz + "px;object-fit:contain;display:block;";
+    img.onerror = () => {
+      img.remove();
+      const d = document.createElement("div");
+      d.textContent = "💥";
+      d.style.cssText = "font-size:" + (64 / olcek) + "px;line-height:1;";
+      img.parentNode && img.parentNode.appendChild(d);
+    };
+    return img;
+  }
+
+  /* ---------- PATLAMA ----------
+     NEDEN BÖYLE:
+     Patlamayı kendi rAF döngümüzle konumlandırmak YETMİYOR. harita.js
+     kaydırmayı applyMapPan içinde işliyor ve kaleleri ORADA, aynı çağrıda
+     dugumleriYerlestir ile yerleştiriyor. Bizim döngümüz ayrı bir sırada
+     çalıştığı için doğru değeri ama YANLIŞ ANDA yazıyordu — tam bir kare
+     geriden. Döngüyü hızlandırmak bunu çözmez, çünkü sorun sıklık değil
+     sıralama.
+
+     Çözüm: patlamayı .map-node yapıp data-cx/data-cy vermek. Böylece
+     dugumleriYerlestir onu kalelerle BİRLİKTE, aynı çağrıda, aynı
+     matematikle yerleştiriyor. Desenkron olması yapısal olarak imkânsız.
+     Bonus: iso katmanındaki "transition:none" ve zoom ölçeği de bedava
+     geliyor, derinlik sıralaması (zIndex) da doğru çıkıyor. */
+  function patlat(tx, ty, targetName) {
+    const m = document.getElementById("battleMap");
+    if (!m) return;
+    const H = isoHarita();
+
+    if (H) {
+      const C = H.CFG || {};
+      const olcek = C.dugumOlcek || 0.64;
+      const tileH = C.tileH || 32;
+
+      const dis = document.createElement("div");
+      dis.className = "map-node msl-boom-node";
+      dis.dataset.cx = tx;   // dugumleriYerlestir bunu okur
+      dis.dataset.cy = ty;
+      dis.style.cssText = "position:absolute;pointer-events:none;" +
+                          "width:auto;height:auto;transition:none;";
+
+      /* Yukarı kaydırma: dış kutuya scale(zoom * olcek) uygulanacak.
+         Ekranda boomLiftCells * tileH * zoom px yukarı çıkması için iç
+         kaydırma (boomLiftCells * tileH) / olcek olmalı — zoom sadeleşir,
+         yani bu sayı her yakınlaştırma seviyesinde doğru kalır. */
+      const ic = document.createElement("div");
+      ic.style.cssText =
+        "transform:translateY(" + (-(SPRITE.boomLiftCells || 0) * tileH / olcek) + "px);" +
+        "pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,140,40,.8));";
+      ic.appendChild(patlamaGorseli(olcek));
+      dis.appendChild(ic);
+
+      m.appendChild(dis);
+      H.dugumleriYerlestir();   // ilk konum
+
+      // Sadece renderBattleMap DOM'u silerse geri tak. Konumlandırma
+      // artık bizim işimiz değil.
+      const bt = setInterval(() => {
+        const mm = document.getElementById("battleMap");
+        if (mm && !dis.isConnected) { mm.appendChild(dis); H.dugumleriYerlestir(); }
+      }, 200);
+      setTimeout(() => { clearInterval(bt); dis.remove(); }, 5000);
+      return;
+    }
+
+    /* ESKİ mod: #battleMap'e scale() uygulanıyor, sprite yüzdeyle
+       konumlanınca haritayla birlikte kayıyor. Davranış değişmedi. */
+    const boom = makeSprite("impact");
+    m.appendChild(boom);
+    patlamaYerlestir(boom, tx, ty, targetName);
+    const bt = setInterval(() => {
+      const mm = document.getElementById("battleMap");
+      if (!mm) return;
+      if (!boom.isConnected) mm.appendChild(boom);
+      patlamaYerlestir(boom, tx, ty, targetName);
+    }, 200);
+    setTimeout(() => { clearInterval(bt); boom.remove(); }, 5000);
   }
 
   function animateMissile(fx, fy, tx, ty, durMs, onImpact, targetName) {
@@ -401,37 +477,7 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
         requestAnimationFrame(step);
       } else {
         fly.remove();
-        const boom = makeSprite("impact");
-        const m = getMap();
-        if (m) {
-          m.appendChild(boom);
-          patlamaYerlestir(boom, tx, ty, targetName);
-          /* KRİTİK: patlama konumu TEK SEFER hesaplanamaz.
-             YENİ modda #battleMap transform:none olan sabit bir katman;
-             sprite ekran pikseliyle duruyor. Harita kaydırılınca yeniden
-             konumlanmazsa yerinde kalır.
-
-             Döngü rAF ile — setInterval(16) tarayıcının çizim karesiyle
-             senkron DEĞİL; kaydırırken patlama bir kare geriden geliyor,
-             titreme olarak görünüyordu. rAF, harita ile aynı karede
-             çalışır. */
-          let boomLoop = 0;
-          const boomBitis = performance.now() + 5000;
-          (function boomStep(now) {
-            const mm = getMap();
-            if (mm) {
-              if (!boom.isConnected) mm.appendChild(boom);
-              patlamaYerlestir(boom, tx, ty, targetName);
-            }
-            if (now < boomBitis) {
-              boomLoop = requestAnimationFrame(boomStep);
-            } else {
-              boom.remove();
-            }
-          })(performance.now());
-          // Güvenlik ağı: sekme arka plana atılıp rAF durursa yine temizle.
-          setTimeout(() => { cancelAnimationFrame(boomLoop); boom.remove(); }, 6000);
-        }
+        patlat(tx, ty, targetName);
         onImpact();
       }
     }
