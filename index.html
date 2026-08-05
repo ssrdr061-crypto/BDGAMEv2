@@ -1472,9 +1472,9 @@ body.world-active{padding:0; overflow:hidden;}
   width:50px; height:50px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   font-size:26px; position:relative; z-index:1;
-  background:transparent;
+  background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.15), rgba(0,0,0,.4));
   border:2px solid var(--line);
-  box-shadow:0 2px 4px rgba(0,0,0,.28);
+  box-shadow:0 4px 8px rgba(0,0,0,.55);
 }
 .map-node.tier-easy .node-avatar{border-color:var(--diamond-green);}
 .map-node.tier-medium .node-avatar{border-color:var(--diamond-yellow);}
@@ -1548,7 +1548,7 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .map-node.castle-node .castle-avatar img{
   width:100%; height:100%; object-fit:contain; border-radius:0; display:block;
-  filter:drop-shadow(0 2px 3px rgba(0,0,0,.3));
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));
 }
 .map-node.castle-own .node-label{ color:var(--gold-soft); border-color:rgba(212,175,55,.45); }
 .map-node.castle-other .node-label{ color:var(--diamond-cyan); border-color:rgba(79,209,232,.4); }
@@ -1613,6 +1613,7 @@ body.world-active{padding:0; overflow:hidden;}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -1703,7 +1704,7 @@ body.world-active{padding:0; overflow:hidden;}
       </div>
 
       <div class="battle-log" id="battleLog">Savaşa girmek için butona bas.</div>
-      <button class="battle-btn" id="battleBtn">Saldır</button>
+      <button class="battle-btn" id="battleBtn">Savaşa Gir</button>
     </div>
   </div>
 
@@ -2100,18 +2101,76 @@ const FIREBASE_CONFIG = {
 };
 
 let firebaseDb = null;
+let firebaseAuth = null;
 let firebaseReady = false;
 try {
   if (typeof firebase !== "undefined") {
     firebase.initializeApp(FIREBASE_CONFIG);
     firebaseDb = firebase.database();
+    firebaseAuth = firebase.auth();
     firebaseReady = true;
   }
 } catch (e) {
   console.warn("Firebase başlatılamadı, oyun yalnızca bu cihazda (localStorage) çalışacak:", e);
   firebaseReady = false;
 }
+/* ═══════════════════════════════════════════════════════════════
+   FIREBASE AUTH
 
+   Kullanıcı adı → sentetik e-posta. Firebase Auth e-posta istiyor,
+   oyun kullanıcı adıyla çalışıyor; ikisini burada bağlıyoruz.
+   Alan adı gerçek olmak zorunda değil, posta gönderilmiyor.
+
+   Parola BİZE HİÇ GELMEZ: doğrudan Firebase'e gider, orada
+   doğrulanır. Veritabanında parola ya da karması tutulmaz.
+   ═══════════════════════════════════════════════════════════════ */
+const AUTH_ALAN = "@bdgame.local";
+
+function authEpostasi(username) {
+  return toFirebaseKey(username) + AUTH_ALAN;
+}
+
+/* Firebase hata kodlarını oyuncunun anlayacağı dile çevirir.
+   Ham kodu göstermek hem çirkin hem de bilgi sızdırır. */
+function authHataMetni(kod) {
+  switch (kod) {
+    case "auth/email-already-in-use": return "Bu kullanıcı adı zaten alınmış.";
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":       return "Kullanıcı adı veya parola hatalı.";
+    case "auth/weak-password":        return "Parola en az 6 karakter olmalı.";
+    case "auth/too-many-requests":    return "Çok fazla deneme. Biraz bekleyip tekrar dene.";
+    case "auth/network-request-failed": return "Bağlantı yok. İnternetini kontrol et.";
+    default: return "Giriş yapılamadı. Tekrar dene.";
+  }
+}
+
+function authKayit(username, password) {
+  if (!firebaseAuth) return Promise.resolve({ ok: false, error: "Sunucuya bağlanılamadı." });
+  return firebaseAuth.createUserWithEmailAndPassword(authEpostasi(username), password)
+    .then(() => ({ ok: true }))
+    .catch(err => ({ ok: false, error: authHataMetni(err && err.code) }));
+}
+
+function authGiris(username, password) {
+  if (!firebaseAuth) return Promise.resolve({ ok: false, error: "Sunucuya bağlanılamadı." });
+  return firebaseAuth.signInWithEmailAndPassword(authEpostasi(username), password)
+    .then(() => ({ ok: true }))
+    .catch(err => ({ ok: false, error: authHataMetni(err && err.code) }));
+}
+
+/* Auth oturumu sayfa açılışında ASENKRON geri yüklenir. Beklemeden
+   bakarsak currentUser her zaman null görünür ve oyun kullanıcıyı
+   boşuna giriş ekranına atar. Bu söz, ilk durum bildirimini bekler. */
+function authHazir() {
+  return new Promise(resolve => {
+    if (!firebaseAuth) { resolve(null); return; }
+    const bosalt = firebaseAuth.onAuthStateChanged(user => {
+      bosalt();
+      resolve(user || null);
+    });
+  });
+}
 function toFirebaseKey(username) {
   return encodeURIComponent(username.toLowerCase()).replace(/[.#$\[\]]/g, "_");
 }
@@ -3097,7 +3156,6 @@ function registerAccount(username, password) {
   }
   const newAcc = {
     displayName: username,
-    passwordHash: simpleHash(password),
     state: defaultState(),
     registeredAt: Date.now(),
     lastSeen: Date.now(),
@@ -3141,9 +3199,9 @@ function loginAccount(username, password) {
   if (!acc) {
     return { ok: false, error: "Bu kullanıcı adıyla hesap bulunamadı." };
   }
-  if (acc.passwordHash !== simpleHash(password)) {
-    return { ok: false, error: "Parola hatalı." };
-  }
+  /* Parola artık BURADA doğrulanmıyor. Doğrulamayı Firebase Auth
+     yapıyor (bkz. handleAuthSubmit → authGiris). Bu fonksiyon
+     yalnızca "hesap kaydı var mı" sorusuna bakar. */
   return { ok: true };
 }
 
@@ -3256,6 +3314,7 @@ function logout() {
   closeChat();
   currentUsername = null;
   clearSessionKey();
+  if (firebaseAuth) firebaseAuth.signOut().catch(() => {});
   document.getElementById("appScreen").style.display = "none";
   document.getElementById("loginScreen").style.display = "flex";
   document.body.classList.remove("world-active");
@@ -3577,7 +3636,7 @@ function renderStamina() {
       btn.textContent = "Bitkin (genel can bekleniyor)";
     } else {
       btn.disabled = false;
-      btn.textContent = "Saldır";
+      btn.textContent = "Savaşa Gir";
     }
   }
   persistCurrentState();
@@ -3816,22 +3875,10 @@ function useStaminaPotion() {
 const SLOT_LABELS_SHORT = { weapon: "Silah", armor: "Zırh", accessory: "Aks." };
 
 function formatRemaining(ms) {
-  /* Eskiden saat yoktu: 1 sa 5 dk 55 sn → "65:55" yazıyordu, oyuncu
-     bunu 65 dakika mı 65 saat mi diye okuyamıyordu. Artık 1 saati
-     geçen süreler "1:05:55" biçiminde. */
   const totalSec = ensure(Math.ceil(ms / 1000));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
+  const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
-  const ss = s.toString().padStart(2, "0");
-  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${ss}`;
-  return `${m}:${ss}`;
-}
-
-/* Eğitim kutusundaki süre — kuyruğun TAMAMININ kalan süresi.
-   Saat gösteren biçimleyici troops.js'te (sureMs). */
-function trainSure(ms) {
-  return (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function formatLogTime(ts) {
@@ -3994,29 +4041,17 @@ function confirmHospitalSelection() {
   showToast("Seçilen birlikler tedaviye alındı.");
 }
 
-/* zincirli = SIRALI kuyruk (eğitim). Eskiden yalnızca en yakın iş
-   5 dk öne çekiliyordu; arkasındakiler yerinde kaldığı için 10 tane
-   hızlandırma ancak 1 birlik çıkarıyordu. Sıralı kuyrukta artık
-   ZİNCİRİN TAMAMI 5 dk öne kayıyor, yani item gerçekten 5 dakika
-   kazandırıyor.
-   Hastane paralel çalıştığı için orada eski davranış korunuyor
-   (yoksa tek item bütün yaralıları birden iyileştirirdi). */
-function useSpeedUpOnGroup(group, afterFns, zincirli) {
+function useSpeedUpOnGroup(group, afterFns) {
   const item = "5 Dakika Hızlandırma";
   if (!state.inventory[item] || state.inventory[item] <= 0) {
     showToast("Hızlandırman yok. Mağazadan ⏩ 5 Dakika Hızlandırma satın al.");
     return;
   }
   if (group.length === 0) return;
-  group.sort((a, b) => a.finishAt - b.finishAt);
-  const kes = 5 * 60 * 1000;
+  const soonest = group.sort((a, b) => a.finishAt - b.finishAt)[0];
   state.inventory[item]--;
   if (state.inventory[item] <= 0) delete state.inventory[item];
-  if (zincirli) {
-    group.forEach(job => { job.finishAt -= kes; });
-  } else {
-    group[0].finishAt = Math.max(Date.now(), group[0].finishAt - kes);
-  }
+  soonest.finishAt = Math.max(Date.now(), soonest.finishAt - 5 * 60 * 1000);
   afterFns.forEach(fn => fn());
   showToast("⏩ 5 dakika hızlandırıldı!");
 }
@@ -4184,8 +4219,7 @@ function collectLootChest(enemyName) {
 function selectEnemyFromMap(enemy) {
   currentEnemy = enemy;
 
-  /* Harita GİZLENMİYOR: saldırı paneli haritanın üstünde açılıyor,
-     arkada siyah boşluk kalmıyor. */
+  $id("battleMapWrap").style.display = "none";
   document.getElementById("battleArena").style.display = "flex";
 
   toggleMapOverlays(false);
@@ -4366,17 +4400,13 @@ function setupMapPanning() {
   let pinchActive = false;
 
   /* ═══ KALE TAŞIMA ═══ 3sn basılı tut → yarı saydam kale → sürükle → boşsa 20.000💎 */
-  const HOLD_MS = 3000, MOVE_COST = 20000, MOVE_MINDIST = 0.25, MGRID = 30;
+  const HOLD_MS = 3000, MOVE_COST = 20000, MOVE_MINDIST = 2.4, MGRID = 30;
   let holdTimer = null, castleMoveMode = false, moveGhost = null;
 
   function clearHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer = null; } }
 
   function screenToGrid(cx, cy){
-      if (window.HARITA && window.HARITA.ekranaGoreIzgara) {
-      const k = window.HARITA.ekranaGoreIzgara(cx, cy, MGRID); if (k) return k;
-    }
     const m = document.getElementById("battleMap"); if(!m) return null;
-    
     const r = m.getBoundingClientRect(); if(!r.width || !r.height) return null;
     let gx = ((cx - r.left) / r.width) * MGRID;
     let gy = ((cy - r.top) / r.height) * MGRID;
@@ -4389,7 +4419,7 @@ function setupMapPanning() {
     const taken = [];
     try { enemies.forEach(e => taken.push({ gx:(e.mapX/100)*MGRID, gy:(e.mapY/100)*MGRID })); } catch(e){}
     try {
-        const accs = {};
+      const accs = loadAccounts();
       Object.values(accs).forEach(a => {
         if(a && a.state && a.state.castle && typeof a.state.castle.gx === "number"){
           if(a.displayName && currentUsername && a.displayName.toLowerCase() === currentUsername.toLowerCase()) return; // kendi kalem hariç
@@ -4958,8 +4988,11 @@ async function startBattle() {
   log.textContent = `${currentEnemy.name} ile çatışıyorsun...`;
   log.style.color = "var(--ink)";
 
-  /* Bekleme/sarsıntı kaldırıldı: butona basınca savaş anında çözülür,
-     panel kapanır, sonuç mesaj kutusuna düşer. */
+  const arena = $q(".battle-arena");
+  if (arena) { arena.classList.add("shake"); setTimeout(() => arena.classList.remove("shake"), 350); }
+
+  await delay(900);
+
   const enemyForBattle = currentEnemy;
     const effectiveHero = getEffectiveHeroStats(selectedTroopsForBattle);
     const troopRoster = buildTroopRoster(selectedTroopsForBattle);
@@ -5022,6 +5055,8 @@ async function startBattle() {
         <div style="font-size:11.5px;color:var(--ink-dim); margin-top:8px;">${enemyForBattle.name} 45 dakika sonra haritaya geri dönecek. Yerinde bir hazine sandığı belirdi!</div>
         ${frontierGrew ? `<div style="font-size:11.5px;color:var(--gold-soft); margin-top:4px;">🚩 Sınırların genişledi!</div>` : ""}`;
       renderBattleMap();
+
+      setTimeout(() => { backToMap(); }, 4200);
     } else {
       const loss = Math.min(state.diamonds, Math.floor(Math.random() * 500) + 100);
       state.diamonds -= loss;
@@ -5067,9 +5102,6 @@ async function startBattle() {
   updateShopButtons();
   renderStamina();
   btn.disabled = (state.stamina.current <= 0);
-
-  /* kazan-kaybet fark etmez: panel hemen kapanır, sonuç mesaj kutusunda */
-  backToMap();
 }
 
 /* ═══ GÜÇ PUANI + SIRALAMA (RANK) ═══
@@ -5305,6 +5337,11 @@ async function handleAuthSubmit() {
         errEl.textContent = "Bu kullanıcı adı zaten alınmış.";
         return;
       }
+      const authRes = await authKayit(username, password);
+      if (!authRes.ok) {
+        errEl.textContent = authRes.error;
+        return;
+      }
       const res = registerAccount(username, password);
       if (!res.ok) {
         errEl.textContent = res.error;
@@ -5322,12 +5359,26 @@ async function handleAuthSubmit() {
       _triggerRehberWelcome();
     } else {
 
+      const authRes = await authGiris(username, password);
+      if (!authRes.ok) {
+        errEl.textContent = authRes.error;
+        return;
+      }
+
       const cloudAcc = await fetchAccountFromCloud(username);
       if (cloudAcc) {
         const accounts = loadAccounts();
         accounts[username.toLowerCase()] = cloudAcc;
         saveAccounts(accounts);
       }
+      /* Auth başarılı ama yerel/bulut kaydı yoksa (konsoldan elle
+         açılmış hesap) kaydı burada oluştur, oyuncu kapıda kalmasın. */
+      if (!cloudAcc) {
+        const accs = loadAccounts();
+        if (!accs[username.toLowerCase()]) {
+          registerAccount(username, password);
+        }
+      }      }
 
       const res = loginAccount(username, password);
       if (!res.ok) {
@@ -5611,13 +5662,10 @@ const TroopViewer = (function () {
 
       if (isTraining) {
         const nearest = trainQueueForUnit.reduce((a, b) => a.finishAt < b.finishAt ? a : b);
-        const latest  = trainQueueForUnit.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
         const remaining = nearest.finishAt - Date.now();
-        const totalRemaining = latest.finishAt - Date.now();
         html += `<div class="unit-train-bar">
-            <div class="utb-training">
-              <span class="unit-train-timer" data-unit="${uid}">⏳ ${trainSure(totalRemaining)}</span>
-              <span class="unit-train-count" data-unit="${uid}">x${trainQueueForUnit.length}</span>
+            <div class="utb-training">⏳ Eğitiliyor
+              <span class="unit-train-timer" data-unit="${uid}">x${trainQueueForUnit.length} · ${formatRemaining(remaining)}</span>
             </div>
             <button class="speedup-trigger unit-speedup-btn" data-unit="${uid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
           </div>`;
@@ -5702,10 +5750,7 @@ const TroopViewer = (function () {
           renderUnitStats();
           return;
         }
-        const latest = trainQueueForUnit.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
-        span.textContent = "⏳ " + trainSure(latest.finishAt - Date.now());
-        const adetEl = document.querySelector(`.unit-train-count[data-unit="${uid}"]`);
-        if (adetEl) adetEl.textContent = "x" + trainQueueForUnit.length;
+        span.textContent = "⏱ x" + trainQueueForUnit.length + " " + formatRemaining(remaining);
       });
     }, 1000);
   }
@@ -5780,22 +5825,30 @@ setInterval(() => {
 }, 30000);
 
 (function tryRestoreSession() {
-  try {
-    const savedKey = getSessionKey();
-    if (savedKey) {
+  const girisEkrani = () => {
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("appScreen").style.display = "none";
+  };
+
+  /* Auth oturumu OLMADAN oyuna girmiyoruz. Eskiden localStorage'da
+     bir anahtar görmek yeterliydi; o oturum sunucuya hiçbir şey
+     kanıtlamıyordu. */
+  authHazir().then(user => {
+    try {
+      if (!user) { girisEkrani(); return; }
+      const savedKey = getSessionKey();
       const accounts = loadAccounts();
-      if (accounts[savedKey]) {
+      if (savedKey && accounts[savedKey]) {
         startSessionFor(accounts[savedKey].displayName);
         _triggerRehberWelcome();
         return;
       }
+    } catch (e) {
+      console.warn("Oturum geri yüklenemedi:", e);
     }
-  } catch (e) {
-    console.warn("Oturum geri yüklenemedi:", e);
-  }
-  document.getElementById("loginScreen").style.display = "flex";
-  document.getElementById("appScreen").style.display = "none";
-})();
+    girisEkrani();
+  });
+})();})();
 </script>
 
 <script src="missile.js"></script>
