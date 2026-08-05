@@ -284,17 +284,31 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
     return { left: px + "%", top: py + "%", x: px, y: py, zoom: 1, iso: false };
   }
 
-  /* Patlamayı hedef kale GÖRSELİNİN merkezine oturtur. Kale DOM'da
-     bulunamazsa koordinata düşer. Her karede çağrılabilir olsun diye
-     ayrı fonksiyon: harita kaydırılınca patlama da kaleyle birlikte
-     kayar. */
+  /* Patlamayı hedef kalenin üstüne oturtur. Her karede çağrılır.
+
+     YENİ mod: kale düğümünün merkezi zaten karonun merkezidir
+     (dugumleriYerlestir onu translate(-50%,-50%) ile oturtuyor), yani
+     konum(tx,ty) ile BİREBİR aynı nokta. DOM kutusu OKUNMAZ — çünkü
+     kaleyi harita.js konumlandırıyor ve biz onu bir kare GERİDEN
+     okuyorduk; kaydırırken patlamanın kayıp sonra kendini toparlaması
+     bu gecikmeydi. Aynı matematiği kullanmak gecikmeyi tamamen kaldırır.
+
+     ESKİ mod: orada kale yüzdeyle konumlanıyor ve #battleMap'e scale()
+     uygulanıyor; rect okuması hâlâ en isabetlisi, davranış korunuyor. */
   function patlamaYerlestir(boom, tx, ty, targetName) {
     const mapEl = document.getElementById("battleMap");
     if (!mapEl) return;
     const kY = konum(tx, ty, SPRITE.boomLiftCells || 0);
-    let bx = kY.left, by = kY.top;
     boom.style.setProperty("--msl-scale", kY.iso ? kY.zoom : 1);
 
+    if (kY.iso) {                       // ── YENİ: saf matematik, DOM yok
+      boom.style.left = kY.left;
+      boom.style.top  = kY.top;
+      return;
+    }
+
+    // ── ESKİ mod (değişmedi)
+    let bx = kY.left, by = kY.top;
     if (targetName) {
       const node = [...mapEl.querySelectorAll(".castle-node")]
         .find(n => n.dataset.cname === targetName);
@@ -318,19 +332,8 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
         if (mr.width && mr.height) {
           const cx = ir.left + ir.width / 2 - mr.left;
           const cy = ir.top + ir.height / 2 - mr.top;
-          if (kY.iso) {
-            /* YENİ mod: #battleMap tam ekran ve transform:none, yani
-               getBoundingClientRect farkı doğrudan px konumdur.
-               Kaldırma da kare değil PİKSEL (kare = tileH * zoom). */
-            const kare = (window.HARITA.CFG.tileH || 32) * (kY.zoom || 1);
-            bx = cx + "px";
-            by = (cy - (SPRITE.boomLiftCells || 0) * kare) + "px";
-          } else {
-            /* ESKİ mod: #battleMap'e scale() uygulanıyor, px yanlış olur —
-               oran (yüzde) kullanılmalı. Davranış değişmedi. */
-            bx = (cx / mr.width * 100) + "%";
-            by = ((cy / mr.height * 100) - (SPRITE.boomLiftCells || 0) * (100 / COORD_GRID)) + "%";
-          }
+          bx = (cx / mr.width * 100) + "%";
+          by = ((cy / mr.height * 100) - (SPRITE.boomLiftCells || 0) * (100 / COORD_GRID)) + "%";
         }
       }
     }
@@ -405,18 +408,29 @@ diveStepDeg: 12,     // 10 x 12 = yine 120 derece
           patlamaYerlestir(boom, tx, ty, targetName);
           /* KRİTİK: patlama konumu TEK SEFER hesaplanamaz.
              YENİ modda #battleMap transform:none olan sabit bir katman;
-             sprite ekran pikseliyle duruyor. Harita kaydırılınca kaleler
-             (dugumleriYerlestir) yeniden yerleşiyor ama patlama yerinde
-             kalıyordu — "patlama başka yerde" hatası buydu.
-             Roket zaten her karede yeniden konumlanıyordu, o yüzden
-             uçuşta belli olmuyordu. Patlama da artık aynısını yapıyor. */
-          const bt = setInterval(() => {
+             sprite ekran pikseliyle duruyor. Harita kaydırılınca yeniden
+             konumlanmazsa yerinde kalır.
+
+             Döngü rAF ile — setInterval(16) tarayıcının çizim karesiyle
+             senkron DEĞİL; kaydırırken patlama bir kare geriden geliyor,
+             titreme olarak görünüyordu. rAF, harita ile aynı karede
+             çalışır. */
+          let boomLoop = 0;
+          const boomBitis = performance.now() + 5000;
+          (function boomStep(now) {
             const mm = getMap();
-            if (!mm) return;
-            if (!boom.isConnected) mm.appendChild(boom);
-            patlamaYerlestir(boom, tx, ty, targetName);
-          }, 16);
-          setTimeout(() => { clearInterval(bt); boom.remove(); }, 5000);
+            if (mm) {
+              if (!boom.isConnected) mm.appendChild(boom);
+              patlamaYerlestir(boom, tx, ty, targetName);
+            }
+            if (now < boomBitis) {
+              boomLoop = requestAnimationFrame(boomStep);
+            } else {
+              boom.remove();
+            }
+          })(performance.now());
+          // Güvenlik ağı: sekme arka plana atılıp rAF durursa yine temizle.
+          setTimeout(() => { cancelAnimationFrame(boomLoop); boom.remove(); }, 6000);
         }
         onImpact();
       }
