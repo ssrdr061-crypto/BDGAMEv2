@@ -1297,8 +1297,10 @@ body.world-active{padding:0; overflow:hidden;}
 /* Kutu, içindeki rakam kadar genişler. "ch" birimi yazı tipindeki
    "0" genişliğidir; genişlik JS'te hqBoyutla ile yazılır. */
 .hospital-qty .hq-input{
-  flex:0 0 auto; width:2ch; min-width:2ch;
-  height:24px; text-align:center; padding:0 6px;
+  flex:0 0 auto;
+  box-sizing:content-box;      /* genişlik SADECE rakamın yeri olsun */
+  width:1ch; min-width:1ch;
+  height:24px; line-height:24px; text-align:center; padding:0 7px;
   border-radius:7px; border:1px solid rgba(190,240,255,.4);
   background:rgba(3,16,38,.6); color:#fff;
   font-family:'Baloo 2',sans-serif; font-weight:800; font-size:14px;
@@ -1311,7 +1313,10 @@ body.world-active{padding:0; overflow:hidden;}
   font-family:'Baloo 2',sans-serif; font-weight:800; font-size:12.5px;
   color:#ffd257; white-space:nowrap;
 }
-.hospital-qty .hospital-slider{ flex:1 1 auto; margin-top:0; height:24px; }
+.hospital-qty .hospital-slider{
+  flex:1 1 auto; margin-top:0; height:24px;
+  margin-right:6px;            /* bar çok az kısalsın */
+}
 
 /* Tedavi kuyruğundaki küçük kafa kutucuğu.
    DİKKAT: burada !important şart — .troop-icon ve tema.js kuralları
@@ -1381,7 +1386,7 @@ body.world-active{padding:0; overflow:hidden;}
 /* Kuyruk hiç yokken başlık da gizlenir */
 .hospital-queue-title.is-hidden{ display:none !important; }
 .hospital-confirm-btn{
-  display:block; margin:11px auto 0; padding:8px 18px;
+  display:block; margin:16px auto 2px; padding:8px 18px;
   font-size:12px; width:auto; min-width:126px;
 }
 
@@ -4114,7 +4119,7 @@ function bindHospitalSlider(card) {
   function hqBoyutla() {
     if (!kutu) return;
     const n = Math.max(1, String(kutu.value || "").replace(/[^0-9]/g, "").length);
-    kutu.style.width = (n + 1) + "ch";
+    kutu.style.width = n + "ch";
   }
 
   function ata(v, oranDaCiz) {
@@ -4255,7 +4260,7 @@ function renderHospitalPanel() {
           </div>
         </div>`;
     }).join("") + `
-      <button class="login-btn hospital-confirm-btn" id="hospitalConfirmBtn">ONAYLA</button>
+      <button class="login-btn hospital-confirm-btn" id="hospitalConfirmBtn">İYİLEŞTİR</button>
     `;
 
     pendingEl.querySelectorAll(".hospital-heal-card").forEach(card => {
@@ -4315,6 +4320,9 @@ function confirmHospitalSelection() {
     });
   });
   hospitalPendingSelection = {};
+  /* İmzayı boşalt: onaylanan birlikler üstteki listeden ANINDA
+     düşsün, alttaki tedavi kuyruğunda görünsün. */
+  _hospitalPendingKey = "";
   renderHospitalPanel();
   showToast("Seçilen birlikler tedaviye alındı.");
 }
