@@ -1237,14 +1237,15 @@ body.world-active{padding:0; overflow:hidden;}
   font-family:'Baloo 2',sans-serif; font-weight:800;
   font-size:26px; letter-spacing:2px; text-transform:uppercase;
   color:#fff; text-align:center;
-  margin:2px 0 14px; padding:0 44px;       /* iki yanda eşit pay → gerçekten ortalı */
+  margin:2px 0 12px; padding:0;
+  position:relative; width:100%;           /* ✕ mutlak konumlu, akışı bozmaz */
   text-shadow:0 3px 0 rgba(0,10,30,.55);
 }
 
 .hospital-heal-card{
   position:relative;
   display:flex; align-items:center; gap:10px;
-  padding:8px 11px; margin-bottom:9px;
+  padding:5px 10px; margin-bottom:8px;
   border-radius:13px;
   background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
   box-shadow:
@@ -1291,23 +1292,26 @@ body.world-active{padding:0; overflow:hidden;}
 /* ── ADET — savaş panelindeki gibi: elle yazılabilen kutu + sürgü.
    −/+ tuşu yok; kutuya doğrudan rakam girilir. */
 .hospital-qty{
-  display:flex; align-items:center; gap:6px; margin-top:5px;
+  display:flex; align-items:center; gap:6px; margin-top:3px;
 }
+/* Kutu, içindeki rakam kadar genişler. "ch" birimi yazı tipindeki
+   "0" genişliğidir; genişlik JS'te hqBoyutla ile yazılır. */
 .hospital-qty .hq-input{
-  flex:0 0 44px; width:44px; height:26px; text-align:center; padding:0;
-  border-radius:8px; border:1px solid rgba(190,240,255,.4);
+  flex:0 0 auto; width:2ch; min-width:2ch;
+  height:24px; text-align:center; padding:0 6px;
+  border-radius:7px; border:1px solid rgba(190,240,255,.4);
   background:rgba(3,16,38,.6); color:#fff;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:15px;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:14px;
   -moz-appearance:textfield;
 }
 .hospital-qty .hq-input::-webkit-outer-spin-button,
 .hospital-qty .hq-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
 .hospital-qty .hq-max{
   flex:0 0 auto;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px;
-  color:#ffd257;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:12.5px;
+  color:#ffd257; white-space:nowrap;
 }
-.hospital-qty .hospital-slider{ flex:1 1 auto; margin-top:0; }
+.hospital-qty .hospital-slider{ flex:1 1 auto; margin-top:0; height:24px; }
 
 /* Tedavi kuyruğundaki küçük kafa kutucuğu.
    DİKKAT: burada !important şart — .troop-icon ve tema.js kuralları
@@ -1377,8 +1381,8 @@ body.world-active{padding:0; overflow:hidden;}
 /* Kuyruk hiç yokken başlık da gizlenir */
 .hospital-queue-title.is-hidden{ display:none !important; }
 .hospital-confirm-btn{
-  display:block; margin:12px auto 0; padding:9px 26px;
-  font-size:12px; width:auto; min-width:180px;
+  display:block; margin:11px auto 0; padding:8px 18px;
+  font-size:12px; width:auto; min-width:126px;
 }
 
 #panel-hero{ align-items:center; }
@@ -4105,11 +4109,20 @@ function bindHospitalSlider(card) {
   }
 
   /* Değeri tek yerden yaz: sürgü, kutu ve seçim hep aynı kalsın */
+  /* Kutu içindeki rakam kadar genişler — boşluk kalmaz.
+     "ch" birimi yazı tipindeki "0" genişliğidir, birebir oturur. */
+  function hqBoyutla() {
+    if (!kutu) return;
+    const n = Math.max(1, String(kutu.value || "").replace(/[^0-9]/g, "").length);
+    kutu.style.width = (n + 1) + "ch";
+  }
+
   function ata(v, oranDaCiz) {
     v = Math.max(0, Math.min(enFazla, Math.round(v || 0)));
     deger = v;
     hospitalPendingSelection[unitId] = v;
     if (kutu && document.activeElement !== kutu) kutu.value = String(v);
+    hqBoyutla();
     if (oranDaCiz) ciz(enFazla > 0 ? v / enFazla : 0);
     /* İmzayı boşalt: yoksa saniyelik tur "seçim değişmiş" deyip
        kartı parmağın altında yeniden çizerdi. */
@@ -4231,13 +4244,13 @@ function renderHospitalPanel() {
               <span class="t-count">x${woundedCount}</span>
             </div>
             <div class="hospital-qty">
-              <input class="hq-input" type="number" inputmode="numeric"
-                     min="0" max="${woundedCount}" value="${current}">
-              <span class="hq-max">/ ${woundedCount}</span>
               <div class="hospital-slider" data-unit="${unitId}">
                 <div class="sl-track"><i class="sl-fill"></i></div>
                 <div class="sl-thumb"></div>
               </div>
+              <input class="hq-input" type="number" inputmode="numeric"
+                     min="0" max="${woundedCount}" value="${current}">
+              <span class="hq-max">/ ${woundedCount}</span>
             </div>
           </div>
         </div>`;
