@@ -244,6 +244,7 @@ function renderTroopQueue() {
     if (!group || group.length === 0) {
       slot.style.display = "none";
       slot.innerHTML = "";
+      slot.dataset.imza = "";      /* tekrar açılınca yeniden kurulsun */
       return;
     }
     const def = UNIT_TYPES[unitId];
@@ -253,17 +254,36 @@ function renderTroopQueue() {
         birliğin süresiydi, tüm kuyruğunki değil.) */
     const remaining = group[group.length - 1].finishAt - Date.now();
     slot.style.display = "flex";
-    slot.innerHTML = `
-      <div class="q-img">${unitImgFill(def)}</div>
-      <div class="q-info">
-        <span class="q-count">x${group.length}</span>
-        <button class="q-timer speedup-trigger" data-unit="${unitId}"
-                title="${speedUpCount > 0 ? 'Hızlandırmak için tıkla' : 'Mağazadan ⏩ Hızlandırma satın al'}">
-          ${sureMs(remaining)} ⏩
-        </button>
-      </div>`;
-    const sp = slot.querySelector(".speedup-trigger");
-    if (sp) bindTap(sp, () => useSpeedUpOnTrainingGroup(unitId));
+
+    /* ── TİTREME ÖNLEME ──
+       Bu fonksiyon saniyede bir çalışıyor. Eskiden her turda
+       innerHTML baştan yazılıyordu: <img> yeniden yaratılıyor,
+       giriş animasyonu tekrar oynuyor ve kutucuk gözle görülür
+       şekilde titriyordu.
+
+       Artık iskelet YALNIZCA bir kez kuruluyor; sonraki turlarda
+       sadece değişen iki metin (adet ve geri sayım) güncelleniyor. */
+    const imza = unitId + ":" + group.length;
+    if (slot.dataset.imza !== imza) {
+      slot.dataset.imza = imza;
+      slot.innerHTML = `
+        <div class="q-img">${unitImgFill(def)}</div>
+        <div class="q-info">
+          <span class="q-count">x${group.length}</span>
+          <button class="q-timer speedup-trigger" data-unit="${unitId}"
+                  title="${speedUpCount > 0 ? 'Hızlandırmak için tıkla' : 'Mağazadan ⏩ Hızlandırma satın al'}">
+            ${sureMs(remaining)} ⏩
+          </button>
+        </div>`;
+      const sp = slot.querySelector(".speedup-trigger");
+      if (sp) bindTap(sp, () => useSpeedUpOnTrainingGroup(unitId));
+    } else {
+      const sayacEl = slot.querySelector(".q-timer");
+      if (sayacEl) {
+        const yeniMetin = sureMs(remaining) + " ⏩";
+        if (sayacEl.textContent.trim() !== yeniMetin) sayacEl.textContent = yeniMetin;
+      }
+    }
   });
 }
 
