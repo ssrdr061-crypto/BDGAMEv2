@@ -1237,7 +1237,7 @@ body.world-active{padding:0; overflow:hidden;}
   font-family:'Baloo 2',sans-serif; font-weight:800;
   font-size:26px; letter-spacing:2px; text-transform:uppercase;
   color:#fff; text-align:center;
-  margin:2px 0 14px; padding-right:34px;   /* ✕ butonuna çarpmasın */
+  margin:2px 0 14px; padding:0 44px;       /* iki yanda eşit pay → gerçekten ortalı */
   text-shadow:0 3px 0 rgba(0,10,30,.55);
 }
 
@@ -1255,19 +1255,63 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .hospital-heal-card:last-of-type{margin-bottom:0;}
 
-/* Birlik görseli — birlik menüsündeki .tp-img ile aynı:
-   tabla yok, çerçeve yok, PNG'nin tamamı görünür. */
+/* Birlik görseli — EĞİTİM panelindeki .uv-portrait kafa kutucuğunun
+   birebir aynısı. Kırpma değerleri tema.js'teki --tp-*p-* ile aynı
+   değişkenlerden okunuyor; ayar panelinden orayı oynattığında
+   hastane de aynı kadrajı alır. */
 .hospital-face{
-  position:relative; flex:0 0 50px;
-  width:50px; height:50px;
-  display:flex; align-items:center; justify-content:center;
+  position:relative; flex:0 0 52px;
+  width:52px; height:52px;
+  border-radius:14px; overflow:hidden;
+  background:transparent;
+  border:2px solid rgba(190,240,255,.45);
 }
 .hospital-face img{
-  width:100%; height:100%; object-fit:contain;
-  filter:drop-shadow(0 3px 4px rgba(0,10,30,.55));
-  display:block;
+  width:200%; height:auto; display:block;
+  margin:-4% 0 0 -50%;
+  pointer-events:none;
 }
-.hospital-face .hosp-emoji{ font-size:28px; filter:drop-shadow(0 3px 4px rgba(0,10,30,.55)); }
+.hospital-face[data-unit="knight"] img{
+  width:var(--tp-kp-w,150%);
+  margin:var(--tp-kp-t,-29%) 0 0 var(--tp-kp-l,-26%);
+}
+.hospital-face[data-unit="soldier"] img{
+  width:var(--tp-ap-w,130%);
+  margin:var(--tp-ap-t,-16%) 0 0 var(--tp-ap-l,-21%);
+}
+.hospital-face[data-unit="robot"] img{
+  width:var(--tp-rp-w,140%);
+  margin:var(--tp-rp-t,-10%) 0 0 var(--tp-rp-l,-18%);
+}
+.hospital-face .hosp-emoji{
+  display:flex; align-items:center; justify-content:center;
+  width:100%; height:100%; font-size:24px;
+}
+
+/* ── ADET KUTUSU — eğitim panelindeki .unit-qty-bar ile aynı fikir:
+   sürgünün yanında elle yazılabilen bir kutu ── */
+.hospital-qty{
+  display:flex; align-items:center; gap:5px; margin-top:4px;
+}
+.hospital-qty .hq-btn{
+  flex:0 0 26px; width:26px; height:26px; padding:0;
+  border-radius:8px; border:none; cursor:pointer;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:17px; line-height:1;
+  color:#3a2400;
+  background:linear-gradient(180deg,#ffd257,#e0a12c);
+  box-shadow:0 3px 0 #8a5c10, inset 0 1px 2px rgba(255,255,255,.6);
+}
+.hospital-qty .hq-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #8a5c10; }
+.hospital-qty .hq-input{
+  flex:0 0 46px; width:46px; height:26px; text-align:center;
+  border-radius:8px; border:1px solid rgba(190,240,255,.35);
+  background:rgba(3,16,38,.55); color:#fff;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:14px;
+  -moz-appearance:textfield;
+}
+.hospital-qty .hq-input::-webkit-outer-spin-button,
+.hospital-qty .hq-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.hospital-qty .hospital-slider{ flex:1 1 auto; margin-top:0; }
 
 .hospital-heal-mid{ flex:1 1 auto; min-width:0; }
 .hospital-heal-top{ display:flex; align-items:baseline; gap:7px; }
@@ -3214,9 +3258,15 @@ function sendWoundedToHospital(troopsWoundedByUnit) {
     const def = UNIT_TYPES[unitId];
     if (!def) return;
     troopsWoundedByUnit[unitId].forEach(wound => {
-
-      const recoveryMs = Math.round(def.trainMinutes * 60 * 1000 / 3);
-      state.hospital.push({ unitId, finishAt: Date.now() + recoveryMs, severe: !!wound.severe });
+      /* İYİLEŞME SÜRESİ = birliğin eğitim süresinin 5'te 1'i.
+         DİKKAT: sayaç BURADA başlatılmaz. Eskiden finishAt yaralanma
+         anında yazılıyordu; oyuncu hastaneyi açtığında süre çoktan
+         dolmuş oluyor ve birlikler onaya basar basmaz iyileşiyordu.
+         Sayaç artık confirmHospitalSelection'da, ONAY anında başlar. */
+      const recoveryMs = Math.round(def.trainMinutes * 60 * 1000 / 5);
+      state.hospital.push({
+        unitId, recoveryMs, finishAt: 0, severe: !!wound.severe
+      });
     });
   });
 }
@@ -4035,7 +4085,9 @@ function bindHospitalSlider(card) {
   const ray     = card.querySelector(".hospital-slider");
   const dolgu   = card.querySelector(".sl-fill");
   const top     = card.querySelector(".sl-thumb");
-  const sayi    = card.querySelector(".hospital-heal-live-count");
+  const kutu    = card.querySelector(".hq-input");
+  const eksi    = card.querySelector(".hq-minus");
+  const arti    = card.querySelector(".hq-plus");
   if (!ray) return;
 
   let deger = Math.min(Math.max(0, hospitalPendingSelection[unitId] || 0), enFazla);
@@ -4045,8 +4097,22 @@ function bindHospitalSlider(card) {
     if (dolgu) dolgu.style.width = p;
     if (top)   top.style.left    = p;
   }
-  ciz(enFazla > 0 ? deger / enFazla : 0);
 
+  /* Değeri tek yerden yaz: sürgü, kutu ve seçim hep aynı kalsın */
+  function ata(v, oranDaCiz) {
+    v = Math.max(0, Math.min(enFazla, Math.round(v || 0)));
+    deger = v;
+    hospitalPendingSelection[unitId] = v;
+    if (kutu && document.activeElement !== kutu) kutu.value = String(v);
+    if (oranDaCiz) ciz(enFazla > 0 ? v / enFazla : 0);
+    /* İmzayı boşalt: yoksa saniyelik tur "seçim değişmiş" deyip
+       kartı parmağın altında yeniden çizerdi. */
+    if (typeof _hospitalPendingKey === "string") _hospitalPendingKey = "";
+  }
+
+  ata(deger, true);
+
+  /* ── SÜRGÜ ── */
   function oranHesapla(clientX) {
     const r = ray.getBoundingClientRect();
     if (r.width <= 0) return 0;
@@ -4055,17 +4121,8 @@ function bindHospitalSlider(card) {
 
   function guncelle(clientX) {
     const oran = oranHesapla(clientX);
-    ciz(oran);                                  /* akıcı: kesirli */
-    const yeni = Math.round(oran * enFazla);    /* mantık: tam sayı */
-    if (yeni !== deger) {
-      deger = yeni;
-      hospitalPendingSelection[unitId] = deger;
-      if (sayi) sayi.textContent = String(deger);
-      /* İmzayı da güncelle: yoksa bir sonraki saniyelik tur
-         "seçim değişmiş" deyip kartı parmağın altında yeniden
-         çizerdi. */
-      if (typeof _hospitalPendingKey === "string") _hospitalPendingKey = "";
-    }
+    ciz(oran);                               /* akıcı: kesirli konum */
+    ata(oran * enFazla, false);              /* mantık: tam sayı */
   }
 
   let aktifId = null;
@@ -4088,11 +4145,22 @@ function bindHospitalSlider(card) {
     if (e && e.pointerId !== undefined && e.pointerId !== aktifId) return;
     aktifId = null;
     ray.classList.remove("dragging");
-    ciz(enFazla > 0 ? deger / enFazla : 0);     /* tam değere otur */
+    ciz(enFazla > 0 ? deger / enFazla : 0);  /* tam değere otur */
   };
-
   ray.addEventListener("pointerup", birak);
   ray.addEventListener("pointercancel", birak);
+
+  /* ── ELLE GİRİŞ (eğitim panelindeki adet çubuğuyla aynı mantık) ── */
+  if (eksi) eksi.addEventListener("click", e => { e.preventDefault(); ata(deger - 1, true); });
+  if (arti) arti.addEventListener("click", e => { e.preventDefault(); ata(deger + 1, true); });
+  if (kutu) {
+    kutu.addEventListener("input", () => {
+      const v = parseInt(kutu.value, 10);
+      ata(isNaN(v) ? 0 : v, true);
+    });
+    /* Odak çıkınca kutuyu sınırlar içine oturt (elle 999 yazılırsa) */
+    kutu.addEventListener("blur", () => { kutu.value = String(deger); });
+  }
 }
 
 /* Bekleyen liste, içerik GERÇEKTEN değiştiyse yeniden çizilir.
@@ -4150,21 +4218,26 @@ function renderHospitalPanel() {
       const current = Math.min(hospitalPendingSelection[unitId] || 0, woundedCount);
       return `
         <div class="hospital-heal-card" data-unit="${unitId}" data-max="${woundedCount}">
-          <div class="hospital-face">${unitFace(def)}</div>
+          <div class="hospital-face" data-unit="${unitId}">${unitFace(def)}</div>
           <div class="hospital-heal-mid">
             <div class="hospital-heal-top">
               <span class="t-name">${def ? def.name : unitId}</span>
               <span class="t-count">x${woundedCount}</span>
             </div>
-            <div class="hospital-slider" data-unit="${unitId}">
-              <div class="sl-track"><i class="sl-fill"></i></div>
-              <div class="sl-thumb"></div>
+            <div class="hospital-qty">
+              <button class="hq-btn hq-minus" type="button">−</button>
+              <input class="hq-input" type="number" inputmode="numeric"
+                     min="0" max="${woundedCount}" value="${current}">
+              <button class="hq-btn hq-plus" type="button">+</button>
+              <div class="hospital-slider" data-unit="${unitId}">
+                <div class="sl-track"><i class="sl-fill"></i></div>
+                <div class="sl-thumb"></div>
+              </div>
             </div>
           </div>
-          <span class="hospital-heal-live-count" id="hospitalHealLive_${unitId}">${current}</span>
         </div>`;
     }).join("") + `
-      <button class="login-btn hospital-confirm-btn" id="hospitalConfirmBtn">Tedaviyi Onayla</button>
+      <button class="login-btn hospital-confirm-btn" id="hospitalConfirmBtn">ONAYLA</button>
     `;
 
     pendingEl.querySelectorAll(".hospital-heal-card").forEach(card => {
@@ -4193,7 +4266,7 @@ function renderHospitalPanel() {
     const totalRemaining = latest.finishAt - Date.now();
     return `
       <div class="troop-queue-row">
-        <span class="troop-icon"><span class="hospital-face" style="flex:0 0 30px;width:30px;height:30px;">${unitFace(def)}</span></span>
+        <span class="troop-icon"><span class="hospital-face" data-unit="${unitId}" style="flex:0 0 36px;width:36px;height:36px;border-radius:10px;">${unitFace(def)}</span></span>
         <div class="troop-queue-name-col">
           <span class="troop-queue-name">${def ? def.name : unitId} x${group.length}</span>
           ${group.length > 1 ? `<span class="hospital-heal-total-time">Tamamı için: ${formatRemaining(totalRemaining)}</span>` : ""}
@@ -4207,14 +4280,21 @@ ${speedupBtn(unitId, remaining, speedUpCount, "troop-queue-timer")}
 function confirmHospitalSelection() {
   const totalSelected = Object.values(hospitalPendingSelection).reduce((a, b) => a + b, 0);
   if (totalSelected === 0) {
-    showToast("Önce sürgülerden tedaviye alınacak birlik sayısını seç.");
+    showToast("Önce tedaviye alınacak birlik sayısını seç.");
     return;
   }
   Object.keys(hospitalPendingSelection).forEach(unitId => {
     const wantCount = hospitalPendingSelection[unitId] || 0;
     if (wantCount <= 0) return;
-    const waitingOfUnit = state.hospital.filter(p => p.unitId === unitId && !p.confirmed).sort((a, b) => a.finishAt - b.finishAt);
-    waitingOfUnit.slice(0, wantCount).forEach(p => { p.confirmed = true; });
+    const waitingOfUnit = state.hospital.filter(p => p.unitId === unitId && !p.confirmed);
+    const def = UNIT_TYPES[unitId];
+    /* Varsayılan: eski kayıtlarda recoveryMs yoksa tanımdan üret */
+    const varsayilan = def ? Math.round(def.trainMinutes * 60 * 1000 / 5) : 60000;
+    waitingOfUnit.slice(0, wantCount).forEach(p => {
+      p.confirmed = true;
+      /* Sayaç ONAY anında başlar */
+      p.finishAt = Date.now() + (p.recoveryMs || varsayilan);
+    });
   });
   hospitalPendingSelection = {};
   renderHospitalPanel();
