@@ -1225,9 +1225,22 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .log-clear-btn:hover{border-color:var(--danger); color:#ffb3b6;}
 
-/* ── HASTANE KARTI ────────────────────────────────────────────
-   Eskiden kırmızı zeminli, ince çerçeveli kaba bir kutuydu.
-   Artık birlik menüsündeki .tp-row ile aynı mavi hap gövde. */
+/* ── HASTANE ─────────────────────────────────────────────────
+   Kartlar birlik menüsündeki .tp-row ile aynı mavi hap gövde.
+
+   DİKKAT: buraya giriş animasyonu KOYMA. Panel setInterval ile
+   saniyede bir yeniden çiziliyor; animasyon her seferinde baştan
+   oynar ve ekran titrer. */
+.hospital-card{ padding-top:6px; }
+
+.hospital-title{
+  font-family:'Baloo 2',sans-serif; font-weight:800;
+  font-size:26px; letter-spacing:2px; text-transform:uppercase;
+  color:#fff; text-align:center;
+  margin:2px 0 14px; padding-right:34px;   /* ✕ butonuna çarpmasın */
+  text-shadow:0 3px 0 rgba(0,10,30,.55);
+}
+
 .hospital-heal-card{
   position:relative;
   display:flex; align-items:center; gap:10px;
@@ -1239,42 +1252,33 @@ body.world-active{padding:0; overflow:hidden;}
     0 10px 16px rgba(0,20,45,.5),
     inset 0 2px 3px rgba(150,205,255,.55),
     inset 0 -4px 8px rgba(0,10,30,.55);
-  animation:hospCardIn .28s cubic-bezier(.2,1.2,.35,1) backwards;
 }
 .hospital-heal-card:last-of-type{margin-bottom:0;}
-@keyframes hospCardIn{
-  from{ opacity:0; transform:translateY(14px) scale(.95); }
-  to  { opacity:1; transform:translateY(0) scale(1); }
-}
 
-/* Birliğin tüm bedeni yerine BAŞI — madalyon içinde üstten kırpma.
-   object-position yüzdesini büyütürsen kadraj aşağı iner;
-   transform:scale baş büyüklüğünü ayarlar. */
+/* Birlik görseli — birlik menüsündeki .tp-img ile aynı:
+   tabla yok, çerçeve yok, PNG'nin tamamı görünür. */
 .hospital-face{
-  flex:0 0 46px; width:46px; height:46px;
-  border-radius:50%; overflow:hidden;
-  background:radial-gradient(circle at 38% 30%, rgba(180,225,255,.35), rgba(4,18,42,.75));
-  box-shadow:inset 0 2px 4px rgba(150,205,255,.4), 0 3px 6px rgba(0,10,30,.5);
+  position:relative; flex:0 0 50px;
+  width:50px; height:50px;
   display:flex; align-items:center; justify-content:center;
 }
 .hospital-face img{
-  width:100%; height:100%;
-  object-fit:cover; object-position:50% 14%;
-  transform:scale(1.55);
+  width:100%; height:100%; object-fit:contain;
+  filter:drop-shadow(0 3px 4px rgba(0,10,30,.55));
   display:block;
 }
-.hospital-face .hosp-emoji{ font-size:24px; }
+.hospital-face .hosp-emoji{ font-size:28px; filter:drop-shadow(0 3px 4px rgba(0,10,30,.55)); }
 
 .hospital-heal-mid{ flex:1 1 auto; min-width:0; }
 .hospital-heal-top{ display:flex; align-items:baseline; gap:7px; }
 .hospital-heal-top .t-name{
   font-family:'Baloo 2',sans-serif; font-weight:800; font-size:14.5px;
-  color:#a8e7ff; letter-spacing:1.2px; text-transform:uppercase;
+  color:#fff; letter-spacing:1.2px; text-transform:uppercase;
   text-shadow:0 2px 0 rgba(0,10,30,.55);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .hospital-heal-top .t-count{
-  font-size:11px; font-weight:700; color:rgba(190,230,255,.7); letter-spacing:.4px;
+  font-size:11px; font-weight:700; color:rgba(255,255,255,.7); letter-spacing:.4px;
 }
 .hospital-heal-total-time{
   font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--ink-dim);
@@ -1283,9 +1287,8 @@ body.world-active{padding:0; overflow:hidden;}
 /* ── ÖZEL SÜRGÜ ───────────────────────────────────────────────
    Yerleşik <input type="range"> mobilde yalnızca topa basınca
    hareket ediyordu ve değer kademe kademe atlıyordu. Kendi
-   sürgümüzde rayın herhangi bir yerinden sürüklenebiliyor ve
-   çubuk parmağı KESİRLİ takip ediyor (akıcılık), sadece
-   gösterilen sayı yuvarlanıyor (mantık). */
+   sürgümüzde raya her yerinden dokunulabiliyor ve çubuk parmağı
+   KESİRLİ takip ediyor; sadece gösterilen sayı yuvarlanıyor. */
 .hospital-slider{
   position:relative; height:26px; margin-top:3px;
   touch-action:none;         /* sürüklerken sayfa kaymasın */
@@ -1299,16 +1302,16 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .hospital-slider .sl-fill{
   position:absolute; left:0; top:0; bottom:0; border-radius:99px;
-  background:linear-gradient(180deg,#ffb4b4,#e8626f);
-  box-shadow:0 0 8px rgba(255,120,130,.45);
+  background:linear-gradient(180deg,#ff5a5a,#c81f2f);
+  box-shadow:0 0 8px rgba(255,60,70,.5);
 }
 .hospital-slider .sl-thumb{
   position:absolute; top:50%;
   width:19px; height:19px; margin:-9.5px 0 0 -9.5px;
   border-radius:50%;
-  background:radial-gradient(circle at 35% 30%, #fff, #ffc2c2 55%, #e0616f);
-  box-shadow:0 2px 5px rgba(0,10,30,.6), inset 0 1px 2px rgba(255,255,255,.85);
-  pointer-events:none;       /* sürükleme rayda yönetiliyor */
+  background:radial-gradient(circle at 35% 30%, #fff, #fff 60%, #dfe8f5);
+  box-shadow:0 2px 5px rgba(0,10,30,.6), inset 0 1px 2px rgba(255,255,255,.9);
+  pointer-events:none;
   transition:transform .12s ease;
 }
 .hospital-slider.dragging .sl-thumb{ transform:scale(1.18); }
@@ -1318,8 +1321,12 @@ body.world-active{padding:0; overflow:hidden;}
   font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px;
   color:#fff; text-shadow:0 2px 0 rgba(0,10,30,.6);
 }
+
+/* Kuyruk hiç yokken başlık da gizlenir */
+.hospital-queue-title.is-hidden{ display:none !important; }
 .hospital-confirm-btn{
-  margin-top:10px; padding:9px; font-size:12px;
+  display:block; margin:12px auto 0; padding:9px 26px;
+  font-size:12px; width:auto; min-width:180px;
 }
 
 #panel-hero{ align-items:center; }
@@ -1949,11 +1956,13 @@ body.world-active{padding:0; overflow:hidden;}
   </div>
 
   <div class="overlay-panel" id="panel-hospital">
-    <div class="overlay-card">
+    <div class="overlay-card hospital-card">
       <button class="overlay-close" data-close>✕</button>
+      <h2 class="hospital-title">HASTANE</h2>
       <div id="hospitalPendingList"></div>
 
-      <h3 class="hero-subtitle" style="margin-top:14px;">⏳ Tedavi Kuyruğu</h3>
+      <h3 class="hero-subtitle hospital-queue-title" id="hospitalQueueTitle"
+          style="margin-top:14px;">⏳ Tedavi Kuyruğu</h3>
       <div id="hospitalQueueList"></div>
     </div>
   </div>
@@ -4052,6 +4061,10 @@ function bindHospitalSlider(card) {
       deger = yeni;
       hospitalPendingSelection[unitId] = deger;
       if (sayi) sayi.textContent = String(deger);
+      /* İmzayı da güncelle: yoksa bir sonraki saniyelik tur
+         "seçim değişmiş" deyip kartı parmağın altında yeniden
+         çizerdi. */
+      if (typeof _hospitalPendingKey === "string") _hospitalPendingKey = "";
     }
   }
 
@@ -4082,6 +4095,13 @@ function bindHospitalSlider(card) {
   ray.addEventListener("pointercancel", birak);
 }
 
+/* Bekleyen liste, içerik GERÇEKTEN değiştiyse yeniden çizilir.
+   Panel setInterval ile saniyede bir çağrılıyor; her seferinde
+   innerHTML'i baştan yazmak ekranı titretiyor ve daha kötüsü,
+   sürgüyü sürüklerken parmağın altındaki kartı yok ediyordu.
+   Kuyruk kısmı geri sayım gösterdiği için her turda çizilir. */
+let _hospitalPendingKey = "";
+
 function renderHospitalPanel() {
   applyFinishedHospitalRecoveries();
   const pendingEl = document.getElementById("hospitalPendingList");
@@ -4103,6 +4123,9 @@ function renderHospitalPanel() {
   if (patients.length === 0) {
     pendingEl.innerHTML = `<div class="empty-state" style="padding:18px;"><span class="icon"><img src="gorsel18.webp" style="width:30px;height:30px;object-fit:contain;"/></span>Şu an hastanede yaralı birlik yok.</div>`;
     queueEl.innerHTML = "";
+    const qt = document.getElementById("hospitalQueueTitle");
+    if (qt) qt.classList.add("is-hidden");
+    _hospitalPendingKey = "";
     return;
   }
 
@@ -4111,9 +4134,16 @@ function renderHospitalPanel() {
 
   const byUnitWaiting = groupBy(waiting, p => p.unitId);
 
+  /* İmza: hangi birlikten kaç yaralı var + seçili miktarlar */
+  const pendingKey = Object.keys(byUnitWaiting).sort().map(u =>
+    u + ":" + byUnitWaiting[u].length + ":" + (hospitalPendingSelection[u] || 0)
+  ).join("|");
+  const pendingDegisti = (pendingKey !== _hospitalPendingKey);
+  _hospitalPendingKey = pendingKey;
+
   if (Object.keys(byUnitWaiting).length === 0) {
-    pendingEl.innerHTML = emptyState("✅", "Tüm yaralılar tedaviye alındı.", "14px");
-  } else {
+    if (pendingDegisti) pendingEl.innerHTML = emptyState("✅", "Tüm yaralılar tedaviye alındı.", "14px");
+  } else if (pendingDegisti) {
     pendingEl.innerHTML = Object.keys(byUnitWaiting).map(unitId => {
       const def = UNIT_TYPES[unitId];
       const woundedCount = byUnitWaiting[unitId].length;
@@ -4143,10 +4173,14 @@ function renderHospitalPanel() {
     safeBind("hospitalConfirmBtn", "click", confirmHospitalSelection);
   }
 
+  const queueTitle = document.getElementById("hospitalQueueTitle");
   if (confirmed.length === 0) {
-    queueEl.innerHTML = emptyState("⏳", "Şu an tedavide kimse yok.", "14px");
+    /* Tedavide kimse yoksa başlık da yazı da görünmesin */
+    queueEl.innerHTML = "";
+    if (queueTitle) queueTitle.classList.add("is-hidden");
     return;
   }
+  if (queueTitle) queueTitle.classList.remove("is-hidden");
   const byUnitConfirmed = groupBy(confirmed, p => p.unitId);
   const speedUpCount = state.inventory["5 Dakika Hızlandırma"] || 0;
 
