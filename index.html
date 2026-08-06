@@ -1233,12 +1233,16 @@ body.world-active{padding:0; overflow:hidden;}
    oynar ve ekran titrer. */
 .hospital-card{ padding-top:6px; }
 
-.hospital-title{
+/* DİKKAT: .overlay-card h2 display:flex tanımlı — o yüzden düz
+   text-align:center hiç işlemiyordu. Seçiciyi h2 ile birlikte
+   yazıp flex'i ortalıyoruz. */
+.overlay-card h2.hospital-title{
   font-family:'Baloo 2',sans-serif; font-weight:800;
   font-size:26px; letter-spacing:2px; text-transform:uppercase;
-  color:#fff; text-align:center;
-  margin:2px 0 12px; padding:0;
-  position:relative; width:100%;           /* ✕ mutlak konumlu, akışı bozmaz */
+  color:#fff;
+  display:flex; justify-content:center; align-items:center;
+  margin:2px 0 12px; padding:0;            /* ✕ mutlak konumlu, akışı bozmaz */
+  width:100%;
   text-shadow:0 3px 0 rgba(0,10,30,.55);
 }
 
@@ -1300,10 +1304,11 @@ body.world-active{padding:0; overflow:hidden;}
   flex:0 0 auto;
   box-sizing:content-box;      /* genişlik SADECE rakamın yeri olsun */
   width:1ch; min-width:1ch;
-  height:24px; line-height:24px; text-align:center; padding:0 7px;
+  height:22px; line-height:22px; text-align:center; padding:0 4px;
+  margin-right:-2px;           /* "/" işaretine yaklaşsın */
   border-radius:7px; border:1px solid rgba(190,240,255,.4);
   background:rgba(3,16,38,.6); color:#fff;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:14px;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13.5px;
   -moz-appearance:textfield;
 }
 .hospital-qty .hq-input::-webkit-outer-spin-button,
@@ -2023,7 +2028,7 @@ body.world-active{padding:0; overflow:hidden;}
       <div id="hospitalPendingList"></div>
 
       <h3 class="hero-subtitle hospital-queue-title" id="hospitalQueueTitle"
-          style="margin-top:14px;">⏳ Tedavi Kuyruğu</h3>
+          style="margin-top:14px;">⏳ TEDAVİDE OLANLAR</h3>
       <div id="hospitalQueueList"></div>
     </div>
   </div>
@@ -4129,9 +4134,9 @@ function bindHospitalSlider(card) {
     if (kutu && document.activeElement !== kutu) kutu.value = String(v);
     hqBoyutla();
     if (oranDaCiz) ciz(enFazla > 0 ? v / enFazla : 0);
-    /* İmzayı boşalt: yoksa saniyelik tur "seçim değişmiş" deyip
-       kartı parmağın altında yeniden çizerdi. */
-    if (typeof _hospitalPendingKey === "string") _hospitalPendingKey = "";
+    /* İmzaya DOKUNULMAZ: seçilen miktar imzanın parçası değil.
+       Miktarı zaten doğrudan DOM'a yazıyoruz; yeniden çizim
+       gerekmediği gibi, parmak sürgüdeyken kartı yok ederdi. */
   }
 
   ata(deger, true);
@@ -4226,9 +4231,11 @@ function renderHospitalPanel() {
 
   const byUnitWaiting = groupBy(waiting, p => p.unitId);
 
-  /* İmza: hangi birlikten kaç yaralı var + seçili miktarlar */
+  /* İmza: SADECE hangi birlikten kaç yaralı olduğu.
+     Seçilen miktar bilerek DIŞARIDA — o değer JS tarafından
+     doğrudan DOM'a yazılıyor, yeniden çizim gerektirmiyor. */
   const pendingKey = Object.keys(byUnitWaiting).sort().map(u =>
-    u + ":" + byUnitWaiting[u].length + ":" + (hospitalPendingSelection[u] || 0)
+    u + ":" + byUnitWaiting[u].length
   ).join("|");
   const pendingDegisti = (pendingKey !== _hospitalPendingKey);
   _hospitalPendingKey = pendingKey;
