@@ -1288,30 +1288,38 @@ body.world-active{padding:0; overflow:hidden;}
   width:100%; height:100%; font-size:24px;
 }
 
-/* ── ADET KUTUSU — eğitim panelindeki .unit-qty-bar ile aynı fikir:
-   sürgünün yanında elle yazılabilen bir kutu ── */
+/* ── ADET — savaş panelindeki gibi: elle yazılabilen kutu + sürgü.
+   −/+ tuşu yok; kutuya doğrudan rakam girilir. */
 .hospital-qty{
-  display:flex; align-items:center; gap:5px; margin-top:4px;
+  display:flex; align-items:center; gap:6px; margin-top:5px;
 }
-.hospital-qty .hq-btn{
-  flex:0 0 26px; width:26px; height:26px; padding:0;
-  border-radius:8px; border:none; cursor:pointer;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:17px; line-height:1;
-  color:#3a2400;
-  background:linear-gradient(180deg,#ffd257,#e0a12c);
-  box-shadow:0 3px 0 #8a5c10, inset 0 1px 2px rgba(255,255,255,.6);
-}
-.hospital-qty .hq-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #8a5c10; }
 .hospital-qty .hq-input{
-  flex:0 0 46px; width:46px; height:26px; text-align:center;
-  border-radius:8px; border:1px solid rgba(190,240,255,.35);
-  background:rgba(3,16,38,.55); color:#fff;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:14px;
+  flex:0 0 44px; width:44px; height:26px; text-align:center; padding:0;
+  border-radius:8px; border:1px solid rgba(190,240,255,.4);
+  background:rgba(3,16,38,.6); color:#fff;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:15px;
   -moz-appearance:textfield;
 }
 .hospital-qty .hq-input::-webkit-outer-spin-button,
 .hospital-qty .hq-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.hospital-qty .hq-max{
+  flex:0 0 auto;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px;
+  color:#ffd257;
+}
 .hospital-qty .hospital-slider{ flex:1 1 auto; margin-top:0; }
+
+/* Tedavi kuyruğundaki küçük kafa kutucuğu.
+   DİKKAT: burada !important şart — .troop-icon ve tema.js kuralları
+   aksi halde görseli kutunun dışına taşırıp dev gösteriyordu. */
+.hospital-face-sm{
+  flex:0 0 38px !important;
+  width:38px !important; height:38px !important;
+  border-radius:11px !important;
+  overflow:hidden !important;
+  display:block !important;
+  position:relative !important;
+}
 
 .hospital-heal-mid{ flex:1 1 auto; min-width:0; }
 .hospital-heal-top{ display:flex; align-items:baseline; gap:7px; }
@@ -4086,8 +4094,6 @@ function bindHospitalSlider(card) {
   const dolgu   = card.querySelector(".sl-fill");
   const top     = card.querySelector(".sl-thumb");
   const kutu    = card.querySelector(".hq-input");
-  const eksi    = card.querySelector(".hq-minus");
-  const arti    = card.querySelector(".hq-plus");
   if (!ray) return;
 
   let deger = Math.min(Math.max(0, hospitalPendingSelection[unitId] || 0), enFazla);
@@ -4150,9 +4156,9 @@ function bindHospitalSlider(card) {
   ray.addEventListener("pointerup", birak);
   ray.addEventListener("pointercancel", birak);
 
-  /* ── ELLE GİRİŞ (eğitim panelindeki adet çubuğuyla aynı mantık) ── */
-  if (eksi) eksi.addEventListener("click", e => { e.preventDefault(); ata(deger - 1, true); });
-  if (arti) arti.addEventListener("click", e => { e.preventDefault(); ata(deger + 1, true); });
+  /* ── ELLE GİRİŞ ──
+     Savaş panelindeki gibi: kutuya doğrudan rakam yazılabiliyor,
+     sürgü ve kutu birbirini anında güncelliyor. */
   if (kutu) {
     kutu.addEventListener("input", () => {
       const v = parseInt(kutu.value, 10);
@@ -4225,10 +4231,9 @@ function renderHospitalPanel() {
               <span class="t-count">x${woundedCount}</span>
             </div>
             <div class="hospital-qty">
-              <button class="hq-btn hq-minus" type="button">−</button>
               <input class="hq-input" type="number" inputmode="numeric"
                      min="0" max="${woundedCount}" value="${current}">
-              <button class="hq-btn hq-plus" type="button">+</button>
+              <span class="hq-max">/ ${woundedCount}</span>
               <div class="hospital-slider" data-unit="${unitId}">
                 <div class="sl-track"><i class="sl-fill"></i></div>
                 <div class="sl-thumb"></div>
@@ -4266,7 +4271,7 @@ function renderHospitalPanel() {
     const totalRemaining = latest.finishAt - Date.now();
     return `
       <div class="troop-queue-row">
-        <span class="troop-icon"><span class="hospital-face" data-unit="${unitId}" style="flex:0 0 36px;width:36px;height:36px;border-radius:10px;">${unitFace(def)}</span></span>
+        <span class="hospital-face hospital-face-sm" data-unit="${unitId}">${unitFace(def)}</span>
         <div class="troop-queue-name-col">
           <span class="troop-queue-name">${def ? def.name : unitId} x${group.length}</span>
           ${group.length > 1 ? `<span class="hospital-heal-total-time">Tamamı için: ${formatRemaining(totalRemaining)}</span>` : ""}
