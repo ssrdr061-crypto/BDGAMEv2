@@ -1420,6 +1420,21 @@ body.world-active{padding:0; overflow:hidden;}
   background:none !important; border:none !important;
 }
 
+
+/* Hızlandırma düğmesi artık süre yazmıyor; "Tamamı için" satırının
+   yanında sadece simge olarak duruyor. */
+#panel-hospital .troop-queue-name-col{ gap:2px; }
+#panel-hospital .hospital-heal-total-time{
+  display:inline-flex; align-items:center; gap:6px;
+}
+#panel-hospital .troop-queue-timer.hosp-speed{
+  font-size:0 !important;          /* metin gizli, simge kalıyor */
+  padding:0 !important;
+}
+#panel-hospital .troop-queue-timer.hosp-speed::after{
+  content:"⏩"; font-size:15px; line-height:1;
+}
+
 /* Kuyruk hiç yokken başlık da gizlenir */
 .hospital-queue-title.is-hidden{ display:none !important; }
 .hospital-confirm-btn{
@@ -4326,14 +4341,20 @@ function renderHospitalPanel() {
     const latest = group[group.length - 1];
     const remaining = soonest.finishAt - Date.now();
     const totalRemaining = latest.finishAt - Date.now();
+    /* Sağdaki tek birlik sayacı kaldırıldı: 20 şövalye sıralı
+       iyileşirken sıradakinin süresini göstermek yanıltıcıydı.
+       Artık yalnızca GRUBUN tamamı için kalan süre var; hızlandırma
+       düğmesi de aynı satırda, o sürenin yanında. */
     return `
       <div class="troop-queue-row">
         <span class="hospital-face hospital-face-sm" data-unit="${unitId}">${unitFace(def)}</span>
         <div class="troop-queue-name-col">
           <span class="troop-queue-name">${def ? def.name : unitId} x${group.length}</span>
-          ${group.length > 1 ? `<span class="hospital-heal-total-time">Tamamı için: ${formatRemaining(totalRemaining)}</span>` : ""}
+          <span class="hospital-heal-total-time">
+            Tamamı için: ${formatRemaining(totalRemaining)}
+            ${speedupBtn(unitId, remaining, speedUpCount, "troop-queue-timer hosp-speed")}
+          </span>
         </div>
-${speedupBtn(unitId, remaining, speedUpCount, "troop-queue-timer")}
       </div>`;
   }).join("");
   bindAll(queueEl, ".speedup-trigger", (ds) => useSpeedUpOnHospitalGroup(ds.unit));
