@@ -1753,32 +1753,19 @@ body.world-active{padding:0; overflow:hidden;}
   overflow:hidden;
 }
 
+/* #battleMap artık ZEMİN değil, sadece DÜĞÜM KATMANI.
+   Zemini harita.js'teki canvas çiziyor. Eski 1586x992 resimli harita
+   (gorsel16.webp zemini, iç gölge ve bölge etiketleri) kaldırıldı.
+   harita.js açılışta bu elemana kendi inline stilini yazar; buradaki
+   kural sadece o yazım gelene kadarki ilk kareyi şeffaf tutar. */
 .battle-map{
   position:absolute;
   top:0; left:0;
-  width:1586px;
-  height:992px;
-  background-image: url('gorsel16.webp');
-  background-size: 100% 100%;
-  background-position: center;
-  background-repeat: no-repeat;
+  width:100%;
+  height:100%;
+  background:none;
+  overflow:visible;
   transform-origin: 0 0;
-}
-.battle-map::after{
-
-  content:"";
-  position:absolute; inset:0;
-  box-shadow:inset 0 0 160px rgba(0,0,0,.5);
-  pointer-events:none;
-}
-
-.map-zone-label{
-  position:absolute;
-  font-family:'Cinzel',serif; font-weight:700; font-size:14px;
-  letter-spacing:.06em; text-transform:uppercase;
-  color:rgba(255,255,255,.18);
-  pointer-events:none; white-space:nowrap;
-  top:14px; z-index:0;
 }
 
 .hero-picker-row{
@@ -5017,12 +5004,6 @@ function renderBattleMap() {
     }
   });
 
-  const zoneLabels = `
-    <div class="map-zone-label" style="left:6%; top:18px;">Yeşil Vadi</div>
-    <div class="map-zone-label" style="left:42%; top:18px;">Taşlık Bayır</div>
-    <div class="map-zone-label" style="left:78%; top:18px;">Kor Diyarı</div>
-  `;
-
   const nodes = enemies.map((enemy, i) => {
     if (!isEnemyActive(enemy)) {
       if (state.lootChests[enemy.name]) {
@@ -5045,7 +5026,7 @@ function renderBattleMap() {
 
   const castleNodes = buildCastleNodesHTML();
 
-  mapEl.innerHTML = buildMapGridHTML() + zoneLabels + nodes + castleNodes;
+  mapEl.innerHTML = buildMapGridHTML() + nodes + castleNodes;
 
   bindAll(mapEl, ".map-node[data-idx]", (ds) => {
     if (mapDragMoved) return;               // kaydırma sonrası açılmayı engelle

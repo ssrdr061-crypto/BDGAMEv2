@@ -398,7 +398,6 @@
      ═════════════════════════════════════════════════════════════════════ */
 
   let cv = null, ctx = null, dpr = 1;
-  let aktif = true;          // false = eski resimli harita
   let cizimIstendi = false;
 
   function kurCanvas() {
@@ -556,7 +555,7 @@
   function onbellegiBosalt() { onbellek.clear(); }
 
   function ciz() {
-    if (!ctx || !cv || !aktif) return;
+    if (!ctx || !cv) return;
 
     const panX = (typeof mapPanX !== "undefined") ? mapPanX : 0;
     const panY = (typeof mapPanY !== "undefined") ? mapPanY : 0;
@@ -685,7 +684,6 @@
   }
 
   function dugumleriYerlestir() {
-    if (!aktif) return;
     const mapEl = document.getElementById("battleMap");
     if (!mapEl) return;
 
@@ -736,67 +734,26 @@
     }
   }
 
-  /* ═════════════════════════════════════════════════════════════════════
-     ADIM E — DIŞARIYA AÇILAN KONUM SERVİSİ
-
-     Füze (missile.js) gibi #battleMap içine efekt koyan modüller,
-     dugumleriYerlestir ile BİREBİR aynı dönüşümü kullanmalı. Yoksa
-     roket kalenin yanına düşer — eski hatanın kaynağı tam olarak
-     buydu: dönüşüm iki ayrı yerde, iki ayrı şekilde yazılıydı.
-
-     Artık tek kaynak burası. HALF_W / ORIGIN_X / mapPan / mapZoom
-     dışarı sızmıyor; çağıran sadece oyun koordinatını (0..COORD_GRID)
-     veriyor, ekran pikselini alıyor.
-
-     ESKİ modda null döner → çağıran eski yüzde mantığına düşsün.
-     ═════════════════════════════════════════════════════════════════════ */
-  function ekranKonumu(gx, gy) {
-    if (!aktif) return null;
-    const panX = (typeof mapPanX !== "undefined") ? mapPanX : 0;
-    const panY = (typeof mapPanY !== "undefined") ? mapPanY : 0;
-    const zoom = (typeof mapZoom !== "undefined") ? mapZoom : 1;
-    const p = gridToWorld(gx * ORAN, gy * ORAN);
-    return {
-      x: (p.x + HALF_W) * zoom + panX,   // karonun ORTASI
-      y: (p.y + HALF_H) * zoom + panY,
-      zoom: zoom,
-      /* Bir karenin ekrandaki DİKEY yüksekliği. "Kalenin 1 kare üstü"
-         gibi kaydırmalar izometride gy-1 ile yapılamaz (o çapraz gider),
-         bu değerle piksel olarak yapılır. */
-      kareYuksekligi: CFG.tileH * zoom,
-    };
-  }
-
-  function aktifMi() { return aktif; }
-
-  /* #battleMap'i düğüm katmanına çevirir/geri alır */
-  function dugumKatmani(ac) {
+  /* #battleMap artık sadece düğüm (kale/canavar/sandık) katmanıdır.
+     Zemini canvas çiziyor; bu eleman şeffaf bir üst kat. */
+  function dugumKatmani() {
     const mapEl = document.getElementById("battleMap");
     if (!mapEl) return;
-
-    if (ac) {
-      if (!mapEl.dataset.eskiStil) mapEl.dataset.eskiStil = mapEl.style.cssText || " ";
-      mapEl.style.cssText =
-        "position:absolute; left:0; top:0; width:100%; height:100%; " +
-        "transform:none; background:none; overflow:visible; z-index:5;";
-      mapEl.classList.add("iso-node-layer");
-      dugumleriYerlestir();
-    } else {
-      mapEl.style.cssText = (mapEl.dataset.eskiStil || "").trim();
-      mapEl.classList.remove("iso-node-layer");
-    }
+    mapEl.style.cssText =
+      "position:absolute; left:0; top:0; width:100%; height:100%; " +
+      "transform:none; background:none; overflow:visible; z-index:5;";
+    mapEl.classList.add("iso-node-layer");
+    dugumleriYerlestir();
   }
 
-  /* Zemin karartma gölgesi (.battle-map::after) düğüm katmanında
-     ekranı komple karartıyordu — kapatıyoruz. Bölge etiketleri de
-     eski yüzdeli konumlarına göre yazılmıştı, gizleniyor. */
+  /* Düğüm katmanının kendi stilleri. (Eski zemin gölgesi ve bölge
+     etiketleri index.html'den tamamen kaldırıldı, burada gizlenmeleri
+     gerekmiyor.) */
   function stilEnjekte() {
     if (document.getElementById("isoNodeStyles")) return;
     const st = document.createElement("style");
     st.id = "isoNodeStyles";
     st.textContent =
-      ".battle-map.iso-node-layer::after{ display:none !important; }\n" +
-      ".battle-map.iso-node-layer .map-zone-label{ display:none !important; }\n" +
       ".battle-map.iso-node-layer .map-node{ position:absolute !important; }\n" +
 
       /* Düğümlerin konumunu ve ölçeğini artık JS her karede yazıyor.
@@ -816,32 +773,19 @@
      dönülüyor. Böylece bu dosyayı silmek dışında bir "geri alma" da var.
      ═════════════════════════════════════════════════════════════════════ */
 
-  let eskiApply = null, eskiClamp = null, eskiScroll = null, eskiGo = null;
-  let eskiRender = null, eskiZoomAt = null, eskiTween = null;
+  let eskiRender = null;
   let tweenId = null;
 
 
   function bagla() {
-    eskiApply = window.applyMapPan;
-    eskiClamp = window.clampMapPan;
-
     /* Oyunun kendi merkezleme fonksiyonları kamerayı ESKİ 1586x992
-       koordinatlarına göre konumlandırıyor. scrollMapToBase üstelik
-       requestAnimationFrame ile 180 kare boyunca tekrar deniyor —
+       koordinatlarına göre konumlandırıyordu; scrollMapToBase üstelik
+       requestAnimationFrame ile 180 kare boyunca tekrar deniyordu —
        yani biz ortaladıktan SONRA devreye girip kamerayı izometrik
-       haritanın dışına atıyordu. YENİ modda ikisini de kendi
-       ortala() fonksiyonumuza yönlendiriyoruz. */
-    eskiScroll = window.scrollMapToBase;
-    eskiGo     = window.goToCastle;
-
-    window.scrollMapToBase = function () {
-      if (aktif) { ortala(); return; }
-      if (eskiScroll) eskiScroll.apply(this, arguments);
-    };
-    window.goToCastle = function () {
-      if (aktif) { ortala(); return; }
-      if (eskiGo) eskiGo.apply(this, arguments);
-    };
+       haritanın dışına atıyordu. İkisi de kendi ortala()'mıza
+       yönlendiriliyor. */
+    window.scrollMapToBase = function () { ortala(); };
+    window.goToCastle      = function () { ortala(); };
 
     /* renderBattleMap innerHTML'i baştan yazıyor → düğümler eski
        yüzdeli konumlarına dönüyor. Her çizimden sonra yeniden
@@ -850,7 +794,8 @@
     if (eskiRender) {
       window.renderBattleMap = function () {
         const r = eskiRender.apply(this, arguments);
-        if (aktif) { dugumKatmani(true); dugumleriYerlestir(); }
+        dugumKatmani();
+        dugumleriYerlestir();
         return r;
       };
     }
@@ -861,13 +806,7 @@
        parmakların ortasındaki dünya noktası sabit kalıyor ve zoom
        sınırları CFG'den geliyor. Böylece oyunun 0.5–3 sabit aralığı
        ile bizim sınırlarımız birbiriyle çekişmiyor. */
-    eskiZoomAt = window.zoomAtPoint;
     window.zoomAtPoint = function (yeniZoom, odakX, odakY) {
-      if (!aktif) {
-        if (eskiZoomAt) eskiZoomAt.apply(this, arguments);
-        return;
-      }
-
       const z0 = mapZoom;
       let z1 = Math.max(CFG.minZoom, Math.min(CFG.maxZoom, yeniZoom));
       if (Math.abs(z1 - z0) < 1e-6) return;
@@ -889,13 +828,7 @@
        "Git" tuşu ve kale taşıma onayı buradan geçiyor. Eski sürüm
        hedefi MAP_W/MAP_H (1586x992) üzerinden hesaplıyordu; izometrikte
        kamera alakasız bir yere uçuyordu. */
-    eskiTween = window.panTweenToGrid;
     window.panTweenToGrid = function (gx, gy, sure) {
-      if (!aktif) {
-        if (eskiTween) eskiTween.apply(this, arguments);
-        return;
-      }
-
       const wrapEl = document.getElementById("battleMapWrap");
       if (!wrapEl) return;
       const ww = wrapEl.clientWidth, wh = wrapEl.clientHeight;
@@ -929,21 +862,16 @@
     };
 
     window.applyMapPan = function () {
-      if (aktif) {
-        /* Kısıtlamayı BURADA da uyguluyoruz. Oyunun kıstırma kodu bazı
-           yollardan mapZoom/mapPan'i değiştirip clampMapPan'i
-           çağırmadan doğrudan applyMapPan'e geliyor; o durumda kamera
-           kısıtsız kalıp haritanın alakasız bir yerine atlıyordu. */
-        window.clampMapPan();
+      /* Kısıtlamayı BURADA da uyguluyoruz. Oyunun kıstırma kodu bazı
+         yollardan mapZoom/mapPan'i değiştirip clampMapPan'i
+         çağırmadan doğrudan applyMapPan'e geliyor; o durumda kamera
+         kısıtsız kalıp haritanın alakasız bir yerine atlıyordu. */
+      window.clampMapPan();
 
-        /* Orijinal applyMapPan #battleMap'e transform basıyor —
-           düğüm katmanında bu her şeyi kaydırır. Atlıyoruz. */
-        evButonu();
-        dugumleriYerlestir();
-        cizIste();
-        return;
-      }
-      if (eskiApply) eskiApply.apply(this, arguments);
+      /* Eski applyMapPan #battleMap'e transform basıyordu — düğüm
+         katmanında bu her şeyi kaydırır, o yüzden çağrılmıyor. */
+      evButonu();
+      dugumleriYerlestir();
       cizIste();
     };
 
@@ -958,8 +886,6 @@
        aralığına sıkıştırılıyor ve pan oradan geri hesaplanıyor.
        Böylece merkez her zaman harita üstünde kalır. */
     window.clampMapPan = function () {
-      if (!aktif) { if (eskiClamp) eskiClamp.apply(this, arguments); return; }
-
       const wrapEl = document.getElementById("battleMapWrap");
       if (!wrapEl) return;
       const ww = wrapEl.clientWidth, wh = wrapEl.clientHeight;
@@ -1080,8 +1006,6 @@
      çalışmaya devam ediyor. Sadece dokunulan noktanın hangi hücreye
      denk geldiği izometrik olarak hesaplanıyor. */
   function ekranaGoreIzgara(cx, cy, mgrid) {
-    if (!aktif) return null;
-
     const wrapEl = document.getElementById("battleMapWrap");
     if (!wrapEl) return null;
     const r = wrapEl.getBoundingClientRect();
@@ -1124,7 +1048,7 @@
 
   function kenarAdimi() {
     kenarId = null;
-    if (!aktif || !parmakVar || !tasimaModuAcikMi()) return;
+    if (!parmakVar || !tasimaModuAcikMi()) return;
 
     const wrap = document.getElementById("battleMapWrap");
     if (!wrap) return;
@@ -1180,7 +1104,7 @@
 
   function akisAdimi() {
     akisId = null;
-    if (!aktif || parmakVar) return;
+    if (parmakVar) return;
 
     /* Yeterince yavaşladıysa dur — sonsuz kare israfı olmasın */
     if (Math.abs(hizX) < 0.15 && Math.abs(hizY) < 0.15) return;
@@ -1239,7 +1163,6 @@
       if (!parmakVar) return;
       parmakVar = false;
       kenarDurdur();
-      if (!aktif) { hizX = hizY = 0; return; }
 
       /* Parmak hareketsiz bekleyip kalktıysa akıtma */
       if (performance.now() - sonAn > 90) { hizX = hizY = 0; return; }
@@ -1256,7 +1179,13 @@
   }
 
   /* ═════════════════════════════════════════════════════════════════════
-     ESKİ / YENİ ANAHTARI + FPS ROZETİ
+     FPS ROZETİ
+
+     Buradaki ESKİ/YENİ anahtarı kaldırıldı: eski resimli harita modu
+     tamamen çıkarıldı, tek harita bu. Geri alma yolu artık yalnızca
+     index.html'deki <script src="harita.js"> satırını silmek DEĞİL —
+     eski zemin de silindiği için o durumda harita boş kalır. Gerçek
+     geri dönüş git geçmişinden alınmalı.
      ═════════════════════════════════════════════════════════════════════ */
 
   function kurArayuz() {
@@ -1269,14 +1198,6 @@
       "display:flex; gap:6px; align-items:center; " +
       "font-family:'Baloo 2',sans-serif; font-weight:800; font-size:11px;";
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = "YENİ";
-    btn.style.cssText =
-      "padding:5px 10px; border-radius:9px; border:2px solid rgba(190,240,255,.6); " +
-      "background:linear-gradient(180deg,#3d7ccc,#1a3a75); color:#fff; " +
-      "font:inherit; box-shadow:0 3px 0 #0e2246;";
-
     const fpsEl = document.createElement("span");
     fpsEl.id = "isoFps";
     fpsEl.style.cssText =
@@ -1284,33 +1205,20 @@
       "color:#9fe6ff; white-space:nowrap;";
     if (!CFG.fpsGoster) fpsEl.style.display = "none";
 
-    btn.addEventListener("pointerdown", e => e.stopPropagation());
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      aktif = !aktif;
-      btn.textContent = aktif ? "YENİ" : "ESKİ";
-      uygulaMod();
-    });
-
-    kutu.appendChild(btn);
     kutu.appendChild(fpsEl);
     wrap.appendChild(kutu);
   }
 
-  /* Mod değişince katmanları ayarla. YENİ modda #battleMap artık
-     gizlenmiyor — düğüm katmanı olarak devam ediyor (ADIM D). */
+  /* Katmanları kur: canvas zemin, #battleMap üstünde düğüm katmanı. */
   function uygulaMod() {
     const mapEl = document.getElementById("battleMap");
-    if (cv) cv.style.display = aktif ? "block" : "none";
+    if (cv) cv.style.display = "block";
     if (mapEl) mapEl.style.visibility = "visible";
 
-    dugumKatmani(aktif);
+    dugumKatmani();
 
-    mapZoom = aktif
-      ? Math.max(CFG.minZoom, Math.min(CFG.maxZoom, CFG.baslangicZoom))
-      : 1;
-    if (aktif) ortala();
-    else { window.clampMapPan(); window.applyMapPan(); }
+    mapZoom = Math.max(CFG.minZoom, Math.min(CFG.maxZoom, CFG.baslangicZoom));
+    ortala();
   }
 
   /* ═════════════════════════════════════════════════════════════════════
@@ -1346,5 +1254,5 @@
      Örn: HARITA.CFG.izgaraCizgisi = true; HARITA.ciz(); */
   window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala,
                     dugumleriYerlestir, ORAN, onbellegiBosalt,
-                    ekranaGoreIzgara, ekranKonumu, aktifMi };
+                    ekranaGoreIzgara };
 })();
