@@ -5249,12 +5249,25 @@ function setupMapPanning() {
   let pinchActive = false;
 
   /* ═══ KALE TAŞIMA ═══ 3sn basılı tut → yarı saydam kale → sürükle → boşsa 20.000💎 */
-  const HOLD_MS = 3000, MOVE_COST = 20000, MOVE_MINDIST = 2.4, MGRID = 30;
+  /* MOVE_MINDIST: iki kale arası en az kaç birim (0..30 ölçeğinde).
+     2.4 idi — izometrik haritada bu, ekranın devasa bir bölümünü
+     "dolu" sayıp neredeyse her yere taşımayı engelliyordu. */
+  const HOLD_MS = 3000, MOVE_COST = 20000, MOVE_MINDIST = 0.25, MGRID = 30;
   let holdTimer = null, castleMoveMode = false, moveGhost = null;
 
   function clearHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer = null; } }
 
   function screenToGrid(cx, cy){
+    /* İZOMETRİK YÖNLENDİRME — harita.js varsa dokunulan noktayı O
+       hesaplar (pan/zoom/izometri dahil). Bu fonksiyon window üzerinde
+       DEĞİL, o yüzden harita.js dışarıdan üzerine yazamıyor;
+       yönlendirmenin burada, elle durması ŞART.
+       Aşağıdaki eski hesap sadece harita.js yüklenemezse çalışır. */
+    if (window.HARITA && typeof window.HARITA.ekranaGoreIzgara === "function") {
+      const iso = window.HARITA.ekranaGoreIzgara(cx, cy, MGRID);
+      if (iso) return iso;
+    }
+
     const m = document.getElementById("battleMap"); if(!m) return null;
     const r = m.getBoundingClientRect(); if(!r.width || !r.height) return null;
     let gx = ((cx - r.left) / r.width) * MGRID;
@@ -5268,7 +5281,11 @@ function setupMapPanning() {
     const taken = [];
     try { enemies.forEach(e => taken.push({ gx:(e.mapX/100)*MGRID, gy:(e.mapY/100)*MGRID })); } catch(e){}
     try {
-      const accs = loadAccounts();
+      /* loadAccounts() localStorage'daki ESKİ hesap kopyalarını
+         döndürüyordu; oradaki bayat kale konumları "burası dolu" deyip
+         her yeri kilitliyordu. Canlı kaleler zaten aşağıdaki
+         otherCastles listesinden geliyor. */
+      const accs = {};
       Object.values(accs).forEach(a => {
         if(a && a.state && a.state.castle && typeof a.state.castle.gx === "number"){
           if(a.displayName && currentUsername && a.displayName.toLowerCase() === currentUsername.toLowerCase()) return; // kendi kalem hariç
