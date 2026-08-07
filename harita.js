@@ -683,6 +683,28 @@
     return null;
   }
 
+  /* ── TEK KARO İÇİN EKRAN KONUMU ──
+     missile.js bunu çağırır (füze uçuşu + patlama). dugumleriYerlestir
+     ile BİREBİR aynı matematik; ikisi ayrışırsa füze kalelerden kayar,
+     o yüzden formül burada tek yerde duruyor.
+
+     Dönen x/y, #battleMap düğüm katmanına göre PİKSELDİR — sprite'lar
+     translate(-50%,-50%) kullandığı için karonun ORTASINI verir.
+     kareYuksekligi: "bir kare yukarı" demek ekranda kaç px, zoom dahil. */
+  function ekranKonumu(gx, gy) {
+    const panX = (typeof mapPanX !== "undefined") ? mapPanX : 0;
+    const panY = (typeof mapPanY !== "undefined") ? mapPanY : 0;
+    const zoom = (typeof mapZoom !== "undefined") ? mapZoom : 1;
+
+    const p = gridToWorld(gx * ORAN, gy * ORAN);
+    return {
+      x: (p.x + HALF_W) * zoom + panX,
+      y: (p.y + HALF_H) * zoom + panY,
+      zoom: zoom,
+      kareYuksekligi: CFG.tileH * zoom
+    };
+  }
+
   function dugumleriYerlestir() {
     const mapEl = document.getElementById("battleMap");
     if (!mapEl) return;
@@ -1252,7 +1274,15 @@
 
   /* Konsoldan ayar yapabilmek için dışarı aç.
      Örn: HARITA.CFG.izgaraCizgisi = true; HARITA.ciz(); */
+  /* DIŞA AÇILAN API — burada bir ad değişirse çağıran dosya SESSİZCE
+     devre dışı kalır, oyun çalışmaya devam eder. missile.js tam olarak
+     böyle kırılmıştı: ekranKonumu/aktifMi hiç açılmamıştı ve füze
+     aylarca eski yüzde hesabına düşüyordu. Buradan bir şey silmeden
+     önce projede ADINI ARA. */
   window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala,
-                    dugumleriYerlestir, ORAN, onbellegiBosalt,
-                    ekranaGoreIzgara };
+                    dugumleriYerlestir, ekranKonumu, ORAN, onbellegiBosalt,
+                    ekranaGoreIzgara,
+                    /* Eski harita modu kaldırıldı; missile.js hâlâ soruyor,
+                       cevap her zaman evet. */
+                    aktifMi: function () { return true; } };
 })();
