@@ -104,6 +104,29 @@ const SHOP_LIMITS = {
   "Yedek Şarj": 5,
 };
 
+/* ── TEST MODU: FÜZE ─────────────────────────────────────────────
+   Adres çubuğunun sonuna ?ayar=1 ekleyerek girersen füzenin haftalık
+   limiti 50, fiyatı 1 elmas olur. Böylece füzeyi ardı ardına deneyip
+   uçuş/patlama davranışına bakabilirsin.
+
+   NORMAL GİRİŞTE HİÇ ÇALIŞMAZ — ?ayar=1 yoksa limit yine 2, fiyat yine
+   200.000. Yani canlıdaki oyuncular bundan etkilenmez.
+
+   İKİ UYARI:
+   1) Bu istemci tarafıdır. Adresi bilen herkes ?ayar=1 ekleyip ucuza
+      füze alabilir. Zaten ?ayar=1 paneli için de geçerli olan bir açık;
+      test bitince BU BLOĞU SİL.
+   2) Haftalık sayaç (state.shopBuys) sıfırlanmaz. Bu hafta 2 füze
+      aldıysan 48 hakkın kalır.
+
+   Testi bitirince: bu bloğun tamamını sil, başka hiçbir yere dokunma. */
+if (/[?&]ayar=1/.test(location.search)) {
+  SHOP_LIMITS["Füze"] = 50;
+  const _fuze = getItemDef("Füze");
+  if (_fuze) _fuze.price = 1;
+  console.log("[magaza.js] TEST MODU: Füze limiti 50, fiyat 1 elmas.");
+}
+
 /* Yenilenme HERKES için aynı anda: her Pazartesi 00:00 (UTC). */
 const SHOP_WEEK_ANCHOR = Date.UTC(2024, 0, 1); // bir Pazartesi
 const SHOP_WEEK_MS = 7 * 24 * 3600 * 1000;
