@@ -967,6 +967,23 @@
     };
   }
 
+  /* ── KAMERAYI BİR NOKTAYA ANINDA OTURT ──
+     panTweenToGrid'in animasyonsuz hali. Her karede çağrılabilir —
+     missile.js füze takibinde bunu kullanıyor. Tween KULLANMA, her
+     kare yeni bir tween başlatır ve kamera titrer. */
+  function merkezle(gx, gy) {
+    const wrapEl = document.getElementById("battleMapWrap");
+    if (!wrapEl || !wrapEl.clientWidth) return;
+    if (!(mapZoom > 0)) mapZoom = 1;
+
+    const p = gridToWorld(gx * ORAN, gy * ORAN);
+    mapPanX = wrapEl.clientWidth  / 2 - (p.x + HALF_W) * mapZoom;
+    mapPanY = wrapEl.clientHeight / 2 - (p.y + HALF_H) * mapZoom;
+    window.clampMapPan();
+    dugumleriYerlestir();
+    cizIste();
+  }
+
   /* Haritayı ızgaranın ortasına götürür (ADIM B'de kale konumu henüz
      izometriğe çevrilmedi, o yüzden merkez) */
   function ortala() {
@@ -1297,7 +1314,7 @@
      aylarca eski yüzde hesabına düşüyordu. Buradan bir şey silmeden
      önce projede ADINI ARA. */
   window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala,
-                    dugumleriYerlestir, ekranKonumu, ORAN, onbellegiBosalt,
+                    dugumleriYerlestir, ekranKonumu, merkezle, ORAN, onbellegiBosalt,
                     ekranaGoreIzgara,
                     /* Eski harita modu kaldırıldı; missile.js hâlâ soruyor,
                        cevap her zaman evet. */

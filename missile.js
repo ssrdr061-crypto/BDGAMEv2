@@ -231,7 +231,7 @@
 
       animateMissile(fx, fy, m.tx, m.ty, remaining, () => {
         if (m.from === myKey) applyDamage(m.target, m.targetName);
-      }, m.targetName);
+      }, m.targetName, m.from === myKey);
 
       cleanupLaunch(snap, m, remaining);
     });
@@ -458,7 +458,40 @@
     setTimeout(() => { clearInterval(bt); boom.remove(); }, 5000);
   }
 
-  function animateMissile(fx, fy, tx, ty, durMs, onImpact, targetName) {
+  /* ── KAMERA TAKİBİ ──────────────────────────────────────────────
+     Kendi attığın füze fırlatılır fırlatılmaz kamera onu takip eder.
+     Haritaya dokunduğun an takip BIRAKILIR (kontrol sende). Füzeye
+     tekrar dokunursan takip yeniden başlar.
+
+     Neden her karede merkezle(): tween kullanılamaz, her kare yeni
+     tween başlatır ve kamera titrer. merkezle() anlıktır.
+     ─────────────────────────────────────────────────────────────── */
+  function takipKur(fly, durum) {
+    /* Haritaya dokunma → takibi bırak. Dokunuş füzenin KENDİSİNE ise
+       aşağıdaki stopPropagation yüzünden buraya hiç ulaşmaz. */
+    const wrap = document.getElementById("battleMapWrap");
+    const birak = () => { durum.acik = false; };
+    if (wrap) wrap.addEventListener("pointerdown", birak, true);
+
+    /* Füzeye dokun → takibi geri al. Sprite normalde pointer-events:none;
+       uçuş boyunca tıklanabilir yapıyoruz. */
+    fly.style.pointerEvents = "auto";
+    fly.style.cursor = "pointer";
+    const yakala = (e) => {
+      e.stopPropagation();      // harita bunu "boş yere dokunma" sanmasın
+      durum.acik = true;
+    };
+    fly.addEventListener("pointerdown", yakala);
+    fly.addEventListener("click", yakala);
+
+    /* Uçuş bitince dinleyiciyi bırak — birikirse her füzede bir tane
+       daha kalır. */
+    durum.temizle = () => {
+      if (wrap) wrap.removeEventListener("pointerdown", birak, true);
+    };
+  }
+
+  function animateMissile(fx, fy, tx, ty, durMs, onImpact, targetName, benimMi) {
     /* Kayıttaki eski -1 kaydırmasını GERİ SÖK. Bundan sonrası ham oyun
        koordinatıdır; yukarı kaydırma ekran uzayında (KALKIS_KALDIR_KARE)
        uygulanır. Böylece hem eski hem yeni sürümün yazdığı kayıt aynı
@@ -488,10 +521,23 @@
     fly.style.setProperty("--msl-rot", seyirAcisi() + "deg");
     const t0 = performance.now();
 
+    /* Takip yalnız KENDİ füzende otomatik açılır. Başkasının füzesine
+       dokunursan yine takibe alabilirsin. */
+    const takip = { acik: !!benimMi, temizle: null };
+    takipKur(fly, takip);
+
     function step(now) {
       const p = Math.min(1, (now - t0) / durMs); // 0→1 ilerleme
       const gx = fx + (tx - fx) * p;
       const gy = fy + (ty - fy) * p;
+
+      /* SIRA ÖNEMLİ: kamerayı ÖNCE taşı, sprite konumunu SONRA hesapla.
+         Ters olursa füze bir kare geride kalıp titrer. */
+      if (takip.acik) {
+        const HH = isoHarita();
+        if (HH && typeof HH.merkezle === "function") HH.merkezle(gx, gy);
+      }
+
       const kaldir = KALKIS_KALDIR_KARE + (VURUS_KALDIR_KARE - KALKIS_KALDIR_KARE) * p;
       const k = konum(gx, gy, kaldir);
       fly.style.left = k.left;
@@ -518,6 +564,7 @@
       if (p < 1) {
         requestAnimationFrame(step);
       } else {
+        if (takip.temizle) takip.temizle();
         fly.remove();
         patlat(tx, ty, targetName);
         onImpact();
