@@ -1560,6 +1560,7 @@ body.world-active{padding:0; overflow:hidden;}
   background:rgba(3,16,38,.65);
 }
 .hosp-speed-modal .hsm-slider .sl-fill{
+  left:0; width:11px;
   background:linear-gradient(180deg,#ff5a5a,#c81f2f);
   box-shadow:0 0 8px rgba(255,60,70,.45);
 }
@@ -1591,10 +1592,19 @@ body.world-active{padding:0; overflow:hidden;}
   color:#fff; letter-spacing:.7px;
   display:flex; flex-direction:column; align-items:center; gap:1px;
 }
-.hosp-speed-modal .hsm-btn small{ font-size:11px; font-weight:800; opacity:.95; }
+.hosp-speed-modal .hsm-btn small{ font-size:14px; font-weight:900; opacity:1; }
 .hosp-speed-modal .hsm-finish{
   background:linear-gradient(180deg,#ffd257,#e0a12c);
-  color:#3a2400; box-shadow:0 4px 0 #8a5c10;
+  color:#fff; box-shadow:0 4px 0 #8a5c10;
+  font-size:16px;
+  text-shadow:0 2px 0 rgba(120,70,0,.55);
+}
+.hosp-speed-modal .hsm-finish small{
+  color:#fff; text-shadow:0 2px 0 rgba(120,70,0,.55);
+}
+/* KULLAN tek satır olduğu için dikeyde ortalanmalı */
+.hosp-speed-modal .hsm-use{
+  justify-content:center; font-size:15px;
 }
 .hosp-speed-modal .hsm-use,
 .hosp-speed-modal .hsm-quick{
@@ -4716,15 +4726,24 @@ function hizlandirmaPenceresi(unitId) {
 
     if (!liste.length) return;
 
-    const enFazla = liste[secili].adet;
+    /* ÜST SINIR: elde kaç tane var VE kalan süreyi kapatmaya kaç
+       tane yeter — hangisi küçükse o. Fazlasını kullanmak eşyayı
+       boşa harcamak olurdu. */
+    const birim = liste[secili].ms;
+    const yeter = Math.max(1, Math.ceil(kalan / birim));
+    const enFazla = Math.max(1, Math.min(liste[secili].adet, yeter));
+
     if (adet > enFazla) adet = enFazla;
     if (adet < 1) adet = 1;
 
-    const oran = enFazla > 1 ? (adet - 1) / (enFazla - 1) : 1;
+    kok.dataset.enfazla = enFazla;
+    const oran = enFazla > 1 ? (adet - 1) / (enFazla - 1) : 0;
+    /* Top ve dolgu, rayın iç alanına göre yerleşir; böylece top
+       başta tam çubuğun başında, sonda tam sonunda durur. */
     const fill = q(".hsm-slider .sl-fill");
     const thumb = q(".hsm-slider .sl-thumb");
-    if (fill)  fill.style.width = (oran * 100) + "%";
-    if (thumb) thumb.style.left = (oran * 100) + "%";
+    if (fill)  fill.style.width = "calc((100% - 22px) * " + oran + " + 11px)";
+    if (thumb) thumb.style.left = "calc((100% - 22px) * " + oran + " + 11px)";
 
     q(".hsm-qty").textContent = String(adet);
     q("#hsmTotal").textContent = sureYaz(adet * liste[secili].ms);
@@ -4745,13 +4764,17 @@ function hizlandirmaPenceresi(unitId) {
   const ray = q(".hsm-slider");
   if (ray) {
     let aktif = null;
+    /* Ray, topun yarıçapı kadar içeriden başlıyor (CSS'te padding).
+       Oranı bu iç alana göre hesaplamazsak top uçlarda dışarı taşar. */
+    const IC = 11;
     const oku = x => {
       const r = ray.getBoundingClientRect();
-      if (r.width <= 0) return 0;
-      return Math.max(0, Math.min(1, (x - r.left) / r.width));
+      const g = r.width - IC * 2;
+      if (g <= 0) return 0;
+      return Math.max(0, Math.min(1, (x - r.left - IC) / g));
     };
     const uygula = x => {
-      const enFazla = liste[secili].adet;
+      const enFazla = parseInt(kok.dataset.enfazla, 10) || liste[secili].adet;
       adet = 1 + Math.round(oku(x) * (enFazla - 1));
       tazele();
     };
