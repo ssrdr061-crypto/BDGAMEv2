@@ -739,21 +739,35 @@
       el.style.zIndex = String(10 + Math.round((k.gx + k.gy) * 10));
     });
 
-    /* "Git" ile konulan sarı nişangah işareti de eski yüzdeli
-       konumuyla kalıyordu — onu da izometriğe taşıyoruz. */
-    const nisan = mapEl.querySelector(".coord-marker");
-    if (nisan) {
-      let ak = null;
-      try { if (typeof activeCoordMarker !== "undefined") ak = activeCoordMarker; } catch (e) {}
-      if (ak && typeof ak.gx === "number") {
-        const pm = gridToWorld(ak.gx * ORAN, ak.gy * ORAN);
-        nisan.style.left = ((pm.x + HALF_W) * zoom + panX) + "px";
-        nisan.style.top  = ((pm.y + HALF_H) * zoom + panY) + "px";
-        nisan.style.display = "";
-      } else {
-        nisan.style.display = "none";
-      }
-    }
+    /* SERBEST İŞARETLER — "Git" nişangahı ve koordinat paylaşma etiketi.
+       Bunlar .map-node değil, ayrı ele alınıyor. index.html onları
+       KONUMSUZ ve visibility:hidden doğuruyor; ilk doğru konumu burada
+       alıp görünür oluyorlar. Aksi halde bir kare yanlış yerde görünüp
+       sıçrıyorlardı. */
+    const isaretler = [
+      [".coord-marker", "activeCoordMarker"],
+      [".coord-share",  "pendingShareCoord"]
+    ];
+    isaretler.forEach(([secici, degiskenAdi]) => {
+      const el = mapEl.querySelector(secici);
+      if (!el) return;
+
+      let k = null;
+      try {
+        const v = (degiskenAdi === "activeCoordMarker")
+          ? (typeof activeCoordMarker !== "undefined" ? activeCoordMarker : null)
+          : (typeof pendingShareCoord  !== "undefined" ? pendingShareCoord  : null);
+        if (v && typeof v.gx === "number") k = v;
+      } catch (e) {}
+
+      if (!k) { el.style.display = "none"; return; }
+
+      const pm = gridToWorld(k.gx * ORAN, k.gy * ORAN);
+      el.style.left = ((pm.x + HALF_W) * zoom + panX) + "px";
+      el.style.top  = ((pm.y + HALF_H) * zoom + panY) + "px";
+      el.style.display = "";
+      el.style.visibility = "visible";
+    });
   }
 
   /* #battleMap artık sadece düğüm (kale/canavar/sandık) katmanıdır.

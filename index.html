@@ -4943,16 +4943,24 @@ function fmtCoord(v) {
 }
 
 function buildMapGridHTML() {
+  /* İşaretleri harita.js mi yerleştirecek?
+     Öyleyse buraya YÜZDE konum YAZMIYORUZ. Yazarsak işaret önce yanlış
+     yerde bir kare görünüp sonra doğru yere sıçrıyordu ("nişangah önce
+     solda beliriyor" hatası). Gizli doğuyor, dugumleriYerlestir ilk
+     konumu verince görünür oluyor. */
+  const iso = !!(window.HARITA && typeof window.HARITA.ekranKonumu === "function");
+  const gizli = iso ? "visibility:hidden;" : "";
+
   let html = "";
   if (activeCoordMarker) {
-    const px = (activeCoordMarker.gx / COORD_GRID) * 100;
-    const py = (activeCoordMarker.gy / COORD_GRID) * 100;
-    html += `<div class="coord-marker" style="left:${px}%; top:${py}%;"></div>`;
+    const st = iso ? gizli
+      : `left:${(activeCoordMarker.gx / COORD_GRID) * 100}%; top:${(activeCoordMarker.gy / COORD_GRID) * 100}%;`;
+    html += `<div class="coord-marker" style="${st}"></div>`;
   }
   if (pendingShareCoord) {
-    const px = (pendingShareCoord.gx / COORD_GRID) * 100;
-    const py = (pendingShareCoord.gy / COORD_GRID) * 100;
-    html += `<div class="coord-share" id="coordShareMarker" style="left:${px}%; top:${py}%;">` +
+    const st = iso ? gizli
+      : `left:${(pendingShareCoord.gx / COORD_GRID) * 100}%; top:${(pendingShareCoord.gy / COORD_GRID) * 100}%;`;
+    html += `<div class="coord-share" id="coordShareMarker" style="${st}">` +
               `<span class="coord-share-icon">✏️</span>` +
               `<span class="coord-share-label">x:${fmtCoord(pendingShareCoord.gx)} y:${fmtCoord(pendingShareCoord.gy)}</span>` +
             `</div>`;
