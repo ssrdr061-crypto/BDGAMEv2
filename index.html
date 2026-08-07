@@ -1388,6 +1388,38 @@ body.world-active{padding:0; overflow:hidden;}
   color:#fff; text-shadow:0 2px 0 rgba(0,10,30,.6);
 }
 
+
+/* ── TEDAVİDE OLANLAR satırı ──
+   Yazı tipi panelin geri kalanıyla aynı olsun; hızlandırma
+   düğmesinin sarı kutusu kaldırıldı, sade metin bırakıldı. */
+#panel-hospital .troop-queue-row{
+  padding:6px 10px; border-radius:12px;
+}
+#panel-hospital .troop-queue-name,
+#panel-hospital .hospital-heal-total-time{
+  font-family:'Baloo 2',sans-serif !important;
+  letter-spacing:.3px;
+}
+#panel-hospital .troop-queue-name{
+  font-weight:800; font-size:14px; color:#fff;
+  text-transform:uppercase;
+}
+#panel-hospital .hospital-heal-total-time{
+  font-weight:700; font-size:11px; color:rgba(200,235,255,.75);
+  text-transform:none;
+}
+#panel-hospital .troop-queue-timer{
+  font-family:'Baloo 2',sans-serif !important;
+  font-weight:800; font-size:14px;
+  color:var(--diamond-yellow);
+  background:none !important;
+  border:none !important;
+  padding:2px 4px !important;
+}
+#panel-hospital .troop-queue-timer:hover{
+  background:none !important; border:none !important;
+}
+
 /* Kuyruk hiç yokken başlık da gizlenir */
 .hospital-queue-title.is-hidden{ display:none !important; }
 .hospital-confirm-btn{
@@ -4234,7 +4266,7 @@ function renderHospitalPanel() {
   /* İmza: SADECE hangi birlikten kaç yaralı olduğu.
      Seçilen miktar bilerek DIŞARIDA — o değer JS tarafından
      doğrudan DOM'a yazılıyor, yeniden çizim gerektirmiyor. */
-  const pendingKey = Object.keys(byUnitWaiting).sort().map(u =>
+  const pendingKey = "v1|" + Object.keys(byUnitWaiting).sort().map(u =>
     u + ":" + byUnitWaiting[u].length
   ).join("|");
   const pendingDegisti = (pendingKey !== _hospitalPendingKey);
@@ -4320,10 +4352,17 @@ function confirmHospitalSelection() {
     const def = UNIT_TYPES[unitId];
     /* Varsayılan: eski kayıtlarda recoveryMs yoksa tanımdan üret */
     const varsayilan = def ? Math.round(def.trainMinutes * 60 * 1000 / 5) : 60000;
+    /* SIRALI İYİLEŞME.
+       Eskiden hepsine aynı finishAt yazılıyordu: 72 şövalye de tek
+       bir birlik kadar, 21 saniyede iyileşiyordu. Artık her birlik
+       bir öncekinin bitişinden sonra başlıyor — toplam süre
+       adet × birim süresi oluyor.
+       (Eğitim kuyruğuyla aynı mantık; oradaki "zincirli" davranış.) */
+    let imlec = Date.now();
     waitingOfUnit.slice(0, wantCount).forEach(p => {
       p.confirmed = true;
-      /* Sayaç ONAY anında başlar */
-      p.finishAt = Date.now() + (p.recoveryMs || varsayilan);
+      imlec += (p.recoveryMs || varsayilan);
+      p.finishAt = imlec;
     });
   });
   hospitalPendingSelection = {};
