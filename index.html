@@ -1569,12 +1569,21 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .hosp-speed-modal .hsm-slider.dragging .hsm-thumb{ transform:scale(1.15); }
 
+/* Adet kutusu — hastane kartındaki .hq-input ile aynı ölçüler.
+   content-box: genişlik yalnızca rakamın yeri, iç boşluk ayrı. */
 .hosp-speed-modal .hsm-qty{
-  flex:0 0 auto; min-width:34px; text-align:center;
+  flex:0 0 auto;
+  box-sizing:content-box;
+  width:1ch; min-width:1ch;
+  height:22px; line-height:22px; text-align:center; padding:0 6px;
+  border-radius:7px; border:1px solid rgba(190,240,255,.4);
+  background:rgba(3,16,38,.6); color:#fff;
   font-family:'Baloo 2','Nunito',sans-serif;
-  color:#fff; font-size:16px; font-weight:900;
-  text-shadow:0 2px 0 rgba(0,10,30,.6);
+  font-weight:800; font-size:13.5px;
+  -moz-appearance:textfield;
 }
+.hosp-speed-modal .hsm-qty::-webkit-outer-spin-button,
+.hosp-speed-modal .hsm-qty::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
 
 .hosp-speed-modal .hsm-total{
   text-align:center; margin:12px 0 2px;
@@ -4692,7 +4701,7 @@ function hizlandirmaPenceresi(unitId) {
               <i class="hsm-thumb"></i>
             </div>
             <button class="hsm-step hsm-plus" type="button">+</button>
-            <span class="hsm-qty">1</span>
+            <input class="hsm-qty" type="number" inputmode="numeric" min="1" value="1">
           </div>
 
           <div class="hsm-total">Hızlandırma Süresi: <b id="hsmTotal">—</b></div>`}
@@ -4761,7 +4770,14 @@ function hizlandirmaPenceresi(unitId) {
       if (thumb) thumb.style.left = px + "px";
     }
 
-    q(".hsm-qty").textContent = String(adet);
+    const qtyEl = q(".hsm-qty");
+    if (qtyEl) {
+      if (document.activeElement !== qtyEl) qtyEl.value = String(adet);
+      /* Kutu rakam kadar genişler. box-sizing:content-box olduğu
+         için bu genişlik SADECE rakamın yeridir; iç boşluk ayrıca
+         eklenir, rakam kırpılmaz. */
+      qtyEl.style.width = String(qtyEl.value || "1").length + "ch";
+    }
     q("#hsmTotal").textContent = sureYaz(adet * liste[secili].ms);
   }
 
@@ -4823,6 +4839,16 @@ function hizlandirmaPenceresi(unitId) {
   const mn = q(".hsm-minus"), pl = q(".hsm-plus");
   if (mn) mn.addEventListener("pointerup", e => { e.stopPropagation(); adet--; tazele(); });
   if (pl) pl.addEventListener("pointerup", e => { e.stopPropagation(); adet++; tazele(); });
+
+  const qtyKutu = q(".hsm-qty");
+  if (qtyKutu) {
+    qtyKutu.addEventListener("input", () => {
+      const v = parseInt(qtyKutu.value, 10);
+      adet = isNaN(v) ? 1 : v;
+      tazele();
+    });
+    qtyKutu.addEventListener("blur", () => { qtyKutu.value = String(adet); tazele(); });
+  }
 
   const kapat = () => kok.remove();
   q(".hsm-close").addEventListener("click", kapat);
