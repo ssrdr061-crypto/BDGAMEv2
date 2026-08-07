@@ -4703,6 +4703,15 @@ function hizlandirmaPenceresi(unitId) {
       </div>
       ${liste.length ? `<button class="hsm-btn hsm-quick" type="button">HIZLI KULLAN</button>` : ""}
     </div>`;
+  /* ── HAYALET TIKLAMA KORUMASI ──
+     Hızlandırma düğmesi pointerdown ile tetikleniyor. Parmak
+     kalkınca oluşan click olayı, o noktada ARTIK bu pencere
+     durduğu için doğrudan KULLAN düğmesine düşüyordu: pencere
+     açılır açılmaz hızlandırma harcanıyor ve kapanıyordu.
+     İlk 350 ms boyunca pencere dokunmaya kapalı. */
+  kok.style.pointerEvents = "none";
+  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
+
   document.body.appendChild(kok);
 
   const q = sel => kok.querySelector(sel);
