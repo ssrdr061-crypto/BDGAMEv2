@@ -4864,7 +4864,7 @@ function hizlandirmaPenceresi(unitId) {
     renderHospitalPanel();
     renderTroopsPanel();
     if (typeof renderInventory === "function") renderInventory();
-    saveState();
+    persistCurrentState();
   }
 
   function harca(i, n) {
