@@ -1041,7 +1041,10 @@
      böylece cellFree, MOVE_MINDIST ve Firebase kaydı hiç değişmeden
      çalışmaya devam ediyor. Sadece dokunulan noktanın hangi hücreye
      denk geldiği izometrik olarak hesaplanıyor. */
-  function ekranaGoreIzgara(cx, cy, mgrid) {
+  /* kenarPayi: kale taşımada kenara dayanmasın diye 2.5 birim içeri
+     çekiliyor. Koordinat PAYLAŞMADA bu kısıtlama istenmez (haritanın
+     kenarını da paylaşabilmeli), oradan 0 geçiliyor. */
+  function ekranaGoreIzgara(cx, cy, mgrid, kenarPayi) {
     const wrapEl = document.getElementById("battleMapWrap");
     if (!wrapEl) return null;
     const r = wrapEl.getBoundingClientRect();
@@ -1060,9 +1063,9 @@
     let gx = k.gx / ORAN;
     let gy = k.gy / ORAN;
 
-    /* Oyunun kendi kenar payı: kale haritanın ucuna dayanmasın */
-    gx = Math.max(2.5, Math.min(M - 2.5, gx));
-    gy = Math.max(2.5, Math.min(M - 2.5, gy));
+    const pay = (typeof kenarPayi === "number") ? kenarPayi : 2.5;
+    gx = Math.max(pay, Math.min(M - pay, gx));
+    gy = Math.max(pay, Math.min(M - pay, gy));
 
     return { gx: Math.round(gx * 10) / 10, gy: Math.round(gy * 10) / 10 };
   }

@@ -192,6 +192,13 @@ const HERO_CATEGORY = {
   text-shadow:0 2px 4px rgba(0,40,70,.7); word-break:break-word; }
 .pvp-sub{ font-size:11.5px; font-weight:700; color:#dff2ff; margin-top:3px;
   text-shadow:0 1px 2px rgba(0,30,55,.5); }
+/* Koordinat satırı sohbette paylaşmak için tıklanabilir */
+.pvp-sub-share{ display:inline-block; cursor:pointer; border-radius:8px;
+  padding:1px 7px; margin-left:-7px; background:rgba(255,255,255,.10);
+  transition:background .12s, transform .06s; }
+.pvp-sub-share:hover{ background:rgba(255,255,255,.20); }
+.pvp-sub-share:active{ transform:translateY(1px); }
+.pvp-share-ico{ font-size:.95em; opacity:.9; }
 .pvp-tag{ display:inline-block; margin-top:5px; padding:2px 8px; border-radius:999px;
   font-size:10px; font-weight:800; letter-spacing:.4px; }
 .pvp-tag.friend{ background:rgba(59,116,232,.22); color:#8fb6ff; border:1px solid rgba(120,170,255,.4); }
@@ -521,7 +528,7 @@ function openCastlePopup(name, gx, gy, isOwn) {
         <div class="pvp-ava">🏰</div>
         <div>
           <div class="pvp-name">${esc(name || "Oyuncu")}</div>
-          <div class="pvp-sub">📍 x:${Math.round(gx*10)/10} &nbsp; y:${Math.round(gy*10)/10}</div>
+          <div class="pvp-sub pvp-sub-share" id="pvpCoordShare" title="Sohbette paylaş">📍 x:${Math.round(gx*10)/10} &nbsp; y:${Math.round(gy*10)/10} &nbsp;<span class="pvp-share-ico">📤</span></div>
           ${tag}
         </div>
       </div>
@@ -539,6 +546,23 @@ function openCastlePopup(name, gx, gy, isOwn) {
   }, 300);
   tap(back.querySelector("#pvpCloseBtn"), closeCastlePopup);
   tap(back.querySelector("#pvpMissileBtn"), () => fireMissileAt(name, gx, gy, isOwn));
+
+  /* 📍 satırına dokun → koordinatı sohbete at.
+     shareCoordInChat index.html'de tanımlı. Yoksa satır sade yazıya
+     döner; yanlış çalışmaktansa hiç görünmesin. */
+  const coordEl = back.querySelector("#pvpCoordShare");
+  if (coordEl) {
+    if (typeof window.shareCoordInChat === "function") {
+      tap(coordEl, () => {
+        closeCastlePopup();
+        window.shareCoordInChat(gx, gy, isOwn ? "" : name);
+      });
+    } else {
+      coordEl.classList.remove("pvp-sub-share");
+      const ico = coordEl.querySelector(".pvp-share-ico");
+      if (ico) ico.remove();
+    }
+  }
 
   const aBtn = back.querySelector("#pvpAttackBtn");
   const fBtn = back.querySelector("#pvpFriendBtn");

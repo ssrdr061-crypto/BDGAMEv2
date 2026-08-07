@@ -5562,14 +5562,24 @@ function handleMapTap(clientX, clientY, targetEl) {
   if (targetEl && targetEl.closest && targetEl.closest(".map-node, .loot-node, .coord-share")) return;
   const wrapEl = $id("battleMapWrap");
   if (!wrapEl) return;
-  const rect = wrapEl.getBoundingClientRect();
+  let gx, gy;
 
-  const px = (clientX - rect.left - mapPanX) / mapZoom;
-  const py = (clientY - rect.top - mapPanY) / mapZoom;
-  let gx = (px / MAP_W) * COORD_GRID;
-  let gy = (py / MAP_H) * COORD_GRID;
-  gx = ensure(Math.min(COORD_GRID, gx));
-  gy = ensure(Math.min(COORD_GRID, gy));
+  /* İZOMETRİK YÖNLENDİRME. Aşağıdaki MAP_W/MAP_H (1586x992) hesabı
+     eski resimli haritaya aitti; yeni haritada dokunulan nokta ile
+     alakasız koordinat üretiyordu. Kenar payı 0 — haritanın ucu da
+     paylaşılabilsin. */
+  const isoK = (window.HARITA && typeof window.HARITA.ekranaGoreIzgara === "function")
+    ? window.HARITA.ekranaGoreIzgara(clientX, clientY, COORD_GRID, 0) : null;
+
+  if (isoK) {
+    gx = isoK.gx; gy = isoK.gy;
+  } else {
+    const rect = wrapEl.getBoundingClientRect();
+    const px = (clientX - rect.left - mapPanX) / mapZoom;
+    const py = (clientY - rect.top - mapPanY) / mapZoom;
+    gx = ensure(Math.min(COORD_GRID, (px / MAP_W) * COORD_GRID));
+    gy = ensure(Math.min(COORD_GRID, (py / MAP_H) * COORD_GRID));
+  }
   pendingShareCoord = { gx, gy };
   renderBattleMap();
 
@@ -5581,24 +5591,39 @@ function handleMapTap(clientX, clientY, targetEl) {
   }, 3000);
 }
 
-function shareCoordInChat() {
-  if (!pendingShareCoord) return;
+/* İki şekilde çağrılır:
+     shareCoordInChat()                  → haritaya dokununca çıkan ✏️ işareti
+     shareCoordInChat(gx, gy, "füze8")   → kale kutucuğundaki 📍 satırı (pvp.js)
+   İkinci biçimde pendingShareCoord'a hiç dokunulmaz.
+   DİKKAT: pvp.js bu adı window üzerinden çağırıyor — adını değiştirirsen
+   kale kutucuğundaki paylaşma sessizce ölür. */
+function shareCoordInChat(gxIn, gyIn, kimin) {
+  const acik = (typeof gxIn === "number" && typeof gyIn === "number");
+  if (!acik && !pendingShareCoord) return;
   if (!firebaseReady) {
     showToast("Paylaşmak için internet bağlantısı gerekli.");
     return;
   }
-  const gx = fmtCoord(pendingShareCoord.gx);
-  const gy = fmtCoord(pendingShareCoord.gy);
+  const gx = fmtCoord(acik ? gxIn : pendingShareCoord.gx);
+  const gy = fmtCoord(acik ? gyIn : pendingShareCoord.gy);
   const name = currentUsername || "Misafir";
+
+  const sahip = kimin ? String(kimin).replace(/["'<>&]/g, "") : "";
+  const metin = sahip
+    ? `📍 ${sahip} kalesi — x:${gx} y:${gy}`
+    : `📍 Konum: x:${gx} y:${gy}`;
+
   firebaseDb.ref("chat").push({
     name: name,
-    text: `📍 Konum: x:${gx} y:${gy}`,
+    text: metin,
     at: Date.now(),
   }).then(() => {
     showToast("Konum sohbette paylaşıldı!");
   }).catch(() => {
     showToast("Paylaşılamadı.");
   });
+
+  if (acik) return;                       // işaret akışına karışma
   pendingShareCoord = null;
   if (_shareHideTimer) { clearTimeout(_shareHideTimer); _shareHideTimer = null; }
   renderBattleMap();
