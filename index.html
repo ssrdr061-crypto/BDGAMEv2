@@ -1475,6 +1475,9 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .hosp-speed-modal .hsm-label{
   text-align:center; margin:12px 0 8px;
+  font-family:'Baloo 2','Nunito',sans-serif;   /* .hero-subtitle Cinzel kullanıyordu */
+  font-weight:800; font-size:14px; letter-spacing:.6px;
+  color:#dff2ff; text-transform:none;
 }
 
 /* Kalan süre çubuğu */
@@ -4668,7 +4671,7 @@ function hizlandirmaPenceresi(unitId) {
 
       <div class="hsm-bar"><i class="hsm-bar-fill"></i><span class="hsm-bar-txt"></span></div>
 
-      <h3 class="hero-subtitle hsm-label">Hızlandırma Seç</h3>
+      <div class="hsm-label">Hızlandırma</div>
 
       ${liste.length === 0
         ? `<div class="hsm-empty">Hızlandırman yok.<br>Mağazadan ⏩ Hızlandırma satın alabilirsin.</div>`
@@ -4702,6 +4705,14 @@ function hizlandirmaPenceresi(unitId) {
       </div>
       ${liste.length ? `<button class="hsm-btn hsm-quick" type="button">HIZLI KULLAN</button>` : ""}
     </div>`;
+
+  /* ── HAYALET TIKLAMA KORUMASI ──
+     Hızlandırma düğmesi pointerup ile tetikleniyor. Parmak kalkınca
+     tarayıcı aynı noktaya bir click daha gönderiyor ve orada artık
+     bu pencere duruyor: KULLAN kendiliğinden basılıyordu.
+     İlk 350 ms pencere dokunmaya kapalı. */
+  kok.style.pointerEvents = "none";
+  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
 
   document.body.appendChild(kok);
 
