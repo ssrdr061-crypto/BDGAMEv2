@@ -1453,68 +1453,143 @@ body.world-active{padding:0; overflow:hidden;}
   transform:translateY(2px); box-shadow:0 1px 0 #0d3f75;
 }
 
-/* ── HIZLANDIRMA PENCERESİ ── */
+/* ── HIZLANDIRMA PENCERESİ ──
+   Whiteout Survival'daki "Select Speedups" penceresinin düzeni:
+   üstte kalan süre çubuğu, ortada seçilebilir hızlandırma kartları,
+   altında adet sürgüsü ve üç eylem düğmesi. */
 .hosp-speed-modal{
   position:fixed; inset:0; z-index:9999;
   display:flex; align-items:center; justify-content:center;
-  background:rgba(2,10,26,.72); padding:20px;
-}
-.hosp-speed-modal .hsm-card{
-  position:relative; width:100%; max-width:330px;
-  border-radius:18px; padding:16px 16px 18px;
-  background:linear-gradient(180deg,#1fa3ea,#0e6fc0);
-  border:3px solid rgba(190,240,255,.85);
-  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45);
+  background:rgba(2,10,26,.72); padding:18px;
   font-family:'Baloo 2',sans-serif;
 }
-.hosp-speed-modal .hsm-close{
-  position:absolute; top:10px; right:10px;
-  width:32px; height:32px; border-radius:9px; border:none; cursor:pointer;
-  background:linear-gradient(180deg,#ff6a6a,#c81f2f); color:#fff;
-  font-size:15px; font-weight:800;
-  box-shadow:0 3px 0 #7c1119;
+.hosp-speed-modal .hsm-card{
+  position:relative; width:100%; max-width:340px;
+  border-radius:18px; padding:0 0 14px; overflow:hidden;
+  background:linear-gradient(180deg,#eaf4ff,#cfe4f7);
+  border:3px solid rgba(120,190,240,.9);
+  box-shadow:0 14px 34px rgba(0,20,45,.55);
+}
+.hosp-speed-modal .hsm-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 12px;
+  background:linear-gradient(180deg,#2f9de8,#1567b8);
 }
 .hosp-speed-modal .hsm-title{
-  margin:0; text-align:center; color:#fff;
-  font-size:22px; font-weight:900; letter-spacing:1.6px;
-  text-shadow:0 3px 0 rgba(0,10,30,.55);
+  color:#fff; font-size:17px; font-weight:900; letter-spacing:1.4px;
+  text-shadow:0 2px 0 rgba(0,20,50,.5);
 }
-.hosp-speed-modal .hsm-sub{
-  margin:2px 0 12px; text-align:center;
-  color:#dff2ff; font-size:12.5px; font-weight:700;
+.hosp-speed-modal .hsm-close{
+  width:28px; height:28px; border-radius:8px; border:none; cursor:pointer;
+  background:rgba(255,255,255,.22); color:#fff; font-size:14px; font-weight:800;
 }
-.hosp-speed-modal .hsm-row{
-  display:flex; align-items:center; gap:8px;
-  padding:8px 10px; margin-bottom:8px; border-radius:12px;
-  background:linear-gradient(180deg, rgba(34,72,143,.75), rgba(13,34,70,.85));
-  box-shadow:inset 0 1px 2px rgba(150,205,255,.35);
+
+/* Kalan süre çubuğu */
+.hosp-speed-modal .hsm-bar{
+  position:relative; height:26px; margin:12px 14px 4px;
+  border-radius:8px; overflow:hidden;
+  background:#b9cfe2; box-shadow:inset 0 2px 4px rgba(0,20,45,.35);
 }
-.hosp-speed-modal .hsm-name{
-  flex:1 1 auto; min-width:0; color:#fff;
-  font-size:13px; font-weight:800;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+.hosp-speed-modal .hsm-bar-fill{
+  position:absolute; inset:0; width:100%;
+  background:linear-gradient(180deg,#7fe36a,#3aa832);
 }
-.hosp-speed-modal .hsm-have{
-  flex:0 0 auto; color:#ffd257; font-size:11.5px; font-weight:800;
+.hosp-speed-modal .hsm-bar-txt{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:14px; font-weight:900;
+  text-shadow:0 1px 2px rgba(0,40,10,.6);
 }
-.hosp-speed-modal .hsm-input{
-  flex:0 0 46px; width:46px; height:26px; text-align:center; padding:0;
-  border-radius:8px; border:1px solid rgba(190,240,255,.4);
-  background:rgba(3,16,38,.6); color:#fff;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:14px;
-  -moz-appearance:textfield;
+
+.hosp-speed-modal .hsm-label{
+  text-align:center; color:#2c4a68; font-size:13px; font-weight:800;
+  margin:8px 0 6px;
 }
-.hosp-speed-modal .hsm-input::-webkit-outer-spin-button,
-.hosp-speed-modal .hsm-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+/* Hızlandırma kartları — yatay kaydırılır */
+.hosp-speed-modal .hsm-cards{
+  display:flex; gap:8px; padding:0 14px 2px;
+  overflow-x:auto; -webkit-overflow-scrolling:touch;
+}
+.hosp-speed-modal .hsm-card-item{
+  position:relative; flex:0 0 78px; height:78px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-radius:12px; cursor:pointer;
+  background:linear-gradient(180deg,#9fb6c9,#7d94a8);
+  border:3px solid transparent;
+  box-shadow:inset 0 2px 3px rgba(255,255,255,.4);
+}
+.hosp-speed-modal .hsm-card-item.is-active{
+  background:linear-gradient(180deg,#6fd25c,#3f9c35);
+  border-color:#ffe27a;
+  box-shadow:0 0 12px rgba(255,215,90,.6), inset 0 2px 3px rgba(255,255,255,.5);
+}
+.hosp-speed-modal .hsm-ci-top{
+  color:#fff; font-size:12px; font-weight:900; text-shadow:0 1px 2px rgba(0,20,45,.5);
+}
+.hosp-speed-modal .hsm-ci-icon{ font-size:22px; line-height:1; }
+.hosp-speed-modal .hsm-ci-count{
+  position:absolute; right:5px; bottom:3px;
+  color:#fff; font-size:11px; font-weight:900;
+  text-shadow:0 1px 2px rgba(0,20,45,.7);
+}
+
+/* Adet seçimi */
+.hosp-speed-modal .hsm-pick{
+  display:flex; align-items:center; gap:8px; padding:12px 14px 0;
+}
+.hosp-speed-modal .hsm-step{
+  flex:0 0 34px; width:34px; height:30px; padding:0;
+  border-radius:9px; border:none; cursor:pointer;
+  color:#fff; font-size:18px; font-weight:900; line-height:1;
+  background:linear-gradient(180deg,#4bb0f2,#1f76c9);
+  box-shadow:0 3px 0 #0f4a86;
+}
+.hosp-speed-modal .hsm-step:active{ transform:translateY(2px); box-shadow:0 1px 0 #0f4a86; }
+.hosp-speed-modal .hsm-slider{ flex:1 1 auto; height:30px; margin:0; }
+.hosp-speed-modal .hsm-slider .sl-track{ background:#b9cfe2; }
+.hosp-speed-modal .hsm-slider .sl-fill{ background:linear-gradient(180deg,#7fe36a,#3aa832); }
+.hosp-speed-modal .hsm-qty{
+  flex:0 0 auto; min-width:34px; text-align:center;
+  color:#2c4a68; font-size:15px; font-weight:900;
+}
+
 .hosp-speed-modal .hsm-total{
-  text-align:center; color:#eaf7ff; font-size:13px; font-weight:800;
-  margin:4px 0 2px;
+  text-align:center; color:#2c4a68; font-size:13px; font-weight:800;
+  margin:10px 0 2px;
 }
-.hosp-speed-modal .hsm-total b{ color:#ffd257; }
-.hosp-speed-modal .hsm-apply{
-  display:block; margin:12px auto 0; padding:8px 22px;
-  width:auto; min-width:130px; font-size:12px;
+.hosp-speed-modal .hsm-total b{ color:#0f5da8; }
+
+.hosp-speed-modal .hsm-empty{
+  text-align:center; color:#2c4a68; font-size:13px; font-weight:700;
+  padding:14px 18px; line-height:1.5;
 }
+
+/* Eylemler */
+.hosp-speed-modal .hsm-actions{
+  display:flex; gap:9px; padding:10px 14px 0;
+}
+.hosp-speed-modal .hsm-btn{
+  flex:1 1 0; padding:9px 6px; border:none; border-radius:11px; cursor:pointer;
+  font-family:'Baloo 2',sans-serif; font-weight:900; font-size:13px;
+  color:#fff; letter-spacing:.6px;
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+}
+.hosp-speed-modal .hsm-btn small{ font-size:11px; font-weight:800; opacity:.95; }
+.hosp-speed-modal .hsm-finish{
+  background:linear-gradient(180deg,#ffcf5c,#e09a1c);
+  color:#4a2f00; box-shadow:0 4px 0 #9a6400;
+}
+.hosp-speed-modal .hsm-use{
+  background:linear-gradient(180deg,#4bb0f2,#1f76c9);
+  box-shadow:0 4px 0 #0f4a86;
+}
+.hosp-speed-modal .hsm-quick{
+  display:block; width:calc(100% - 28px); margin:9px auto 0;
+  background:linear-gradient(180deg,#4bb0f2,#1f76c9);
+  box-shadow:0 4px 0 #0f4a86;
+}
+.hosp-speed-modal .hsm-btn:active{ transform:translateY(2px); box-shadow:none; }
+.hosp-speed-modal .hsm-btn[disabled]{ opacity:.5; }
 
 /* Kuyruk hiç yokken başlık da gizlenir */
 .hospital-queue-title.is-hidden{ display:none !important; }
@@ -4514,96 +4589,231 @@ function sahipOlunanHizlandirmalar() {
   const env = state.inventory || {};
   return Object.keys(env)
     .filter(ad => /Hızlandırma/i.test(ad) && env[ad] > 0)
-    .map(ad => ({ ad, adet: env[ad], ms: hizlandirmaSuresiMs(ad) }))
+    .map(ad => {
+      const ms = hizlandirmaSuresiMs(ad);
+      const dk = Math.round(ms / 60000);
+      const etiket = dk >= 60 ? Math.round(dk / 60) + " sa" : dk + " dk";
+      return { ad, adet: env[ad], ms, etiket };
+    })
     .filter(x => x.ms > 0)
     .sort((a, b) => a.ms - b.ms);
 }
 
+/* Bitirme ücreti: kalan her dakika için kaç elmas. */
+const BITIR_ELMAS_DK = 20;
+
 function hizlandirmaPenceresi(unitId) {
   const liste = sahipOlunanHizlandirmalar();
-  if (liste.length === 0) {
-    showToast("Hızlandırman yok. Mağazadan ⏩ Hızlandırma satın al.");
-    return;
-  }
-
   const def = UNIT_TYPES[unitId];
+
+  function grup() {
+    return state.hospital
+      .filter(p => p.unitId === unitId && p.confirmed)
+      .sort((a, b) => a.finishAt - b.finishAt);
+  }
+  function kalanMs() {
+    const g = grup();
+    return g.length ? Math.max(0, g[g.length - 1].finishAt - Date.now()) : 0;
+  }
+  if (kalanMs() <= 0) return;
+
   const eski = document.getElementById("hospSpeedModal");
   if (eski) eski.remove();
+
+  /* Seçilen eşya ve adet. Whiteout tarzı: üstte kartlardan birini
+     seç, altta sürgüyle kaç tane kullanacağını ayarla. */
+  let secili = 0;
+  let adet = liste.length ? 1 : 0;
 
   const kok = document.createElement("div");
   kok.id = "hospSpeedModal";
   kok.className = "hosp-speed-modal";
   kok.innerHTML = `
     <div class="hsm-card">
-      <button class="hsm-close" type="button">✕</button>
-      <h2 class="hsm-title">HIZLANDIR</h2>
-      <p class="hsm-sub">${def ? def.name : unitId} tedavisi</p>
-      <div class="hsm-list">
-        ${liste.map((x, i) => `
-          <div class="hsm-row" data-i="${i}">
-            <span class="hsm-name">⏩ ${x.ad}</span>
-            <span class="hsm-have">${x.adet} adet</span>
-            <input class="hsm-input" type="number" inputmode="numeric"
-                   min="0" max="${x.adet}" value="0">
-          </div>`).join("")}
+      <div class="hsm-head">
+        <span class="hsm-title">HIZLANDIR</span>
+        <button class="hsm-close" type="button">✕</button>
       </div>
-      <div class="hsm-total">Toplam: <b id="hsmTotal">0 dk</b></div>
-      <button class="login-btn hsm-apply" type="button">UYGULA</button>
+
+      <div class="hsm-bar"><i class="hsm-bar-fill"></i><span class="hsm-bar-txt"></span></div>
+
+      <div class="hsm-label">Hızlandırma Seç</div>
+
+      ${liste.length === 0
+        ? `<div class="hsm-empty">Hızlandırman yok.<br>Mağazadan ⏩ Hızlandırma satın alabilirsin.</div>`
+        : `<div class="hsm-cards">
+            ${liste.map((x, i) => `
+              <button class="hsm-card-item${i === 0 ? " is-active" : ""}" data-i="${i}" type="button">
+                <span class="hsm-ci-top">${x.etiket}</span>
+                <span class="hsm-ci-icon">⏩</span>
+                <span class="hsm-ci-count">${x.adet}</span>
+              </button>`).join("")}
+          </div>
+
+          <div class="hsm-pick">
+            <button class="hsm-step hsm-minus" type="button">−</button>
+            <div class="hospital-slider hsm-slider">
+              <div class="sl-track"><i class="sl-fill"></i></div>
+              <div class="sl-thumb"></div>
+            </div>
+            <button class="hsm-step hsm-plus" type="button">+</button>
+            <span class="hsm-qty">1</span>
+          </div>
+
+          <div class="hsm-total">Hızlandırma Süresi: <b id="hsmTotal">—</b></div>`}
+
+      <div class="hsm-actions">
+        <button class="hsm-btn hsm-finish" type="button">
+          <span>BİTİR</span><small id="hsmCost">💎 —</small>
+        </button>
+        <button class="hsm-btn hsm-use" type="button" ${liste.length ? "" : "disabled"}>KULLAN</button>
+      </div>
+      ${liste.length ? `<button class="hsm-btn hsm-quick" type="button">HIZLI KULLAN</button>` : ""}
     </div>`;
   document.body.appendChild(kok);
 
-  const kutular = kok.querySelectorAll(".hsm-input");
-  const toplamEl = kok.querySelector("#hsmTotal");
+  const q = sel => kok.querySelector(sel);
 
-  function toplamMs() {
-    let t = 0;
-    kutular.forEach((k, i) => {
-      const v = Math.max(0, Math.min(liste[i].adet, parseInt(k.value, 10) || 0));
-      k.value = String(v);
-      t += v * liste[i].ms;
+  function sureYaz(ms) {
+    const t = Math.max(0, Math.round(ms / 1000));
+    const sa = Math.floor(t / 3600), dk = Math.floor((t % 3600) / 60), sn = t % 60;
+    const iki = n => String(n).padStart(2, "0");
+    return sa > 0 ? `${sa}:${iki(dk)}:${iki(sn)}` : `${dk}:${iki(sn)}`;
+  }
+
+  function tazele() {
+    const kalan = kalanMs();
+    const txt = q(".hsm-bar-txt");
+    if (txt) txt.textContent = sureYaz(kalan);
+
+    const maliyet = Math.max(1, Math.ceil(kalan / 60000) * BITIR_ELMAS_DK);
+    const costEl = q("#hsmCost");
+    if (costEl) costEl.textContent = "💎 " + money(maliyet);
+    kok.dataset.cost = maliyet;
+
+    if (!liste.length) return;
+
+    const enFazla = liste[secili].adet;
+    if (adet > enFazla) adet = enFazla;
+    if (adet < 1) adet = 1;
+
+    const oran = enFazla > 1 ? (adet - 1) / (enFazla - 1) : 1;
+    const fill = q(".hsm-slider .sl-fill");
+    const thumb = q(".hsm-slider .sl-thumb");
+    if (fill)  fill.style.width = (oran * 100) + "%";
+    if (thumb) thumb.style.left = (oran * 100) + "%";
+
+    q(".hsm-qty").textContent = String(adet);
+    q("#hsmTotal").textContent = sureYaz(adet * liste[secili].ms);
+  }
+
+  /* Kart seçimi */
+  kok.querySelectorAll(".hsm-card-item").forEach(btn => {
+    btn.addEventListener("click", () => {
+      kok.querySelectorAll(".hsm-card-item").forEach(b => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+      secili = parseInt(btn.dataset.i, 10);
+      adet = 1;
+      tazele();
     });
-    return t;
+  });
+
+  /* Sürgü */
+  const ray = q(".hsm-slider");
+  if (ray) {
+    let aktif = null;
+    const oku = x => {
+      const r = ray.getBoundingClientRect();
+      if (r.width <= 0) return 0;
+      return Math.max(0, Math.min(1, (x - r.left) / r.width));
+    };
+    const uygula = x => {
+      const enFazla = liste[secili].adet;
+      adet = 1 + Math.round(oku(x) * (enFazla - 1));
+      tazele();
+    };
+    ray.addEventListener("pointerdown", e => {
+      aktif = e.pointerId; ray.setPointerCapture(aktif);
+      ray.classList.add("dragging"); uygula(e.clientX); e.preventDefault();
+    });
+    ray.addEventListener("pointermove", e => {
+      if (aktif === null || e.pointerId !== aktif) return;
+      uygula(e.clientX);
+    });
+    const birak = () => { aktif = null; ray.classList.remove("dragging"); };
+    ray.addEventListener("pointerup", birak);
+    ray.addEventListener("pointercancel", birak);
   }
-  function toplamiYaz() {
-    const t = toplamMs();
-    const dk = Math.round(t / 60000);
-    toplamEl.textContent = dk >= 60
-      ? Math.floor(dk / 60) + " sa " + (dk % 60) + " dk"
-      : dk + " dk";
-  }
-  kutular.forEach(k => k.addEventListener("input", toplamiYaz));
+
+  const mn = q(".hsm-minus"), pl = q(".hsm-plus");
+  if (mn) mn.addEventListener("click", () => { adet--; tazele(); });
+  if (pl) pl.addEventListener("click", () => { adet++; tazele(); });
 
   const kapat = () => kok.remove();
-  kok.querySelector(".hsm-close").addEventListener("click", kapat);
+  q(".hsm-close").addEventListener("click", kapat);
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 
-  kok.querySelector(".hsm-apply").addEventListener("click", () => {
-    const t = toplamMs();
-    if (t <= 0) { showToast("Önce kaç hızlandırma kullanacağını seç."); return; }
-
-    /* Eşyaları düş */
-    kutular.forEach((k, i) => {
-      const v = parseInt(k.value, 10) || 0;
-      if (v <= 0) return;
-      state.inventory[liste[i].ad] -= v;
-      if (state.inventory[liste[i].ad] <= 0) delete state.inventory[liste[i].ad];
-    });
-
-    /* ZİNCİRİN TAMAMINI kaydır — asıl düzeltme burada */
-    const grup = state.hospital
-      .filter(p => p.unitId === unitId && p.confirmed)
-      .sort((a, b) => a.finishAt - b.finishAt);
-    grup.forEach(p => { p.finishAt = Math.max(Date.now(), p.finishAt - t); });
-
-    kapat();
+  /* Süreyi zincirin TAMAMINA uygula — asıl düzeltme burada.
+     Eski kod yalnızca sıradaki tek birliği kısaltıyordu, iyileşme
+     zincirli olduğu için toplam süre neredeyse hiç değişmiyordu. */
+  function kisalt(ms) {
+    grup().forEach(p => { p.finishAt = Math.max(Date.now(), p.finishAt - ms); });
     applyFinishedHospitalRecoveries();
     _hospitalPendingKey = "";
     renderHospitalPanel();
     renderTroopsPanel();
     if (typeof renderInventory === "function") renderInventory();
     saveState();
+  }
+
+  function harca(i, n) {
+    const ad = liste[i].ad;
+    state.inventory[ad] -= n;
+    if (state.inventory[ad] <= 0) delete state.inventory[ad];
+  }
+
+  const kullanBtn = q(".hsm-use");
+  if (kullanBtn) kullanBtn.addEventListener("click", () => {
+    harca(secili, adet);
+    kisalt(adet * liste[secili].ms);
+    kapat();
     showToast("⏩ Tedavi hızlandırıldı!");
   });
+
+  /* HIZLI KULLAN: bitirmeye yetecek kadar hızlandırmayı büyükten
+     küçüğe otomatik seçer — elle tek tek uğraşmayı bitirir. */
+  const hizliBtn = q(".hsm-quick");
+  if (hizliBtn) hizliBtn.addEventListener("click", () => {
+    let gerek = kalanMs(), toplam = 0;
+    const sirali = liste.map((x, i) => ({ ...x, i })).sort((a, b) => b.ms - a.ms);
+    sirali.forEach(x => {
+      if (gerek <= 0) return;
+      const n = Math.min(x.adet, Math.ceil(gerek / x.ms));
+      if (n <= 0) return;
+      harca(x.i, n);
+      toplam += n * x.ms;
+      gerek -= n * x.ms;
+    });
+    if (toplam <= 0) { showToast("Yeterli hızlandırman yok."); return; }
+    kisalt(toplam);
+    kapat();
+    showToast("⏩ Tedavi hızlandırıldı!");
+  });
+
+  /* BİTİR: elmasla anında tamamlar */
+  q(".hsm-finish").addEventListener("click", () => {
+    const maliyet = parseInt(kok.dataset.cost, 10) || 0;
+    if ((state.diamonds || 0) < maliyet) {
+      showToast("Yeterli elmasın yok. Gereken: 💎 " + money(maliyet));
+      return;
+    }
+    state.diamonds -= maliyet;
+    kisalt(kalanMs());
+    kapat();
+    showToast("Tedavi tamamlandı!");
+  });
+
+  tazele();
 }
 
 function useSpeedUpOnHospitalGroup(unitId) {
