@@ -4737,12 +4737,10 @@ function hizlandirmaPenceresi(unitId) {
 
     if (!liste.length) return;
 
-    /* ÜST SINIR: elde kaç tane var VE kalan süreyi kapatmaya kaç
-       tane yeter — hangisi küçükse o. Fazlasını kullanmak eşyayı
-       boşa harcamak olurdu. */
-    const birim = liste[secili].ms;
-    const yeter = Math.max(1, Math.ceil(kalan / birim));
-    const enFazla = Math.max(1, Math.min(liste[secili].adet, yeter));
+    /* Üst sınır sadece elindeki adet. Kalan süreyi aşan kısım boşa
+       gider — bilerek: oyuncu 24 saniye için 5 dakikalık kullanmak
+       isteyebilir, beklemeye zorlanmamalı. */
+    const enFazla = Math.max(1, liste[secili].adet);
 
     if (adet > enFazla) adet = enFazla;
     if (adet < 1) adet = 1;
