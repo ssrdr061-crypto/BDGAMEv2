@@ -1454,9 +1454,9 @@ body.world-active{padding:0; overflow:hidden;}
 }
 
 /* ── HIZLANDIRMA PENCERESİ ──
-   Whiteout Survival'daki "Select Speedups" penceresinin düzeni:
-   üstte kalan süre çubuğu, ortada seçilebilir hızlandırma kartları,
-   altında adet sürgüsü ve üç eylem düğmesi. */
+   Düzen Whiteout Survival'daki "Select Speedups" penceresinden;
+   RENKLER oyunun kendi mavi temasından. Panelin geri kalanıyla
+   aynı gövde: #1fa3ea → #0e6fc0, açık mavi kenarlık. */
 .hosp-speed-modal{
   position:fixed; inset:0; z-index:9999;
   display:flex; align-items:center; justify-content:center;
@@ -1466,127 +1466,143 @@ body.world-active{padding:0; overflow:hidden;}
 .hosp-speed-modal .hsm-card{
   position:relative; width:100%; max-width:340px;
   border-radius:18px; padding:0 0 14px; overflow:hidden;
-  background:linear-gradient(180deg,#eaf4ff,#cfe4f7);
-  border:3px solid rgba(120,190,240,.9);
-  box-shadow:0 14px 34px rgba(0,20,45,.55);
+  background:
+    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
+    linear-gradient(180deg, #1fa3ea, #0e6fc0);
+  border:3px solid rgba(190,240,255,.85);
+  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45);
 }
 .hosp-speed-modal .hsm-head{
   display:flex; align-items:center; justify-content:space-between;
-  padding:9px 12px;
-  background:linear-gradient(180deg,#2f9de8,#1567b8);
+  padding:10px 12px;
 }
 .hosp-speed-modal .hsm-title{
-  color:#fff; font-size:17px; font-weight:900; letter-spacing:1.4px;
-  text-shadow:0 2px 0 rgba(0,20,50,.5);
+  color:#fff; font-size:19px; font-weight:900; letter-spacing:1.6px;
+  text-shadow:0 3px 0 rgba(0,10,30,.55);
 }
 .hosp-speed-modal .hsm-close{
-  width:28px; height:28px; border-radius:8px; border:none; cursor:pointer;
-  background:rgba(255,255,255,.22); color:#fff; font-size:14px; font-weight:800;
+  width:30px; height:30px; border-radius:9px; border:none; cursor:pointer;
+  background:linear-gradient(180deg,#ff6a6a,#c81f2f); color:#fff;
+  font-size:14px; font-weight:800; box-shadow:0 3px 0 #7c1119;
 }
 
 /* Kalan süre çubuğu */
 .hosp-speed-modal .hsm-bar{
-  position:relative; height:26px; margin:12px 14px 4px;
-  border-radius:8px; overflow:hidden;
-  background:#b9cfe2; box-shadow:inset 0 2px 4px rgba(0,20,45,.35);
+  position:relative; height:28px; margin:2px 14px 4px;
+  border-radius:9px; overflow:hidden;
+  background:rgba(3,16,38,.55); box-shadow:inset 0 2px 4px rgba(0,0,0,.5);
 }
 .hosp-speed-modal .hsm-bar-fill{
   position:absolute; inset:0; width:100%;
-  background:linear-gradient(180deg,#7fe36a,#3aa832);
+  background:linear-gradient(180deg,#5ce07a,#22a34a);
 }
 .hosp-speed-modal .hsm-bar-txt{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  color:#fff; font-size:14px; font-weight:900;
-  text-shadow:0 1px 2px rgba(0,40,10,.6);
+  color:#fff; font-size:15px; font-weight:900;
+  text-shadow:0 2px 0 rgba(0,40,10,.55);
 }
 
 .hosp-speed-modal .hsm-label{
-  text-align:center; color:#2c4a68; font-size:13px; font-weight:800;
-  margin:8px 0 6px;
+  text-align:center; color:#dff2ff; font-size:13px; font-weight:800;
+  margin:10px 0 7px;
 }
 
-/* Hızlandırma kartları — yatay kaydırılır */
+/* Hızlandırma kartları */
 .hosp-speed-modal .hsm-cards{
-  display:flex; gap:8px; padding:0 14px 2px;
+  display:flex; gap:9px; padding:0 14px 2px;
   overflow-x:auto; -webkit-overflow-scrolling:touch;
 }
 .hosp-speed-modal .hsm-card-item{
-  position:relative; flex:0 0 78px; height:78px;
+  position:relative; flex:0 0 76px; height:76px;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  border-radius:12px; cursor:pointer;
-  background:linear-gradient(180deg,#9fb6c9,#7d94a8);
-  border:3px solid transparent;
-  box-shadow:inset 0 2px 3px rgba(255,255,255,.4);
+  border-radius:13px; cursor:pointer;
+  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
+  border:2px solid rgba(190,240,255,.35);
+  box-shadow:0 4px 0 #0b1c3a, inset 0 2px 3px rgba(150,205,255,.45);
 }
 .hosp-speed-modal .hsm-card-item.is-active{
-  background:linear-gradient(180deg,#6fd25c,#3f9c35);
-  border-color:#ffe27a;
-  box-shadow:0 0 12px rgba(255,215,90,.6), inset 0 2px 3px rgba(255,255,255,.5);
+  border-color:#ffd257;
+  box-shadow:0 0 12px rgba(255,210,87,.55), 0 4px 0 #0b1c3a,
+             inset 0 2px 3px rgba(150,205,255,.55);
 }
 .hosp-speed-modal .hsm-ci-top{
-  color:#fff; font-size:12px; font-weight:900; text-shadow:0 1px 2px rgba(0,20,45,.5);
+  color:#a8e7ff; font-size:12px; font-weight:900;
+  text-shadow:0 2px 0 rgba(0,10,30,.55);
 }
 .hosp-speed-modal .hsm-ci-icon{ font-size:22px; line-height:1; }
 .hosp-speed-modal .hsm-ci-count{
-  position:absolute; right:5px; bottom:3px;
-  color:#fff; font-size:11px; font-weight:900;
-  text-shadow:0 1px 2px rgba(0,20,45,.7);
+  position:absolute; right:6px; bottom:3px;
+  color:#ffd257; font-size:11px; font-weight:900;
+  text-shadow:0 1px 2px rgba(0,10,30,.7);
 }
 
-/* Adet seçimi */
+/* Adet seçimi — top hiçbir düğmenin üstüne binmesin diye
+   sürgüye yanlardan iç boşluk verildi. */
 .hosp-speed-modal .hsm-pick{
-  display:flex; align-items:center; gap:8px; padding:12px 14px 0;
+  display:flex; align-items:center; gap:10px; padding:14px 14px 0;
 }
 .hosp-speed-modal .hsm-step{
   flex:0 0 34px; width:34px; height:30px; padding:0;
   border-radius:9px; border:none; cursor:pointer;
-  color:#fff; font-size:18px; font-weight:900; line-height:1;
-  background:linear-gradient(180deg,#4bb0f2,#1f76c9);
-  box-shadow:0 3px 0 #0f4a86;
+  color:#3a2400; font-size:18px; font-weight:900; line-height:1;
+  background:linear-gradient(180deg,#ffd257,#e0a12c);
+  box-shadow:0 3px 0 #8a5c10, inset 0 1px 2px rgba(255,255,255,.6);
 }
-.hosp-speed-modal .hsm-step:active{ transform:translateY(2px); box-shadow:0 1px 0 #0f4a86; }
-.hosp-speed-modal .hsm-slider{ flex:1 1 auto; height:30px; margin:0; }
-.hosp-speed-modal .hsm-slider .sl-track{ background:#b9cfe2; }
-.hosp-speed-modal .hsm-slider .sl-fill{ background:linear-gradient(180deg,#7fe36a,#3aa832); }
+.hosp-speed-modal .hsm-step:active{ transform:translateY(2px); box-shadow:0 1px 0 #8a5c10; }
+
+.hosp-speed-modal .hsm-slider{
+  flex:1 1 auto; height:30px; margin:0;
+  padding:0 11px;              /* top uçlarda taşmasın */
+  box-sizing:border-box;
+}
+.hosp-speed-modal .hsm-slider .sl-track{
+  left:11px; right:11px;
+  background:rgba(3,16,38,.65);
+}
+.hosp-speed-modal .hsm-slider .sl-fill{
+  background:linear-gradient(180deg,#ff5a5a,#c81f2f);
+  box-shadow:0 0 8px rgba(255,60,70,.45);
+}
+.hosp-speed-modal .hsm-slider .sl-thumb{
+  background:radial-gradient(circle at 35% 30%, #fff, #fff 60%, #dfe8f5);
+}
 .hosp-speed-modal .hsm-qty{
-  flex:0 0 auto; min-width:34px; text-align:center;
-  color:#2c4a68; font-size:15px; font-weight:900;
+  flex:0 0 auto; min-width:32px; text-align:center;
+  color:#fff; font-size:16px; font-weight:900;
+  text-shadow:0 2px 0 rgba(0,10,30,.6);
 }
 
 .hosp-speed-modal .hsm-total{
-  text-align:center; color:#2c4a68; font-size:13px; font-weight:800;
-  margin:10px 0 2px;
+  text-align:center; color:#dff2ff; font-size:13px; font-weight:800;
+  margin:11px 0 2px;
 }
-.hosp-speed-modal .hsm-total b{ color:#0f5da8; }
+.hosp-speed-modal .hsm-total b{ color:#ffd257; }
 
 .hosp-speed-modal .hsm-empty{
-  text-align:center; color:#2c4a68; font-size:13px; font-weight:700;
+  text-align:center; color:#eaf7ff; font-size:13px; font-weight:700;
   padding:14px 18px; line-height:1.5;
 }
 
 /* Eylemler */
-.hosp-speed-modal .hsm-actions{
-  display:flex; gap:9px; padding:10px 14px 0;
-}
+.hosp-speed-modal .hsm-actions{ display:flex; gap:9px; padding:12px 14px 0; }
 .hosp-speed-modal .hsm-btn{
-  flex:1 1 0; padding:9px 6px; border:none; border-radius:11px; cursor:pointer;
+  flex:1 1 0; padding:9px 6px; border:none; border-radius:12px; cursor:pointer;
   font-family:'Baloo 2',sans-serif; font-weight:900; font-size:13px;
-  color:#fff; letter-spacing:.6px;
+  color:#fff; letter-spacing:.7px;
   display:flex; flex-direction:column; align-items:center; gap:1px;
 }
 .hosp-speed-modal .hsm-btn small{ font-size:11px; font-weight:800; opacity:.95; }
 .hosp-speed-modal .hsm-finish{
-  background:linear-gradient(180deg,#ffcf5c,#e09a1c);
-  color:#4a2f00; box-shadow:0 4px 0 #9a6400;
+  background:linear-gradient(180deg,#ffd257,#e0a12c);
+  color:#3a2400; box-shadow:0 4px 0 #8a5c10;
 }
-.hosp-speed-modal .hsm-use{
-  background:linear-gradient(180deg,#4bb0f2,#1f76c9);
-  box-shadow:0 4px 0 #0f4a86;
+.hosp-speed-modal .hsm-use,
+.hosp-speed-modal .hsm-quick{
+  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
+  box-shadow:0 4px 0 #0b1c3a, inset 0 2px 3px rgba(150,205,255,.45);
 }
 .hosp-speed-modal .hsm-quick{
-  display:block; width:calc(100% - 28px); margin:9px auto 0;
-  background:linear-gradient(180deg,#4bb0f2,#1f76c9);
-  box-shadow:0 4px 0 #0f4a86;
+  display:block; width:calc(100% - 28px); margin:10px auto 0;
 }
 .hosp-speed-modal .hsm-btn:active{ transform:translateY(2px); box-shadow:none; }
 .hosp-speed-modal .hsm-btn[disabled]{ opacity:.5; }
@@ -4602,6 +4618,13 @@ function sahipOlunanHizlandirmalar() {
 /* Bitirme ücreti: kalan her dakika için kaç elmas. */
 const BITIR_ELMAS_DK = 20;
 
+/* DİKKAT: money() pvp.js'in kendi kapsamında tanımlı, buradan
+   erişilemiyor — çağırınca "money is not defined" hatası veriyor
+   ve tüm pencere çöküyordu. Yerel biçimlendirici kullanıyoruz. */
+function elmasYaz(n) {
+  return Number(n || 0).toLocaleString("tr-TR");
+}
+
 function hizlandirmaPenceresi(unitId) {
   const liste = sahipOlunanHizlandirmalar();
   const def = UNIT_TYPES[unitId];
@@ -4688,7 +4711,7 @@ function hizlandirmaPenceresi(unitId) {
 
     const maliyet = Math.max(1, Math.ceil(kalan / 60000) * BITIR_ELMAS_DK);
     const costEl = q("#hsmCost");
-    if (costEl) costEl.textContent = "💎 " + money(maliyet);
+    if (costEl) costEl.textContent = "💎 " + elmasYaz(maliyet);
     kok.dataset.cost = maliyet;
 
     if (!liste.length) return;
@@ -4804,7 +4827,7 @@ function hizlandirmaPenceresi(unitId) {
   q(".hsm-finish").addEventListener("click", () => {
     const maliyet = parseInt(kok.dataset.cost, 10) || 0;
     if ((state.diamonds || 0) < maliyet) {
-      showToast("Yeterli elmasın yok. Gereken: 💎 " + money(maliyet));
+      showToast("Yeterli elmasın yok. Gereken: 💎 " + elmasYaz(maliyet));
       return;
     }
     state.diamonds -= maliyet;
@@ -4814,6 +4837,13 @@ function hizlandirmaPenceresi(unitId) {
   });
 
   tazele();
+
+  /* Kalan süre canlı işlesin; pencere kapanınca sayaç da dursun. */
+  const sayac = setInterval(() => {
+    if (!document.body.contains(kok)) { clearInterval(sayac); return; }
+    if (kalanMs() <= 0) { clearInterval(sayac); kok.remove(); return; }
+    tazele();
+  }, 1000);
 }
 
 function useSpeedUpOnHospitalGroup(unitId) {
