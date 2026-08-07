@@ -1455,40 +1455,31 @@ body.world-active{padding:0; overflow:hidden;}
 
 /* ── HIZLANDIRMA PENCERESİ ──
    Düzen Whiteout Survival'daki "Select Speedups" penceresinden;
-   RENKLER oyunun kendi mavi temasından. Panelin geri kalanıyla
-   aynı gövde: #1fa3ea → #0e6fc0, açık mavi kenarlık. */
+   GÖVDE oyunun kendi .overlay-card'ı, kapatma düğmesi kendi
+   .overlay-close'u. Böylece tema kendiliğinden birebir oturuyor —
+   renk/font elle taklit edilmiyor. */
 .hosp-speed-modal{
   position:fixed; inset:0; z-index:9999;
   display:flex; align-items:center; justify-content:center;
   background:rgba(2,10,26,.72); padding:18px;
-  font-family:'Baloo 2',sans-serif;
 }
 .hosp-speed-modal .hsm-card{
-  position:relative; width:100%; max-width:340px;
-  border-radius:18px; padding:0 0 14px; overflow:hidden;
-  background:
-    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
-    linear-gradient(180deg, #1fa3ea, #0e6fc0);
-  border:3px solid rgba(190,240,255,.85);
-  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45);
+  max-width:340px;
+  border-radius:22px;          /* panel değil pencere: dört köşe yuvarlak */
+  padding:18px 16px 18px;
 }
-.hosp-speed-modal .hsm-head{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 12px;
-}
+.hosp-speed-modal .hsm-close{ top:12px; right:12px; }
 .hosp-speed-modal .hsm-title{
-  color:#fff; font-size:19px; font-weight:900; letter-spacing:1.6px;
-  text-shadow:0 3px 0 rgba(0,10,30,.55);
+  justify-content:center; font-size:22px; letter-spacing:1.6px;
+  padding-right:0; margin:0 0 12px;
 }
-.hosp-speed-modal .hsm-close{
-  width:30px; height:30px; border-radius:9px; border:none; cursor:pointer;
-  background:linear-gradient(180deg,#ff6a6a,#c81f2f); color:#fff;
-  font-size:14px; font-weight:800; box-shadow:0 3px 0 #7c1119;
+.hosp-speed-modal .hsm-label{
+  text-align:center; margin:12px 0 8px;
 }
 
 /* Kalan süre çubuğu */
 .hosp-speed-modal .hsm-bar{
-  position:relative; height:28px; margin:2px 14px 4px;
+  position:relative; height:28px; margin:0 0 4px;
   border-radius:9px; overflow:hidden;
   background:rgba(3,16,38,.55); box-shadow:inset 0 2px 4px rgba(0,0,0,.5);
 }
@@ -1498,24 +1489,21 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .hosp-speed-modal .hsm-bar-txt{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:'Baloo 2','Nunito',sans-serif;
   color:#fff; font-size:15px; font-weight:900;
   text-shadow:0 2px 0 rgba(0,40,10,.55);
 }
 
-.hosp-speed-modal .hsm-label{
-  text-align:center; color:#dff2ff; font-size:13px; font-weight:800;
-  margin:10px 0 7px;
-}
-
 /* Hızlandırma kartları */
 .hosp-speed-modal .hsm-cards{
-  display:flex; gap:9px; padding:0 14px 2px;
-  overflow-x:auto; -webkit-overflow-scrolling:touch;
+  display:flex; gap:9px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  padding-bottom:2px;
 }
 .hosp-speed-modal .hsm-card-item{
   position:relative; flex:0 0 76px; height:76px;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   border-radius:13px; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif;
   background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
   border:2px solid rgba(190,240,255,.35);
   box-shadow:0 4px 0 #0b1c3a, inset 0 2px 3px rgba(150,205,255,.45);
@@ -1536,83 +1524,95 @@ body.world-active{padding:0; overflow:hidden;}
   text-shadow:0 1px 2px rgba(0,10,30,.7);
 }
 
-/* Adet seçimi — top hiçbir düğmenin üstüne binmesin diye
-   sürgüye yanlardan iç boşluk verildi. */
+/* ── ADET SEÇİMİ ──
+   Ray, topun yarıçapı kadar içeriden başlar; konumlar JS'te piksel
+   olarak yazılır. Yüzdeyle yazınca top uçlarda dışarı taşıyordu. */
 .hosp-speed-modal .hsm-pick{
-  display:flex; align-items:center; gap:10px; padding:14px 14px 0;
+  display:flex; align-items:center; gap:10px; margin-top:14px;
 }
 .hosp-speed-modal .hsm-step{
-  flex:0 0 34px; width:34px; height:30px; padding:0;
+  flex:0 0 36px; width:36px; height:32px; padding:0;
   border-radius:9px; border:none; cursor:pointer;
-  color:#3a2400; font-size:18px; font-weight:900; line-height:1;
+  font-family:'Baloo 2','Nunito',sans-serif;
+  color:#3a2400; font-size:19px; font-weight:900; line-height:1;
   background:linear-gradient(180deg,#ffd257,#e0a12c);
   box-shadow:0 3px 0 #8a5c10, inset 0 1px 2px rgba(255,255,255,.6);
 }
 .hosp-speed-modal .hsm-step:active{ transform:translateY(2px); box-shadow:0 1px 0 #8a5c10; }
 
 .hosp-speed-modal .hsm-slider{
-  flex:1 1 auto; height:30px; margin:0;
-  padding:0 11px;              /* top uçlarda taşmasın */
-  box-sizing:border-box;
+  position:relative; flex:1 1 auto; height:30px;
+  touch-action:none; cursor:pointer; user-select:none;
 }
-.hosp-speed-modal .hsm-slider .sl-track{
-  left:11px; right:11px;
+.hosp-speed-modal .hsm-track{
+  position:absolute; left:11px; right:11px; top:50%;
+  height:7px; margin-top:-3.5px; border-radius:99px;
   background:rgba(3,16,38,.65);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.55);
 }
-.hosp-speed-modal .hsm-slider .sl-fill{
-  left:0; width:11px;
+.hosp-speed-modal .hsm-fill{
+  position:absolute; left:0; top:50%;
+  height:7px; margin-top:-3.5px; border-radius:99px;
   background:linear-gradient(180deg,#ff5a5a,#c81f2f);
   box-shadow:0 0 8px rgba(255,60,70,.45);
 }
-.hosp-speed-modal .hsm-slider .sl-thumb{
+.hosp-speed-modal .hsm-thumb{
+  position:absolute; top:50%; left:11px;
+  width:22px; height:22px; margin:-11px 0 0 -11px;
+  border-radius:50%;
   background:radial-gradient(circle at 35% 30%, #fff, #fff 60%, #dfe8f5);
+  box-shadow:0 2px 5px rgba(0,10,30,.6), inset 0 1px 2px rgba(255,255,255,.9);
+  pointer-events:none; transition:transform .12s ease;
 }
+.hosp-speed-modal .hsm-slider.dragging .hsm-thumb{ transform:scale(1.15); }
+
 .hosp-speed-modal .hsm-qty{
-  flex:0 0 auto; min-width:32px; text-align:center;
+  flex:0 0 auto; min-width:34px; text-align:center;
+  font-family:'Baloo 2','Nunito',sans-serif;
   color:#fff; font-size:16px; font-weight:900;
   text-shadow:0 2px 0 rgba(0,10,30,.6);
 }
 
 .hosp-speed-modal .hsm-total{
-  text-align:center; color:#dff2ff; font-size:13px; font-weight:800;
-  margin:11px 0 2px;
+  text-align:center; margin:12px 0 2px;
+  font-family:'Baloo 2','Nunito',sans-serif;
+  color:#dff2ff; font-size:13.5px; font-weight:800;
 }
 .hosp-speed-modal .hsm-total b{ color:#ffd257; }
 
 .hosp-speed-modal .hsm-empty{
   text-align:center; color:#eaf7ff; font-size:13px; font-weight:700;
-  padding:14px 18px; line-height:1.5;
+  padding:14px 6px; line-height:1.5;
+  font-family:'Baloo 2','Nunito',sans-serif;
 }
 
 /* Eylemler */
-.hosp-speed-modal .hsm-actions{ display:flex; gap:9px; padding:12px 14px 0; }
+.hosp-speed-modal .hsm-actions{ display:flex; gap:9px; margin-top:14px; }
 .hosp-speed-modal .hsm-btn{
   flex:1 1 0; padding:9px 6px; border:none; border-radius:12px; cursor:pointer;
-  font-family:'Baloo 2',sans-serif; font-weight:900; font-size:13px;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:900;
   color:#fff; letter-spacing:.7px;
-  display:flex; flex-direction:column; align-items:center; gap:1px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
 }
-.hosp-speed-modal .hsm-btn small{ font-size:14px; font-weight:900; opacity:1; }
 .hosp-speed-modal .hsm-finish{
-  background:linear-gradient(180deg,#ffd257,#e0a12c);
-  color:#fff; box-shadow:0 4px 0 #8a5c10;
   font-size:16px;
+  background:linear-gradient(180deg,#ffd257,#e0a12c);
+  box-shadow:0 4px 0 #8a5c10;
   text-shadow:0 2px 0 rgba(120,70,0,.55);
 }
 .hosp-speed-modal .hsm-finish small{
-  color:#fff; text-shadow:0 2px 0 rgba(120,70,0,.55);
+  font-size:14px; font-weight:900; color:#fff;
+  text-shadow:0 2px 0 rgba(120,70,0,.55);
 }
-/* KULLAN tek satır olduğu için dikeyde ortalanmalı */
-.hosp-speed-modal .hsm-use{
-  justify-content:center; font-size:15px;
-}
+.hosp-speed-modal .hsm-use{ font-size:15px; }
 .hosp-speed-modal .hsm-use,
 .hosp-speed-modal .hsm-quick{
   background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
   box-shadow:0 4px 0 #0b1c3a, inset 0 2px 3px rgba(150,205,255,.45);
+  text-shadow:0 2px 0 rgba(0,10,30,.55);
 }
 .hosp-speed-modal .hsm-quick{
-  display:block; width:calc(100% - 28px); margin:10px auto 0;
+  display:block; width:100%; margin-top:10px; font-size:15px;
 }
 .hosp-speed-modal .hsm-btn:active{ transform:translateY(2px); box-shadow:none; }
 .hosp-speed-modal .hsm-btn[disabled]{ opacity:.5; }
@@ -4662,15 +4662,13 @@ function hizlandirmaPenceresi(unitId) {
   kok.id = "hospSpeedModal";
   kok.className = "hosp-speed-modal";
   kok.innerHTML = `
-    <div class="hsm-card">
-      <div class="hsm-head">
-        <span class="hsm-title">HIZLANDIR</span>
-        <button class="hsm-close" type="button">✕</button>
-      </div>
+    <div class="overlay-card hsm-card">
+      <button class="overlay-close hsm-close" type="button">✕</button>
+      <h2 class="hsm-title">HIZLANDIR</h2>
 
       <div class="hsm-bar"><i class="hsm-bar-fill"></i><span class="hsm-bar-txt"></span></div>
 
-      <div class="hsm-label">Hızlandırma Seç</div>
+      <h3 class="hero-subtitle hsm-label">Hızlandırma Seç</h3>
 
       ${liste.length === 0
         ? `<div class="hsm-empty">Hızlandırman yok.<br>Mağazadan ⏩ Hızlandırma satın alabilirsin.</div>`
@@ -4685,9 +4683,10 @@ function hizlandirmaPenceresi(unitId) {
 
           <div class="hsm-pick">
             <button class="hsm-step hsm-minus" type="button">−</button>
-            <div class="hospital-slider hsm-slider">
-              <div class="sl-track"><i class="sl-fill"></i></div>
-              <div class="sl-thumb"></div>
+            <div class="hsm-slider">
+              <i class="hsm-track"></i>
+              <i class="hsm-fill"></i>
+              <i class="hsm-thumb"></i>
             </div>
             <button class="hsm-step hsm-plus" type="button">+</button>
             <span class="hsm-qty">1</span>
@@ -4703,14 +4702,6 @@ function hizlandirmaPenceresi(unitId) {
       </div>
       ${liste.length ? `<button class="hsm-btn hsm-quick" type="button">HIZLI KULLAN</button>` : ""}
     </div>`;
-  /* ── HAYALET TIKLAMA KORUMASI ──
-     Hızlandırma düğmesi pointerdown ile tetikleniyor. Parmak
-     kalkınca oluşan click olayı, o noktada ARTIK bu pencere
-     durduğu için doğrudan KULLAN düğmesine düşüyordu: pencere
-     açılır açılmaz hızlandırma harcanıyor ve kapanıyordu.
-     İlk 350 ms boyunca pencere dokunmaya kapalı. */
-  kok.style.pointerEvents = "none";
-  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
 
   document.body.appendChild(kok);
 
@@ -4747,12 +4738,19 @@ function hizlandirmaPenceresi(unitId) {
 
     kok.dataset.enfazla = enFazla;
     const oran = enFazla > 1 ? (adet - 1) / (enFazla - 1) : 0;
-    /* Top ve dolgu, rayın iç alanına göre yerleşir; böylece top
-       başta tam çubuğun başında, sonda tam sonunda durur. */
-    const fill = q(".hsm-slider .sl-fill");
-    const thumb = q(".hsm-slider .sl-thumb");
-    if (fill)  fill.style.width = "calc((100% - 22px) * " + oran + " + 11px)";
-    if (thumb) thumb.style.left = "calc((100% - 22px) * " + oran + " + 11px)";
+
+    /* Konumlar PİKSEL olarak yazılıyor. Yüzdeyle yazınca top,
+       kendi yarıçapı kadar rayın dışına taşıyordu. */
+    const ray = q(".hsm-slider");
+    if (ray) {
+      const w = ray.clientWidth;
+      const R = 11;                       /* topun yarıçapı */
+      const kullanilir = Math.max(0, w - R * 2);
+      const px = R + oran * kullanilir;
+      const fill = q(".hsm-fill"), thumb = q(".hsm-thumb");
+      if (fill)  fill.style.width = px + "px";
+      if (thumb) thumb.style.left = px + "px";
+    }
 
     q(".hsm-qty").textContent = String(adet);
     q("#hsmTotal").textContent = sureYaz(adet * liste[secili].ms);
@@ -4769,40 +4767,53 @@ function hizlandirmaPenceresi(unitId) {
     });
   });
 
-  /* Sürgü */
-  const ray = q(".hsm-slider");
-  if (ray) {
-    let aktif = null;
-    /* Ray, topun yarıçapı kadar içeriden başlıyor (CSS'te padding).
-       Oranı bu iç alana göre hesaplamazsak top uçlarda dışarı taşar. */
-    const IC = 11;
-    const oku = x => {
-      const r = ray.getBoundingClientRect();
-      const g = r.width - IC * 2;
-      if (g <= 0) return 0;
-      return Math.max(0, Math.min(1, (x - r.left - IC) / g));
+  /* ── SÜRGÜ ──
+     Rayın HERHANGİ bir yerinden tutulup sürüklenebilir; oran, topun
+     yarıçapı kadar içeriden başlayan kullanılabilir alana göre
+     hesaplanır, böylece top uçlarda dışarı taşmaz. */
+  const rayEl = q(".hsm-slider");
+  if (rayEl) {
+    const R = 11;
+    let aktifId = null;
+
+    const oranOku = clientX => {
+      const r = rayEl.getBoundingClientRect();
+      const kullanilir = r.width - R * 2;
+      if (kullanilir <= 0) return 0;
+      return Math.max(0, Math.min(1, (clientX - r.left - R) / kullanilir));
     };
-    const uygula = x => {
-      const enFazla = parseInt(kok.dataset.enfazla, 10) || liste[secili].adet;
-      adet = 1 + Math.round(oku(x) * (enFazla - 1));
+    const uygula = clientX => {
+      const enFazla = parseInt(kok.dataset.enfazla, 10) || 1;
+      adet = 1 + Math.round(oranOku(clientX) * (enFazla - 1));
       tazele();
     };
-    ray.addEventListener("pointerdown", e => {
-      aktif = e.pointerId; ray.setPointerCapture(aktif);
-      ray.classList.add("dragging"); uygula(e.clientX); e.preventDefault();
+
+    rayEl.addEventListener("pointerdown", e => {
+      aktifId = e.pointerId;
+      rayEl.setPointerCapture(aktifId);
+      rayEl.classList.add("dragging");
+      uygula(e.clientX);
+      e.preventDefault();
+      e.stopPropagation();
     });
-    ray.addEventListener("pointermove", e => {
-      if (aktif === null || e.pointerId !== aktif) return;
+    rayEl.addEventListener("pointermove", e => {
+      if (aktifId === null || e.pointerId !== aktifId) return;
       uygula(e.clientX);
     });
-    const birak = () => { aktif = null; ray.classList.remove("dragging"); };
-    ray.addEventListener("pointerup", birak);
-    ray.addEventListener("pointercancel", birak);
+    const birak = () => {
+      if (aktifId === null) return;
+      aktifId = null;
+      rayEl.classList.remove("dragging");
+    };
+    rayEl.addEventListener("pointerup", birak);
+    rayEl.addEventListener("pointercancel", birak);
   }
 
+  /* −/+ : pointerup kullanıyoruz, oyunun geri kalanıyla aynı
+     davranış (click mobilde gecikmeli tetikleniyordu). */
   const mn = q(".hsm-minus"), pl = q(".hsm-plus");
-  if (mn) mn.addEventListener("click", () => { adet--; tazele(); });
-  if (pl) pl.addEventListener("click", () => { adet++; tazele(); });
+  if (mn) mn.addEventListener("pointerup", e => { e.stopPropagation(); adet--; tazele(); });
+  if (pl) pl.addEventListener("pointerup", e => { e.stopPropagation(); adet++; tazele(); });
 
   const kapat = () => kok.remove();
   q(".hsm-close").addEventListener("click", kapat);
