@@ -1421,18 +1421,99 @@ body.world-active{padding:0; overflow:hidden;}
 }
 
 
-/* Hızlandırma düğmesi artık süre yazmıyor; "Tamamı için" satırının
-   yanında sadece simge olarak duruyor. */
-#panel-hospital .troop-queue-name-col{ gap:2px; }
+/* ── TEDAVİDE OLANLAR satırı ── */
+#panel-hospital .hosp-queue-row{
+  display:flex; align-items:center; gap:10px;
+}
+#panel-hospital .troop-queue-name-col{
+  flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px;
+}
+/* Adet, isimle aynı satırda ama ayrı bir rozet olarak */
+#panel-hospital .hosp-adet{
+  display:inline-block; margin-left:8px;
+  font-size:12px; font-weight:800; color:#ffd257;
+  background:rgba(3,16,38,.45); border-radius:7px; padding:1px 7px;
+  vertical-align:middle;
+}
+/* "Tamamı için" ibaresi kalktı; süre tek başına ve daha büyük */
 #panel-hospital .hospital-heal-total-time{
-  display:inline-flex; align-items:center; gap:6px;
+  font-family:'Baloo 2',sans-serif !important;
+  font-weight:800; font-size:15px; color:#eaf7ff;
+  text-transform:none; letter-spacing:.4px;
 }
-#panel-hospital .troop-queue-timer.hosp-speed{
-  font-size:0 !important;          /* metin gizli, simge kalıyor */
-  padding:0 !important;
+/* Hızlandırma düğmesi sağ uçta */
+#panel-hospital .hosp-speed-btn{
+  flex:0 0 auto; width:40px; height:34px; padding:0;
+  border-radius:10px; cursor:pointer; border:none;
+  font-size:17px; line-height:1;
+  background:linear-gradient(180deg,#5ac8ff,#1c74c9);
+  box-shadow:0 3px 0 #0d3f75, inset 0 1px 2px rgba(255,255,255,.5);
 }
-#panel-hospital .troop-queue-timer.hosp-speed::after{
-  content:"⏩"; font-size:15px; line-height:1;
+#panel-hospital .hosp-speed-btn:active{
+  transform:translateY(2px); box-shadow:0 1px 0 #0d3f75;
+}
+
+/* ── HIZLANDIRMA PENCERESİ ── */
+.hosp-speed-modal{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(2,10,26,.72); padding:20px;
+}
+.hosp-speed-modal .hsm-card{
+  position:relative; width:100%; max-width:330px;
+  border-radius:18px; padding:16px 16px 18px;
+  background:linear-gradient(180deg,#1fa3ea,#0e6fc0);
+  border:3px solid rgba(190,240,255,.85);
+  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45);
+  font-family:'Baloo 2',sans-serif;
+}
+.hosp-speed-modal .hsm-close{
+  position:absolute; top:10px; right:10px;
+  width:32px; height:32px; border-radius:9px; border:none; cursor:pointer;
+  background:linear-gradient(180deg,#ff6a6a,#c81f2f); color:#fff;
+  font-size:15px; font-weight:800;
+  box-shadow:0 3px 0 #7c1119;
+}
+.hosp-speed-modal .hsm-title{
+  margin:0; text-align:center; color:#fff;
+  font-size:22px; font-weight:900; letter-spacing:1.6px;
+  text-shadow:0 3px 0 rgba(0,10,30,.55);
+}
+.hosp-speed-modal .hsm-sub{
+  margin:2px 0 12px; text-align:center;
+  color:#dff2ff; font-size:12.5px; font-weight:700;
+}
+.hosp-speed-modal .hsm-row{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px; margin-bottom:8px; border-radius:12px;
+  background:linear-gradient(180deg, rgba(34,72,143,.75), rgba(13,34,70,.85));
+  box-shadow:inset 0 1px 2px rgba(150,205,255,.35);
+}
+.hosp-speed-modal .hsm-name{
+  flex:1 1 auto; min-width:0; color:#fff;
+  font-size:13px; font-weight:800;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.hosp-speed-modal .hsm-have{
+  flex:0 0 auto; color:#ffd257; font-size:11.5px; font-weight:800;
+}
+.hosp-speed-modal .hsm-input{
+  flex:0 0 46px; width:46px; height:26px; text-align:center; padding:0;
+  border-radius:8px; border:1px solid rgba(190,240,255,.4);
+  background:rgba(3,16,38,.6); color:#fff;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:14px;
+  -moz-appearance:textfield;
+}
+.hosp-speed-modal .hsm-input::-webkit-outer-spin-button,
+.hosp-speed-modal .hsm-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.hosp-speed-modal .hsm-total{
+  text-align:center; color:#eaf7ff; font-size:13px; font-weight:800;
+  margin:4px 0 2px;
+}
+.hosp-speed-modal .hsm-total b{ color:#ffd257; }
+.hosp-speed-modal .hsm-apply{
+  display:block; margin:12px auto 0; padding:8px 22px;
+  width:auto; min-width:130px; font-size:12px;
 }
 
 /* Kuyruk hiç yokken başlık da gizlenir */
@@ -4341,23 +4422,22 @@ function renderHospitalPanel() {
     const latest = group[group.length - 1];
     const remaining = soonest.finishAt - Date.now();
     const totalRemaining = latest.finishAt - Date.now();
-    /* Sağdaki tek birlik sayacı kaldırıldı: 20 şövalye sıralı
-       iyileşirken sıradakinin süresini göstermek yanıltıcıydı.
-       Artık yalnızca GRUBUN tamamı için kalan süre var; hızlandırma
-       düğmesi de aynı satırda, o sürenin yanında. */
+    /* Tek birlik sayacı yok: 20 şövalye sıralı iyileşirken
+       sıradakinin süresini göstermek yanıltıcıydı. Yalnızca GRUBUN
+       tamamı için kalan süre var. Hızlandırma düğmesi sağda. */
     return `
-      <div class="troop-queue-row">
+      <div class="troop-queue-row hosp-queue-row">
         <span class="hospital-face hospital-face-sm" data-unit="${unitId}">${unitFace(def)}</span>
         <div class="troop-queue-name-col">
-          <span class="troop-queue-name">${def ? def.name : unitId} x${group.length}</span>
-          <span class="hospital-heal-total-time">
-            Tamamı için: ${formatRemaining(totalRemaining)}
-            ${speedupBtn(unitId, remaining, speedUpCount, "troop-queue-timer hosp-speed")}
+          <span class="troop-queue-name">
+            ${def ? def.name : unitId}<span class="hosp-adet">${group.length}</span>
           </span>
+          <span class="hospital-heal-total-time">${formatRemaining(totalRemaining)}</span>
         </div>
+        <button class="hosp-speed-btn" data-speedunit="${unitId}" type="button">⏩</button>
       </div>`;
   }).join("");
-  bindAll(queueEl, ".speedup-trigger", (ds) => useSpeedUpOnHospitalGroup(ds.unit));
+  bindAll(queueEl, ".hosp-speed-btn", (ds) => hizlandirmaPenceresi(ds.speedunit));
 }
 
 function confirmHospitalSelection() {
@@ -4407,6 +4487,123 @@ function useSpeedUpOnGroup(group, afterFns) {
   soonest.finishAt = Math.max(Date.now(), soonest.finishAt - 5 * 60 * 1000);
   afterFns.forEach(fn => fn());
   showToast("⏩ 5 dakika hızlandırıldı!");
+}
+
+/* ── HIZLANDIRMA PENCERESİ ─────────────────────────────────────
+   Eskiden ⏩'ye basmak sessizce tek bir "5 Dakika Hızlandırma"
+   harcıyordu. Artık envanterdeki hızlandırmalar listeleniyor ve
+   kaç tane kullanılacağı seçiliyor.
+
+   AYRICA BİR HATA DÜZELDİ: eski kod yalnızca sıradaki tek birliğin
+   finishAt'ini kısaltıyordu. İyileşme zincirli olduğu için
+   arkadakiler kaymıyor, toplam süre neredeyse hiç değişmiyordu.
+   Artık kısalan süre ZİNCİRİN TAMAMINA uygulanıyor. */
+
+/* Eşya adından süreyi çıkarır: "5 Dakika Hızlandırma" → 5 dk */
+function hizlandirmaSuresiMs(ad) {
+  const m = String(ad).match(/(\d+)\s*(Dakika|Saat|Gün)/i);
+  if (!m) return 0;
+  const n = parseInt(m[1], 10);
+  const b = m[2].toLowerCase();
+  if (b === "saat") return n * 60 * 60 * 1000;
+  if (b === "gün")  return n * 24 * 60 * 60 * 1000;
+  return n * 60 * 1000;
+}
+
+function sahipOlunanHizlandirmalar() {
+  const env = state.inventory || {};
+  return Object.keys(env)
+    .filter(ad => /Hızlandırma/i.test(ad) && env[ad] > 0)
+    .map(ad => ({ ad, adet: env[ad], ms: hizlandirmaSuresiMs(ad) }))
+    .filter(x => x.ms > 0)
+    .sort((a, b) => a.ms - b.ms);
+}
+
+function hizlandirmaPenceresi(unitId) {
+  const liste = sahipOlunanHizlandirmalar();
+  if (liste.length === 0) {
+    showToast("Hızlandırman yok. Mağazadan ⏩ Hızlandırma satın al.");
+    return;
+  }
+
+  const def = UNIT_TYPES[unitId];
+  const eski = document.getElementById("hospSpeedModal");
+  if (eski) eski.remove();
+
+  const kok = document.createElement("div");
+  kok.id = "hospSpeedModal";
+  kok.className = "hosp-speed-modal";
+  kok.innerHTML = `
+    <div class="hsm-card">
+      <button class="hsm-close" type="button">✕</button>
+      <h2 class="hsm-title">HIZLANDIR</h2>
+      <p class="hsm-sub">${def ? def.name : unitId} tedavisi</p>
+      <div class="hsm-list">
+        ${liste.map((x, i) => `
+          <div class="hsm-row" data-i="${i}">
+            <span class="hsm-name">⏩ ${x.ad}</span>
+            <span class="hsm-have">${x.adet} adet</span>
+            <input class="hsm-input" type="number" inputmode="numeric"
+                   min="0" max="${x.adet}" value="0">
+          </div>`).join("")}
+      </div>
+      <div class="hsm-total">Toplam: <b id="hsmTotal">0 dk</b></div>
+      <button class="login-btn hsm-apply" type="button">UYGULA</button>
+    </div>`;
+  document.body.appendChild(kok);
+
+  const kutular = kok.querySelectorAll(".hsm-input");
+  const toplamEl = kok.querySelector("#hsmTotal");
+
+  function toplamMs() {
+    let t = 0;
+    kutular.forEach((k, i) => {
+      const v = Math.max(0, Math.min(liste[i].adet, parseInt(k.value, 10) || 0));
+      k.value = String(v);
+      t += v * liste[i].ms;
+    });
+    return t;
+  }
+  function toplamiYaz() {
+    const t = toplamMs();
+    const dk = Math.round(t / 60000);
+    toplamEl.textContent = dk >= 60
+      ? Math.floor(dk / 60) + " sa " + (dk % 60) + " dk"
+      : dk + " dk";
+  }
+  kutular.forEach(k => k.addEventListener("input", toplamiYaz));
+
+  const kapat = () => kok.remove();
+  kok.querySelector(".hsm-close").addEventListener("click", kapat);
+  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
+
+  kok.querySelector(".hsm-apply").addEventListener("click", () => {
+    const t = toplamMs();
+    if (t <= 0) { showToast("Önce kaç hızlandırma kullanacağını seç."); return; }
+
+    /* Eşyaları düş */
+    kutular.forEach((k, i) => {
+      const v = parseInt(k.value, 10) || 0;
+      if (v <= 0) return;
+      state.inventory[liste[i].ad] -= v;
+      if (state.inventory[liste[i].ad] <= 0) delete state.inventory[liste[i].ad];
+    });
+
+    /* ZİNCİRİN TAMAMINI kaydır — asıl düzeltme burada */
+    const grup = state.hospital
+      .filter(p => p.unitId === unitId && p.confirmed)
+      .sort((a, b) => a.finishAt - b.finishAt);
+    grup.forEach(p => { p.finishAt = Math.max(Date.now(), p.finishAt - t); });
+
+    kapat();
+    applyFinishedHospitalRecoveries();
+    _hospitalPendingKey = "";
+    renderHospitalPanel();
+    renderTroopsPanel();
+    if (typeof renderInventory === "function") renderInventory();
+    saveState();
+    showToast("⏩ Tedavi hızlandırıldı!");
+  });
 }
 
 function useSpeedUpOnHospitalGroup(unitId) {
