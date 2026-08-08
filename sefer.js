@@ -616,11 +616,23 @@ function panelCiz() {
   el.style.display = a.length ? "flex" : "none";
 }
 
-/* ── HARİTADAKİ ">>" ÇİZGİSİ ─────────────────────────────────────── */
-/* SVG, #battleMap (düğüm katmanı) içine konur. Konumlar PİKSEL —
+/* ── HARİTADAKİ YOL ÇİZGİSİ ──────────────────────────────────────
+   SVG, #battleMap (düğüm katmanı) içine konur. Konumlar PİKSEL —
    HARITA.ekranKonumu'ndan gelir; yüzde kullanılırsa zoom'da kayar.
-   renderBattleMap katmanı tazelerse SVG kopar, her karede geri takılır
-   (füze sprite'ının yaptığı gibi). */
+   renderBattleMap katmanı tazelerse SVG kopar, geri takılır (füze
+   sprite'ının yaptığı gibi).
+
+   ── innerHTML İLE ÇİZİLMEZ ──
+   Önce her karede sv.innerHTML yeniden kuruluyordu. Tarayıcı SVG'yi
+   baştan ayrıştırıp yerleşim hesapladığı için kare hızı 1 fps'e
+   düşüyordu. Kısıtlayınca da bu sefer çizgi, harita kaydırılırken
+   geride kalıp kayıyordu ve işaretler zıplıyordu.
+   Şimdi elemanlar sefer başına BİR KEZ kuruluyor, her karede yalnızca
+   öznitelikleri güncelleniyor. Bu ucuz olduğu için kısıt kalktı:
+   çizgi haritaya yapışık kalıyor, hareket akıcı.
+   Buraya innerHTML geri gelmemeli. */
+const _cizimler = Object.create(null);   /* sefer id → { g, cizgi, ok } */
+
 function svgKok() {
   const mapEl = $("battleMap");
   if (!mapEl) return null;
@@ -632,68 +644,87 @@ function svgKok() {
       "position:absolute; left:0; top:0; width:100%; height:100%; " +
       "overflow:visible; pointer-events:none; z-index:1;");
     mapEl.appendChild(sv);
+    /* katman yeniden doğduysa eski eleman göndermeleri geçersiz */
+    Object.keys(_cizimler).forEach(k => delete _cizimler[k]);
   } else if (sv.parentNode !== mapEl) {
     mapEl.appendChild(sv);
   }
   return sv;
 }
 
+function SVGEl(ad) { return document.createElementNS("http://www.w3.org/2000/svg", ad); }
+
+function cizimKur(sv, id) {
+  const g = SVGEl("g");
+
+  const cizgi = SVGEl("line");
+  cizgi.setAttribute("stroke-linecap", "round");
+  cizgi.setAttribute("stroke-opacity", ".45");
+
+  /* Tek ">" işareti — yolda akıcı biçimde ilerler. */
+  const ok = SVGEl("path");
+  ok.setAttribute("d", "M -5 -6 L 4 0 L -5 6");
+  ok.setAttribute("fill", "none");
+  ok.setAttribute("stroke-width", "3");
+  ok.setAttribute("stroke-linecap", "round");
+  ok.setAttribute("stroke-linejoin", "round");
+
+  g.appendChild(cizgi);
+  g.appendChild(ok);
+  sv.appendChild(g);
+
+  const kayit = { g: g, cizgi: cizgi, ok: ok };
+  _cizimler[id] = kayit;
+  return kayit;
+}
+
 function cizgileriCiz() {
   const h = H();
   const sv = svgKok();
   if (!h || !sv) return;
-  const a = liste();
-  if (!a.length) { sv.innerHTML = ""; return; }
 
-  const simdi = Date.now();
-  let out = "";
+  const a = liste();
+
+  /* biten seferlerin elemanlarını topla */
+  const yasayan = Object.create(null);
+  a.forEach(s => yasayan[s.id] = true);
+  Object.keys(_cizimler).forEach(id => {
+    if (yasayan[id]) return;
+    const k = _cizimler[id];
+    if (k && k.g && k.g.parentNode) k.g.parentNode.removeChild(k.g);
+    delete _cizimler[id];
+  });
 
   a.forEach(s => {
+    const k = _cizimler[s.id] || cizimKur(sv, s.id);
+
     const bas = h.ekranKonumu(s.basGx, s.basGy);
     const hed = h.ekranKonumu(s.hedGx, s.hedGy);
     const su  = anlikKonum(s);
     const sp  = h.ekranKonumu(su.gx, su.gy);
+
     const renk = (s.yon === "donus") ? CFG.cizgiRenkDonus : CFG.cizgiRenk;
     const zoom = bas.zoom || 1;
-
+    const kalinlik = Math.max(1.2, 2 * zoom);
     const aci = Math.atan2(hed.y - bas.y, hed.x - bas.x) * 180 / Math.PI;
 
-    /* yol çizgisi */
-    out += `<line x1="${bas.x}" y1="${bas.y}" x2="${hed.x}" y2="${hed.y}"
-              stroke="${renk}" stroke-width="${Math.max(1.2, 2 * zoom)}"
-              stroke-opacity=".45" stroke-dasharray="${6 * zoom} ${6 * zoom}"/>`;
+    k.cizgi.setAttribute("x1", bas.x);
+    k.cizgi.setAttribute("y1", bas.y);
+    k.cizgi.setAttribute("x2", hed.x);
+    k.cizgi.setAttribute("y2", hed.y);
+    k.cizgi.setAttribute("stroke", renk);
+    k.cizgi.setAttribute("stroke-width", kalinlik);
+    k.cizgi.setAttribute("stroke-dasharray", (6 * zoom) + " " + (6 * zoom));
 
-    /* akan ">>" işaretleri — zaman ile kayar */
-    const adet = 6;
-    const kayma = ((simdi % 1600) / 1600);
-    for (let i = 0; i < adet; i++) {
-      let t = (i / adet + kayma) % 1;
-      const x = bas.x + (hed.x - bas.x) * t;
-      const y = bas.y + (hed.y - bas.y) * t;
-      const solma = 0.25 + 0.55 * Math.sin(Math.PI * t);
-      out += `<text x="${x}" y="${y}" fill="${renk}" fill-opacity="${solma.toFixed(2)}"
-                font-size="${Math.max(9, 13 * zoom)}" font-weight="800"
-                text-anchor="middle" dominant-baseline="middle"
-                transform="rotate(${aci.toFixed(1)} ${x} ${y})">&#187;</text>`;
-    }
-
-    /* yürüyen birlik damgası */
-    const r = Math.max(5, 8 * zoom);
-    out += `<circle cx="${sp.x}" cy="${sp.y}" r="${r}" fill="rgba(6,22,44,.85)"
-              stroke="${renk}" stroke-width="${Math.max(1.2, 2 * zoom)}"/>`;
-    out += `<text x="${sp.x}" y="${sp.y}" text-anchor="middle" dominant-baseline="middle"
-              font-size="${Math.max(8, 11 * zoom)}">${s.yon === "donus" ? "\u21A9" : "\u2694"}</text>`;
-    out += `<text x="${sp.x}" y="${sp.y - r - 4 * zoom}" text-anchor="middle"
-              fill="${renk}" font-size="${Math.max(8, 11 * zoom)}" font-weight="800"
-              style="paint-order:stroke; stroke:rgba(0,10,25,.85); stroke-width:${3 * zoom}px;"
-              >${sureYaz(s.bitisAt - simdi)}</text>`;
+    k.ok.setAttribute("stroke", renk);
+    k.ok.setAttribute("stroke-width", Math.max(1.6, 2.6 * zoom));
+    k.ok.setAttribute("transform",
+      "translate(" + sp.x + "," + sp.y + ") rotate(" + aci.toFixed(2) + ") scale(" + Math.max(0.7, zoom) + ")");
   });
-
-  sv.innerHTML = out;
 }
 
 /* ── DÖNGÜ ───────────────────────────────────────────────────────── */
-let _rafId = 0, _sonPanel = 0, _sonCizim = 0;
+let _rafId = 0, _sonPanel = 0;
 
 function haritaGorunur() {
   const wrap = $("battleMapWrap");
@@ -719,18 +750,21 @@ function kare() {
     }
   }
 
-  /* ÇİZİM KISITI: sv.innerHTML her karede yeniden kurulunca tarayıcı
-     SVG'yi baştan ayrıştırıp yerleşim hesaplıyor. Harita canvas'ıyla
-     birlikte telefonda kare hızını 1 fps'e düşürüyordu. Saniyede ~12
-     kare fazlasıyla akıcı görünüyor; harita kapalıyken hiç çizmiyoruz. */
-  if (simdi - _sonCizim > 80) {
-    _sonCizim = simdi;
-    if (haritaGorunur()) cizgileriCiz();
-  }
+  /* ÇİZİM HER KAREDE. Kısıtlanırsa harita kaydırılırken çizgi bir-iki
+     kare geride kalır ve haritanın üstünde kayıyormuş gibi görünür.
+     Artık sadece öznitelik güncellemesi olduğu için ucuz. */
+  if (haritaGorunur()) cizgileriCiz();
   if (simdi - _sonPanel > 400) { _sonPanel = simdi; panelCiz(); }
 
   if (liste().length) dongudeKal();
-  else { const sv = $("seferKatman"); if (sv) sv.innerHTML = ""; panelCiz(); }
+  else {
+    Object.keys(_cizimler).forEach(id => {
+      const k = _cizimler[id];
+      if (k && k.g && k.g.parentNode) k.g.parentNode.removeChild(k.g);
+      delete _cizimler[id];
+    });
+    panelCiz();
+  }
 }
 
 function dongudeKal() {
