@@ -2834,6 +2834,16 @@ function stopListeningForCastles() {
 }
 
 let _chatListenerRef = null;
+
+/* ── AYNI MESAJ İKİ KEZ ÇİZİLMESİN ──
+   Firebase'in child_added olayı, limitToLast penceresi kaydığında
+   ESKİ kayıtlar için yeniden tetiklenebiliyor: kimse yazmadığı
+   halde çok eski mesajlar yeniymiş gibi alta yapışıyordu.
+   Sebep ne olursa olsun belirti imkânsız olsun diye çizilen her
+   mesajın Firebase ANAHTARI burada tutuluyor; aynı anahtar bir
+   daha gelirse çizilmiyor. */
+let _chatCizilen = new Set();
+let _chatTekrar  = 0;      /* kaç tekrar yutuldu (?ayar=1 gösterir) */
 let _chatOpen = false;
 
 function chatEscape(str) {
@@ -2850,6 +2860,16 @@ function chatFormatTime(ts) {
   } catch (e) { return ""; }
 }
 
+/* Firebase sunucu damgası. SDK yoksa telefon saatine düşer. */
+function sunucuSaati() {
+  try {
+    if (window.firebase && firebase.database && firebase.database.ServerValue) {
+      return firebase.database.ServerValue.TIMESTAMP;
+    }
+  } catch (e) {}
+  return Date.now();
+}
+
 function chatSendMessage() {
   const input = document.getElementById("chatInput");
   if (!input) return;
@@ -2863,7 +2883,10 @@ function chatSendMessage() {
   firebaseDb.ref("chat").push({
     name: name,
     text: text.slice(0, 200),
-    at: Date.now(),
+    /* Saat TELEFONDAN değil SUNUCUDAN. Saati ileri olan bir
+       oyuncunun mesajı "gelecekten" görünüyor ve sıralamayı
+       bozuyordu. */
+    at: sunucuSaati(),
   }).catch((err) => {
     const reason = (err && (err.code || err.message)) ? " (" + (err.code || err.message) + ")" : "";
     showToast("Mesaj gönderilemedi" + reason + ".");
@@ -2872,8 +2895,22 @@ function chatSendMessage() {
   input.value = "";
 }
 
-function chatRenderMessage(msg) {
+function chatRenderMessage(msg, key) {
   if (!msg) return;
+
+  if (key) {
+    if (_chatCizilen.has(key)) {        /* aynı kayıt yeniden geldi */
+      _chatTekrar++;
+      if (/[?&]ayar=1/.test(location.search || "")) {
+        console.warn("[chat] tekrar yutuldu:", key, msg.text);
+      }
+      return;
+    }
+    _chatCizilen.add(key);
+    if (_chatCizilen.size > 400) {      /* defter şişmesin */
+      _chatCizilen = new Set(Array.from(_chatCizilen).slice(-200));
+    }
+  }
   const box = document.getElementById("chatMessages");
   const empty = document.getElementById("chatEmpty");
   if (empty) empty.style.display = "none";
@@ -2952,7 +2989,7 @@ function startListeningForChat() {
 
   _chatListenerRef = firebaseDb.ref("chat").limitToLast(50);
   _chatListenerRef.on("child_added", (snap) => {
-    chatRenderMessage(snap.val());
+    chatRenderMessage(snap.val(), snap.key);
   }, (err) => {
     console.warn("[chat] okunamıyor:", err);
     const reason = (err && (err.code || err.message)) ? " (" + (err.code || err.message) + ")" : "";
@@ -2964,6 +3001,8 @@ function stopListeningForChat() {
     _chatListenerRef.off();
     _chatListenerRef = null;
   }
+  _chatCizilen = new Set();   /* kutu boşalıyor, defter de boşalmalı */
+  _chatTekrar = 0;
 
   const box = document.getElementById("chatMessages");
   if (box) {
@@ -5702,7 +5741,7 @@ function shareCoordInChat(gxIn, gyIn, kimin) {
   firebaseDb.ref("chat").push({
     name: name,
     text: metin,
-    at: Date.now(),
+    at: sunucuSaati(),
     kx: _kx, ky: _ky, kv: 2,
   }).then(() => {
     showToast("Konum sohbette paylaşıldı!");

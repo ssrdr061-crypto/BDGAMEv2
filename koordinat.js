@@ -250,6 +250,17 @@ function otomatikSinav() {
   if (ayarModu && typeof showToast === "function") {
     showToast(`✅ Koordinat kapısı sağlam — ${r.gecen}/${r.toplam} sınav geçti ` +
               `(karo ${t.karoSayisi}, oran ${Math.round(t.oran * 1000) / 1000})`, 6000);
+
+    /* Sohbet tekrar sayacı: kök sebep kalktı mı, rakamla görelim.
+       0 değilse child_added hâlâ eski kayıtlar için tetikleniyor
+       ama tekilleştirme onları yutuyor demektir. */
+    setTimeout(() => {
+      try {
+        if (typeof _chatTekrar === "number" && _chatTekrar > 0) {
+          showToast(`ℹ️ Sohbet: ${_chatTekrar} tekrar mesaj yutuldu (çizilmedi).`, 7000);
+        }
+      } catch (e) {}
+    }, 6500);
   }
 }
 
