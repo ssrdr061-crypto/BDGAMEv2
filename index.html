@@ -3662,6 +3662,19 @@ function startSessionFor(username) {
   currentUsername = acc.displayName;
   Object.assign(state, defaultState(), acc.state || {});
 
+  /* ── KALEYİ TAZELE (kritik) ──
+     Kayıtta artık yalnız {kx,ky,kv} duruyor; gx/gy sayılamaz olduğu
+     için diske yazılmıyor. Dolayısıyla buluttan gelen kale nesnesinde
+     gx/gy YOKTUR. Kodun pek çok yeri hâlâ castle.gx okuyor ve aşağıda
+     "gx yoksa yeni kale ver" güvenliği var — tazelemezsek oyuncuya HER
+     GİRİŞTE rastgele yeni bir kale doğuyordu.
+     kaleKayit nesneyi yeniden kurar: kx/ky gerçek kaynak, gx/gy bellekte
+     türetilir. */
+  try {
+    const _kk = KOORD.kaleKaro(state.castle);
+    if (_kk) state.castle = KOORD.kaleKayit(_kk.kx, _kk.ky);
+  } catch (e) { console.error("[kale] tazelenemedi:", e); }
+
   // Rehber bayrakları global state'ten SIZMASIN: her zaman yüklenen hesabın verisinden al.
   state.welcomeGiven   = !!(acc.state && acc.state.welcomeGiven === true);
   state.welcomePending = !!(acc.state && acc.state.welcomePending === true);
@@ -3689,7 +3702,8 @@ function startSessionFor(username) {
   if (!state.trainingQueue) state.trainingQueue = [];
 
   let _castleJustAssigned = false;
-  if (!state.castle || typeof state.castle.gx !== "number") {
+  /* Karo biçimindeki kale de geçerli sayılmalı — yoksa yeni kale doğar. */
+  if (!state.castle || !KOORD.kaleKaro(state.castle)) {
     state.castle = generateRandomCastlePos();
     _castleJustAssigned = true;
   }
