@@ -2670,7 +2670,7 @@ let _castleListenerRef = null;
 function publishCastle() {
   try {
     if (!firebaseReady || !currentUsername) return;
-    if (!state || !state.castle || typeof state.castle.gx !== "number") return;
+    if (!state || !state.castle || !KOORD.kaleKaro(state.castle)) return;
     const kk = KOORD.kaleKaro(state.castle);
     if (!kk) return;
     /* { name, kx, ky, kv } — gx/gy sayılamaz olduğu için yazılmaz. */
@@ -3665,9 +3665,9 @@ function startSessionFor(username) {
   /* ── KALEYİ TAZELE (kritik) ──
      Kayıtta artık yalnız {kx,ky,kv} duruyor; gx/gy sayılamaz olduğu
      için diske yazılmıyor. Dolayısıyla buluttan gelen kale nesnesinde
-     gx/gy YOKTUR. Kodun pek çok yeri hâlâ castle.gx okuyor ve aşağıda
-     "gx yoksa yeni kale ver" güvenliği var — tazelemezsek oyuncuya HER
-     GİRİŞTE rastgele yeni bir kale doğuyordu.
+     gx/gy YOKTUR. Kodun tamamı artık KOORD.kaleKaro üzerinden okuyor,
+     ama "kalesi yoksa yeni kale ver" güvenliği burada duruyor —
+     tazelemezsek oyuncuya HER GİRİŞTE rastgele yeni bir kale doğardı.
      kaleKayit nesneyi yeniden kurar: kx/ky gerçek kaynak, gx/gy bellekte
      türetilir. */
   try {
@@ -3908,7 +3908,8 @@ function _doluNoktalar(GRID) {
   /* Firebase'den gelen canlı kale listesi (castles/ düğümü) */
   try {
     if (Array.isArray(otherCastles)) {
-      otherCastles.forEach(c => { if (c && c.castle) ekle(c.castle.gx, c.castle.gy); });
+      otherCastles.forEach(c => { const k = KOORD.kaleKaro(c && c.castle);
+        if (k) ekle(KOORD.karodanOlcek(k.kx), KOORD.karodanOlcek(k.ky)); });
     }
   } catch (e) {}
 
@@ -3917,7 +3918,8 @@ function _doluNoktalar(GRID) {
     if (typeof ACCOUNTS === "object" && ACCOUNTS) {
       Object.keys(ACCOUNTS).forEach(k => {
         const a = ACCOUNTS[k];
-        if (a && a.state && a.state.castle) ekle(a.state.castle.gx, a.state.castle.gy);
+        { const k = KOORD.kaleKaro(a && a.state && a.state.castle);
+          if (k) ekle(KOORD.karodanOlcek(k.kx), KOORD.karodanOlcek(k.ky)); }
       });
     }
   } catch (e) {}
@@ -3926,7 +3928,8 @@ function _doluNoktalar(GRID) {
   try {
     const accs = loadAccounts();
     Object.values(accs).forEach(a => {
-      if (a && a.state && a.state.castle) ekle(a.state.castle.gx, a.state.castle.gy);
+      { const k = KOORD.kaleKaro(a && a.state && a.state.castle);
+        if (k) ekle(KOORD.karodanOlcek(k.kx), KOORD.karodanOlcek(k.ky)); }
     });
   } catch (e) {}
 
@@ -4017,7 +4020,8 @@ function _kaleEngelleri() {
     (otherCastles || []).forEach(c => {
       if (!c || !c.castle) return;
       if (benim && String(c.name || "").toLowerCase() === benim) return;
-      engel.push({ gx: c.castle.gx, gy: c.castle.gy });
+      { const k = KOORD.kaleKaro(c.castle);
+        if (k) engel.push({ gx: KOORD.karodanOlcek(k.kx), gy: KOORD.karodanOlcek(k.ky) }); }
     });
   } catch (e) {}
   return engel;
@@ -4047,7 +4051,7 @@ function _enYakinBosKare(kx, ky, engel) {
 
 function kaleyiKaroyaGocur() {
   try {
-    if (!state || !state.castle || typeof state.castle.gx !== "number") return;
+    if (!state || !state.castle || !KOORD.kaleKaro(state.castle)) return;
     if (state.castle.kv >= 2) return;               /* zaten göç etmiş */
 
     const kk = KOORD.kaleKaro(state.castle);
@@ -4085,7 +4089,9 @@ function kaleyiKaroyaGocur() {
    eleniyor. _doluNoktalar bu iş için kullanılmıyor. */
 async function fixOverlappingCastle() {
   try {
-    if (!state || !state.castle || typeof state.castle.gx !== "number") return;
+    const _bk = KOORD.kaleKaro(state && state.castle);
+    if (!_bk) return;
+    const _benimKare = { gx: KOORD.karodanOlcek(_bk.kx), gy: KOORD.karodanOlcek(_bk.ky) };
     const benim = (typeof currentUsername === "string" && currentUsername)
       ? currentUsername.toLowerCase() : null;
     /* Kim olduğumuzu bilmiyorsak kendi kalemizi ayırt edemeyiz —
@@ -4105,7 +4111,8 @@ async function fixOverlappingCastle() {
 
     try {
       if (Array.isArray(otherCastles)) {
-        otherCastles.forEach(c => { if (c && c.castle) ekle(c.name, c.castle.gx, c.castle.gy); });
+        otherCastles.forEach(c => { const k = KOORD.kaleKaro(c && c.castle);
+          if (k) ekle(c.name, KOORD.karodanOlcek(k.kx), KOORD.karodanOlcek(k.ky)); });
       }
     } catch (e) {}
 
@@ -4129,7 +4136,7 @@ async function fixOverlappingCastle() {
     } catch (e) {}
 
     const cakisma = baskalari.some(t =>
-      Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) < KALE_MIN_MESAFE);
+      Math.hypot(t.gx - _benimKare.gx, t.gy - _benimKare.gy) < KALE_MIN_MESAFE);
     if (!cakisma) return;
 
     state.castle = await generateCastlePosLive();
@@ -5214,12 +5221,12 @@ function castleNodeHTML(pos, isOwn, label) {
 function buildCastleNodesHTML() {
   let html = "";
 
-  if (state.castle && typeof state.castle.gx === "number") {
+  if (state.castle && KOORD.kaleKaro(state.castle)) {
     html += castleNodeHTML(state.castle, true, currentUsername || "Kalen");
   }
 
   otherCastles.forEach(c => {
-    if (c && c.castle && typeof c.castle.gx === "number") {
+    if (c && c.castle && KOORD.kaleKaro(c.castle)) {
       html += castleNodeHTML(c.castle, false, c.name);
     }
   });
@@ -5408,9 +5415,10 @@ function scrollMapToBase(maxFrames) {
       const mapW = 1586, mapH = 992;
 
       let startXPct = 15, startYPct = 50;
-      if (state.castle && typeof state.castle.gx === "number") {
-        startXPct = KOORD.olcektenYuzde(state.castle.gx);
-        startYPct = KOORD.olcektenYuzde(state.castle.gy);
+      const _sk = KOORD.kaleKaro(state.castle);
+      if (_sk) {
+        startXPct = KOORD.karodanYuzde(_sk.kx);
+        startYPct = KOORD.karodanYuzde(_sk.ky);
       }
       const startPxX = mapW * startXPct / 100;
       const startPxY = mapH * startYPct / 100;
@@ -5520,13 +5528,15 @@ function setupMapPanning() {
          otherCastles listesinden geliyor. */
       const accs = {};
       Object.values(accs).forEach(a => {
-        if(a && a.state && a.state.castle && typeof a.state.castle.gx === "number"){
+        const _ak = KOORD.kaleKaro(a && a.state && a.state.castle);
+        if(_ak){
           if(a.displayName && currentUsername && a.displayName.toLowerCase() === currentUsername.toLowerCase()) return; // kendi kalem hariç
-          taken.push({ gx:a.state.castle.gx, gy:a.state.castle.gy });
+          taken.push({ gx:KOORD.karodanOlcek(_ak.kx), gy:KOORD.karodanOlcek(_ak.ky) });
         }
       });
     } catch(e){}
-    try { (otherCastles||[]).forEach(c => { if(c && c.castle && typeof c.castle.gx === "number") taken.push({ gx:c.castle.gx, gy:c.castle.gy }); }); } catch(e){}
+    try { (otherCastles||[]).forEach(c => { const k = KOORD.kaleKaro(c && c.castle);
+      if(k) taken.push({ gx:KOORD.karodanOlcek(k.kx), gy:KOORD.karodanOlcek(k.ky) }); }); } catch(e){}
     return taken.every(t => Math.hypot(t.gx - gx, t.gy - gy) >= MOVE_MINDIST);
   }
 
@@ -5612,7 +5622,7 @@ function setupMapPanning() {
     }
   }
   function enterCastleMoveMode(cx, cy){
-    if(!state.castle || typeof state.castle.gx !== "number") return;
+    if(!state.castle || !KOORD.kaleKaro(state.castle)) return;
     castleMoveMode = true; dragging = false; clearHold();
     wrapEl.classList.remove("is-panning");
     ensureGhost();
@@ -5674,7 +5684,7 @@ function setupMapPanning() {
     onDown(e.clientX, e.clientY);
     // boş alanda 3 sn basılı tut → kale taşıma modu
     clearHold();
-    if (!castleMoveMode && state.castle && typeof state.castle.gx === "number" &&
+    if (!castleMoveMode && state.castle && KOORD.kaleKaro(state.castle) &&
         !e.target.closest(".map-node, .coord-share")) {
       const sx = e.clientX, sy = e.clientY;
       holdTimer = setTimeout(() => enterCastleMoveMode(sx, sy), HOLD_MS);
@@ -5807,15 +5817,16 @@ function updateHomeBtn() {
   const btn = document.getElementById("homeMapBtn");
   const wrapEl = $id("battleMapWrap");
   if (!btn || !wrapEl) return;
-  if (!state.castle || typeof state.castle.gx !== "number") {
+  if (!state.castle || !KOORD.kaleKaro(state.castle)) {
     btn.classList.remove("visible");
     return;
   }
   const wrapW = wrapEl.clientWidth, wrapH = wrapEl.clientHeight;
   if (wrapW <= 0 || wrapH <= 0) return;
 
-  const px = MAP_W * (state.castle.gx / COORD_GRID);
-  const py = MAP_H * (state.castle.gy / COORD_GRID);
+  const _mk = KOORD.kaleKaro(state.castle);
+  const px = MAP_W * (_mk.kx / KOORD.karoSayisi());
+  const py = MAP_H * (_mk.ky / KOORD.karoSayisi());
   const sx = mapPanX + px * mapZoom;
   const sy = mapPanY + py * mapZoom;
 
@@ -5835,8 +5846,9 @@ function updateHomeBtn() {
 }
 
 function goToCastle() {
-  if (!state.castle || typeof state.castle.gx !== "number") return;
-  panTweenToGrid(state.castle.gx, state.castle.gy, 380);
+  const _hk = KOORD.kaleKaro(state.castle);
+  if (!_hk) return;
+  panTweenToGrid(KOORD.karodanOlcek(_hk.kx), KOORD.karodanOlcek(_hk.ky), 380);
 }
 
 function handleCoordGo() {

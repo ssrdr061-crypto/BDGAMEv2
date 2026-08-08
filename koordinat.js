@@ -142,7 +142,12 @@ function kaleKayit(kx, ky) {
      mevcut 40 küsur okuma noktası çalışmaya devam eder ve teker
      teker, aceleye getirmeden karoya çevrilebilir.
      DİKKAT: Object.assign sayılamaz alanları KOPYALAMAZ —
-     bu nesne atanırken doğrudan atanmalı, birleştirilmemeli. */
+     bu nesne atanırken doğrudan atanmalı, birleştirilmemeli.
+
+     gx/gy artık oyunun HİÇBİR yerinde okunmuyor (hepsi kaleKaro'ya
+     çevrildi); yalnız emniyet için duruyor. Yeni kod YAZARKEN
+     bunlara güvenme — kaleKaro kullan. Buluttan gelen ham kayıtta
+     bu alanlar YOKTUR. */
   const k = { kx: _kx, ky: _ky, kv: 2 };
   Object.defineProperty(k, "gx", { value: karodanOlcek(_kx), enumerable: false, writable: true, configurable: true });
   Object.defineProperty(k, "gy", { value: karodanOlcek(_ky), enumerable: false, writable: true, configurable: true });
