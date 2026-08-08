@@ -3957,6 +3957,21 @@ async function generateCastlePosLive() {
   return generateRandomCastlePos(ekstra);
 }
 
+/* ── KALE MESAFE KURALI: TEK SABİT ──
+   Burada İKİ AYRI eşik vardı ve birbirini yiyordu:
+     · elle taşıma  cellFree → 0.25  (≈1.2 karo)  → izin veriyordu
+     · giriş denetimi        → 2.4   (≈11.3 karo) → çakışma sayıyordu
+   Sonuç: oyuncu kalesini kurallara uygun bir yere taşıyor, bir
+   sonraki girişte 4. saniyede kale RASTGELE bir yere ışınlanıyordu.
+   Artık ikisi de bu sabitten okuyor. Değiştirmek isteyen TEK yeri
+   değiştirir.
+
+   Not: yeni oyuncunun kalesinin DOĞDUĞU yer için ayrı ve daha geniş
+   bir aralık kullanılır (generateRandomCastlePos içindeki minDist) —
+   o, oyuncuları haritaya yaymak içindir; sonradan ışınlama sebebi
+   OLMAMALIDIR. */
+const KALE_MIN_MESAFE = 0.25;
+
 /* Oturum açınca kendi kalem başkasının üstündeyse sessizce taşı.
 
    DİKKAT — kale ışınlanması buradan çıkıyordu:
@@ -4015,7 +4030,7 @@ async function fixOverlappingCastle() {
     } catch (e) {}
 
     const cakisma = baskalari.some(t =>
-      Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) < 2.4);
+      Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) < KALE_MIN_MESAFE);
     if (!cakisma) return;
 
     state.castle = await generateCastlePosLive();
@@ -5371,7 +5386,7 @@ function setupMapPanning() {
   /* MOVE_MINDIST: iki kale arası en az kaç birim (0..30 ölçeğinde).
      2.4 idi — izometrik haritada bu, ekranın devasa bir bölümünü
      "dolu" sayıp neredeyse her yere taşımayı engelliyordu. */
-  const HOLD_MS = 3000, MOVE_COST = 20000, MOVE_MINDIST = 0.25, MGRID = 30;
+  const HOLD_MS = 3000, MOVE_COST = 20000, MOVE_MINDIST = KALE_MIN_MESAFE, MGRID = 30;
   let holdTimer = null, castleMoveMode = false, moveGhost = null;
 
   function clearHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer = null; } }
