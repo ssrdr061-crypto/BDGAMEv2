@@ -621,87 +621,103 @@ function panelCiz() {
   el.style.display = a.length ? "flex" : "none";
 }
 
-/* ── HARİTADAKİ YOL ÇİZGİSİ ──────────────────────────────────────
-   SVG, #battleMap (düğüm katmanı) içine konur. Konumlar PİKSEL —
-   HARITA.ekranKonumu'ndan gelir; yüzde kullanılırsa zoom'da kayar.
-   renderBattleMap katmanı tazelerse SVG kopar, geri takılır (füze
-   sprite'ının yaptığı gibi).
+/* ── HARİTADAKİ YOL ÇİZGİSİ VE İŞARETLER ─────────────────────────
+   Konumlar PİKSEL — HARITA.ekranKonumu'ndan gelir; yüzde kullanılırsa
+   zoom'da kayar. Her şey #battleMap (düğüm katmanı) içinde durur;
+   renderBattleMap katmanı tazelerse elemanlar kopar, geri takılır.
 
-   ── innerHTML İLE ÇİZİLMEZ ──
-   Önce her karede sv.innerHTML yeniden kuruluyordu. Tarayıcı SVG'yi
-   baştan ayrıştırıp yerleşim hesapladığı için kare hızı 1 fps'e
-   düşüyordu. Kısıtlayınca da bu sefer çizgi, harita kaydırılırken
-   geride kalıp kayıyordu ve işaretler zıplıyordu.
-   Şimdi elemanlar sefer başına BİR KEZ kuruluyor, her karede yalnızca
-   öznitelikleri güncelleniyor. Bu ucuz olduğu için kısıt kalktı:
-   çizgi haritaya yapışık kalıyor, hareket akıcı.
-   Buraya innerHTML geri gelmemeli. */
+   ── NEDEN SVG DEĞİL ──
+   İşaretler önce SVG <text>/<circle> ile çiziliyordu. İki ayrı sorun
+   çıktı: <text> + dominant-baseline:middle Android'de glifi y'den
+   kaydırarak bastığı için işaretler çizginin DIŞINDA duruyordu, ve
+   transform ile taşınan eleman hızlı kaydırmada ayrı katmanda
+   birleştirilip bir kare geriden geldiği için savruluyordu.
+
+   Artık işaretler, oyunun düğümleri için zaten kullandığı kanıtlanmış
+   desenle konumlanıyor: left/top PİKSEL + translate(-50%,-50%).
+   Konum yerleşimden gelir, transform yalnızca merkezleme ve DÖNDÜRME
+   yapar — döndürme elemanı yerinden oynatmaz. Sadece yol çizgisi SVG
+   <line> olarak kaldı; o x1/y1/x2/y2 ile çizildiği için zaten sorunsuz.
+
+   Buraya SVG <text> geri gelmemeli. */
 const _cizimler = Object.create(null);   /* sefer id → elemanlar */
 const CHEVRON_ADET = 6;
+const CHEVRON_HIZ  = 1.6;   /* saniyede kaç karo ilerlesin (akış hızı) */
 
-function svgKok() {
+function katman() {
   const mapEl = $("battleMap");
   if (!mapEl) return null;
+
   let sv = $("seferKatman");
-  if (!sv || !sv.isConnected) {
+  if (!sv || !sv.isConnected || sv.parentNode !== mapEl) {
+    if (sv && sv.parentNode) sv.parentNode.removeChild(sv);
     sv = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     sv.id = "seferKatman";
     sv.setAttribute("style",
       "position:absolute; left:0; top:0; width:100%; height:100%; " +
       "overflow:visible; pointer-events:none; z-index:1;");
     mapEl.appendChild(sv);
+  }
+
+  let kat = $("seferIsaretler");
+  if (!kat || !kat.isConnected || kat.parentNode !== mapEl) {
+    if (kat && kat.parentNode) kat.parentNode.removeChild(kat);
+    kat = document.createElement("div");
+    kat.id = "seferIsaretler";
+    kat.style.cssText =
+      "position:absolute; left:0; top:0; width:100%; height:100%; " +
+      "pointer-events:none; z-index:2;";
+    mapEl.appendChild(kat);
     /* katman yeniden doğduysa eski eleman göndermeleri geçersiz */
     Object.keys(_cizimler).forEach(k => delete _cizimler[k]);
-  } else if (sv.parentNode !== mapEl) {
-    mapEl.appendChild(sv);
   }
-  return sv;
+
+  return { sv: sv, kat: kat };
 }
 
-function SVGEl(ad, ozellikler) {
-  const el = document.createElementNS("http://www.w3.org/2000/svg", ad);
-  if (ozellikler) Object.keys(ozellikler).forEach(k => el.setAttribute(k, ozellikler[k]));
-  return el;
-}
+function cizimKur(sv, kat, id) {
+  const cizgi = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  cizgi.setAttribute("stroke-linecap", "round");
+  cizgi.setAttribute("stroke-opacity", ".45");
+  sv.appendChild(cizgi);
 
-function cizimKur(sv, id) {
-  const g = SVGEl("g");
+  const yeniKutu = (ekStil) => {
+    const d = document.createElement("div");
+    d.style.cssText = "position:absolute; left:0; top:0; " +
+      "font-family:'Baloo 2','Nunito',sans-serif; line-height:1; " +
+      "white-space:nowrap; pointer-events:none; " + (ekStil || "");
+    kat.appendChild(d);
+    return d;
+  };
 
-  const cizgi = SVGEl("line", { "stroke-linecap": "round", "stroke-opacity": ".45" });
-  g.appendChild(cizgi);
-
-  /* akan ">>" işaretleri */
   const chevronlar = [];
   for (let i = 0; i < CHEVRON_ADET; i++) {
-    const t = SVGEl("text", {
-      "text-anchor": "middle", "dominant-baseline": "middle", "font-weight": "800"
-    });
-    t.textContent = "\u00BB";
-    g.appendChild(t);
-    chevronlar.push(t);
+    const c = yeniKutu("font-weight:800;");
+    c.textContent = "\u00BB";
+    chevronlar.push(c);
   }
 
-  /* yürüyen birlik damgası */
-  const daire = SVGEl("circle", { fill: "rgba(6,22,44,.85)" });
-  const simge = SVGEl("text", { "text-anchor": "middle", "dominant-baseline": "middle" });
-  const etiket = SVGEl("text", {
-    "text-anchor": "middle", "font-weight": "800",
-    style: "paint-order:stroke; stroke:rgba(0,10,25,.85);"
-  });
-  g.appendChild(daire);
-  g.appendChild(simge);
-  g.appendChild(etiket);
+  const damga  = yeniKutu("border-radius:50%; background:rgba(6,22,44,.85); " +
+                          "display:flex; align-items:center; justify-content:center;");
+  const etiket = yeniKutu("font-weight:800; text-shadow:0 0 3px rgba(0,10,25,.95), " +
+                          "0 0 3px rgba(0,10,25,.95);");
 
-  sv.appendChild(g);
-  const kayit = { g, cizgi, chevronlar, daire, simge, etiket };
+  const kayit = { cizgi, chevronlar, damga, etiket };
   _cizimler[id] = kayit;
   return kayit;
 }
 
+/* left/top ile yerleştir, transform SADECE merkezleme + döndürme */
+function yerlestir(el, x, y, derece) {
+  el.style.left = x + "px";
+  el.style.top  = y + "px";
+  el.style.transform = "translate(-50%,-50%)" + (derece == null ? "" : " rotate(" + derece + "deg)");
+}
+
 function cizgileriCiz() {
   const h = H();
-  const sv = svgKok();
-  if (!h || !sv) return;
+  const kk = katman();
+  if (!h || !kk) return;
 
   const a = liste();
 
@@ -711,14 +727,19 @@ function cizgileriCiz() {
   Object.keys(_cizimler).forEach(id => {
     if (yasayan[id]) return;
     const k = _cizimler[id];
-    if (k && k.g && k.g.parentNode) k.g.parentNode.removeChild(k.g);
+    if (k) {
+      if (k.cizgi && k.cizgi.parentNode) k.cizgi.parentNode.removeChild(k.cizgi);
+      k.chevronlar.forEach(c => { if (c.parentNode) c.parentNode.removeChild(c); });
+      if (k.damga  && k.damga.parentNode)  k.damga.parentNode.removeChild(k.damga);
+      if (k.etiket && k.etiket.parentNode) k.etiket.parentNode.removeChild(k.etiket);
+    }
     delete _cizimler[id];
   });
 
   const simdi = Date.now();
 
   a.forEach(s => {
-    const k = _cizimler[s.id] || cizimKur(sv, s.id);
+    const k = _cizimler[s.id] || cizimKur(kk.sv, kk.kat, s.id);
 
     const bas = h.ekranKonumu(s.basGx, s.basGy);
     const hed = h.ekranKonumu(s.hedGx, s.hedGy);
@@ -727,7 +748,7 @@ function cizgileriCiz() {
 
     const renk = (s.yon === "donus") ? CFG.cizgiRenkDonus : CFG.cizgiRenk;
     const zoom = bas.zoom || 1;
-    const aci = Math.atan2(hed.y - bas.y, hed.x - bas.x) * 180 / Math.PI;
+    const aci  = Math.atan2(hed.y - bas.y, hed.x - bas.x) * 180 / Math.PI;
 
     /* yol çizgisi */
     k.cizgi.setAttribute("x1", bas.x);
@@ -739,46 +760,37 @@ function cizgileriCiz() {
     k.cizgi.setAttribute("stroke-dasharray", (6 * zoom) + " " + (6 * zoom));
 
     /* Akan işaretler.
-       KONUM x/y ÖZNİTELİĞİNDE, transform'da DEĞİL. Bir ara işareti
-       translate(...) ile taşıyordum: hızlı kaydırmada çizgi yerinde
-       kalırken işaret savruluyordu, çünkü tarayıcı dönüştürülmüş alt
-       ağacı ayrı katmanda birleştirip bir kare geriden getiriyor.
-       rotate(aci x y) noktanın ETRAFINDA döndürür, taşımaz — bu yüzden
-       işaret çizgiye yapışık kalır. */
+       HIZ KARO CİNSİNDEN sabit. Önce bütün yolu 1.6 saniyede dolaşan
+       bir kesir kullanılıyordu: uzun seferlerde işaretler ok gibi
+       fırlıyordu. Şimdi uzunluk ne olursa olsun aynı hızda akıyorlar. */
+    const uzunlukKaro = Math.max(0.001, Math.hypot(s.hedGx - s.basGx, s.hedGy - s.basGy));
+    const donguSn = uzunlukKaro / CHEVRON_HIZ / CHEVRON_ADET;
+    const adim = 1 / CHEVRON_ADET;
+    const kayma = ((simdi / 1000) / Math.max(0.001, donguSn) % 1) * adim;
     const chevronBoy = Math.max(9, 13 * zoom);
-    const kayma = (simdi % 1600) / 1600;
+
     for (let i = 0; i < CHEVRON_ADET; i++) {
-      const t = (i / CHEVRON_ADET + kayma) % 1;
-      const x = bas.x + (hed.x - bas.x) * t;
-      const y = bas.y + (hed.y - bas.y) * t;
+      const t = (i * adim + kayma) % 1;
       const el = k.chevronlar[i];
-      el.setAttribute("x", x);
-      el.setAttribute("y", y);
-      el.setAttribute("fill", renk);
-      el.setAttribute("fill-opacity", (0.25 + 0.55 * Math.sin(Math.PI * t)).toFixed(2));
-      el.setAttribute("font-size", chevronBoy);
-      el.setAttribute("transform", "rotate(" + aci.toFixed(1) + " " + x + " " + y + ")");
+      yerlestir(el, bas.x + (hed.x - bas.x) * t, bas.y + (hed.y - bas.y) * t, aci);
+      el.style.color = renk;
+      el.style.opacity = (0.25 + 0.55 * Math.sin(Math.PI * t)).toFixed(2);
+      el.style.fontSize = chevronBoy + "px";
     }
 
     /* birlik damgası + kalan süre */
-    const r = Math.max(5, 8 * zoom);
-    k.daire.setAttribute("cx", sp.x);
-    k.daire.setAttribute("cy", sp.y);
-    k.daire.setAttribute("r", r);
-    k.daire.setAttribute("stroke", renk);
-    k.daire.setAttribute("stroke-width", Math.max(1.2, 2 * zoom));
+    const cap = Math.max(12, 17 * zoom);
+    yerlestir(k.damga, sp.x, sp.y);
+    k.damga.style.width  = cap + "px";
+    k.damga.style.height = cap + "px";
+    k.damga.style.border = Math.max(1.2, 2 * zoom) + "px solid " + renk;
+    k.damga.style.fontSize = Math.max(8, 10 * zoom) + "px";
+    const istenen = (s.yon === "donus") ? "\u21A9" : "\u2694";
+    if (k.damga.textContent !== istenen) k.damga.textContent = istenen;
 
-    k.simge.setAttribute("x", sp.x);
-    k.simge.setAttribute("y", sp.y);
-    k.simge.setAttribute("font-size", Math.max(8, 11 * zoom));
-    const istenenSimge = (s.yon === "donus") ? "\u21A9" : "\u2694";
-    if (k.simge.textContent !== istenenSimge) k.simge.textContent = istenenSimge;
-
-    k.etiket.setAttribute("x", sp.x);
-    k.etiket.setAttribute("y", sp.y - r - 4 * zoom);
-    k.etiket.setAttribute("fill", renk);
-    k.etiket.setAttribute("font-size", Math.max(8, 11 * zoom));
-    k.etiket.setAttribute("stroke-width", (3 * zoom) + "px");
+    yerlestir(k.etiket, sp.x, sp.y - cap * 0.75 - 6 * zoom);
+    k.etiket.style.color = renk;
+    k.etiket.style.fontSize = Math.max(9, 11 * zoom) + "px";
     const yazi = sureYaz(s.bitisAt - simdi);
     if (k.etiket.textContent !== yazi) k.etiket.textContent = yazi;
   });
@@ -858,7 +870,12 @@ function kare() {
   else {
     Object.keys(_cizimler).forEach(id => {
       const k = _cizimler[id];
-      if (k && k.g && k.g.parentNode) k.g.parentNode.removeChild(k.g);
+      if (k) {
+        if (k.cizgi && k.cizgi.parentNode) k.cizgi.parentNode.removeChild(k.cizgi);
+        k.chevronlar.forEach(c => { if (c.parentNode) c.parentNode.removeChild(c); });
+        if (k.damga  && k.damga.parentNode)  k.damga.parentNode.removeChild(k.damga);
+        if (k.etiket && k.etiket.parentNode) k.etiket.parentNode.removeChild(k.etiket);
+      }
       delete _cizimler[id];
     });
     panelCiz();

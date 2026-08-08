@@ -3904,46 +3904,64 @@ async function generateCastlePosLive() {
 /* Oturum açınca kendi kalem başkasının üstündeyse sessizce taşı.
 
    DİKKAT — kale ışınlanması buradan çıkıyordu:
-   _doluNoktalar kendi kaleni de topluyor (ACCOUNTS bulut görüntüsü +
-   loadAccounts yerel kopya). Bulut kaydı bir kez başarısız olduysa
-   buluttaki kale konumu ESKİ kalıyor; o zaman aynı kale iki farklı
-   noktada görünüyor, buradaki "0.01'den uzak olanları al" filtresi
-   eski noktayı BAŞKASININ kalesi sanıyor ve senin kaleni rastgele bir
-   yere taşıyordu. Artık kendi hesabımıza ait noktalar ADA GÖRE
-   dışlanıyor; mesafe filtresi tek başına yeterli değil. */
+   _doluNoktalar noktaları İSİMSİZ topluyor, dolayısıyla kendi kaleni
+   başkasınınkinden ayırt edemiyor. otherCastles kendi kaleni ada göre
+   eliyor ama bunu LİSTE KURULURKEN yapıyor; girişte castles dinleyicisi
+   currentUsername atanmadan önce tetiklenirse kendi kalen listede
+   kalıyor ve burada "çakışma" sanılıp kalen rastgele bir yere
+   taşınıyordu.
+
+   Artık noktalar İSİMLE toplanıyor ve kendi adımıza ait olan her şey
+   eleniyor. _doluNoktalar bu iş için kullanılmıyor. */
 async function fixOverlappingCastle() {
   try {
     if (!state || !state.castle || typeof state.castle.gx !== "number") return;
+    const benim = (typeof currentUsername === "string" && currentUsername)
+      ? currentUsername.toLowerCase() : null;
+    /* Kim olduğumuzu bilmiyorsak kendi kalemizi ayırt edemeyiz —
+       taşımaktansa hiç dokunmamak doğrusu. */
+    if (!benim) return;
 
-    /* kendi hesabımızın her yerdeki kayıtlı kale noktaları */
-    const kendi = [];
+    const baskalari = [];
+    const ekle = (ad, gx, gy) => {
+      if (typeof gx !== "number" || typeof gy !== "number") return;
+      if (!isFinite(gx) || !isFinite(gy)) return;
+      if (ad && String(ad).toLowerCase() === benim) return;   /* kendi kalem */
+      baskalari.push({ gx: gx, gy: gy });
+    };
+
+    /* canavarlar — sahipsiz, hepsi engel */
+    try { enemies.forEach(e => ekle(null, (e.mapX / 100) * 30, (e.mapY / 100) * 30)); } catch (e) {}
+
     try {
-      const benim = (typeof currentUsername === "string") ? currentUsername.toLowerCase() : "";
-      if (benim) {
-        const accs = loadAccounts();
-        Object.keys(accs).forEach(k => {
-          if (k.toLowerCase() !== benim) return;
-          const c = accs[k] && accs[k].state && accs[k].state.castle;
-          if (c && typeof c.gx === "number") kendi.push({ gx: c.gx, gy: c.gy });
-        });
-        if (typeof ACCOUNTS === "object" && ACCOUNTS) {
-          Object.keys(ACCOUNTS).forEach(k => {
-            const a = ACCOUNTS[k];
-            const ad = (a && a.displayName ? a.displayName : k).toLowerCase();
-            if (ad !== benim) return;
-            const c = a && a.state && a.state.castle;
-            if (c && typeof c.gx === "number") kendi.push({ gx: c.gx, gy: c.gy });
-          });
-        }
+      if (Array.isArray(otherCastles)) {
+        otherCastles.forEach(c => { if (c && c.castle) ekle(c.name, c.castle.gx, c.castle.gy); });
       }
     } catch (e) {}
-    const bizimMi = (t) => kendi.some(k => Math.hypot(k.gx - t.gx, k.gy - t.gy) < 0.01);
 
-    const taken = _doluNoktalar(30).filter(t =>
-      Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) > 0.01 && !bizimMi(t));
-    const cakisma = taken.some(t =>
+    try {
+      if (typeof ACCOUNTS === "object" && ACCOUNTS) {
+        Object.keys(ACCOUNTS).forEach(k => {
+          const a = ACCOUNTS[k];
+          const c = a && a.state && a.state.castle;
+          if (c) ekle((a && a.displayName) ? a.displayName : k, c.gx, c.gy);
+        });
+      }
+    } catch (e) {}
+
+    try {
+      const accs = loadAccounts();
+      Object.keys(accs).forEach(k => {
+        const a = accs[k];
+        const c = a && a.state && a.state.castle;
+        if (c) ekle((a && a.displayName) ? a.displayName : k, c.gx, c.gy);
+      });
+    } catch (e) {}
+
+    const cakisma = baskalari.some(t =>
       Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) < 2.4);
     if (!cakisma) return;
+
     state.castle = await generateCastlePosLive();
     if (typeof persistCurrentState === "function") persistCurrentState();
     if (typeof publishCastle === "function") publishCastle();
