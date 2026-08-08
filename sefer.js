@@ -122,6 +122,45 @@ function anlikKonum(s) {
   };
 }
 
+/* ── KALE KOORDİNATI ÇÖZME ───────────────────────────────────────
+   pvp.js'in buildDefender'ı savunan oyuncunun KONUMUNU döndürmüyor:
+   nesnede gx/gy yok, sadece "mapX: 0, mapY: 0" var. Bu yüzden hedef
+   koordinatı doğrudan currentEnemy'den okunamaz — okumaya çalışınca
+   0,0 çıkar ve her baskın ızgaranın sol üst köşesine yürür.
+
+   Gerçek konum haritadaki kale düğümünde duruyor: index.html
+   castleNodeHTML'i data-cname / data-cx / data-cy yazıyor, pvp.js de
+   dokunuşu oradan okuyor. Biz de aynı kaynaktan alıyoruz.
+   Düğüm haritada değilse (uzak kale, harita tazelenmiş) otherCastles
+   listesine düşülür. İkisi de yoksa konum bilinmiyordur ve sefer
+   BAŞLATILMAZ — 0,0'a ordu yollamaktansa eski davranış iyidir. */
+function kaleKoordinati(ad) {
+  const hedefAd = String(ad || "").toLowerCase();
+  if (!hedefAd) return null;
+
+  const mapEl = $("battleMap");
+  if (mapEl) {
+    const dugumler = mapEl.querySelectorAll(".castle-node[data-cname]");
+    for (let i = 0; i < dugumler.length; i++) {
+      const ds = dugumler[i].dataset;
+      if (String(ds.cname || "").toLowerCase() !== hedefAd) continue;
+      const gx = parseFloat(ds.cx), gy = parseFloat(ds.cy);
+      if (isFinite(gx) && isFinite(gy)) return { gx: gx, gy: gy };
+    }
+  }
+
+  try {
+    if (typeof otherCastles !== "undefined" && Array.isArray(otherCastles)) {
+      const k = otherCastles.find(c =>
+        c && c.name && String(c.name).toLowerCase() === hedefAd &&
+        c.castle && isFinite(c.castle.gx));
+      if (k) return { gx: k.castle.gx, gy: k.castle.gy };
+    }
+  } catch (e) {}
+
+  return null;
+}
+
 /* ── SEFER BAŞLATMA ──────────────────────────────────────────────── */
 /* opt: { tur, hedefAd, hedefGx, hedefGy, birlikler, komutanlar, pvpHedef } */
 function baslat(opt) {
@@ -183,12 +222,27 @@ function yenile(adlar) {
 
 /* ── VARIŞ ───────────────────────────────────────────────────────── */
 let _savasKilidi = false;   /* aynı anda tek varış savaşı çözülsün */
+let _kilitBekci = 0;
+
+/* Kilit AÇILMAZSA sefer sonsuza kadar "00:00"da donar ve birlikler
+   ne savaşır ne eve döner. Savaş kurulumunda beklenmedik bir hata
+   çıkarsa diye kilidi 30 sn sonra zorla açan bir bekçi var. */
+function kilitle() {
+  _savasKilidi = true;
+  clearTimeout(_kilitBekci);
+  _kilitBekci = setTimeout(() => { _savasKilidi = false; }, 30000);
+}
+function kilitAc() {
+  _savasKilidi = false;
+  clearTimeout(_kilitBekci);
+}
 
 function varis(s) {
   if (s.yon === "donus") { eveDondu(s); return; }
   if (_savasKilidi) return;             /* sıradaki sefer bir sonraki tick'te */
-  _savasKilidi = true;
-  savasaGir(s);
+  kilitle();
+  try { savasaGir(s); }
+  catch (e) { kilitAc(); iptalEt(s, "Savaş kurulamadı"); }
 }
 
 function eveDondu(s) {
@@ -254,20 +308,20 @@ function savasaGir(s) {
 function pveVur(s, oncesi) {
   const e = (typeof enemies !== "undefined") ? enemies.find(x => x.name === s.hedefAd) : null;
   if (!e || typeof window.startBattle !== "function") {
-    _savasKilidi = false; iptalEt(s, "Hedef bulunamadı"); return;
+    kilitAc(); iptalEt(s, "Hedef bulunamadı"); return;
   }
-  try { currentEnemy = e; } catch (err) { _savasKilidi = false; iptalEt(s, "Hedef oturmadı"); return; }
+  try { currentEnemy = e; } catch (err) { kilitAc(); iptalEt(s, "Hedef oturmadı"); return; }
 
   Promise.resolve()
     .then(() => window.startBattle())
     .then(() => { savasBitti(s, oncesi); })
-    .catch(() => { _savasKilidi = false; iptalEt(s, "Savaş çözülemedi"); });
+    .catch(() => { kilitAc(); iptalEt(s, "Savaş çözülemedi"); });
 }
 
 function pvpVur(s, oncesi) {
   const btn = $("battleBtn");
-  if (!btn || !s.pvpHedef) { _savasKilidi = false; iptalEt(s, "Rakip bulunamadı"); return; }
-  try { currentEnemy = s.pvpHedef; } catch (err) { _savasKilidi = false; iptalEt(s, "Rakip oturmadı"); return; }
+  if (!btn || !s.pvpHedef) { kilitAc(); iptalEt(s, "Rakip bulunamadı"); return; }
+  try { currentEnemy = s.pvpHedef; } catch (err) { kilitAc(); iptalEt(s, "Rakip oturmadı"); return; }
 
   const gunlukOnce = (state.battleLogHistory || []).length;
 
@@ -286,7 +340,7 @@ function pvpVur(s, oncesi) {
   let kalan = 25;   /* ~5 sn */
   (function bekle() {
     if ((state.battleLogHistory || []).length > gunlukOnce) { savasBitti(s, oncesi); return; }
-    if (--kalan <= 0) { _savasKilidi = false; iptalEt(s, "Savaş çözülemedi"); return; }
+    if (--kalan <= 0) { kilitAc(); iptalEt(s, "Savaş çözülemedi"); return; }
     setTimeout(bekle, 200);
   })();
 }
@@ -307,7 +361,7 @@ function savasBitti(s, oncesi) {
   if (toplam <= 0) {
     sil(s.id);
     kaydet();
-    _savasKilidi = false;
+    kilitAc();
     yenile(["renderTroopsPanel", "renderTroopSelector"]);
     return;
   }
@@ -318,7 +372,7 @@ function savasBitti(s, oncesi) {
   });
 
   donuseGec(s, hayatta);
-  _savasKilidi = false;
+  kilitAc();
   kaydet();
   yenile(["renderTroopsPanel", "renderTroopSelector"]);
 }
@@ -660,13 +714,17 @@ function kesici(e) {
     tur = "kale";
     ad = currentEnemy.name;
     pvpHedef = currentEnemy;
-    gx = say(currentEnemy.gx, NaN); gy = say(currentEnemy.gy, NaN);
-    if (!isFinite(gx) && currentEnemy.castle) { gx = currentEnemy.castle.gx; gy = currentEnemy.castle.gy; }
+    const k = kaleKoordinati(ad);
+    /* Konum çözülemediyse KARIŞMA: sefer başlatmak yerine oyunun eski
+       anlık saldırısı çalışsın. Yoksa ordu 0,0'a yürür. */
+    if (!k) return;
+    gx = k.gx; gy = k.gy;
   } else {
     tur = "canavar";
     ad = currentEnemy.name;
-    gx = (say(currentEnemy.mapX, 0) / 100) * 30;
-    gy = (say(currentEnemy.mapY, 0) / 100) * 30;
+    if (!isFinite(currentEnemy.mapX) || !isFinite(currentEnemy.mapY)) return;
+    gx = (currentEnemy.mapX / 100) * 30;
+    gy = (currentEnemy.mapY / 100) * 30;
   }
   if (!isFinite(gx) || !isFinite(gy)) return;   /* konum yoksa eski davranış */
 
