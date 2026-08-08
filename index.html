@@ -3827,7 +3827,8 @@ function _doluNoktalar(GRID) {
     }
   };
 
-  try { enemies.forEach(e => ekle((e.mapX / 100) * GRID, (e.mapY / 100) * GRID)); } catch (e) {}
+  /* Canavar konumu YÜZDE tutuluyor; çevrim tek kapıdan (koordinat.js). */
+  try { enemies.forEach(e => ekle(KOORD.yuzdedenOlcek(e.mapX), KOORD.yuzdedenOlcek(e.mapY))); } catch (e) {}
 
   /* Firebase'den gelen canlı kale listesi (castles/ düğümü) */
   try {
@@ -3933,7 +3934,7 @@ async function fixOverlappingCastle() {
     };
 
     /* canavarlar — sahipsiz, hepsi engel */
-    try { enemies.forEach(e => ekle(null, (e.mapX / 100) * 30, (e.mapY / 100) * 30)); } catch (e) {}
+    try { enemies.forEach(e => ekle(null, KOORD.yuzdedenOlcek(e.mapX), KOORD.yuzdedenOlcek(e.mapY))); } catch (e) {}
 
     try {
       if (Array.isArray(otherCastles)) {
@@ -5008,12 +5009,12 @@ function buildMapGridHTML() {
   let html = "";
   if (activeCoordMarker) {
     const st = iso ? gizli
-      : `left:${(activeCoordMarker.gx / COORD_GRID) * 100}%; top:${(activeCoordMarker.gy / COORD_GRID) * 100}%;`;
+      : `left:${KOORD.olcektenYuzde(activeCoordMarker.gx)}%; top:${KOORD.olcektenYuzde(activeCoordMarker.gy)}%;`;
     html += `<div class="coord-marker" style="${st}"></div>`;
   }
   if (pendingShareCoord) {
     const st = iso ? gizli
-      : `left:${(pendingShareCoord.gx / COORD_GRID) * 100}%; top:${(pendingShareCoord.gy / COORD_GRID) * 100}%;`;
+      : `left:${KOORD.olcektenYuzde(pendingShareCoord.gx)}%; top:${KOORD.olcektenYuzde(pendingShareCoord.gy)}%;`;
     html += `<div class="coord-share" id="coordShareMarker" style="${st}">` +
               `<span class="coord-share-icon">✏️</span>` +
               `<span class="coord-share-label">x:${fmtCoord(pendingShareCoord.gx)} y:${fmtCoord(pendingShareCoord.gy)}</span>` +
@@ -5023,8 +5024,8 @@ function buildMapGridHTML() {
 }
 
 function castleNodeHTML(pos, isOwn, label) {
-  const px = (pos.gx / COORD_GRID) * 100;
-  const py = (pos.gy / COORD_GRID) * 100;
+  const px = KOORD.olcektenYuzde(pos.gx);
+  const py = KOORD.olcektenYuzde(pos.gy);
   const cls = isOwn ? "castle-own" : "castle-other";
   const safeName = String(label || "Oyuncu").replace(/["'<>&]/g, "");
   const labelText = isOwn ? "Kalen" : safeName;
@@ -5238,8 +5239,8 @@ function scrollMapToBase(maxFrames) {
 
       let startXPct = 15, startYPct = 50;
       if (state.castle && typeof state.castle.gx === "number") {
-        startXPct = (state.castle.gx / COORD_GRID) * 100;
-        startYPct = (state.castle.gy / COORD_GRID) * 100;
+        startXPct = KOORD.olcektenYuzde(state.castle.gx);
+        startYPct = KOORD.olcektenYuzde(state.castle.gy);
       }
       const startPxX = mapW * startXPct / 100;
       const startPxY = mapH * startYPct / 100;
@@ -5341,7 +5342,7 @@ function setupMapPanning() {
 
   function cellFree(gx, gy){
     const taken = [];
-    try { enemies.forEach(e => taken.push({ gx:(e.mapX/100)*MGRID, gy:(e.mapY/100)*MGRID })); } catch(e){}
+    try { enemies.forEach(e => taken.push({ gx:KOORD.yuzdedenOlcek(e.mapX), gy:KOORD.yuzdedenOlcek(e.mapY) })); } catch(e){}
     try {
       /* loadAccounts() localStorage'daki ESKİ hesap kopyalarını
          döndürüyordu; oradaki bayat kale konumları "burası dolu" deyip

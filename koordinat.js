@@ -192,6 +192,45 @@ function tani() {
   return r;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   OTOMATİK SINAV
+   Geliştirici telefonla çalışıyor; konsol açmak zorunda kalmasın.
+   Sayfa yüklendikten sonra kapı kendini sınar:
+     · sapma VARSA  → ekrana kırmızı uyarı düşer (sessiz kalmaz)
+     · sapma YOKSA  → hiçbir şey olmaz (yalnız ?ayar=1 ile onay)
+   Sınav harita.js yüklendikten sonra çalışmalı; o yüzden
+   yükleme sonrası kısa bir gecikmeyle tetiklenir.
+   ═══════════════════════════════════════════════════════════ */
+function otomatikSinav() {
+  const r = dogrula();
+  const ayarModu = (typeof location !== "undefined") &&
+                   /[?&]ayar=1/.test(location.search || "");
+
+  if (r.kalan.length) {
+    const mesaj = `⚠️ KOORDİNAT SAPMASI: ${r.kalan.length}/${r.toplam} sınav başarısız — ` +
+                  `çizim ile mantık ayrışmış olabilir!`;
+    if (typeof showToast === "function") showToast(mesaj, 9000);
+    else if (typeof alert === "function") alert(mesaj);
+    return;
+  }
+  const t = tani();
+  if (!t.uyumlu) {
+    const m = "⚠️ KOORDİNAT: harita.js oranı ile karo/ölçek hesabı uyuşmuyor!";
+    if (typeof showToast === "function") showToast(m, 9000);
+    return;
+  }
+  if (ayarModu && typeof showToast === "function") {
+    showToast(`✅ Koordinat kapısı sağlam — ${r.gecen}/${r.toplam} sınav geçti ` +
+              `(karo ${t.karoSayisi}, oran ${Math.round(t.oran * 1000) / 1000})`, 6000);
+  }
+}
+
+if (typeof window !== "undefined") {
+  const baslat = () => setTimeout(otomatikSinav, 2500);
+  if (document.readyState === "complete") baslat();
+  else window.addEventListener("load", baslat);
+}
+
 window.KOORD = {
   /* okuma */
   karoSayisi: karoSayisi, olcek: olcek, oran: oran,
