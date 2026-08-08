@@ -441,9 +441,13 @@ function seferPenceresi(id) {
 
   const kok = document.createElement("div");
   kok.className = "sefer-modal";
+  /* FONT: gövdeye Baloo 2 açıkça yazılıyor ve düğmelerde .battle-btn
+     KULLANILMIYOR — o sınıf font-family:'Cinzel',serif taşıyor ve
+     pencereye serif yazı sızdırıyordu. Oyunun ana fontu Baloo 2. */
   kok.style.cssText =
     "position:fixed; inset:0; z-index:9000; display:flex; align-items:center; " +
-    "justify-content:center; background:rgba(0,10,25,.6); padding:20px;";
+    "justify-content:center; background:rgba(0,10,25,.6); padding:20px; " +
+    "font-family:'Baloo 2','Nunito',sans-serif;";
 
   const donus = (s.yon === "donus");
   const birlikYazi = Object.keys(s.birlikler).map(uid => {
@@ -451,16 +455,24 @@ function seferPenceresi(id) {
     return (d ? d.icon + d.name : uid) + " x" + s.birlikler[uid];
   }).join(", ") || "—";
 
+  const dugmeStil =
+    "flex:1; padding:12px 10px; border-radius:12px; cursor:pointer; " +
+    "font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:13.5px; " +
+    "color:#eaf6ff; border:2px solid rgba(190,240,255,.55); " +
+    "background:linear-gradient(180deg,#1fa3ea,#0e6fc0); " +
+    "box-shadow:0 6px 16px -6px rgba(0,20,45,.6);";
+
   kok.innerHTML = `
-    <div class="overlay-card" style="max-width:340px; width:100%; position:relative;">
+    <div class="overlay-card" style="max-width:340px; width:100%; position:relative;
+         font-family:'Baloo 2','Nunito',sans-serif;">
       <button class="overlay-close" type="button">✕</button>
       <h2 style="justify-content:center;">${donus ? "↩️ Dönüş Yolunda" : "⚔️ " + (ISIM[s.tur] || "Sefer")}</h2>
-      <div style="text-align:center; font-size:14px; margin-bottom:6px;">${s.hedefAd}</div>
-      <div style="text-align:center; font-size:22px; font-weight:800;" class="sefer-modal-sure">--:--</div>
-      <div style="font-size:12px; opacity:.8; margin:10px 0; text-align:center;">${birlikYazi}</div>
+      <div style="text-align:center; font-size:14px; font-weight:700; margin-bottom:6px;">${s.hedefAd}</div>
+      <div style="text-align:center; font-size:24px; font-weight:800;" class="sefer-modal-sure">--:--</div>
+      <div style="font-size:12.5px; font-weight:600; opacity:.85; margin:10px 0; text-align:center;">${birlikYazi}</div>
       <div style="display:flex; gap:8px; margin-top:12px;">
-        ${donus ? "" : `<button class="battle-btn sefer-geri" type="button" style="flex:1; font-size:13px;">↩️ Geri Çağır</button>`}
-        <button class="battle-btn sefer-hizli" type="button" style="flex:1; font-size:13px;">💎 <span class="sefer-ucret">0</span></button>
+        ${donus ? "" : `<button class="sefer-geri" type="button" style="${dugmeStil}">↩️ Geri Çağır</button>`}
+        <button class="sefer-hizli" type="button" style="${dugmeStil}">💎 <span class="sefer-ucret">0</span></button>
       </div>
     </div>`;
 
