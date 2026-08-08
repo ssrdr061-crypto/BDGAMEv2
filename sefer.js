@@ -130,14 +130,7 @@ function liste() {
   try {
     const ham = localStorage.getItem(anahtar);
     const veri = ham ? JSON.parse(ham) : null;
-    if (Array.isArray(veri)) {
-      /* Diskten gelen kayıtta ÇALIŞMA ANI bayrakları geçersizdir.
-         Sayfa yenilendiyse savasaGir hiç çalışmamıştır: _envanterde
-         takılı kalırsa birlikler eve varınca hiç eklenmez ve yok olur,
-         _islemde takılı kalırsa varış hiç işlenmez. */
-      veri.forEach(s => { if (s) { s._envanterde = false; s._islemde = false; } });
-      _seferler = veri;
-    }
+    if (Array.isArray(veri)) _seferler = veri;
   } catch (e) { _seferler = []; }
   return _seferler;
 }
@@ -301,15 +294,9 @@ function varis(s) {
 }
 
 function eveDondu(s) {
-  /* Son emniyet kemeri: buraya gelen bir seferin birlikleri envanterde
-     OLMAMALI (savasBitti ya da iptalEt onları düşmüş olur). Bayrak
-     hâlâ açıksa bir yerde düşme atlanmış demektir — ekleme, çoğalır. */
-  if (!s._envanterde) {
-    Object.keys(s.birlikler || {}).forEach(uid => {
-      state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
-    });
-  }
-  s._envanterde = false;
+  Object.keys(s.birlikler || {}).forEach(uid => {
+    state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
+  });
   sil(s.id);
   kaydet();
   yenile(["renderTroopsPanel", "renderTroopSelector", "renderHospitalPanel"]);
@@ -348,16 +335,10 @@ function sil(id) {
 let _izin = false;   /* true iken kesici gönderdiğimiz olayı geçirir */
 
 function savasaGir(s) {
-  /* 1) birlikleri geçici olarak eve al ki savaş kodu onları görsün.
-     _envanterde BAYRAĞI ŞART: bu andan itibaren aynı birlikler HEM
-     state.troops'ta HEM s.birlikler'de duruyor. Sefer bu aralıkta
-     iptal edilir ya da eve dönerse ve bayrağa bakılmazsa birlikler
-     İKİ KEZ eklenir (ordu çoğalır). Bayrağı temizleyen tek yer,
-     onları envanterden tekrar düşen koddur. */
+  /* 1) birlikleri geçici olarak eve al ki savaş kodu onları görsün */
   Object.keys(s.birlikler || {}).forEach(uid => {
     state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
   });
-  s._envanterde = true;
   const oncesi = Object.assign({}, state.troops);
 
   /* 2) komutan ve birlik seçimini seferin anlık görüntüsüne çevir */
@@ -426,8 +407,6 @@ function savasBitti(s, oncesi) {
   s.savasti = true;
 
   if (toplam <= 0) {
-    /* dönen kimse yok: envanterde de kimse kalmadı, borç kapandı */
-    s._envanterde = false;
     sil(s.id);
     kaydet();
     kilitAc();
@@ -435,12 +414,10 @@ function savasBitti(s, oncesi) {
     return;
   }
 
-  /* dönüş yolu için tekrar envanterden düş — savasaGir'in geçici
-     eklemesi burada kapanıyor, bayrak da onunla birlikte iner */
+  /* dönüş yolu için tekrar envanterden düş */
   Object.keys(hayatta).forEach(uid => {
     state.troops[uid] = Math.max(0, say(state.troops[uid], 0) - hayatta[uid]);
   });
-  s._envanterde = false;
 
   donuseGec(s, hayatta);
   kilitAc();
@@ -465,27 +442,8 @@ function donuseGec(s, birlikler) {
   dongudeKal();
 }
 
-/* Savaş kurulamadıysa birlikleri hemen eve yolla — asla yutma.
-
-   ── BURASI ORDU ÇOĞALTIYORDU ──
-   iptalEt YALNIZCA savasaGir çalıştıktan sonra çağrılıyor (varis'in
-   catch'i, pveVur, pvpVur). savasaGir ilk iş olarak birlikleri
-   state.troops'a geri koymuş oluyor. Eskiden burada o ekleme geri
-   alınmadan sefer dönüş yoluna sokuluyordu: birlikler hem envanterde
-   hem seferde duruyor, eveDondu varışta bir kez DAHA ekliyordu.
-   Sonuç: rakip listeden düşünce ya da PvP günlük yoklaması boşa
-   çıkınca oyuncu bedava ordu kazanıyordu.
-   Şimdi bayrak açıksa ekleme geri alınıyor. Bayrağa BAKMADAN düşme:
-   savaş hiç kurulamadan (adım 1'den önce) gelen bir hata varsa
-   birlikler envantere hiç konmamıştır, körlemesine düşmek onları
-   yok eder. */
+/* Savaş kurulamadıysa birlikleri hemen eve yolla — asla yutma */
 function iptalEt(s, sebep) {
-  if (s._envanterde) {
-    Object.keys(s.birlikler || {}).forEach(uid => {
-      state.troops[uid] = Math.max(0, say(state.troops[uid], 0) - s.birlikler[uid]);
-    });
-    s._envanterde = false;
-  }
   toast(`${s.hedefAd}: ${sebep} — birlikler dönüyor.`);
   donuseGec(s, Object.assign({}, s.birlikler));
   kaydet();
@@ -883,13 +841,8 @@ function tumSeferleriIptalEt() {
   if (!a.length) return;
   let toplam = 0;
   a.forEach(s => {
-    /* Savaşı tam o anda çözülüyorsa (savasaGir adım 1'i geçmişse)
-       birlikler ZATEN envanterde — ikinci kez eklemek onları
-       çoğaltır. Sadece bayrağı indir, sayıma yine de kat. */
-    const zatenEvde = !!s._envanterde;
-    s._envanterde = false;
     Object.keys(s.birlikler || {}).forEach(uid => {
-      if (!zatenEvde) state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
+      state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
       toplam += s.birlikler[uid];
     });
   });
@@ -903,21 +856,12 @@ function tumSeferleriIptalEt() {
 
 let _rafId = 0, _sonPanel = 0;
 
-/* Görünürlük SATIR İÇİ stilden okunmaz: bu ekranlar bazen CSS sınıfıyla
-   gizleniyor, o zaman el.style.display boş dizge döner ve savaş ekranı
-   açıkken bile "harita görünür" sanılır — çizgi arenanın üstünde kalır.
-   getComputedStyle ikisini de doğru görür. */
-function gizliMi(el) {
-  if (!el) return true;
-  if (!el.isConnected) return true;
-  const st = getComputedStyle(el);
-  return st.display === "none" || st.visibility === "hidden" || st.opacity === "0";
-}
-
 function haritaGorunur() {
   const wrap = $("battleMapWrap");
-  if (gizliMi(wrap)) return false;
-  if (!gizliMi($("battleArena"))) return false;
+  if (!wrap) return false;
+  if (wrap.style.display === "none") return false;
+  const arena = $("battleArena");
+  if (arena && arena.style.display !== "none" && arena.style.display !== "") return false;
   return true;
 }
 
