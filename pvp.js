@@ -1136,6 +1136,14 @@ async function runPvpBattle() {
   Object.keys(myWounded).forEach(uid => state.troops[uid] = Math.max(0,(state.troops[uid]||0) - myWounded[uid]));
   if (typeof sendWoundedToHospital === "function") sendWoundedToHospital(toHospitalFormat(myWounded));
 
+  /* Kayıpları dışarı bildir. sefer.js bunu okuyup dönen ordunun
+     mevcudunu KESİN hesaplar. Savaş akışına etkisi yok. */
+  if (window.PVP) window.PVP.sonSonuc = {
+    killed:  Object.assign({}, myKilled),
+    wounded: Object.assign({}, myWounded),
+    at: Date.now()
+  };
+
   /* genel can */
   const drain = (typeof STAMINA_DRAIN_RATIO !== "undefined") ? STAMINA_DRAIN_RATIO : 0.35;
   const hpLost = Math.max(0, R.attacker.heroMaxHp - R.attacker.heroHp);
@@ -1679,6 +1687,15 @@ window.PVP = {
   open: openCastlePopup, attack: beginPvpBattle,
   simulate: pvpSimulate, config: CFG,
   friends: () => (pvpState() || {}).friends,
+  /* ── sefer.js kullanır ──
+     savasiCalistir/savunanKur: sefer hedefe varınca savaşı PANELSİZ
+     çözmek için. sonSonuc: o savaşta ölen/yaralanan KESİN sayılar —
+     sefer dönen ordunun mevcudunu bundan hesaplar (tahminle değil).
+     Bu üç ad silinirse sefer sistemi SESSİZCE kırılır: ordu varır,
+     savaş olmaz, eli boş döner. Silmeden önce projede ARA. */
+  savasiCalistir: runPvpBattle,
+  savunanKur: buildDefender,
+  sonSonuc: null,
 };
 })();
 

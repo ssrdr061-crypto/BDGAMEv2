@@ -1,1006 +1,834 @@
-/* ═══════════════════════════════════════════════════════════════════
-   sefer.js  —  YOLA ÇIKMA (yürüyüş) SİSTEMİ
-   -------------------------------------------------------------------
-   Canavara / kaleye / (ileride) kaynak noktasına saldırırken savaş
-   ARTIK ANINDA ÇÖZÜLMEZ. Birlik yola çıkar, haritada hedefe doğru
-   ">>" çizgisi belirir, sol üstte geri sayan bir sayaç durur. Süre
-   dolunca savaş gerçek koduyla (startBattle / runPvpBattle) koşar,
-   sonra birlikler geri yürür.
+/* ============================================================
+   sefer.js — BİRLİK SEVKİYATI (İNTİKAL)
+   ------------------------------------------------------------
+   Saldırılar artık ANINDA çözülmez: ordu haritada yürür, hedefe
+   varır, çarpışır ve geri döner.
 
-   ── NEDEN BÖYLE YAZILDI (dokunmadan önce oku) ──────────────────────
+   Araya girdiği tek yer SALDIR düğmesidir; onu da `document`
+   üzerinde CAPTURE aşamasında yakalar. Capture, hedef elemanın
+   kendi dinleyicilerinden ÖNCE çalışır — böylece pvp.js'in ve
+   index.html'in mevcut dinleyicileri hiç tetiklenmez.
 
-   1) SAVAŞ MANTIĞI KOPYALANMADI. Ne PvE ne PvP formülü buraya
-      taşınmadı. Sefer varınca gerçek "Savaşa Gir" düğmesine programlı
-      dokunulur ve savaşı yine kendi kodu çözer. OKU-BENI'deki uyarı
-      (bir özelliği ayrı dosyaya taşıyıp window'dan devralmak sessizce
-      kırılır) tam olarak bundan kaçınmak için dinlendi.
+   KİLİTLENME BİLİNÇLİ: bir hata olursa ya da hedefin koordinatı
+   çözülemezse SALDIR yine de yutulur ve toast basılır. Sessizce
+   eski anlık savaşa DÜŞMEZ — geliştirme sırasında "bazen yürüyor
+   bazen ışınlanıyor" belirsizliği hatayı gizler.
 
-   2) DÜĞMEYİ NASIL YAKALIYORUZ. index.html savaş düğmesine
-      safeBind(...,"click") ile, pvp.js ise AYNI düğmeye capture
-      aşamasında "pointerup"+"click" ile bağlanıyor. Aynı elemandaki
-      capture dinleyicileri kayıt sırasına göre çalışır, bu dosya
-      pvp.js'ten sonra yüklendiği için oraya bağlanmak İŞE YARAMAZDI.
-      Çözüm: dinleyici DOCUMENT üzerinde capture aşamasında duruyor —
-      document capture, hedef elemandaki capture'dan HER ZAMAN önce
-      çalışır. Düğmenin id'si ("battleBtn") değişirse bu dosya sessizce
-      devre dışı kalır ve savaş eskisi gibi anında çözülür.
+   Varışta savaşı yine OYUNUN KENDİ fonksiyonları çözer:
+     - kale    → window.PVP.savasiCalistir()   (pvp.js)
+     - canavar → startBattle()                 (index.html)
+   Savaş matematiği burada KOPYALANMAZ.
 
-   3) VARIŞTA OLAY GÖNDERİMİ TÜRE GÖRE FARKLI:
-        PvE  → sadece "click"    (safeBind click bekliyor)
-        PvP  → sadece "pointerup" (pvp.js önce pointerup'ı yakalıyor)
-      İKİSİNİ BİRDEN göndermek PvP'de savaşı İKİ KEZ çözer
-      (runPvpBattle içindeki _running kilidi eşzamansız değil, ilk
-      çağrı bitince hemen açılıyor). Buraya "garanti olsun" diye
-      ikinci olay eklenmemeli.
+   DÖNEN ORDUNUN MEVCUDU TAHMİN DEĞİL:
+     - ölen   → window.PVP.sonSonuc.killed  (pvp.js yayınlar)
+     - yaralı → sendWoundedToHospital'a giden liste (aşağıda
+                geçici olarak yakalanır)
+   Yaralılar savaş anında hastaneye GİRMEZ; orduyla birlikte eve
+   yürür, kaleye varınca hastaneye düşer.
 
-   4) BİRLİKLER YOLDAYKEN NEREDE. Yola çıkarken state.troops'tan
-      DÜŞÜLÜR (yoksa aynı 72 şövalye üç sefere birden gider). Varışta
-      savaştan hemen önce geri eklenir, savaş kayıpları düşürür,
-      ardından HAYATTA KALANLAR dönüş yolu için tekrar düşülür.
-      Hayatta kalan sayısı, savaş öncesi/sonrası state.troops farkından
-      çıkarılır — bu sırada eğitim kuyruğundan birlik teslim olursa
-      sayım şaşabilir, o yüzden fark 0..gönderilen aralığına kırpılıyor.
-
-   5) SÜRE KAYDEDİLİR, GERİ SAYIM DEĞİL. Sefer listesinde mutlak
-      bitisAt damgası tutulur (hastane zinciri ile aynı mantık), böylece
-      oyuncu sayfayı yenilese de sefer yoluna devam eder. Liste state'in
-      İÇİNDE DEĞİL, kendi localStorage anahtarındadır — sebebi "VERİ"
-      başlığındaki uzun notta.
-
-   6) ÇİZGİ KENDİ KARE DÖNGÜSÜNDE. harita.js'in dugumleriYerlestir'i
-      SARMALANMADI: o fonksiyon dosya içinden adıyla çağrılıyor, dışarıdan
-      üzerine yazılan sürüm çalışmaz (füze aylarca bu yüzden kırıktı).
-      Bunun yerine sefer varken requestAnimationFrame ile her karede
-      HARITA.ekranKonumu sorulup çizgi yeniden konumlanıyor.
-   ═══════════════════════════════════════════════════════════════════ */
-
+   VERİ: Firebase'de "seferler/{id}". Herkes okur, yalnız sahibi
+   yazar. Kayıtta `gidisAt` + `sureMs` durur; konum bunlardan
+   HESAPLANIR, sürekli yazılmaz. Sonradan bağlanan oyuncu orduyu
+   yolun ortasında görür (missile.js'in pvp_launches deseni).
+   ============================================================ */
 (function () {
 "use strict";
 
-/* ── AYARLAR ─────────────────────────────────────────────────────── */
-const CFG = {
-  /* Oyunun ızgarası 0–30 (Firebase verisi böyle). Bir karo bu kadar
-     saniye sürer. 30 karoluk çapraz uç ~ 6 dk civarı olur. */
-  saniyeKaroBasi: 14,
-  enAzSaniye: 25,          /* çok yakın hedefte de bir yürüyüş hissi kalsın */
-  enCokSaniye: 25 * 60,
-  maxSefer: 3,             /* aynı anda kaç sefer */
-  donusCarpani: 1.0,       /* dönüş yolu gidişin kaç katı */
-  elmasDk: 10,             /* hızlandırma: kalan her dakika için elmas */
-  cizgiRenk: "#7fe3ff",
-  cizgiRenkDonus: "#9ad48f",
+/* ═══════════════════════════════════════════════════════════
+   1) AYARLAR — tek yerden değiştir
+   ═══════════════════════════════════════════════════════════ */
+const AYAR = {
+  KOK: "seferler",          /* Firebase düğümü */
+  SANIYE_PER_KARO: 25,      /* 1 karo yürüyüş süresi (sn) */
+  MIN_SURE_MS: 15000,       /* en kısa sefer */
+  CARPISMA_BEKLE_MS: 2000,  /* hedefe varınca savaştan önceki duraklama */
+  MAX_SEFER: 3,             /* aynı anda en fazla kaç intikal */
+  KAYIT_OMRU_MS: 2 * 60 * 60 * 1000, /* bu kadar eskimiş kayıt çöptür */
+  YAY: 0.12,                /* yolun kavis miktarı (0 = düz çizgi) */
 };
 
-const ISIM = { canavar: "Sefer", kale: "Baskın", kaynak: "Toplama" };
+/* selectedTroopsForBattle ile AYNI sıra. pvp.js'teki FRONT_ORDER
+   dışa açık değil, o yüzden burada tekrar yazıldı — birim listesi
+   değişirse burası da değişmeli. */
+const BIRLIKLER = ["knight", "soldier", "robot"];
 
-/* ── KISA YARDIMCILAR ────────────────────────────────────────────── */
-function $(id) { return document.getElementById(id); }
-function say(v, d) { return (typeof v === "number" && isFinite(v)) ? v : (d || 0); }
-function toast(m) { if (typeof showToast === "function") showToast(m); }
-function H() { return (window.HARITA && typeof window.HARITA.ekranKonumu === "function") ? window.HARITA : null; }
+/* ═══════════════════════════════════════════════════════════
+   2) İÇ DURUM
+   ═══════════════════════════════════════════════════════════ */
+let seferler    = {};        /* Firebase'den gelen TÜM seferler */
+let _ref        = null;
+let _benKey     = null;
+let _isleniyor  = new Set(); /* aynı sefer iki kez çözülmesin */
+let _kaleKonum  = null;      /* ışınlanma denetimi */
+let _sonKapi    = 0;         /* SALDIR çift tetiklemesini yut */
+let _panelKilit = 0;         /* savaş çözülürken backToMap'i nötrle */
+let _rafId      = null;
+let _svg = null, _yolGrup = null;
 
-/* money() pvp.js'in kendi kapsamında — buradan çağrılamaz (OKU-BENI, tuzak 11) */
-function elmasYaz(n) { return Number(n || 0).toLocaleString("tr-TR"); }
+/* Yaralı yakalama */
+let _yaraliYakala = false;
+let _yakalanan    = null;
 
-function sureYaz(ms) {
-  const t = Math.max(0, Math.round(ms / 1000));
-  const sa = Math.floor(t / 3600), dk = Math.floor((t % 3600) / 60), sn = t % 60;
-  const iki = n => String(n).padStart(2, "0");
-  return sa > 0 ? `${sa}:${iki(dk)}:${iki(sn)}` : `${iki(dk)}:${iki(sn)}`;
+/* ═══════════════════════════════════════════════════════════
+   3) YARDIMCILAR
+   ═══════════════════════════════════════════════════════════ */
+function fbHazir() { return (typeof firebaseDb !== "undefined") && !!firebaseDb; }
+function benKey() {
+  if (typeof currentUsername !== "string" || !currentUsername) return null;
+  if (typeof toFirebaseKey !== "function") return null;
+  return toFirebaseKey(currentUsername.toLowerCase());
+}
+function toast(msg, ms) { if (typeof showToast === "function") showToast(msg, ms); }
+function izgara() { return (typeof COORD_GRID === "number") ? COORD_GRID : 30; }
+function bekle(ms) { return new Promise(r => setTimeout(r, ms)); }
+function toplam(b) { return BIRLIKLER.reduce((a, k) => a + ((b || {})[k] || 0), 0); }
+
+/* "05.32d" biçimi */
+function fmtSure(ms) {
+  const t = Math.max(0, Math.ceil(ms / 1000));
+  const dk = Math.floor(t / 60), sn = t % 60;
+  return String(dk).padStart(2, "0") + "." + String(sn).padStart(2, "0") + "d";
 }
 
-function kaydet() {
-  seferleriYaz();
-  if (typeof persistCurrentState === "function") persistCurrentState();
+function sureHesapla(fx, fy, tx, ty) {
+  const d = Math.hypot(tx - fx, ty - fy);
+  return Math.max(AYAR.MIN_SURE_MS, Math.round(d * AYAR.SANIYE_PER_KARO * 1000));
 }
 
-/* ── VERİ ────────────────────────────────────────────────────────
-   SEFERLER state İÇİNDE TUTULMAZ. Kendi localStorage anahtarında
-   durur. Sebebi ciddi:
-
-   queueCloudSave hesabı Firebase'e .set() ile yazıyor. Firebase,
-   veride TEK BİR undefined bulursa yazmanın tamamını reddeder ve
-   bunu SENKRON throw ederek yapar — o throw index.html'deki
-   "catch (e) { console.warn('Bulut senkron hatasi') }" içinde
-   sessizce yutulur. Sefer nesnesi state'e konunca (örneğin boş
-   komutan yuvası yüzünden) bulut kaydı tamamen susuyordu.
-
-   Bunun bedeli kale kaybı oluyordu: bulutta kalenin ESKİ konumu
-   kalınca _doluNoktalar aynı kaleyi iki ayrı noktada görüyor,
-   fixOverlappingCastle bunu çakışma sanıp kaleyi rastgele bir yere
-   taşıyordu. Sefer verisi state'e GERİ KONMAMALI. */
-const DEPO_ONEK = "sefer_v1_";
-
-let _seferler = null;
-let _seferSahibi = null;
-
-function depoAnahtari() {
-  const u = (typeof currentUsername === "string" && currentUsername) ? currentUsername.toLowerCase() : "";
-  return u ? (DEPO_ONEK + u) : null;
-}
-
-function liste() {
-  const anahtar = depoAnahtari();
-  if (!anahtar) return [];
-  if (_seferler && _seferSahibi === anahtar) return _seferler;
-
-  /* hesap değişti ya da ilk okuma */
-  _seferSahibi = anahtar;
-  _seferler = [];
-  try {
-    const ham = localStorage.getItem(anahtar);
-    const veri = ham ? JSON.parse(ham) : null;
-    if (Array.isArray(veri)) _seferler = veri;
-  } catch (e) { _seferler = []; }
-  return _seferler;
-}
-
-function seferleriYaz() {
-  const anahtar = depoAnahtari();
-  if (!anahtar || !_seferler) return;
-  try { localStorage.setItem(anahtar, JSON.stringify(_seferler)); } catch (e) {}
-}
-
-function kaleKonumu() {
-  if (typeof state === "object" && state && state.castle && typeof state.castle.gx === "number") {
-    return { gx: state.castle.gx, gy: state.castle.gy };
+/* Bir seferin ŞU ANKİ evresi. Konum kayıttan değil saatten çıkar. */
+function evre(s) {
+  const now = Date.now();
+  if (s.durum === "donus") {
+    const sure = s.donusSureMs || s.sureMs;
+    const p = sure > 0 ? (now - s.donusAt) / sure : 1;
+    return { ad: "donus", p: Math.max(0, Math.min(1, p)), bitti: p >= 1,
+             kalanMs: Math.max(0, s.donusAt + sure - now),
+             ax: s.donusFx, ay: s.donusFy, bx: s.fx, by: s.fy };
   }
-  return null;
+  const p = s.sureMs > 0 ? (now - s.gidisAt) / s.sureMs : 1;
+  return { ad: "gidis", p: Math.max(0, Math.min(1, p)), bitti: p >= 1,
+           kalanMs: Math.max(0, s.gidisAt + s.sureMs - now),
+           ax: s.fx, ay: s.fy, bx: s.tx, by: s.ty };
 }
 
-function mesafeSuresi(gx1, gy1, gx2, gy2) {
-  const d = Math.hypot(gx2 - gx1, gy2 - gy1);
-  const sn = Math.min(CFG.enCokSaniye, Math.max(CFG.enAzSaniye, d * CFG.saniyeKaroBasi));
-  return Math.round(sn * 1000);
+function hepsi() {
+  return Object.keys(seferler)
+    .map(id => ({ id, s: seferler[id] }))
+    .filter(x => x.s && typeof x.s.gidisAt === "number" && typeof x.s.sureMs === "number");
+}
+function benimkiler() {
+  const k = benKey();
+  return k ? hepsi().filter(x => x.s.sahip === k) : [];
 }
 
-/* Seferin ŞU ANKİ ızgara konumu — çizgi ve kamera bunu kullanır. */
-function anlikKonum(s) {
-  const t = (s.bitisAt <= s.basAt) ? 1
-          : Math.max(0, Math.min(1, (Date.now() - s.basAt) / (s.bitisAt - s.basAt)));
-  return {
-    gx: s.basGx + (s.hedGx - s.basGx) * t,
-    gy: s.basGy + (s.hedGy - s.basGy) * t,
-    t: t
+/* ═══════════════════════════════════════════════════════════
+   4) BİRLİK DEFTERİ
+   Yola çıkan birlik kaleden DÜŞÜLÜR (başka sefere alınamaz,
+   eğitim/hastane ekranlarında görünmez). Dönünce geri eklenir.
+   ═══════════════════════════════════════════════════════════ */
+function birlikDus(b) {
+  if (typeof state === "undefined" || !state.troops) return;
+  BIRLIKLER.forEach(k => state.troops[k] = Math.max(0, (state.troops[k] || 0) - ((b || {})[k] || 0)));
+  tazele();
+}
+function birlikEkle(b) {
+  if (typeof state === "undefined" || !state.troops) return;
+  BIRLIKLER.forEach(k => state.troops[k] = (state.troops[k] || 0) + ((b || {})[k] || 0));
+  tazele();
+}
+function tazele() {
+  ["renderTroopsPanel", "renderHospitalPanel", "persistCurrentState"]
+    .forEach(f => { if (typeof window[f] === "function") { try { window[f](); } catch (e) {} } });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   5) YARALI YAKALAMA
+   Savaş sırasında sendWoundedToHospital çağrısını geçici olarak
+   kendine çeker. Yaralı hastaneye ANINDA girmez; listesi sefer
+   kaydında eve taşınır ve varışta gerçek fonksiyona verilir.
+   Fonksiyonun kendisi DEĞİŞTİRİLMEZ, sarılır.
+   ═══════════════════════════════════════════════════════════ */
+const _gercekHastane = (typeof window.sendWoundedToHospital === "function")
+  ? window.sendWoundedToHospital : null;
+
+if (_gercekHastane && !_gercekHastane._seferSarildi) {
+  const sarmal = function (liste) {
+    if (_yaraliYakala) { _yakalanan = liste || {}; return; }
+    return _gercekHastane.apply(this, arguments);
   };
+  sarmal._seferSarildi = true;
+  window.sendWoundedToHospital = sarmal;
 }
 
-/* ── KALE KOORDİNATI ÇÖZME ───────────────────────────────────────
-   pvp.js'in buildDefender'ı savunan oyuncunun KONUMUNU döndürmüyor:
-   nesnede gx/gy yok, sadece "mapX: 0, mapY: 0" var. Bu yüzden hedef
-   koordinatı doğrudan currentEnemy'den okunamaz — okumaya çalışınca
-   0,0 çıkar ve her baskın ızgaranın sol üst köşesine yürür.
+/* {knight:[{severe:true}]} → {knight:2} */
+function yaraliSayilari(liste) {
+  const o = {};
+  Object.keys(liste || {}).forEach(uid => {
+    const v = liste[uid];
+    o[uid] = Array.isArray(v) ? v.length : (Number(v) || 0);
+  });
+  return o;
+}
 
-   Gerçek konum haritadaki kale düğümünde duruyor: index.html
-   castleNodeHTML'i data-cname / data-cx / data-cy yazıyor, pvp.js de
-   dokunuşu oradan okuyor. Biz de aynı kaynaktan alıyoruz.
-   Düğüm haritada değilse (uzak kale, harita tazelenmiş) otherCastles
-   listesine düşülür. İkisi de yoksa konum bilinmiyordur ve sefer
-   BAŞLATILMAZ — 0,0'a ordu yollamaktansa eski davranış iyidir. */
-function kaleKoordinati(ad) {
-  const hedefAd = String(ad || "").toLowerCase();
-  if (!hedefAd) return null;
+/* ═══════════════════════════════════════════════════════════
+   6) HEDEF ÇÖZÜMÜ
+   ═══════════════════════════════════════════════════════════ */
+function hedefBilgisi(e) {
+  if (!e) return null;
 
-  const mapEl = $("battleMap");
-  if (mapEl) {
-    const dugumler = mapEl.querySelectorAll(".castle-node[data-cname]");
-    for (let i = 0; i < dugumler.length; i++) {
-      const ds = dugumler[i].dataset;
-      if (String(ds.cname || "").toLowerCase() !== hedefAd) continue;
-      const gx = parseFloat(ds.cx), gy = parseFloat(ds.cy);
-      if (isFinite(gx) && isFinite(gy)) return { gx: gx, gy: gy };
-    }
-  }
-
-  try {
+  /* ── OYUNCU KALESİ ──
+     buildDefender mapX/mapY'yi 0 yazıyor; koordinat otherCastles'ta.
+     Bu yüzden isPlayer kontrolü mapX'ten ÖNCE gelmeli. */
+  if (e.isPlayer) {
+    const ad = String(e.name || "").toLowerCase();
+    let kale = null;
     if (typeof otherCastles !== "undefined" && Array.isArray(otherCastles)) {
-      const k = otherCastles.find(c =>
-        c && c.name && String(c.name).toLowerCase() === hedefAd &&
-        c.castle && isFinite(c.castle.gx));
-      if (k) return { gx: k.castle.gx, gy: k.castle.gy };
+      const c = otherCastles.find(x => x && String(x.name || "").toLowerCase() === ad);
+      if (c && c.castle && typeof c.castle.gx === "number") kale = c.castle;
     }
-  } catch (e) {}
+    if (!kale) return null;
+    return {
+      tur: "kale", ad: e.name,
+      key: e.accKey || (typeof toFirebaseKey === "function" ? toFirebaseKey(ad) : null),
+      gx: kale.gx, gy: kale.gy
+    };
+  }
+
+  /* ── CANAVAR (PvE) ── mapX/mapY yüzde; harita.js ile aynı çevrim */
+  if (typeof e.mapX === "number" && typeof e.mapY === "number") {
+    return { tur: "canavar", ad: e.name, key: null,
+             gx: (e.mapX / 100) * izgara(), gy: (e.mapY / 100) * izgara() };
+  }
+
+  /* ── KAYNAK NOKTASI ── henüz yok; gx/gy taşıyan bir hedef
+     eklendiğinde sistem kendiliğinden çalışır. */
+  if (typeof e.gx === "number" && typeof e.gy === "number") {
+    return { tur: "kaynak", ad: e.name || "Kaynak", key: null, gx: e.gx, gy: e.gy };
+  }
 
   return null;
 }
 
-/* ── SEFER BAŞLATMA ──────────────────────────────────────────────── */
-/* opt: { tur, hedefAd, hedefGx, hedefGy, birlikler, komutanlar, pvpHedef } */
-function baslat(opt) {
-  const kale = kaleKonumu();
-  if (!kale) { toast("Önce kaleni yerleştir."); return false; }
-
-  const aktif = liste();
-  if (aktif.length >= CFG.maxSefer) {
-    toast(`En fazla ${CFG.maxSefer} sefer aynı anda yolda olabilir.`);
-    return false;
+/* ═══════════════════════════════════════════════════════════
+   7) SEFERİ BAŞLAT
+   Her çıkış yolu SALDIR'ı yutar (kilitler). Eski anlık savaşa
+   düşme yolu YOK — bkz. dosya başındaki not.
+   ═══════════════════════════════════════════════════════════ */
+function seferBaslat() {
+  if (!fbHazir() || !benKey()) { toast("Bağlantı yok — sefer gönderilemiyor."); return; }
+  if (typeof currentEnemy === "undefined" || !currentEnemy) { toast("Önce haritadan bir hedef seç."); return; }
+  if (typeof state === "undefined" || !state.castle || typeof state.castle.gx !== "number") {
+    toast("Önce kalen olmalı."); return;
   }
 
-  /* Birlikleri envanterden düş — yoldayken evde sayılmasınlar */
-  const birlikler = {};
-  let toplam = 0;
-  Object.keys(opt.birlikler || {}).forEach(uid => {
-    const n = Math.max(0, Math.floor(say(opt.birlikler[uid], 0)));
-    const eldeki = Math.max(0, Math.floor(say((state.troops || {})[uid], 0)));
-    const gider = Math.min(n, eldeki);
-    if (gider > 0) { birlikler[uid] = gider; toplam += gider; }
-  });
-  if (toplam <= 0) return false;
-
-  Object.keys(birlikler).forEach(uid => {
-    state.troops[uid] = Math.max(0, say(state.troops[uid], 0) - birlikler[uid]);
-  });
-
-  const sure = mesafeSuresi(kale.gx, kale.gy, opt.hedefGx, opt.hedefGy);
-  const simdi = Date.now();
-
-  /* Taşınma denetimi bu andan itibaren geçerli. Senkronlanmazsa,
-     sefer yokken yapılmış eski bir taşıma "az önce taşındı" sanılıp
-     yeni sefer daha ilk karede iptal edilir. */
-  _sonKaleGx = kale.gx; _sonKaleGy = kale.gy;
-
-  aktif.push({
-    id: "s" + simdi + "_" + Math.floor(Math.random() * 1000),
-    tur: opt.tur || "canavar",
-    hedefAd: String(opt.hedefAd || "Hedef"),
-    yon: "gidis",
-    basGx: kale.gx, basGy: kale.gy,
-    hedGx: opt.hedefGx, hedGy: opt.hedefGy,
-    varisGx: opt.hedefGx, varisGy: opt.hedefGy,   /* savaşın olacağı yer */
-    basAt: simdi, bitisAt: simdi + sure,
-    birlikler: birlikler,
-    komutanlar: (opt.komutanlar || []).filter(x => typeof x === "string" && x),
-    pvpHedef: opt.pvpHedef || null,
-    savasti: false,
-  });
-
-  kaydet();
-  yenile(["renderTroopsPanel", "renderTroopSelector"]);
-  panelCizIste(true);
-  dongudeKal();
-
-  const dk = Math.round(sure / 60000), sn = Math.round(sure / 1000) % 60;
-  toast(`⚔️ ${opt.hedefAd} yolunda — ${dk > 0 ? dk + " dk " : ""}${sn} sn`);
-  return true;
-}
-
-function yenile(adlar) {
-  adlar.forEach(f => { if (typeof window[f] === "function") { try { window[f](); } catch (e) {} } });
-}
-
-/* ── VARIŞ ───────────────────────────────────────────────────────── */
-let _savasKilidi = false;   /* aynı anda tek varış savaşı çözülsün */
-let _kilitBekci = 0;
-
-/* Kilit AÇILMAZSA sefer sonsuza kadar "00:00"da donar ve birlikler
-   ne savaşır ne eve döner. Savaş kurulumunda beklenmedik bir hata
-   çıkarsa diye kilidi 30 sn sonra zorla açan bir bekçi var. */
-function kilitle() {
-  _savasKilidi = true;
-  clearTimeout(_kilitBekci);
-  _kilitBekci = setTimeout(() => { _savasKilidi = false; }, 30000);
-}
-function kilitAc() {
-  _savasKilidi = false;
-  clearTimeout(_kilitBekci);
-}
-
-function varis(s) {
-  if (s.yon === "donus") { eveDondu(s); return; }
-  if (_savasKilidi) return;             /* sıradaki sefer bir sonraki tick'te */
-  kilitle();
-  try { savasaGir(s); }
-  catch (e) { kilitAc(); iptalEt(s, "Savaş kurulamadı"); }
-}
-
-function eveDondu(s) {
-  Object.keys(s.birlikler || {}).forEach(uid => {
-    state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
-  });
-  sil(s.id);
-  kaydet();
-  yenile(["renderTroopsPanel", "renderTroopSelector", "renderHospitalPanel"]);
-  toast(`🏰 ${s.hedefAd} seferindeki birliklerin kaleye döndü.`);
-}
-
-function sil(id) {
-  const a = liste();
-  const i = a.findIndex(x => x.id === id);
-  if (i >= 0) a.splice(i, 1);
-  panelCizIste(true);
-}
-
-/* Savaşı GERÇEK koduna çözdür — SAVAŞ EKRANI AÇILMADAN.
-
-   ── selectEnemyFromMap ÇAĞIRMA ──
-   O fonksiyon savaş ekranını açıyor VE selectedTroopsForBattle'ı
-   sıfırlıyor. Varışta çağrılınca oyuncuya "yanına alacağın birlikler"
-   menüsü ikinci kez gösteriliyordu. Birlik zaten yola çıkarken
-   seçiliyor; burada sadece currentEnemy'yi elle oturtuyoruz.
-
-   ── PvE'de OLAY GÖNDERİLMEZ ──
-   index.html'deki safeBind(id,"click",...) aslında "click" DEĞİL,
-   PointerEvent varsa "pointerup" bağlıyor (safeBind gövdesine bak).
-   Bu yüzden düğmeye click göndermek startBattle'ı hiç çağırmıyordu:
-   sefer varıyor, savaş olmuyor, 20 sn sonra iptal yolu birlikleri eve
-   yolluyordu. Artık startBattle doğrudan çağrılıyor — async olduğu
-   için bitişini yoklamaya da gerek yok.
-
-   ── PvP'de OLAY GÖNDERİLİR ──
-   runPvpBattle pvp.js'in kapalı kapsamında, dışarı açılmamış. Tek
-   erişim yolu düğmeye "pointerup" göndermek (pvp.js capture aşamasında
-   onu dinliyor). Bunun için ekranın AÇIK olması gerekmiyor; runPvpBattle
-   sadece #battleLog'a yazıyor. Buraya bir de "click" eklenmemeli:
-   pvp.js ikisini de dinliyor ve savaş İKİ KEZ çözülür. */
-let _izin = false;   /* true iken kesici gönderdiğimiz olayı geçirir */
-
-function savasaGir(s) {
-  /* 1) birlikleri geçici olarak eve al ki savaş kodu onları görsün */
-  Object.keys(s.birlikler || {}).forEach(uid => {
-    state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
-  });
-  const oncesi = Object.assign({}, state.troops);
-
-  /* 2) komutan ve birlik seçimini seferin anlık görüntüsüne çevir */
-  try {
-    if (typeof selectedCommanders !== "undefined" && Array.isArray(s.komutanlar) && s.komutanlar.length) {
-      selectedCommanders = s.komutanlar.slice();
-    }
-  } catch (e) {}
-  try { selectedTroopsForBattle = Object.assign({}, s.birlikler); } catch (e) {}
-
-  if (s.tur === "kale") { pvpVur(s, oncesi); }
-  else                  { pveVur(s, oncesi); }
-}
-
-function pveVur(s, oncesi) {
-  const e = (typeof enemies !== "undefined") ? enemies.find(x => x.name === s.hedefAd) : null;
-  if (!e || typeof window.startBattle !== "function") {
-    kilitAc(); iptalEt(s, "Hedef bulunamadı"); return;
-  }
-  try { currentEnemy = e; } catch (err) { kilitAc(); iptalEt(s, "Hedef oturmadı"); return; }
-
-  Promise.resolve()
-    .then(() => window.startBattle())
-    .then(() => { savasBitti(s, oncesi); })
-    .catch(() => { kilitAc(); iptalEt(s, "Savaş çözülemedi"); });
-}
-
-function pvpVur(s, oncesi) {
-  const btn = $("battleBtn");
-  if (!btn || !s.pvpHedef) { kilitAc(); iptalEt(s, "Rakip bulunamadı"); return; }
-  try { currentEnemy = s.pvpHedef; } catch (err) { kilitAc(); iptalEt(s, "Rakip oturmadı"); return; }
-
-  const gunlukOnce = (state.battleLogHistory || []).length;
-
-  _izin = true;
-  try {
-    if (window.PointerEvent) {
-      btn.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true }));
-    } else {
-      btn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-    }
-  } catch (e) {}
-  _izin = false;
-
-  /* runPvpBattle senkron biter ama içinde bekleme olabilir; günlüğe
-     kayıt düşmesini kısa süre yokluyoruz. */
-  let kalan = 25;   /* ~5 sn */
-  (function bekle() {
-    if ((state.battleLogHistory || []).length > gunlukOnce) { savasBitti(s, oncesi); return; }
-    if (--kalan <= 0) { kilitAc(); iptalEt(s, "Savaş çözülemedi"); return; }
-    setTimeout(bekle, 200);
-  })();
-}
-
-/* Savaş çözüldü: hayatta kalanları dönüş yoluna koy */
-function savasBitti(s, oncesi) {
-  const hayatta = {};
-  let toplam = 0;
-  Object.keys(s.birlikler).forEach(uid => {
-    const gonderilen = s.birlikler[uid];
-    const kayip = Math.max(0, say(oncesi[uid], 0) - say((state.troops || {})[uid], 0));
-    const kaldi = Math.max(0, Math.min(gonderilen, gonderilen - kayip));
-    if (kaldi > 0) { hayatta[uid] = kaldi; toplam += kaldi; }
-  });
-
-  s.savasti = true;
-
-  if (toplam <= 0) {
-    sil(s.id);
-    kaydet();
-    kilitAc();
-    yenile(["renderTroopsPanel", "renderTroopSelector"]);
-    return;
+  const h = hedefBilgisi(currentEnemy);
+  if (!h) { toast("Bu hedefin koordinatı çözülemedi — sefer gönderilemiyor."); return; }
+  if (h.tur === "kale" && h.key === benKey()) { toast("Kendi kalene sefer düzenleyemezsin."); return; }
+  if (benimkiler().length >= AYAR.MAX_SEFER) {
+    toast(`Aynı anda en fazla ${AYAR.MAX_SEFER} intikal gönderebilirsin.`); return;
   }
 
-  /* dönüş yolu için tekrar envanterden düş */
-  Object.keys(hayatta).forEach(uid => {
-    state.troops[uid] = Math.max(0, say(state.troops[uid], 0) - hayatta[uid]);
+  const secili = {};
+  BIRLIKLER.forEach(k => {
+    const istenen = Math.floor(Math.max(0, ((typeof selectedTroopsForBattle !== "undefined"
+                      ? selectedTroopsForBattle[k] : 0) || 0)));
+    secili[k] = Math.min(istenen, Math.max(0, (state.troops || {})[k] || 0));
   });
+  if (toplam(secili) <= 0) { toast("Yanına en az 1 birlik almalısın!"); return; }
 
-  donuseGec(s, hayatta);
-  kilitAc();
-  kaydet();
-  yenile(["renderTroopsPanel", "renderTroopSelector"]);
-}
+  const fx = state.castle.gx, fy = state.castle.gy;
+  const sureMs = sureHesapla(fx, fy, h.gx, h.gy);
 
-function donuseGec(s, birlikler) {
-  const kale = kaleKonumu();
-  const su = anlikKonum(s);
-  const bas = { gx: su.gx, gy: su.gy };
-  const hed = kale || { gx: s.basGx, gy: s.basGy };
-  const sure = Math.round(mesafeSuresi(bas.gx, bas.gy, hed.gx, hed.gy) * CFG.donusCarpani);
-
-  s.yon = "donus";
-  s.birlikler = birlikler;
-  s.basGx = bas.gx; s.basGy = bas.gy;
-  s.hedGx = hed.gx; s.hedGy = hed.gy;
-  s.basAt = Date.now();
-  s.bitisAt = s.basAt + sure;
-  panelCizIste(true);
-  dongudeKal();
-}
-
-/* Savaş kurulamadıysa birlikleri hemen eve yolla — asla yutma */
-function iptalEt(s, sebep) {
-  toast(`${s.hedefAd}: ${sebep} — birlikler dönüyor.`);
-  donuseGec(s, Object.assign({}, s.birlikler));
-  kaydet();
-  yenile(["renderTroopsPanel", "renderTroopSelector"]);
-}
-
-/* ── GERİ ÇAĞIRMA / HIZLANDIRMA ──────────────────────────────────── */
-function geriCagir(id) {
-  const s = liste().find(x => x.id === id);
-  if (!s) return;
-  if (s.yon === "donus") { toast("Zaten dönüş yolunda."); return; }
-  donuseGec(s, Object.assign({}, s.birlikler));
-  kaydet();
-  toast(`↩️ ${s.hedefAd} seferi geri çağrıldı.`);
-}
-
-function hizlandirmaUcreti(s) {
-  const kalan = Math.max(0, s.bitisAt - Date.now());
-  return Math.max(1, Math.ceil(kalan / 60000) * CFG.elmasDk);
-}
-
-function hizlandir(id) {
-  const s = liste().find(x => x.id === id);
-  if (!s) return;
-  const ucret = hizlandirmaUcreti(s);
-  if (say(state.diamonds, 0) < ucret) { toast(`Yetersiz elmas — ${elmasYaz(ucret)} gerekiyor.`); return; }
-  state.diamonds -= ucret;
-  s.bitisAt = Date.now();
-  kaydet();
-  yenile(["renderDiamonds", "updateShopButtons"]);
-  panelCizIste(true);
-  toast("⚡ Sefer hızlandırıldı.");
-}
-
-/* Sefer kartına dokununca açılan küçük pencere.
-   Gövde oyunun kendi .overlay-card'ı, kapatma .overlay-close —
-   tema elle taklit EDİLMEZ (OKU-BENI, hastane notu). */
-function seferPenceresi(id) {
-  const s = liste().find(x => x.id === id);
-  if (!s) return;
-  const eski = document.querySelector(".sefer-modal");
-  if (eski) eski.remove();
-
-  const kok = document.createElement("div");
-  kok.className = "sefer-modal";
-  /* FONT: gövdeye Baloo 2 açıkça yazılıyor ve düğmelerde .battle-btn
-     KULLANILMIYOR — o sınıf font-family:'Cinzel',serif taşıyor ve
-     pencereye serif yazı sızdırıyordu. Oyunun ana fontu Baloo 2. */
-  kok.style.cssText =
-    "position:fixed; inset:0; z-index:9000; display:flex; align-items:center; " +
-    "justify-content:center; background:rgba(0,10,25,.6); padding:20px; " +
-    "font-family:'Baloo 2','Nunito',sans-serif;";
-
-  const donus = (s.yon === "donus");
-  const birlikYazi = Object.keys(s.birlikler).map(uid => {
-    const d = (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES[uid]) ? UNIT_TYPES[uid] : null;
-    return (d ? d.icon + d.name : uid) + " x" + s.birlikler[uid];
-  }).join(", ") || "—";
-
-  const dugmeStil =
-    "flex:1; padding:12px 10px; border-radius:12px; cursor:pointer; " +
-    "font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:13.5px; " +
-    "color:#eaf6ff; border:2px solid rgba(190,240,255,.55); " +
-    "background:linear-gradient(180deg,#1fa3ea,#0e6fc0); " +
-    "box-shadow:0 6px 16px -6px rgba(0,20,45,.6);";
-
-  kok.innerHTML = `
-    <div class="overlay-card" style="max-width:340px; width:100%; position:relative;
-         font-family:'Baloo 2','Nunito',sans-serif;">
-      <button class="overlay-close" type="button">✕</button>
-      <h2 style="justify-content:center;">${donus ? "↩️ Dönüş Yolunda" : "⚔️ " + (ISIM[s.tur] || "Sefer")}</h2>
-      <div style="text-align:center; font-size:14px; font-weight:700; margin-bottom:6px;">${s.hedefAd}</div>
-      <div style="text-align:center; font-size:24px; font-weight:800;" class="sefer-modal-sure">--:--</div>
-      <div style="font-size:12.5px; font-weight:600; opacity:.85; margin:10px 0; text-align:center;">${birlikYazi}</div>
-      <div style="display:flex; gap:8px; margin-top:12px;">
-        ${donus ? "" : `<button class="sefer-geri" type="button" style="${dugmeStil}">↩️ Geri Çağır</button>`}
-        <button class="sefer-hizli" type="button" style="${dugmeStil}">💎 <span class="sefer-ucret">0</span></button>
-      </div>
-    </div>`;
-
-  /* HAYALET TIKLAMA: pencere dokunuşla açılıyor, parmak kalkınca gelen
-     click bu pencerede "Geri Çağır"a basıyordu (OKU-BENI, tuzak 12). */
-  kok.style.pointerEvents = "none";
-  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
-  document.body.appendChild(kok);
-
-  const kapat = () => { clearInterval(sayac); kok.remove(); };
-  const sayac = setInterval(() => {
-    const canli = liste().find(x => x.id === id);
-    if (!canli) { kapat(); return; }
-    const sEl = kok.querySelector(".sefer-modal-sure");
-    if (sEl) sEl.textContent = sureYaz(canli.bitisAt - Date.now());
-    const uEl = kok.querySelector(".sefer-ucret");
-    if (uEl) uEl.textContent = elmasYaz(hizlandirmaUcreti(canli));
-  }, 250);
-
-  const bagla = (sec, fn) => {
-    const el = kok.querySelector(sec);
-    if (!el) return;
-    if (typeof bindTap === "function") bindTap(el, fn);
-    else el.addEventListener("click", fn);
-  };
-  bagla(".overlay-close", kapat);
-  bagla(".sefer-geri", () => { geriCagir(id); kapat(); });
-  bagla(".sefer-hizli", () => { hizlandir(id); kapat(); });
-  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
-}
-
-/* ── SOL ÜST SAYAÇ PANELİ ────────────────────────────────────────── */
-/* Saniyede bir çizilir. İmza değişmedikçe yeniden ÇİZİLMEZ — yoksa
-   parmağın altındaki kart her saniye yok edilir (hastane paneliyle
-   aynı desen). İmza "v1|" önekli: liste boşalınca boş dizge olup
-   "değişmedi" sanılmasın. */
-let _panelImza = null;
-
-function panelCizIste(zorla) { if (zorla) _panelImza = null; }
-
-function panelKok() {
-  let el = $("seferPanel");
-  if (el) return el;
-  const dunya = $("worldScreen");
-  if (!dunya) return null;
-  el = document.createElement("div");
-  el.id = "seferPanel";
-  el.style.cssText =
-    "position:absolute; left:10px; top:52px; z-index:19; " +
-    "display:flex; flex-direction:column; gap:5px; pointer-events:none;";
-  dunya.appendChild(el);
-  return el;
-}
-
-function panelCiz() {
-  const el = panelKok();
-  if (!el) return;
-  const a = liste();
-
-  const imza = "v1|" + a.map(s => s.id + ":" + s.yon + ":" + Math.round(s.bitisAt / 1000)).join(",");
-  if (imza !== _panelImza) {
-    _panelImza = imza;
-    el.innerHTML = a.map((s, i) => {
-      const donus = (s.yon === "donus");
-      const renk = donus ? CFG.cizgiRenkDonus : CFG.cizgiRenk;
-      return `<div class="sefer-kart" data-sid="${s.id}" style="
-          pointer-events:auto; display:flex; align-items:center; gap:6px;
-          background:rgba(6,22,44,.78); border:2px solid ${renk};
-          border-radius:999px; padding:4px 10px;
-          font-family:'Baloo 2','Nunito',sans-serif; font-size:12.5px;
-          font-weight:800; color:#eaf6ff; white-space:nowrap;
-          box-shadow:0 6px 16px -6px rgba(0,20,45,.6);">
-          <span>${donus ? "↩️" : "⚔️"}</span>
-          <span>Birlik ${i + 1}</span>
-          <span class="sefer-kalan" style="color:${renk};">--:--</span>
-        </div>`;
-    }).join("");
-
-    el.querySelectorAll(".sefer-kart").forEach(kart => {
-      const sid = kart.dataset.sid;
-      if (typeof bindTap === "function") bindTap(kart, () => seferPenceresi(sid));
-      else kart.addEventListener("click", () => seferPenceresi(sid));
-    });
-  }
-
-  /* Süreler her saniye yerinde güncellenir, kart yeniden kurulmaz */
-  const kartlar = el.querySelectorAll(".sefer-kart");
-  a.forEach((s, i) => {
-    const k = kartlar[i];
-    if (!k) return;
-    const sp = k.querySelector(".sefer-kalan");
-    if (!sp) return;
-    const kalan = s.bitisAt - Date.now();
-    /* Vardı ama savaş henüz çözülüyor: donmuş "00:00" yerine durum yaz */
-    sp.textContent = (kalan <= 0 && s.yon === "gidis") ? "çarpışıyor…" : sureYaz(kalan);
-  });
-
-  el.style.display = a.length ? "flex" : "none";
-}
-
-/* ── HARİTADAKİ YOL ÇİZGİSİ VE İŞARETLER ─────────────────────────
-   Konumlar PİKSEL — HARITA.ekranKonumu'ndan gelir; yüzde kullanılırsa
-   zoom'da kayar. Her şey #battleMap (düğüm katmanı) içinde durur;
-   renderBattleMap katmanı tazelerse elemanlar kopar, geri takılır.
-
-   ── NEDEN SVG DEĞİL ──
-   İşaretler önce SVG <text>/<circle> ile çiziliyordu. İki ayrı sorun
-   çıktı: <text> + dominant-baseline:middle Android'de glifi y'den
-   kaydırarak bastığı için işaretler çizginin DIŞINDA duruyordu, ve
-   transform ile taşınan eleman hızlı kaydırmada ayrı katmanda
-   birleştirilip bir kare geriden geldiği için savruluyordu.
-
-   Artık işaretler, oyunun düğümleri için zaten kullandığı kanıtlanmış
-   desenle konumlanıyor: left/top PİKSEL + translate(-50%,-50%).
-   Konum yerleşimden gelir, transform yalnızca merkezleme ve DÖNDÜRME
-   yapar — döndürme elemanı yerinden oynatmaz. Sadece yol çizgisi SVG
-   <line> olarak kaldı; o x1/y1/x2/y2 ile çizildiği için zaten sorunsuz.
-
-   Buraya SVG <text> geri gelmemeli. */
-const _cizimler = Object.create(null);   /* sefer id → elemanlar */
-const CHEVRON_ADET = 4;
-const CHEVRON_HIZ  = 1.6;   /* saniyede kaç karo ilerlesin (akış hızı) */
-
-/* ── HER KAREDE SADECE DEĞİŞENİ YAZ ──
-   Kasmanın sebebi buydu: renk, yazı boyu, kenarlık, opaklık her karede
-   yeniden atanıyordu. Hiçbiri değişmiyordu ama her atama tarayıcıya
-   #battleMap'in TAMAMININ stilini yeniden hesaplatıyor — üstünde
-   onlarca kale düğümü olan bir katman için bu çok pahalı, kare hızı
-   15'e düşüyordu. Artık değer gerçekten değiştiyse yazılıyor.
-   Buraya koşulsuz style ataması geri gelmemeli. */
-function stil(el, ad, deger) {
-  if (!el._sn) el._sn = Object.create(null);
-  if (el._sn[ad] === deger) return;
-  el._sn[ad] = deger;
-  el.style[ad] = deger;
-}
-function oz(el, ad, deger) {
-  if (!el._sn) el._sn = Object.create(null);
-  if (el._sn[ad] === deger) return;
-  el._sn[ad] = deger;
-  el.setAttribute(ad, deger);
-}
-function yazi(el, metin) {
-  if (el.textContent !== metin) el.textContent = metin;
-}
-
-function katman() {
-  const mapEl = $("battleMap");
-  if (!mapEl) return null;
-
-  let sv = $("seferKatman");
-  if (!sv || !sv.isConnected || sv.parentNode !== mapEl) {
-    if (sv && sv.parentNode) sv.parentNode.removeChild(sv);
-    sv = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    sv.id = "seferKatman";
-    sv.setAttribute("style",
-      "position:absolute; left:0; top:0; width:100%; height:100%; " +
-      "overflow:visible; pointer-events:none; z-index:1;");
-    mapEl.appendChild(sv);
-  }
-
-  let kat = $("seferIsaretler");
-  if (!kat || !kat.isConnected || kat.parentNode !== mapEl) {
-    if (kat && kat.parentNode) kat.parentNode.removeChild(kat);
-    kat = document.createElement("div");
-    kat.id = "seferIsaretler";
-    kat.style.cssText =
-      "position:absolute; left:0; top:0; width:100%; height:100%; " +
-      "pointer-events:none; z-index:2; contain:layout style;";
-    mapEl.appendChild(kat);
-    /* katman yeniden doğduysa eski eleman göndermeleri geçersiz */
-    Object.keys(_cizimler).forEach(k => delete _cizimler[k]);
-  }
-
-  return { sv: sv, kat: kat };
-}
-
-function cizimKur(sv, kat, id) {
-  const cizgi = document.createElementNS("http://www.w3.org/2000/svg", "line");
-  cizgi.setAttribute("stroke-linecap", "round");
-  cizgi.setAttribute("stroke-opacity", ".45");
-  sv.appendChild(cizgi);
-
-  const yeniKutu = (ekStil) => {
-    const d = document.createElement("div");
-    d.style.cssText = "position:absolute; left:0; top:0; " +
-      "font-family:'Baloo 2','Nunito',sans-serif; line-height:1; " +
-      "white-space:nowrap; pointer-events:none; " + (ekStil || "");
-    kat.appendChild(d);
-    return d;
+  const kayit = {
+    sahip: benKey(),
+    sahipAd: (typeof currentUsername === "string" ? currentUsername : "Oyuncu"),
+    tur: h.tur, hedefAd: h.ad, hedefKey: h.key || null,
+    fx: fx, fy: fy, tx: h.gx, ty: h.gy,
+    sureMs: sureMs, gidisAt: Date.now(),
+    durum: "gidis", iptal: false,
+    birlikler: secili,
+    komutanlar: (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
+                  ? selectedCommanders.slice() : [],
   };
 
-  const chevronlar = [];
-  for (let i = 0; i < CHEVRON_ADET; i++) {
-    const c = yeniKutu("font-weight:800;");
-    c.textContent = "\u00BB";
-    chevronlar.push(c);
-  }
-
-  const damga  = yeniKutu("border-radius:50%; background:rgba(6,22,44,.85); " +
-                          "display:flex; align-items:center; justify-content:center;");
-  const etiket = yeniKutu("font-weight:800; text-shadow:0 0 3px rgba(0,10,25,.95), " +
-                          "0 0 3px rgba(0,10,25,.95);");
-
-  const kayit = { cizgi, chevronlar, damga, etiket };
-  _cizimler[id] = kayit;
-  return kayit;
-}
-
-/* left/top ile yerleştir, transform SADECE merkezleme + döndürme */
-function yerlestir(el, x, y, derece) {
-  stil(el, "left", (Math.round(x * 10) / 10) + "px");
-  stil(el, "top",  (Math.round(y * 10) / 10) + "px");
-  stil(el, "transform", "translate(-50%,-50%)" + (derece == null ? "" : " rotate(" + derece + "deg)"));
-}
-
-function cizgileriCiz() {
-  const h = H();
-  const kk = katman();
-  if (!h || !kk) return;
-
-  const a = liste();
-
-  /* biten seferlerin elemanlarını topla */
-  const yasayan = Object.create(null);
-  a.forEach(s => yasayan[s.id] = true);
-  Object.keys(_cizimler).forEach(id => {
-    if (yasayan[id]) return;
-    const k = _cizimler[id];
-    if (k) {
-      if (k.cizgi && k.cizgi.parentNode) k.cizgi.parentNode.removeChild(k.cizgi);
-      k.chevronlar.forEach(c => { if (c.parentNode) c.parentNode.removeChild(c); });
-      if (k.damga  && k.damga.parentNode)  k.damga.parentNode.removeChild(k.damga);
-      if (k.etiket && k.etiket.parentNode) k.etiket.parentNode.removeChild(k.etiket);
-    }
-    delete _cizimler[id];
+  /* Önce birlikleri kaleden düş, sonra kaydı yaz. Yazma patlarsa
+     birlikleri geri koy — yoksa ordu buharlaşır. */
+  birlikDus(secili);
+  firebaseDb.ref(AYAR.KOK).push(kayit).catch(() => {
+    birlikEkle(secili);
+    toast("Sefer başlatılamadı (bağlantı hatası).");
   });
 
-  const simdi = Date.now();
-
-  a.forEach(s => {
-    const k = _cizimler[s.id] || cizimKur(kk.sv, kk.kat, s.id);
-
-    const bas = h.ekranKonumu(s.basGx, s.basGy);
-    const hed = h.ekranKonumu(s.hedGx, s.hedGy);
-    const su  = anlikKonum(s);
-    const sp  = h.ekranKonumu(su.gx, su.gy);
-
-    const renk = (s.yon === "donus") ? CFG.cizgiRenkDonus : CFG.cizgiRenk;
-    const zoom = bas.zoom || 1;
-    /* Açı ekran uzayında kaydırmadan ETKİLENMEZ, sadece hedef ya da
-       zoom değişince değişir — o yüzden her karede yeniden yazılmaz. */
-    const aci = Math.round(Math.atan2(hed.y - bas.y, hed.x - bas.x) * 180 / Math.PI * 10) / 10;
-
-    /* yol çizgisi */
-    oz(k.cizgi, "x1", Math.round(bas.x * 10) / 10);
-    oz(k.cizgi, "y1", Math.round(bas.y * 10) / 10);
-    oz(k.cizgi, "x2", Math.round(hed.x * 10) / 10);
-    oz(k.cizgi, "y2", Math.round(hed.y * 10) / 10);
-    oz(k.cizgi, "stroke", renk);
-    oz(k.cizgi, "stroke-width", Math.max(1.2, 2 * zoom));
-    oz(k.cizgi, "stroke-dasharray", (6 * zoom) + " " + (6 * zoom));
-
-    /* Akan işaretler.
-       HIZ KARO CİNSİNDEN sabit. Önce bütün yolu 1.6 saniyede dolaşan
-       bir kesir kullanılıyordu: uzun seferlerde işaretler ok gibi
-       fırlıyordu. Şimdi uzunluk ne olursa olsun aynı hızda akıyorlar. */
-    const uzunlukKaro = Math.max(0.001, Math.hypot(s.hedGx - s.basGx, s.hedGy - s.basGy));
-    const donguSn = uzunlukKaro / CHEVRON_HIZ / CHEVRON_ADET;
-    const adim = 1 / CHEVRON_ADET;
-    const kayma = ((simdi / 1000) / Math.max(0.001, donguSn) % 1) * adim;
-    const chevronBoy = Math.max(9, 13 * zoom) + "px";
-
-    for (let i = 0; i < CHEVRON_ADET; i++) {
-      const t = (i * adim + kayma) % 1;
-      const el = k.chevronlar[i];
-      yerlestir(el, bas.x + (hed.x - bas.x) * t, bas.y + (hed.y - bas.y) * t, aci);
-      stil(el, "color", renk);
-      stil(el, "opacity", (Math.round((0.25 + 0.55 * Math.sin(Math.PI * t)) * 20) / 20).toFixed(2));
-      stil(el, "fontSize", chevronBoy);
-    }
-
-    /* birlik damgası + kalan süre */
-    const cap = Math.max(12, 17 * zoom);
-    yerlestir(k.damga, sp.x, sp.y);
-    stil(k.damga, "width",  cap + "px");
-    stil(k.damga, "height", cap + "px");
-    stil(k.damga, "border", Math.max(1.2, 2 * zoom) + "px solid " + renk);
-    stil(k.damga, "fontSize", Math.max(8, 10 * zoom) + "px");
-    yazi(k.damga, (s.yon === "donus") ? "\u21A9" : "\u2694");
-
-    yerlestir(k.etiket, sp.x, sp.y - cap * 0.75 - 6 * zoom);
-    stil(k.etiket, "color", renk);
-    stil(k.etiket, "fontSize", Math.max(9, 11 * zoom) + "px");
-    yazi(k.etiket, sureYaz(s.bitisAt - simdi));
-  });
+  toast(`⚔️ Ordun ${h.ad} üzerine yola çıktı — ${fmtSure(sureMs)}`);
+  if (typeof backToMap === "function") backToMap();
 }
 
-/* ── DÖNGÜ ───────────────────────────────────────────────────────── */
-/* ── KALE TAŞINDIĞINDA SEFERLERİ İPTAL ET ────────────────────────
-   Kale ışınlanınca yoldaki birlikler eski kaleden çıkmış bir çizgide
-   yürümeye devam ediyordu ve hâlâ savaşa giriyorlardı. Kale yer
-   değiştirdiği an sefer geçersizdir: birlikler ANINDA kaleye döner,
-   hiçbir savaş çözülmez. */
-let _sonKaleGx = null, _sonKaleGy = null;
-
-function kaleTasindiMi() {
-  const k = kaleKonumu();
-  if (!k) return false;
-  if (_sonKaleGx === null) { _sonKaleGx = k.gx; _sonKaleGy = k.gy; return false; }
-  if (Math.abs(k.gx - _sonKaleGx) < 0.001 && Math.abs(k.gy - _sonKaleGy) < 0.001) return false;
-  _sonKaleGx = k.gx; _sonKaleGy = k.gy;
-  return true;
-}
-
-function tumSeferleriIptalEt() {
-  const a = liste();
-  if (!a.length) return;
-  let toplam = 0;
-  a.forEach(s => {
-    Object.keys(s.birlikler || {}).forEach(uid => {
-      state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
-      toplam += s.birlikler[uid];
-    });
-  });
-  a.length = 0;
-  kilitAc();
-  panelCizIste(true);
-  kaydet();
-  yenile(["renderTroopsPanel", "renderTroopSelector"]);
-  if (toplam > 0) toast(`🏰 Kale taşındı — ${toplam} birlik savaşmadan kaleye döndü.`);
-}
-
-let _rafId = 0, _sonPanel = 0;
-
-function haritaGorunur() {
-  const wrap = $("battleMapWrap");
-  if (!wrap) return false;
-  if (wrap.style.display === "none") return false;
-  const arena = $("battleArena");
-  if (arena && arena.style.display !== "none" && arena.style.display !== "") return false;
-  return true;
-}
-
-function kare() {
-  _rafId = 0;
-  const a = liste();
-
-  /* Kale taşındıysa her şeyden önce seferleri iptal et */
-  if (kaleTasindiMi()) { tumSeferleriIptalEt(); dongudeKal(); return; }
-
-  /* varış kontrolü */
-  const simdi = Date.now();
-  for (let i = 0; i < a.length; i++) {
-    if (a[i].bitisAt <= simdi && !a[i]._islemde) {
-      a[i]._islemde = true;
-      const s = a[i];
-      setTimeout(() => { s._islemde = false; varis(s); }, 0);
-      break;
-    }
-  }
-
-  /* ÇİZİM HER KAREDE. Kısıtlanırsa harita kaydırılırken çizgi bir-iki
-     kare geride kalır ve haritanın üstünde kayıyormuş gibi görünür.
-     Artık sadece öznitelik güncellemesi olduğu için ucuz. */
-  if (haritaGorunur()) cizgileriCiz();
-  if (simdi - _sonPanel > 400) { _sonPanel = simdi; panelCiz(); }
-
-  if (liste().length) dongudeKal();
-  else {
-    Object.keys(_cizimler).forEach(id => {
-      const k = _cizimler[id];
-      if (k) {
-        if (k.cizgi && k.cizgi.parentNode) k.cizgi.parentNode.removeChild(k.cizgi);
-        k.chevronlar.forEach(c => { if (c.parentNode) c.parentNode.removeChild(c); });
-        if (k.damga  && k.damga.parentNode)  k.damga.parentNode.removeChild(k.damga);
-        if (k.etiket && k.etiket.parentNode) k.etiket.parentNode.removeChild(k.etiket);
-      }
-      delete _cizimler[id];
-    });
-    panelCiz();
-  }
-}
-
-function dongudeKal() {
-  if (_rafId) return;
-  _rafId = requestAnimationFrame(kare);
-}
-
-/* Sefer olmasa bile arada bir bak: başka dosya sefer eklemiş olabilir,
-   ya da oyun yeni açılmıştır (kayıtlı sefer yoluna devam etmeli). */
-setInterval(() => { if (liste().length) dongudeKal(); }, 1000);
-
-/* ── SAVAŞ DÜĞMESİNİ KESME ───────────────────────────────────────── */
-/* document capture = hedef elemandaki capture'dan önce. Dosya başındaki
-   2 numaralı nota bak. */
-let _sonKesme = 0;
-
-function kesici(e) {
-  if (_izin) return;                       /* varış tetiklemesi geçsin */
+/* ═══════════════════════════════════════════════════════════
+   8) SALDIR DÜĞMESİNİ YAKALA (capture)
+   ═══════════════════════════════════════════════════════════ */
+function kapi(e) {
   const btn = e.target && e.target.closest ? e.target.closest("#battleBtn") : null;
   if (!btn) return;
 
-  /* pointerup'tan sonra tarayıcı bir de click gönderir; ikisini de
-     yutuyoruz ama sefer bir kez başlasın (bindTap ile aynı 400 ms). */
-  const simdi = Date.now();
-  if (simdi - _sonKesme < 500) { e.stopPropagation(); e.preventDefault(); return; }
+  /* Düğme HER durumda yutulur: eski anlık savaş asla çalışmasın. */
+  e.stopImmediatePropagation();
+  e.preventDefault();
 
-  if (typeof currentEnemy !== "object" || !currentEnemy) return;
+  /* pointerup + click art arda gelir; işi bir kez yap. */
+  const now = Date.now();
+  if (now - _sonKapi < 700) return;
+  _sonKapi = now;
 
-  /* Hiç birlik seçilmemişse karışma — oyunun kendi uyarısı çıksın */
-  let toplam = 0;
-  const sec = {};
+  try { seferBaslat(); }
+  catch (err) {
+    console.error("[sefer] başlatılamadı:", err);
+    toast("Sefer başlatılamadı — konsola bak.");
+  }
+}
+document.addEventListener("pointerup", kapi, true);
+document.addEventListener("click",     kapi, true);
+
+/* ═══════════════════════════════════════════════════════════
+   9) ZAMAN MOTORU — varış, çarpışma, dönüş
+   ═══════════════════════════════════════════════════════════ */
+function tik() {
+  if (!fbHazir()) return;
+  const k = benKey();
+  if (!k) return;
+  if (_benKey !== k) { _benKey = k; _kaleKonum = null; dinle(); }
+
+  isinlanmaDenetimi();
+
+  benimkiler().forEach(({ id, s }) => {
+    if (_isleniyor.has(id)) return;
+    const ev = evre(s);
+
+    /* Çöp kayıt: sahibi saatlerdir girmemiş olabilir */
+    if (Date.now() - s.gidisAt > AYAR.KAYIT_OMRU_MS) { seferiBitir(id, s, true); return; }
+
+    if (ev.ad === "gidis" && ev.bitti) { varisiIsle(id, s); return; }
+    if (ev.ad === "donus" && ev.bitti) { seferiBitir(id, s); return; }
+  });
+
+  hudCiz();
+}
+
+/* Hedefe varıldı → kısa duraklama → savaş → dönüşe geç */
+async function varisiIsle(id, s) {
+  _isleniyor.add(id);
   try {
-    Object.keys(selectedTroopsForBattle || {}).forEach(uid => {
-      const n = Math.max(0, Math.floor(Math.min(
-        say(selectedTroopsForBattle[uid], 0),
-        say((state.troops || {})[uid], 0))));
-      if (n > 0) { sec[uid] = n; toplam += n; }
-    });
-  } catch (err) { return; }
-  if (toplam <= 0) return;
+    await bekle(AYAR.CARPISMA_BEKLE_MS);
 
-  if (liste().length >= CFG.maxSefer) {
-    e.stopPropagation(); e.preventDefault();
-    _sonKesme = simdi;
-    toast(`En fazla ${CFG.maxSefer} sefer aynı anda yolda olabilir.`);
+    const gonderilen = s.birlikler || {};
+
+    /* Savaş kaybı bu birliklerden düşecek: yolcuları geçici olarak
+       orduya kat. Savaştan sonra hayatta kalanlar tekrar ayrılır. */
+    birlikEkle(gonderilen);
+
+    _panelKilit = Date.now() + 12000;  /* savaş bitince panel zorla açılmasın */
+    _yaraliYakala = true;              /* yaralılar hastaneye ŞİMDİ girmesin */
+    _yakalanan = null;
+    if (window.PVP) window.PVP.sonSonuc = null;
+
+    if (!s.iptal) {
+      if (s.tur === "kale")         await kaleSavasi(s);
+      else if (s.tur === "canavar") await canavarSavasi(s);
+      /* kaynak: henüz savaş yok, varıp döner */
+    }
+
+    _yaraliYakala = false;
+    _panelKilit = 0;
+
+    /* ── DÖNEN MEVCUT: TAHMİN YOK ──
+       ölen  = pvp.js'in yayınladığı kesin sayı (PvE'de ölüm yok)
+       yaralı = hastaneye gitmek üzere yakalanan listenin uzunluğu */
+    const yaraliListe = _yakalanan || {};
+    const yarali = yaraliSayilari(yaraliListe);
+    const olen = (window.PVP && window.PVP.sonSonuc && window.PVP.sonSonuc.killed)
+                   ? window.PVP.sonSonuc.killed : {};
+    _yakalanan = null;
+
+    const saglam = {};
+    BIRLIKLER.forEach(u => {
+      saglam[u] = Math.max(0, (gonderilen[u] || 0) - (olen[u] || 0) - (yarali[u] || 0));
+    });
+
+    /* Sağlamları tekrar yola çıkar. Ölen ve yaralılar savaş kodu
+       tarafından zaten orduda düşüldü; net etki sıfır. */
+    birlikDus(saglam);
+
+    await firebaseDb.ref(AYAR.KOK + "/" + id).update({
+      durum: "donus", donusAt: Date.now(), donusSureMs: s.sureMs,
+      donusFx: s.tx, donusFy: s.ty,
+      birlikler: saglam,
+      yaralilar: temizVeri(yaraliListe)   /* eve varınca hastaneye girecek */
+    });
+  } catch (err) {
+    console.error("[sefer] varış işlenemedi:", err);
+    _yaraliYakala = false;
+    _panelKilit = 0;
+  }
+  _isleniyor.delete(id);
+}
+
+/* Firebase undefined kabul etmez; boş nesne de yazılmaz. */
+function temizVeri(x) {
+  if (x === undefined || x === null) return null;
+  if (Array.isArray(x)) { const a = x.map(temizVeri).filter(v => v !== null); return a.length ? a : null; }
+  if (typeof x === "object") {
+    const o = {};
+    Object.keys(x).forEach(k => { const v = temizVeri(x[k]); if (v !== null) o[k] = v; });
+    return Object.keys(o).length ? o : null;
+  }
+  return x;
+}
+
+/* Kaleye vardı — SAVAŞI pvp.js çözer */
+async function kaleSavasi(s) {
+  if (!window.PVP || typeof window.PVP.savasiCalistir !== "function" ||
+      typeof window.PVP.savunanKur !== "function") {
+    console.error("[sefer] PVP.savasiCalistir / savunanKur yok — savaş atlandı");
+    toast("Savaş çözülemedi (pvp.js güncel değil).");
+    return;
+  }
+  const snap = await firebaseDb.ref("accounts/" + s.hedefKey).get();
+  if (!snap.exists()) { toast(`${s.hedefAd} bulunamadı, ordun geri dönüyor.`); return; }
+
+  const acc  = snap.val();
+  const kale = (acc.state || {}).castle;
+
+  /* SAVUNAN IŞINLANDIYSA: ordu boş araziye varır, çarpışma olmaz. */
+  if (!kale || typeof kale.gx !== "number" ||
+      Math.abs(kale.gx - s.tx) > 0.001 || Math.abs(kale.gy - s.ty) > 0.001) {
+    toast(`🏰 ${s.hedefAd} ışınlanmış! Ordun boş araziye vardı, geri dönüyor.`, 4500);
     return;
   }
 
-  /* hedef koordinatı */
-  let gx, gy, tur, ad, pvpHedef = null;
-  if (currentEnemy.isPlayer) {
-    tur = "kale";
-    ad = currentEnemy.name;
-    pvpHedef = currentEnemy;
-    const k = kaleKoordinati(ad);
-    /* Konum çözülemediyse KARIŞMA: sefer başlatmak yerine oyunun eski
-       anlık saldırısı çalışsın. Yoksa ordu 0,0'a yürür. */
-    if (!k) return;
-    gx = k.gx; gy = k.gy;
-  } else {
-    tur = "canavar";
-    ad = currentEnemy.name;
-    if (!isFinite(currentEnemy.mapX) || !isFinite(currentEnemy.mapY)) return;
-    gx = (currentEnemy.mapX / 100) * 30;
-    gy = (currentEnemy.mapY / 100) * 30;
+  currentEnemy = window.PVP.savunanKur(acc, s.hedefAd);
+  selectedTroopsForBattle = Object.assign({}, s.birlikler);
+  if (Array.isArray(s.komutanlar) && typeof selectedCommanders !== "undefined") {
+    selectedCommanders = s.komutanlar.slice();
   }
-  if (!isFinite(gx) || !isFinite(gy)) return;   /* konum yoksa eski davranış */
-
-  e.stopPropagation(); e.preventDefault();
-  _sonKesme = simdi;
-
-  const ok = baslat({
-    tur: tur, hedefAd: ad, hedefGx: gx, hedefGy: gy,
-    birlikler: sec, pvpHedef: pvpHedef,
-    komutanlar: (typeof selectedCommanders !== "undefined") ? selectedCommanders : [],
-  });
-
-  if (ok && typeof backToMap === "function") backToMap();
+  await window.PVP.savasiCalistir();
 }
 
-document.addEventListener("pointerup", kesici, true);
-document.addEventListener("click",     kesici, true);
+/* Canavara vardı — SAVAŞI index.html'in startBattle'ı çözer */
+async function canavarSavasi(s) {
+  if (typeof enemies === "undefined" || typeof startBattle !== "function") {
+    toast("Savaş çözülemedi."); return;
+  }
+  const e = enemies.find(x => x && x.name === s.hedefAd);
+  if (!e) { toast("Canavar yerinde yok, ordun geri dönüyor."); return; }
+  if (typeof isEnemyActive === "function" && !isEnemyActive(e)) {
+    toast(`${s.hedefAd} çoktan yenilmiş — ordun eli boş dönüyor.`); return;
+  }
+  currentEnemy = e;
+  selectedTroopsForBattle = Object.assign({}, s.birlikler);
+  if (Array.isArray(s.komutanlar) && typeof selectedCommanders !== "undefined") {
+    selectedCommanders = s.komutanlar.slice();
+  }
+  await startBattle();
+}
 
-/* ── DIŞA AÇILANLAR ──────────────────────────────────────────────
-   Kaynak noktaları geldiğinde SEFER.gonder({...}) çağırılır; tur
-   "kaynak" olur ve varışta savaş aranmaz (aşağıdaki not).
-   BİR ADI SİLMEDEN ÖNCE projede o adı ARA. */
+/* Kaleye döndü: sağlamlar orduya, yaralılar hastaneye */
+function seferiBitir(id, s, sessiz) {
+  _isleniyor.add(id);
+  birlikEkle(s.birlikler || {});
+
+  const yarali = s.yaralilar || null;
+  if (yarali && _gercekHastane) {
+    try { _gercekHastane(yarali); } catch (e) { console.error("[sefer] hastane:", e); }
+    tazele();
+  }
+
+  if (!sessiz) {
+    const n = toplam(s.birlikler || {});
+    const y = toplam(yaraliSayilari(yarali || {}));
+    let m = `🏰 Ordun kaleye döndü (${n} birlik)`;
+    if (y > 0) m += ` — ${y} yaralı hastaneye alındı`;
+    toast(m + ".", 4000);
+  }
+
+  firebaseDb.ref(AYAR.KOK + "/" + id).remove()
+    .catch(() => {})
+    .then(() => _isleniyor.delete(id));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   10) IŞINLANMA — kendi kalen taşınırsa seferler anında iptal
+   doCastleMove IIFE içinde kapalı, ADIYLA yakalanamıyor; kale
+   koordinatının değişmesi izleniyor.
+   ═══════════════════════════════════════════════════════════ */
+function isinlanmaDenetimi() {
+  if (typeof state === "undefined" || !state.castle || typeof state.castle.gx !== "number") return;
+  const simdi = { gx: state.castle.gx, gy: state.castle.gy };
+  if (!_kaleKonum) { _kaleKonum = simdi; return; }          /* ilk okuma */
+  if (_kaleKonum.gx === simdi.gx && _kaleKonum.gy === simdi.gy) return;
+
+  _kaleKonum = simdi;
+  const liste = benimkiler();
+  if (!liste.length) return;
+
+  liste.forEach(({ id, s }) => seferiBitir(id, s, true));
+  toast("🌀 Işınlandın — yoldaki ordularının hepsi kaleye geri döndü.", 4000);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   11) GERİ ÇAĞIRMA — ordu bulunduğu noktadan yürüyerek döner
+   ═══════════════════════════════════════════════════════════ */
+function geriCagir(id) {
+  const s = seferler[id];
+  if (!s || s.sahip !== benKey()) return;
+  if (s.durum === "donus") { toast("Bu ordu zaten dönüş yolunda."); return; }
+
+  const now = Date.now();
+  const gecen = Math.max(0, Math.min(now - s.gidisAt, s.sureMs));
+  const p = s.sureMs > 0 ? gecen / s.sureMs : 1;
+
+  firebaseDb.ref(AYAR.KOK + "/" + id).update({
+    durum: "donus", iptal: true, donusAt: now,
+    donusSureMs: Math.max(3000, gecen),
+    donusFx: s.fx + (s.tx - s.fx) * p,
+    donusFy: s.fy + (s.ty - s.fy) * p
+  }).catch(() => toast("Geri çağrılamadı."));
+  toast("↩️ Ordu geri çağrıldı.");
+}
+
+/* ═══════════════════════════════════════════════════════════
+   12) FIREBASE DİNLEME
+   ═══════════════════════════════════════════════════════════ */
+function dinle() {
+  if (!fbHazir() || _ref) return;
+  _ref = firebaseDb.ref(AYAR.KOK);
+  _ref.on("value", snap => {
+    seferler = snap.val() || {};
+    hudCiz();
+    dongu();
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   13) ÇİZİM — akıcı yol + yürüyen ordu
+   #battleMap'in içine ayrı bir SVG katmanı. renderBattleMap
+   innerHTML'i silince katman kopar; her karede geri takılır
+   (missile.js'in yaptığının aynısı). Döngü YALNIZ sefer varken
+   döner; boştayken maliyeti sıfırdır.
+   ═══════════════════════════════════════════════════════════ */
+const NS = "http://www.w3.org/2000/svg";
+
+function katmaniHazirla() {
+  const mapEl = document.getElementById("battleMap");
+  if (!mapEl) return null;
+  if (!_svg) {
+    _svg = document.createElementNS(NS, "svg");
+    _svg.setAttribute("id", "seferKatman");
+    _svg.style.cssText = "position:absolute; left:0; top:0; width:100%; height:100%;" +
+                         "overflow:visible; pointer-events:none; z-index:4;";
+    _yolGrup = document.createElementNS(NS, "g");
+    _svg.appendChild(_yolGrup);
+  }
+  if (_svg.parentNode !== mapEl) mapEl.appendChild(_svg);
+  return _svg;
+}
+
+/* Oyun koordinatı → ekran pikseli. TEK GEÇİT: harita.js'in
+   ekranKonumu'u. Yoksa eski yüzde hesabına düşer. */
+function ekran(gx, gy) {
+  const H = window.HARITA;
+  if (H && typeof H.ekranKonumu === "function") {
+    const p = H.ekranKonumu(gx, gy);
+    if (p) return { x: p.x, y: p.y };
+  }
+  const mapEl = document.getElementById("battleMap");
+  const w = mapEl ? mapEl.clientWidth : 0, h = mapEl ? mapEl.clientHeight : 0;
+  return { x: (gx / izgara()) * w, y: (gy / izgara()) * h };
+}
+
+function kontrolNoktasi(a, b) {
+  const d = Math.hypot(b.x - a.x, b.y - a.y);
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 - d * AYAR.YAY };
+}
+function egriNokta(a, c, b, t) {
+  const u = 1 - t;
+  return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x,
+           y: u * u * a.y + 2 * u * t * c.y + t * t * b.y };
+}
+
+function dongu() {
+  if (_rafId) return;
+  const adim = () => {
+    _rafId = null;
+    const liste = hepsi();
+    if (!liste.length) { temizle(); return; }
+    try { ciz(liste); } catch (e) { console.error("[sefer] çizim:", e); }
+    _rafId = requestAnimationFrame(adim);
+  };
+  _rafId = requestAnimationFrame(adim);
+}
+
+function temizle() {
+  if (_yolGrup) _yolGrup.innerHTML = "";
+  document.querySelectorAll(".sefer-ordu").forEach(el => el.remove());
+}
+
+function ciz(liste) {
+  const svg = katmaniHazirla();
+  if (!svg) return;
+  const mapEl = document.getElementById("battleMap");
+  const bk = benKey();
+  const gorulen = new Set();
+
+  liste.forEach(({ id, s }) => {
+    const ev = evre(s);
+    if (ev.bitti && ev.ad === "donus") return;
+    if (typeof ev.ax !== "number" || typeof ev.bx !== "number") return;
+
+    const a = ekran(ev.ax, ev.ay);
+    const b = ekran(ev.bx, ev.by);
+    const c = kontrolNoktasi(a, b);
+    const nokta = egriNokta(a, c, b, ev.p);
+
+    const benim  = s.sahip === bk;
+    const banaMi = s.tur === "kale" && s.hedefKey === bk;
+    const renk = banaMi ? "#ff5a4a" : benim ? "#5ad2ff" : "#e0b24a";
+    gorulen.add(id);
+
+    /* ── yol ── */
+    let yol = _yolGrup.querySelector('[data-sefer="' + id + '"]');
+    if (!yol) {
+      yol = document.createElementNS(NS, "path");
+      yol.setAttribute("data-sefer", id);
+      yol.setAttribute("fill", "none");
+      yol.setAttribute("stroke-linecap", "round");
+      yol.setAttribute("stroke-dasharray", "10 12");
+      _yolGrup.appendChild(yol);
+    }
+    yol.setAttribute("d", `M ${a.x} ${a.y} Q ${c.x} ${c.y} ${b.x} ${b.y}`);
+    yol.setAttribute("stroke", renk);
+    yol.setAttribute("stroke-width", benim ? 3 : 2);
+    yol.setAttribute("opacity", benim ? 0.9 : 0.55);
+    /* akış hissi: kesikler hedefe doğru kayar */
+    yol.setAttribute("stroke-dashoffset", String(-((Date.now() / 45) % 22)));
+
+    /* ── yürüyen ordu ── */
+    let ordu = mapEl.querySelector('.sefer-ordu[data-sefer="' + id + '"]');
+    if (!ordu) {
+      ordu = document.createElement("div");
+      ordu.className = "sefer-ordu";
+      ordu.dataset.sefer = id;
+      ordu.innerHTML = '<span class="sefer-ordu-ikon">⚔️</span><span class="sefer-ordu-ad"></span>';
+      mapEl.appendChild(ordu);
+    }
+    if (ordu.parentNode !== mapEl) mapEl.appendChild(ordu);
+    ordu.style.left = nokta.x + "px";
+    ordu.style.top  = nokta.y + "px";
+    ordu.style.setProperty("--sefer-renk", renk);
+    ordu.classList.toggle("sefer-donus", ev.ad === "donus");
+    const adEl = ordu.querySelector(".sefer-ordu-ad");
+    if (adEl) adEl.textContent = benim ? fmtSure(ev.kalanMs) : (s.sahipAd || "");
+  });
+
+  _yolGrup.querySelectorAll("[data-sefer]").forEach(el => {
+    if (!gorulen.has(el.dataset.sefer)) el.remove();
+  });
+  document.querySelectorAll(".sefer-ordu").forEach(el => {
+    if (!gorulen.has(el.dataset.sefer)) el.remove();
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   14) SOL ÜST SAYAÇ PANELİ
+   ═══════════════════════════════════════════════════════════ */
+function hudEl() {
+  let el = document.getElementById("seferHud");
+  if (!el) { el = document.createElement("div"); el.id = "seferHud"; document.body.appendChild(el); }
+  return el;
+}
+
+function hudCiz() {
+  const el = hudEl();
+  const liste = benimkiler();
+  if (!liste.length) { el.style.display = "none"; el.innerHTML = ""; return; }
+
+  /* Harita görünmüyorsa (savaş paneli / overlay açık) gizle */
+  const wrap = document.getElementById("battleMapWrap");
+  el.style.display = (wrap && wrap.style.display !== "none") ? "flex" : "none";
+
+  el.innerHTML = liste.map((x, i) => {
+    const ev = evre(x.s);
+    const ok = ev.ad === "donus" ? "↩︎" : "⚔️";
+    return `<div class="sefer-satir" data-sefer="${x.id}">
+      <div class="sefer-satir-ust">${ok} Birlik ${i + 1}</div>
+      <div class="sefer-satir-alt">${fmtSure(ev.kalanMs)}</div>
+      <div class="sefer-satir-hedef">${String(x.s.hedefAd || "").slice(0, 12)}</div>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll(".sefer-satir").forEach(row => {
+    const f = () => satirTiklandi(row.dataset.sefer);
+    if (typeof bindTap === "function") bindTap(row, f); else row.onclick = f;
+  });
+}
+
+function satirTiklandi(id) {
+  const s = seferler[id];
+  if (!s) return;
+  if (s.durum === "donus") { toast("Ordu dönüş yolunda."); return; }
+  const n = toplam(s.birlikler || {});
+  onayPenceresi(
+    "GERİ ÇAĞIR",
+    `<b>${String(s.hedefAd || "")}</b> üzerine giden <b>${n}</b> birliğin geri çağrılsın mı?` +
+    `<br><span class="sefer-onay-not">Ordu bulunduğu noktadan yürüyerek dönecek; gittiği yol kadar süre alır.</span>`,
+    "↩︎ Geri Çağır",
+    () => geriCagir(id)
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   15) ONAY PENCERESİ
+   Gövde oyunun kendi .overlay-card'ı, kapatma .overlay-close —
+   tema elle taklit EDİLMEZ (bkz. hizlandirmaPenceresi).
+   ═══════════════════════════════════════════════════════════ */
+function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
+  const eski = document.getElementById("seferOnayModal");
+  if (eski) eski.remove();
+
+  const kok = document.createElement("div");
+  kok.id = "seferOnayModal";
+  kok.className = "sefer-onay-modal";
+  kok.innerHTML = `
+    <div class="overlay-card som-card">
+      <button class="overlay-close som-close" type="button">✕</button>
+      <h2 class="som-title">${baslik}</h2>
+      <div class="som-msg">${mesajHTML}</div>
+      <div class="som-actions">
+        <button class="som-btn som-btn-no"  type="button">Vazgeç</button>
+        <button class="som-btn som-btn-yes" type="button">${onayEtiket}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(kok);
+
+  /* HAYALET TIKLAMA: dokunuşla açılan pencere, parmak kalkınca
+     gelen click'i yiyordu. ~350 ms geçirimsiz kal. */
+  kok.style.pointerEvents = "none";
+  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
+
+  const kapat = () => kok.remove();
+  kok.querySelector(".som-close").onclick  = kapat;
+  kok.querySelector(".som-btn-no").onclick = kapat;
+  kok.querySelector(".som-btn-yes").onclick = () => { kapat(); try { cb(); } catch (e) { console.error(e); } };
+  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   16) backToMap KİLİDİ
+   Sefer varışında savaş çözülürken kullanıcı mağazada olabilir;
+   PvE'nin galibiyet dalı 4.2 sn sonra backToMap() çağırıp
+   haritayı zorla açıyordu. Fonksiyon DEĞİŞTİRİLMİYOR, sarılıyor.
+   (Geri düğmesi EVENTS'te asıl referansı tuttuğu için etkilenmez.)
+   ═══════════════════════════════════════════════════════════ */
+(function backToMapSar() {
+  if (typeof window.backToMap !== "function") return;
+  const eski = window.backToMap;
+  if (eski._seferSarildi) return;
+  const yeni = function () {
+    if (Date.now() < _panelKilit) return;
+    return eski.apply(this, arguments);
+  };
+  yeni._seferSarildi = true;
+  window.backToMap = yeni;
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   17) STİL
+   ═══════════════════════════════════════════════════════════ */
+(function stil() {
+  if (document.getElementById("seferStil")) return;
+  const st = document.createElement("style");
+  st.id = "seferStil";
+  st.textContent = `
+.sefer-ordu{
+  position:absolute; transform:translate(-50%,-50%);
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+  pointer-events:none; z-index:900; will-change:left,top;
+}
+.sefer-ordu-ikon{
+  font-size:19px; line-height:1;
+  filter:drop-shadow(0 0 6px var(--sefer-renk, #5ad2ff));
+  animation:seferSalin 1.1s ease-in-out infinite;
+}
+.sefer-ordu.sefer-donus .sefer-ordu-ikon{ opacity:.7; }
+.sefer-ordu-ad{
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800;
+  font-size:10px; line-height:1; color:#fff; white-space:nowrap;
+  padding:1px 5px; border-radius:7px;
+  background:rgba(8,16,28,.72);
+  border:1px solid var(--sefer-renk, #5ad2ff);
+  text-shadow:0 1px 2px rgba(0,0,0,.7);
+}
+@keyframes seferSalin{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
+
+#seferHud{
+  position:fixed; left:10px; top:58px; z-index:40;
+  display:flex; flex-direction:column; gap:6px;
+}
+.sefer-satir{
+  min-width:92px; padding:5px 9px; border-radius:11px;
+  background:linear-gradient(180deg, rgba(14,26,42,.92), rgba(8,16,28,.92));
+  border:1px solid rgba(90,210,255,.45);
+  box-shadow:0 3px 10px rgba(0,0,0,.45);
+  font-family:'Baloo 2','Nunito',sans-serif; color:#eaf6ff; cursor:pointer;
+}
+.sefer-satir-ust{ font-size:10.5px; font-weight:800; opacity:.85; line-height:1.2; }
+.sefer-satir-alt{ font-size:15px; font-weight:800; line-height:1.15; color:#7fe3a6; letter-spacing:.4px; }
+.sefer-satir-hedef{ font-size:9.5px; opacity:.6; line-height:1.2; }
+
+/* ── ONAY PENCERESİ — hizlandirmaPenceresi ile aynı düzen ── */
+.sefer-onay-modal{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(2,10,26,.72); padding:18px;
+}
+.sefer-onay-modal .som-card{
+  max-width:340px; border-radius:22px; padding:18px 16px 18px;
+}
+.sefer-onay-modal .som-close{ top:12px; right:12px; }
+/* .overlay-card h2 display:flex — burada text-align işe yaramaz */
+.sefer-onay-modal .som-title{
+  justify-content:center; font-size:22px; letter-spacing:1.6px;
+  padding-right:0; margin:0 0 12px;
+}
+.sefer-onay-modal .som-msg{
+  font-family:'Baloo 2','Nunito',sans-serif; font-size:14px;
+  line-height:1.5; text-align:center; margin:0 0 16px;
+}
+.sefer-onay-modal .sefer-onay-not{ font-size:12px; opacity:.75; }
+.sefer-onay-modal .som-actions{ display:flex; gap:10px; }
+.sefer-onay-modal .som-btn{
+  flex:1; padding:11px 8px; border-radius:13px; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:14px;
+  color:#fff; border:2px solid rgba(255,255,255,.35);
+}
+.sefer-onay-modal .som-btn-no{ background:linear-gradient(180deg,#5a6b80,#3b4859); }
+.sefer-onay-modal .som-btn-yes{ background:linear-gradient(180deg,#f0a234,#c0700d); }
+.sefer-onay-modal .som-btn:hover{ filter:brightness(1.08); }
+`;
+  document.head.appendChild(st);
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   18) ÇALIŞTIR
+   ═══════════════════════════════════════════════════════════ */
+setInterval(tik, 1000);
+
+/* Dışa açılanlar — konsoldan bakmak / ileride kaynak noktalarını
+   bağlamak için. Bir adı silmeden önce projede ARA. */
 window.SEFER = {
-  CFG: CFG,
-  gonder: baslat,
-  liste: liste,
+  AYAR: AYAR,
+  liste: hepsi,
+  benimkiler: benimkiler,
   geriCagir: geriCagir,
-  hizlandir: hizlandir,
-  ciz: cizgileriCiz,
-  panel: () => panelCizIste(true),
+  baslat: seferBaslat,
 };
-
-dongudeKal();
-panelCiz();
 
 })();
