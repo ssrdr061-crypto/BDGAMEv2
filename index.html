@@ -2089,9 +2089,9 @@ body.world-active{padding:0; overflow:hidden;}
 
   <div class="coord-panel" id="coordPanel">
     <span class="coord-lbl">x:</span>
-    <input id="coordX" class="coord-inp" type="text" inputmode="decimal" maxlength="4">
+    <input id="coordX" class="coord-inp" type="text" inputmode="numeric" maxlength="3">
     <span class="coord-lbl">y:</span>
-    <input id="coordY" class="coord-inp" type="text" inputmode="decimal" maxlength="4">
+    <input id="coordY" class="coord-inp" type="text" inputmode="numeric" maxlength="3">
     <button id="coordGoBtn" class="coord-go">Git</button>
   </div>
 
@@ -2878,7 +2878,7 @@ function chatRenderMessage(msg) {
   const empty = document.getElementById("chatEmpty");
   if (empty) empty.style.display = "none";
 
-  const coord = parseCoordFromText(msg.text);
+  const coord = parseCoordFromText(msg);   /* yapısal alan varsa onu kullanır */
 
   if (box) {
     const mine = currentUsername && msg.name &&
@@ -2908,14 +2908,28 @@ function chatRenderMessage(msg) {
   }
 }
 
-function parseCoordFromText(text) {
+/* SOHBET KOORDİNATI — İKİ BİÇİM BİR ARADA
+   Yeni mesajlar kayda kx/ky (KARO) + kv:2 damgası yazar; okurken
+   metne HİÇ bakılmaz, tahmin yok. Damgası olmayan ESKİ mesajlar
+   0..30 ölçeğinde kabul edilir ve doğru çalışmaya devam eder.
+   Metinden ayırt etmeye çalışmak imkânsızdı: "x:12 y:28" her iki
+   birimde de geçerli görünüyor.
+   Dönen gx/gy her zaman ÖLÇEK (0..30) birimindedir. */
+function parseCoordFromText(textOrMsg) {
+  const msg = (textOrMsg && typeof textOrMsg === "object") ? textOrMsg : null;
+
+  if (msg && msg.kv >= 2 && typeof msg.kx === "number" && typeof msg.ky === "number") {
+    return { gx: KOORD.karodanOlcek(msg.kx), gy: KOORD.karodanOlcek(msg.ky) };
+  }
+
+  const text = msg ? msg.text : textOrMsg;
   if (!text) return null;
   const m = String(text).match(/x:\s*(-?\d+(?:[.,]\d+)?)\s*y:\s*(-?\d+(?:[.,]\d+)?)/i);
   if (!m) return null;
   const gx = parseFloat(m[1].replace(",", "."));
   const gy = parseFloat(m[2].replace(",", "."));
   if (isNaN(gx) || isNaN(gy)) return null;
-  return { gx, gy };
+  return { gx, gy };          /* eski mesaj → zaten ölçek */
 }
 
 function openSharedCoord(gx, gy) {
@@ -2929,7 +2943,7 @@ function openSharedCoord(gx, gy) {
   requestAnimationFrame(() => goToCoord(
     ensure(Math.min(COORD_GRID, gx)),
     ensure(Math.min(COORD_GRID, gy))
-  ));
+  ));   /* gx/gy buraya ÖLÇEK olarak gelir; çevrimi çağıran yapar */
 }
 
 function startListeningForChat() {
@@ -4993,8 +5007,11 @@ let pendingShareCoord = null;
 
 let _shareHideTimer = null;
 
+/* GÖSTERİM BİRİMİ = KARO (tam sayı).
+   Gelen değer oyunun 0..30 ölçeğindedir; ekrana karo olarak yazılır.
+   Veri biçimi değişmedi — yalnız gösterim. */
 function fmtCoord(v) {
-  return String(Math.round(v * 10) / 10);
+  return String(KOORD.karoyaOturt(KOORD.olcektenKaro(v)));
 }
 
 function buildMapGridHTML() {
@@ -5100,7 +5117,7 @@ function renderBattleMap() {
     if (mapDragMoved) return;
     const xi = document.getElementById("coordX");
     const yi = document.getElementById("coordY");
-    if (xi) xi.value = fmtCoord(parseFloat(ds.cx));
+    if (xi) xi.value = fmtCoord(parseFloat(ds.cx));   /* karo gösterir */
     if (yi) yi.value = fmtCoord(parseFloat(ds.cy));
   });
   bindAll(mapEl, ".loot-node", (ds) => {
@@ -5605,10 +5622,15 @@ function handleCoordGo() {
   const xi = document.getElementById("coordX");
   const yi = document.getElementById("coordY");
   if (!xi || !yi) return;
+  /* Kutuya KARO girilir (0..140); ölçeğe çevrilip kullanılır. */
   let gx = parseFloat(String(xi.value || "").replace(",", "."));
   let gy = parseFloat(String(yi.value || "").replace(",", "."));
+  if (!isNaN(gx) && !isNaN(gy)) {
+    gx = KOORD.karodanOlcek(KOORD.karoyaOturt(gx));
+    gy = KOORD.karodanOlcek(KOORD.karoyaOturt(gy));
+  }
   if (isNaN(gx) || isNaN(gy)) {
-    showToast("Geçerli x ve y gir (0–30 arası).");
+    showToast("Geçerli x ve y gir (0–140 arası).");
     return;
   }
   gx = ensure(Math.min(COORD_GRID, gx));
@@ -5672,10 +5694,16 @@ function shareCoordInChat(gxIn, gyIn, kimin) {
     ? `📍 ${sahip} kalesi — x:${gx} y:${gy}`
     : `📍 Konum: x:${gx} y:${gy}`;
 
+  /* Kayda KARO'yu ayrıca yaz: okuyan taraf metinden tahmin
+     yürütmesin. kv damgası olmayan eski mesajlar ölçek sayılır. */
+  const _kx = KOORD.karoyaOturt(KOORD.olcektenKaro(acik ? gxIn : pendingShareCoord.gx));
+  const _ky = KOORD.karoyaOturt(KOORD.olcektenKaro(acik ? gyIn : pendingShareCoord.gy));
+
   firebaseDb.ref("chat").push({
     name: name,
     text: metin,
     at: Date.now(),
+    kx: _kx, ky: _ky, kv: 2,
   }).then(() => {
     showToast("Konum sohbette paylaşıldı!");
   }).catch(() => {

@@ -176,6 +176,17 @@ function dogrula() {
     }
   } catch (e) {}
 
+  /* AŞAMA 3 DENETİMİ: karoya oturtma kayıpsız mı?
+     ölçek → karo → ölçek → karo aynı karoyu vermeli. Vermezse
+     kale taşırken silüet bir kare kayar. */
+  try {
+    let sapan = 0;
+    for (let k = 0; k < karoSayisi(); k += 7) {
+      if (karoyaOturt(olcektenKaro(karodanOlcek(k))) !== k) sapan++;
+    }
+    sonuc.push({ sinav: "karoya oturtma kayıpsız", beklenen: 0, bulunan: sapan, gecti: sapan === 0 });
+  } catch (e) {}
+
   const kalan = sonuc.filter(x => !x.gecti);
   console.log(`[koordinat] ${sonuc.length - kalan.length}/${sonuc.length} sınav geçti`);
   if (kalan.length) { console.warn("[koordinat] GEÇEMEYENLER:"); console.table(kalan); }

@@ -1086,7 +1086,24 @@
     gx = Math.max(pay, Math.min(M - pay, gx));
     gy = Math.max(pay, Math.min(M - pay, gy));
 
-    return { gx: Math.round(gx * 10) / 10, gy: Math.round(gy * 10) / 10 };
+    /* ── KAREYE OTURT ──
+       Dokunulan nokta artık en yakın KARONUN merkezine çekilir.
+       Kale taşırken silüetin kare kare atlamasının ve paylaşılan
+       koordinatın tam sayı olmasının sebebi bu.
+       gx/gy hâlâ 0..30 ölçeğinde döner (kale verisi henüz o
+       biçimde); ama artık bir karonun TAM karşılığıdır. Bir haneye
+       yuvarlanmıyor — yuvarlansa karo geri hesaplanırken kayardı. */
+    const K = window.KOORD;
+    let kx, ky;
+    if (K) {
+      kx = K.karoyaOturt(K.olcektenKaro(gx));
+      ky = K.karoyaOturt(K.olcektenKaro(gy));
+      gx = K.karodanOlcek(kx);
+      gy = K.karodanOlcek(ky);
+    } else {
+      kx = Math.round(gx * ORAN); ky = Math.round(gy * ORAN);
+    }
+    return { gx: gx, gy: gy, kx: kx, ky: ky };
   }
 
   /* ── TAŞIMA MODUNDA KENAR KAYDIRMASI ──

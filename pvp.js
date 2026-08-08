@@ -528,7 +528,7 @@ function openCastlePopup(name, gx, gy, isOwn) {
         <div class="pvp-ava">🏰</div>
         <div>
           <div class="pvp-name">${esc(name || "Oyuncu")}</div>
-          <div class="pvp-sub pvp-sub-share" id="pvpCoordShare" title="Sohbette paylaş">📍 x:${Math.round(gx*10)/10} &nbsp; y:${Math.round(gy*10)/10} &nbsp;<span class="pvp-share-ico">📤</span></div>
+          <div class="pvp-sub pvp-sub-share" id="pvpCoordShare" title="Sohbette paylaş">📍 x:${window.KOORD.karoyaOturt(window.KOORD.olcektenKaro(gx))} &nbsp; y:${window.KOORD.karoyaOturt(window.KOORD.olcektenKaro(gy))} &nbsp;<span class="pvp-share-ico">📤</span></div>
           ${tag}
         </div>
       </div>
