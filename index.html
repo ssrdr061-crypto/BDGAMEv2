@@ -5524,12 +5524,78 @@ function setupMapPanning() {
     moveGhost.innerHTML = `<img src="gorsel17.webp" alt="" draggable="false" onerror="this.style.display='none'">`;
     document.body.appendChild(moveGhost);
   }
+  /* ── HEDEF KARENİN ÇERÇEVESİ ──
+     Karo izometrik çizildiği için ekranda kare değil EŞKENAR DÖRTGEN
+     görünür. O yüzden köşeler tek tek izdüşürülür: karonun dört köşesi
+     (±yarım karo) ekran konumuna çevrilip birleştirilir. Böylece hangi
+     projeksiyon kullanılırsa kullanılsın çerçeve karoya tam oturur. */
+  const KARE_NS = "http://www.w3.org/2000/svg";
+  let _kareSvg = null, _karePoly = null;
+
+  function kareCerceveGoster(kx, ky, bosMu){
+    const mapEl = document.getElementById("battleMap");
+    const H = window.HARITA;
+    if(!mapEl || !H || typeof H.ekranKonumu !== "function"){ kareCerceveGizle(); return; }
+
+    if(!_kareSvg){
+      _kareSvg = document.createElementNS(KARE_NS, "svg");
+      _kareSvg.id = "karoCerceve";
+      _kareSvg.style.cssText = "position:absolute; left:0; top:0; width:100%; height:100%;" +
+                               "overflow:visible; pointer-events:none; z-index:5;";
+      _karePoly = document.createElementNS(KARE_NS, "polygon");
+      _karePoly.setAttribute("stroke-width", "2.5");
+      _karePoly.setAttribute("stroke-linejoin", "round");
+      _kareSvg.appendChild(_karePoly);
+    }
+    /* renderBattleMap innerHTML'i siliyor; katman kopmuşsa geri tak. */
+    if(_kareSvg.parentNode !== mapEl) mapEl.appendChild(_kareSvg);
+
+    const kose = [[-0.5,-0.5],[0.5,-0.5],[0.5,0.5],[-0.5,0.5]].map(([dx,dy]) => {
+      const p = H.ekranKonumu(KOORD.karodanOlcek(kx+dx), KOORD.karodanOlcek(ky+dy));
+      return p ? (p.x + "," + p.y) : null;
+    });
+    if(kose.some(k => !k)){ kareCerceveGizle(); return; }
+
+    _karePoly.setAttribute("points", kose.join(" "));
+    _karePoly.setAttribute("fill",   bosMu ? "rgba(90,230,140,.22)" : "rgba(255,90,74,.22)");
+    _karePoly.setAttribute("stroke", bosMu ? "#5ae68c" : "#ff5a4a");
+    _kareSvg.style.display = "block";
+  }
+  function kareCerceveGizle(){ if(_kareSvg) _kareSvg.style.display = "none"; }
+
   function updateGhost(cx, cy){
     if(!moveGhost) return;
-    moveGhost.style.left = cx + "px";
-    moveGhost.style.top = cy + "px";
     ghostGrid = screenToGrid(cx, cy);
-    moveGhost.classList.toggle("bad", !(ghostGrid && cellFree(ghostGrid.gx, ghostGrid.gy)));
+
+    const bos = !!(ghostGrid && cellFree(ghostGrid.gx, ghostGrid.gy));
+    moveGhost.classList.toggle("bad", !bos);
+
+    /* ── SİLÜET KAREYE OTURSUN ──
+       Eskiden silüet parmağın altında duruyordu; kareye oturduğu
+       görülmüyordu. Artık hedef karonun MERKEZİNE çekiliyor, yani
+       kare kare atlıyor. */
+    const kk = ghostGrid ? KOORD.kaleKaro(ghostGrid) : null;
+    const mapEl = document.getElementById("battleMap");
+    const H = window.HARITA;
+    let yerlesti = false;
+
+    if(kk && mapEl && H && typeof H.ekranKonumu === "function"){
+      const p = H.ekranKonumu(KOORD.karodanOlcek(kk.kx), KOORD.karodanOlcek(kk.ky));
+      const r = mapEl.getBoundingClientRect();
+      if(p && r.width){
+        moveGhost.style.left = (r.left + p.x) + "px";
+        moveGhost.style.top  = (r.top  + p.y) + "px";
+        yerlesti = true;
+      }
+      kareCerceveGoster(kk.kx, kk.ky, bos);
+    } else {
+      kareCerceveGizle();
+    }
+
+    if(!yerlesti){                      /* harita yoksa eski davranış */
+      moveGhost.style.left = cx + "px";
+      moveGhost.style.top  = cy + "px";
+    }
   }
   function enterCastleMoveMode(cx, cy){
     if(!state.castle || typeof state.castle.gx !== "number") return;
@@ -5542,7 +5608,7 @@ function setupMapPanning() {
     if(navigator.vibrate){ try{ navigator.vibrate(30); }catch(e){} }
   }
   function removeMoveBar(){ const c = document.getElementById("castleMoveBar"); if(c) c.remove(); }
-  function cancelCastleMove(){ castleMoveMode = false; ghostGrid = null; if(moveGhost) moveGhost.style.display = "none"; removeMoveBar(); }
+  function cancelCastleMove(){ castleMoveMode = false; ghostGrid = null; if(moveGhost) moveGhost.style.display = "none"; kareCerceveGizle(); removeMoveBar(); }
 
   function showMoveBar(){
     removeMoveBar();
