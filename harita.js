@@ -674,11 +674,13 @@
     }
     if (el.dataset.idx !== undefined && typeof enemies !== "undefined") {
       const e = enemies[parseInt(el.dataset.idx, 10)];
-      if (e) return { gx: (e.mapX / 100) * 30, gy: (e.mapY / 100) * 30 };
+      /* Canavar konumu artık TAM SAYI KARO; çevrim koordinat.js'te. */
+      if (e) return { gx: KOORD.karodanOlcek(e.kx), gy: KOORD.karodanOlcek(e.ky) };
     }
     if (el.dataset.loot !== undefined && typeof enemies !== "undefined") {
       const e = enemies.find(x => x.name === el.dataset.loot);
-      if (e) return { gx: (e.mapX / 100) * 30, gy: (e.mapY / 100) * 30 };
+      /* Canavar konumu artık TAM SAYI KARO; çevrim koordinat.js'te. */
+      if (e) return { gx: KOORD.karodanOlcek(e.kx), gy: KOORD.karodanOlcek(e.ky) };
     }
     return null;
   }

@@ -44,7 +44,13 @@
    ═══════════════════════════════════════════════════════════ */
 const AYAR = {
   KOK: "seferler",
-  SANIYE_PER_KARO: 25,
+  /* HIZ — HARİTADA GÖZÜNLE SAYDIĞIN KARO cinsinden.
+     Harita 141×141 görsel karo; oyunun kendi koordinatı ise 0–30
+     ölçeğinde ondalıklı bir DÜNYA ölçüsü (iki ayrı ızgara değil,
+     bir ızgara + bir ölçek). Çevrim harita.js'teki ORAN'dan
+     OKUNUR — buraya 4.7 gibi bir sayı GÖMÜLMEZ. Gömülürse
+     ızgara boyu değiştiğinde hata sessiz olur. */
+  SANIYE_PER_GORSEL_KARO: 5.3,   /* ≈ 25 sn / mantıksal karo */
   MIN_SURE_MS: 15000,
   CARPISMA_BEKLE_MS: 2000,
   MAX_SEFER: 3,
@@ -90,9 +96,18 @@ function fmtSure(ms) {
   const dk = Math.floor(t / 60), sn = t % 60;
   return String(dk).padStart(2, "0") + "." + String(sn).padStart(2, "0") + "d";
 }
+/* Oyun ölçüsü (0–30) → görsel karo. harita.js dışa açıyor;
+   yoksa aynı formülün yedeği (141/30). */
+function oran() {
+  const H = window.HARITA;
+  return (H && typeof H.ORAN === "number" && H.ORAN > 0) ? H.ORAN : (141 / 30);
+}
+function gorselKaroMesafesi(fx, fy, tx, ty) {
+  return Math.hypot(tx - fx, ty - fy) * oran();
+}
 function sureHesapla(fx, fy, tx, ty) {
-  const d = Math.hypot(tx - fx, ty - fy);
-  return Math.max(AYAR.MIN_SURE_MS, Math.round(d * AYAR.SANIYE_PER_KARO * 1000));
+  const karo = gorselKaroMesafesi(fx, fy, tx, ty);
+  return Math.max(AYAR.MIN_SURE_MS, Math.round(karo * AYAR.SANIYE_PER_GORSEL_KARO * 1000));
 }
 function gecerli(s) {
   return !!s && typeof s.gidisAt === "number" && typeof s.sureMs === "number" &&
@@ -265,9 +280,10 @@ function hedefBilgisi(e) {
              gx: kale.gx, gy: kale.gy };
   }
 
-  if (typeof e.mapX === "number" && typeof e.mapY === "number") {
+  /* Canavar konumu TAM SAYI KARO (kx/ky). Çevrim koordinat.js'te. */
+  if (typeof e.kx === "number" && typeof e.ky === "number") {
     return { tur: "canavar", ad: e.name, key: null,
-             gx: (e.mapX / 100) * izgara(), gy: (e.mapY / 100) * izgara() };
+             gx: window.KOORD.karodanOlcek(e.kx), gy: window.KOORD.karodanOlcek(e.ky) };
   }
 
   /* Kaynak noktaları eklendiğinde gx/gy taşıyorsa buraya düşer. */
@@ -314,7 +330,13 @@ function seferBaslat() {
     sahip: bk,
     sahipAd: (typeof currentUsername === "string" ? currentUsername : "Oyuncu"),
     tur: h.tur, hedefAd: h.ad, hedefKey: h.key || null,
+    /* KOORDİNAT BİRİMİ: oyunun kendi 0–30 ölçüsü — Firebase'deki
+       kale verisiyle, ekranKonumu ile ve koordinat kutusuyla AYNI
+       dil. Görsel karoya çevirmek ikinci bir çevrim noktası
+       yaratırdı; mesafe ayrıca gorselKaro alanında yazılı. */
+    birim: "oyun30",
     fx: fx, fy: fy, tx: h.gx, ty: h.gy,
+    gorselKaro: Math.round(gorselKaroMesafesi(fx, fy, h.gx, h.gy) * 10) / 10,
     sureMs: sureMs, gidisAt: Date.now(),
     durum: "gidis", iptal: false,
     birlikler: secili,

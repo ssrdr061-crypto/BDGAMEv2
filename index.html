@@ -3798,21 +3798,21 @@ const state = defaultState();
    MAX_KOMUTAN, openHeroDetail, renderHeroPickerForBattle → heroes.js dosyasından gelir */
 
 const enemies = [
-  { name: "Goblin Hırsız",      avatar: "👺", attack: 44, defense: 28, maxHp: 155, ultiChance: 0.08, ultiMultiplier: 1.6, baseReward: 280,  tier: "easy",   mapX: 9,  mapY: 72 },
-  { name: "Yarasa Sürüsü",      avatar: "🦇", attack: 40, defense: 24, maxHp: 140, ultiChance: 0.09, ultiMultiplier: 1.7, baseReward: 240,  tier: "easy",   mapX: 13, mapY: 38 },
-  { name: "İskelet Savaşçı",    avatar: "💀", attack: 49, defense: 32, maxHp: 175, ultiChance: 0.10, ultiMultiplier: 1.8, baseReward: 360,  tier: "easy",   mapX: 16, mapY: 25 },
-  { name: "Kara Kurt",          avatar: "🐺", attack: 53, defense: 35, maxHp: 190, ultiChance: 0.12, ultiMultiplier: 1.9, baseReward: 440,  tier: "easy",   mapX: 25, mapY: 50 },
-  { name: "Bataklık Canavarı",  avatar: "🐊", attack: 55, defense: 36, maxHp: 198, ultiChance: 0.11, ultiMultiplier: 1.85, baseReward: 480, tier: "easy",   mapX: 30, mapY: 78 },
-  { name: "Mağara Trolü",       avatar: "🧌", attack: 57, defense: 38, maxHp: 205, ultiChance: 0.13, ultiMultiplier: 2.0, baseReward: 520,  tier: "medium", mapX: 40, mapY: 15 },
-  { name: "Kemik Şovalyesi",    avatar: "☠️", attack: 59, defense: 40, maxHp: 210, ultiChance: 0.14, ultiMultiplier: 2.05, baseReward: 580, tier: "medium", mapX: 44, mapY: 85 },
-  { name: "Genç Ejder",         avatar: "🐲", attack: 61, defense: 41, maxHp: 215, ultiChance: 0.15, ultiMultiplier: 2.1, baseReward: 640,  tier: "medium", mapX: 48, mapY: 62 },
-  { name: "Gölge Ejderi",       avatar: "🐍", attack: 63, defense: 43, maxHp: 220, ultiChance: 0.16, ultiMultiplier: 2.15, baseReward: 700, tier: "medium", mapX: 55, mapY: 90 },
-  { name: "Karanlık Suikastçı", avatar: "🥷", attack: 65, defense: 44, maxHp: 225, ultiChance: 0.17, ultiMultiplier: 2.2, baseReward: 780,  tier: "medium", mapX: 60, mapY: 28 },
-  { name: "Ejderha Lordu",      avatar: "🐉", attack: 78, defense: 56, maxHp: 320, ultiChance: 0.20, ultiMultiplier: 2.4, baseReward: 1600, tier: "hard",   mapX: 76, mapY: 70 },
-  { name: "Demir Golem",        avatar: "🤖", attack: 80, defense: 62, maxHp: 340, ultiChance: 0.14, ultiMultiplier: 2.2, baseReward: 1750, tier: "hard",   mapX: 70, mapY: 40 },
-  { name: "Çelik Behemot",      avatar: "🗿", attack: 84, defense: 68, maxHp: 380, ultiChance: 0.16, ultiMultiplier: 2.3, baseReward: 2200, tier: "hard",   mapX: 88, mapY: 20 },
-  { name: "Buz Lordu",          avatar: "🥶", attack: 88, defense: 58, maxHp: 360, ultiChance: 0.22, ultiMultiplier: 2.5, baseReward: 2500, tier: "hard",   mapX: 92, mapY: 55 },
-  { name: "Kaos Avatarı",       avatar: "👹", attack: 92, defense: 60, maxHp: 350, ultiChance: 0.26, ultiMultiplier: 2.8, baseReward: 3000, tier: "hard",   mapX: 94, mapY: 88 },
+  { name: "Goblin Hırsız",      avatar: "👺", attack: 44, defense: 28, maxHp: 155, ultiChance: 0.08, ultiMultiplier: 1.6, baseReward: 280,  tier: "easy",   kx: 13, ky: 102 },
+  { name: "Yarasa Sürüsü",      avatar: "🦇", attack: 40, defense: 24, maxHp: 140, ultiChance: 0.09, ultiMultiplier: 1.7, baseReward: 240,  tier: "easy",   kx: 18, ky: 54 },
+  { name: "İskelet Savaşçı",    avatar: "💀", attack: 49, defense: 32, maxHp: 175, ultiChance: 0.10, ultiMultiplier: 1.8, baseReward: 360,  tier: "easy",   kx: 23, ky: 35 },
+  { name: "Kara Kurt",          avatar: "🐺", attack: 53, defense: 35, maxHp: 190, ultiChance: 0.12, ultiMultiplier: 1.9, baseReward: 440,  tier: "easy",   kx: 35, ky: 70 },
+  { name: "Bataklık Canavarı",  avatar: "🐊", attack: 55, defense: 36, maxHp: 198, ultiChance: 0.11, ultiMultiplier: 1.85, baseReward: 480, tier: "easy",   kx: 42, ky: 110 },
+  { name: "Mağara Trolü",       avatar: "🧌", attack: 57, defense: 38, maxHp: 205, ultiChance: 0.13, ultiMultiplier: 2.0, baseReward: 520,  tier: "medium", kx: 56, ky: 21 },
+  { name: "Kemik Şovalyesi",    avatar: "☠️", attack: 59, defense: 40, maxHp: 210, ultiChance: 0.14, ultiMultiplier: 2.05, baseReward: 580, tier: "medium", kx: 62, ky: 120 },
+  { name: "Genç Ejder",         avatar: "🐲", attack: 61, defense: 41, maxHp: 215, ultiChance: 0.15, ultiMultiplier: 2.1, baseReward: 640,  tier: "medium", kx: 68, ky: 87 },
+  { name: "Gölge Ejderi",       avatar: "🐍", attack: 63, defense: 43, maxHp: 220, ultiChance: 0.16, ultiMultiplier: 2.15, baseReward: 700, tier: "medium", kx: 78, ky: 127 },
+  { name: "Karanlık Suikastçı", avatar: "🥷", attack: 65, defense: 44, maxHp: 225, ultiChance: 0.17, ultiMultiplier: 2.2, baseReward: 780,  tier: "medium", kx: 85, ky: 39 },
+  { name: "Ejderha Lordu",      avatar: "🐉", attack: 78, defense: 56, maxHp: 320, ultiChance: 0.20, ultiMultiplier: 2.4, baseReward: 1600, tier: "hard",   kx: 107, ky: 99 },
+  { name: "Demir Golem",        avatar: "🤖", attack: 80, defense: 62, maxHp: 340, ultiChance: 0.14, ultiMultiplier: 2.2, baseReward: 1750, tier: "hard",   kx: 99, ky: 56 },
+  { name: "Çelik Behemot",      avatar: "🗿", attack: 84, defense: 68, maxHp: 380, ultiChance: 0.16, ultiMultiplier: 2.3, baseReward: 2200, tier: "hard",   kx: 124, ky: 28 },
+  { name: "Buz Lordu",          avatar: "🥶", attack: 88, defense: 58, maxHp: 360, ultiChance: 0.22, ultiMultiplier: 2.5, baseReward: 2500, tier: "hard",   kx: 130, ky: 78 },
+  { name: "Kaos Avatarı",       avatar: "👹", attack: 92, defense: 60, maxHp: 350, ultiChance: 0.26, ultiMultiplier: 2.8, baseReward: 3000, tier: "hard",   kx: 133, ky: 124 },
 ];
 
 /* Haritadaki DOLU noktaları toplar: canavarlar + BÜTÜN oyuncu kaleleri.
@@ -3828,7 +3828,7 @@ function _doluNoktalar(GRID) {
   };
 
   /* Canavar konumu YÜZDE tutuluyor; çevrim tek kapıdan (koordinat.js). */
-  try { enemies.forEach(e => ekle(KOORD.yuzdedenOlcek(e.mapX), KOORD.yuzdedenOlcek(e.mapY))); } catch (e) {}
+  try { enemies.forEach(e => ekle(KOORD.karodanOlcek(e.kx), KOORD.karodanOlcek(e.ky))); } catch (e) {}
 
   /* Firebase'den gelen canlı kale listesi (castles/ düğümü) */
   try {
@@ -3934,7 +3934,7 @@ async function fixOverlappingCastle() {
     };
 
     /* canavarlar — sahipsiz, hepsi engel */
-    try { enemies.forEach(e => ekle(null, KOORD.yuzdedenOlcek(e.mapX), KOORD.yuzdedenOlcek(e.mapY))); } catch (e) {}
+    try { enemies.forEach(e => ekle(null, KOORD.karodanOlcek(e.kx), KOORD.karodanOlcek(e.ky))); } catch (e) {}
 
     try {
       if (Array.isArray(otherCastles)) {
@@ -5071,7 +5071,7 @@ function renderBattleMap() {
     if (!isEnemyActive(enemy)) {
       if (state.lootChests[enemy.name]) {
         return `
-        <div class="map-node loot-node" data-loot="${enemy.name}" style="left:${enemy.mapX}%; top:${enemy.mapY}%;">
+        <div class="map-node loot-node" data-loot="${enemy.name}" style="left:${KOORD.karodanYuzde(enemy.kx)}%; top:${KOORD.karodanYuzde(enemy.ky)}%;">
           <div class="node-avatar loot-avatar">💰</div>
           <div class="node-label">Hazine</div>
         </div>`;
@@ -5079,7 +5079,7 @@ function renderBattleMap() {
       return "";
     }
     return `
-    <div class="map-node tier-${enemy.tier}" data-idx="${i}" style="left:${enemy.mapX}%; top:${enemy.mapY}%;">
+    <div class="map-node tier-${enemy.tier}" data-idx="${i}" style="left:${KOORD.karodanYuzde(enemy.kx)}%; top:${KOORD.karodanYuzde(enemy.ky)}%;">
       <div class="node-ring">
         <div class="node-avatar">${enemy.avatar}</div>
       </div>
@@ -5342,7 +5342,7 @@ function setupMapPanning() {
 
   function cellFree(gx, gy){
     const taken = [];
-    try { enemies.forEach(e => taken.push({ gx:KOORD.yuzdedenOlcek(e.mapX), gy:KOORD.yuzdedenOlcek(e.mapY) })); } catch(e){}
+    try { enemies.forEach(e => taken.push({ gx:KOORD.karodanOlcek(e.kx), gy:KOORD.karodanOlcek(e.ky) })); } catch(e){}
     try {
       /* loadAccounts() localStorage'daki ESKİ hesap kopyalarını
          döndürüyordu; oradaki bayat kale konumları "burası dolu" deyip

@@ -87,6 +87,10 @@ function yuzdedenOlcek(p) { return (p / 100) * olcek(); }
    index.html'deki `(gx / COORD_GRID) * 100` ifadesinin aynısı. */
 function olcektenYuzde(g) { return (g / olcek()) * 100; }
 
+/* karo → yüzde 0–100. Eski yüzde tabanlı CSS konumlandırması
+   (harita.js devre dışıyken devreye giren yedek) için. */
+function karodanYuzde(k) { return (k / karoSayisi()) * 100; }
+
 /* Karoyu tam sayıya oturt ve ızgara dışına taşmasını engelle. */
 function karoyaOturt(k) {
   const son = karoSayisi() - 1;
@@ -158,6 +162,19 @@ function dogrula() {
   [0.1, 5.3, 17.7, 29.9].forEach(g => {
     ekle(`gidiş-dönüş ${g}`, g, karodanOlcek(olcektenKaro(g)));
   });
+
+  /* AŞAMA 2 DENETİMİ: canavarların hepsi tam sayı karoda mı?
+     Biri yüzde kalmışsa haritada kayar; sessiz kalmasın. */
+  try {
+    if (typeof enemies !== "undefined" && Array.isArray(enemies)) {
+      const bozuk = enemies.filter(e =>
+        !e || typeof e.kx !== "number" || typeof e.ky !== "number" ||
+        e.kx !== Math.floor(e.kx) || e.ky !== Math.floor(e.ky));
+      sonuc.push({ sinav: `canavarlar tam sayı karoda (${enemies.length} adet)`,
+                   beklenen: 0, bulunan: bozuk.length, gecti: bozuk.length === 0 });
+      if (bozuk.length) console.warn("[koordinat] karosuz canavarlar:", bozuk.map(x => x && x.name));
+    }
+  } catch (e) {}
 
   const kalan = sonuc.filter(x => !x.gecti);
   console.log(`[koordinat] ${sonuc.length - kalan.length}/${sonuc.length} sınav geçti`);
@@ -237,7 +254,7 @@ window.KOORD = {
   /* çevrim */
   olcektenKaro: olcektenKaro, karodanOlcek: karodanOlcek,
   yuzdedenKaro: yuzdedenKaro, yuzdedenOlcek: yuzdedenOlcek,
-  olcektenYuzde: olcektenYuzde,
+  olcektenYuzde: olcektenYuzde, karodanYuzde: karodanYuzde,
   karoyaOturt: karoyaOturt, mesafeKaro: mesafeKaro, ucBirim: ucBirim,
   /* teşhis */
   dogrula: dogrula, tani: tani,
