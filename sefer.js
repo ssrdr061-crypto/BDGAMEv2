@@ -1,73 +1,75 @@
 /* ============================================================
    sefer.js — BİRLİK SEVKİYATI (İNTİKAL)
    ------------------------------------------------------------
-   Saldırılar artık ANINDA çözülmez: ordu haritada yürür, hedefe
-   varır, çarpışır ve geri döner.
+   Saldırılar ANINDA çözülmez: ordu haritada yürür, hedefe varır,
+   çarpışır ve geri döner.
 
-   Araya girdiği tek yer SALDIR düğmesidir; onu da `document`
-   üzerinde CAPTURE aşamasında yakalar. Capture, hedef elemanın
-   kendi dinleyicilerinden ÖNCE çalışır — böylece pvp.js'in ve
-   index.html'in mevcut dinleyicileri hiç tetiklenmez.
+   ── GERÇEĞİN KAYNAĞI YERELDİR ──────────────────────────────
+   İLK SÜRÜMÜN HATASI: sayaç, çizgi ve "en fazla 3" sınırı
+   Firebase'in `seferler` düğümünü geri yollamasına bağlıydı.
+   Yankı gelmeyince liste boş kaldı; ordu kaleden düşüldü ama
+   ekranda hiçbir şey belirmedi, sınır da çalışmadı. Üstelik
+   dinleyiciye hata geri çağırması konmamıştı — izin hatası bile
+   sessiz kalıyordu.
 
-   KİLİTLENME BİLİNÇLİ: bir hata olursa ya da hedefin koordinatı
-   çözülemezse SALDIR yine de yutulur ve toast basılır. Sessizce
-   eski anlık savaşa DÜŞMEZ — geliştirme sırasında "bazen yürüyor
-   bazen ışınlanıyor" belirsizliği hatayı gizler.
+   ARTIK: kendi seferlerim `_yerel`de + localStorage'da tutulur.
+   Firebase'e YAZILIR (diğer oyuncular görsün diye) ama okumaya
+   BAĞIMLI DEĞİLDİR. Bulut hiç cevap vermese bile kendi ordunu
+   görürsün, sayaç işler, sınır uygulanır, birlikler geri döner.
+   Buluttan gelen yalnız BAŞKALARININ seferleridir.
+   Her yazma hatası konsola VE ekrana düşer; sessiz başarısızlık
+   yok. Durum için: konsola `SEFER.tani()` yaz.
 
-   Varışta savaşı yine OYUNUN KENDİ fonksiyonları çözer:
+   Araya girdiği tek yer SALDIR düğmesidir; onu `document`
+   üzerinde CAPTURE aşamasında yakalar — pvp.js'in ve
+   index.html'in dinleyicileri hiç tetiklenmez. Bir aksilikte
+   SALDIR yine yutulur ve sebep ekrana yazılır (bilinçli:
+   sessizce eski anlık savaşa düşmek hatayı gizler).
+
+   Varışta savaşı OYUNUN KENDİ fonksiyonları çözer:
      - kale    → window.PVP.savasiCalistir()   (pvp.js)
      - canavar → startBattle()                 (index.html)
    Savaş matematiği burada KOPYALANMAZ.
 
-   DÖNEN ORDUNUN MEVCUDU TAHMİN DEĞİL:
-     - ölen   → window.PVP.sonSonuc.killed  (pvp.js yayınlar)
-     - yaralı → sendWoundedToHospital'a giden liste (aşağıda
-                geçici olarak yakalanır)
-   Yaralılar savaş anında hastaneye GİRMEZ; orduyla birlikte eve
-   yürür, kaleye varınca hastaneye düşer.
-
-   VERİ: Firebase'de "seferler/{id}". Herkes okur, yalnız sahibi
-   yazar. Kayıtta `gidisAt` + `sureMs` durur; konum bunlardan
-   HESAPLANIR, sürekli yazılmaz. Sonradan bağlanan oyuncu orduyu
-   yolun ortasında görür (missile.js'in pvp_launches deseni).
+   Dönen mevcut TAHMİN DEĞİL:
+     ölen   → window.PVP.sonSonuc.killed (pvp.js yayınlar)
+     yaralı → sendWoundedToHospital'a giden liste (yakalanır)
+   Yaralı savaş anında hastaneye girmez; orduyla eve yürür.
    ============================================================ */
 (function () {
 "use strict";
 
 /* ═══════════════════════════════════════════════════════════
-   1) AYARLAR — tek yerden değiştir
+   1) AYARLAR
    ═══════════════════════════════════════════════════════════ */
 const AYAR = {
-  KOK: "seferler",          /* Firebase düğümü */
-  SANIYE_PER_KARO: 25,      /* 1 karo yürüyüş süresi (sn) */
-  MIN_SURE_MS: 15000,       /* en kısa sefer */
-  CARPISMA_BEKLE_MS: 2000,  /* hedefe varınca savaştan önceki duraklama */
-  MAX_SEFER: 3,             /* aynı anda en fazla kaç intikal */
-  KAYIT_OMRU_MS: 2 * 60 * 60 * 1000, /* bu kadar eskimiş kayıt çöptür */
-  YAY: 0.12,                /* yolun kavis miktarı (0 = düz çizgi) */
+  KOK: "seferler",
+  SANIYE_PER_KARO: 25,
+  MIN_SURE_MS: 15000,
+  CARPISMA_BEKLE_MS: 2000,
+  MAX_SEFER: 3,
+  KAYIT_OMRU_MS: 2 * 60 * 60 * 1000,
+  YAY: 0,                   /* yol kavisi. 0 = DÜZ ÇİZGİ */
 };
 
-/* selectedTroopsForBattle ile AYNI sıra. pvp.js'teki FRONT_ORDER
-   dışa açık değil, o yüzden burada tekrar yazıldı — birim listesi
-   değişirse burası da değişmeli. */
 const BIRLIKLER = ["knight", "soldier", "robot"];
 
 /* ═══════════════════════════════════════════════════════════
    2) İÇ DURUM
+   _yerel  → KENDİ seferlerim (gerçeğin kaynağı)
+   _uzak   → başkalarının seferleri (yalnız gösterim)
    ═══════════════════════════════════════════════════════════ */
-let seferler    = {};        /* Firebase'den gelen TÜM seferler */
-let _ref        = null;
-let _benKey     = null;
-let _isleniyor  = new Set(); /* aynı sefer iki kez çözülmesin */
-let _kaleKonum  = null;      /* ışınlanma denetimi */
-let _sonKapi    = 0;         /* SALDIR çift tetiklemesini yut */
-let _panelKilit = 0;         /* savaş çözülürken backToMap'i nötrle */
-let _rafId      = null;
-let _svg = null, _yolGrup = null;
+let _yerel   = {};
+let _uzak    = {};
+let _silinen = new Set();
 
-/* Yaralı yakalama */
-let _yaraliYakala = false;
-let _yakalanan    = null;
+let _ref = null, _benKey = null;
+let _isleniyor = new Set();
+let _kaleKonum = null;
+let _sonKapi = 0, _panelKilit = 0, _rafId = null;
+let _svg = null, _yolGrup = null;
+let _yaraliYakala = false, _yakalanan = null;
+let _bulutHata = null;      /* son bulut hatası — tani() gösterir */
 
 /* ═══════════════════════════════════════════════════════════
    3) YARDIMCILAR
@@ -83,19 +85,20 @@ function izgara() { return (typeof COORD_GRID === "number") ? COORD_GRID : 30; }
 function bekle(ms) { return new Promise(r => setTimeout(r, ms)); }
 function toplam(b) { return BIRLIKLER.reduce((a, k) => a + ((b || {})[k] || 0), 0); }
 
-/* "05.32d" biçimi */
 function fmtSure(ms) {
   const t = Math.max(0, Math.ceil(ms / 1000));
   const dk = Math.floor(t / 60), sn = t % 60;
   return String(dk).padStart(2, "0") + "." + String(sn).padStart(2, "0") + "d";
 }
-
 function sureHesapla(fx, fy, tx, ty) {
   const d = Math.hypot(tx - fx, ty - fy);
   return Math.max(AYAR.MIN_SURE_MS, Math.round(d * AYAR.SANIYE_PER_KARO * 1000));
 }
+function gecerli(s) {
+  return !!s && typeof s.gidisAt === "number" && typeof s.sureMs === "number" &&
+         typeof s.fx === "number" && typeof s.tx === "number";
+}
 
-/* Bir seferin ŞU ANKİ evresi. Konum kayıttan değil saatten çıkar. */
 function evre(s) {
   const now = Date.now();
   if (s.durum === "donus") {
@@ -111,20 +114,93 @@ function evre(s) {
            ax: s.fx, ay: s.fy, bx: s.tx, by: s.ty };
 }
 
+/* Çizilecek TÜM seferler: benimkiler yerelden, ötekiler buluttan */
 function hepsi() {
-  return Object.keys(seferler)
-    .map(id => ({ id, s: seferler[id] }))
-    .filter(x => x.s && typeof x.s.gidisAt === "number" && typeof x.s.sureMs === "number");
+  const out = [];
+  Object.keys(_yerel).forEach(id => { if (gecerli(_yerel[id])) out.push({ id, s: _yerel[id] }); });
+  const bk = benKey();
+  Object.keys(_uzak).forEach(id => {
+    const s = _uzak[id];
+    if (!gecerli(s)) return;
+    if (s.sahip === bk) return;          /* benimki yerelden geliyor */
+    out.push({ id, s });
+  });
+  return out;
 }
 function benimkiler() {
-  const k = benKey();
-  return k ? hepsi().filter(x => x.s.sahip === k) : [];
+  return Object.keys(_yerel).filter(id => gecerli(_yerel[id])).map(id => ({ id, s: _yerel[id] }));
 }
 
 /* ═══════════════════════════════════════════════════════════
-   4) BİRLİK DEFTERİ
-   Yola çıkan birlik kaleden DÜŞÜLÜR (başka sefere alınamaz,
-   eğitim/hastane ekranlarında görünmez). Dönünce geri eklenir.
+   4) KALICILIK — localStorage + Firebase (yazma tek yönlü)
+   ═══════════════════════════════════════════════════════════ */
+function depoAnahtari() { const k = benKey(); return k ? "sefer_" + k : null; }
+
+function yereliKaydet() {
+  const a = depoAnahtari(); if (!a) return;
+  try { localStorage.setItem(a, JSON.stringify(_yerel)); }
+  catch (e) { console.error("[sefer] yerel kayıt:", e); }
+}
+function yereliYukle() {
+  const a = depoAnahtari(); if (!a) return;
+  try {
+    const ham = localStorage.getItem(a);
+    _yerel = ham ? (JSON.parse(ham) || {}) : {};
+  } catch (e) { console.error("[sefer] yerel okuma:", e); _yerel = {}; }
+}
+
+/* Buluta yaz — BEST EFFORT. Başarısızlık seferi durdurmaz,
+   sadece başkaları göremez. Hata SESSİZ KALMAZ. */
+function bulutaYaz(id, kayit) {
+  if (!fbHazir()) { _bulutHata = "firebaseDb yok"; return; }
+  try {
+    firebaseDb.ref(AYAR.KOK + "/" + id).set(temizVeri(kayit))
+      .then(() => { _bulutHata = null; })
+      .catch(err => {
+        _bulutHata = String(err && err.message || err);
+        console.error("[sefer] buluta yazılamadı:", err);
+        toast("⚠️ Sefer buluta yazılamadı — diğer oyuncular göremeyecek.", 4000);
+      });
+  } catch (err) {
+    _bulutHata = String(err && err.message || err);
+    console.error("[sefer] buluta yazılamadı (senkron):", err);
+    toast("⚠️ Sefer buluta yazılamadı — konsola bak.", 4000);
+  }
+}
+function buluttanSil(id) {
+  if (!fbHazir()) return;
+  try { firebaseDb.ref(AYAR.KOK + "/" + id).remove().catch(() => {}); } catch (e) {}
+}
+
+/* Firebase undefined kabul etmez; sync hata fırlatır. */
+function temizVeri(x) {
+  if (x === undefined || x === null) return null;
+  if (Array.isArray(x)) { const a = x.map(temizVeri).filter(v => v !== null); return a.length ? a : null; }
+  if (typeof x === "object") {
+    const o = {};
+    Object.keys(x).forEach(k => { const v = temizVeri(x[k]); if (v !== null) o[k] = v; });
+    return Object.keys(o).length ? o : null;
+  }
+  return x;
+}
+
+/* Seferi yerelde güncelle → kaydet → buluta yansıt */
+function seferYaz(id, kayit) {
+  _yerel[id] = kayit;
+  yereliKaydet();
+  bulutaYaz(id, kayit);
+  hudCiz(); dongu();
+}
+function seferSil(id) {
+  delete _yerel[id];
+  _silinen.add(id);
+  yereliKaydet();
+  buluttanSil(id);
+  hudCiz();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   5) BİRLİK DEFTERİ
    ═══════════════════════════════════════════════════════════ */
 function birlikDus(b) {
   if (typeof state === "undefined" || !state.troops) return;
@@ -142,11 +218,9 @@ function tazele() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   5) YARALI YAKALAMA
-   Savaş sırasında sendWoundedToHospital çağrısını geçici olarak
-   kendine çeker. Yaralı hastaneye ANINDA girmez; listesi sefer
-   kaydında eve taşınır ve varışta gerçek fonksiyona verilir.
-   Fonksiyonun kendisi DEĞİŞTİRİLMEZ, sarılır.
+   6) YARALI YAKALAMA
+   sendWoundedToHospital DEĞİŞTİRİLMEZ, sarılır. Savaş anında
+   yaralılar hastaneye girmez; listesi eve taşınır.
    ═══════════════════════════════════════════════════════════ */
 const _gercekHastane = (typeof window.sendWoundedToHospital === "function")
   ? window.sendWoundedToHospital : null;
@@ -159,8 +233,8 @@ if (_gercekHastane && !_gercekHastane._seferSarildi) {
   sarmal._seferSarildi = true;
   window.sendWoundedToHospital = sarmal;
 }
+if (!_gercekHastane) console.error("[sefer] sendWoundedToHospital bulunamadı — yaralılar eve taşınamaz!");
 
-/* {knight:[{severe:true}]} → {knight:2} */
 function yaraliSayilari(liste) {
   const o = {};
   Object.keys(liste || {}).forEach(uid => {
@@ -171,13 +245,12 @@ function yaraliSayilari(liste) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   6) HEDEF ÇÖZÜMÜ
+   7) HEDEF ÇÖZÜMÜ
    ═══════════════════════════════════════════════════════════ */
 function hedefBilgisi(e) {
   if (!e) return null;
 
-  /* ── OYUNCU KALESİ ──
-     buildDefender mapX/mapY'yi 0 yazıyor; koordinat otherCastles'ta.
+  /* buildDefender mapX/mapY'yi 0 yazar; koordinat otherCastles'ta.
      Bu yüzden isPlayer kontrolü mapX'ten ÖNCE gelmeli. */
   if (e.isPlayer) {
     const ad = String(e.name || "").toLowerCase();
@@ -187,35 +260,29 @@ function hedefBilgisi(e) {
       if (c && c.castle && typeof c.castle.gx === "number") kale = c.castle;
     }
     if (!kale) return null;
-    return {
-      tur: "kale", ad: e.name,
-      key: e.accKey || (typeof toFirebaseKey === "function" ? toFirebaseKey(ad) : null),
-      gx: kale.gx, gy: kale.gy
-    };
+    return { tur: "kale", ad: e.name,
+             key: e.accKey || (typeof toFirebaseKey === "function" ? toFirebaseKey(ad) : null),
+             gx: kale.gx, gy: kale.gy };
   }
 
-  /* ── CANAVAR (PvE) ── mapX/mapY yüzde; harita.js ile aynı çevrim */
   if (typeof e.mapX === "number" && typeof e.mapY === "number") {
     return { tur: "canavar", ad: e.name, key: null,
              gx: (e.mapX / 100) * izgara(), gy: (e.mapY / 100) * izgara() };
   }
 
-  /* ── KAYNAK NOKTASI ── henüz yok; gx/gy taşıyan bir hedef
-     eklendiğinde sistem kendiliğinden çalışır. */
+  /* Kaynak noktaları eklendiğinde gx/gy taşıyorsa buraya düşer. */
   if (typeof e.gx === "number" && typeof e.gy === "number") {
     return { tur: "kaynak", ad: e.name || "Kaynak", key: null, gx: e.gx, gy: e.gy };
   }
-
   return null;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   7) SEFERİ BAŞLAT
-   Her çıkış yolu SALDIR'ı yutar (kilitler). Eski anlık savaşa
-   düşme yolu YOK — bkz. dosya başındaki not.
+   8) SEFERİ BAŞLAT
    ═══════════════════════════════════════════════════════════ */
 function seferBaslat() {
-  if (!fbHazir() || !benKey()) { toast("Bağlantı yok — sefer gönderilemiyor."); return; }
+  const bk = benKey();
+  if (!bk) { toast("Oturum yok — sefer gönderilemiyor."); return; }
   if (typeof currentEnemy === "undefined" || !currentEnemy) { toast("Önce haritadan bir hedef seç."); return; }
   if (typeof state === "undefined" || !state.castle || typeof state.castle.gx !== "number") {
     toast("Önce kalen olmalı."); return;
@@ -223,9 +290,12 @@ function seferBaslat() {
 
   const h = hedefBilgisi(currentEnemy);
   if (!h) { toast("Bu hedefin koordinatı çözülemedi — sefer gönderilemiyor."); return; }
-  if (h.tur === "kale" && h.key === benKey()) { toast("Kendi kalene sefer düzenleyemezsin."); return; }
-  if (benimkiler().length >= AYAR.MAX_SEFER) {
-    toast(`Aynı anda en fazla ${AYAR.MAX_SEFER} intikal gönderebilirsin.`); return;
+  if (h.tur === "kale" && h.key === bk) { toast("Kendi kalene sefer düzenleyemezsin."); return; }
+
+  const acik = benimkiler().length;
+  if (acik >= AYAR.MAX_SEFER) {
+    toast(`Aynı anda en fazla ${AYAR.MAX_SEFER} intikal gönderebilirsin (${acik}/${AYAR.MAX_SEFER} yolda).`);
+    return;
   }
 
   const secili = {};
@@ -238,9 +308,10 @@ function seferBaslat() {
 
   const fx = state.castle.gx, fy = state.castle.gy;
   const sureMs = sureHesapla(fx, fy, h.gx, h.gy);
+  const id = bk + "_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
 
   const kayit = {
-    sahip: benKey(),
+    sahip: bk,
     sahipAd: (typeof currentUsername === "string" ? currentUsername : "Oyuncu"),
     tur: h.tur, hedefAd: h.ad, hedefKey: h.key || null,
     fx: fx, fy: fy, tx: h.gx, ty: h.gy,
@@ -248,100 +319,93 @@ function seferBaslat() {
     durum: "gidis", iptal: false,
     birlikler: secili,
     komutanlar: (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
-                  ? selectedCommanders.slice() : [],
+                  ? selectedCommanders.filter(Boolean) : [],
   };
 
-  /* Önce birlikleri kaleden düş, sonra kaydı yaz. Yazma patlarsa
-     birlikleri geri koy — yoksa ordu buharlaşır. */
+  /* Birlikler kaleden düşülür ve sefer YERELDE kesinleşir.
+     Bulut yazması başarısız olsa bile sefer yürür ve geri döner. */
   birlikDus(secili);
-  firebaseDb.ref(AYAR.KOK).push(kayit).catch(() => {
-    birlikEkle(secili);
-    toast("Sefer başlatılamadı (bağlantı hatası).");
-  });
+  seferYaz(id, kayit);
 
   toast(`⚔️ Ordun ${h.ad} üzerine yola çıktı — ${fmtSure(sureMs)}`);
   if (typeof backToMap === "function") backToMap();
 }
 
 /* ═══════════════════════════════════════════════════════════
-   8) SALDIR DÜĞMESİNİ YAKALA (capture)
+   9) SALDIR DÜĞMESİNİ YAKALA (capture)
    ═══════════════════════════════════════════════════════════ */
 function kapi(e) {
   const btn = e.target && e.target.closest ? e.target.closest("#battleBtn") : null;
   if (!btn) return;
 
-  /* Düğme HER durumda yutulur: eski anlık savaş asla çalışmasın. */
   e.stopImmediatePropagation();
   e.preventDefault();
 
-  /* pointerup + click art arda gelir; işi bir kez yap. */
   const now = Date.now();
-  if (now - _sonKapi < 700) return;
+  if (now - _sonKapi < 700) return;   /* pointerup + click art arda gelir */
   _sonKapi = now;
 
   try { seferBaslat(); }
   catch (err) {
     console.error("[sefer] başlatılamadı:", err);
-    toast("Sefer başlatılamadı — konsola bak.");
+    toast("Sefer başlatılamadı: " + (err && err.message ? err.message : "bilinmeyen hata"), 5000);
   }
 }
 document.addEventListener("pointerup", kapi, true);
 document.addEventListener("click",     kapi, true);
 
 /* ═══════════════════════════════════════════════════════════
-   9) ZAMAN MOTORU — varış, çarpışma, dönüş
+   10) ZAMAN MOTORU
+   Çizim ve sayaç ARTIK BURADAN da sürülür — bulut dinleyicisine
+   bağlı değil. (İlk sürümün asıl kırılma noktası buydu.)
    ═══════════════════════════════════════════════════════════ */
 function tik() {
-  if (!fbHazir()) return;
   const k = benKey();
   if (!k) return;
-  if (_benKey !== k) { _benKey = k; _kaleKonum = null; dinle(); }
+
+  if (_benKey !== k) {          /* giriş / hesap değişimi */
+    _benKey = k;
+    _kaleKonum = null;
+    _silinen.clear();
+    yereliYukle();
+    dinle();
+  }
 
   isinlanmaDenetimi();
 
   benimkiler().forEach(({ id, s }) => {
     if (_isleniyor.has(id)) return;
     const ev = evre(s);
-
-    /* Çöp kayıt: sahibi saatlerdir girmemiş olabilir */
     if (Date.now() - s.gidisAt > AYAR.KAYIT_OMRU_MS) { seferiBitir(id, s, true); return; }
-
     if (ev.ad === "gidis" && ev.bitti) { varisiIsle(id, s); return; }
     if (ev.ad === "donus" && ev.bitti) { seferiBitir(id, s); return; }
   });
 
   hudCiz();
+  dongu();
 }
 
-/* Hedefe varıldı → kısa duraklama → savaş → dönüşe geç */
+/* Varış → duraklama → savaş → dönüş */
 async function varisiIsle(id, s) {
   _isleniyor.add(id);
   try {
     await bekle(AYAR.CARPISMA_BEKLE_MS);
-
     const gonderilen = s.birlikler || {};
 
-    /* Savaş kaybı bu birliklerden düşecek: yolcuları geçici olarak
-       orduya kat. Savaştan sonra hayatta kalanlar tekrar ayrılır. */
-    birlikEkle(gonderilen);
-
-    _panelKilit = Date.now() + 12000;  /* savaş bitince panel zorla açılmasın */
-    _yaraliYakala = true;              /* yaralılar hastaneye ŞİMDİ girmesin */
-    _yakalanan = null;
+    birlikEkle(gonderilen);            /* savaş kaybı bunlardan düşecek */
+    _panelKilit = Date.now() + 12000;
+    _yaraliYakala = true; _yakalanan = null;
     if (window.PVP) window.PVP.sonSonuc = null;
 
     if (!s.iptal) {
       if (s.tur === "kale")         await kaleSavasi(s);
       else if (s.tur === "canavar") await canavarSavasi(s);
-      /* kaynak: henüz savaş yok, varıp döner */
     }
 
     _yaraliYakala = false;
     _panelKilit = 0;
 
-    /* ── DÖNEN MEVCUT: TAHMİN YOK ──
-       ölen  = pvp.js'in yayınladığı kesin sayı (PvE'de ölüm yok)
-       yaralı = hastaneye gitmek üzere yakalanan listenin uzunluğu */
+    /* ── DÖNEN MEVCUT: SAYIM, TAHMİN DEĞİL ── */
     const yaraliListe = _yakalanan || {};
     const yarali = yaraliSayilari(yaraliListe);
     const olen = (window.PVP && window.PVP.sonSonuc && window.PVP.sonSonuc.killed)
@@ -352,52 +416,38 @@ async function varisiIsle(id, s) {
     BIRLIKLER.forEach(u => {
       saglam[u] = Math.max(0, (gonderilen[u] || 0) - (olen[u] || 0) - (yarali[u] || 0));
     });
+    birlikDus(saglam);   /* sağlamlar tekrar yola; net etki sıfır */
 
-    /* Sağlamları tekrar yola çıkar. Ölen ve yaralılar savaş kodu
-       tarafından zaten orduda düşüldü; net etki sıfır. */
-    birlikDus(saglam);
-
-    await firebaseDb.ref(AYAR.KOK + "/" + id).update({
+    const guncel = Object.assign({}, s, {
       durum: "donus", donusAt: Date.now(), donusSureMs: s.sureMs,
       donusFx: s.tx, donusFy: s.ty,
-      birlikler: saglam,
-      yaralilar: temizVeri(yaraliListe)   /* eve varınca hastaneye girecek */
+      birlikler: saglam, yaralilar: yaraliListe
     });
+    seferYaz(id, guncel);
   } catch (err) {
     console.error("[sefer] varış işlenemedi:", err);
-    _yaraliYakala = false;
-    _panelKilit = 0;
+    toast("Varış işlenemedi — konsola bak.", 5000);
+    _yaraliYakala = false; _panelKilit = 0;
   }
   _isleniyor.delete(id);
 }
 
-/* Firebase undefined kabul etmez; boş nesne de yazılmaz. */
-function temizVeri(x) {
-  if (x === undefined || x === null) return null;
-  if (Array.isArray(x)) { const a = x.map(temizVeri).filter(v => v !== null); return a.length ? a : null; }
-  if (typeof x === "object") {
-    const o = {};
-    Object.keys(x).forEach(k => { const v = temizVeri(x[k]); if (v !== null) o[k] = v; });
-    return Object.keys(o).length ? o : null;
-  }
-  return x;
-}
-
-/* Kaleye vardı — SAVAŞI pvp.js çözer */
 async function kaleSavasi(s) {
   if (!window.PVP || typeof window.PVP.savasiCalistir !== "function" ||
       typeof window.PVP.savunanKur !== "function") {
-    console.error("[sefer] PVP.savasiCalistir / savunanKur yok — savaş atlandı");
-    toast("Savaş çözülemedi (pvp.js güncel değil).");
+    toast("Savaş çözülemedi — pvp.js güncel değil.", 5000);
+    console.error("[sefer] PVP.savasiCalistir / savunanKur yok");
     return;
   }
+  if (!fbHazir()) { toast("Bağlantı yok — savaş çözülemedi."); return; }
+
   const snap = await firebaseDb.ref("accounts/" + s.hedefKey).get();
   if (!snap.exists()) { toast(`${s.hedefAd} bulunamadı, ordun geri dönüyor.`); return; }
 
-  const acc  = snap.val();
+  const acc = snap.val();
   const kale = (acc.state || {}).castle;
 
-  /* SAVUNAN IŞINLANDIYSA: ordu boş araziye varır, çarpışma olmaz. */
+  /* SAVUNAN IŞINLANDIYSA çarpışma olmaz */
   if (!kale || typeof kale.gx !== "number" ||
       Math.abs(kale.gx - s.tx) > 0.001 || Math.abs(kale.gy - s.ty) > 0.001) {
     toast(`🏰 ${s.hedefAd} ışınlanmış! Ordun boş araziye vardı, geri dönüyor.`, 4500);
@@ -412,7 +462,6 @@ async function kaleSavasi(s) {
   await window.PVP.savasiCalistir();
 }
 
-/* Canavara vardı — SAVAŞI index.html'in startBattle'ı çözer */
 async function canavarSavasi(s) {
   if (typeof enemies === "undefined" || typeof startBattle !== "function") {
     toast("Savaş çözülemedi."); return;
@@ -437,82 +486,94 @@ function seferiBitir(id, s, sessiz) {
 
   const yarali = s.yaralilar || null;
   if (yarali && _gercekHastane) {
-    try { _gercekHastane(yarali); } catch (e) { console.error("[sefer] hastane:", e); }
-    tazele();
+    try { _gercekHastane(yarali); tazele(); }
+    catch (e) { console.error("[sefer] hastane:", e); }
   }
 
   if (!sessiz) {
     const n = toplam(s.birlikler || {});
     const y = toplam(yaraliSayilari(yarali || {}));
-    let m = `🏰 Ordun kaleye döndü (${n} birlik)`;
-    if (y > 0) m += ` — ${y} yaralı hastaneye alındı`;
-    toast(m + ".", 4000);
+    toast(`🏰 Ordun kaleye döndü (${n} birlik)` + (y > 0 ? ` — ${y} yaralı hastaneye alındı` : "") + ".", 4000);
   }
-
-  firebaseDb.ref(AYAR.KOK + "/" + id).remove()
-    .catch(() => {})
-    .then(() => _isleniyor.delete(id));
+  seferSil(id);
+  _isleniyor.delete(id);
 }
 
 /* ═══════════════════════════════════════════════════════════
-   10) IŞINLANMA — kendi kalen taşınırsa seferler anında iptal
-   doCastleMove IIFE içinde kapalı, ADIYLA yakalanamıyor; kale
+   11) IŞINLANMA — kendi kalen taşınırsa seferler anında iptal
+   doCastleMove IIFE içinde kapalı, adıyla yakalanamıyor; kale
    koordinatının değişmesi izleniyor.
    ═══════════════════════════════════════════════════════════ */
 function isinlanmaDenetimi() {
   if (typeof state === "undefined" || !state.castle || typeof state.castle.gx !== "number") return;
   const simdi = { gx: state.castle.gx, gy: state.castle.gy };
-  if (!_kaleKonum) { _kaleKonum = simdi; return; }          /* ilk okuma */
+  if (!_kaleKonum) { _kaleKonum = simdi; return; }
   if (_kaleKonum.gx === simdi.gx && _kaleKonum.gy === simdi.gy) return;
 
   _kaleKonum = simdi;
   const liste = benimkiler();
   if (!liste.length) return;
-
   liste.forEach(({ id, s }) => seferiBitir(id, s, true));
   toast("🌀 Işınlandın — yoldaki ordularının hepsi kaleye geri döndü.", 4000);
 }
 
 /* ═══════════════════════════════════════════════════════════
-   11) GERİ ÇAĞIRMA — ordu bulunduğu noktadan yürüyerek döner
+   12) GERİ ÇAĞIRMA
    ═══════════════════════════════════════════════════════════ */
 function geriCagir(id) {
-  const s = seferler[id];
-  if (!s || s.sahip !== benKey()) return;
+  const s = _yerel[id];
+  if (!s) return;
   if (s.durum === "donus") { toast("Bu ordu zaten dönüş yolunda."); return; }
 
   const now = Date.now();
   const gecen = Math.max(0, Math.min(now - s.gidisAt, s.sureMs));
   const p = s.sureMs > 0 ? gecen / s.sureMs : 1;
 
-  firebaseDb.ref(AYAR.KOK + "/" + id).update({
+  seferYaz(id, Object.assign({}, s, {
     durum: "donus", iptal: true, donusAt: now,
     donusSureMs: Math.max(3000, gecen),
     donusFx: s.fx + (s.tx - s.fx) * p,
     donusFy: s.fy + (s.ty - s.fy) * p
-  }).catch(() => toast("Geri çağrılamadı."));
+  }));
   toast("↩️ Ordu geri çağrıldı.");
 }
 
 /* ═══════════════════════════════════════════════════════════
-   12) FIREBASE DİNLEME
+   13) BULUT DİNLEME — YALNIZ BAŞKALARINI GÖRMEK İÇİN
+   Hata geri çağırması VAR: izin/bağlantı sorunu sessiz kalmaz.
    ═══════════════════════════════════════════════════════════ */
 function dinle() {
   if (!fbHazir() || _ref) return;
   _ref = firebaseDb.ref(AYAR.KOK);
-  _ref.on("value", snap => {
-    seferler = snap.val() || {};
-    hudCiz();
-    dongu();
-  });
+  _ref.on("value",
+    snap => {
+      _uzak = snap.val() || {};
+      _bulutHata = null;
+
+      /* Başka cihazdan başlatılmış kendi seferimi devral */
+      const bk = benKey();
+      Object.keys(_uzak).forEach(id => {
+        const s = _uzak[id];
+        if (s && s.sahip === bk && gecerli(s) && !_yerel[id] && !_silinen.has(id)) {
+          _yerel[id] = s;
+          yereliKaydet();
+        }
+      });
+      hudCiz(); dongu();
+    },
+    err => {
+      _bulutHata = String(err && err.message || err);
+      console.error("[sefer] bulut okunamadı:", err);
+      toast("⚠️ Seferler buluttan okunamıyor — kendi ordunu görürsün, başkalarınınkini göremezsin.", 5000);
+    }
+  );
 }
 
 /* ═══════════════════════════════════════════════════════════
-   13) ÇİZİM — akıcı yol + yürüyen ordu
-   #battleMap'in içine ayrı bir SVG katmanı. renderBattleMap
-   innerHTML'i silince katman kopar; her karede geri takılır
-   (missile.js'in yaptığının aynısı). Döngü YALNIZ sefer varken
-   döner; boştayken maliyeti sıfırdır.
+   14) ÇİZİM
+   #battleMap içine ayrı SVG katmanı. renderBattleMap innerHTML'i
+   silince katman kopar; her karede geri takılır (missile.js
+   deseni). Döngü yalnız sefer varken döner.
    ═══════════════════════════════════════════════════════════ */
 const NS = "http://www.w3.org/2000/svg";
 
@@ -531,8 +592,7 @@ function katmaniHazirla() {
   return _svg;
 }
 
-/* Oyun koordinatı → ekran pikseli. TEK GEÇİT: harita.js'in
-   ekranKonumu'u. Yoksa eski yüzde hesabına düşer. */
+/* TEK GEÇİT: harita.js'in ekranKonumu'u. Yoksa yüzdeye düşer. */
 function ekran(gx, gy) {
   const H = window.HARITA;
   if (H && typeof H.ekranKonumu === "function") {
@@ -542,16 +602,6 @@ function ekran(gx, gy) {
   const mapEl = document.getElementById("battleMap");
   const w = mapEl ? mapEl.clientWidth : 0, h = mapEl ? mapEl.clientHeight : 0;
   return { x: (gx / izgara()) * w, y: (gy / izgara()) * h };
-}
-
-function kontrolNoktasi(a, b) {
-  const d = Math.hypot(b.x - a.x, b.y - a.y);
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 - d * AYAR.YAY };
-}
-function egriNokta(a, c, b, t) {
-  const u = 1 - t;
-  return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x,
-           y: u * u * a.y + 2 * u * t * c.y + t * t * b.y };
 }
 
 function dongu() {
@@ -565,15 +615,13 @@ function dongu() {
   };
   _rafId = requestAnimationFrame(adim);
 }
-
 function temizle() {
   if (_yolGrup) _yolGrup.innerHTML = "";
   document.querySelectorAll(".sefer-ordu").forEach(el => el.remove());
 }
 
 function ciz(liste) {
-  const svg = katmaniHazirla();
-  if (!svg) return;
+  if (!katmaniHazirla()) return;
   const mapEl = document.getElementById("battleMap");
   const bk = benKey();
   const gorulen = new Set();
@@ -585,15 +633,18 @@ function ciz(liste) {
 
     const a = ekran(ev.ax, ev.ay);
     const b = ekran(ev.bx, ev.by);
-    const c = kontrolNoktasi(a, b);
-    const nokta = egriNokta(a, c, b, ev.p);
+    /* YAY=0 → düz çizgi. Kavis istenirse kontrol noktası kalkar. */
+    const c = { x: (a.x + b.x) / 2,
+                y: (a.y + b.y) / 2 - Math.hypot(b.x - a.x, b.y - a.y) * AYAR.YAY };
+    const u = 1 - ev.p;
+    const nokta = { x: u * u * a.x + 2 * u * ev.p * c.x + ev.p * ev.p * b.x,
+                    y: u * u * a.y + 2 * u * ev.p * c.y + ev.p * ev.p * b.y };
 
     const benim  = s.sahip === bk;
     const banaMi = s.tur === "kale" && s.hedefKey === bk;
     const renk = banaMi ? "#ff5a4a" : benim ? "#5ad2ff" : "#e0b24a";
     gorulen.add(id);
 
-    /* ── yol ── */
     let yol = _yolGrup.querySelector('[data-sefer="' + id + '"]');
     if (!yol) {
       yol = document.createElementNS(NS, "path");
@@ -607,10 +658,8 @@ function ciz(liste) {
     yol.setAttribute("stroke", renk);
     yol.setAttribute("stroke-width", benim ? 3 : 2);
     yol.setAttribute("opacity", benim ? 0.9 : 0.55);
-    /* akış hissi: kesikler hedefe doğru kayar */
     yol.setAttribute("stroke-dashoffset", String(-((Date.now() / 45) % 22)));
 
-    /* ── yürüyen ordu ── */
     let ordu = mapEl.querySelector('.sefer-ordu[data-sefer="' + id + '"]');
     if (!ordu) {
       ordu = document.createElement("div");
@@ -637,28 +686,25 @@ function ciz(liste) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   14) SOL ÜST SAYAÇ PANELİ
+   15) SOL ÜST SAYAÇ
    ═══════════════════════════════════════════════════════════ */
 function hudEl() {
   let el = document.getElementById("seferHud");
   if (!el) { el = document.createElement("div"); el.id = "seferHud"; document.body.appendChild(el); }
   return el;
 }
-
 function hudCiz() {
   const el = hudEl();
   const liste = benimkiler();
   if (!liste.length) { el.style.display = "none"; el.innerHTML = ""; return; }
 
-  /* Harita görünmüyorsa (savaş paneli / overlay açık) gizle */
   const wrap = document.getElementById("battleMapWrap");
   el.style.display = (wrap && wrap.style.display !== "none") ? "flex" : "none";
 
   el.innerHTML = liste.map((x, i) => {
     const ev = evre(x.s);
-    const ok = ev.ad === "donus" ? "↩︎" : "⚔️";
     return `<div class="sefer-satir" data-sefer="${x.id}">
-      <div class="sefer-satir-ust">${ok} Birlik ${i + 1}</div>
+      <div class="sefer-satir-ust">${ev.ad === "donus" ? "↩︎" : "⚔️"} Birlik ${i + 1}</div>
       <div class="sefer-satir-alt">${fmtSure(ev.kalanMs)}</div>
       <div class="sefer-satir-hedef">${String(x.s.hedefAd || "").slice(0, 12)}</div>
     </div>`;
@@ -669,25 +715,18 @@ function hudCiz() {
     if (typeof bindTap === "function") bindTap(row, f); else row.onclick = f;
   });
 }
-
 function satirTiklandi(id) {
-  const s = seferler[id];
+  const s = _yerel[id];
   if (!s) return;
   if (s.durum === "donus") { toast("Ordu dönüş yolunda."); return; }
-  const n = toplam(s.birlikler || {});
-  onayPenceresi(
-    "GERİ ÇAĞIR",
-    `<b>${String(s.hedefAd || "")}</b> üzerine giden <b>${n}</b> birliğin geri çağrılsın mı?` +
+  onayPenceresi("GERİ ÇAĞIR",
+    `<b>${String(s.hedefAd || "")}</b> üzerine giden <b>${toplam(s.birlikler || {})}</b> birliğin geri çağrılsın mı?` +
     `<br><span class="sefer-onay-not">Ordu bulunduğu noktadan yürüyerek dönecek; gittiği yol kadar süre alır.</span>`,
-    "↩︎ Geri Çağır",
-    () => geriCagir(id)
-  );
+    "↩︎ Geri Çağır", () => geriCagir(id));
 }
 
 /* ═══════════════════════════════════════════════════════════
-   15) ONAY PENCERESİ
-   Gövde oyunun kendi .overlay-card'ı, kapatma .overlay-close —
-   tema elle taklit EDİLMEZ (bkz. hizlandirmaPenceresi).
+   16) ONAY PENCERESİ — gövde oyunun kendi .overlay-card'ı
    ═══════════════════════════════════════════════════════════ */
 function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
   const eski = document.getElementById("seferOnayModal");
@@ -708,24 +747,21 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
     </div>`;
   document.body.appendChild(kok);
 
-  /* HAYALET TIKLAMA: dokunuşla açılan pencere, parmak kalkınca
-     gelen click'i yiyordu. ~350 ms geçirimsiz kal. */
+  /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu. */
   kok.style.pointerEvents = "none";
   setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
 
   const kapat = () => kok.remove();
-  kok.querySelector(".som-close").onclick  = kapat;
-  kok.querySelector(".som-btn-no").onclick = kapat;
+  kok.querySelector(".som-close").onclick   = kapat;
+  kok.querySelector(".som-btn-no").onclick  = kapat;
   kok.querySelector(".som-btn-yes").onclick = () => { kapat(); try { cb(); } catch (e) { console.error(e); } };
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
 
 /* ═══════════════════════════════════════════════════════════
-   16) backToMap KİLİDİ
-   Sefer varışında savaş çözülürken kullanıcı mağazada olabilir;
+   17) backToMap KİLİDİ
    PvE'nin galibiyet dalı 4.2 sn sonra backToMap() çağırıp
-   haritayı zorla açıyordu. Fonksiyon DEĞİŞTİRİLMİYOR, sarılıyor.
-   (Geri düğmesi EVENTS'te asıl referansı tuttuğu için etkilenmez.)
+   haritayı zorla açıyordu. Fonksiyon değiştirilmiyor, sarılıyor.
    ═══════════════════════════════════════════════════════════ */
 (function backToMapSar() {
   if (typeof window.backToMap !== "function") return;
@@ -740,7 +776,7 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 })();
 
 /* ═══════════════════════════════════════════════════════════
-   17) STİL
+   18) STİL
    ═══════════════════════════════════════════════════════════ */
 (function stil() {
   if (document.getElementById("seferStil")) return;
@@ -769,7 +805,7 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 @keyframes seferSalin{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
 
 #seferHud{
-  position:fixed; left:10px; top:58px; z-index:40;
+  position:fixed; left:10px; top:96px; z-index:40;
   display:flex; flex-direction:column; gap:6px;
 }
 .sefer-satir{
@@ -783,17 +819,14 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 .sefer-satir-alt{ font-size:15px; font-weight:800; line-height:1.15; color:#7fe3a6; letter-spacing:.4px; }
 .sefer-satir-hedef{ font-size:9.5px; opacity:.6; line-height:1.2; }
 
-/* ── ONAY PENCERESİ — hizlandirmaPenceresi ile aynı düzen ── */
 .sefer-onay-modal{
   position:fixed; inset:0; z-index:9999;
   display:flex; align-items:center; justify-content:center;
   background:rgba(2,10,26,.72); padding:18px;
 }
-.sefer-onay-modal .som-card{
-  max-width:340px; border-radius:22px; padding:18px 16px 18px;
-}
+.sefer-onay-modal .som-card{ max-width:340px; border-radius:22px; padding:18px 16px; }
 .sefer-onay-modal .som-close{ top:12px; right:12px; }
-/* .overlay-card h2 display:flex — burada text-align işe yaramaz */
+/* .overlay-card h2 display:flex — text-align burada işe yaramaz */
 .sefer-onay-modal .som-title{
   justify-content:center; font-size:22px; letter-spacing:1.6px;
   padding-right:0; margin:0 0 12px;
@@ -817,18 +850,40 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 })();
 
 /* ═══════════════════════════════════════════════════════════
-   18) ÇALIŞTIR
+   19) ÇALIŞTIR + TEŞHİS
    ═══════════════════════════════════════════════════════════ */
 setInterval(tik, 1000);
 
-/* Dışa açılanlar — konsoldan bakmak / ileride kaynak noktalarını
-   bağlamak için. Bir adı silmeden önce projede ARA. */
+/* Konsola `SEFER.tani()` yaz: nerede takıldığını söyler. */
+function tani() {
+  const r = {
+    oturum: benKey(),
+    firebase: fbHazir(),
+    bulutHata: _bulutHata,
+    dinleyici: !!_ref,
+    kendiSeferSayisi: benimkiler().length,
+    baskalarininSeferi: Object.keys(_uzak).length,
+    haritaEkranKonumu: !!(window.HARITA && window.HARITA.ekranKonumu),
+    pvpKapilari: !!(window.PVP && window.PVP.savasiCalistir && window.PVP.savunanKur),
+    hastaneSarmali: !!_gercekHastane,
+    seferler: _yerel,
+  };
+  console.log("[sefer] TANI", r);
+  return r;
+}
+
+/* Kayıp birlikleri elle geri koymak için (ilk sürümde kaybolanlar):
+   SEFER.iadeEt({knight:100, soldier:50}) */
+function iadeEt(b) {
+  birlikEkle(b || {});
+  toast("Birlikler kaleye eklendi.");
+  return (typeof state !== "undefined") ? state.troops : null;
+}
+
 window.SEFER = {
-  AYAR: AYAR,
-  liste: hepsi,
-  benimkiler: benimkiler,
-  geriCagir: geriCagir,
-  baslat: seferBaslat,
+  AYAR: AYAR, tani: tani, iadeEt: iadeEt,
+  liste: hepsi, benimkiler: benimkiler,
+  geriCagir: geriCagir, baslat: seferBaslat,
 };
 
 })();
