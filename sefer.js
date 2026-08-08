@@ -208,74 +208,84 @@ function sil(id) {
   panelCizIste(true);
 }
 
-/* Savaşı GERÇEK koduna çözdür. Adımlar yorumda anlatıldığı gibi. */
-function savasaGir(s) {
-  const btn = $("battleBtn");
-  if (!btn) { _savasKilidi = false; iptalEt(s, "Savaş ekranı bulunamadı"); return; }
+/* Savaşı GERÇEK koduna çözdür — SAVAŞ EKRANI AÇILMADAN.
 
+   ── selectEnemyFromMap ÇAĞIRMA ──
+   O fonksiyon savaş ekranını açıyor VE selectedTroopsForBattle'ı
+   sıfırlıyor. Varışta çağrılınca oyuncuya "yanına alacağın birlikler"
+   menüsü ikinci kez gösteriliyordu. Birlik zaten yola çıkarken
+   seçiliyor; burada sadece currentEnemy'yi elle oturtuyoruz.
+
+   ── PvE'de OLAY GÖNDERİLMEZ ──
+   index.html'deki safeBind(id,"click",...) aslında "click" DEĞİL,
+   PointerEvent varsa "pointerup" bağlıyor (safeBind gövdesine bak).
+   Bu yüzden düğmeye click göndermek startBattle'ı hiç çağırmıyordu:
+   sefer varıyor, savaş olmuyor, 20 sn sonra iptal yolu birlikleri eve
+   yolluyordu. Artık startBattle doğrudan çağrılıyor — async olduğu
+   için bitişini yoklamaya da gerek yok.
+
+   ── PvP'de OLAY GÖNDERİLİR ──
+   runPvpBattle pvp.js'in kapalı kapsamında, dışarı açılmamış. Tek
+   erişim yolu düğmeye "pointerup" göndermek (pvp.js capture aşamasında
+   onu dinliyor). Bunun için ekranın AÇIK olması gerekmiyor; runPvpBattle
+   sadece #battleLog'a yazıyor. Buraya bir de "click" eklenmemeli:
+   pvp.js ikisini de dinliyor ve savaş İKİ KEZ çözülür. */
+let _izin = false;   /* true iken kesici gönderdiğimiz olayı geçirir */
+
+function savasaGir(s) {
   /* 1) birlikleri geçici olarak eve al ki savaş kodu onları görsün */
   Object.keys(s.birlikler || {}).forEach(uid => {
     state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
   });
   const oncesi = Object.assign({}, state.troops);
 
-  /* 2) komutan seçimini seferin anlık görüntüsüne çevir */
+  /* 2) komutan ve birlik seçimini seferin anlık görüntüsüne çevir */
   try {
     if (typeof selectedCommanders !== "undefined" && Array.isArray(s.komutanlar) && s.komutanlar.length) {
       selectedCommanders = s.komutanlar.slice();
     }
   } catch (e) {}
+  try { selectedTroopsForBattle = Object.assign({}, s.birlikler); } catch (e) {}
+
+  if (s.tur === "kale") { pvpVur(s, oncesi); }
+  else                  { pveVur(s, oncesi); }
+}
+
+function pveVur(s, oncesi) {
+  const e = (typeof enemies !== "undefined") ? enemies.find(x => x.name === s.hedefAd) : null;
+  if (!e || typeof window.startBattle !== "function") {
+    _savasKilidi = false; iptalEt(s, "Hedef bulunamadı"); return;
+  }
+  try { currentEnemy = e; } catch (err) { _savasKilidi = false; iptalEt(s, "Hedef oturmadı"); return; }
+
+  Promise.resolve()
+    .then(() => window.startBattle())
+    .then(() => { savasBitti(s, oncesi); })
+    .catch(() => { _savasKilidi = false; iptalEt(s, "Savaş çözülemedi"); });
+}
+
+function pvpVur(s, oncesi) {
+  const btn = $("battleBtn");
+  if (!btn || !s.pvpHedef) { _savasKilidi = false; iptalEt(s, "Rakip bulunamadı"); return; }
+  try { currentEnemy = s.pvpHedef; } catch (err) { _savasKilidi = false; iptalEt(s, "Rakip oturmadı"); return; }
 
   const gunlukOnce = (state.battleLogHistory || []).length;
 
-  /* 3) hedefi savaş ekranına oturt */
-  if (s.tur === "kale" && window.PVP && typeof window.PVP.attack === "function" && s.pvpHedef) {
-    /* PVP.attack rakibin ordusunu buluttan TAZE çeker — sefer uzun
-       sürdüğü için bu şart, yoksa saatler önceki orduyla savaşırsın. */
-    try { window.PVP.attack(s.pvpHedef); } catch (e) {}
-    bekleVeVur(() => (typeof currentEnemy === "object" && currentEnemy && currentEnemy.isPlayer),
-               () => tetikle(s, btn, "pointerup", oncesi, gunlukOnce));
-  } else {
-    const e = (typeof enemies !== "undefined")
-      ? enemies.find(x => x.name === s.hedefAd) : null;
-    if (!e) { _savasKilidi = false; iptalEt(s, "Hedef haritada yok"); return; }
-    if (typeof selectEnemyFromMap === "function") selectEnemyFromMap(e);
-    tetikle(s, btn, "click", oncesi, gunlukOnce);
-  }
-}
-
-/* PVP.attack eşzamansız (Firebase .get) — hedef oturana kadar yokla */
-function bekleVeVur(hazirMi, vur) {
-  let kalan = 40;                       /* ~4 sn */
-  (function bak() {
-    if (hazirMi()) { vur(); return; }
-    if (--kalan <= 0) { vur(); return; } /* yine de dene; başarısızsa iptal yolu devreye girer */
-    setTimeout(bak, 100);
-  })();
-}
-
-let _izin = false;   /* true iken kesici olayı geçirir */
-
-function tetikle(s, btn, tip, oncesi, gunlukOnce) {
-  /* selectEnemyFromMap seçimi sıfırlıyor — seferin birliklerini geri yaz */
-  try { selectedTroopsForBattle = Object.assign({}, s.birlikler); } catch (e) {}
-  if (typeof renderTroopSelector === "function") { try { renderTroopSelector(); } catch (e) {} }
-
   _izin = true;
   try {
-    if (tip === "pointerup" && window.PointerEvent) {
+    if (window.PointerEvent) {
       btn.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true }));
     } else {
       btn.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
     }
   } catch (e) {}
-  setTimeout(() => { _izin = false; }, 600);
+  _izin = false;
 
-  /* Savaş bitti mi? Her iki yol da savaş günlüğüne kayıt düşürüyor. */
-  let kalan = 100;   /* ~20 sn */
+  /* runPvpBattle senkron biter ama içinde bekleme olabilir; günlüğe
+     kayıt düşmesini kısa süre yokluyoruz. */
+  let kalan = 25;   /* ~5 sn */
   (function bekle() {
-    const simdi = (state.battleLogHistory || []).length;
-    if (simdi > gunlukOnce) { savasBitti(s, oncesi); return; }
+    if ((state.battleLogHistory || []).length > gunlukOnce) { savasBitti(s, oncesi); return; }
     if (--kalan <= 0) { _savasKilidi = false; iptalEt(s, "Savaş çözülemedi"); return; }
     setTimeout(bekle, 200);
   })();
@@ -488,7 +498,10 @@ function panelCiz() {
     const k = kartlar[i];
     if (!k) return;
     const sp = k.querySelector(".sefer-kalan");
-    if (sp) sp.textContent = sureYaz(s.bitisAt - Date.now());
+    if (!sp) return;
+    const kalan = s.bitisAt - Date.now();
+    /* Vardı ama savaş henüz çözülüyor: donmuş "00:00" yerine durum yaz */
+    sp.textContent = (kalan <= 0 && s.yon === "gidis") ? "çarpışıyor…" : sureYaz(kalan);
   });
 
   el.style.display = a.length ? "flex" : "none";
