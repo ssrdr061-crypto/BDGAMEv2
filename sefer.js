@@ -641,8 +641,31 @@ function panelCiz() {
 
    Buraya SVG <text> geri gelmemeli. */
 const _cizimler = Object.create(null);   /* sefer id → elemanlar */
-const CHEVRON_ADET = 6;
+const CHEVRON_ADET = 4;
 const CHEVRON_HIZ  = 1.6;   /* saniyede kaç karo ilerlesin (akış hızı) */
+
+/* ── HER KAREDE SADECE DEĞİŞENİ YAZ ──
+   Kasmanın sebebi buydu: renk, yazı boyu, kenarlık, opaklık her karede
+   yeniden atanıyordu. Hiçbiri değişmiyordu ama her atama tarayıcıya
+   #battleMap'in TAMAMININ stilini yeniden hesaplatıyor — üstünde
+   onlarca kale düğümü olan bir katman için bu çok pahalı, kare hızı
+   15'e düşüyordu. Artık değer gerçekten değiştiyse yazılıyor.
+   Buraya koşulsuz style ataması geri gelmemeli. */
+function stil(el, ad, deger) {
+  if (!el._sn) el._sn = Object.create(null);
+  if (el._sn[ad] === deger) return;
+  el._sn[ad] = deger;
+  el.style[ad] = deger;
+}
+function oz(el, ad, deger) {
+  if (!el._sn) el._sn = Object.create(null);
+  if (el._sn[ad] === deger) return;
+  el._sn[ad] = deger;
+  el.setAttribute(ad, deger);
+}
+function yazi(el, metin) {
+  if (el.textContent !== metin) el.textContent = metin;
+}
 
 function katman() {
   const mapEl = $("battleMap");
@@ -666,7 +689,7 @@ function katman() {
     kat.id = "seferIsaretler";
     kat.style.cssText =
       "position:absolute; left:0; top:0; width:100%; height:100%; " +
-      "pointer-events:none; z-index:2;";
+      "pointer-events:none; z-index:2; contain:layout style;";
     mapEl.appendChild(kat);
     /* katman yeniden doğduysa eski eleman göndermeleri geçersiz */
     Object.keys(_cizimler).forEach(k => delete _cizimler[k]);
@@ -709,9 +732,9 @@ function cizimKur(sv, kat, id) {
 
 /* left/top ile yerleştir, transform SADECE merkezleme + döndürme */
 function yerlestir(el, x, y, derece) {
-  el.style.left = x + "px";
-  el.style.top  = y + "px";
-  el.style.transform = "translate(-50%,-50%)" + (derece == null ? "" : " rotate(" + derece + "deg)");
+  stil(el, "left", (Math.round(x * 10) / 10) + "px");
+  stil(el, "top",  (Math.round(y * 10) / 10) + "px");
+  stil(el, "transform", "translate(-50%,-50%)" + (derece == null ? "" : " rotate(" + derece + "deg)"));
 }
 
 function cizgileriCiz() {
@@ -748,16 +771,18 @@ function cizgileriCiz() {
 
     const renk = (s.yon === "donus") ? CFG.cizgiRenkDonus : CFG.cizgiRenk;
     const zoom = bas.zoom || 1;
-    const aci  = Math.atan2(hed.y - bas.y, hed.x - bas.x) * 180 / Math.PI;
+    /* Açı ekran uzayında kaydırmadan ETKİLENMEZ, sadece hedef ya da
+       zoom değişince değişir — o yüzden her karede yeniden yazılmaz. */
+    const aci = Math.round(Math.atan2(hed.y - bas.y, hed.x - bas.x) * 180 / Math.PI * 10) / 10;
 
     /* yol çizgisi */
-    k.cizgi.setAttribute("x1", bas.x);
-    k.cizgi.setAttribute("y1", bas.y);
-    k.cizgi.setAttribute("x2", hed.x);
-    k.cizgi.setAttribute("y2", hed.y);
-    k.cizgi.setAttribute("stroke", renk);
-    k.cizgi.setAttribute("stroke-width", Math.max(1.2, 2 * zoom));
-    k.cizgi.setAttribute("stroke-dasharray", (6 * zoom) + " " + (6 * zoom));
+    oz(k.cizgi, "x1", Math.round(bas.x * 10) / 10);
+    oz(k.cizgi, "y1", Math.round(bas.y * 10) / 10);
+    oz(k.cizgi, "x2", Math.round(hed.x * 10) / 10);
+    oz(k.cizgi, "y2", Math.round(hed.y * 10) / 10);
+    oz(k.cizgi, "stroke", renk);
+    oz(k.cizgi, "stroke-width", Math.max(1.2, 2 * zoom));
+    oz(k.cizgi, "stroke-dasharray", (6 * zoom) + " " + (6 * zoom));
 
     /* Akan işaretler.
        HIZ KARO CİNSİNDEN sabit. Önce bütün yolu 1.6 saniyede dolaşan
@@ -767,32 +792,30 @@ function cizgileriCiz() {
     const donguSn = uzunlukKaro / CHEVRON_HIZ / CHEVRON_ADET;
     const adim = 1 / CHEVRON_ADET;
     const kayma = ((simdi / 1000) / Math.max(0.001, donguSn) % 1) * adim;
-    const chevronBoy = Math.max(9, 13 * zoom);
+    const chevronBoy = Math.max(9, 13 * zoom) + "px";
 
     for (let i = 0; i < CHEVRON_ADET; i++) {
       const t = (i * adim + kayma) % 1;
       const el = k.chevronlar[i];
       yerlestir(el, bas.x + (hed.x - bas.x) * t, bas.y + (hed.y - bas.y) * t, aci);
-      el.style.color = renk;
-      el.style.opacity = (0.25 + 0.55 * Math.sin(Math.PI * t)).toFixed(2);
-      el.style.fontSize = chevronBoy + "px";
+      stil(el, "color", renk);
+      stil(el, "opacity", (Math.round((0.25 + 0.55 * Math.sin(Math.PI * t)) * 20) / 20).toFixed(2));
+      stil(el, "fontSize", chevronBoy);
     }
 
     /* birlik damgası + kalan süre */
     const cap = Math.max(12, 17 * zoom);
     yerlestir(k.damga, sp.x, sp.y);
-    k.damga.style.width  = cap + "px";
-    k.damga.style.height = cap + "px";
-    k.damga.style.border = Math.max(1.2, 2 * zoom) + "px solid " + renk;
-    k.damga.style.fontSize = Math.max(8, 10 * zoom) + "px";
-    const istenen = (s.yon === "donus") ? "\u21A9" : "\u2694";
-    if (k.damga.textContent !== istenen) k.damga.textContent = istenen;
+    stil(k.damga, "width",  cap + "px");
+    stil(k.damga, "height", cap + "px");
+    stil(k.damga, "border", Math.max(1.2, 2 * zoom) + "px solid " + renk);
+    stil(k.damga, "fontSize", Math.max(8, 10 * zoom) + "px");
+    yazi(k.damga, (s.yon === "donus") ? "\u21A9" : "\u2694");
 
     yerlestir(k.etiket, sp.x, sp.y - cap * 0.75 - 6 * zoom);
-    k.etiket.style.color = renk;
-    k.etiket.style.fontSize = Math.max(9, 11 * zoom) + "px";
-    const yazi = sureYaz(s.bitisAt - simdi);
-    if (k.etiket.textContent !== yazi) k.etiket.textContent = yazi;
+    stil(k.etiket, "color", renk);
+    stil(k.etiket, "fontSize", Math.max(9, 11 * zoom) + "px");
+    yazi(k.etiket, sureYaz(s.bitisAt - simdi));
   });
 }
 
