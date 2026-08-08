@@ -3901,12 +3901,46 @@ async function generateCastlePosLive() {
   return generateRandomCastlePos(ekstra);
 }
 
-/* Oturum açınca kendi kalem başkasının üstündeyse sessizce taşı. */
+/* Oturum açınca kendi kalem başkasının üstündeyse sessizce taşı.
+
+   DİKKAT — kale ışınlanması buradan çıkıyordu:
+   _doluNoktalar kendi kaleni de topluyor (ACCOUNTS bulut görüntüsü +
+   loadAccounts yerel kopya). Bulut kaydı bir kez başarısız olduysa
+   buluttaki kale konumu ESKİ kalıyor; o zaman aynı kale iki farklı
+   noktada görünüyor, buradaki "0.01'den uzak olanları al" filtresi
+   eski noktayı BAŞKASININ kalesi sanıyor ve senin kaleni rastgele bir
+   yere taşıyordu. Artık kendi hesabımıza ait noktalar ADA GÖRE
+   dışlanıyor; mesafe filtresi tek başına yeterli değil. */
 async function fixOverlappingCastle() {
   try {
     if (!state || !state.castle || typeof state.castle.gx !== "number") return;
+
+    /* kendi hesabımızın her yerdeki kayıtlı kale noktaları */
+    const kendi = [];
+    try {
+      const benim = (typeof currentUsername === "string") ? currentUsername.toLowerCase() : "";
+      if (benim) {
+        const accs = loadAccounts();
+        Object.keys(accs).forEach(k => {
+          if (k.toLowerCase() !== benim) return;
+          const c = accs[k] && accs[k].state && accs[k].state.castle;
+          if (c && typeof c.gx === "number") kendi.push({ gx: c.gx, gy: c.gy });
+        });
+        if (typeof ACCOUNTS === "object" && ACCOUNTS) {
+          Object.keys(ACCOUNTS).forEach(k => {
+            const a = ACCOUNTS[k];
+            const ad = (a && a.displayName ? a.displayName : k).toLowerCase();
+            if (ad !== benim) return;
+            const c = a && a.state && a.state.castle;
+            if (c && typeof c.gx === "number") kendi.push({ gx: c.gx, gy: c.gy });
+          });
+        }
+      }
+    } catch (e) {}
+    const bizimMi = (t) => kendi.some(k => Math.hypot(k.gx - t.gx, k.gy - t.gy) < 0.01);
+
     const taken = _doluNoktalar(30).filter(t =>
-      Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) > 0.01);
+      Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) > 0.01 && !bizimMi(t));
     const cakisma = taken.some(t =>
       Math.hypot(t.gx - state.castle.gx, t.gy - state.castle.gy) < 2.4);
     if (!cakisma) return;

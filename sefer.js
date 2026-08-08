@@ -41,9 +41,11 @@
       çıkarılır — bu sırada eğitim kuyruğundan birlik teslim olursa
       sayım şaşabilir, o yüzden fark 0..gönderilen aralığına kırpılıyor.
 
-   5) SÜRE KAYDEDİLİR, GERİ SAYIM DEĞİL. state.seferler içinde mutlak
+   5) SÜRE KAYDEDİLİR, GERİ SAYIM DEĞİL. Sefer listesinde mutlak
       bitisAt damgası tutulur (hastane zinciri ile aynı mantık), böylece
-      oyuncu sayfayı yenilese de sefer yoluna devam eder.
+      oyuncu sayfayı yenilese de sefer yoluna devam eder. Liste state'in
+      İÇİNDE DEĞİL, kendi localStorage anahtarındadır — sebebi "VERİ"
+      başlığındaki uzun notta.
 
    6) ÇİZGİ KENDİ KARE DÖNGÜSÜNDE. harita.js'in dugumleriYerlestir'i
       SARMALANMADI: o fonksiyon dosya içinden adıyla çağrılıyor, dışarıdan
@@ -88,14 +90,55 @@ function sureYaz(ms) {
 }
 
 function kaydet() {
+  seferleriYaz();
   if (typeof persistCurrentState === "function") persistCurrentState();
 }
 
-/* ── VERİ ────────────────────────────────────────────────────────── */
+/* ── VERİ ────────────────────────────────────────────────────────
+   SEFERLER state İÇİNDE TUTULMAZ. Kendi localStorage anahtarında
+   durur. Sebebi ciddi:
+
+   queueCloudSave hesabı Firebase'e .set() ile yazıyor. Firebase,
+   veride TEK BİR undefined bulursa yazmanın tamamını reddeder ve
+   bunu SENKRON throw ederek yapar — o throw index.html'deki
+   "catch (e) { console.warn('Bulut senkron hatasi') }" içinde
+   sessizce yutulur. Sefer nesnesi state'e konunca (örneğin boş
+   komutan yuvası yüzünden) bulut kaydı tamamen susuyordu.
+
+   Bunun bedeli kale kaybı oluyordu: bulutta kalenin ESKİ konumu
+   kalınca _doluNoktalar aynı kaleyi iki ayrı noktada görüyor,
+   fixOverlappingCastle bunu çakışma sanıp kaleyi rastgele bir yere
+   taşıyordu. Sefer verisi state'e GERİ KONMAMALI. */
+const DEPO_ONEK = "sefer_v1_";
+
+let _seferler = null;
+let _seferSahibi = null;
+
+function depoAnahtari() {
+  const u = (typeof currentUsername === "string" && currentUsername) ? currentUsername.toLowerCase() : "";
+  return u ? (DEPO_ONEK + u) : null;
+}
+
 function liste() {
-  if (typeof state !== "object" || !state) return [];
-  if (!Array.isArray(state.seferler)) state.seferler = [];
-  return state.seferler;
+  const anahtar = depoAnahtari();
+  if (!anahtar) return [];
+  if (_seferler && _seferSahibi === anahtar) return _seferler;
+
+  /* hesap değişti ya da ilk okuma */
+  _seferSahibi = anahtar;
+  _seferler = [];
+  try {
+    const ham = localStorage.getItem(anahtar);
+    const veri = ham ? JSON.parse(ham) : null;
+    if (Array.isArray(veri)) _seferler = veri;
+  } catch (e) { _seferler = []; }
+  return _seferler;
+}
+
+function seferleriYaz() {
+  const anahtar = depoAnahtari();
+  if (!anahtar || !_seferler) return;
+  try { localStorage.setItem(anahtar, JSON.stringify(_seferler)); } catch (e) {}
 }
 
 function kaleKonumu() {
@@ -201,7 +244,7 @@ function baslat(opt) {
     varisGx: opt.hedefGx, varisGy: opt.hedefGy,   /* savaşın olacağı yer */
     basAt: simdi, bitisAt: simdi + sure,
     birlikler: birlikler,
-    komutanlar: (opt.komutanlar || []).slice(),
+    komutanlar: (opt.komutanlar || []).filter(x => typeof x === "string" && x),
     pvpHedef: opt.pvpHedef || null,
     savasti: false,
   });
@@ -650,7 +693,16 @@ function cizgileriCiz() {
 }
 
 /* ── DÖNGÜ ───────────────────────────────────────────────────────── */
-let _rafId = 0, _sonPanel = 0;
+let _rafId = 0, _sonPanel = 0, _sonCizim = 0;
+
+function haritaGorunur() {
+  const wrap = $("battleMapWrap");
+  if (!wrap) return false;
+  if (wrap.style.display === "none") return false;
+  const arena = $("battleArena");
+  if (arena && arena.style.display !== "none" && arena.style.display !== "") return false;
+  return true;
+}
 
 function kare() {
   _rafId = 0;
@@ -667,7 +719,14 @@ function kare() {
     }
   }
 
-  cizgileriCiz();
+  /* ÇİZİM KISITI: sv.innerHTML her karede yeniden kurulunca tarayıcı
+     SVG'yi baştan ayrıştırıp yerleşim hesaplıyor. Harita canvas'ıyla
+     birlikte telefonda kare hızını 1 fps'e düşürüyordu. Saniyede ~12
+     kare fazlasıyla akıcı görünüyor; harita kapalıyken hiç çizmiyoruz. */
+  if (simdi - _sonCizim > 80) {
+    _sonCizim = simdi;
+    if (haritaGorunur()) cizgileriCiz();
+  }
   if (simdi - _sonPanel > 400) { _sonPanel = simdi; panelCiz(); }
 
   if (liste().length) dongudeKal();
