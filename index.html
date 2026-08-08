@@ -5395,7 +5395,11 @@ function setupMapPanning() {
     if(typeof renderBattleMap === "function") renderBattleMap();
     cancelCastleMove();
     showToast("🏰 Kale taşındı!");
-    if(typeof goToCoord === "function"){ try{ goToCoord(g.gx, g.gy); }catch(e){} }
+    /* Eskiden goToCoord kullanılıyordu; o, hedefe 2 saniye duran sarı
+       koordinat nişangahını da bırakıyordu ve taşımadan sonra ekranda
+       gereksiz bir işaret kalıyordu. panTweenToGrid sadece kamerayı
+       götürür, işaret bırakmaz. */
+    if(typeof panTweenToGrid === "function"){ try{ panTweenToGrid(g.gx, g.gy, 420); }catch(e){} }
   }
 
   wrapEl.addEventListener("pointerdown", (e) => {

@@ -234,6 +234,11 @@ function baslat(opt) {
   const sure = mesafeSuresi(kale.gx, kale.gy, opt.hedefGx, opt.hedefGy);
   const simdi = Date.now();
 
+  /* Taşınma denetimi bu andan itibaren geçerli. Senkronlanmazsa,
+     sefer yokken yapılmış eski bir taşıma "az önce taşındı" sanılıp
+     yeni sefer daha ilk karede iptal edilir. */
+  _sonKaleGx = kale.gx; _sonKaleGy = kale.gy;
+
   aktif.push({
     id: "s" + simdi + "_" + Math.floor(Math.random() * 1000),
     tur: opt.tur || "canavar",
@@ -631,7 +636,8 @@ function panelCiz() {
    öznitelikleri güncelleniyor. Bu ucuz olduğu için kısıt kalktı:
    çizgi haritaya yapışık kalıyor, hareket akıcı.
    Buraya innerHTML geri gelmemeli. */
-const _cizimler = Object.create(null);   /* sefer id → { g, cizgi, ok } */
+const _cizimler = Object.create(null);   /* sefer id → elemanlar */
+const CHEVRON_ADET = 6;
 
 function svgKok() {
   const mapEl = $("battleMap");
@@ -652,28 +658,42 @@ function svgKok() {
   return sv;
 }
 
-function SVGEl(ad) { return document.createElementNS("http://www.w3.org/2000/svg", ad); }
+function SVGEl(ad, ozellikler) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", ad);
+  if (ozellikler) Object.keys(ozellikler).forEach(k => el.setAttribute(k, ozellikler[k]));
+  return el;
+}
 
 function cizimKur(sv, id) {
   const g = SVGEl("g");
 
-  const cizgi = SVGEl("line");
-  cizgi.setAttribute("stroke-linecap", "round");
-  cizgi.setAttribute("stroke-opacity", ".45");
-
-  /* Tek ">" işareti — yolda akıcı biçimde ilerler. */
-  const ok = SVGEl("path");
-  ok.setAttribute("d", "M -5 -6 L 4 0 L -5 6");
-  ok.setAttribute("fill", "none");
-  ok.setAttribute("stroke-width", "3");
-  ok.setAttribute("stroke-linecap", "round");
-  ok.setAttribute("stroke-linejoin", "round");
-
+  const cizgi = SVGEl("line", { "stroke-linecap": "round", "stroke-opacity": ".45" });
   g.appendChild(cizgi);
-  g.appendChild(ok);
-  sv.appendChild(g);
 
-  const kayit = { g: g, cizgi: cizgi, ok: ok };
+  /* akan ">>" işaretleri */
+  const chevronlar = [];
+  for (let i = 0; i < CHEVRON_ADET; i++) {
+    const t = SVGEl("text", {
+      "text-anchor": "middle", "dominant-baseline": "middle", "font-weight": "800"
+    });
+    t.textContent = "\u00BB";
+    g.appendChild(t);
+    chevronlar.push(t);
+  }
+
+  /* yürüyen birlik damgası */
+  const daire = SVGEl("circle", { fill: "rgba(6,22,44,.85)" });
+  const simge = SVGEl("text", { "text-anchor": "middle", "dominant-baseline": "middle" });
+  const etiket = SVGEl("text", {
+    "text-anchor": "middle", "font-weight": "800",
+    style: "paint-order:stroke; stroke:rgba(0,10,25,.85);"
+  });
+  g.appendChild(daire);
+  g.appendChild(simge);
+  g.appendChild(etiket);
+
+  sv.appendChild(g);
+  const kayit = { g, cizgi, chevronlar, daire, simge, etiket };
   _cizimler[id] = kayit;
   return kayit;
 }
@@ -695,6 +715,8 @@ function cizgileriCiz() {
     delete _cizimler[id];
   });
 
+  const simdi = Date.now();
+
   a.forEach(s => {
     const k = _cizimler[s.id] || cizimKur(sv, s.id);
 
@@ -705,25 +727,98 @@ function cizgileriCiz() {
 
     const renk = (s.yon === "donus") ? CFG.cizgiRenkDonus : CFG.cizgiRenk;
     const zoom = bas.zoom || 1;
-    const kalinlik = Math.max(1.2, 2 * zoom);
     const aci = Math.atan2(hed.y - bas.y, hed.x - bas.x) * 180 / Math.PI;
 
+    /* yol çizgisi */
     k.cizgi.setAttribute("x1", bas.x);
     k.cizgi.setAttribute("y1", bas.y);
     k.cizgi.setAttribute("x2", hed.x);
     k.cizgi.setAttribute("y2", hed.y);
     k.cizgi.setAttribute("stroke", renk);
-    k.cizgi.setAttribute("stroke-width", kalinlik);
+    k.cizgi.setAttribute("stroke-width", Math.max(1.2, 2 * zoom));
     k.cizgi.setAttribute("stroke-dasharray", (6 * zoom) + " " + (6 * zoom));
 
-    k.ok.setAttribute("stroke", renk);
-    k.ok.setAttribute("stroke-width", Math.max(1.6, 2.6 * zoom));
-    k.ok.setAttribute("transform",
-      "translate(" + sp.x + "," + sp.y + ") rotate(" + aci.toFixed(2) + ") scale(" + Math.max(0.7, zoom) + ")");
+    /* Akan işaretler.
+       KONUM x/y ÖZNİTELİĞİNDE, transform'da DEĞİL. Bir ara işareti
+       translate(...) ile taşıyordum: hızlı kaydırmada çizgi yerinde
+       kalırken işaret savruluyordu, çünkü tarayıcı dönüştürülmüş alt
+       ağacı ayrı katmanda birleştirip bir kare geriden getiriyor.
+       rotate(aci x y) noktanın ETRAFINDA döndürür, taşımaz — bu yüzden
+       işaret çizgiye yapışık kalır. */
+    const chevronBoy = Math.max(9, 13 * zoom);
+    const kayma = (simdi % 1600) / 1600;
+    for (let i = 0; i < CHEVRON_ADET; i++) {
+      const t = (i / CHEVRON_ADET + kayma) % 1;
+      const x = bas.x + (hed.x - bas.x) * t;
+      const y = bas.y + (hed.y - bas.y) * t;
+      const el = k.chevronlar[i];
+      el.setAttribute("x", x);
+      el.setAttribute("y", y);
+      el.setAttribute("fill", renk);
+      el.setAttribute("fill-opacity", (0.25 + 0.55 * Math.sin(Math.PI * t)).toFixed(2));
+      el.setAttribute("font-size", chevronBoy);
+      el.setAttribute("transform", "rotate(" + aci.toFixed(1) + " " + x + " " + y + ")");
+    }
+
+    /* birlik damgası + kalan süre */
+    const r = Math.max(5, 8 * zoom);
+    k.daire.setAttribute("cx", sp.x);
+    k.daire.setAttribute("cy", sp.y);
+    k.daire.setAttribute("r", r);
+    k.daire.setAttribute("stroke", renk);
+    k.daire.setAttribute("stroke-width", Math.max(1.2, 2 * zoom));
+
+    k.simge.setAttribute("x", sp.x);
+    k.simge.setAttribute("y", sp.y);
+    k.simge.setAttribute("font-size", Math.max(8, 11 * zoom));
+    const istenenSimge = (s.yon === "donus") ? "\u21A9" : "\u2694";
+    if (k.simge.textContent !== istenenSimge) k.simge.textContent = istenenSimge;
+
+    k.etiket.setAttribute("x", sp.x);
+    k.etiket.setAttribute("y", sp.y - r - 4 * zoom);
+    k.etiket.setAttribute("fill", renk);
+    k.etiket.setAttribute("font-size", Math.max(8, 11 * zoom));
+    k.etiket.setAttribute("stroke-width", (3 * zoom) + "px");
+    const yazi = sureYaz(s.bitisAt - simdi);
+    if (k.etiket.textContent !== yazi) k.etiket.textContent = yazi;
   });
 }
 
 /* ── DÖNGÜ ───────────────────────────────────────────────────────── */
+/* ── KALE TAŞINDIĞINDA SEFERLERİ İPTAL ET ────────────────────────
+   Kale ışınlanınca yoldaki birlikler eski kaleden çıkmış bir çizgide
+   yürümeye devam ediyordu ve hâlâ savaşa giriyorlardı. Kale yer
+   değiştirdiği an sefer geçersizdir: birlikler ANINDA kaleye döner,
+   hiçbir savaş çözülmez. */
+let _sonKaleGx = null, _sonKaleGy = null;
+
+function kaleTasindiMi() {
+  const k = kaleKonumu();
+  if (!k) return false;
+  if (_sonKaleGx === null) { _sonKaleGx = k.gx; _sonKaleGy = k.gy; return false; }
+  if (Math.abs(k.gx - _sonKaleGx) < 0.001 && Math.abs(k.gy - _sonKaleGy) < 0.001) return false;
+  _sonKaleGx = k.gx; _sonKaleGy = k.gy;
+  return true;
+}
+
+function tumSeferleriIptalEt() {
+  const a = liste();
+  if (!a.length) return;
+  let toplam = 0;
+  a.forEach(s => {
+    Object.keys(s.birlikler || {}).forEach(uid => {
+      state.troops[uid] = say(state.troops[uid], 0) + s.birlikler[uid];
+      toplam += s.birlikler[uid];
+    });
+  });
+  a.length = 0;
+  kilitAc();
+  panelCizIste(true);
+  kaydet();
+  yenile(["renderTroopsPanel", "renderTroopSelector"]);
+  if (toplam > 0) toast(`🏰 Kale taşındı — ${toplam} birlik savaşmadan kaleye döndü.`);
+}
+
 let _rafId = 0, _sonPanel = 0;
 
 function haritaGorunur() {
@@ -738,6 +833,9 @@ function haritaGorunur() {
 function kare() {
   _rafId = 0;
   const a = liste();
+
+  /* Kale taşındıysa her şeyden önce seferleri iptal et */
+  if (kaleTasindiMi()) { tumSeferleriIptalEt(); dongudeKal(); return; }
 
   /* varış kontrolü */
   const simdi = Date.now();
