@@ -2671,10 +2671,11 @@ function publishCastle() {
   try {
     if (!firebaseReady || !currentUsername) return;
     if (!state || !state.castle || typeof state.castle.gx !== "number") return;
+    const kk = KOORD.kaleKaro(state.castle);
+    if (!kk) return;
+    /* { name, kx, ky, kv } — gx/gy sayılamaz olduğu için yazılmaz. */
     firebaseDb.ref("castles/" + toFirebaseKey(currentUsername.toLowerCase())).set({
-      name: currentUsername,
-      gx: state.castle.gx,
-      gy: state.castle.gy
+      name: currentUsername, kx: kk.kx, ky: kk.ky, kv: 2
     }).catch(err => console.warn("[kale] yayınlanamadı:", err));
   } catch (e) {}
 }
@@ -2688,10 +2689,11 @@ function migrateCastlesOnce() {
     Object.keys(all).forEach(k => {
       const acc = all[k];
       const c = acc && acc.state && acc.state.castle;
-      if (!c || typeof c.gx !== "number") return;
+      const kk = KOORD.kaleKaro(c);
+      if (!kk) return;
       const ad = acc.displayName || "Oyuncu";
       if (currentUsername && ad.toLowerCase() === currentUsername.toLowerCase()) return;
-      list.push({ name: ad, castle: { gx: c.gx, gy: c.gy } });
+      list.push({ name: ad, castle: KOORD.kaleKayit(kk.kx, kk.ky) });
     });
     otherCastles = list;
     if (typeof renderBattleMap === "function") renderBattleMap();
@@ -2807,10 +2809,11 @@ function startListeningForCastles() {
     const list = [];
     anahtarlar.forEach(k => {
       const c = all[k];
-      if (!c || typeof c.gx !== "number" || typeof c.gy !== "number") return;
+      const kk = KOORD.kaleKaro(c);      /* eski ya da yeni biçim, fark etmez */
+      if (!kk) return;
       const ad = c.name || k;
       if (currentUsername && ad.toLowerCase() === currentUsername.toLowerCase()) return;
-      list.push({ name: ad, castle: { gx: c.gx, gy: c.gy } });
+      list.push({ name: ad, castle: KOORD.kaleKayit(kk.kx, kk.ky) });
     });
 
     if (!anahtarlar.length) { migrateCastlesOnce(); return; }
@@ -3691,7 +3694,12 @@ function startSessionFor(username) {
     _castleJustAssigned = true;
   }
   /* Kaleler yüklendikten sonra çakışma varsa kendini taşı */
-  setTimeout(() => { if (typeof fixOverlappingCastle === "function") fixOverlappingCastle(); }, 4000);
+  setTimeout(() => {
+    /* Sıra önemli: önce karoya oturt, sonra çakışma denetle.
+       Tersi olursa denetim oturtulmamış konuma bakar. */
+    if (typeof kaleyiKaroyaGocur === "function") kaleyiKaroyaGocur();
+    if (typeof fixOverlappingCastle === "function") fixOverlappingCastle();
+  }, 4000);
 
   if (state.chestsOpened < state.maxChests && state.chestResetAt) {
     state.chestResetAt = null;
@@ -3954,7 +3962,9 @@ async function generateCastlePosLive() {
       }
     }
   } catch (e) { console.warn("[kale] canlı liste alınamadı, yerel veriyle devam:", e); }
-  return generateRandomCastlePos(ekstra);
+  const p = generateRandomCastlePos(ekstra);
+  const kk = KOORD.kaleKaro(p);
+  return kk ? KOORD.kaleKayit(kk.kx, kk.ky) : p;
 }
 
 /* ── KALE MESAFE KURALI: TEK SABİT ──
@@ -3971,6 +3981,81 @@ async function generateCastlePosLive() {
    o, oyuncuları haritaya yaymak içindir; sonradan ışınlama sebebi
    OLMAMALIDIR. */
 const KALE_MIN_MESAFE = 0.25;
+
+/* ═══════════════════════════════════════════════════════════
+   KALE KOORDİNAT GÖÇÜ (Aşama 4)
+   Eski kayıtlar 0..30 ölçeğinde ve KARO SINIRINA OTURMUYOR.
+   Burada bir kez karoya oturtulur ve kayda kv:2 damgası düşer.
+   gx/gy silinmez — karodan türetilip yazılmaya devam eder, çünkü
+   önbelleğinde eski sürüm kalmış istemciler yalnız onu okuyor.
+
+   ÇAKIŞMA: 0..30 ölçeği bir haneli ondalıkla 300 kademe, karo ise
+   141. Yani iki kale oturtulurken AYNI kareye düşebilir. O yüzden
+   hedef kare doluysa çevresindeki halkalarda en yakın boş kare
+   aranır ve bu SESSİZ YAPILMAZ, oyuncuya bildirilir.
+   ═══════════════════════════════════════════════════════════ */
+function _kaleEngelleri() {
+  const engel = [];
+  const benim = (typeof currentUsername === "string" && currentUsername)
+    ? currentUsername.toLowerCase() : null;
+  try { enemies.forEach(e => engel.push({ gx: KOORD.karodanOlcek(e.kx), gy: KOORD.karodanOlcek(e.ky) })); } catch (e) {}
+  try {
+    (otherCastles || []).forEach(c => {
+      if (!c || !c.castle) return;
+      if (benim && String(c.name || "").toLowerCase() === benim) return;
+      engel.push({ gx: c.castle.gx, gy: c.castle.gy });
+    });
+  } catch (e) {}
+  return engel;
+}
+
+function _kareBosMu(kx, ky, engel) {
+  const gx = KOORD.karodanOlcek(kx), gy = KOORD.karodanOlcek(ky);
+  return engel.every(t => Math.hypot(t.gx - gx, t.gy - gy) >= KALE_MIN_MESAFE);
+}
+
+/* Hedef kare doluysa çevresinde genişleyen halkalarda boş kare ara. */
+function _enYakinBosKare(kx, ky, engel) {
+  if (_kareBosMu(kx, ky, engel)) return { kx, ky, kaydi: false };
+  const son = KOORD.karoSayisi() - 1;
+  for (let r = 1; r <= 12; r++) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dy = -r; dy <= r; dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;   /* yalnız halkanın kenarı */
+        const nx = kx + dx, ny = ky + dy;
+        if (nx < 0 || ny < 0 || nx > son || ny > son) continue;
+        if (_kareBosMu(nx, ny, engel)) return { kx: nx, ky: ny, kaydi: true };
+      }
+    }
+  }
+  return { kx, ky, kaydi: false };   /* bulunamadı — yerinde bırak, taşıma */
+}
+
+function kaleyiKaroyaGocur() {
+  try {
+    if (!state || !state.castle || typeof state.castle.gx !== "number") return;
+    if (state.castle.kv >= 2) return;               /* zaten göç etmiş */
+
+    const kk = KOORD.kaleKaro(state.castle);
+    if (!kk) return;
+
+    const engel = _kaleEngelleri();
+    const yer = _enYakinBosKare(kk.kx, kk.ky, engel);
+
+    state.castle = KOORD.kaleKayit(yer.kx, yer.ky);   /* assign DEĞİL: bkz. kaleKayit */
+
+    if (typeof persistCurrentState === "function") persistCurrentState();
+    if (typeof publishCastle === "function") publishCastle();
+    if (typeof renderBattleMap === "function") renderBattleMap();
+
+    if (yer.kaydi) {
+      showToast(`🏰 Kalen ${yer.kx},${yer.ky} karesine kaydırıldı — eski konumu başka bir şeyle çakışıyordu.`, 7000);
+    }
+    console.log("[kale] koordinat göçü tamam:", state.castle);
+  } catch (e) {
+    console.error("[kale] göç edilemedi:", e);
+  }
+}
 
 /* Oturum açınca kendi kalem başkasının üstündeyse sessizce taşı.
 
@@ -5480,7 +5565,9 @@ function setupMapPanning() {
   }
   function doCastleMove(g){
     state.diamonds -= MOVE_COST;
-    state.castle.gx = g.gx; state.castle.gy = g.gy;
+    /* ÇİFT YAZIM: kx/ky gerçek kaynak, gx/gy ondan türetilir. */
+    const _kk = KOORD.kaleKaro(g);
+    state.castle = KOORD.kaleKayit(_kk.kx, _kk.ky);   /* assign DEĞİL: bkz. kaleKayit */
     if(typeof renderDiamonds === "function") renderDiamonds();
     if(typeof persistCurrentState === "function") persistCurrentState();
     if(typeof publishCastle === "function") publishCastle();   /* anında yayınla */

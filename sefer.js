@@ -470,8 +470,11 @@ async function kaleSavasi(s) {
   const kale = (acc.state || {}).castle;
 
   /* SAVUNAN IŞINLANDIYSA çarpışma olmaz */
-  if (!kale || typeof kale.gx !== "number" ||
-      Math.abs(kale.gx - s.tx) > 0.001 || Math.abs(kale.gy - s.ty) > 0.001) {
+  /* Karo üzerinden karşılaştır: kale kaydı artık kx/ky tutuyor,
+     eski kayıtlar da kaleKaro ile karoya çevriliyor. */
+  const kkale = window.KOORD.kaleKaro(kale);
+  const khedef = window.KOORD.kaleKaro({ gx: s.tx, gy: s.ty });
+  if (!kkale || !khedef || kkale.kx !== khedef.kx || kkale.ky !== khedef.ky) {
     toast(`🏰 ${s.hedefAd} ışınlanmış! Ordun boş araziye vardı, geri dönüyor.`, 4500);
     return;
   }

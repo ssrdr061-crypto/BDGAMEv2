@@ -111,6 +111,44 @@ function mesafeKaro(ax, ay, bx, by, birim) {
   return Math.hypot(b1 - a1, b2 - a2);
 }
 
+/* ── KALE KAYDI: OKUMA ──
+   Hangi biçimde olursa olsun bir kale kaydından KARO çıkarır.
+     · yeni kayıt (kv>=2) → kx/ky doğrudan okunur
+     · eski kayıt         → gx/gy (0..30) karoya çevrilir
+   Böylece göç edilmemiş oyuncular da doğru yerde görünür. */
+function kaleKaro(c) {
+  if (!c) return null;
+  if (c.kv >= 2 && typeof c.kx === "number" && typeof c.ky === "number") {
+    return { kx: karoyaOturt(c.kx), ky: karoyaOturt(c.ky) };
+  }
+  if (typeof c.gx === "number" && typeof c.gy === "number") {
+    return { kx: karoyaOturt(olcektenKaro(c.gx)), ky: karoyaOturt(olcektenKaro(c.gy)) };
+  }
+  return null;
+}
+
+/* ── KALE KAYDI: YAZMA (ÇİFT YAZIM) ──
+   Karodan tam kayıt üretir. kx/ky GERÇEK kaynaktır; gx/gy ondan
+   TÜRETİLİR ve yazılmaya devam eder — çünkü önbelleğinde eski
+   sürüm kalmış istemciler yalnız gx/gy okuyor. Eski alanlar
+   dolaşımdaki sürümler yenilenince (Aşama 6) silinecek. */
+function kaleKayit(kx, ky) {
+  const _kx = karoyaOturt(kx), _ky = karoyaOturt(ky);
+
+  /* KAYDA YALNIZ kx/ky/kv YAZILIR. gx/gy ise SAYILAMAZ
+     (non-enumerable) tanımlanır: Firebase kaydı serileştirirken
+     sayılamaz alanları atlar, yani diskte tertemiz {kx,ky,kv}
+     durur. Ama bellekte castle.gx hâlâ okunabildiği için oyunun
+     mevcut 40 küsur okuma noktası çalışmaya devam eder ve teker
+     teker, aceleye getirmeden karoya çevrilebilir.
+     DİKKAT: Object.assign sayılamaz alanları KOPYALAMAZ —
+     bu nesne atanırken doğrudan atanmalı, birleştirilmemeli. */
+  const k = { kx: _kx, ky: _ky, kv: 2 };
+  Object.defineProperty(k, "gx", { value: karodanOlcek(_kx), enumerable: false, writable: true, configurable: true });
+  Object.defineProperty(k, "gy", { value: karodanOlcek(_ky), enumerable: false, writable: true, configurable: true });
+  return k;
+}
+
 /* Bir noktayı üç birimde birden göster — teşhis ve gelecek
    aşamalarda karşılaştırma için. */
 function ucBirim(g30x, g30y) {
@@ -278,6 +316,7 @@ window.KOORD = {
   yuzdedenKaro: yuzdedenKaro, yuzdedenOlcek: yuzdedenOlcek,
   olcektenYuzde: olcektenYuzde, karodanYuzde: karodanYuzde,
   karoyaOturt: karoyaOturt, mesafeKaro: mesafeKaro, ucBirim: ucBirim,
+  kaleKaro: kaleKaro, kaleKayit: kaleKayit,
   /* teşhis */
   dogrula: dogrula, tani: tani,
 };
