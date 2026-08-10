@@ -116,6 +116,19 @@ function gecerli(s) {
 
 function evre(s) {
   const now = Date.now();
+
+  /* ── TOPLAMA EVRESİ ──
+     Ordu araziye vardı ve orada DURUYOR. Konum sabit (tx,ty); ilerleme
+     toplanan kaynağın oranıdır, yol değil. Çizim katmanı bunu görünce
+     orduyu hedefin üstünde bekletir. */
+  if (s.durum === "topla") {
+    const sure = s.toplaSureMs || 0;
+    const p = sure > 0 ? (now - s.toplaAt) / sure : 1;
+    return { ad: "topla", p: Math.max(0, Math.min(1, p)), bitti: p >= 1,
+             kalanMs: Math.max(0, s.toplaAt + sure - now),
+             ax: s.tx, ay: s.ty, bx: s.tx, by: s.ty };
+  }
+
   if (s.durum === "donus") {
     const sure = s.donusSureMs || s.sureMs;
     const p = sure > 0 ? (now - s.donusAt) / sure : 1;
@@ -400,7 +413,17 @@ function tik() {
     const ev = evre(s);
     if (Date.now() - s.gidisAt > AYAR.KAYIT_OMRU_MS) { seferiBitir(id, s, true); return; }
     if (ev.ad === "gidis" && ev.bitti) { varisiIsle(id, s); return; }
+    if (ev.ad === "topla" && ev.bitti) { toplamayiBitir(id, s); return; }
     if (ev.ad === "donus" && ev.bitti) { seferiBitir(id, s); return; }
+
+    /* Uzun toplamalarda işgal kilidi düşmesin — dugum.js kilidi
+       yenilenmezse ölü sayıyor (20 dk). Dakikada bir tazelenir. */
+    if (ev.ad === "topla" && window.DUGUM && s.slotId) {
+      if (!s._sonTazele || Date.now() - s._sonTazele > 60000) {
+        s._sonTazele = Date.now();
+        try { DUGUM.isgalTazele(s.slotId); } catch (e) {}
+      }
+    }
   });
 
   hudCiz();
@@ -418,6 +441,18 @@ async function varisiIsle(id, s) {
     _panelKilit = Date.now() + 12000;
     _yaraliYakala = true; _yakalanan = null;
     if (window.PVP) window.PVP.sonSonuc = null;
+
+    /* ── TOPLAMA VARIŞI ──
+       Savaş yok. Ordu araziye yerleşir, toplama evresine geçer.
+       Bu dal varisiIsle'nin geri kalanını (savaş kaybı sayımı,
+       dönüş kaydı) ÇALIŞTIRMAZ; erken çıkar. */
+    if (s.tur === "topla") {
+      birlikDus(gonderilen);     /* yukarıda eklenmişti, geri al */
+      _yaraliYakala = false; _panelKilit = 0;
+      _isleniyor.delete(id);
+      await toplamayaBasla(id, s);
+      return;
+    }
 
     if (!s.iptal) {
       if (s.tur === "kale")         await kaleSavasi(s);
@@ -491,11 +526,14 @@ async function canavarSavasi(s) {
   if (typeof enemies === "undefined" || typeof startBattle !== "function") {
     toast("Savaş çözülemedi."); return;
   }
-  const e = enemies.find(x => x && x.name === s.hedefAd);
-  if (!e) { toast("Canavar yerinde yok, ordun geri dönüyor."); return; }
-  if (typeof isEnemyActive === "function" && !isEnemyActive(e)) {
-    toast(`${s.hedefAd} çoktan yenilmiş — ordun eli boş dönüyor.`); return;
-  }
+  /* SLOT İLE EŞLEŞTİR — ada göre aramak ARTIK YANLIŞ.
+     Haritada aynı adlı 10 tane "Goril Sv.1" var; ada bakan arama
+     rastgele birini seçer ve ordu yanlış canavarla savaşır.
+     slotId benzersizdir. */
+  let e = null;
+  if (s.slotId) e = enemies.find(x => x && x.slotId === s.slotId);
+  if (!e) e = enemies.find(x => x && x.name === s.hedefAd);   /* eski kayıtlar */
+  if (!e) { toast(`${s.hedefAd} yerinde yok — ordun eli boş dönüyor.`); return; }
   currentEnemy = e;
   selectedTroopsForBattle = Object.assign({}, s.birlikler);
   if (Array.isArray(s.komutanlar) && typeof selectedCommanders !== "undefined") {
@@ -504,10 +542,188 @@ async function canavarSavasi(s) {
   await startBattle();
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   10b) TOPLAMA SEFERİ
+   Akış: kaleden yürü → araziye yerleş → topla → yükle → dön.
+   Savaş yok; yükün kendisi ödüldür.
+
+   İŞGAL: düğüm KALKIŞTA rezerve edilir, varışta değil. Sebep:
+   ordu 20 dakika yürüyüp vardığında araziyi başkası kapmış
+   olursa sefer boşa gider. Whiteout'ta da yola çıkıldığı anda
+   nokta kilitlenir.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Bir ordunun taşıma kapasitesi — dugum.js'ten. Tek kaynak orası;
+   burada 100/70/50 gibi sayı GÖMÜLMEZ. */
+function orduKapasitesi(birlikler) {
+  if (window.DUGUM && typeof DUGUM.orduKapasitesi === "function") {
+    return DUGUM.orduKapasitesi(birlikler);
+  }
+  return 0;
+}
+
+/* Araziye varıldı: toplama evresini başlat. */
+async function toplamayaBasla(id, s) {
+  const D = window.DUGUM;
+  if (!D) { toast("Toplama çözülemedi — dugum.js yok."); donuseGec(id, s, {}); return; }
+
+  const d = D.dugum(s.slotId);
+  if (!d || d.tur !== "arazi") {
+    toast(`${s.hedefAd} tükenmiş — ordun eli boş dönüyor.`, 4000);
+    donuseGec(id, s, {});
+    return;
+  }
+
+  /* Kilit hâlâ bizde mi? Kalkışta aldık ama düşmüş olabilir. */
+  if (d.isgalAd && !d.benimMi) {
+    toast(`${d.isgalAd} araziyi kapmış — ordun geri dönüyor.`, 4000);
+    donuseGec(id, s, {});
+    return;
+  }
+  if (!d.benimMi) {
+    const r = await D.isgalAl(s.slotId);
+    if (!r.ok) { toast(r.sebep || "Arazi meşgul.", 4000); donuseGec(id, s, {}); return; }
+  }
+
+  const plan = D.toplamaPlani(s.slotId, s.birlikler || {});
+  if (!plan || plan.alinacak <= 0) {
+    toast("Arazide alınacak kaynak kalmamış.", 4000);
+    try { await D.isgalBirak(s.slotId); } catch (e) {}
+    donuseGec(id, s, {});
+    return;
+  }
+
+  seferYaz(id, Object.assign({}, s, {
+    durum: "topla",
+    toplaAt: Date.now(),
+    toplaSureMs: plan.sureMs,
+    kaynak: plan.kaynak,
+    hedefMiktar: plan.alinacak,
+  }));
+
+  toast(`⛏️ Ordun ${s.hedefAd} arazisinde toplamaya başladı — ${fmtSure(plan.sureMs)}`, 4500);
+}
+
+/* Toplama süresi doldu: kaynağı araziden düş, yükü orduya bindir. */
+async function toplamayiBitir(id, s) {
+  _isleniyor.add(id);
+  try {
+    const D = window.DUGUM;
+    let yuk = {};
+
+    if (D && s.slotId) {
+      /* GERÇEKTEN ALINAN, PLANLANAN DEĞİL. Biz toplarken arazi
+         tükenmiş olabilir (baskın, başka olay); tuket ne verirse o. */
+      const r = await D.tuket(s.slotId, s.hedefMiktar || 0);
+      const alinan = (r && r.alinan) || 0;
+      if (alinan > 0) yuk[s.kaynak] = alinan;
+      try { await D.isgalBirak(s.slotId); } catch (e) {}
+    }
+    donuseGec(id, s, yuk);
+  } catch (err) {
+    console.error("[sefer] toplama bitirilemedi:", err);
+    toast("Toplama bitirilemedi — konsola bak.", 5000);
+    donuseGec(id, s, {});
+  }
+  _isleniyor.delete(id);
+}
+
+/* Ortak dönüş geçişi — yükle birlikte. */
+function donuseGec(id, s, yuk) {
+  seferYaz(id, Object.assign({}, s, {
+    durum: "donus", donusAt: Date.now(), donusSureMs: s.sureMs,
+    donusFx: s.tx, donusFy: s.ty,
+    yuk: yuk || {},
+  }));
+}
+
+/* ── TOPLAMA SEFERİNİ BAŞLAT ──
+   index.html'deki arazi paneli bunu çağırır:
+     SEFER.toplamaBaslat(slotId, {knight:10, soldier:0, robot:0}) */
+async function toplamaBaslat(slotId, birlikler) {
+  const bk = benKey();
+  if (!bk) { toast("Oturum yok — sefer gönderilemiyor."); return false; }
+  if (!window.DUGUM) { toast("dugum.js yüklü değil."); return false; }
+  if (typeof state === "undefined" || !state.castle || typeof state.castle.gx !== "number") {
+    toast("Önce kalen olmalı."); return false;
+  }
+
+  const d = DUGUM.dugum(slotId);
+  if (!d || d.tur !== "arazi") { toast("Bu arazi artık haritada yok."); return false; }
+
+  /* SEFER SINIRI — toplama da 3 intikale DAHİL. Kaynak için ayrı
+     bir slot açılmaz; savaş ve toplama aynı havuzu paylaşır. */
+  const acik = benimkiler().length;
+  if (acik >= AYAR.MAX_SEFER) {
+    toast(`Aynı anda en fazla ${AYAR.MAX_SEFER} intikal gönderebilirsin (${acik}/${AYAR.MAX_SEFER} yolda).`);
+    return false;
+  }
+
+  const secili = {};
+  BIRLIKLER.forEach(k => {
+    const istenen = Math.floor(Math.max(0, (birlikler || {})[k] || 0));
+    secili[k] = Math.min(istenen, Math.max(0, (state.troops || {})[k] || 0));
+  });
+  if (toplam(secili) <= 0) { toast("Yanına en az 1 birlik almalısın!"); return false; }
+  if (orduKapasitesi(secili) <= 0) { toast("Bu ordunun taşıma kapasitesi yok."); return false; }
+
+  /* Araziyi ŞİMDİ rezerve et — yolda kapılmasın. */
+  const r = await DUGUM.isgalAl(slotId);
+  if (!r.ok) { toast(r.sebep || "Bu arazi şu an müsait değil.", 4000); return false; }
+
+  const fx = state.castle.gx, fy = state.castle.gy;
+  const h = { gx: window.KOORD.karodanOlcek(d.kx), gy: window.KOORD.karodanOlcek(d.ky) };
+  const sureMs = sureHesapla(fx, fy, h.gx, h.gy);
+  const id = bk + "_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+  const kayit = {
+    sahip: bk,
+    sahipAd: (typeof currentUsername === "string" ? currentUsername : "Oyuncu"),
+    tur: "topla",
+    hedefAd: d.ad + " Sv." + d.seviye,
+    hedefKey: null,
+    slotId: slotId,
+    birim: "oyun30",
+    fx: fx, fy: fy, tx: h.gx, ty: h.gy,
+    gorselKaro: Math.round(gorselKaroMesafesi(fx, fy, h.gx, h.gy) * 10) / 10,
+    sureMs: sureMs, gidisAt: Date.now(),
+    durum: "gidis", iptal: false,
+    birlikler: secili,
+    komutanlar: [],
+  };
+
+  birlikDus(secili);
+  seferYaz(id, kayit);
+
+  toast(`⛏️ Ordun ${kayit.hedefAd} arazisine yola çıktı — ${fmtSure(sureMs)}`, 4500);
+  return true;
+}
+
 /* Kaleye döndü: sağlamlar orduya, yaralılar hastaneye */
 function seferiBitir(id, s, sessiz) {
   _isleniyor.add(id);
   birlikEkle(s.birlikler || {});
+
+  /* ── YÜKÜ BOŞALT ──
+     Toplama seferi kaynakla döner. Depo state.kaynaklar; harcama
+     yeri henüz yok, şimdilik birikir. */
+  let yukYazi = "";
+  const yuk = s.yuk || null;
+  if (yuk && typeof state !== "undefined") {
+    if (!state.kaynaklar) state.kaynaklar = {};
+    Object.keys(yuk).forEach(k => {
+      const m = Math.max(0, Math.round(yuk[k] || 0));
+      if (m <= 0) return;
+      state.kaynaklar[k] = (state.kaynaklar[k] || 0) + m;
+      const bilgi = (window.DUGUM && DUGUM.KAYNAK[k]) || null;
+      yukYazi += ` +${m}${bilgi ? " " + bilgi.ikon : ""}`;
+    });
+    if (yukYazi) {
+      if (typeof renderKaynaklar === "function") { try { renderKaynaklar(); } catch (e) {} }
+      if (typeof persistCurrentState === "function") { try { persistCurrentState(); } catch (e) {} }
+    }
+  }
 
   const yarali = s.yaralilar || null;
   if (yarali && _gercekHastane) {
@@ -518,7 +734,8 @@ function seferiBitir(id, s, sessiz) {
   if (!sessiz) {
     const n = toplam(s.birlikler || {});
     const y = toplam(yaraliSayilari(yarali || {}));
-    toast(`🏰 Ordun kaleye döndü (${n} birlik)` + (y > 0 ? ` — ${y} yaralı hastaneye alındı` : "") + ".", 4000);
+    toast(`🏰 Ordun kaleye döndü (${n} birlik)` + yukYazi +
+          (y > 0 ? ` — ${y} yaralı hastaneye alındı` : "") + ".", 4000);
   }
   seferSil(id);
   _isleniyor.delete(id);
@@ -538,7 +755,13 @@ function isinlanmaDenetimi() {
   _kaleKonum = simdi;
   const liste = benimkiler();
   if (!liste.length) return;
-  liste.forEach(({ id, s }) => seferiBitir(id, s, true));
+  liste.forEach(({ id, s }) => {
+    /* Toplayan ordu da geri geliyor; arazi kilidi açık kalmasın. */
+    if (s.durum === "topla" && window.DUGUM && s.slotId) {
+      try { DUGUM.isgalBirak(s.slotId); } catch (e) {}
+    }
+    seferiBitir(id, s, true);
+  });
   toast("🌀 Işınlandın — yoldaki ordularının hepsi kaleye geri döndü.", 4000);
 }
 
@@ -549,6 +772,30 @@ function geriCagir(id) {
   const s = _yerel[id];
   if (!s) return;
   if (s.durum === "donus") { toast("Bu ordu zaten dönüş yolunda."); return; }
+
+  /* ── TOPLARKEN GERİ ÇAĞIRMA ──
+     Ordu arazide duruyor; yolun ortasında değil. O ana kadar
+     toplanan kadarını yükleyip hedeften geri döner ve işgali
+     bırakır — yoksa arazi 20 dakika kilitli kalırdı. */
+  if (s.durum === "topla") {
+    const gecenT = Math.max(0, Date.now() - (s.toplaAt || Date.now()));
+    const oran = s.toplaSureMs > 0 ? Math.min(1, gecenT / s.toplaSureMs) : 1;
+    const kismi = Math.floor((s.hedefMiktar || 0) * oran);
+
+    (async () => {
+      let yuk = {};
+      try {
+        if (window.DUGUM && kismi > 0) {
+          const r = await DUGUM.tuket(s.slotId, kismi);
+          if (r && r.alinan > 0) yuk[s.kaynak] = r.alinan;
+        }
+        if (window.DUGUM) await DUGUM.isgalBirak(s.slotId);
+      } catch (e) { console.error("[sefer] geri çağırma:", e); }
+      donuseGec(id, s, yuk);
+      toast(`↩️ Ordun toplamayı bırakıp dönüyor (${kismi > 0 ? "kısmi yük alındı" : "eli boş"}).`, 4000);
+    })();
+    return;
+  }
 
   const now = Date.now();
   const gecen = Math.max(0, Math.min(now - s.gidisAt, s.sureMs));
@@ -909,6 +1156,8 @@ window.SEFER = {
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   geriCagir: geriCagir, baslat: seferBaslat,
+  toplamaBaslat: toplamaBaslat,
+  orduKapasitesi: orduKapasitesi,
 };
 
 })();

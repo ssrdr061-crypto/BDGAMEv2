@@ -2037,6 +2037,19 @@ body.world-active{padding:0; overflow:hidden;}
 .arazi-btn:disabled{ opacity:.45; }
 .arazi-uyari{ font-size:10.5px; color:#c2894f; text-align:center; margin-top:9px; }
 
+/* Arazi panelindeki birlik seçiciler */
+.arazi-birlikler{ margin:11px 0 6px; }
+.arazi-birlik{ margin-bottom:10px; }
+.arazi-birlik-ust{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:12.5px; color:#9fb2c4; margin-bottom:4px;
+}
+.arazi-birlik-ust b{ color:#eef4fa; }
+.arazi-kaydirici{
+  width:100%; height:26px; accent-color:#2d9c68; background:transparent;
+}
+
+
 
 .home-map-btn{
   position:absolute; z-index:20;
@@ -5523,16 +5536,20 @@ function dugumeTiklandi(slotId) {
 }
 
 /* ── ARAZİ PANELİ ──
-   Toplama seferi henüz sefer.js'e bağlanmadı; panel şimdilik
-   bilgi gösterir ve kapasite/süre hesabını canlı yapar. */
+   Oyuncu kaç birlik göndereceğini seçer; kapasite ve süre canlı
+   hesaplanır. Sefer sefer.js'e devredilir. */
+let _araziSecim = { knight: 0, soldier: 0, robot: 0 };
+
 function araziPaneliAc(d) {
   const eski = document.getElementById("araziPanel");
   if (eski) eski.remove();
 
-  const plan = DUGUM.toplamaPlani(d.slotId, state.troops || {});
-  const kap  = plan ? plan.kapasite : 0;
-  const alir = plan ? plan.alinacak : 0;
-  const sure = plan ? Math.max(1, Math.round(plan.sureMs / 60000)) : 0;
+  /* Varsayılan: elindeki her birlikten hepsi. Oyuncu azaltabilir. */
+  _araziSecim = {
+    knight: (state.troops || {}).knight || 0,
+    soldier: (state.troops || {}).soldier || 0,
+    robot:   (state.troops || {}).robot   || 0,
+  };
 
   const el = document.createElement("div");
   el.id = "araziPanel";
@@ -5548,27 +5565,99 @@ function araziPaneliAc(d) {
       </div>
 
       <div class="arazi-satir"><span>Arazide kalan</span><b>${fmt(d.kalan)}</b></div>
-      <div class="arazi-satir"><span>Ordunun kapasitesi</span><b>${fmt(kap)}</b></div>
-      <div class="arazi-satir"><span>Bu seferde alınacak</span><b>${fmt(alir)}</b></div>
-      <div class="arazi-satir"><span>Toplama süresi</span><b>~${sure} dk</b></div>
+
+      <div class="arazi-birlikler" id="araziBirlikler"></div>
+
+      <div class="arazi-satir"><span>Taşıma kapasitesi</span><b id="araziKap">0</b></div>
+      <div class="arazi-satir"><span>Bu seferde alınacak</span><b id="araziAlir">0</b></div>
+      <div class="arazi-satir"><span>Toplama süresi</span><b id="araziSure">-</b></div>
 
       <div class="arazi-not">
-        Taşıma kapasitesi: şövalye 100 · asker 70 · robot 50.
-        Kapasite dolunca ordu kendiliğinden döner.
+        Şövalye 100 · asker 70 · robot 50 taşır. Kapasite dolunca
+        ordu kendiliğinden döner; kalan kaynak arazide durur.
       </div>
 
       <div class="arazi-dugmeler">
         <button class="arazi-btn arazi-iptal">Kapat</button>
-        <button class="arazi-btn arazi-git" disabled>Toplamaya gönder</button>
+        <button class="arazi-btn arazi-git" id="araziGit">Toplamaya gönder</button>
       </div>
-      <div class="arazi-uyari">Toplama seferi henüz bağlanmadı (sefer.js).</div>
     </div>`;
   document.body.appendChild(el);
+
+  araziBirlikleriCiz(d);
+  araziOzetTazele(d);
 
   const kapat = () => el.remove();
   el.addEventListener("click", ev => { if (ev.target === el) kapat(); });
   const iptal = el.querySelector(".arazi-iptal");
   if (iptal) iptal.addEventListener("click", kapat);
+
+  const git = el.querySelector("#araziGit");
+  if (git) git.addEventListener("click", async () => {
+    if (!window.SEFER || typeof SEFER.toplamaBaslat !== "function") {
+      showToast("sefer.js güncel değil — toplama gönderilemiyor."); return;
+    }
+    git.disabled = true;
+    const ok = await SEFER.toplamaBaslat(d.slotId, _araziSecim);
+    if (ok) { kapat(); renderBattleMap(); }
+    else git.disabled = false;
+  });
+}
+
+/* Birlik satırları: her tür için kaydırıcı + sayı. */
+function araziBirlikleriCiz(d) {
+  const kap = document.getElementById("araziBirlikler");
+  if (!kap) return;
+  const adlar = { knight: "🛡️ Şövalye", soldier: "🪖 Asker", robot: "🤖 Robot" };
+
+  kap.innerHTML = ["knight", "soldier", "robot"].map(u => {
+    const varOlan = (state.troops || {})[u] || 0;
+    if (varOlan <= 0) return "";
+    return `
+      <div class="arazi-birlik" data-u="${u}">
+        <div class="arazi-birlik-ust">
+          <span>${adlar[u]}</span>
+          <b id="araziSay_${u}">${fmt(_araziSecim[u])}</b>
+        </div>
+        <input type="range" min="0" max="${varOlan}" value="${_araziSecim[u]}"
+               id="araziKay_${u}" class="arazi-kaydirici">
+      </div>`;
+  }).join("") || `<div class="arazi-not">Kalende hiç birlik yok.</div>`;
+
+  ["knight", "soldier", "robot"].forEach(u => {
+    const kay = document.getElementById("araziKay_" + u);
+    if (!kay) return;
+    kay.addEventListener("input", () => {
+      _araziSecim[u] = parseInt(kay.value, 10) || 0;
+      const say = document.getElementById("araziSay_" + u);
+      if (say) say.textContent = fmt(_araziSecim[u]);
+      araziOzetTazele(d);
+    });
+  });
+}
+
+/* Kapasite / alınacak / süre satırlarını tazeler. */
+function araziOzetTazele(d) {
+  const plan = DUGUM.toplamaPlani(d.slotId, _araziSecim);
+  const kap  = plan ? plan.kapasite : 0;
+  const alir = plan ? plan.alinacak : 0;
+  const ms   = plan ? plan.sureMs : 0;
+
+  const yaz = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  yaz("araziKap", fmt(kap));
+  yaz("araziAlir", fmt(alir));
+  yaz("araziSure", ms > 0 ? araziSureYazi(ms) : "-");
+
+  const git = document.getElementById("araziGit");
+  if (git) git.disabled = (alir <= 0);
+}
+
+function araziSureYazi(ms) {
+  const sn = Math.round(ms / 1000);
+  if (sn < 60) return sn + " sn";
+  const dk = Math.floor(sn / 60);
+  if (dk < 60) return dk + " dk";
+  return Math.floor(dk / 60) + " sa " + (dk % 60) + " dk";
 }
 
 /* selectedTroopsForBattle → troops.js dosyasından gelir */
