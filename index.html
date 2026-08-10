@@ -1955,6 +1955,34 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .map-node .node-isgal.isgal-benim{ color:var(--gold-soft); border-color:rgba(212,175,55,.45); }
 
+/* ══ 176 DÜĞÜM İÇİN BAŞARIM ══
+   Eski harita 15 canavar taşıyordu; artık 176 düğüm var. Her
+   düğümdeki nabız animasyonu (nodePulse, will-change ile) ayrı bir
+   birleştirme katmanı açıyor — 176 katman telefonda kare hızını
+   46'dan 8'e düşürdü.
+
+   Düğümlerde nabız KAPATILIR, yerine duran bir hale konur. Kaleler
+   nabzını korur: onlar birkaç tane ve dikkat çekmeleri gerekiyor. */
+.map-node.dugum-node .node-ring::before{
+  animation:none !important;
+  will-change:auto;
+  opacity:.75;
+  transform:none;
+}
+
+/* Her düğüm kendi başına yerleşsin: içindeki değişiklik dışarıyı
+   yeniden hesaplatmasın. */
+.map-node.dugum-node{
+  contain:layout style;
+}
+
+/* Etiket ve rozet metni yeniden ölçülmesin. */
+.map-node.dugum-node .node-label,
+.map-node.dugum-node .node-isgal{
+  contain:layout style paint;
+}
+
+
 /* ══ KAYNAK ŞERİDİ ══ */
 .hud-kaynak{
   position:absolute; top:52px; left:50%; transform:translateX(-50%);
@@ -5402,12 +5430,12 @@ function renderBattleMap() {
         if (el.style.display === "none") gizli++;
       });
     }
+    const toplam = mapEl2 ? mapEl2.querySelectorAll(".dugum-node").length : 0;
     r.textContent =
       "DUGUM: " + (window.DUGUM ? "VAR" : "YOK") +
       "\nliste: " + liste.length +
-      "\nilk: " + (ilk ? (ilk.etiket + " @" + ilk.kx + "," + ilk.ky) : "-") +
-      "\nDOM düğüm: " + (mapEl2 ? mapEl2.querySelectorAll(".dugum-node").length : "?") +
-      "\ngizlenen: " + gizli;
+      "\nDOM: " + toplam +
+      "\nekranda: " + (toplam - gizli) + " (kırpılan " + gizli + ")";
   })();
 
   const nodes = liste.map(d => {

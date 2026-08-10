@@ -722,14 +722,36 @@
        oturtan çarpan. */
     const olcek = zoom * CFG.dugumOlcek;
 
+    /* ── EKRAN DIŞI KIRPMA ──
+       Düğüm sayısı 15'ten 176'ya çıktı (dugum.js: kaynak arazileri +
+       canavarlar). Hepsine her karede stil yazmak telefonda kare
+       hızını dibe vuruyordu — yazılan her left/top yeniden yerleşim
+       ve boyama doğuruyor.
+
+       Artık yalnız EKRANDA GÖRÜNENLERE stil yazılır. Dışarıda kalan
+       display:none olur; bir daha görünene kadar ona hiç dokunulmaz.
+       PAY, kenardan hemen dışarıdaki düğümlerin kaydırma sırasında
+       geç belirmesini önler. */
+    const wrapEl = document.getElementById("battleMapWrap");
+    const gorW = wrapEl ? wrapEl.clientWidth  : (window.innerWidth  || 0);
+    const gorH = wrapEl ? wrapEl.clientHeight : (window.innerHeight || 0);
+    const PAY = 140;   /* düğüm kutusu + etiket payı, piksel */
+
     mapEl.querySelectorAll(".map-node").forEach(el => {
       const k = dugumKoordinati(el);
-      if (!k) { el.style.display = "none"; return; }
+      if (!k) { if (el.style.display !== "none") el.style.display = "none"; return; }
 
       const p = gridToWorld(k.gx * ORAN, k.gy * ORAN);
       /* Karonun ORTASINA otursun, üst köşesine değil */
       const sx = (p.x + HALF_W) * zoom + panX;
       const sy = (p.y + HALF_H) * zoom + panY;
+
+      /* Görüş alanı dışındaysa dokunma. Stil yazmamak, yazıp
+         gizlemekten çok daha ucuz. */
+      if (sx < -PAY || sy < -PAY || sx > gorW + PAY || sy > gorH + PAY) {
+        if (el.style.display !== "none") el.style.display = "none";
+        return;
+      }
 
       el.style.display = "";
       el.style.left = sx + "px";
