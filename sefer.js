@@ -602,6 +602,8 @@ async function toplamayaBasla(id, s) {
     hedefMiktar: plan.alinacak,
   }));
 
+  /* Harita tazelensin: arazinin altında adım belirsin. */
+  if (typeof renderBattleMap === "function") { try { renderBattleMap(); } catch (e) {} }
   toast(`⛏️ Ordun ${s.hedefAd} arazisinde toplamaya başladı — ${fmtSure(plan.sureMs)}`, 4500);
 }
 
@@ -619,6 +621,8 @@ async function toplamayiBitir(id, s) {
       const alinan = (r && r.alinan) || 0;
       if (alinan > 0) yuk[s.kaynak] = alinan;
       try { await D.isgalBirak(s.slotId); } catch (e) {}
+      /* Kilit düştü: adım haritadan kalksın. */
+      if (typeof renderBattleMap === "function") { try { renderBattleMap(); } catch (e) {} }
     }
     donuseGec(id, s, yuk);
   } catch (err) {
@@ -651,6 +655,21 @@ async function toplamaBaslat(slotId, birlikler) {
 
   const d = DUGUM.dugum(slotId);
   if (!d || d.tur !== "arazi") { toast("Bu arazi artık haritada yok."); return false; }
+
+  /* ── AYNI ARAZİYE İKİNCİ ORDU YOK ──
+     dugum.js'teki işgal kilidi asıl bekçi; bu ikinci bir emniyet.
+     Bulut yazması başarısız olup yerel kilide düşüldüğünde kilit
+     cihazlar arası paylaşılmaz — ama kendi seferlerimi HER ZAMAN
+     yerelde görürüm. Bu yüzden kendi çift göndermemi burada
+     kesiyorum, buluta hiç bakmadan. */
+  const zatenGiden = benimkiler().find(x => x.s && x.s.slotId === slotId);
+  if (zatenGiden) {
+    const ev = evre(zatenGiden.s);
+    toast(ev.ad === "topla"
+      ? "Bu arazide zaten bir ordun topluyor."
+      : "Bu araziye zaten bir ordun yolda.", 4000);
+    return false;
+  }
 
   /* SEFER SINIRI — toplama da 3 intikale DAHİL. Kaynak için ayrı
      bir slot açılmaz; savaş ve toplama aynı havuzu paylaşır. */

@@ -547,8 +547,9 @@ function isgalAl(slotId) {
   if (!fbHazir()) {
     /* Çevrimdışı: yerel kilit. Tek cihazda oynanıyorsa yeter. */
     const d = _durum[slotId];
-    if (isgalDiri(d) && d.it !== bk) {
-      return Promise.resolve({ ok: false, sebep: (d.ia || "Bir oyuncu") + " burada topluyor." });
+    if (isgalDiri(d)) {
+      return Promise.resolve({ ok: false,
+        sebep: (d.it === bk ? "Buraya zaten bir ordun gitti." : (d.ia || "Bir oyuncu") + " burada topluyor.") });
     }
     _durum[slotId] = { n: nesilOf(slotId), k: (d && typeof d.k === "number" ? d.k : varsayilanKalan),
                        it: bk, ia: benAd(), iat: Date.now() };
@@ -574,8 +575,14 @@ function isgalAl(slotId) {
     }
     if (!d) d = { n: 0, k: varsayilanKalan };
 
-    /* Başkası diri işgaldeyse alma. */
-    if (d.it && d.it !== bk && typeof d.iat === "number" &&
+    /* ── DİRİ İŞGAL VARSA ALMA — KENDİM DE DAHİL ──
+       Önceki sürüm yalnız BAŞKASINI engelliyordu. Sonuç: oyuncu
+       aynı araziye üst üste üç ordu gönderebiliyordu, çünkü kilit
+       zaten kendisindeydi ve kontrol onu geçiriyordu.
+       Bir düğümde AYNI ANDA TEK ORDU bulunur; sahibi kim olursa
+       olsun diri kilit yeni sefere kapalıdır. Kilit ancak süresi
+       dolunca (ISGAL_OMRU_MS) yeniden alınabilir. */
+    if (d.it && typeof d.iat === "number" &&
         (simdi - d.iat) < AYAR.ISGAL_OMRU_MS) {
       return;                                       /* iptal */
     }
@@ -604,6 +611,7 @@ function isgalAl(slotId) {
     }
     if (res && res.committed) { durumUygulaTek(slotId, res.snapshot.val()); return { ok: true }; }
     const d = (res && res.snapshot) ? res.snapshot.val() : null;
+    if (d && d.it === bk) return { ok: false, sebep: "Buraya zaten bir ordun gitti." };
     if (d && d.ia) return { ok: false, sebep: d.ia + " burada topluyor." };
     return { ok: false, sebep: "Bu düğüm şu an müsait değil." };
   });

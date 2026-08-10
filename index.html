@@ -1947,13 +1947,26 @@ body.world-active{padding:0; overflow:hidden;}
 
 /* İşgal etiketi. BAŞKASININ düğümünde YALNIZ kullanıcı adı yazar;
    ne topladığı veya ne kadar kaldığı ASLA gösterilmez. */
+/* İşgal etiketi — arazide toplayan oyuncunun ADI.
+   BAŞKASI KIRMIZI: haritaya bakınca düşman olduğu anında anlaşılsın.
+   KENDİM ALTIN: kendi ordumu yanlışlıkla hedef almayayım.
+   Etiket YALNIZ adı taşır; ne topladığı, ne kadar kaldığı ASLA
+   gösterilmez. */
 .map-node .node-isgal{
-  margin-top:2px; font-size:9.5px; font-weight:700; text-align:center;
-  padding:1px 5px; border-radius:7px; white-space:nowrap;
-  background:rgba(10,14,20,.82); color:var(--diamond-cyan);
-  border:1px solid rgba(79,209,232,.38);
+  margin-top:2px; font-size:10px; font-weight:800; text-align:center;
+  padding:1px 6px; border-radius:7px; white-space:nowrap;
+  background:rgba(10,14,20,.86);
+  color:var(--diamond-red);
+  border:1px solid rgba(226,88,92,.55);
+  text-shadow:0 1px 2px rgba(0,0,0,.8);
 }
-.map-node .node-isgal.isgal-benim{ color:var(--gold-soft); border-color:rgba(212,175,55,.45); }
+.map-node .node-isgal.isgal-benim{
+  color:var(--gold-soft); border-color:rgba(212,175,55,.55);
+}
+/* İşgal altındaki düğümün halkası da renklensin — etiket okunmadan
+   uzaktan bile "burası tutulmuş" belli olsun. */
+.map-node.isgalli .node-avatar{ border-color:var(--diamond-red) !important; }
+.map-node.isgalli.isgal-benimki .node-avatar{ border-color:var(--gold) !important; }
 
 /* ══ 176 DÜĞÜM İÇİN BAŞARIM ══
    Eski harita 15 canavar taşıyordu; artık 176 düğüm var. Her
@@ -1985,10 +1998,11 @@ body.world-active{padding:0; overflow:hidden;}
 /* Uzaklaşınca düğüm etiketleri gizlenir (harita.js .etiketsiz sınıfını
    kök katmana basar). Kale etiketleri korunur — onlar birkaç tane ve
    oyuncu adını taşıyor. */
-#battleMap.etiketsiz .map-node.dugum-node .node-label,
-#battleMap.etiketsiz .map-node.dugum-node .node-isgal{
+#battleMap.etiketsiz .map-node.dugum-node .node-label{
   display:none;
 }
+/* İşgal adı uzakta DA görünür: kimin nerede olduğu haritanın en
+   önemli bilgisi, ad etiketi gibi süs değil. */
 
 
 
@@ -5461,7 +5475,8 @@ function renderBattleMap() {
   })();
 
   const nodes = liste.map(d => {
-    const sinif = d.tur === "canavar" ? "canavar-node" : "arazi-node";
+    let sinif = d.tur === "canavar" ? "canavar-node" : "arazi-node";
+    if (d.isgalAd) sinif += d.benimMi ? " isgalli isgal-benimki" : " isgalli";
     /* İşgal etiketi: BAŞKASININ düğümünde YALNIZ kullanıcı adı
        görünür. Ne topladığı, ne kadar kaldığı gösterilmez. */
     const isgal = d.isgalAd
