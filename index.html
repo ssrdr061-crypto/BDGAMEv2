@@ -5471,6 +5471,11 @@ function renderBattleMap() {
 
   mapEl.innerHTML = buildMapGridHTML() + nodes + castleNodes;
 
+  /* Katman baştan yazıldı: harita.js'in düğüm önbelleğindeki eleman
+     adresleri artık KOPUK. Bildirmezsek konumları silinmiş elemanlara
+     yazar, ekrandakiler yerleşmeden üst üste yığılır. */
+  try { if (window.HARITA && HARITA.dugumOnbellegiBosalt) HARITA.dugumOnbellegiBosalt(); } catch (e) {}
+
   bindAll(mapEl, ".dugum-node", (ds) => {
     if (mapDragMoved) return;               // kaydırma sonrası açılmayı engelle
     dugumeTiklandi(ds.slot);

@@ -679,8 +679,19 @@
   function dugumOnbellegiBosalt() { _dOnbellek = null; }
 
   function dugumOnbellegi(mapEl) {
+    /* GEÇERLİLİK DENETİMİ — eleman SAYISI yeterli değil!
+       renderBattleMap katmanı innerHTML ile baştan yazıyor; sayı aynı
+       kalsa bile elemanlar YENİDİR, eskiler DOM'dan kopmuştur. Sayıya
+       güvenilirse konumlar koparılmış elemanlara yazılır, ekrandaki
+       yeni düğümler hiç yerleşmez ve üst üste yığılır.
+       Bu yüzden örnek bir elemanın hâlâ DOM'a bağlı olması aranır. */
     if (_dOnbellek && _dOnbellek.kok === mapEl &&
-        _dOnbellek.sayi === mapEl.childElementCount) return _dOnbellek.liste;
+        _dOnbellek.sayi === mapEl.childElementCount &&
+        _dOnbellek.liste.length &&
+        _dOnbellek.liste[0].el.isConnected &&
+        _dOnbellek.liste[_dOnbellek.liste.length - 1].el.isConnected) {
+      return _dOnbellek.liste;
+    }
 
     const liste = [];
     mapEl.querySelectorAll(".map-node").forEach(el => {
@@ -692,7 +703,9 @@
                    derinlik: String(10 + Math.round((k.gx + k.gy) * 10)),
                    gorunur: null });
     });
-    _dOnbellek = { kok: mapEl, sayi: mapEl.childElementCount, liste: liste };
+    _dOnbellek = liste.length
+      ? { kok: mapEl, sayi: mapEl.childElementCount, liste: liste }
+      : null;
     return liste;
   }
 
@@ -1396,6 +1409,7 @@
      önce projede ADINI ARA. */
   window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala,
                     dugumleriYerlestir, ekranKonumu, merkezle, ORAN, onbellegiBosalt,
+                    dugumOnbellegiBosalt,
                     ekranaGoreIzgara,
                     /* Eski harita modu kaldırıldı; missile.js hâlâ soruyor,
                        cevap her zaman evet. */
