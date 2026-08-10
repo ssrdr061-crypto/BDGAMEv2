@@ -2748,6 +2748,7 @@ let _castleListenerRef = null;
 /* Son yayın denemesinin sonucu — konsolsuz teşhis için.
    publishCastle'dan ÖNCE tanımlanmalı: `let` yukarı taşınmaz. */
 let _kaleYayinDurum = "henüz denenmedi";
+let _kaleDinleyici = "hiç çağrılmadı";
 
 /* Kendi kalemi hafif düğüme yaz */
 function publishCastle() {
@@ -2923,7 +2924,11 @@ function loadBattleLog() {
 }
 
 function startListeningForCastles() {
-  if (!firebaseReady) return;
+  /* SESSİZ DÖNÜŞ KAYDEDİLİR: firebase hazır değilken çağrılırsa
+     dinleyici HİÇ kurulmaz ve bir daha denenmez — kaleler asla
+     canlı gelmez, hiçbir hata da oluşmaz. */
+  if (!firebaseReady) { _kaleDinleyici = "KURULMADI: firebase hazır değil"; return; }
+  _kaleDinleyici = "kuruldu";
   stopListeningForCastles();
 
   _castleListenerRef = firebaseDb.ref("castles");
@@ -2973,6 +2978,57 @@ function startListeningForCastles() {
 
   publishCastle();
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BAĞIMSIZ KALE TEŞHİSİ
+   Dinleyiciye, publishCastle'a ya da herhangi bir erken dönüşe
+   BAĞLI DEĞİLDİR. Sayfa açıldıktan 7 sn sonra castles/ düğümünü
+   kendisi bir kez okur ve sonucu ekrana basar.
+
+   Neden böyle: bu hatayı ararken teşhisi üç kez dinleyicinin içine
+   koydum, üçünde de yukarıdaki sessiz `return`'lerden birine takılıp
+   hiç çalışmadı. Ölçüm aracı, ölçtüğü şeyin çalışmasına bağlı
+   olmamalı. Sorun çözülünce bu blok silinecek.
+   ═══════════════════════════════════════════════════════════════ */
+(function kaleTeshisi() {
+  const calistir = () => {
+    const satir = [];
+    satir.push("firebaseReady: " + ((typeof firebaseReady !== "undefined") ? firebaseReady : "TANIMSIZ"));
+    satir.push("dinleyici: " + _kaleDinleyici);
+    satir.push("yayın: " + _kaleYayinDurum);
+    satir.push("otherCastles: " + (Array.isArray(otherCastles) ? otherCastles.length : "yok"));
+
+    const bas = () => {
+      const m = satir.join("\n");
+      console.log("[kale teşhis]\n" + m);
+      if (typeof showToast === "function") showToast(m, 20000);
+      else alert(m);
+    };
+
+    try {
+      if (typeof firebaseDb === "undefined" || !firebaseDb) {
+        satir.push("castles/: OKUNAMADI (firebaseDb yok)");
+        bas(); return;
+      }
+      firebaseDb.ref("castles").get().then(sn => {
+        const all = sn.val() || {};
+        const k = Object.keys(all);
+        satir.push("castles/: " + (k.length
+          ? k.map(x => (all[x] && all[x].name) || x).join(", ")
+          : "BOŞ"));
+        bas();
+      }).catch(err => {
+        satir.push("castles/: HATA — " + String((err && err.message) || err));
+        bas();
+      });
+    } catch (e) {
+      satir.push("castles/: İSTİSNA — " + String((e && e.message) || e));
+      bas();
+    }
+  };
+  if (document.readyState === "complete") setTimeout(calistir, 7000);
+  else window.addEventListener("load", () => setTimeout(calistir, 7000));
+})();
 
 function stopListeningForCastles() {
   if (_castleListenerRef) {
