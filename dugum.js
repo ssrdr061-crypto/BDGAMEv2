@@ -401,9 +401,33 @@ function benAd() {
   return "Oyuncu";
 }
 
+/* Buluta YAZILAMAMIŞ kendi kilitlerim.
+   Firebase kuralları dugumler/ yolunu engelliyorsa isgalAl yerel
+   kilide düşüyor. Ama bulut dinleyicisi sonra tüm durumu baştan
+   yazınca o kilit siliniyordu — ekranda adım bir saniye görünüp
+   kayboluyordu. Bu harita her bulut güncellemesinde yeniden
+   uygulanır. */
+let _yerelIsgal = {};
+
 /* Buluttan gelen kaydı iç duruma alır ve nesil haritasını tazeler. */
 function durumUygula(ham) {
-  _durum = ham || {};
+  const bulut = ham || {};
+
+  /* BULUT ÜSTÜNE YEREL KİLİTLERİ BİNDİR.
+     Yalnızca bulutun HABERİ OLMADIĞI kilitler geri konur; bulut o
+     slot için bir kayıt gönderdiyse GERÇEK odur (başkası kapmış
+     olabilir) ve yerel kilit düşürülür. */
+  Object.keys(_yerelIsgal).forEach(sid => {
+    const y = _yerelIsgal[sid];
+    if (!y) return;
+    /* Süresi dolmuş yerel kilidi taşımaya gerek yok. */
+    if (Date.now() - y.iat >= AYAR.ISGAL_OMRU_MS) { delete _yerelIsgal[sid]; return; }
+    const b = bulut[sid];
+    if (b && b.it) return;              /* bulutta bir sahip var; o geçerli */
+    bulut[sid] = Object.assign({}, b || { n: nesilOf(sid) }, y);
+  });
+
+  _durum = bulut;
   const yeniNesiller = {};
   Object.keys(_durum).forEach(sid => {
     const d = _durum[sid];
@@ -558,8 +582,10 @@ function isgalAl(slotId) {
       return Promise.resolve({ ok: false,
         sebep: (d.it === bk ? "Buraya zaten bir ordun gitti." : (d.ia || "Bir oyuncu") + " burada topluyor.") });
     }
-    _durum[slotId] = { n: nesilOf(slotId), k: (d && typeof d.k === "number" ? d.k : varsayilanKalan),
-                       it: bk, ia: benAd(), iat: Date.now() };
+    const kilit = { it: bk, ia: benAd(), iat: Date.now() };
+    _yerelIsgal[slotId] = kilit;
+    _durum[slotId] = Object.assign({ n: nesilOf(slotId),
+                                     k: (d && typeof d.k === "number" ? d.k : varsayilanKalan) }, kilit);
     return Promise.resolve({ ok: true });
   }
 
@@ -611,12 +637,16 @@ function isgalAl(slotId) {
          oynanıyorsa hiç fark etmez, çok oyunculuda çakışma riski
          var ama oyunu tamamen durdurmaktan iyidir. */
       if (res === "_zamanasimi_") _bulutHata = "dugumler/ yazılamıyor (zaman aşımı) — Firebase kurallarını denetle";
-      const sab2 = sablon(s.id, s.seviye);
-      _durum[slotId] = { n: nesilOf(slotId), k: varsayilanKalan,
-                         it: bk, ia: benAd(), iat: Date.now() };
+      const kilit = { it: bk, ia: benAd(), iat: Date.now() };
+      _yerelIsgal[slotId] = kilit;   /* bulut ezmesin diye ayrı tutulur */
+      _durum[slotId] = Object.assign({ n: nesilOf(slotId), k: varsayilanKalan }, kilit);
       return { ok: true, yerel: true };
     }
-    if (res && res.committed) { durumUygulaTek(slotId, res.snapshot.val()); return { ok: true }; }
+    if (res && res.committed) {
+      delete _yerelIsgal[slotId];      /* bulut sahiplendi, yedeğe gerek yok */
+      durumUygulaTek(slotId, res.snapshot.val());
+      return { ok: true };
+    }
     const d = (res && res.snapshot) ? res.snapshot.val() : null;
     if (d && d.it === bk) return { ok: false, sebep: "Buraya zaten bir ordun gitti." };
     if (d && d.ia) return { ok: false, sebep: d.ia + " burada topluyor." };
@@ -637,6 +667,7 @@ function durumUygulaTek(slotId, kayit) {
 
 /* İşgali bırak — ordu dönerken veya baskında kaybedince. */
 function isgalBirak(slotId) {
+  delete _yerelIsgal[slotId];
   const bk = benKey();
   const d = _durum[slotId];
   if (!d || d.it !== bk) return Promise.resolve();
@@ -652,6 +683,7 @@ function isgalTazele(slotId) {
   const d = _durum[slotId];
   if (!d || d.it !== bk) return Promise.resolve();
   d.iat = Date.now();
+  if (_yerelIsgal[slotId]) _yerelIsgal[slotId].iat = d.iat;
   return slotYaz(slotId, d);
 }
 
@@ -880,7 +912,7 @@ if (typeof window !== "undefined") {
    değişken doğrudan okunmaz — adres tek yerden değişsin.
    ═══════════════════════════════════════════════════════════ */
 window.DUGUM = {
-  SURUM: "canvas-3",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-4",          /* rozet bunu gösterir; yükleme doğrulaması */
 
   /* okuma */
   dugumler: dugumler,

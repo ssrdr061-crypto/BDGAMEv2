@@ -463,6 +463,7 @@
      ═════════════════════════════════════════════════════════════════════ */
 
   let sonKare = 0, fps = 0, fpsSayac = 0, fpsZaman = 0;
+  let sonCizilenKaro = 0;
   let kurtarmaKilidi = false;
 
   /* Tek karo çizer. saydamlik < 1 ise karışım katmanıdır.
@@ -664,18 +665,12 @@
        düzeltmeye çalıştığımız hatanın ta kendisi. */
     cizUst();
 
-    /* FPS + çizilen karo sayısı */
-    if (CFG.fpsGoster) {
-      const simdi = performance.now();
-      fpsSayac++;
-      if (simdi - fpsZaman > 500) {
-        fps = Math.round((fpsSayac * 1000) / (simdi - fpsZaman));
-        fpsSayac = 0; fpsZaman = simdi;
-      }
-      sonKare = simdi;
-      const el = document.getElementById("isoFps");
-      if (el) el.textContent = fps + " fps · " + cizilen + " karo";
-    }
+    /* Çizilen karo sayısı saklanır; göstergeyi ÜST KATMAN yazar.
+       Sebep: zemin artık yalnız kaydırma/yakınlaştırmada çiziliyor.
+       Sayacı burada tutmak "4 fps" gibi yanıltıcı bir değer üretir —
+       oysa oyun akıcıdır, sadece zemin yeniden çizilmemiştir.
+       Gerçek akıcılığı üst katman ölçer; o her karede çalışır. */
+    sonCizilenKaro = cizilen;
   }
 
 
@@ -999,8 +994,21 @@
     uctx.setTransform(1, 0, 0, 1, 0, 0);
     uctx.clearRect(0, 0, uv.width, uv.height);
 
-    try { cizDugumler(uctx, panX, panY, zoom, w, h); } catch (e) {}
+    let dugumSayi = 0;
+    try { dugumSayi = cizDugumler(uctx, panX, panY, zoom, w, h); } catch (e) {}
     try { cizSeferler(uctx, panX, panY, zoom, w, h); } catch (e) {}
+
+    if (CFG.fpsGoster) {
+      const simdi = performance.now();
+      fpsSayac++;
+      if (simdi - fpsZaman > 500) {
+        fps = Math.round((fpsSayac * 1000) / (simdi - fpsZaman));
+        fpsSayac = 0; fpsZaman = simdi;
+      }
+      sonKare = simdi;
+      const el = document.getElementById("isoFps");
+      if (el) el.textContent = fps + " fps · " + sonCizilenKaro + " karo · " + dugumSayi + " düğüm";
+    }
 
     ustDonguKontrol();
   }
