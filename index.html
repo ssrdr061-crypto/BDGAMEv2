@@ -5467,11 +5467,16 @@ function renderBattleMap() {
       });
     }
     const toplam = mapEl2 ? mapEl2.querySelectorAll(".dugum-node").length : 0;
+    /* SÜRÜM DAMGALARI — "yükledim ama değişmedi" döngüsünü bitirir.
+       Beklenen: dugum kilit-2 · sefer topla-2. Farklıysa o dosyanın
+       eski sürümü sunucuda ya da tarayıcı önbelleğinde demektir. */
+    const sd = (window.DUGUM && DUGUM.SURUM) || "ESKİ";
+    const ss = (window.SEFER && SEFER.SURUM) || "ESKİ";
+    const isgalli = liste.filter(x => x.isgalAd).length;
     r.textContent =
-      "DUGUM: " + (window.DUGUM ? "VAR" : "YOK") +
-      "\nliste: " + liste.length +
-      "\nDOM: " + toplam +
-      "\nekranda: " + (toplam - gizli) + " (kırpılan " + gizli + ")";
+      "dugum: " + sd + "  sefer: " + ss +
+      "\nekranda: " + (toplam - gizli) + "/" + toplam +
+      "\nişgalli: " + isgalli;
   })();
 
   const nodes = liste.map(d => {

@@ -870,6 +870,8 @@ if (typeof window !== "undefined") {
    değişken doğrudan okunmaz — adres tek yerden değişsin.
    ═══════════════════════════════════════════════════════════ */
 window.DUGUM = {
+  SURUM: "kilit-2",          /* rozet bunu gösterir; yükleme doğrulaması */
+
   /* okuma */
   dugumler: dugumler,
   dugum: dugum,
