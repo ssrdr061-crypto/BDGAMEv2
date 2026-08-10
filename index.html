@@ -2938,6 +2938,27 @@ function startListeningForCastles() {
 
     otherCastles = list;
     if (typeof renderBattleMap === "function") renderBattleMap();
+
+    /* ── TEK SEFERLİK TEŞHİS ──
+       "Kalem başkasında görünmüyor" sorunu için. Buluttan HANGİ
+       kalelerin geldiğini ve kaçının elendiğini bir kez ekrana
+       basar. Sorun çözülünce bu blok silinecek. */
+    if (!startListeningForCastles._rapor) {
+      startListeningForCastles._rapor = true;
+      setTimeout(() => {
+        const bulutta = anahtarlar.map(k => (all[k] && all[k].name) || k);
+        const cizilen = list.map(c => c.name);
+        const elenen = bulutta.filter(ad =>
+          !cizilen.some(c => String(c).toLowerCase() === String(ad).toLowerCase()));
+        if (typeof showToast === "function") {
+          showToast(
+            "BULUTTAKİ KALELER (" + bulutta.length + "): " + bulutta.join(", ") +
+            "\nÇİZİLEN (" + cizilen.length + "): " + (cizilen.join(", ") || "-") +
+            "\nELENEN: " + (elenen.join(", ") || "-"),
+            15000);
+        }
+      }, 2500);
+    }
   }, (err) => {
     console.warn("Kale düğümü dinlenemedi, eski yönteme dönülüyor:", err);
     migrateCastlesOnce();
