@@ -1982,6 +1982,15 @@ body.world-active{padding:0; overflow:hidden;}
   contain:layout style paint;
 }
 
+/* Uzaklaşınca düğüm etiketleri gizlenir (harita.js .etiketsiz sınıfını
+   kök katmana basar). Kale etiketleri korunur — onlar birkaç tane ve
+   oyuncu adını taşıyor. */
+#battleMap.etiketsiz .map-node.dugum-node .node-label,
+#battleMap.etiketsiz .map-node.dugum-node .node-isgal{
+  display:none;
+}
+
+
 
 /* ══ KAYNAK ŞERİDİ ══ */
 .hud-kaynak{

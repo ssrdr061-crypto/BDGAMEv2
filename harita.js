@@ -668,6 +668,34 @@
   const ORAN = G / 30;   // eski 30'luk ızgara → 141'lik ızgara
 
   /* Düğümün mantıksal koordinatını (0..30) bul */
+  /* ── DÜĞÜM ÖNBELLEĞİ ──
+     dugumleriYerlestir her kaydırma/yakınlaştırma karesinde çalışır.
+     Eskiden her karede querySelectorAll çalışıp 176 elemanın
+     dataset'i yeniden okunuyordu — koordinatlar DEĞİŞMEDİĞİ hâlde.
+     Artık liste ve koordinatlar bir kez çıkarılıp saklanıyor;
+     renderBattleMap innerHTML'i yenilediğinde geçersiz kılınıyor. */
+  let _dOnbellek = null;
+
+  function dugumOnbellegiBosalt() { _dOnbellek = null; }
+
+  function dugumOnbellegi(mapEl) {
+    if (_dOnbellek && _dOnbellek.kok === mapEl &&
+        _dOnbellek.sayi === mapEl.childElementCount) return _dOnbellek.liste;
+
+    const liste = [];
+    mapEl.querySelectorAll(".map-node").forEach(el => {
+      const k = dugumKoordinati(el);
+      if (!k) { el.style.display = "none"; return; }
+      /* Dünya konumu zoom/pandan bağımsız — bir kez hesaplanır. */
+      const p = gridToWorld(k.gx * ORAN, k.gy * ORAN);
+      liste.push({ el: el, wx: p.x + HALF_W, wy: p.y + HALF_H,
+                   derinlik: String(10 + Math.round((k.gx + k.gy) * 10)),
+                   gorunur: null });
+    });
+    _dOnbellek = { kok: mapEl, sayi: mapEl.childElementCount, liste: liste };
+    return liste;
+  }
+
   function dugumKoordinati(el) {
     if (el.dataset.cx !== undefined) {
       return { gx: parseFloat(el.dataset.cx), gy: parseFloat(el.dataset.cy) };
@@ -722,46 +750,58 @@
        oturtan çarpan. */
     const olcek = zoom * CFG.dugumOlcek;
 
-    /* ── EKRAN DIŞI KIRPMA ──
-       Düğüm sayısı 15'ten 176'ya çıktı (dugum.js: kaynak arazileri +
-       canavarlar). Hepsine her karede stil yazmak telefonda kare
-       hızını dibe vuruyordu — yazılan her left/top yeniden yerleşim
-       ve boyama doğuruyor.
+    /* ── EKRAN DIŞI KIRPMA + ÖNBELLEK ──
+       Düğüm sayısı 15'ten 176'ya çıktı (dugum.js). Her karede hepsine
+       stil yazmak telefonda kare hızını dibe vuruyordu: yazılan her
+       left/top yeniden yerleşim ve boyama doğurur.
 
-       Artık yalnız EKRANDA GÖRÜNENLERE stil yazılır. Dışarıda kalan
-       display:none olur; bir daha görünene kadar ona hiç dokunulmaz.
-       PAY, kenardan hemen dışarıdaki düğümlerin kaydırma sırasında
-       geç belirmesini önler. */
+       İki tasarruf:
+         1) Koordinatlar önbellekten okunur, dataset her kare
+            ayrıştırılmaz.
+         2) Yalnız EKRANDA GÖRÜNENE stil yazılır. Dışarıdaki
+            display:none olur ve durumu değişmediği sürece ona bir
+            daha HİÇ dokunulmaz (gorunur bayrağı). */
     const wrapEl = document.getElementById("battleMapWrap");
     const gorW = wrapEl ? wrapEl.clientWidth  : (window.innerWidth  || 0);
     const gorH = wrapEl ? wrapEl.clientHeight : (window.innerHeight || 0);
     const PAY = 140;   /* düğüm kutusu + etiket payı, piksel */
 
-    mapEl.querySelectorAll(".map-node").forEach(el => {
-      const k = dugumKoordinati(el);
-      if (!k) { if (el.style.display !== "none") el.style.display = "none"; return; }
+    /* ── UZAKTA ETİKET YOK ──
+       Her etiket ayrı bir metin kutusu (arka plan + kenarlık + yazı
+       ölçümü). 176 tanesi uzaklaşınca hem okunmuyor hem pahalı.
+       Sınıf tek yerde, kök elemanda değişiyor — 176 eleman tek tek
+       dolaşılmıyor. */
+    const etiketGoster = zoom >= 0.55;
+    if (mapEl._etiket !== etiketGoster) {
+      mapEl.classList.toggle("etiketsiz", !etiketGoster);
+      mapEl._etiket = etiketGoster;
+    }
 
-      const p = gridToWorld(k.gx * ORAN, k.gy * ORAN);
-      /* Karonun ORTASINA otursun, üst köşesine değil */
-      const sx = (p.x + HALF_W) * zoom + panX;
-      const sy = (p.y + HALF_H) * zoom + panY;
+    const donusum = "translate(-50%,-50%) scale(" + olcek + ")";
+    const liste = dugumOnbellegi(mapEl);
 
-      /* Görüş alanı dışındaysa dokunma. Stil yazmamak, yazıp
-         gizlemekten çok daha ucuz. */
-      if (sx < -PAY || sy < -PAY || sx > gorW + PAY || sy > gorH + PAY) {
-        if (el.style.display !== "none") el.style.display = "none";
-        return;
+    for (let i = 0; i < liste.length; i++) {
+      const d = liste[i];
+      const sx = d.wx * zoom + panX;
+      const sy = d.wy * zoom + panY;
+
+      const icerde = !(sx < -PAY || sy < -PAY || sx > gorW + PAY || sy > gorH + PAY);
+
+      if (!icerde) {
+        /* Zaten gizliyse hiçbir şey yazma — en ucuz durum budur. */
+        if (d.gorunur !== false) { d.el.style.display = "none"; d.gorunur = false; }
+        continue;
       }
 
-      el.style.display = "";
-      el.style.left = sx + "px";
-      el.style.top  = sy + "px";
-      el.style.transform = "translate(-50%,-50%) scale(" + olcek + ")";
-
-      /* DERİNLİK: aşağıdaki (ekranda öndeki) düğüm üste gelsin.
-         İzometride ekran derinliği gx+gy ile artar. */
-      el.style.zIndex = String(10 + Math.round((k.gx + k.gy) * 10));
-    });
+      if (d.gorunur !== true) {
+        d.el.style.display = "";
+        d.el.style.zIndex = d.derinlik;   /* derinlik sabit, bir kez yeter */
+        d.gorunur = true;
+      }
+      d.el.style.left = sx + "px";
+      d.el.style.top  = sy + "px";
+      d.el.style.transform = donusum;
+    }
 
     /* SERBEST İŞARETLER — "Git" nişangahı ve koordinat paylaşma etiketi.
        Bunlar .map-node değil, ayrı ele alınıyor. index.html onları
