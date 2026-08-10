@@ -5376,8 +5376,25 @@ function renderBattleMap() {
   if (!mapEl) return;
 
   /* Düğümler dugum.js'ten gelir. Tükenmiş olanlar listeye zaten
-     girmez; yeniden doğuş sayacını da o dosya tutar. */
+     girmez; yeniden doğuş sayacını da o dosya tutar.
+
+     SESSİZ KALMASIN: dosya yüklenmemişse harita bomboş çizilir ve
+     sebebi hiçbir yerde görünmez. Geliştirici telefonla çalıştığı
+     için konsol yerine ekrana uyarı düşüyor. */
+  if (!window.DUGUM) {
+    if (!renderBattleMap._uyardi) {
+      renderBattleMap._uyardi = true;
+      const m = "⚠️ dugum.js yüklenmedi — haritada düğüm yok. Dosya index.html ile aynı klasörde mi?";
+      if (typeof showToast === "function") showToast(m, 9000); else alert(m);
+    }
+  }
   const liste = (window.DUGUM ? DUGUM.haritaDugumleri() : []);
+
+  if (window.DUGUM && liste.length === 0 && !renderBattleMap._bosUyardi) {
+    renderBattleMap._bosUyardi = true;
+    if (typeof showToast === "function")
+      showToast("⚠️ dugum.js yüklü ama düğüm üretmedi — DUGUM.tani() ile bak.", 9000);
+  }
 
   const nodes = liste.map(d => {
     const sinif = d.tur === "canavar" ? "canavar-node" : "arazi-node";
