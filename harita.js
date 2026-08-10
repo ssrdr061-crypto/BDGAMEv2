@@ -629,6 +629,14 @@
       }
     }
 
+    /* ── DÜĞÜMLER ──
+       Zemin parçalarından SONRA çizilir ki üstünde kalsınlar.
+       Kendi dönüşümünü kendi kurar, o yüzden burada bir şey
+       sıfırlamaya gerek yok. */
+    let dugumSayi = 0;
+    try { dugumSayi = cizDugumler(ctx, panX, panY, zoom, w, h); }
+    catch (e) { /* düğüm çizimi zemini düşürmesin */ }
+
     /* FPS + çizilen karo sayısı */
     if (CFG.fpsGoster) {
       const simdi = performance.now();
@@ -641,6 +649,191 @@
       const el = document.getElementById("isoFps");
       if (el) el.textContent = fps + " fps · " + cizilen + " karo";
     }
+  }
+
+
+  /* ═════════════════════════════════════════════════════════════════════
+     DÜĞÜM KATMANI — CANVAS
+     ---------------------------------------------------------------------
+     Kaynak arazileri ve canavarlar (dugum.js, 176 adet) ARTIK DOM DEĞİL.
+
+     NEDEN TAŞINDI: her düğüm bir DOM elemanıydı ve pan/zoom sırasında
+     tarayıcı 176 elemanın yerleşimini yeniden hesaplayıp boyuyordu.
+     Ölçüm nettir: aynı 1600 karoda düğümsüz 46 fps, düğümlü 16 fps.
+     Kayıp zeminden değil, düğümlerdendi.
+
+     Artık zeminle AYNI karede, aynı canvas'a çiziliyorlar. Bir düğüm
+     birkaç drawImage/fillText çağrısı; tarayıcıya sorulan bir şey yok.
+
+     KALELER DOM'DA KALDI: birkaç tane, resim taşıyorlar ve taşıma/
+     sürükleme etkileşimleri var. Onları taşımanın kazancı yok.
+
+     GÖRSELE GEÇİŞ: şu an emoji basılıyor (ctx.fillText). Sprite'a
+     geçmek için tek yer değişir — cizDugumGorseli(). Oraya drawImage
+     koyunca hem PNG hem kare kare animasyon çalışır.
+     ═════════════════════════════════════════════════════════════════════ */
+
+  /* Düğüm listesi önbelleği. DUGUM.haritaDugumleri() 176 slotu dolaşır;
+     bunu her karede yapmak gereksiz — liste saniyede iki kez tazelenir.
+     Toplama/yenilme gibi olaylar zaten dugumTazele() ile anında bildirir. */
+  let _dugumListe = null;
+  let _dugumZaman = 0;
+  const DUGUM_TAZELIK_MS = 500;
+
+  function dugumTazele() { _dugumListe = null; }
+
+  function dugumleriAl() {
+    const simdi = performance.now();
+    if (_dugumListe && (simdi - _dugumZaman) < DUGUM_TAZELIK_MS) return _dugumListe;
+    try {
+      _dugumListe = (window.DUGUM && DUGUM.haritaDugumleri) ? DUGUM.haritaDugumleri() : [];
+    } catch (e) { _dugumListe = []; }
+    _dugumZaman = simdi;
+    return _dugumListe;
+  }
+
+  /* Seviye rengi — 1 yeşil, 2 sarı, 3 kırmızı. */
+  const SV_RENK = { 1: "#5fd98a", 2: "#e8c84f", 3: "#e2585c" };
+
+  /* Düğümün görseli. SPRITE'A GEÇİŞ TAM OLARAK BURADAN YAPILIR:
+     bu gövdeyi drawImage(sprite, x-r, y-r, r*2, r*2) ile değiştirmek
+     yeterli; çağıran hiçbir yer değişmez. */
+  function cizDugumGorseli(c, d, x, y, r) {
+    c.font = Math.round(r * 1.5) + "px serif";
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText(d.ikon, x, y);
+  }
+
+  /* Düğümleri canvas'a çizer. ciz() içinden, zemin parçalarından SONRA
+     çağrılır; o noktada ctx zaten pan+zoom dönüşümünde olduğu için
+     dönüşüm geçici olarak SIFIRLANIR: düğüm boyu zoom ile ölçeklenmeli
+     ama yazı tipi ve çizgi kalınlığı bulanıklaşmamalı. */
+  function cizDugumler(c, panX, panY, zoom, w, h) {
+    const liste = dugumleriAl();
+    if (!liste.length) return 0;
+
+    c.save();
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);   /* ekran pikseline dön */
+
+    const r = 24 * zoom * CFG.dugumOlcek;   /* düğüm yarıçapı, px */
+    const PAY = r * 3;
+    let cizilen = 0;
+
+    /* Derinlik sırası: ekranda aşağıdaki üste gelsin (izometri). */
+    const sirali = liste.slice().sort((a, b) => (a.kx + a.ky) - (b.kx + b.ky));
+
+    for (let i = 0; i < sirali.length; i++) {
+      const d = sirali[i];
+      const p = gridToWorld(d.kx, d.ky);
+      const x = (p.x + HALF_W) * zoom + panX;
+      const y = (p.y + HALF_H) * zoom + panY;
+
+      if (x < -PAY || y < -PAY || x > w + PAY || y > h + PAY) continue;
+      cizilen++;
+
+      const renk = SV_RENK[d.seviye] || "#5fd98a";
+
+      /* Halka — arazi köşeli, canavar yuvarlak. Uzaktan tür ayrımı. */
+      c.beginPath();
+      if (d.tur === "canavar") {
+        c.arc(x, y, r, 0, Math.PI * 2);
+      } else {
+        const k = r * 0.9;
+        c.roundRect ? c.roundRect(x - k, y - k, k * 2, k * 2, r * 0.28)
+                    : c.rect(x - k, y - k, k * 2, k * 2);
+      }
+      c.fillStyle = "rgba(8,14,22,.62)";
+      c.fill();
+      c.lineWidth = Math.max(1, r * 0.09);
+      c.strokeStyle = d.isgalAd ? (d.benimMi ? "#d4af37" : "#e2585c") : renk;
+      c.stroke();
+
+      cizDugumGorseli(c, d, x, y, r);
+
+      /* Seviye rozeti — sağ altta küçük daire. */
+      if (r > 9) {
+        const bx = x + r * 0.78, by = y + r * 0.78, br = r * 0.34;
+        c.beginPath();
+        c.arc(bx, by, br, 0, Math.PI * 2);
+        c.fillStyle = "#12181f";
+        c.fill();
+        c.lineWidth = Math.max(1, br * 0.22);
+        c.strokeStyle = renk;
+        c.stroke();
+        c.fillStyle = renk;
+        c.font = "700 " + Math.round(br * 1.35) + "px system-ui, sans-serif";
+        c.textAlign = "center"; c.textBaseline = "middle";
+        c.fillText(String(d.seviye), bx, by);
+      }
+
+      /* Etiket ve isim yalnız yeterince yakınken — uzakta okunmuyor
+         zaten ve metin çizimi en pahalı iş. */
+      if (r >= 13) {
+        const punto = Math.max(9, Math.round(r * 0.46));
+        const yaziY = y + r * 1.3;
+        c.font = "700 " + punto + "px system-ui, sans-serif";
+        c.textAlign = "center"; c.textBaseline = "top";
+        yaziKutulu(c, d.etiket, x, yaziY, "#dbe6f0", "rgba(0,0,0,.62)", punto * 0.42, punto);
+
+        /* İŞGAL ADI — başkası KIRMIZI, kendim ALTIN. Düğümün kimin
+           elinde olduğu haritanın en kritik bilgisi. */
+        if (d.isgalAd) {
+          yaziKutulu(c, d.isgalAd, x, yaziY + punto * 1.5,
+                     d.benimMi ? "#e9cf7c" : "#e2585c",
+                     "rgba(8,12,18,.88)", punto * 0.42, punto);
+        }
+      }
+    }
+
+    c.restore();
+    return cizilen;
+  }
+
+  /* Ortalanmış, arka planlı kısa yazı.
+     DİKKAT: yükseklik font dizesinden AYRIŞTIRILMAZ. "700 12px ..."
+     biçiminde parseInt 12 değil 700 okur ve kutu ekranı kaplar.
+     Punto çağıran tarafından AÇIKÇA verilir. */
+  function yaziKutulu(c, yazi, x, y, renk, zemin, pay, punto) {
+    const g = c.measureText(yazi).width;
+    const yuk = punto * 1.25;
+    c.fillStyle = zemin;
+    if (c.roundRect) {
+      c.beginPath();
+      c.roundRect(x - g / 2 - pay, y, g + pay * 2, yuk, pay);
+      c.fill();
+    } else {
+      c.fillRect(x - g / 2 - pay, y, g + pay * 2, yuk);
+    }
+    c.fillStyle = renk;
+    c.fillText(yazi, x, y + yuk * 0.14);
+  }
+
+  /* ── TIKLAMA ──
+     Canvas'ta eleman yok, o yüzden vuruş sınaması elle yapılır:
+     ekran noktasına en yakın düğüm, yarıçap içindeyse seçilir.
+     Üstteki (ekranda öndeki) düğüm önceliklidir. */
+  function dugumBul(ekranX, ekranY) {
+    const panX = (typeof mapPanX !== "undefined") ? mapPanX : 0;
+    const panY = (typeof mapPanY !== "undefined") ? mapPanY : 0;
+    const zoom = (typeof mapZoom !== "undefined") ? mapZoom : 1;
+    const r = 24 * zoom * CFG.dugumOlcek;
+    const liste = dugumleriAl();
+
+    let bulunan = null, enDerin = -Infinity;
+    for (let i = 0; i < liste.length; i++) {
+      const d = liste[i];
+      const p = gridToWorld(d.kx, d.ky);
+      const x = (p.x + HALF_W) * zoom + panX;
+      const y = (p.y + HALF_H) * zoom + panY;
+      /* Parmak ucu 15 px'lik daireyi ıskalar. Görsel yarıçap küçükse
+         bile en az 24 px'lik bir dokunma alanı bırakılır. */
+      const vurus = Math.max(r * 1.15, 24);
+      if (Math.hypot(ekranX - x, ekranY - y) > vurus) continue;
+      const derinlik = d.kx + d.ky;
+      if (derinlik > enDerin) { enDerin = derinlik; bulunan = d; }
+    }
+    return bulunan;
   }
 
   /* Aynı karede iki kez çizmeyi engeller */
@@ -779,16 +972,9 @@
     const gorH = wrapEl ? wrapEl.clientHeight : (window.innerHeight || 0);
     const PAY = 140;   /* düğüm kutusu + etiket payı, piksel */
 
-    /* ── UZAKTA ETİKET YOK ──
-       Her etiket ayrı bir metin kutusu (arka plan + kenarlık + yazı
-       ölçümü). 176 tanesi uzaklaşınca hem okunmuyor hem pahalı.
-       Sınıf tek yerde, kök elemanda değişiyor — 176 eleman tek tek
-       dolaşılmıyor. */
-    const etiketGoster = zoom >= 0.55;
-    if (mapEl._etiket !== etiketGoster) {
-      mapEl.classList.toggle("etiketsiz", !etiketGoster);
-      mapEl._etiket = etiketGoster;
-    }
+    /* Etiket kısma kaldırıldı: düğümler canvas'a taşındı, bu döngüde
+       artık yalnız KALELER var (birkaç tane). Onların adı her zaman
+       görünmeli — kimin kalesi olduğu haritanın temel bilgisi. */
 
     const donusum = "translate(-50%,-50%) scale(" + olcek + ")";
     const liste = dugumOnbellegi(mapEl);
@@ -1410,6 +1596,8 @@
   window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala,
                     dugumleriYerlestir, ekranKonumu, merkezle, ORAN, onbellegiBosalt,
                     dugumOnbellegiBosalt,
+                    /* canvas düğüm katmanı */
+                    dugumBul, dugumTazele,
                     ekranaGoreIzgara,
                     /* Eski harita modu kaldırıldı; missile.js hâlâ soruyor,
                        cevap her zaman evet. */

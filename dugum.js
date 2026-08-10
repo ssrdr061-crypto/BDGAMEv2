@@ -445,9 +445,19 @@ function slotYaz(slotId, kayit) {
 
 /* Oyunun mevcut çizim işlevlerini uyandırır. */
 function tazele() {
-  ["renderBattleMap", "renderMap", "cizHarita"].forEach(f => {
-    if (typeof window[f] === "function") { try { window[f](); } catch (e) {} }
-  });
+  /* Düğümler CANVAS'a çiziliyor: harita.js'in listesi geçersiz
+     kılınıp yeni bir kare istenir. renderBattleMap yalnız kale
+     katmanını ilgilendiriyor ama işgal/tükenme onu da etkileyebilir
+     (kale kurma engelleri), o yüzden ikisi de çağrılır. */
+  try {
+    if (window.HARITA) {
+      if (HARITA.dugumTazele) HARITA.dugumTazele();
+      if (HARITA.cizIste) HARITA.cizIste();
+    }
+  } catch (e) {}
+  if (typeof window.renderBattleMap === "function") {
+    try { window.renderBattleMap(); } catch (e) {}
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -870,7 +880,7 @@ if (typeof window !== "undefined") {
    değişken doğrudan okunmaz — adres tek yerden değişsin.
    ═══════════════════════════════════════════════════════════ */
 window.DUGUM = {
-  SURUM: "kilit-2",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-1",          /* rozet bunu gösterir; yükleme doğrulaması */
 
   /* okuma */
   dugumler: dugumler,

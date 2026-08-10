@@ -602,8 +602,9 @@ async function toplamayaBasla(id, s) {
     hedefMiktar: plan.alinacak,
   }));
 
-  /* Harita tazelensin: arazinin altında adım belirsin. */
-  if (typeof renderBattleMap === "function") { try { renderBattleMap(); } catch (e) {} }
+  /* Harita tazelensin: arazinin altında adım belirsin.
+     Düğümler canvas'ta olduğu için listeyi geçersiz kılmak şart. */
+  try { if (window.HARITA && HARITA.dugumTazele) { HARITA.dugumTazele(); HARITA.cizIste(); } } catch (e) {}
   toast(`⛏️ Ordun ${s.hedefAd} arazisinde toplamaya başladı — ${fmtSure(plan.sureMs)}`, 4500);
 }
 
@@ -622,7 +623,7 @@ async function toplamayiBitir(id, s) {
       if (alinan > 0) yuk[s.kaynak] = alinan;
       try { await D.isgalBirak(s.slotId); } catch (e) {}
       /* Kilit düştü: adım haritadan kalksın. */
-      if (typeof renderBattleMap === "function") { try { renderBattleMap(); } catch (e) {} }
+      try { if (window.HARITA && HARITA.dugumTazele) { HARITA.dugumTazele(); HARITA.cizIste(); } } catch (e) {}
     }
     donuseGec(id, s, yuk);
   } catch (err) {
@@ -1209,7 +1210,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "topla-3",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-1",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   geriCagir: geriCagir, baslat: seferBaslat,

@@ -1921,90 +1921,12 @@ body.world-active{padding:0; overflow:hidden;}
 .map-node.castle-own .node-label{ color:var(--gold-soft); border-color:rgba(212,175,55,.45); }
 .map-node.castle-other .node-label{ color:var(--diamond-cyan); border-color:rgba(79,209,232,.4); }
 
-/* ══ DİNAMİK DÜĞÜMLER (dugum.js) ══
-   Seviye rengi: 1 yeşil, 2 sarı, 3 kırmızı. Canavar yuvarlak
-   halkalı, arazi köşeli — uzaktan bakınca ayırt edilsin. */
-.map-node.dugum-node .node-sv{
-  position:absolute; right:-4px; bottom:-4px;
-  min-width:15px; height:15px; line-height:15px; padding:0 3px;
-  border-radius:8px; font-size:9.5px; font-weight:800; text-align:center;
-  background:#12181f; border:1px solid rgba(255,255,255,.25); color:#e8eef5;
-}
-.map-node.sv-1 .node-sv{ border-color:var(--diamond-green); color:var(--diamond-green); }
-.map-node.sv-2 .node-sv{ border-color:var(--diamond-yellow); color:var(--diamond-yellow); }
-.map-node.sv-3 .node-sv{ border-color:var(--diamond-red);   color:var(--diamond-red); }
-
-.map-node.sv-1 .node-avatar{ border-color:var(--diamond-green); }
-.map-node.sv-2 .node-avatar{ border-color:var(--diamond-yellow); }
-.map-node.sv-3 .node-avatar{ border-color:var(--diamond-red); }
-
-.map-node.sv-1 .node-ring::before{ background:radial-gradient(circle, rgba(95,217,138,.32), transparent 70%); }
-.map-node.sv-2 .node-ring::before{ background:radial-gradient(circle, rgba(232,200,79,.32), transparent 70%); }
-.map-node.sv-3 .node-ring::before{ background:radial-gradient(circle, rgba(226,88,92,.38), transparent 70%); }
-
-/* Arazi düğümü köşeli — canavardan bakışta ayrılsın. */
-.map-node.arazi-node .node-avatar{ border-radius:7px; }
-
-/* İşgal etiketi. BAŞKASININ düğümünde YALNIZ kullanıcı adı yazar;
-   ne topladığı veya ne kadar kaldığı ASLA gösterilmez. */
-/* İşgal etiketi — arazide toplayan oyuncunun ADI.
-   BAŞKASI KIRMIZI: haritaya bakınca düşman olduğu anında anlaşılsın.
-   KENDİM ALTIN: kendi ordumu yanlışlıkla hedef almayayım.
-   Etiket YALNIZ adı taşır; ne topladığı, ne kadar kaldığı ASLA
-   gösterilmez. */
-.map-node .node-isgal{
-  margin-top:2px; font-size:10px; font-weight:800; text-align:center;
-  padding:1px 6px; border-radius:7px; white-space:nowrap;
-  background:rgba(10,14,20,.86);
-  color:var(--diamond-red);
-  border:1px solid rgba(226,88,92,.55);
-  text-shadow:0 1px 2px rgba(0,0,0,.8);
-}
-.map-node .node-isgal.isgal-benim{
-  color:var(--gold-soft); border-color:rgba(212,175,55,.55);
-}
-/* İşgal altındaki düğümün halkası da renklensin — etiket okunmadan
-   uzaktan bile "burası tutulmuş" belli olsun. */
-.map-node.isgalli .node-avatar{ border-color:var(--diamond-red) !important; }
-.map-node.isgalli.isgal-benimki .node-avatar{ border-color:var(--gold) !important; }
-
-/* ══ 176 DÜĞÜM İÇİN BAŞARIM ══
-   Eski harita 15 canavar taşıyordu; artık 176 düğüm var. Her
-   düğümdeki nabız animasyonu (nodePulse, will-change ile) ayrı bir
-   birleştirme katmanı açıyor — 176 katman telefonda kare hızını
-   46'dan 8'e düşürdü.
-
-   Düğümlerde nabız KAPATILIR, yerine duran bir hale konur. Kaleler
-   nabzını korur: onlar birkaç tane ve dikkat çekmeleri gerekiyor. */
-.map-node.dugum-node .node-ring::before{
-  animation:none !important;
-  will-change:auto;
-  opacity:.75;
-  transform:none;
-}
-
-/* Her düğüm kendi başına yerleşsin: içindeki değişiklik dışarıyı
-   yeniden hesaplatmasın. */
-.map-node.dugum-node{
-  contain:layout style;
-}
-
-/* Etiket ve rozet metni yeniden ölçülmesin. */
-.map-node.dugum-node .node-label,
-.map-node.dugum-node .node-isgal{
-  contain:layout style paint;
-}
-
-/* Uzaklaşınca düğüm etiketleri gizlenir (harita.js .etiketsiz sınıfını
-   kök katmana basar). Kale etiketleri korunur — onlar birkaç tane ve
-   oyuncu adını taşıyor. */
-#battleMap.etiketsiz .map-node.dugum-node .node-label{
-  display:none;
-}
-/* İşgal adı uzakta DA görünür: kimin nerede olduğu haritanın en
-   önemli bilgisi, ad etiketi gibi süs değil. */
-
-
+/* ══ DÜĞÜM STİLLERİ KALDIRILDI ══
+   Kaynak arazileri ve canavarlar artık DOM değil; harita.js onları
+   canvas'a çiziyor (cizDugumler). Seviye rengi, işgal adı rengi ve
+   tür ayrımı oradaki çizim koduna taşındı. Burada tutulacak bir
+   şey kalmadı — ölü CSS bırakmak, sonradan "neden çalışmıyor"
+   diye aranan bir tuzak olurdu. */
 
 /* ══ KAYNAK ŞERİDİ ══ */
 .hud-kaynak{
@@ -5439,56 +5361,26 @@ function renderBattleMap() {
   const mapEl = document.getElementById("battleMap");
   if (!mapEl) return;
 
-  /* Düğümler dugum.js'ten gelir. Tükenmiş olanlar listeye zaten
-     girmez; yeniden doğuş sayacını da o dosya tutar. */
-  const liste = (window.DUGUM ? DUGUM.haritaDugumleri() : []);
+  /* ── DÜĞÜMLER ARTIK BURADA ÇİZİLMİYOR ──
+     Kaynak arazileri ve canavarlar harita.js tarafından CANVAS'a
+     çiziliyor (cizDugumler). 176 DOM elemanı kare hızını 46'dan
+     16'ya düşürüyordu; zeminle aynı yola alınınca o yük kalktı.
 
-  /* Teşhis rozeti kaldırıldı. Sürümü doğrulaman gerekirse konsola:
-     DUGUM.SURUM  ve  SEFER.SURUM */
-  const _eskiRozet = document.getElementById("dugumRozet");
-  if (_eskiRozet) _eskiRozet.remove();
-
-
-  const nodes = liste.map(d => {
-    let sinif = d.tur === "canavar" ? "canavar-node" : "arazi-node";
-    if (d.isgalAd) sinif += d.benimMi ? " isgalli isgal-benimki" : " isgalli";
-    /* İşgal etiketi: BAŞKASININ düğümünde YALNIZ kullanıcı adı
-       görünür. Ne topladığı, ne kadar kaldığı gösterilmez. */
-    /* İşgal adını KENDİ ordum için BASMA — sefer.js zaten ordu
-       işaretçisini oraya isim olarak koyuyor. İki kaynak aynı ismi
-       üst üste yazınca karo okunmaz oluyordu.
-       Başkasının işgalinde etiket şart: onun seferi bana buluttan
-       gelmeyebilir (eski kayıt, kopuk bağlantı), ama işgal kaydı
-       gelir. */
-    const isgal = (d.isgalAd && !d.benimMi)
-      ? `<div class="node-isgal">${escapeHtml(d.isgalAd)}</div>`
-      : "";
-    return `
-    <div class="map-node dugum-node ${sinif} sv-${d.seviye}" data-slot="${d.slotId}"
-         data-cx="${KOORD.karodanOlcek(d.kx)}" data-cy="${KOORD.karodanOlcek(d.ky)}"
-         style="left:${KOORD.karodanYuzde(d.kx)}%; top:${KOORD.karodanYuzde(d.ky)}%;">
-      <div class="node-ring">
-        <div class="node-avatar">${d.ikon}</div>
-        <div class="node-sv">${d.seviye}</div>
-      </div>
-      <div class="node-label">${escapeHtml(d.etiket)}</div>
-      ${isgal}
-    </div>`;
-  }).join("");
-
+     Bu katmanda yalnız KALELER ve serbest işaretler kalır: birkaç
+     tane, resim taşıyorlar ve sürükleme etkileşimleri var. */
   const castleNodes = buildCastleNodesHTML();
-
-  mapEl.innerHTML = buildMapGridHTML() + nodes + castleNodes;
+  mapEl.innerHTML = buildMapGridHTML() + castleNodes;
 
   /* Katman baştan yazıldı: harita.js'in düğüm önbelleğindeki eleman
      adresleri artık KOPUK. Bildirmezsek konumları silinmiş elemanlara
      yazar, ekrandakiler yerleşmeden üst üste yığılır. */
-  try { if (window.HARITA && HARITA.dugumOnbellegiBosalt) HARITA.dugumOnbellegiBosalt(); } catch (e) {}
-
-  bindAll(mapEl, ".dugum-node", (ds) => {
-    if (mapDragMoved) return;               // kaydırma sonrası açılmayı engelle
-    dugumeTiklandi(ds.slot);
-  });
+  try {
+    if (window.HARITA) {
+      if (HARITA.dugumOnbellegiBosalt) HARITA.dugumOnbellegiBosalt();
+      if (HARITA.dugumTazele) HARITA.dugumTazele();   /* canvas listesi */
+      if (HARITA.cizIste) HARITA.cizIste();
+    }
+  } catch (e) {}
 
   bindAll(mapEl, ".castle-node", (ds) => {
     if (mapDragMoved) return;
@@ -5503,6 +5395,33 @@ function renderBattleMap() {
 
   applyMapPan();
 }
+
+/* ── CANVAS DÜĞÜMÜNE TIKLAMA ──
+   Canvas'ta tıklanacak eleman yok; vuruş sınamasını harita.js yapar
+   (dugumBul). Dinleyici harita sarmalayıcısında durur ve KALE
+   düğümlerine dokunmaz — onlar hâlâ DOM ve kendi dinleyicileri var. */
+(function dugumTiklamaKur() {
+  const kur = () => {
+    const wrap = document.getElementById("battleMapWrap");
+    if (!wrap || wrap._dugumBagli) return;
+    wrap._dugumBagli = true;
+
+    wrap.addEventListener("click", (ev) => {
+      if (mapDragMoved) return;                      /* kaydırmaydı */
+      if (!window.HARITA || !HARITA.dugumBul) return;
+      /* DOM elemanına basıldıysa (kale, işaret, ordu) karışma. */
+      if (ev.target && ev.target.closest &&
+          ev.target.closest(".map-node, .coord-share, .sefer-ordu")) return;
+
+      const kutu = wrap.getBoundingClientRect();
+      const d = HARITA.dugumBul(ev.clientX - kutu.left, ev.clientY - kutu.top);
+      if (d) dugumeTiklandi(d.slotId);
+    });
+  };
+  if (document.readyState === "complete") kur();
+  else window.addEventListener("load", kur);
+  setTimeout(kur, 1500);   /* ekran geç kurulursa */
+})();
 
 /* Metin kaçışı — kullanıcı adları haritaya basılıyor, ham HTML
    girmesin. (Oyuncu adı `<img onerror=...>` olabilir.) */
