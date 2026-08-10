@@ -400,6 +400,19 @@
   let cv = null, ctx = null, dpr = 1;
   let cizimIstendi = false;
 
+  /* ── İKİ AYRI CANVAS ──
+     ZEMİN (cv): pahalı ama NADİREN değişir — yalnız kaydırma,
+       yakınlaştırma ve pencere boyu değişince yeniden çizilir.
+     ÜST KATMAN (uv): ucuz ama SIK değişir — düğümler, sefer
+       yolları, akan kesik çizgi. Saniyede 60 kez çizilebilir.
+
+     NEDEN AYRI: ilk denemede ikisi tek canvas'taydı. Yürüyen bir
+     ordunun çizgisini oynatmak, her karede BÜTÜN ZEMİNİ yeniden
+     çizdiriyordu — 1024 karoda kare hızı 6'ya düştü. Zemin sabit
+     durunca aynı animasyon neredeyse bedava. */
+  let uv = null, uctx = null;
+  let ustIstendi = false, ustDonguId = null;
+
   function kurCanvas() {
     const scroll = document.getElementById("battleMapScroll");
     const mapEl  = document.getElementById("battleMap");
@@ -412,7 +425,17 @@
       "display:block; pointer-events:none; z-index:0;";
     scroll.insertBefore(cv, mapEl);
 
-    ctx = cv.getContext("2d", { alpha: false });
+    /* Üst katman zeminin ÜSTÜNDE, DOM düğümlerin (kaleler) ALTINDA.
+       #battleMap z-index:5 olduğu için 1 uygun. */
+    uv = document.createElement("canvas");
+    uv.id = "isoUst";
+    uv.style.cssText =
+      "position:absolute; inset:0; width:100%; height:100%; " +
+      "display:block; pointer-events:none; z-index:1;";
+    scroll.insertBefore(uv, mapEl);
+
+    ctx  = cv.getContext("2d", { alpha: false });
+    uctx = uv.getContext("2d");           /* saydam olmalı */
     boyutlandir();
     return true;
   }
@@ -425,7 +448,9 @@
     dpr = Math.min(window.devicePixelRatio || 1, 2);  // 3x'te bellek boşuna şişiyor
     cv.width  = Math.round(r.width  * dpr);
     cv.height = Math.round(r.height * dpr);
+    if (uv) { uv.width = cv.width; uv.height = cv.height; }
     ciz();
+    cizUst();
   }
 
   /* ═════════════════════════════════════════════════════════════════════
@@ -629,18 +654,15 @@
       }
     }
 
-    /* ── DÜĞÜMLER ──
-       Zemin parçalarından SONRA çizilir ki üstünde kalsınlar.
-       Kendi dönüşümünü kendi kurar, o yüzden burada bir şey
-       sıfırlamaya gerek yok. */
-    let dugumSayi = 0;
-    try { dugumSayi = cizDugumler(ctx, panX, panY, zoom, w, h); }
-    catch (e) { /* düğüm çizimi zemini düşürmesin */ }
+    /* Düğümler ve seferler ARTIK BURADA DEĞİL — üst katmanda.
+       Zemin karesi pahalı; onu animasyon hızında tekrarlamak
+       kare hızını dibe vuruyordu.
 
-    /* Sefer yolları düğümlerin ÜSTÜNE çizilir; ordu bir kaynağın
-       üzerinden geçerken çizgi kaybolmasın. */
-    try { cizSeferler(ctx, panX, panY, zoom, w, h); }
-    catch (e) { /* sefer çizimi zemini düşürmesin */ }
+       ÜST KATMAN AYNI KAREDE, EŞ ZAMANLI çizilir (cizUstIste ile
+       ertelenmez). Ertelenirse üst katman zeminden bir kare geride
+       kalır ve kaydırma sırasında düğümler zeminin üstünde kayar —
+       düzeltmeye çalıştığımız hatanın ta kendisi. */
+    cizUst();
 
     /* FPS + çizilen karo sayısı */
     if (CFG.fpsGoster) {
@@ -690,7 +712,7 @@
   let _dugumZaman = 0;
   const DUGUM_TAZELIK_MS = 500;
 
-  function dugumTazele() { _dugumListe = null; }
+  function dugumTazele() { _dugumListe = null; cizUstIste(); }
 
   function dugumleriAl() {
     const simdi = performance.now();
@@ -922,17 +944,21 @@
       c.textAlign = "center";
 
       if (!topluyor) {
-        /* Yürürken: kılıç + kalan süre (kendimse) ya da ad. */
+        /* Yürürken: kılıç ikonu.
+           KENDİ ORDUMDA SÜRE YAZILMAZ — aynı süre sol üstteki sefer
+           listesinde zaten duruyor; haritada tekrarlamak hem yazı
+           çizimi maliyeti hem görsel gürültü.
+           BAŞKASININ ordusunda AD yazılır: kimin ordusu olduğu
+           haritadan başka yerde görünmüyor. */
         c.textBaseline = "middle";
         c.font = Math.round(punto * 1.5) + "px serif";
-        c.fillText("⚔️", ox, oy - punto * 0.9);
+        c.fillText("⚔️", ox, oy);
 
-        c.textBaseline = "top";
-        c.font = "800 " + punto + "px " + HARITA_FONT;
-        const yazi = benim
-          ? (S.fmtSure ? S.fmtSure(ev.kalanMs) : "")
-          : (s.sahipAd || "");
-        if (yazi) yaziAnahat(c, yazi, ox, oy + punto * 0.3, renk, punto);
+        if (!benim && s.sahipAd) {
+          c.textBaseline = "top";
+          c.font = "800 " + punto + "px " + HARITA_FONT;
+          yaziAnahat(c, s.sahipAd, ox, oy + punto * 0.95, renk, punto);
+        }
       }
       /* TOPLARKEN HİÇBİR ŞEY ÇİZİLMEZ.
          Ordu hedefte duruyor ve orada zaten düğümün görseli, adı ve
@@ -954,6 +980,61 @@
       document.fonts.ready.then(() => { try { cizIste(); } catch (e) {} });
     }
   } catch (e) {}
+
+  /* ═════════════════════════════════════════════════════════════════════
+     ÜST KATMAN ÇİZİMİ
+     Düğümler + sefer yolları. Zemine DOKUNMAZ, o yüzden saniyede
+     60 kez çizilebilir. Ekranı tamamen siler ve yeniden çizer;
+     görünen öge sayısı onlarla ölçüldüğü için bu ucuzdur.
+     ═════════════════════════════════════════════════════════════════════ */
+  function cizUst() {
+    if (!uctx || !uv) return;
+    ustIstendi = false;      /* bekleyen istek varsa düşür, iş burada yapıldı */
+
+    const panX = (typeof mapPanX !== "undefined") ? mapPanX : 0;
+    const panY = (typeof mapPanY !== "undefined") ? mapPanY : 0;
+    const zoom = (typeof mapZoom !== "undefined") ? mapZoom : 1;
+    const w = uv.width / dpr, h = uv.height / dpr;
+
+    uctx.setTransform(1, 0, 0, 1, 0, 0);
+    uctx.clearRect(0, 0, uv.width, uv.height);
+
+    try { cizDugumler(uctx, panX, panY, zoom, w, h); } catch (e) {}
+    try { cizSeferler(uctx, panX, panY, zoom, w, h); } catch (e) {}
+
+    ustDonguKontrol();
+  }
+
+  function cizUstIste() {
+    if (ustIstendi) return;
+    ustIstendi = true;
+    requestAnimationFrame(() => { ustIstendi = false; cizUst(); });
+  }
+
+  /* Yürüyen sefer varsa üst katman kendi kendine dönmeli (akan çizgi
+     ve ilerleyen ordu). Sefer yoksa döngü DURUR — boşta pil yakmaz. */
+  function seferVarMi() {
+    try {
+      const S = window.SEFER;
+      if (!S || !S.liste) return false;
+      const l = S.liste();
+      return !!(l && l.length);
+    } catch (e) { return false; }
+  }
+
+  function ustDonguKontrol() {
+    const gerek = seferVarMi();
+    if (gerek && !ustDonguId) {
+      const adim = () => {
+        ustDonguId = null;
+        cizUst();                       /* kendi içinde tekrar kontrol eder */
+      };
+      ustDonguId = requestAnimationFrame(adim);
+    } else if (!gerek && ustDonguId) {
+      cancelAnimationFrame(ustDonguId);
+      ustDonguId = null;
+    }
+  }
 
   /* Aynı karede iki kez çizmeyi engeller */
   function cizIste() {
@@ -1716,7 +1797,7 @@
                     dugumleriYerlestir, ekranKonumu, merkezle, ORAN, onbellegiBosalt,
                     dugumOnbellegiBosalt,
                     /* canvas düğüm katmanı */
-                    dugumBul, dugumTazele,
+                    dugumBul, dugumTazele, cizUstIste,
                     ekranaGoreIzgara,
                     /* Eski harita modu kaldırıldı; missile.js hâlâ soruyor,
                        cevap her zaman evet. */

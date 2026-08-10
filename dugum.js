@@ -450,10 +450,7 @@ function tazele() {
      katmanını ilgilendiriyor ama işgal/tükenme onu da etkileyebilir
      (kale kurma engelleri), o yüzden ikisi de çağrılır. */
   try {
-    if (window.HARITA) {
-      if (HARITA.dugumTazele) HARITA.dugumTazele();
-      if (HARITA.cizIste) HARITA.cizIste();
-    }
+    if (window.HARITA && HARITA.dugumTazele) HARITA.dugumTazele();
   } catch (e) {}
   if (typeof window.renderBattleMap === "function") {
     try { window.renderBattleMap(); } catch (e) {}
@@ -883,7 +880,7 @@ if (typeof window !== "undefined") {
    değişken doğrudan okunmaz — adres tek yerden değişsin.
    ═══════════════════════════════════════════════════════════ */
 window.DUGUM = {
-  SURUM: "canvas-2",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-3",          /* rozet bunu gösterir; yükleme doğrulaması */
 
   /* okuma */
   dugumler: dugumler,

@@ -604,7 +604,7 @@ async function toplamayaBasla(id, s) {
 
   /* Harita tazelensin: arazinin altında adım belirsin.
      Düğümler canvas'ta olduğu için listeyi geçersiz kılmak şart. */
-  try { if (window.HARITA && HARITA.dugumTazele) { HARITA.dugumTazele(); HARITA.cizIste(); } } catch (e) {}
+  try { if (window.HARITA && HARITA.dugumTazele) HARITA.dugumTazele(); } catch (e) {}
   toast(`⛏️ Ordun ${s.hedefAd} arazisinde toplamaya başladı — ${fmtSure(plan.sureMs)}`, 4500);
 }
 
@@ -623,7 +623,7 @@ async function toplamayiBitir(id, s) {
       if (alinan > 0) yuk[s.kaynak] = alinan;
       try { await D.isgalBirak(s.slotId); } catch (e) {}
       /* Kilit düştü: adım haritadan kalksın. */
-      try { if (window.HARITA && HARITA.dugumTazele) { HARITA.dugumTazele(); HARITA.cizIste(); } } catch (e) {}
+      try { if (window.HARITA && HARITA.dugumTazele) HARITA.dugumTazele(); } catch (e) {}
     }
     donuseGec(id, s, yuk);
   } catch (err) {
@@ -924,8 +924,10 @@ function dongu() {
       document.querySelectorAll(".sefer-ordu").forEach(el => el.remove());
     } catch (e) {}
   }
+  /* ÜST katman istenir, zemin DEĞİL. cizIste zemini yeniden
+     çizdirir; sefer animasyonu için o çok pahalı. */
   try {
-    if (window.HARITA && HARITA.cizIste) HARITA.cizIste();
+    if (window.HARITA && HARITA.cizUstIste) HARITA.cizUstIste();
   } catch (e) {}
 }
 function temizle() {
@@ -1236,7 +1238,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "canvas-2",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-3",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   /* harita.js canvas çizimi için — evre ve süre biçimi tek yerde
