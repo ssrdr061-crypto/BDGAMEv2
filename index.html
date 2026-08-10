@@ -2998,11 +2998,24 @@ function startListeningForCastles() {
     satir.push("yayın: " + _kaleYayinDurum);
     satir.push("otherCastles: " + (Array.isArray(otherCastles) ? otherCastles.length : "yok"));
 
+    /* EKRANA HAM DIV İLE BASILIR.
+       showToast ile denendi, hiç görünmedi (bu sohbette toast'a
+       dayanan her teşhis sessiz kaldı; ham div ile yapılan rozet
+       ise ilk seferde çalıştı). Ölçüm aracı, oyunun bildirim
+       sisteminin sağlamlığına bağlı olmamalı. */
     const bas = () => {
-      const m = satir.join("\n");
-      console.log("[kale teşhis]\n" + m);
-      if (typeof showToast === "function") showToast(m, 20000);
-      else alert(m);
+      console.log("[kale teşhis]\n" + satir.join("\n"));
+      let k = document.getElementById("kaleTeshis");
+      if (!k) {
+        k = document.createElement("div");
+        k.id = "kaleTeshis";
+        k.style.cssText = "position:fixed; left:8px; right:8px; bottom:70px; z-index:2147483647;" +
+          "background:rgba(8,12,17,.96); border:2px solid #4fd1e8; color:#cfe8f2;" +
+          "font:12px/1.5 monospace; padding:10px 12px; border-radius:10px; white-space:pre-wrap;";
+        k.addEventListener("click", () => k.remove());   /* dokununca kapanır */
+        document.body.appendChild(k);
+      }
+      k.textContent = satir.join("\n") + "\n\n(kapatmak için dokun)";
     };
 
     try {
