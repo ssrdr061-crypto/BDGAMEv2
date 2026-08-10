@@ -5454,8 +5454,14 @@ function renderBattleMap() {
     if (d.isgalAd) sinif += d.benimMi ? " isgalli isgal-benimki" : " isgalli";
     /* İşgal etiketi: BAŞKASININ düğümünde YALNIZ kullanıcı adı
        görünür. Ne topladığı, ne kadar kaldığı gösterilmez. */
-    const isgal = d.isgalAd
-      ? `<div class="node-isgal ${d.benimMi ? "isgal-benim" : ""}">${escapeHtml(d.isgalAd)}</div>`
+    /* İşgal adını KENDİ ordum için BASMA — sefer.js zaten ordu
+       işaretçisini oraya isim olarak koyuyor. İki kaynak aynı ismi
+       üst üste yazınca karo okunmaz oluyordu.
+       Başkasının işgalinde etiket şart: onun seferi bana buluttan
+       gelmeyebilir (eski kayıt, kopuk bağlantı), ama işgal kaydı
+       gelir. */
+    const isgal = (d.isgalAd && !d.benimMi)
+      ? `<div class="node-isgal">${escapeHtml(d.isgalAd)}</div>`
       : "";
     return `
     <div class="map-node dugum-node ${sinif} sv-${d.seviye}" data-slot="${d.slotId}"

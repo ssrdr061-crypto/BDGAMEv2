@@ -964,18 +964,33 @@ function ciz(liste) {
     ordu.style.top  = nokta.y + "px";
     ordu.style.setProperty("--sefer-renk", renk);
     ordu.classList.toggle("sefer-donus", ev.ad === "donus");
+    /* ── ARAZİDE TOPLARKEN: SADECE İSİM ──
+       Ordu arazinin üstünde DURUYOR. Oraya kılıç ikonu + geri sayım
+       baloncuğu basınca düğümün kendi görseli ve adı okunmaz oluyor.
+       Toplarken işaretçi yalnızca OYUNCU ADI'na iner:
+         kendim  → altın
+         başkası → kırmızı (düşman olduğu bir bakışta anlaşılsın)
+       Süre zaten sol üstteki sefer listesinde yazıyor.
+
+       Yürürken eski davranış korunur: kılıç + kalan süre. Orada
+       üst üste binen bir şey yok ve ikisi de bilgi taşıyor. */
+    const topluyor = (ev.ad === "topla");
+    ordu.classList.toggle("sefer-topluyor", topluyor);
+    ordu.classList.toggle("sefer-benim", benim);
+
+    const ikonEl = ordu.querySelector(".sefer-ordu-ikon");
+    if (ikonEl) ikonEl.style.display = topluyor ? "none" : "";
+
     const adEl = ordu.querySelector(".sefer-ordu-ad");
     if (adEl) {
-      /* TOPLARKEN SAYAÇ YOK.
-         Ordu arazinin üstünde duruyor; oraya bir de geri sayım
-         baloncuğu basınca düğümün adı ve sahibi okunmaz oluyordu.
-         Toplama süresi zaten üstteki sefer listesinde görünüyor.
-         Yürürken sayaç kalır — orada bilgi değerli ve üst üste
-         binen bir şey yok. */
-      if (ev.ad === "topla") adEl.textContent = benim ? "" : (s.sahipAd || "");
-      else adEl.textContent = benim ? fmtSure(ev.kalanMs) : (s.sahipAd || "");
+      if (topluyor) {
+        adEl.textContent = benim
+          ? ((typeof currentUsername === "string" && currentUsername) ? currentUsername : "Ordun")
+          : (s.sahipAd || "Düşman");
+      } else {
+        adEl.textContent = benim ? fmtSure(ev.kalanMs) : (s.sahipAd || "");
+      }
     }
-    ordu.classList.toggle("sefer-topluyor", ev.ad === "topla");
   });
 
   _yolGrup.querySelectorAll("[data-sefer]").forEach(el => {
@@ -1105,6 +1120,18 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 }
 @keyframes seferSalin{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
 
+/* Toplama halindeki işaretçi — yalnız ad. Düğümün altına otursun,
+   üstünü kapatmasın. */
+.sefer-ordu.sefer-topluyor{ transform:translate(-50%, 14px); }
+.sefer-ordu.sefer-topluyor .sefer-ordu-ad{
+  font-size:11px; font-weight:800; padding:2px 8px;
+  color:#e2585c; border-color:rgba(226,88,92,.65);
+  background:rgba(8,12,18,.88);
+}
+.sefer-ordu.sefer-topluyor.sefer-benim .sefer-ordu-ad{
+  color:#e9cf7c; border-color:rgba(212,175,55,.65);
+}
+
 #seferHud{
   position:fixed; left:10px; top:96px; z-index:40;
   display:flex; flex-direction:column; gap:6px;
@@ -1182,7 +1209,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "topla-2",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "topla-3",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   geriCagir: geriCagir, baslat: seferBaslat,
