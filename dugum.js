@@ -796,6 +796,9 @@ function haritaDugumleri() {
     slotId: d.slotId,
     kx: d.kx, ky: d.ky,
     ikon: d.ikon,
+    /* ad → haritaya basılan kısa yazı (seviye YOK; rozet gösteriyor)
+       etiket → panel/başlık için tam ad */
+    ad: d.ad,
     etiket: d.ad + " Sv." + d.seviye,
     tur: d.tur,
     seviye: d.seviye,
@@ -880,7 +883,7 @@ if (typeof window !== "undefined") {
    değişken doğrudan okunmaz — adres tek yerden değişsin.
    ═══════════════════════════════════════════════════════════ */
 window.DUGUM = {
-  SURUM: "canvas-1",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-2",          /* rozet bunu gösterir; yükleme doğrulaması */
 
   /* okuma */
   dugumler: dugumler,

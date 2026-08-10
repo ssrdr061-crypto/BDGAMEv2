@@ -637,6 +637,11 @@
     try { dugumSayi = cizDugumler(ctx, panX, panY, zoom, w, h); }
     catch (e) { /* düğüm çizimi zemini düşürmesin */ }
 
+    /* Sefer yolları düğümlerin ÜSTÜNE çizilir; ordu bir kaynağın
+       üzerinden geçerken çizgi kaybolmasın. */
+    try { cizSeferler(ctx, panX, panY, zoom, w, h); }
+    catch (e) { /* sefer çizimi zemini düşürmesin */ }
+
     /* FPS + çizilen karo sayısı */
     if (CFG.fpsGoster) {
       const simdi = performance.now();
@@ -672,6 +677,11 @@
      geçmek için tek yer değişir — cizDugumGorseli(). Oraya drawImage
      koyunca hem PNG hem kare kare animasyon çalışır.
      ═════════════════════════════════════════════════════════════════════ */
+
+  /* ── HARİTA YAZI TİPİ ──
+     Haritaya basılan HER yazı bunu kullanır. Tek adres: değişecekse
+     burası değişir, çizim yerleri değil. */
+  const HARITA_FONT = "'Baloo 2','Nunito',system-ui,sans-serif";
 
   /* Düğüm listesi önbelleği. DUGUM.haritaDugumleri() 176 slotu dolaşır;
      bunu her karede yapmak gereksiz — liste saniyede iki kez tazelenir.
@@ -762,7 +772,7 @@
         c.strokeStyle = renk;
         c.stroke();
         c.fillStyle = renk;
-        c.font = "700 " + Math.round(br * 1.35) + "px system-ui, sans-serif";
+        c.font = "800 " + Math.round(br * 1.35) + "px " + HARITA_FONT;
         c.textAlign = "center"; c.textBaseline = "middle";
         c.fillText(String(d.seviye), bx, by);
       }
@@ -772,16 +782,20 @@
       if (r >= 13) {
         const punto = Math.max(9, Math.round(r * 0.46));
         const yaziY = y + r * 1.3;
-        c.font = "700 " + punto + "px system-ui, sans-serif";
+        c.font = "800 " + punto + "px " + HARITA_FONT;
         c.textAlign = "center"; c.textBaseline = "top";
-        yaziKutulu(c, d.etiket, x, yaziY, "#dbe6f0", "rgba(0,0,0,.62)", punto * 0.42, punto);
+        /* SEVİYE YAZIDA TEKRARLANMAZ — rozet zaten gösteriyor.
+           d.etiket "Demir Kaynağı Sv.1" gelir; son ek kırpılır. */
+        yaziAnahat(c, d.ad, x, yaziY, "#e6eef6", punto);
 
-        /* İŞGAL ADI — başkası KIRMIZI, kendim ALTIN. Düğümün kimin
-           elinde olduğu haritanın en kritik bilgisi. */
+        /* İŞGAL ADI — TEK KAYNAK BURASI.
+           Kendim ALTIN, başkası KIRMIZI. Sefer katmanı toplarken ad
+           basmaz; iki yerden basılınca aynı yazı üst üste geliyordu.
+           Ayrıca işgal kaydı buluttan HER ZAMAN gelir, karşı tarafın
+           seferi gelmese bile — bu yüzden daha güvenilir kaynak. */
         if (d.isgalAd) {
-          yaziKutulu(c, d.isgalAd, x, yaziY + punto * 1.5,
-                     d.benimMi ? "#e9cf7c" : "#e2585c",
-                     "rgba(8,12,18,.88)", punto * 0.42, punto);
+          yaziAnahat(c, d.isgalAd, x, yaziY + punto * 1.35,
+                     d.benimMi ? "#e9cf7c" : "#e2585c", punto);
         }
       }
     }
@@ -790,23 +804,19 @@
     return cizilen;
   }
 
-  /* Ortalanmış, arka planlı kısa yazı.
-     DİKKAT: yükseklik font dizesinden AYRIŞTIRILMAZ. "700 12px ..."
-     biçiminde parseInt 12 değil 700 okur ve kutu ekranı kaplar.
-     Punto çağıran tarafından AÇIKÇA verilir. */
-  function yaziKutulu(c, yazi, x, y, renk, zemin, pay, punto) {
-    const g = c.measureText(yazi).width;
-    const yuk = punto * 1.25;
-    c.fillStyle = zemin;
-    if (c.roundRect) {
-      c.beginPath();
-      c.roundRect(x - g / 2 - pay, y, g + pay * 2, yuk, pay);
-      c.fill();
-    } else {
-      c.fillRect(x - g / 2 - pay, y, g + pay * 2, yuk);
-    }
+  /* Ortalanmış yazı — ARKA PLAN KUTUSU YOK.
+     Kutu her yazı için ayrı bir dolgu çağrısı demekti ve düğümün
+     görselinin üstünü kapatıyordu. Okunurluk artık koyu bir
+     ANAHAT ile sağlanıyor: tek strokeText, zeminden bağımsız
+     okunur ve çizim maliyeti kutudan düşük. */
+  function yaziAnahat(c, yazi, x, y, renk, punto) {
+    c.lineWidth = Math.max(2, punto * 0.42);
+    c.lineJoin = "round";
+    c.miterLimit = 2;
+    c.strokeStyle = "rgba(4,8,14,.92)";
+    c.strokeText(yazi, x, y);
     c.fillStyle = renk;
-    c.fillText(yazi, x, y + yuk * 0.14);
+    c.fillText(yazi, x, y);
   }
 
   /* ── TIKLAMA ──
@@ -835,6 +845,115 @@
     }
     return bulunan;
   }
+
+
+  /* ═════════════════════════════════════════════════════════════════════
+     SEFER KATMANI — CANVAS
+     ---------------------------------------------------------------------
+     Yürüyen orduların yolu ve işaretçisi. Eskiden sefer.js kendi
+     requestAnimationFrame döngüsünde SVG çiziyordu; iki döngü ayrı
+     zamanlarda dönünce çizgi haritadan bir kare geri kalıyor ve
+     kaydırma sırasında kayıyordu.
+
+     Artık zeminle AYNI karede, AYNI pan/zoom değeriyle çiziliyor —
+     kayma matematiksel olarak imkânsız.
+     ═════════════════════════════════════════════════════════════════════ */
+  function cizSeferler(c, panX, panY, zoom, w, h) {
+    const S = window.SEFER;
+    if (!S || !S.liste) return 0;
+
+    let liste;
+    try { liste = S.liste(); } catch (e) { return 0; }
+    if (!liste || !liste.length) return 0;
+
+    const bk = (typeof currentUsername === "string" && typeof toFirebaseKey === "function")
+      ? toFirebaseKey(currentUsername.toLowerCase()) : null;
+
+    c.save();
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const kayma = -((Date.now() / 45) % 22);   /* akan kesik çizgi */
+    let sayi = 0;
+
+    for (let i = 0; i < liste.length; i++) {
+      const id = liste[i].id, s = liste[i].s;
+      const ev = S.evre ? S.evre(s) : null;
+      if (!ev || (ev.bitti && ev.ad === "donus")) continue;
+      if (typeof ev.ax !== "number" || typeof ev.bx !== "number") continue;
+
+      const benim = (s.sahip === bk);
+      const renk = benim ? "#5ad2ff" : "#e2585c";
+
+      const ax = (gridToWorld(ev.ax * ORAN, ev.ay * ORAN).x + HALF_W) * zoom + panX;
+      const ay = (gridToWorld(ev.ax * ORAN, ev.ay * ORAN).y + HALF_H) * zoom + panY;
+      const bx = (gridToWorld(ev.bx * ORAN, ev.by * ORAN).x + HALF_W) * zoom + panX;
+      const by = (gridToWorld(ev.bx * ORAN, ev.by * ORAN).y + HALF_H) * zoom + panY;
+
+      /* Ordunun anlık yeri: yol üzerinde ilerleme oranı kadar.
+         TOPLARKEN ilerleme yolu değil kaynağı ölçer; ordu hedefte
+         durur, o yüzden doğrudan hedef noktası alınır. */
+      const t = (ev.ad === "topla") ? 1 : ev.p;
+      const ox = ax + (bx - ax) * t;
+      const oy = ay + (by - ay) * t;
+
+      /* Tümüyle ekran dışındaysa hiç çizme. */
+      const disari = (x, y) => (x < -160 || y < -160 || x > w + 160 || y > h + 160);
+      if (disari(ax, ay) && disari(bx, by) && disari(ox, oy)) continue;
+      sayi++;
+
+      /* YOL — toplarken yol çizilmez, ordu zaten varmış durumda. */
+      if (ev.ad !== "topla") {
+        c.beginPath();
+        c.moveTo(ax, ay);
+        c.lineTo(bx, by);
+        c.strokeStyle = renk;
+        c.globalAlpha = benim ? 0.9 : 0.55;
+        c.lineWidth = benim ? 3 : 2;
+        c.setLineDash([12, 10]);
+        c.lineDashOffset = kayma;
+        c.stroke();
+        c.setLineDash([]);
+        c.globalAlpha = 1;
+      }
+
+      /* İŞARETÇİ */
+      const topluyor = (ev.ad === "topla");
+      const punto = Math.max(10, Math.round(13 * Math.min(1.2, Math.max(0.7, zoom))));
+      c.textAlign = "center";
+
+      if (!topluyor) {
+        /* Yürürken: kılıç + kalan süre (kendimse) ya da ad. */
+        c.textBaseline = "middle";
+        c.font = Math.round(punto * 1.5) + "px serif";
+        c.fillText("⚔️", ox, oy - punto * 0.9);
+
+        c.textBaseline = "top";
+        c.font = "800 " + punto + "px " + HARITA_FONT;
+        const yazi = benim
+          ? (S.fmtSure ? S.fmtSure(ev.kalanMs) : "")
+          : (s.sahipAd || "");
+        if (yazi) yaziAnahat(c, yazi, ox, oy + punto * 0.3, renk, punto);
+      }
+      /* TOPLARKEN HİÇBİR ŞEY ÇİZİLMEZ.
+         Ordu hedefte duruyor ve orada zaten düğümün görseli, adı ve
+         işgal adı var. Üstüne kılıç/sayaç/ad koymak karoyu okunmaz
+         yapıyordu. Toplama süresi sol üstteki sefer listesinde. */
+    }
+
+    c.restore();
+    return sayi;
+  }
+
+  /* ── YAZI TİPİ YÜKLENİNCE BİR KEZ YENİDEN ÇİZ ──
+     Canvas, ctx.font'a yazılan aileyi ancak YÜKLENMİŞSE kullanır.
+     Baloo 2 ağdan geliyor; ilk kareler yedek yazı tipiyle çizilir ve
+     font gelince ekranda kendiliğinden düzelmez (canvas kalıcıdır).
+     Bu yüzden yükleme bitince tek bir kare isteniyor. */
+  try {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { try { cizIste(); } catch (e) {} });
+    }
+  } catch (e) {}
 
   /* Aynı karede iki kez çizmeyi engeller */
   function cizIste() {

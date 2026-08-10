@@ -896,23 +896,49 @@ function ekran(gx, gy) {
   return { x: (gx / izgara()) * w, y: (gy / izgara()) * h };
 }
 
+/* ── ÇİZİM ARTIK BURADA DEĞİL ──
+   Sefer yolları ve ordu işaretçileri harita.js tarafından ZEMİNLE
+   AYNI KAREDE canvas'a çiziliyor (cizSeferler).
+
+   NEDEN TAŞINDI: bu dosya kendi requestAnimationFrame döngüsünü
+   döndürüyordu. Her karede SVG yolu yeniden hesaplanıyor, DOM'da
+   işaretçi aranıyor, stil yazılıyordu — üstelik haritanın kendi
+   çizimiyle AYRI zamanlarda. İki döngü aynı anda dönünce hem kare
+   hızı düşüyor hem de çizgi haritadan bir kare geride kalıp
+   kaydırma sırasında kayıyordu ("çizgi ekranı oynatırken kayıyor").
+
+   Artık tek döngü var: harita.js çizerken sefer verisini de okur.
+   Kayma matematiksel olarak imkânsız — ikisi aynı pan/zoom
+   değerini aynı karede kullanıyor.
+
+   Bu işlev korunuyor çünkü kod içinde birçok yerden çağrılıyor;
+   yaptığı iş yalnız haritadan yeni bir kare istemek. */
 function dongu() {
-  if (_rafId) return;
-  const adim = () => {
-    _rafId = null;
-    const liste = hepsi();
-    if (!liste.length) { temizle(); return; }
-    try { ciz(liste); } catch (e) { console.error("[sefer] çizim:", e); }
-    _rafId = requestAnimationFrame(adim);
-  };
-  _rafId = requestAnimationFrame(adim);
+  /* Eski sürümden kalan SVG/DOM artıkları sayfada durabilir
+     (önbellekten açılan sekme). Bir kez süpürülür. */
+  if (!dongu._suprldu) {
+    dongu._suprldu = true;
+    try {
+      const eskiKat = document.getElementById("seferKatman");
+      if (eskiKat && eskiKat.parentNode) eskiKat.parentNode.removeChild(eskiKat);
+      document.querySelectorAll(".sefer-ordu").forEach(el => el.remove());
+    } catch (e) {}
+  }
+  try {
+    if (window.HARITA && HARITA.cizIste) HARITA.cizIste();
+  } catch (e) {}
 }
 function temizle() {
   if (_yolGrup) _yolGrup.innerHTML = "";
+  if (_svg && _svg.parentNode) _svg.parentNode.removeChild(_svg);
   document.querySelectorAll(".sefer-ordu").forEach(el => el.remove());
 }
 
-function ciz(liste) {
+/* ESKİ SVG ÇİZİMİ — ARTIK ÇAĞRILMIYOR.
+   harita.js/cizSeferler onun yerini aldı. Gövdesi silinmedi ki
+   canvas yolunda bir aksilik çıkarsa karşılaştırma yapılabilsin;
+   ama hiçbir yerden çağrılmıyor. */
+function _eskiSvgCizimi(liste) {
   if (!katmaniHazirla()) return;
   const mapEl = document.getElementById("battleMap");
   const bk = benKey();
@@ -1210,9 +1236,12 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "canvas-1",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-2",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
+  /* harita.js canvas çizimi için — evre ve süre biçimi tek yerde
+     kalsın, oraya kopyalanmasın. */
+  evre: evre, fmtSure: fmtSure,
   geriCagir: geriCagir, baslat: seferBaslat,
   toplamaBaslat: toplamaBaslat,
   orduKapasitesi: orduKapasitesi,

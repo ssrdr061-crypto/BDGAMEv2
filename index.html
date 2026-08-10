@@ -1848,8 +1848,11 @@ body.world-active{padding:0; overflow:hidden;}
 .map-node.tier-medium .node-avatar{border-color:var(--diamond-yellow);}
 .map-node.tier-hard .node-avatar{border-color:var(--diamond-red);}
 
+/* Harita yazıları Baloo 2 — canvas tarafıyla (harita.js HARITA_FONT)
+   aynı aile, böylece kale ve düğüm yazıları birbirine benzer. */
 .map-node .node-label{
-  font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink);
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800;
+  font-size:11px; color:var(--ink);
   background:rgba(0,0,0,.62); padding:2px 8px; border-radius:5px; white-space:nowrap;
   border:1px solid rgba(255,255,255,.08);
 }
