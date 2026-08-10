@@ -2745,13 +2745,22 @@ let _castleListenerRef = null;
    geç görünüyordu. Artık sadece castles/ dinlenir — kale başına ~30 bayt.
    ═══════════════════════════════════════════════════════════════ */
 
+/* Son yayın denemesinin sonucu — konsolsuz teşhis için.
+   publishCastle'dan ÖNCE tanımlanmalı: `let` yukarı taşınmaz. */
+let _kaleYayinDurum = "henüz denenmedi";
+
 /* Kendi kalemi hafif düğüme yaz */
 function publishCastle() {
   try {
-    if (!firebaseReady || !currentUsername) return;
-    if (!state || !state.castle || !KOORD.kaleKaro(state.castle)) return;
+    /* SESSİZ ERKEN DÖNÜŞLER ARTIK KAYDEDİLİYOR.
+       Burada `return` edilirse hiçbir hata oluşmaz — yazma denenmez
+       bile. Belirti "hata yok ama kale buluta gitmiyor" olur ve
+       aramayı yanlış yere, izinlere yönlendirir. */
+    if (!firebaseReady)   { _kaleYayinDurum = "ATLANDI: firebase hazır değil"; return; }
+    if (!currentUsername) { _kaleYayinDurum = "ATLANDI: kullanıcı adı yok"; return; }
+    if (!state || !state.castle) { _kaleYayinDurum = "ATLANDI: state.castle yok"; return; }
     const kk = KOORD.kaleKaro(state.castle);
-    if (!kk) return;
+    if (!kk) { _kaleYayinDurum = "ATLANDI: kaleKaro null (kayıt biçimi bozuk)"; return; }
     /* { name, kx, ky, kv } — gx/gy sayılamaz olduğu için yazılmaz. */
     firebaseDb.ref("castles/" + toFirebaseKey(currentUsername.toLowerCase())).set({
       name: currentUsername, kx: kk.kx, ky: kk.ky, kv: 2
@@ -2779,9 +2788,6 @@ function publishCastle() {
   }
 }
 
-/* Son yayın denemesinin sonucu. Konsolsuz teşhis için:
-   ekrandaki uyarı + istenirse KALE_DURUM() ile okunur. */
-let _kaleYayinDurum = "henüz denenmedi";
 window.KALE_DURUM = function () {
   const r = {
     yayin: _kaleYayinDurum,
@@ -2934,31 +2940,32 @@ function startListeningForCastles() {
       list.push({ name: ad, castle: KOORD.kaleKayit(kk.kx, kk.ky) });
     });
 
+    /* ── TEK SEFERLİK TEŞHİS ──
+       BOŞ LİSTE KONTROLÜNDEN ÖNCE durur: castles/ boşsa kod aşağıda
+       geri dönüyor ve rapor hiç çalışmıyordu. Boş olması da bir
+       cevaptır — o yüzden her koşulda basılır. */
+    if (!startListeningForCastles._rapor) {
+      startListeningForCastles._rapor = true;
+      const bulutta = anahtarlar.map(k => (all[k] && all[k].name) || k);
+      const cizilen = list.map(c => c.name);
+      const elenen = bulutta.filter(ad =>
+        !cizilen.some(c => String(c).toLowerCase() === String(ad).toLowerCase()));
+      setTimeout(() => {
+        if (typeof showToast === "function") {
+          showToast(
+            "castles/ düğümü: " + (anahtarlar.length ? bulutta.join(", ") : "BOŞ") +
+            "\nçizilen: " + (cizilen.join(", ") || "-") +
+            "\nelenen: " + (elenen.join(", ") || "-") +
+            "\nyayın: " + _kaleYayinDurum,
+            15000);
+        }
+      }, 3000);
+    }
+
     if (!anahtarlar.length) { migrateCastlesOnce(); return; }
 
     otherCastles = list;
     if (typeof renderBattleMap === "function") renderBattleMap();
-
-    /* ── TEK SEFERLİK TEŞHİS ──
-       "Kalem başkasında görünmüyor" sorunu için. Buluttan HANGİ
-       kalelerin geldiğini ve kaçının elendiğini bir kez ekrana
-       basar. Sorun çözülünce bu blok silinecek. */
-    if (!startListeningForCastles._rapor) {
-      startListeningForCastles._rapor = true;
-      setTimeout(() => {
-        const bulutta = anahtarlar.map(k => (all[k] && all[k].name) || k);
-        const cizilen = list.map(c => c.name);
-        const elenen = bulutta.filter(ad =>
-          !cizilen.some(c => String(c).toLowerCase() === String(ad).toLowerCase()));
-        if (typeof showToast === "function") {
-          showToast(
-            "BULUTTAKİ KALELER (" + bulutta.length + "): " + bulutta.join(", ") +
-            "\nÇİZİLEN (" + cizilen.length + "): " + (cizilen.join(", ") || "-") +
-            "\nELENEN: " + (elenen.join(", ") || "-"),
-            15000);
-        }
-      }, 2500);
-    }
   }, (err) => {
     console.warn("Kale düğümü dinlenemedi, eski yönteme dönülüyor:", err);
     migrateCastlesOnce();
