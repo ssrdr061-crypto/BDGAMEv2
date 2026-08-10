@@ -2755,9 +2755,48 @@ function publishCastle() {
     /* { name, kx, ky, kv } — gx/gy sayılamaz olduğu için yazılmaz. */
     firebaseDb.ref("castles/" + toFirebaseKey(currentUsername.toLowerCase())).set({
       name: currentUsername, kx: kk.kx, ky: kk.ky, kv: 2
-    }).catch(err => console.warn("[kale] yayınlanamadı:", err));
-  } catch (e) {}
+    }).then(() => {
+      _kaleYayinDurum = "ok";
+    }).catch(err => {
+      /* SESSİZ KALMASIN.
+         Bu hata eskiden yalnız konsola düşüyordu; geliştirici telefonla
+         çalıştığı için hiç görünmüyordu. Belirti şuydu: kendi kaleni
+         görüyorsun (yerel state'ten çiziliyor) ama BAŞKA HİÇBİR OYUNCU
+         seni göremiyor, çünkü castles/ düğümüne hiçbir şey yazılmamış.
+         Sohbet çalıştığı için sorun bağlantı sanılmıyordu. */
+      const m = String((err && err.message) || err);
+      console.warn("[kale] yayınlanamadı:", err);
+      _kaleYayinDurum = "HATA: " + m;
+      if (!publishCastle._uyardi) {
+        publishCastle._uyardi = true;
+        if (typeof showToast === "function") {
+          showToast("⚠️ Kalen buluta yazılamıyor — seni kimse göremez.\n" + m, 12000);
+        }
+      }
+    });
+  } catch (e) {
+    _kaleYayinDurum = "HATA(senkron): " + String((e && e.message) || e);
+  }
 }
+
+/* Son yayın denemesinin sonucu. Konsolsuz teşhis için:
+   ekrandaki uyarı + istenirse KALE_DURUM() ile okunur. */
+let _kaleYayinDurum = "henüz denenmedi";
+window.KALE_DURUM = function () {
+  const r = {
+    yayin: _kaleYayinDurum,
+    firebaseReady: (typeof firebaseReady !== "undefined") ? firebaseReady : "yok",
+    kullanici: (typeof currentUsername !== "undefined") ? currentUsername : "yok",
+    kendiKalem: (typeof state !== "undefined" && state && state.castle)
+      ? JSON.stringify(KOORD.kaleKaro(state.castle)) : "yok",
+    bulutDaKaleSayisi: Array.isArray(otherCastles) ? otherCastles.length : "yok",
+  };
+  console.log("[kale] DURUM", r);
+  if (typeof showToast === "function") {
+    showToast("Kale yayın: " + r.yayin, 12000);
+  }
+  return r;
+};
 
 /* castles/ henüz boşsa eski verilerden bir kereliğine doldur */
 function migrateCastlesOnce() {
