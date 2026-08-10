@@ -5396,15 +5396,18 @@ function renderBattleMap() {
     }
     const ilk = liste[0];
     const mapEl2 = document.getElementById("battleMap");
+    let gizli = 0;
+    if (mapEl2) {
+      mapEl2.querySelectorAll(".dugum-node").forEach(el => {
+        if (el.style.display === "none") gizli++;
+      });
+    }
     r.textContent =
       "DUGUM: " + (window.DUGUM ? "VAR" : "YOK") +
       "\nliste: " + liste.length +
       "\nilk: " + (ilk ? (ilk.etiket + " @" + ilk.kx + "," + ilk.ky) : "-") +
-      "\nyüzde: " + (ilk && window.KOORD
-        ? (Math.round(KOORD.karodanYuzde(ilk.kx) * 10) / 10) + "%," +
-          (Math.round(KOORD.karodanYuzde(ilk.ky) * 10) / 10) + "%"
-        : "-") +
-      "\nDOM düğüm: " + (mapEl2 ? mapEl2.querySelectorAll(".dugum-node").length : "?");
+      "\nDOM düğüm: " + (mapEl2 ? mapEl2.querySelectorAll(".dugum-node").length : "?") +
+      "\ngizlenen: " + gizli;
   })();
 
   const nodes = liste.map(d => {
@@ -5416,6 +5419,7 @@ function renderBattleMap() {
       : "";
     return `
     <div class="map-node dugum-node ${sinif} sv-${d.seviye}" data-slot="${d.slotId}"
+         data-cx="${KOORD.karodanOlcek(d.kx)}" data-cy="${KOORD.karodanOlcek(d.ky)}"
          style="left:${KOORD.karodanYuzde(d.kx)}%; top:${KOORD.karodanYuzde(d.ky)}%;">
       <div class="node-ring">
         <div class="node-avatar">${d.ikon}</div>
