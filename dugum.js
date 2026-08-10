@@ -385,14 +385,15 @@ function fbHazir() {
   return (typeof firebaseDb !== "undefined") && !!firebaseDb;
 }
 
+/* Oturum anahtarı — sefer.js'teki benKey ile BİREBİR aynı yoldan
+   türetilir. İkisi ayrışırsa "kim işgal etti" ile "kimin seferi"
+   uyuşmaz ve oyuncu kendi arazisine giremez. */
 function benKey() {
   try {
-    if (typeof currentAccountKey === "string" && currentAccountKey) return currentAccountKey;
-    if (typeof toFirebaseKey === "function" && typeof currentUsername === "string") {
-      return toFirebaseKey(String(currentUsername).toLowerCase());
-    }
-  } catch (e) {}
-  return null;
+    if (typeof currentUsername !== "string" || !currentUsername) return null;
+    if (typeof toFirebaseKey !== "function") return null;
+    return toFirebaseKey(currentUsername.toLowerCase());
+  } catch (e) { return null; }
 }
 
 function benAd() {
@@ -554,7 +555,14 @@ function isgalAl(slotId) {
     return Promise.resolve({ ok: true });
   }
 
-  return firebaseDb.ref(AYAR.KOK + "/" + slotId).transaction(mevcut => {
+  /* ── ZAMAN AŞIMI KALKANI ──
+     Firebase kuralları dugumler/ yolunu engelliyorsa transaction ne
+     çözülür ne reddedilir; söz sonsuza dek asılı kalır ve çağıran
+     donar. 6 saniyede kesip yerel kilide düşüyoruz: oyun çalışmaya
+     devam eder, sebep de ekrana yazılır. */
+  const zamanAsimi = new Promise(coz => setTimeout(() => coz("_zamanasimi_"), 6000));
+
+  const islem = firebaseDb.ref(AYAR.KOK + "/" + slotId).transaction(mevcut => {
     const simdi = Date.now();
     let d = mevcut || null;
 
@@ -578,14 +586,26 @@ function isgalAl(slotId) {
     if (typeof d.k !== "number") d.k = varsayilanKalan;
     delete d.td;
     return d;
-  }).then(res => {
+  }).catch(err => {
+    _bulutHata = err && err.message ? err.message : String(err);
+    return "_hata_";
+  });
+
+  return Promise.race([islem, zamanAsimi]).then(res => {
+    if (res === "_zamanasimi_" || res === "_hata_") {
+      /* Bulut cevap vermedi. Yerel kilitle devam — tek cihazda
+         oynanıyorsa hiç fark etmez, çok oyunculuda çakışma riski
+         var ama oyunu tamamen durdurmaktan iyidir. */
+      if (res === "_zamanasimi_") _bulutHata = "dugumler/ yazılamıyor (zaman aşımı) — Firebase kurallarını denetle";
+      const sab2 = sablon(s.id, s.seviye);
+      _durum[slotId] = { n: nesilOf(slotId), k: varsayilanKalan,
+                         it: bk, ia: benAd(), iat: Date.now() };
+      return { ok: true, yerel: true };
+    }
     if (res && res.committed) { durumUygulaTek(slotId, res.snapshot.val()); return { ok: true }; }
     const d = (res && res.snapshot) ? res.snapshot.val() : null;
     if (d && d.ia) return { ok: false, sebep: d.ia + " burada topluyor." };
     return { ok: false, sebep: "Bu düğüm şu an müsait değil." };
-  }).catch(err => {
-    _bulutHata = err && err.message ? err.message : String(err);
-    return { ok: false, sebep: "Bağlantı hatası." };
   });
 }
 

@@ -5594,13 +5594,39 @@ function araziPaneliAc(d) {
 
   const git = el.querySelector("#araziGit");
   if (git) git.addEventListener("click", async () => {
+    /* SESSİZ KALMASIN: her başarısızlık dalı kendi sebebini söyler.
+       Önceki sürümde buton kapalıysa veya söz (promise) asılı
+       kalırsa hiçbir şey olmuyordu ve sebebi görünmüyordu. */
+    if (git.disabled) { showToast("Bu ordu hiç kaynak taşıyamaz — birlik seç."); return; }
     if (!window.SEFER || typeof SEFER.toplamaBaslat !== "function") {
-      showToast("sefer.js güncel değil — toplama gönderilemiyor."); return;
+      showToast("⚠️ sefer.js güncel değil (SEFER.toplamaBaslat yok).", 6000); return;
     }
+    const secTop = (_araziSecim.knight || 0) + (_araziSecim.soldier || 0) + (_araziSecim.robot || 0);
+    if (secTop <= 0) { showToast("Yanına en az 1 birlik almalısın."); return; }
+
     git.disabled = true;
-    const ok = await SEFER.toplamaBaslat(d.slotId, _araziSecim);
-    if (ok) { kapat(); renderBattleMap(); }
-    else git.disabled = false;
+    git.textContent = "Gönderiliyor…";
+    try {
+      /* ZAMAN AŞIMI: Firebase kuralları yeni dugumler/ yolunu
+         engellerse işlem ne çözülür ne reddedilir — sonsuza dek
+         asılı kalır ve düğme donar. 8 saniyede kesiyoruz. */
+      const sonuc = await Promise.race([
+        SEFER.toplamaBaslat(d.slotId, _araziSecim),
+        new Promise(r => setTimeout(() => r("zamanasimi"), 8000)),
+      ]);
+
+      if (sonuc === "zamanasimi") {
+        showToast("⚠️ Sunucu cevap vermedi (dugumler/ yazılamıyor olabilir — Firebase kuralları).", 8000);
+        git.disabled = false; git.textContent = "Toplamaya gönder";
+        return;
+      }
+      if (sonuc) { kapat(); renderBattleMap(); return; }
+      git.disabled = false; git.textContent = "Toplamaya gönder";
+    } catch (err) {
+      console.error("[arazi] gönderilemedi:", err);
+      showToast("⚠️ Hata: " + (err && err.message ? err.message : "bilinmeyen"), 8000);
+      git.disabled = false; git.textContent = "Toplamaya gönder";
+    }
   });
 }
 
