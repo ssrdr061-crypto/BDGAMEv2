@@ -5443,41 +5443,11 @@ function renderBattleMap() {
      girmez; yeniden doğuş sayacını da o dosya tutar. */
   const liste = (window.DUGUM ? DUGUM.haritaDugumleri() : []);
 
-  /* ── KALICI TEŞHİS ROZETİ ──
-     Geliştirici telefonla çalışıyor: konsol yok, toast kaçabiliyor.
-     Bu rozet haritanın köşesinde DURUR ve her çizimde tazelenir.
-     Düğümler doğru görünmeye başlayınca bu blok silinecek. */
-  (function rozet() {
-    let r = document.getElementById("dugumRozet");
-    if (!r) {
-      r = document.createElement("div");
-      r.id = "dugumRozet";
-      r.style.cssText = "position:fixed; left:8px; bottom:8px; z-index:9999;" +
-        "background:rgba(8,12,17,.92); border:1px solid #4fd1e8; color:#cfe8f2;" +
-        "font:11px/1.45 monospace; padding:6px 9px; border-radius:8px; max-width:72vw;" +
-        "pointer-events:none; white-space:pre-wrap;";
-      document.body.appendChild(r);
-    }
-    const ilk = liste[0];
-    const mapEl2 = document.getElementById("battleMap");
-    let gizli = 0;
-    if (mapEl2) {
-      mapEl2.querySelectorAll(".dugum-node").forEach(el => {
-        if (el.style.display === "none") gizli++;
-      });
-    }
-    const toplam = mapEl2 ? mapEl2.querySelectorAll(".dugum-node").length : 0;
-    /* SÜRÜM DAMGALARI — "yükledim ama değişmedi" döngüsünü bitirir.
-       Beklenen: dugum kilit-2 · sefer topla-2. Farklıysa o dosyanın
-       eski sürümü sunucuda ya da tarayıcı önbelleğinde demektir. */
-    const sd = (window.DUGUM && DUGUM.SURUM) || "ESKİ";
-    const ss = (window.SEFER && SEFER.SURUM) || "ESKİ";
-    const isgalli = liste.filter(x => x.isgalAd).length;
-    r.textContent =
-      "dugum: " + sd + "  sefer: " + ss +
-      "\nekranda: " + (toplam - gizli) + "/" + toplam +
-      "\nişgalli: " + isgalli;
-  })();
+  /* Teşhis rozeti kaldırıldı. Sürümü doğrulaman gerekirse konsola:
+     DUGUM.SURUM  ve  SEFER.SURUM */
+  const _eskiRozet = document.getElementById("dugumRozet");
+  if (_eskiRozet) _eskiRozet.remove();
+
 
   const nodes = liste.map(d => {
     let sinif = d.tur === "canavar" ? "canavar-node" : "arazi-node";

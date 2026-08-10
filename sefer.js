@@ -965,7 +965,17 @@ function ciz(liste) {
     ordu.style.setProperty("--sefer-renk", renk);
     ordu.classList.toggle("sefer-donus", ev.ad === "donus");
     const adEl = ordu.querySelector(".sefer-ordu-ad");
-    if (adEl) adEl.textContent = benim ? fmtSure(ev.kalanMs) : (s.sahipAd || "");
+    if (adEl) {
+      /* TOPLARKEN SAYAÇ YOK.
+         Ordu arazinin üstünde duruyor; oraya bir de geri sayım
+         baloncuğu basınca düğümün adı ve sahibi okunmaz oluyordu.
+         Toplama süresi zaten üstteki sefer listesinde görünüyor.
+         Yürürken sayaç kalır — orada bilgi değerli ve üst üste
+         binen bir şey yok. */
+      if (ev.ad === "topla") adEl.textContent = benim ? "" : (s.sahipAd || "");
+      else adEl.textContent = benim ? fmtSure(ev.kalanMs) : (s.sahipAd || "");
+    }
+    ordu.classList.toggle("sefer-topluyor", ev.ad === "topla");
   });
 
   _yolGrup.querySelectorAll("[data-sefer]").forEach(el => {
@@ -1172,6 +1182,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
+  SURUM: "topla-2",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   geriCagir: geriCagir, baslat: seferBaslat,
