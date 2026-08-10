@@ -5376,25 +5376,36 @@ function renderBattleMap() {
   if (!mapEl) return;
 
   /* Düğümler dugum.js'ten gelir. Tükenmiş olanlar listeye zaten
-     girmez; yeniden doğuş sayacını da o dosya tutar.
-
-     SESSİZ KALMASIN: dosya yüklenmemişse harita bomboş çizilir ve
-     sebebi hiçbir yerde görünmez. Geliştirici telefonla çalıştığı
-     için konsol yerine ekrana uyarı düşüyor. */
-  if (!window.DUGUM) {
-    if (!renderBattleMap._uyardi) {
-      renderBattleMap._uyardi = true;
-      const m = "⚠️ dugum.js yüklenmedi — haritada düğüm yok. Dosya index.html ile aynı klasörde mi?";
-      if (typeof showToast === "function") showToast(m, 9000); else alert(m);
-    }
-  }
+     girmez; yeniden doğuş sayacını da o dosya tutar. */
   const liste = (window.DUGUM ? DUGUM.haritaDugumleri() : []);
 
-  if (window.DUGUM && liste.length === 0 && !renderBattleMap._bosUyardi) {
-    renderBattleMap._bosUyardi = true;
-    if (typeof showToast === "function")
-      showToast("⚠️ dugum.js yüklü ama düğüm üretmedi — DUGUM.tani() ile bak.", 9000);
-  }
+  /* ── KALICI TEŞHİS ROZETİ ──
+     Geliştirici telefonla çalışıyor: konsol yok, toast kaçabiliyor.
+     Bu rozet haritanın köşesinde DURUR ve her çizimde tazelenir.
+     Düğümler doğru görünmeye başlayınca bu blok silinecek. */
+  (function rozet() {
+    let r = document.getElementById("dugumRozet");
+    if (!r) {
+      r = document.createElement("div");
+      r.id = "dugumRozet";
+      r.style.cssText = "position:fixed; left:8px; bottom:8px; z-index:9999;" +
+        "background:rgba(8,12,17,.92); border:1px solid #4fd1e8; color:#cfe8f2;" +
+        "font:11px/1.45 monospace; padding:6px 9px; border-radius:8px; max-width:72vw;" +
+        "pointer-events:none; white-space:pre-wrap;";
+      document.body.appendChild(r);
+    }
+    const ilk = liste[0];
+    const mapEl2 = document.getElementById("battleMap");
+    r.textContent =
+      "DUGUM: " + (window.DUGUM ? "VAR" : "YOK") +
+      "\nliste: " + liste.length +
+      "\nilk: " + (ilk ? (ilk.etiket + " @" + ilk.kx + "," + ilk.ky) : "-") +
+      "\nyüzde: " + (ilk && window.KOORD
+        ? (Math.round(KOORD.karodanYuzde(ilk.kx) * 10) / 10) + "%," +
+          (Math.round(KOORD.karodanYuzde(ilk.ky) * 10) / 10) + "%"
+        : "-") +
+      "\nDOM düğüm: " + (mapEl2 ? mapEl2.querySelectorAll(".dugum-node").length : "?");
+  })();
 
   const nodes = liste.map(d => {
     const sinif = d.tur === "canavar" ? "canavar-node" : "arazi-node";
