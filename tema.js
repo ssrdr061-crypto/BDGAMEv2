@@ -2879,3 +2879,99 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   15) KAYNAK ŞERİDİ — ÜST MENÜYE GÖMÜLDÜ
+   Et / demir / su / enerji haritanın üstünde ayrı ayrı yüzen
+   kutucuklardı. Artık üst menünün ALT KATI: aynı mavi zemin, aynı
+   ayraç mantığı, tek parça görünür.
+
+   Şerit mutlak konumlu olduğu için üst menünün altına "yapışması"
+   ölçümle yapılır: menünün yüksekliği çentik (safe-area) ve yazı
+   tipine göre değişiyor, sabit bir piksel vermek küçük ekranlarda
+   çakışma bırakıyordu. ResizeObserver menü her boy değiştirdiğinde
+   şeridi yeniden hizalar.
+   ═══════════════════════════════════════════════════════════════ */
+(function kaynakSeridi() {
+"use strict";
+
+const st = document.createElement("style");
+st.id = "temaKaynakSeridi";
+st.textContent = `
+/* üst menünün alt köşeleri düzleşir — alt kat onun devamı */
+.hud-top{ border-radius:0 !important; box-shadow:none !important; }
+
+.hud-kaynak{
+  position:absolute !important;
+  top:var(--kaynak-ust, 30px) !important;
+  left:0 !important; right:0 !important;
+  transform:none !important;
+  display:flex !important;
+  justify-content:space-around !important;
+  align-items:center !important;
+  gap:0 !important;
+  padding:2px 8px 4px !important;
+  z-index:19 !important;
+  pointer-events:auto !important;
+  background:linear-gradient(180deg, var(--km-2) 0%, var(--km-3) 100%) !important;
+  border-bottom:1px solid var(--km-kenar) !important;
+  border-radius:0 0 13px 13px !important;
+  box-shadow:0 4px 12px rgba(0,15,40,.42), inset 0 1px 0 rgba(160,215,255,.18) !important;
+}
+
+/* kutucuklar sökülür — üst kattaki öğelerle aynı dil */
+.kaynak-oge{
+  background:none !important;
+  border:none !important;
+  border-radius:0 !important;
+  padding:1px 8px !important;
+  flex:1 1 0 !important;
+  justify-content:center !important;
+  color:var(--km-yazi) !important;
+  font-size:13px !important;
+  font-weight:800 !important;
+  text-shadow:0 2px 3px rgba(0,10,30,.75) !important;
+}
+.kaynak-oge:not(:first-child){
+  border-left:1px solid rgba(160,215,255,.25) !important;
+}
+.kaynak-ikon{ font-size:13px !important; }
+
+@media (max-width:360px){
+  .kaynak-oge{ font-size:12px !important; padding:1px 5px !important; }
+}
+`;
+document.head.appendChild(st);
+
+/* ── HİZALAMA ──
+   Şeridin tepesi = üst menünün tam altı. Menü yüksekliği çentiğe
+   ve yazı boyutuna bağlı, o yüzden ölçülür. */
+function hizala() {
+  const ust = document.querySelector(".hud-top");
+  const ser = document.getElementById("hudKaynak");
+  if (!ust || !ser) return;
+  const h = Math.round(ust.getBoundingClientRect().height);
+  if (h > 0) ser.style.setProperty("--kaynak-ust", h + "px");
+}
+
+function baslat() {
+  hizala();
+  const ust = document.querySelector(".hud-top");
+  if (ust && window.ResizeObserver) {
+    new ResizeObserver(hizala).observe(ust);
+  }
+  window.addEventListener("resize", hizala);
+  window.addEventListener("orientationchange", () => setTimeout(hizala, 120));
+  /* yazı tipi geç yüklenirse menü boyu değişir */
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(hizala);
+  setTimeout(hizala, 400);
+  setTimeout(hizala, 1500);
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", baslat);
+} else {
+  baslat();
+}
+})();
