@@ -2825,10 +2825,16 @@ let _logSaveTimer = null;
 let _logSonImza = "";
 
 function _logImza(list) {
-  /* tamamını karşılaştırmak pahalı — uzunluk + en yeni kaydın zamanı yeter */
-  const n = (list || []).length;
-  const t = n ? (list[0].timestamp || 0) : 0;
-  return n + ":" + t;
+  /* tamamını karşılaştırmak pahalı — uzunluk + en yeni kaydın zamanı yeter.
+     ALINAN ÖDÜL SAYISI DA İMZAYA DAHİL: hediye kutusu açılınca ne kayıt
+     sayısı ne de zaman değişiyor, imza aynı kalırsa `alindi` damgası
+     diske ve buluta hiç yazılmaz — kutu her açılışta yeniden dolardı. */
+  const l = list || [];
+  const n = l.length;
+  const t = n ? (l[0].timestamp || 0) : 0;
+  let alinan = 0;
+  for (let i = 0; i < n; i++) if (l[i] && l[i].odul && l[i].odul.alindi) alinan++;
+  return n + ":" + t + ":" + alinan;
 }
 
 /* Günlüğü buluta yaz (gecikmeli, sadece değiştiyse) */
@@ -3450,91 +3456,36 @@ function buildBattleReportHTML(result, effectiveHero, enemy) {
 }
 
 
-/* Günlükteki bir kaydı tam rapor olarak açar */
+/* Günlükteki bir kaydı tam rapor olarak açar.
+   AYRI BİR TASARIM YOK: canavar raporu da PvP raporuyla aynı
+   pencerede (tema.js openReportModal) açılır, sadece `pve: true`
+   bayrağıyla — elmas satırı düşer, savunan tarafta kale yerine
+   canavarın kendi görseli çıkar. */
 function openLogReportModal(entry) {
+  if (typeof window.openReportModal !== "function") {
+    showToast("⚠️ tema.js güncel değil (openReportModal yok).", 6000);
+    return;
+  }
   const r = entry.rep || {};
-  const fx = r.flowFx || {};
+  const ad = id => ((typeof HERO_STATS !== "undefined" && HERO_STATS[id]) ? HERO_STATS[id].name : id);
 
-  const kahramanlar = (r.heroIds || []).length
-    ? (r.heroIds || []).map(_repHeroCard).join("")
-    : `<span class="rep-empty">Kahraman yok</span>`;
-
-  const gnd = r.troopsSent || {};
-  const birlikler = Object.keys(gnd).filter(u => (gnd[u] || 0) > 0)
-    .map(u => _repTroopCard(u, "x" + fmt(gnd[u]))).join("")
-    || `<span class="rep-empty">Birlik yok</span>`;
-
-  const olen = r.lostByUnit || {};
-  const yarali = r.woundedByUnit || {};
-  const olenHTML = Object.keys(olen).filter(u => olen[u] > 0)
-    .map(u => _repTroopCard(u, "-" + fmt(olen[u]), "col-red")).join("")
-    || `<span class="rep-empty">Kayıp yok</span>`;
-  const yaraliHTML = Object.keys(yarali).filter(u => yarali[u] > 0)
-    .map(u => _repTroopCard(u, "-" + fmt(yarali[u]), "col-yellow")).join("")
-    || `<span class="rep-empty">Yaralı yok</span>`;
-
-  const kahramanBlok = (r.heroIds || []).map(id => {
-    const satir = [];
-    (r.abilities || []).forEach(m => {
-      (m.sources || []).forEach(src => {
-        if (src.heroId !== id) return;
-        const tet = _repTrigger(m.type, fx);
-        if (tet) satir.push(`<div class="rep-ab"><span>${src.title}</span><b>${tet}</b></div>`);
-      });
-    });
-    if (!satir.length) satir.push(`<div class="rep-ab rep-ab-none">Bu savaşta etkisi olmadı</div>`);
-    return `<div class="rep-hero-block">
-        <div class="rep-hero-head">${_repHeroCard(id)}</div>
-        <div class="rep-ab-list">${satir.join("")}</div>
-      </div>`;
-  }).join("");
-
-  const govde = `
-    <div class="battle-report">
-      <div class="rep-sides">
-        <div class="rep-side">
-          <div class="rep-side-ttl">⚔️ Saldıran — ${currentUsername || "Sen"}</div>
-          <div class="rep-line">${kahramanlar}</div>
-          <div class="rep-line">${birlikler}</div>
-        </div>
-        <div class="rep-side">
-          <div class="rep-side-ttl">🛡️ Savunan — ${entry.enemyName}</div>
-          <div class="rep-line"><span class="rep-empty">Bilgi yok</span></div>
-        </div>
-      </div>
-
-      <div class="rep-sec-ttl">Kayıplar</div>
-      <div class="rep-loss">
-        <div><span class="rep-loss-lbl col-red">Ölen</span><div class="rep-line">${olenHTML}</div></div>
-        <div><span class="rep-loss-lbl col-yellow">Yaralanan</span><div class="rep-line">${yaraliHTML}</div></div>
-      </div>
-
-      ${kahramanBlok ? `<div class="rep-sec-ttl">Kahraman yetenekleri</div>${kahramanBlok}` : ""}
-
-      <div class="rep-sec-ttl">Özet</div>
-      <div class="report-row"><span>Sonuç</span><b class="${entry.win ? "col-green" : "col-red"}">${entry.win ? "Zafer" : "Yenilgi"}</b></div>
-      <div class="report-row"><span>Elmas</span><b class="${entry.diamondDelta >= 0 ? "col-green" : "col-red"}">${entry.diamondDelta >= 0 ? "+" : ""}${fmt(entry.diamondDelta)}</b></div>
-      <div class="report-row"><span>Sürdüğü tur</span><b>${entry.turns}</b></div>
-      <div class="report-row"><span>Düşmana verilen hasar</span><b class="col-green">${fmt(entry.dmgDealt)}</b></div>
-      <div class="report-row"><span>Birliklerin aldığı hasar</span><b class="col-red">${fmt(entry.dmgAbsorbed)}</b></div>
-      <div class="report-row"><span>Düşman özel vuruşu</span><b>${r.enemyUltiTriggers || 0} kez</b></div>
-      <div class="report-row"><span>Kalan birlik canı</span><b>${fmt(entry.heroHpFinal)}/${fmt(entry.heroMaxHp)}</b></div>
-    </div>`;
-
-  const eski = document.getElementById("logReportModal");
-  if (eski) eski.remove();
-  const ov = document.createElement("div");
-  ov.id = "logReportModal";
-  ov.innerHTML = `<div class="lrm-box">
-      <button class="lrm-close" aria-label="Kapat">✕</button>
-      <div class="lrm-ttl">📜 ${entry.enemyName}</div>
-      <div class="lrm-body">${govde}</div>
-    </div>`;
-  document.body.appendChild(ov);
-  const kapat = () => ov.remove();
-  ov.addEventListener("click", e => { if (e.target === ov) kapat(); });
-  ov.querySelector(".lrm-close").addEventListener("click", kapat);
+  window.openReportModal({
+    pve: true,
+    attackerWon: !!entry.win,
+    attackerName: currentUsername || "Sen",
+    defenderName: entry.enemyName,
+    defenderIcon: entry.enemyIcon || "🐾",
+    defenderCount: entry.enemyCount || 0,
+    attackerCommanders: (r.heroIds || []).map(ad),
+    attackerTroops: r.troopsSent || null,
+    attackerLosses: { killed: r.lostByUnit || {}, wounded: r.woundedByUnit || {} },
+    turns: entry.turns || 0,
+    /* yetenek kutucukları bu ikisinden üretilir */
+    abilities: r.abilities || [],
+    flowFx: r.flowFx || {},
+  });
 }
+
 
 function getEffectiveHeroStats(selectedTroops) {
   const ab = activeHeroAbilities();
@@ -4682,18 +4633,51 @@ function renderBattleLogPanel() {
           <span class="log-entry-enemy">${entry.enemyName}</span>
           <span class="log-entry-time">${formatLogTime(entry.timestamp)}</span>
         </div>
-        ${entry.pvp ? "" : `<div class="log-entry-actions"><button class="log-open-btn" data-idx="${i}">📜 Aç</button></div>`}
+        ${entry.pvp ? "" : `<div class="log-entry-actions">
+          <button class="log-open-btn" data-idx="${i}">📜 Aç</button>
+          ${entry.odul ? `<button class="log-gift-btn ${entry.odul.alindi ? "alindi" : ""}" data-gift="${i}">
+              ${entry.odul.alindi ? "✅ Alındı" : `🎁 ${entry.odul.ikon} ${fmt(entry.odul.miktar)}`}
+            </button>` : ""}
+        </div>`}
       </div>`).join("");
 
   if (!listEl.dataset.openHooked) {
     listEl.dataset.openHooked = "1";
     listEl.addEventListener("click", (e) => {
       const b = e.target.closest(".log-open-btn");
-      if (!b) return;
-      const en = (state.battleLogHistory || [])[parseInt(b.dataset.idx, 10)];
-      if (en) openLogReportModal(en);
+      if (b) {
+        const en = (state.battleLogHistory || [])[parseInt(b.dataset.idx, 10)];
+        if (en) openLogReportModal(en);
+        return;
+      }
+      const g = e.target.closest(".log-gift-btn");
+      if (g) odulKutusunuAc(parseInt(g.dataset.gift, 10));
     });
   }
+}
+
+/* ── HEDİYE KUTUSU ──
+   Canavarın düşürdüğü kaynak savaş sonunda EKLENMEZ, burada
+   alınır. `alindi` damgası kayda yazılır: aynı kutu iki kez
+   açılamaz, kayıt buluta da bu damgayla gider. */
+function odulKutusunuAc(i) {
+  const en = (state.battleLogHistory || [])[i];
+  if (!en || !en.odul) return;
+  if (en.odul.alindi) { showToast("Bu ödülü zaten aldın."); return; }
+
+  const k = en.odul.kaynak, m = en.odul.miktar || 0;
+  if (!k || m <= 0) { showToast("Bu kutuda ödül yok."); return; }
+
+  if (!state.kaynaklar) state.kaynaklar = {};
+  state.kaynaklar[k] = (state.kaynaklar[k] || 0) + m;
+  en.odul.alindi = true;
+
+  persistCurrentState();
+  if (typeof saveBattleLogLocal === "function") saveBattleLogLocal();
+  if (typeof queueLogSave === "function") queueLogSave();
+  renderKaynaklar();
+  renderBattleLogPanel();
+  showToast(`🎁 ${en.odul.ikon} +${fmt(m)} ${en.odul.ad} alındı!`, 3500);
 }
 
 function clearBattleLogHistory() {
@@ -6683,23 +6667,29 @@ async function startBattle() {
       ? `<div class="report-row" style="align-items:flex-start"><span>Savaşta tetiklenen</span><b class="col-green" style="text-align:right;max-width:62%">${_fxLines.join("<br>")}</b></div>`
       : "";
 
-    const reportHTML = buildBattleReportHTML(result, effectiveHero, enemyForBattle);
-
-    let diamondDelta = 0;
+    /* Rapor artık savaş ekranına basılmıyor: kayıt günlüğe düşer,
+       oradan PvP raporuyla AYNI pencerede açılır (tema.js
+       openReportModal). Böylece iki ayrı rapor tasarımı bakmak
+       zorunda kalmıyoruz. */
+    let odulKaydi = null;
 
     if (result.win) {
 
-      /* ── ÖDÜL ARTIK KAYNAK ──
-         Eski elmas ödülü (baseReward) ve hazine sandığı kaldırıldı.
-         Canavar, türüne bağlı kaynağı SABİT miktarda düşürür:
-         Goril→demir, Ayı→et, Kurt→su, Fil→enerji. */
+      /* ── ÖDÜL ARTIK KUTUDAN ALINIYOR ──
+         Kaynak savaş biter bitmez eklenmez; günlükteki hediye
+         kutusuna basınca hesaba geçer. Miktar kayda yazılır ki
+         kutu neyi vereceğini bilsin. */
       const kaynakId  = enemyForBattle.kaynak;
       const kaynakMik = enemyForBattle.odul || 0;
       const kBilgi    = (window.DUGUM && DUGUM.KAYNAK[kaynakId]) || null;
 
       if (kaynakId && kaynakMik > 0) {
-        if (!state.kaynaklar) state.kaynaklar = {};
-        state.kaynaklar[kaynakId] = (state.kaynaklar[kaynakId] || 0) + kaynakMik;
+        odulKaydi = {
+          kaynak: kaynakId, miktar: kaynakMik,
+          ikon: kBilgi ? kBilgi.ikon : "",
+          ad:   kBilgi ? kBilgi.ad   : kaynakId,
+          alindi: false,
+        };
       }
 
       /* Slotu tüket: düğüm haritadan kalkar, 3–4 dk sonra BAŞKA
@@ -6710,28 +6700,28 @@ async function startBattle() {
 
       state.maxFrontierLevel = (state.maxFrontierLevel || 0) + 1;
 
-      const odulYazi = kBilgi
-        ? `${kBilgi.ikon} +${fmt(kaynakMik)} ${kBilgi.ad}`
-        : `+${fmt(kaynakMik)}`;
-      log.innerHTML = `🏆 <span class="col-green">${enemyForBattle.name} yenildi! ${odulYazi}</span>
-        ${reportHTML}
+      const odulYazi = odulKaydi
+        ? `${odulKaydi.ikon} ${fmt(odulKaydi.miktar)} ${odulKaydi.ad} savaş günlüğündeki hediye kutusunda seni bekliyor.`
+        : "";
+      log.innerHTML = `🏆 <span class="col-green">${enemyForBattle.name} yenildi!</span>
+        <div style="font-size:12.5px;margin-top:8px;">📜 Raporu savaş günlüğüne düştü. ${odulYazi}</div>
         <div style="font-size:11.5px;color:var(--ink-dim); margin-top:8px;">Bu canavar birkaç dakika sonra haritanın <b>başka bir yerinde</b> yeniden doğacak.</div>`;
-      renderKaynaklar();
       renderBattleMap();
 
       setTimeout(() => { backToMap(); }, 4200);
     } else {
-      const loss = Math.min(state.diamonds, Math.floor(Math.random() * 500) + 100);
-      state.diamonds -= loss;
-      diamondDelta = -loss;
-      log.innerHTML = `💢 <span class="col-red">${enemyForBattle.name} seni yendi! -${fmt(loss)} elmas</span>
-        ${reportHTML}`;
+      /* CANAVAR SAVAŞINDA ELMAS YOK — ne kazanç ne kayıp.
+         Eskiden yenilgide 100–500 arası rastgele elmas gidiyordu. */
+      log.innerHTML = `💢 <span class="col-red">${enemyForBattle.name} seni yendi!</span>
+        <div style="font-size:12.5px;margin-top:8px;">📜 Raporu savaş günlüğüne düştü.</div>`;
     }
 
     state.battleLogHistory.unshift({
       enemyName: enemyForBattle.name,
+      enemyIcon: enemyForBattle.avatar || "",
+      enemyCount: enemyForBattle.birlik || 0,
+      odul: odulKaydi,                  /* hediye kutusu bunu verir */
       win: result.win,
-      diamondDelta,
       turns: result.turns,
       dmgDealt: result.totalDamageDealtToEnemy,
       dmgAbsorbed: result.totalDamageAbsorbedByTroops,

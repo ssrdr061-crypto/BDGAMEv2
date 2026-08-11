@@ -797,40 +797,108 @@ function unitDetailHTML(r) {
     <div class="rp-note">Öldürdü/Yaraladı, birliklerin savaştaki hasar payına göre hesaplanır.</div>`;
 }
 
-/* ── DETAY: kahraman yetenekleri ── */
-function abilityDetailHTML(r) {
-  const fx = r.heroFx;
-  if (!fx) return "";
-  const ETKI = {
-    enemy_freeze_turns:      n => n ? n + " tur düşmanı dondurdu" : null,
-    damage_reflect_pct:      n => n ? n + " hasar yansıttı" : null,
-    enemy_instant_casualty:  n => n ? n + " birliği anında yok etti" : null,
-    periodic_def_reduce_pct: n => n ? n + " kez savunma kırdı" : null,
-    power_gap_cap:           n => n ? n + " tur hasar azalttı" : null
-  };
+/* ── DETAY: kahraman yetenekleri ──
+   Yetenek artık YAZI DEĞİL GÖRSEL: heroes.js'teki her yeteneğin
+   kendi `icon` dosyası var, kutucuk içinde o basılır. Yalnız
+   SAVAŞTA TETİKLENEN yetenekler girer; hiç tetiklenmediyse tek
+   satır bilgi çıkar. */
+
+/* Yeteneğin görselini bul: önce effect.type, tutmazsa başlık. */
+function abYetenek(heroId, type, title) {
+  if (typeof HERO_STATS === "undefined") return null;
+  const h = HERO_STATS[heroId];
+  if (!h) return null;
+  const liste = (h.abilities || []).concat(h.passive ? [h.passive] : []);
+  return liste.find(a => a && a.effect && a.effect.type === type)
+      || liste.find(a => a && a.title === title)
+      || null;
+}
+
+/* Tetiklenme metni — index.html'deki _repTrigger ile aynı sözlük.
+   İkisi ayrışmasın diye burada TEK yerde duruyor ve dışa açılıyor. */
+function abTetik(type, fx) {
+  fx = fx || {};
+  switch (type) {
+    case "enemy_freeze_turns":      return fx.freezeTurns ? fx.freezeTurns + " tur dondurdu" : null;
+    case "enemy_instant_casualty":  return fx.instantKilled ? fx.instantKilled + " can yok etti" : null;
+    case "damage_reflect_pct":      return fx.reflectTotal ? fx.reflectTotal + " hasar yansıttı" : null;
+    case "periodic_def_reduce_pct": return fx.periodicCount ? fx.periodicCount + " kez savunma kırdı" : null;
+    case "power_gap_cap":           return fx.dmgReduceVsStronger ? "hasarı %" + fx.dmgReduceVsStronger + " azalttı" : null;
+    default: return null;                 /* pasif/sürekli etkiler kutuya girmez */
+  }
+}
+window.abTetik = abTetik;
+
+function abChip(heroId, type, title, etki) {
+  const y = abYetenek(heroId, type, title);
+  const ad = (y && y.title) || title || "";
+  const gorsel = (y && y.icon && y.icon.indexOf("{{") === -1)
+    ? `<img src="${y.icon}" alt="${ad}">`
+    : `<span class="rp-abemoji">✨</span>`;
+  const h = (typeof HERO_STATS !== "undefined") ? HERO_STATS[heroId] : null;
+  return `<div class="rp-abchip" title="${ad}">
+      <div class="rp-abbox">${gorsel}</div>
+      <div class="rp-abfx">${etki}</div>
+      <div class="rp-abwho">${h ? (h.name || "") : ""}</div>
+    </div>`;
+}
+
+/* PvE kaydı: {type, sources:[{heroId,title}]} + flowFx */
+function abChipsPve(r) {
+  const fx = r.flowFx || {};
+  const out = [];
+  (r.abilities || []).forEach(m => {
+    const etki = abTetik(m.type, fx);
+    if (!etki) return;
+    (m.sources || []).forEach(src => out.push(abChip(src.heroId, m.type, src.title, etki)));
+  });
+  return out;
+}
+
+/* PvP kaydı: heroFx.attackerAbilities + kullanım sayaçları */
+function abChipsPvp(abList, used) {
   const ANAHTAR = {
     enemy_freeze_turns: "freeze", damage_reflect_pct: "reflect",
     enemy_instant_casualty: "instant", periodic_def_reduce_pct: "periodic",
     power_gap_cap: "gapCap"
   };
-  function blok(baslik, abList, used, kills) {
-    if (!abList || !abList.length) return "";
-    const satir = abList.map(m => {
-      const k = ANAHTAR[m.type];
-      let etki = (k && ETKI[m.type]) ? ETKI[m.type](used ? used[k] : 0) : null;
-      if (!etki) etki = "savaş boyunca aktif";
-      const ek = (kills && kills[m.type]) ? " · " + kills[m.type] + " kayıp verdirdi" : "";
-      const kim = (m.sources || []).map(x => x.heroName || "").filter(Boolean).join(", ");
-      return `<tr><td>${kim || "—"}</td><td>${m.title || m.type}</td><td class="rp-g">${etki}${ek}</td></tr>`;
-    }).join("");
-    return `<div class="rp-dsub">${baslik}</div>
-      <table class="rp-tbl rp-tbl-ab"><thead><tr><th>Kahraman</th><th>Yetenek</th>
-      <th>Savaştaki etkisi</th></tr></thead><tbody>${satir}</tbody></table>`;
+  const METIN = {
+    enemy_freeze_turns:      n => n + " tur dondurdu",
+    damage_reflect_pct:      n => n + " hasar yansıttı",
+    enemy_instant_casualty:  n => n + " birlik yok etti",
+    periodic_def_reduce_pct: n => n + " kez savunma kırdı",
+    power_gap_cap:           n => n + " tur hasar azalttı",
+  };
+  const out = [];
+  (abList || []).forEach(m => {
+    const k = ANAHTAR[m.type];
+    const n = (k && used) ? (used[k] || 0) : 0;
+    if (!n || !METIN[m.type]) return;              /* tetiklenmeyen kutuya girmez */
+    const kim = (m.sources || [])[0] || {};
+    const hid = kim.heroId || (typeof heroIdOf === "function" ? heroIdOf(kim.heroName) : "");
+    out.push(abChip(hid, m.type, m.title, METIN[m.type](n)));
+  });
+  return out;
+}
+
+function abilityDetailHTML(r) {
+  let ben = [], karsi = [];
+  if (r.pve) {
+    ben = abChipsPve(r);
+  } else {
+    const fx = r.heroFx;
+    if (!fx) return "";
+    ben   = abChipsPvp(fx.attackerAbilities, fx.attacker);
+    karsi = abChipsPvp(fx.defenderAbilities, fx.defender);
   }
-  const a = blok("Saldıran", fx.attackerAbilities, fx.attacker, fx.attackerKills);
-  const d = blok("Savunan", fx.defenderAbilities, fx.defender, fx.defenderKills);
-  if (!a && !d) return "";
-  return `<div class="rp-dttl">🦸 KAHRAMAN YETENEKLERİ</div>${a}${d}`;
+  if (!ben.length && !karsi.length) {
+    return `<div class="rp-dttl">🦸 TETİKLENEN YETENEKLER</div>
+      <div class="rp-note">Bu savaşta tetiklenen bir yetenek olmadı.</div>`;
+  }
+  const blok = (baslik, liste) => liste.length
+    ? `<div class="rp-dsub">${baslik}</div><div class="rp-abrow">${liste.join("")}</div>` : "";
+  return `<div class="rp-dttl">🦸 TETİKLENEN YETENEKLER</div>` +
+    (r.pve ? blok("", ben) : blok("Saldıran", ben) + blok("Savunan", karsi));
 }
 
 function openReportModal(r) {
@@ -840,6 +908,11 @@ function openReportModal(r) {
   const attacker = r.attackerName || "Saldıran";
   const defender = r.defenderName || "Savunan";
   const win = !!r.attackerWon;
+
+  /* PvE (canavar) kipi: elmas yok, savunan tarafta kale değil
+     canavarın kendi görseli var, sonuç şeridi zafer/yenilgi der. */
+  const pve = !!r.pve;
+  const savunanGorsel = pve ? (r.defenderIcon || "🐾") : "🏰";
 
   const back=document.createElement("div");
   back.id="temaReportBack";
@@ -853,7 +926,8 @@ function openReportModal(r) {
       <div class="rp-ttl">📜 SAVAŞ RAPORU</div>
 
       <div class="rp-sonuc ${win?'rp-win':'rp-lose'}">
-        ${win?'🏆 SALDIRAN KAZANDI':'🛡️ SAVUNAN KAZANDI'}
+        ${pve ? (win?'🏆 ZAFER':'💢 YENİLGİ')
+              : (win?'🏆 SALDIRAN KAZANDI':'🛡️ SAVUNAN KAZANDI')}
       </div>
 
       <!-- saldıran vs savunan -->
@@ -865,9 +939,9 @@ function openReportModal(r) {
         </div>
         <div class="rp-vs-mid">VS</div>
         <div class="rp-vs-side">
-          <div class="rp-castle">🏰</div>
+          <div class="rp-castle">${savunanGorsel}</div>
           <div class="rp-name">${defender}</div>
-          <div class="rp-role">SAVUNAN</div>
+          <div class="rp-role">${pve ? 'CANAVAR' : 'SAVUNAN'}</div>
         </div>
       </div>
 
@@ -884,11 +958,15 @@ function openReportModal(r) {
       <div class="rp-div"></div>
       <div class="rp-cols rp-cols-troop">
         <div class="rp-col"><div class="rp-chips">${unitChips(r.attackerTroops)}</div></div>
-        <div class="rp-col"><div class="rp-chips">${unitChips(r.defenderTroops)}</div></div>
+        <div class="rp-col"><div class="rp-chips">${
+          pve ? (r.defenderCount
+                  ? `<div class="rp-unit"><div class="rp-canavar">${savunanGorsel}</div><span class="rp-ucap">${f(r.defenderCount)}</span></div>`
+                  : '<span class="rp-dash">—</span>')
+              : unitChips(r.defenderTroops)}</div></div>
       </div>
 
       <div class="rp-foot">
-        <span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>
+        ${pve ? '' : `<span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>`}
         <span class="rp-turn">⏱️ ${r.turns||0} tur</span>
       </div>
 
@@ -3229,4 +3307,43 @@ function kur() {
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", kur);
 } else { kur(); }
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   30) YETENEK KUTUCUKLARI + CANAVAR RAPORU
+   Rapor penceresinde tetiklenen yetenekler yazı yerine görsel
+   kutucuk olarak çıkıyor (bkz. abilityDetailHTML). Kurallar dosya
+   sonunda AYRI bir IIFE'de: üstteki büyük şablon dizgisinin içine
+   girmiyor, kaçış derdi olmuyor.
+   ═══════════════════════════════════════════════════════════════ */
+(function yetenekKutuCSS() {
+  const st = document.createElement("style");
+  st.id = "temaYetenekCSS";
+  st.textContent = [
+    ".rp-abrow{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 10px;}",
+    ".rp-abchip{width:88px;text-align:center;}",
+    ".rp-abbox{width:64px;height:64px;margin:0 auto 5px;border-radius:14px;overflow:hidden;",
+    "  background:linear-gradient(180deg,rgba(34,72,143,.75),rgba(13,34,70,.85));",
+    "  border:2px solid rgba(190,240,255,.55);",
+    "  box-shadow:inset 0 2px 3px rgba(150,205,255,.25),0 4px 10px rgba(0,20,45,.4);",
+    "  display:flex;align-items:center;justify-content:center;}",
+    ".rp-abbox img{width:100%;height:100%;object-fit:cover;display:block;}",
+    ".rp-abemoji{font-size:28px;}",
+    ".rp-abfx{font-size:11px;font-weight:800;color:#8ef0a8;line-height:1.25;}",
+    ".rp-abwho{font-size:10px;font-weight:800;color:#cfeaff;opacity:.75;margin-top:2px;}",
+    ".rp-canavar{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;",
+    "  justify-content:center;font-size:30px;",
+    "  background:linear-gradient(180deg,rgba(34,72,143,.75),rgba(13,34,70,.85));",
+    "  border:2px solid rgba(190,240,255,.45);}",
+    /* ── SAVAŞ GÜNLÜĞÜ: hediye kutusu ── */
+    ".log-gift-btn{border:none;cursor:pointer;border-radius:10px;padding:8px 12px;",
+    "  font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:12px;color:#fff;",
+    "  background:linear-gradient(180deg,#f0a93b,#c47012);",
+    "  box-shadow:0 3px 0 #7a4708,inset 0 1px 0 rgba(255,255,255,.3);",
+    "  -webkit-tap-highlight-color:transparent;}",
+    ".log-gift-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #7a4708;}",
+    ".log-gift-btn.alindi{background:linear-gradient(180deg,#5a6b80,#3b4859);",
+    "  box-shadow:0 3px 0 #232c37;opacity:.75;}",
+  ].join("\n");
+  document.head.appendChild(st);
 })();
