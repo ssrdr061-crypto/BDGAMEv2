@@ -2882,26 +2882,25 @@ document.head.appendChild(st);
 
 
 /* ═══════════════════════════════════════════════════════════════
-   15) ÜST MENÜ — KAYNAKLAR MENÜNÜN İKİNCİ SATIRI
+   15) ÜST MENÜ — TEK GÖVDE, SABİT BOY
    ---------------------------------------------------------------
-   Kaynak kutusu DOM'da üst menünün içine alınır ve menü iki satıra
-   sarar. Amaç TEK GÖVDE görünmesi; onu bozan üç şey vardı, üçü de
-   burada iptal edilir:
+   Kaynak kutusu DOM'da üst menünün içine alınır; menü iki satıra
+   sarar ama TEK gövde görünür: tek zemin, tek çerçeve, çizgi yok.
 
-     1) 14. bölümdeki "ilk çocuk hariç herkesin soluna ayraç" kuralı
-        kaynak kutusunu da bir rozet sanıp SOLUNA dikey çizgi
-        çiziyordu (🍖'nin solundaki çizgi buydu).
-     2) Satırı ayıran yatay çizgi — kaldırıldı.
-     3) Zeminin renk geçişi her satırda ayrı bitiyormuş gibi bant
-        yapıyordu; artık degrade PANELİN TAMAMI boyunca tek seferde
-        akar (satırların kendi zemini yoktur).
+   ── NEDEN HER SEÇİCİ `html body` İLE BAŞLIYOR ──
+   Bu dosyanın üst bölümleri de `.hud-top{ ... !important }` yazıyor.
+   İki kural da !important olunca kazananı SIRALAMA belirler ve o
+   bölümler bazı durumlarda buradan SONRA ekleniyor — ilk denemede
+   yazı boyu ile genişliğin çalışıp dolgu, yükseklik ve kalınlık
+   ayarlarının çalışmamasının sebebi tam olarak buydu. `html body`
+   öneki seçici ağırlığını yükseltir; sıralama ne olursa olsun
+   buradaki kural kazanır. Ölçü değişkenlerinin işlemesi buna
+   bağlıdır, kaldırma.
 
-   ── ÖLÇÜLER DEĞİŞKENDEN OKUNUR ──
-   Yazı, ikon, boşluk, genişlik gibi her ölçü bir CSS değişkenidir
-   ve 16. bölümdeki ince ayar paneli bunları canlı değiştirir.
-   Sabit sayı yazmak yerine değişken kullanılmasının sebebi budur:
-   ayarı ekranda bulup kaydedersin, dosyaya elle sayı girmek
-   gerekmez.
+   ── BOY SABİT ──
+   Menünün yüksekliği yazıya göre BÜYÜMEZ; `--hud-h` ne diyorsa odur,
+   içerik dikeyde ortalanır. Harflerin altındaki ölü boşluğu da
+   `--hud-lh` (satır yüksekliği) keser.
 
    index.html'e dokunulmaz; bu dosya silinirse eski hâl geri gelir.
    ═══════════════════════════════════════════════════════════════ */
@@ -2911,36 +2910,29 @@ document.head.appendChild(st);
 const st = document.createElement("style");
 st.id = "temaUstMenuTekGovde";
 st.textContent = `
-/* ── TEK GÖVDE ──
-   Degrade iki satırın toplam boyuna yayılır; gölge ve yuvarlaklık
-   yalnız bu gövdeye aittir. */
-.hud-top{
+html body .hud-top{
+  box-sizing:border-box !important;
+  display:flex !important;
   flex-wrap:wrap !important;
   align-content:center !important;
-  row-gap:var(--hud-gap, 1px) !important;
-  padding:calc(var(--hud-pt, 3px) + env(safe-area-inset-top,0))
+  align-items:center !important;
+  row-gap:var(--hud-gap, 0px) !important;
+  height:calc(var(--hud-h, 56px) + env(safe-area-inset-top,0)) !important;
+  min-height:0 !important;
+  padding:calc(env(safe-area-inset-top,0) + var(--hud-pt, 0px))
           var(--hud-px, 8px)
-          var(--hud-pb, 3px) !important;
+          var(--hud-pb, 0px) !important;
   width:var(--hud-w, 100%) !important;
   margin:0 auto !important;
   background:linear-gradient(180deg,
       var(--km-1) 0%, var(--km-2) 48%, var(--km-3) 100%) !important;
   border-radius:0 0 var(--hud-r, 13px) var(--hud-r, 13px) !important;
   overflow:hidden !important;
+  pointer-events:auto !important;
 }
 
-/* ── BOY KİLİDİ ──
-   Açıkken menünün yüksekliği sabittir: yazıyı büyütsen de menü
-   büyümez, içerik ortalanır. Ayar panelindeki anahtar bu sınıfı
-   takar/söker. */
-.hud-top.hud-boy-kilit{
-  height:calc(var(--hud-h, 58px) + env(safe-area-inset-top,0)) !important;
-  align-content:center !important;
-}
-
-/* AYRAÇ KURALINI İPTAL — kaynak kutusu rozet değil, satırdır */
-.hud-top > .hud-kaynak{
-  border:none !important;
+/* Kaynak satırı: rozet değil, satır. Ayraç ve kendi zemini yok. */
+html body .hud-top > .hud-kaynak{
   flex:0 0 100% !important;
   order:9 !important;
   position:static !important;
@@ -2952,18 +2944,21 @@ st.textContent = `
   margin:0 !important;
   padding:0 !important;
   background:none !important;
+  border:none !important;
   border-radius:0 !important;
   box-shadow:none !important;
   pointer-events:auto !important;
 }
-.hud-top > .hud-kaynak::before,
-.hud-top > .hud-kaynak::after{ content:none !important; }
+html body .hud-top > .hud-kaynak::before,
+html body .hud-top > .hud-kaynak::after{ content:none !important; }
 
-/* kaynak öğeleri: kutu yok, çizgi yok, dolgun yazı */
-.hud-top .kaynak-oge{
+html body .hud-top .kaynak-oge{
+  display:flex !important;
+  align-items:center !important;
   background:none !important;
   border:none !important;
   border-radius:0 !important;
+  margin:0 !important;
   padding:0 var(--hud-ara, 6px) !important;
   flex:1 1 0 !important;
   justify-content:center !important;
@@ -2971,46 +2966,49 @@ st.textContent = `
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-size:var(--hud-f2, 15px) !important;
   font-weight:var(--hud-fw, 900) !important;
+  line-height:var(--hud-lh, 1.05) !important;
   letter-spacing:.2px !important;
-  line-height:1.2 !important;
   color:#f2fbff !important;
   text-shadow:0 1px 2px rgba(0,12,32,.85) !important;
 }
-.hud-top .kaynak-ikon{
+html body .hud-top .kaynak-ikon{
   font-size:var(--hud-ik, 15px) !important;
+  line-height:var(--hud-lh, 1.05) !important;
   filter:drop-shadow(0 1px 1px rgba(0,12,32,.7)) !important;
 }
 
-/* üst satır aynı dilde konuşsun */
-.hud-top .hud-pill,
-.hud-top #mslHudPill{
+/* Üst satır — aynı değişkenlerden beslenir */
+html body .hud-top .hud-pill,
+html body .hud-top #mslHudPill,
+html body .hud-top #staminaPill{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
   font-size:var(--hud-f1, 14px) !important;
-  line-height:1.2 !important;
-}
-.hud-top .hud-pill,
-.hud-top .hud-pill.diamond-pill .amount,
-.hud-top #staminaPill #staminaText,
-.hud-top .user-pill #currentUserLabel{
   font-weight:var(--hud-fw, 900) !important;
+  line-height:var(--hud-lh, 1.05) !important;
+  margin:0 !important;
+  padding:0 var(--hud-ara, 6px) !important;
   color:#f2fbff !important;
   text-shadow:0 1px 2px rgba(0,12,32,.85) !important;
 }
-
-@media (max-width:360px){
-  .hud-top .kaynak-oge{ padding:0 3px !important; }
+html body .hud-top .hud-pill.diamond-pill .amount,
+html body .hud-top #staminaPill #staminaText,
+html body .hud-top .user-pill #currentUserLabel{
+  font-size:var(--hud-f1, 14px) !important;
+  font-weight:var(--hud-fw, 900) !important;
+  line-height:var(--hud-lh, 1.05) !important;
+  color:#f2fbff !important;
 }
 `;
 document.head.appendChild(st);
 
-/* Kutuyu menünün son çocuğu yap. Yeniden çizen kod onu geri koyarsa
-   diye bekçi durur; taşıma yapılmışsa hiçbir şey olmaz. */
+/* Kutuyu menünün son çocuğu yap; yeniden çizen kod geri koyarsa
+   bekçi tekrar taşır (aynıysa hiçbir şey yapmaz). */
 function tasi() {
   const ust = document.querySelector(".hud-top");
   const kay = document.getElementById("hudKaynak");
   if (!ust || !kay) return;
   if (kay.parentElement !== ust) ust.appendChild(kay);
 }
-
 function baslat() {
   tasi();
   const govde = document.getElementById("worldScreen") || document.body;
@@ -3020,12 +3018,9 @@ function baslat() {
   setTimeout(tasi, 500);
   setTimeout(tasi, 2000);
 }
-
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", baslat);
-} else {
-  baslat();
-}
+} else { baslat(); }
 })();
 
 
@@ -3033,50 +3028,44 @@ if (document.readyState === "loading") {
    16) ÜST MENÜ İNCE AYAR PANELİ
    ---------------------------------------------------------------
    AÇMAK İÇİN: adresin sonuna  ?menu=1  ekle.
-   (Örn: .../index.html?menu=1 — soru işareti zaten varsa &menu=1)
 
-   Her sürgü 15. bölümdeki bir CSS değişkenini canlı değiştirir;
-   sonuç anında menüde görünür. Beğendiğin ayar KAYDET ile telefona
-   yazılır ve bundan sonra ?menu=1 olmadan da uygulanır.
+   Her satırda [−] sürgü [+] var: sürgü kaba, düğmeler tek adım
+   ilerletir (yazılarda çeyrek piksel), basılı tutunca hızlanır.
+   KAYDET dedikten sonra ?menu=1 olmadan da geçerli olur.
 
-   "BOY KİLİDİ" açıkken menü yüksekliği sabittir — yazıyı
-   büyüttüğünde menü büyümez, sadece içerik ortalanır. Yazı menüye
-   sığmayacak kadar büyürse taşan kısım kırpılır; o zaman ya yazıyı
-   küçült ya kilit yüksekliğini artır.
-
-   "KOPYALA" ayarları metin olarak panoya alır. Bir ayarı kalıcı
-   olarak dosyaya gömmemi istersen o metni bana yolla.
-
-   Panelin kendi görünümü bilinçli olarak kaba: burası bir alet,
-   oyunun parçası değil.
+   Menü boyu yazıya göre BÜYÜMEZ — "Menü yüksekliği" ne diyorsa
+   odur. Harflerin altındaki boşluğu "Satır yüksekliği" keser.
    ═══════════════════════════════════════════════════════════════ */
 (function ustMenuAyarPaneli() {
 "use strict";
 
 const ANAHTAR = "hudMenuAyar";
 
-/* Her satır: [değişken, etiket, en az, en çok, adım, birim, varsayılan] */
+/* [değişken, etiket, en az, en çok, adım, birim, varsayılan] */
 const ALANLAR = [
-  ["--hud-f1", "Üst satır yazı",     9,  24, 0.5, "px", 14],
-  ["--hud-f2", "Kaynak yazı",        9,  24, 0.5, "px", 15],
-  ["--hud-ik", "Kaynak ikon",        9,  26, 0.5, "px", 15],
-  ["--hud-fw", "Yazı kalınlığı",   400, 900, 100, "",  900],
-  ["--hud-pt", "Üst boşluk",          0,  24, 1,   "px", 3],
-  ["--hud-pb", "Alt boşluk",          0,  24, 1,   "px", 3],
-  ["--hud-gap","Satır arası",        -6,  20, 1,   "px", 1],
-  ["--hud-px", "Yan boşluk",          0,  28, 1,   "px", 8],
-  ["--hud-ara","Kaynak aralığı",      0,  20, 1,   "px", 6],
-  ["--hud-w",  "Menü genişliği",     55, 100, 1,   "%",  100],
-  ["--hud-r",  "Köşe yuvarlaklığı",   0,  30, 1,   "px", 13],
-  ["--hud-h",  "Kilitli yükseklik",  36, 120, 1,   "px", 58],
+  ["--hud-h",  "Menü yüksekliği",   30, 130, 1,    "px", 56],
+  ["--hud-f1", "Üst satır yazı",     8,  26, 0.25, "px", 14],
+  ["--hud-f2", "Kaynak yazı",        8,  26, 0.25, "px", 15],
+  ["--hud-ik", "Kaynak ikon",        8,  28, 0.25, "px", 15],
+  ["--hud-fw", "Yazı kalınlığı",   400, 900, 100,  "",  900],
+  ["--hud-lh", "Satır yüksekliği", 0.7, 1.8, 0.05, "",  1.05],
+  ["--hud-gap","Satır arası",       -8,  20, 0.5,  "px", 0],
+  ["--hud-pt", "Üst boşluk",         0,  24, 0.5,  "px", 0],
+  ["--hud-pb", "Alt boşluk",         0,  24, 0.5,  "px", 0],
+  ["--hud-px", "Yan boşluk",         0,  28, 0.5,  "px", 8],
+  ["--hud-ara","Öğe aralığı",        0,  20, 0.5,  "px", 6],
+  ["--hud-w",  "Menü genişliği",    55, 100, 0.5,  "%",  100],
+  ["--hud-r",  "Köşe yuvarlaklığı",  0,  30, 0.5,  "px", 13],
 ];
 
+function yuvarla(v, adim) {
+  return Math.round(Math.round(v / adim) * adim * 100) / 100;
+}
 function varsayilan() {
-  const o = { kilit: false };
+  const o = {};
   ALANLAR.forEach(a => { o[a[0]] = a[6]; });
   return o;
 }
-
 function oku() {
   try {
     const ham = localStorage.getItem(ANAHTAR);
@@ -3084,31 +3073,21 @@ function oku() {
     return Object.assign(varsayilan(), JSON.parse(ham));
   } catch (e) { return varsayilan(); }
 }
-
 function yaz(s) {
   try { localStorage.setItem(ANAHTAR, JSON.stringify(s)); return true; }
   catch (e) { return false; }
 }
-
-/* Değişkenler kök öğeye yazılır; menü onları miras alır. */
 function uygula(s) {
   const kok = document.documentElement;
   ALANLAR.forEach(a => {
-    const [ad, , , , , birim] = a;
-    const v = (s[ad] != null) ? s[ad] : a[6];
-    kok.style.setProperty(ad, v + birim);
+    const v = (s[a[0]] != null) ? s[a[0]] : a[6];
+    kok.style.setProperty(a[0], v + a[5]);
   });
-  const ust = document.querySelector(".hud-top");
-  if (ust) ust.classList.toggle("hud-boy-kilit", !!s.kilit);
 }
 
 const S = oku();
 uygula(S);
-/* Menü geç çizilirse kilit sınıfı kaçmasın */
-setTimeout(() => uygula(S), 600);
-setTimeout(() => uygula(S), 2000);
 
-/* ── PANEL ── yalnız ?menu=1 ile ───────────────────────────────── */
 if (!/[?&]menu=1/.test(location.search || "")) return;
 
 function kur() {
@@ -3117,36 +3096,40 @@ function kur() {
   const st = document.createElement("style");
   st.textContent = `
 #hudAyarPanel{
-  position:fixed; left:8px; right:8px; bottom:8px; z-index:99999;
+  position:fixed; left:6px; right:6px; bottom:6px; z-index:99999;
   background:#0e141c; border:2px solid #2f5f7a; border-radius:14px;
   color:#e8f3ff; font-family:'Baloo 2',sans-serif; font-size:13px;
   box-shadow:0 10px 30px rgba(0,0,0,.6); overflow:hidden;
 }
 #hudAyarPanel .hap-bas{
   display:flex; align-items:center; gap:8px;
-  padding:8px 10px; background:#16222e; font-weight:900; font-size:14px;
+  padding:7px 10px; background:#16222e; font-weight:900; font-size:14px;
 }
-#hudAyarPanel .hap-bas .hap-buyut{ margin-left:auto; }
+#hudAyarPanel .hap-bas button{ margin-left:auto; min-width:38px; }
 #hudAyarPanel button{
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:12.5px;
+  font-family:'Baloo 2',sans-serif; font-weight:900; font-size:13px;
   border:1px solid #37708f; background:#1d3242; color:#e8f3ff;
-  border-radius:9px; padding:6px 10px;
+  border-radius:9px; padding:5px 9px; line-height:1;
 }
-#hudAyarPanel .hap-govde{ max-height:46vh; overflow-y:auto; padding:6px 10px 10px; }
-#hudAyarPanel.kapali .hap-govde, #hudAyarPanel.kapali .hap-alt{ display:none; }
-#hudAyarPanel .hap-satir{ margin:7px 0; }
+#hudAyarPanel button:active{ background:#2a4a60; }
+#hudAyarPanel .hap-govde{ max-height:44vh; overflow-y:auto; padding:4px 10px 8px; }
+#hudAyarPanel.kapali .hap-govde,
+#hudAyarPanel.kapali .hap-alt,
+#hudAyarPanel.kapali #hapBilgi{ display:none; }
+#hudAyarPanel .hap-satir{ margin:6px 0; }
 #hudAyarPanel .hap-etiket{
-  display:flex; justify-content:space-between; font-weight:800; margin-bottom:2px;
+  display:flex; justify-content:space-between; font-weight:900; margin-bottom:1px;
 }
 #hudAyarPanel .hap-deger{ color:#7fd8ff; }
-#hudAyarPanel input[type=range]{ width:100%; accent-color:#4fb3e8; height:26px; }
-#hudAyarPanel .hap-alt{ display:flex; gap:6px; padding:8px 10px; background:#16222e; }
+#hudAyarPanel .hap-kol{ display:flex; align-items:center; gap:7px; }
+#hudAyarPanel .hap-kol button{ width:38px; text-align:center; font-size:16px; padding:4px 0; }
+#hudAyarPanel input[type=range]{ flex:1; accent-color:#4fb3e8; height:24px; min-width:0; }
+#hudAyarPanel .hap-alt{ display:flex; gap:6px; padding:7px 10px; background:#16222e; }
 #hudAyarPanel .hap-alt button{ flex:1; }
-#hudAyarPanel .hap-kilit{
-  display:flex; align-items:center; gap:8px; padding:6px 0 2px; font-weight:800;
+#hudAyarPanel #hapBilgi{
+  background:#12303f; color:#bff0ff; padding:0 10px; text-align:center;
+  font-weight:800; font-size:12.5px; line-height:1.6;
 }
-#hudAyarPanel .hap-kilit input{ width:20px; height:20px; accent-color:#4fb3e8; }
-#hudAyarPanel .hap-not{ font-size:11px; color:#8fa8bd; line-height:1.45; padding-top:4px; }
 `;
   document.head.appendChild(st);
 
@@ -3154,27 +3137,21 @@ function kur() {
   p.id = "hudAyarPanel";
 
   let ic = `<div class="hap-bas">🎛️ Üst menü ince ayar
-      <button class="hap-buyut" id="hapKapat">–</button></div>
-    <div class="hap-govde">
-      <label class="hap-kilit">
-        <input type="checkbox" id="hapKilit" ${S.kilit ? "checked" : ""}>
-        Boy kilidi — yazı büyüse de menü büyümesin
-      </label>`;
-
+      <button id="hapKapat">–</button></div><div class="hap-govde">`;
   ALANLAR.forEach(a => {
-    const [ad, etiket, min, max, adim, birim] = a;
-    const v = (S[ad] != null) ? S[ad] : a[6];
+    const v = (S[a[0]] != null) ? S[a[0]] : a[6];
     ic += `<div class="hap-satir">
-        <div class="hap-etiket"><span>${etiket}</span>
-          <span class="hap-deger" id="d${ad}">${v}${birim}</span></div>
-        <input type="range" id="r${ad}" min="${min}" max="${max}"
-               step="${adim}" value="${v}">
+        <div class="hap-etiket"><span>${a[1]}</span>
+          <span class="hap-deger" id="d${a[0]}">${v}${a[5]}</span></div>
+        <div class="hap-kol">
+          <button data-az="${a[0]}">−</button>
+          <input type="range" id="r${a[0]}" min="${a[2]}" max="${a[3]}"
+                 step="${a[4]}" value="${v}">
+          <button data-cok="${a[0]}">+</button>
+        </div>
       </div>`;
   });
-
-  ic += `<div class="hap-not">Boy kilidi açıkken yazı menüye sığmazsa
-      taşan kısım kırpılır — yazıyı küçült ya da kilitli yüksekliği artır.</div>
-    </div>
+  ic += `</div><div id="hapBilgi"></div>
     <div class="hap-alt">
       <button id="hapKaydet">KAYDET</button>
       <button id="hapKopyala">KOPYALA</button>
@@ -3183,79 +3160,73 @@ function kur() {
   p.innerHTML = ic;
   document.body.appendChild(p);
 
-  /* teşhis satırı — showToast bu telefonda görünmüyor, ham div */
   function bilgi(yazi) {
-    let el = document.getElementById("hapBilgi");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "hapBilgi";
-      el.style.cssText = "background:#12303f;color:#bff0ff;padding:6px 10px;" +
-        "font:800 12.5px 'Baloo 2',sans-serif;text-align:center;min-height:15px;";
-      const kok = document.getElementById("hudAyarPanel");
-      kok.insertBefore(el, kok.querySelector(".hap-alt"));
-    }
+    const el = document.getElementById("hapBilgi");
     el.textContent = yazi;
     clearTimeout(el._t);
-    el._t = setTimeout(() => { el.textContent = ""; }, 2600);
+    el._t = setTimeout(() => { el.textContent = ""; }, 3000);
+  }
+
+  function ayarla(ad, yeni) {
+    const a = ALANLAR.find(x => x[0] === ad);
+    const v = Math.min(a[3], Math.max(a[2], yuvarla(yeni, a[4])));
+    S[ad] = v;
+    document.getElementById("r" + ad).value = v;
+    document.getElementById("d" + ad).textContent = v + a[5];
+    uygula(S);
   }
 
   ALANLAR.forEach(a => {
-    const [ad, , , , , birim] = a;
-    const r = document.getElementById("r" + ad);
-    const d = document.getElementById("d" + ad);
-    r.addEventListener("input", () => {
-      S[ad] = parseFloat(r.value);
-      d.textContent = S[ad] + birim;
-      uygula(S);
+    document.getElementById("r" + a[0]).addEventListener("input", (e) => {
+      ayarla(a[0], parseFloat(e.target.value));
     });
   });
 
-  document.getElementById("hapKilit").addEventListener("change", (e) => {
-    S.kilit = e.target.checked;
-    uygula(S);
+  /* +/− : tek dokunuş bir adım, basılı tutunca hızlanır */
+  let tekrar = null;
+  function bas(ad, yon) {
+    const a = ALANLAR.find(x => x[0] === ad);
+    const adim = () => ayarla(ad, S[ad] + yon * a[4]);
+    adim();
+    clearInterval(tekrar);
+    const gecikme = setTimeout(() => { tekrar = setInterval(adim, 70); }, 380);
+    const birak = () => { clearTimeout(gecikme); clearInterval(tekrar); };
+    document.addEventListener("pointerup", birak, { once: true });
+    document.addEventListener("pointercancel", birak, { once: true });
+  }
+  p.addEventListener("pointerdown", (e) => {
+    const b = e.target.closest ? e.target.closest("button") : null;
+    if (!b) return;
+    if (b.dataset.az)  { e.preventDefault(); bas(b.dataset.az, -1); }
+    if (b.dataset.cok) { e.preventDefault(); bas(b.dataset.cok, +1); }
   });
 
   document.getElementById("hapKapat").addEventListener("click", () => {
-    const el = document.getElementById("hudAyarPanel");
-    el.classList.toggle("kapali");
+    p.classList.toggle("kapali");
     document.getElementById("hapKapat").textContent =
-      el.classList.contains("kapali") ? "+" : "–";
+      p.classList.contains("kapali") ? "+" : "–";
   });
-
   document.getElementById("hapKaydet").addEventListener("click", () => {
     bilgi(yaz(S) ? "Kaydedildi — ?menu=1 olmadan da geçerli."
                  : "KAYDEDİLEMEDİ — telefon deposu engelliyor.");
   });
-
   document.getElementById("hapSifirla").addEventListener("click", () => {
     const v = varsayilan();
-    Object.keys(v).forEach(k => { S[k] = v[k]; });
-    ALANLAR.forEach(a => {
-      const [ad, , , , , birim] = a;
-      document.getElementById("r" + ad).value = S[ad];
-      document.getElementById("d" + ad).textContent = S[ad] + birim;
-    });
-    document.getElementById("hapKilit").checked = false;
-    uygula(S);
+    ALANLAR.forEach(a => ayarla(a[0], v[a[0]]));
     try { localStorage.removeItem(ANAHTAR); } catch (e) {}
     bilgi("Varsayılana döndü.");
   });
-
   document.getElementById("hapKopyala").addEventListener("click", () => {
-    const metin = JSON.stringify(S, null, 1);
+    const metin = JSON.stringify(S);
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(metin)
         .then(() => bilgi("Panoya kopyalandı."))
         .catch(() => bilgi(metin));
-    } else {
-      bilgi(metin);
-    }
+    } else { bilgi(metin); }
   });
 }
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", kur);
-} else {
-  kur();
-}
+} else { kur(); }
 })();
