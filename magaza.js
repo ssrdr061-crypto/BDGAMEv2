@@ -32,6 +32,14 @@
 const shopItems = [
 
   { name: "5 Dakika Hızlandırma", price: 200, isSpeedUpItem: true, speedUpMinutes: 5, icon: "⏩" },
+
+  /* ── İNTİKAL HIZLANDIRMA ──
+     Çantaya düşer; yoldaki bir seferin KALAN süresini kısaltır.
+     Sefer kutusundaki ⚡ düğmesinden kullanılır — çantada varsa
+     önce o harcanır, yoksa elmasla hızlandırma önerilir.
+     Görseller şimdilik emoji; sen kendi görsellerini koyacaksın. */
+  { name: "İntikal Hızlandırma %25", price: 2000, isSeferHiz: true, hizOran: 0.25, icon: "⚡" },
+  { name: "İntikal Hızlandırma %50", price: 3500, isSeferHiz: true, hizOran: 0.50, icon: "🌀" },
   { name: "Can Potu", price: (typeof STAMINA_POTION_PRICE !== "undefined" ? STAMINA_POTION_PRICE : 6000), isStaminaPotion: true, icon: "❤️" },
 
   /* ── FÜZE (kale saldırısı) ── */
@@ -220,7 +228,7 @@ function renderShop() {
 
   const filtered = shopItems.filter(item => {
     if (activeShopCategory === "all") return true;
-    if (activeShopCategory === "potion") return !!(item.isStaminaPotion || item.isSpeedUpItem);
+    if (activeShopCategory === "potion") return !!(item.isStaminaPotion || item.isSpeedUpItem || item.isSeferHiz);
     if (activeShopCategory === "boost") return !!item.isBoost;
     return item.slot === activeShopCategory;
   });
@@ -235,7 +243,7 @@ function renderShop() {
       html += `<div class="shop-tier-header">⭐ Kahraman Güçlendirmeleri</div>`;
       lastTier = "boost";
     }
-    if (!item.isBoost && !item.isStaminaPotion && !item.isSpeedUpItem &&
+    if (!item.isBoost && !item.isStaminaPotion && !item.isSpeedUpItem && !item.isSeferHiz &&
         activeShopCategory === "all" && item.tier && item.tier !== lastTier) {
       html += `<div class="shop-tier-header">${tierLabels[item.tier] || ""}</div>`;
       lastTier = item.tier;
@@ -243,7 +251,8 @@ function renderShop() {
 
     const left = shopLeft(item);
     const soldOut = left <= 0;
-    const badge = item.isSpeedUpItem ? "5dk" : "1";
+    const badge = item.isSeferHiz ? ("%" + Math.round(item.hizOran * 100))
+                : (item.isSpeedUpItem ? "5dk" : "1");
 
     html += `
       <div class="shop-card2 ${soldOut ? "soldout" : ""}" data-idx="${realIdx}" style="animation-delay:${i * 0.04}s">
@@ -291,6 +300,9 @@ function closeShopPopups() {
 function shopItemDesc(item) {
   if (item.isMissile)        return item.missileDesc || "";
   if (item.isSpeedUpItem)    return "Eğitim/iyileşme süresini 5 dk kısaltır.";
+  if (item.isSeferHiz)       return "Yoldaki bir intikalin kalan süresini %" +
+                                    Math.round(item.hizOran * 100) +
+                                    " kısaltır. Haritadaki sefer kutusuna dokunup kullanılır.";
   if (item.isStaminaPotion)  return "Genel Canı doldurur (envanterine düşer).";
   if (item.isBoost)          return item.boostDesc || "";
   return formatBonus(item.bonus);

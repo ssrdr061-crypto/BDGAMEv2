@@ -1126,7 +1126,7 @@ function hudCiz() {
     return `<div class="sefer-satir" data-sefer="${x.id}">
       <span class="sefer-sure">${fmtSure(ev.kalanMs)}</span>
       <span class="sefer-hedef">${String(x.s.hedefAd || "").slice(0, 10)}</span>
-      <button class="sefer-geri" type="button" data-geri="${x.id}" title="Geri çağır">⟲</button>
+      <button class="sefer-geri" type="button" data-hiz="${x.id}" title="Hızlandır">⚡</button>
     </div>`;
   }).join("");
 
@@ -1135,12 +1135,13 @@ function hudCiz() {
     if (typeof bindTap === "function") bindTap(row, f); else row.onclick = f;
   });
 
-  /* Geri düğmesi satırın kendi menüsünü AÇMAZ, doğrudan onay sorar. */
+  /* ⚡ düğmesi satırın menüsünü AÇMAZ, doğrudan hızlandırma sorar.
+     Geri çağırma satıra dokununca çıkan menüde duruyor. */
   el.querySelectorAll(".sefer-geri").forEach(btn => {
     btn.addEventListener("click", e => {
       e.stopPropagation();
       e.stopImmediatePropagation();
-      geriCagirSor(btn.dataset.geri);
+      hizlandirSor(btn.dataset.hiz);
     });
     btn.addEventListener("pointerup", e => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
   });
@@ -1187,11 +1188,17 @@ function seferMenusu(id, s) {
         <br><span class="sefer-onay-not">Hızlandırma kalan sürenin %${Math.round(AYAR.HIZ_ORANI * 100)}'ini siler (−${fmtSure(kazanc)}).</span>
       </div>
       <div class="som-actions som-actions-dikey">
+        ${cantaHTML()}
         <button class="som-btn som-btn-hiz" type="button">⚡ Hızlandır · 💎 ${fmtSayi(AYAR.HIZ_BEDEL)}</button>
         <button class="som-btn som-btn-yes" type="button">↩︎ Geri Çağır</button>
       </div>
     </div>`;
   document.body.appendChild(kok);
+
+  /* Çantadaki hızlandırma ürünleri — varsa elmastan ÖNCE gelir. */
+  kok.querySelectorAll(".som-btn-canta").forEach(b => {
+    b.onclick = () => { kapatKok(); urunleHizlandir(id, b.dataset.urun); };
+  });
 
   /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu. */
   kok.style.pointerEvents = "none";
@@ -1202,10 +1209,68 @@ function seferMenusu(id, s) {
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
   kok.querySelector(".som-btn-hiz").onclick = () => { kapat(); hizlandir(id); };
   kok.querySelector(".som-btn-yes").onclick = () => { kapat(); geriCagirSor(id); };
+  function kapatKok() { kok.remove(); }
 }
 
 function fmtSayi(n) {
   return (typeof fmt === "function") ? fmt(n) : String(n);
+}
+
+/* ── ÇANTADAKİ HIZLANDIRMA ÜRÜNLERİ ──
+   Mağazadan alınan "İntikal Hızlandırma %25/%50" envantere düşer.
+   Oranı ürünün ADINDAN değil magaza.js'teki tanımından okuruz;
+   fiyat/oran orada değişirse burası kendiliğinden uyar. */
+const HIZ_URUNLERI = ["İntikal Hızlandırma %25", "İntikal Hızlandırma %50"];
+
+function urunOrani(ad) {
+  try {
+    const u = (typeof shopItems !== "undefined" ? shopItems : []).find(x => x && x.name === ad);
+    if (u && typeof u.hizOran === "number") return u.hizOran;
+  } catch (e) {}
+  const m = String(ad).match(/%(\d+)/);          /* yedek: addan oku */
+  return m ? (parseInt(m[1], 10) / 100) : 0;
+}
+function cantada(ad) {
+  return (typeof state !== "undefined" && state && state.inventory)
+    ? (state.inventory[ad] || 0) : 0;
+}
+function cantaHTML() {
+  return HIZ_URUNLERI.map(ad => {
+    const n = cantada(ad);
+    if (n <= 0) return "";
+    return `<button class="som-btn som-btn-canta" type="button" data-urun="${ad}">` +
+           `🎒 %${Math.round(urunOrani(ad) * 100)} Hızlandır · ${n} adet</button>`;
+  }).join("");
+}
+
+/* Kutucuktaki ⚡ düğmesi: çantada ürün varsa menüyü açar (hangisini
+   harcayacağını oyuncu seçsin), yoksa doğrudan elmas onayına gider. */
+function hizlandirSor(id) {
+  const s = _yerel[id];
+  if (!s) return;
+  if (HIZ_URUNLERI.some(ad => cantada(ad) > 0)) { seferMenusu(id, s); return; }
+
+  const ev = evre(s);
+  onayPenceresi("HIZLANDIR",
+    `Kalan süre <b>${fmtSure(ev.kalanMs)}</b>. Bunun <b>%${Math.round(AYAR.HIZ_ORANI * 100)}</b>'i silinsin mi?` +
+    `<br><span class="sefer-onay-not">Bedel ${fmtSayi(AYAR.HIZ_BEDEL)} 💎. Çantanda hızlandırma ürünü yok.</span>`,
+    `⚡ Hızlandır · 💎 ${fmtSayi(AYAR.HIZ_BEDEL)}`, () => hizlandir(id));
+}
+
+/* Ürünle hızlandırma: elmas ALINMAZ, çantadan bir adet düşer. */
+function urunleHizlandir(id, ad) {
+  if (cantada(ad) <= 0) { toast("Çantanda kalmamış."); return; }
+  const oran = urunOrani(ad);
+  if (oran <= 0) { toast("Ürün tanımı okunamadı."); return; }
+
+  if (!sureyiKis(id, oran)) return;
+
+  state.inventory[ad] = cantada(ad) - 1;
+  if (state.inventory[ad] <= 0) delete state.inventory[ad];
+  ["renderInventory", "persistCurrentState"].forEach(f => {
+    if (typeof window[f] === "function") { try { window[f](); } catch (e) {} }
+  });
+  toast(`🎒 ${ad} kullanıldı.`, 3500);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1215,12 +1280,32 @@ function fmtSayi(n) {
    ilerleme oranı ve konum hesabı aynı formülle çalışmaya devam
    eder — ikinci bir zaman hesabı doğmaz.
    ═══════════════════════════════════════════════════════════ */
+/* Süre kısaltmanın TEK GÖVDESİ — elmasla da ürünle de burası
+   çalışır. Süre alanlarına dokunulmaz, yalnız evrenin başlangıç
+   damgası geriye çekilir. true dönerse iş oldu. */
+function sureyiKis(id, oran) {
+  const s = _yerel[id];
+  if (!s) return false;
+
+  const ev = evre(s);
+  if (ev.kalanMs <= 1000) { toast("Bu sefer zaten varmak üzere."); return false; }
+
+  const kazanc = Math.round(ev.kalanMs * oran);
+  if (ev.ad === "topla")      s.toplaAt -= kazanc;
+  else if (ev.ad === "donus") s.donusAt -= kazanc;
+  else                        s.gidisAt -= kazanc;
+
+  seferYaz(id, s);
+  toast(`⚡ Sefer hızlandı — ${fmtSure(kazanc)} kısaldı.`, 3500);
+  hudCiz();
+  dongu();
+  return true;
+}
+
+/* Elmasla hızlandırma */
 function hizlandir(id) {
   const s = _yerel[id];
   if (!s) return;
-
-  const ev = evre(s);
-  if (ev.kalanMs <= 1000) { toast("Bu sefer zaten varmak üzere."); return; }
 
   const bedel = AYAR.HIZ_BEDEL;
   const elmas = (typeof state !== "undefined" && state) ? (state.diamonds || 0) : 0;
@@ -1229,20 +1314,12 @@ function hizlandir(id) {
     return;
   }
 
-  const kazanc = Math.round(ev.kalanMs * AYAR.HIZ_ORANI);
-  if (ev.ad === "topla")      s.toplaAt -= kazanc;
-  else if (ev.ad === "donus") s.donusAt -= kazanc;
-  else                        s.gidisAt -= kazanc;
+  if (!sureyiKis(id, AYAR.HIZ_ORANI)) return;   /* iş olmadıysa elmas gitmez */
 
   state.diamonds = elmas - bedel;
   ["renderDiamonds", "updateShopButtons", "persistCurrentState"].forEach(f => {
     if (typeof window[f] === "function") { try { window[f](); } catch (e) {} }
   });
-
-  seferYaz(id, s);
-  toast(`⚡ Sefer hızlandı — ${fmtSure(kazanc)} kısaldı.`, 3500);
-  hudCiz();
-  dongu();
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1398,6 +1475,7 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 }
 .sefer-onay-modal .som-actions-dikey{ flex-direction:column; }
 .sefer-onay-modal .som-btn-hiz{ background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
+.sefer-onay-modal .som-btn-canta{ background:linear-gradient(180deg,#f0c34f,#d1901a); }
 .sefer-onay-modal .som-btn-no{ background:linear-gradient(180deg,#5a6b80,#3b4859); }
 .sefer-onay-modal .som-btn-yes{ background:linear-gradient(180deg,#f0a234,#c0700d); }
 .sefer-onay-modal .som-btn:hover{ filter:brightness(1.08); }
@@ -1437,7 +1515,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "canvas-7",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-8",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   /* harita.js canvas çizimi için — evre ve süre biçimi tek yerde
