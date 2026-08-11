@@ -271,9 +271,31 @@ let _onbellekImza  = "";
 
 function nesilOf(slotId) { return _nesiller[slotId] || 0; }
 
+/* ── ETKİN NESİL ──
+   Kayıtlı nesil, tükenmiş bir düğümde doğuş saati geldiğinde
+   KENDİLİĞİNDEN artmaz: artışı buluta ilk dokunan oyuncu yazar
+   (bkz. isgalAl/tuket). Konum ise nesilden türediği için, o yazma
+   olana kadar herkes düğümü ESKİ nesille hesaplıyor ve canavar
+   doğuş saatinde AYNI KARODA geri beliriyordu — "yendim ama
+   gitmedi" şikâyetinin sebebi buydu.
+
+   Burada nesil, saat geldiği anda +1 sayılır. Tohumlu olduğu için
+   herkeste aynı saniyede aynı yeni karo çıkar; bulut yazması sonra
+   geldiğinde de aynı sayıyı bulur, konum ikinci kez oynamaz. */
+function etkinNesil(slotId) {
+  const d = _durum[slotId];
+  const n = (d && typeof d.n === "number") ? d.n : (_nesiller[slotId] || 0);
+  /* Gecikme KAYITLI nesille hesaplanır — tuket/isgalAl da öyle
+     yapıyor, üçü aynı saati bulmak zorunda. */
+  if (d && typeof d.td === "number" && Date.now() >= d.td + dogusGecikmesi(slotId, n)) {
+    return n + 1;
+  }
+  return n;
+}
+
 /* Şu anki tüm nesillerin imzası — önbellek geçerliliği için. */
 function nesilImzasi() {
-  return _slotlar.map(s => nesilOf(s.slotId)).join(",");
+  return _slotlar.map(s => etkinNesil(s.slotId)).join(",");
 }
 
 /* Kalelerin karo listesi. Düğüm kalenin üstüne doğmasın diye.
@@ -321,7 +343,7 @@ function konumlariHesapla() {
   };
 
   _slotlar.forEach(s => {
-    const nesil = nesilOf(s.slotId);
+    const nesil = etkinNesil(s.slotId);
     const rnd = uretec(karma(AYAR.TOHUM + "|" + s.slotId + "|" + nesil));
 
     let secilen = null;
@@ -506,11 +528,14 @@ function slotDurumu(s) {
   const sab = sablon(s.id, s.seviye);
   if (!sab) return null;
 
-  const nesil = (d && typeof d.n === "number") ? d.n : 0;
+  const nesil = etkinNesil(s.slotId);
 
-  /* Tükenmiş mi? td varsa doğuş saatini bekliyor demektir. */
+  /* Tükenmiş mi? td varsa doğuş saatini bekliyor demektir.
+     Doğuş SÜRESİ kayıtlı nesilden hesaplanır (etkin nesilden
+     DEĞİL): etkin nesil saat gelince +1 olur, süreyi ondan
+     hesaplasaydık saat de kayar ve düğüm bir daha hiç doğmazdı. */
   if (d && typeof d.td === "number") {
-    const dogar = d.td + dogusGecikmesi(s.slotId, nesil);
+    const dogar = d.td + dogusGecikmesi(s.slotId, (typeof d.n === "number" ? d.n : 0));
     if (Date.now() < dogar) {
       return { slotId: s.slotId, bos: true, dogarAt: dogar, nesil: nesil };
     }
