@@ -5619,32 +5619,12 @@ function araziSecimOku() {
   return s;
 }
 
-/* Harita katmanını uyut/uyandır — selectEnemyFromMap ve backToMap
-   ile aynı iki satır. Panel açıkken haritanın çizilmeye devam
-   etmesi tek başına en büyük yavaşlama sebebiydi. */
-function _araziHaritaGizle() {
-  const wrap = document.getElementById("battleMapWrap");
-  if (wrap) wrap.style.display = "none";
-  if (typeof toggleMapOverlays === "function") toggleMapOverlays(false);
-}
-function _araziHaritaGoster() {
-  const wrap = document.getElementById("battleMapWrap");
-  if (wrap) wrap.style.display = "block";
-  if (typeof toggleMapOverlays === "function") toggleMapOverlays(true);
-}
-
 function araziPaneliAc(d) {
   const eski = document.querySelector('[data-arazi="1"]');
   if (eski) { eski.remove(); araziIdIade(); }
 
   araziSecimHazirla();
   araziIdDevral();
-
-  /* HARİTAYI GİZLE — savaş ekranı da tam olarak bunu yapıyor.
-     Harita açık kalınca canvas çizimi, sefer katmanı ve düğüm
-     etiketleri panelin altında çalışmaya devam ediyor; sürgüler ve
-     kahraman kartları o yüzden kasıyordu. */
-  _araziHaritaGizle();
 
   const el = document.createElement("div");
   el.id = "battleArena";                 /* tema kuralları bu id'ye yazılı */
@@ -5685,7 +5665,7 @@ function araziPaneliAc(d) {
     });
   });
 
-  const kapat = () => { el.remove(); araziIdIade(); _araziHaritaGoster(); };
+  const kapat = () => { el.remove(); araziIdIade(); };
   el.addEventListener("click", ev => { if (ev.target === el) kapat(); });
   const kapatBtn = el.querySelector(".map-back-btn");
   if (kapatBtn) kapatBtn.addEventListener("click", kapat);
@@ -5722,7 +5702,7 @@ function araziPaneliAc(d) {
         git.disabled = false; git.textContent = eskiYazi;
         return;
       }
-      if (sonuc) { kapat(); renderBattleMap(); return; }   /* kapat() haritayı geri getirir */
+      if (sonuc) { kapat(); renderBattleMap(); return; }
       git.disabled = false; git.textContent = eskiYazi;
     } catch (err) {
       console.error("[arazi] gönderilemedi:", err);
