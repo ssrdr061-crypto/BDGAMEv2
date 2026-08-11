@@ -1944,56 +1944,67 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .kaynak-ikon{ font-size:12px; }
 
-/* ══ ARAZİ PANELİ ══ */
-.arazi-panel{
-  position:fixed; inset:0; z-index:900;
-  background:rgba(6,9,13,.72);
-  display:flex; align-items:flex-start; justify-content:center;
-  padding:18px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+/* ══ ARAZİ BİLGİ PENCERESİ (oyun teması: .overlay-card) ══ */
+.arazi-bilgi-modal{
+  position:fixed; inset:0; z-index:950;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(2,10,26,.72); padding:18px;
 }
-.arazi-kart{
-  width:100%; max-width:420px; margin:auto;
-  background:#121820; border:1px solid rgba(255,255,255,.14);
-  border-radius:16px; padding:16px;
+.arazi-bilgi-modal .abm-card{ max-width:330px; border-radius:22px; padding:18px 16px; }
+.arazi-bilgi-modal .abm-close{ top:12px; right:12px; }
+/* .overlay-card h2 display:flex — text-align burada işe yaramaz (Tuzak 13) */
+.arazi-bilgi-modal .abm-title{
+  justify-content:center; font-size:20px; letter-spacing:1.2px;
+  padding-right:0; margin:0 0 4px;
 }
-/* Savaş ekranındaki kutular panel içinde tam genişlik alsın */
-.arazi-kart .troop-select-box, .arazi-kart .power-compare-box{ max-width:none; }
-.arazi-kart .arazi-ozet{ margin-bottom:10px; padding:4px 14px; }
-.arazi-kart .arazi-ozet .arazi-satir:last-child{ border-bottom:none; }
-.arazi-bas{ display:flex; align-items:center; gap:11px; margin-bottom:13px; }
-.arazi-ikon{ font-size:31px; }
-.arazi-ad{ font-size:15.5px; font-weight:800; color:#eef4fa; }
-.arazi-sv{ font-size:11.5px; color:var(--diamond-yellow); }
-.arazi-alt{ font-size:11.5px; color:#8fa3b6; margin-top:2px; }
-.arazi-satir{
+.arazi-bilgi-modal .abm-alt{
+  font-family:'Baloo 2','Nunito',sans-serif; font-size:12.5px;
+  text-align:center; opacity:.8; margin-bottom:14px;
+}
+.arazi-bilgi-modal .abm-kalan{
   display:flex; justify-content:space-between; align-items:center;
-  padding:6px 0; font-size:12.5px; color:#9fb2c4;
-  border-bottom:1px solid rgba(255,255,255,.06);
+  font-family:'Baloo 2','Nunito',sans-serif; font-size:14px;
+  background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.14);
+  border-radius:13px; padding:12px 14px; margin-bottom:16px;
 }
-.arazi-satir b{ color:#eef4fa; font-size:13px; }
-.arazi-not{ font-size:10.5px; color:#7d90a3; margin:11px 0 13px; line-height:1.5; }
-.arazi-dugmeler{ display:flex; gap:8px; }
-.arazi-btn{
-  flex:1; padding:10px; border-radius:10px; font-size:13px; font-weight:700;
-  border:1px solid rgba(255,255,255,.16); background:#1b232c; color:#dbe6f0;
+.arazi-bilgi-modal .abm-kalan b{ font-size:17px; color:var(--diamond-yellow); }
+.arazi-bilgi-modal .abm-actions{ display:flex; gap:10px; }
+.arazi-bilgi-modal .abm-btn{
+  flex:1; padding:11px 8px; border-radius:13px; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:14px;
+  color:#fff; border:2px solid rgba(255,255,255,.35);
 }
-.arazi-btn.arazi-git{ background:#1f6f4a; border-color:#2d9c68; }
-.arazi-btn:disabled{ opacity:.45; }
-.arazi-uyari{ font-size:10.5px; color:#c2894f; text-align:center; margin-top:9px; }
+.arazi-bilgi-modal .abm-btn-no{ background:linear-gradient(180deg,#5a6b80,#3b4859); }
+.arazi-bilgi-modal .abm-btn-yes{ background:linear-gradient(180deg,#f0a234,#c0700d); }
 
-/* Arazi panelindeki birlik seçiciler */
-.arazi-birlikler{ margin:11px 0 6px; }
-.arazi-birlik{ margin-bottom:10px; }
-.arazi-birlik-ust{
-  display:flex; justify-content:space-between; align-items:center;
-  font-size:12.5px; color:#9fb2c4; margin-bottom:4px;
+/* ══ TOPLAMA PANELİ ══
+   Kart .battle-arena sınıfını taşır; görünümün tamamı tema.js'ten
+   gelir. Burada yalnız savaş ekranında ID ile yazılmış iki şeyin
+   karşılığı var: kapatma düğmesi (#mapBackBtn) ve panelin dış
+   katmanı. Kural iki yerde durmasın diye başka hiçbir şey
+   kopyalanmadı — renk/ölçü değişimi tema.js'ten yapılır.
+   z-index savaş katmanıyla aynı (60): kahraman seçme penceresi
+   (.hpk-back, 340) bunun ÜSTÜNDE kalmalı. */
+.arazi-panel{ z-index:60; }
+.arazi-panel .arazi-kapat{
+  position:absolute; top:12px; right:14px; left:auto; bottom:auto;
+  margin:0; z-index:50;
+  width:38px; height:38px; padding:0; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,#f03434,#c00d0d);
+  border:2px solid rgba(255,220,220,.9);
+  box-shadow:0 4px 10px rgba(120,0,0,.4);
 }
-.arazi-birlik-ust b{ color:#eef4fa; }
-.arazi-kaydirici{
-  width:100%; height:26px; accent-color:#2d9c68; background:transparent;
+.arazi-panel .arazi-kapat::after{
+  content:"✕"; font-size:22px; font-weight:900; color:#fff;
+  line-height:1; -webkit-text-stroke:1px #fff;
 }
-
-
+.arazi-panel .arazi-kapat:active{ transform:scale(.92); }
+.arazi-panel .troop-select-box{ max-width:none; }
+.arazi-panel .arazi-sure-satir{
+  font-size:14px; color:#eaf7ff; text-shadow:0 1px 2px rgba(0,30,55,.5);
+}
+.arazi-panel .arazi-sure-satir b{ color:#ffd257; font-size:15.5px; }
 
 .home-map-btn{
   position:absolute; z-index:20;
@@ -5503,21 +5514,70 @@ function dugumeTiklandi(slotId) {
   }
 
   if (d.tur === "canavar") { selectEnemyFromMap(_dugumdenCanavar(d)); return; }
-  araziPaneliAc(d);
+  araziBilgiAc(d);   /* önce "arazide kalan", oradan toplama paneline */
 }
 
-/* ── ARAZİ PANELİ ──
-   Savaş ekranının seçicilerinin AYNISI kullanılır: komutan yuvaları
-   (#heroPicker) + birlik seçici (#troopSelectList) + özet satırı.
-   Kod kopyalanmaz, oyunun kendi renderHeroPickerForBattle /
-   renderTroopSelector fonksiyonları çağrılır — savaş ekranı
-   değişirse arazi paneli kendiliğinden onunla gelir.
+/* ── ARAZİ BİLGİ PENCERESİ ──
+   Haritadaki araziye dokununca ÖNCE bu açılır: kaynakta ne kadar
+   kaldığını söyler. Gövde oyunun kendi `.overlay-card`'ı, kapatma
+   `.overlay-close` — tema elle taklit edilmiyor (aynı desen
+   sefer.js'teki onay penceresinde). Buradan TOPLAMAYA GİT ile
+   savaş görünümlü panele geçilir. */
+function araziBilgiAc(d) {
+  const eski = document.getElementById("araziBilgiModal");
+  if (eski) eski.remove();
 
-   ID DEVRİ: o iki fonksiyon getElementById ile çalışır ve DOM'da
+  const kok = document.createElement("div");
+  kok.id = "araziBilgiModal";
+  kok.className = "arazi-bilgi-modal";
+  kok.innerHTML = `
+    <div class="overlay-card abm-card">
+      <button class="overlay-close abm-close" type="button">✕</button>
+      <h2 class="abm-title">${d.ikon} ${escapeHtml(d.ad)}</h2>
+      <div class="abm-alt">Sv.${d.seviye} · ${d.kaynakIkon} ${escapeHtml(d.kaynakAd)} · ${d.hiz}/sn</div>
+      <div class="abm-kalan">
+        <span>Arazide kalan</span>
+        <b>${d.kaynakIkon} ${fmt(d.kalan)}</b>
+      </div>
+      <div class="abm-actions">
+        <button class="abm-btn abm-btn-no"  type="button">Kapat</button>
+        <button class="abm-btn abm-btn-yes" type="button">⛏️ Toplamaya git</button>
+      </div>
+    </div>`;
+  document.body.appendChild(kok);
+
+  /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu. */
+  kok.style.pointerEvents = "none";
+  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
+
+  const kapat = () => kok.remove();
+  kok.querySelector(".abm-close").onclick  = kapat;
+  kok.querySelector(".abm-btn-no").onclick = kapat;
+  kok.querySelector(".abm-btn-yes").onclick = () => { kapat(); araziPaneliAc(d); };
+  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
+}
+
+/* ── TOPLAMA PANELİ = SAVAŞ PANELİ ──
+   Kart `.battle-arena` sınıfını taşır; tema.js'teki mavi tasarımın
+   TAMAMI o seçiciye bağlı olduğu için görünüm savaş ekranıyla
+   birebir olur (kutu, kahraman kartları, birlik satırları, düğme).
+   Tema ayrıca güç kutusunu, birlik özetini ve "Komutan Seç"
+   başlığını kendisi gizler — panelde yalnız kahramanlar, birlikler,
+   süre ve TOPLA kalır.
+
+   Seçiciler kopyalanmaz: oyunun kendi renderHeroPickerForBattle /
+   renderTroopSelector fonksiyonları çağrılır, savaş ekranı
+   değişirse bu panel de kendiliğinden onunla gelir.
+
+   ID DEVRİ: o fonksiyonlar getElementById ile çalışır ve DOM'da
    ÖNCE gelen battleArena'nın kutularını bulur. Panel açıkken
    arenadaki kutuların id'si "_uyku" ekiyle uyutulur, panel
    kapanınca geri verilir. Kapanışın HER dalında iade şart —
-   yoksa savaş ekranındaki seçiciler bir daha çizilmez. */
+   yoksa savaş ekranındaki seçiciler bir daha çizilmez.
+
+   TOPLA düğmesine `id="battleBtn"` VERİLMEZ: sefer.js o id'yi
+   document üzerinde capture ile yakalar ve toplama yerine saldırı
+   seferi başlatırdı. Görünüm `.battle-btn` sınıfından gelir. */
 let _araziSecim = { knight: 0, soldier: 0, robot: 0 };
 const _ARAZI_DEVIR = ["heroPicker", "troopSelectList", "troopSelectSummary"];
 
@@ -5579,23 +5639,10 @@ function araziPaneliAc(d) {
 
   const el = document.createElement("div");
   el.id = "araziPanel";
-  el.className = "arazi-panel";
+  el.className = "battle-arena-overlay arazi-panel";
   el.innerHTML = `
-    <div class="arazi-kart">
-      <div class="arazi-bas">
-        <span class="arazi-ikon">${d.ikon}</span>
-        <div>
-          <div class="arazi-ad">${escapeHtml(d.ad)} <span class="arazi-sv">Sv.${d.seviye}</span></div>
-          <div class="arazi-alt">${d.kaynakIkon} ${escapeHtml(d.kaynakAd)} · ${d.hiz}/sn</div>
-        </div>
-      </div>
-
-      <div class="power-compare-box arazi-ozet">
-        <div class="arazi-satir"><span>Arazide kalan</span><b>${fmt(d.kalan)}</b></div>
-        <div class="arazi-satir"><span>Taşıma kapasitesi</span><b id="araziKap">0</b></div>
-        <div class="arazi-satir"><span>Bu seferde alınacak</span><b id="araziAlir">0</b></div>
-        <div class="arazi-satir"><span>Toplama süresi</span><b id="araziSure">-</b></div>
-      </div>
+    <div class="battle-arena arazi-kart">
+      <button class="map-back-btn arazi-kapat" type="button"></button>
 
       <div class="troop-select-box">
         <div class="troop-select-title">🦸 Komutan Seç</div>
@@ -5605,16 +5652,8 @@ function araziPaneliAc(d) {
         <div class="troop-select-summary" id="troopSelectSummary"></div>
       </div>
 
-      <div class="arazi-not">
-        Şövalye 100 · asker 70 · robot 50 taşır. Kapasite dolunca
-        ordu kendiliğinden döner; kalan kaynak arazide durur.
-        Komutanlar orduyla birlikte gider ve dönünce serbest kalır.
-      </div>
-
-      <div class="arazi-dugmeler">
-        <button class="arazi-btn arazi-iptal">Kapat</button>
-        <button class="arazi-btn arazi-git" id="araziGit">Toplamaya gönder</button>
-      </div>
+      <div class="arazi-sure-satir">⏳ Toplama süresi: <b id="araziSure">-</b></div>
+      <button class="battle-btn arazi-topla" id="araziGit">TOPLA</button>
     </div>`;
   document.body.appendChild(el);
 
@@ -5626,36 +5665,36 @@ function araziPaneliAc(d) {
 
   /* Sürgü, +/- ve elle yazılan sayı hep "input" olayı doğurur ve
      panele kadar kabarır — tek dinleyici üçünü de yakalar. Böylece
-     troops.js'in içine hiç dokunmadan özet canlı kalır. */
+     troops.js'in içine hiç dokunmadan süre canlı kalır. */
   el.addEventListener("input", () => araziOzetTazele(d));
 
   const kapat = () => { el.remove(); araziIdIade(); };
   el.addEventListener("click", ev => { if (ev.target === el) kapat(); });
-  const iptal = el.querySelector(".arazi-iptal");
-  if (iptal) iptal.addEventListener("click", kapat);
+  const kapatBtn = el.querySelector(".arazi-kapat");
+  if (kapatBtn) kapatBtn.addEventListener("click", kapat);
 
   const git = el.querySelector("#araziGit");
   if (git) git.addEventListener("click", async () => {
-    /* SESSİZ KALMASIN: her başarısızlık dalı kendi sebebini söyler.
-       Önceki sürümde buton kapalıysa veya söz (promise) asılı
-       kalırsa hiçbir şey olmuyordu ve sebebi görünmüyordu. */
+    /* SESSİZ KALMASIN: her başarısızlık dalı kendi sebebini söyler. */
     if (git.disabled) { showToast("Bu ordu hiç kaynak taşıyamaz — birlik seç."); return; }
     if (!window.SEFER || typeof SEFER.toplamaBaslat !== "function") {
       showToast("⚠️ sefer.js güncel değil (SEFER.toplamaBaslat yok).", 6000); return;
     }
     const sec = araziSecimOku();
-    const secTop = sec.knight + sec.soldier + sec.robot;
-    if (secTop <= 0) { showToast("Yanına en az 1 birlik almalısın."); return; }
+    if ((sec.knight + sec.soldier + sec.robot) <= 0) {
+      showToast("Yanına en az 1 birlik almalısın."); return;
+    }
 
     const komutanlar = (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
       ? selectedCommanders.filter(Boolean) : [];
 
     git.disabled = true;
-    git.textContent = "Gönderiliyor…";
+    const eskiYazi = git.textContent;
+    git.textContent = "GÖNDERİLİYOR…";
     try {
-      /* ZAMAN AŞIMI: Firebase kuralları yeni dugumler/ yolunu
-         engellerse işlem ne çözülür ne reddedilir — sonsuza dek
-         asılı kalır ve düğme donar. 8 saniyede kesiyoruz. */
+      /* ZAMAN AŞIMI: Firebase kuralları dugumler/ yolunu engellerse
+         işlem ne çözülür ne reddedilir — sonsuza dek asılı kalır ve
+         düğme donar. 8 saniyede kesiyoruz. */
       const sonuc = await Promise.race([
         SEFER.toplamaBaslat(d.slotId, sec, komutanlar),
         new Promise(r => setTimeout(() => r("zamanasimi"), 8000)),
@@ -5663,31 +5702,29 @@ function araziPaneliAc(d) {
 
       if (sonuc === "zamanasimi") {
         showToast("⚠️ Sunucu cevap vermedi (dugumler/ yazılamıyor olabilir — Firebase kuralları).", 8000);
-        git.disabled = false; git.textContent = "Toplamaya gönder";
+        git.disabled = false; git.textContent = eskiYazi;
         return;
       }
       if (sonuc) { kapat(); renderBattleMap(); return; }
-      git.disabled = false; git.textContent = "Toplamaya gönder";
+      git.disabled = false; git.textContent = eskiYazi;
     } catch (err) {
       console.error("[arazi] gönderilemedi:", err);
       showToast("⚠️ Hata: " + (err && err.message ? err.message : "bilinmeyen"), 8000);
-      git.disabled = false; git.textContent = "Toplamaya gönder";
+      git.disabled = false; git.textContent = eskiYazi;
     }
   });
 }
 
-/* Kapasite / alınacak / süre satırlarını tazeler. */
+/* Süre satırını tazeler. Kapasite/alınacak ekranda YAZMAZ ama yine
+   hesaplanır: taşıma kapasitesi sıfırsa TOPLA kapalı kalmalı. */
 function araziOzetTazele(d) {
   const sec  = araziSecimOku();
   const plan = DUGUM.toplamaPlani(d.slotId, sec);
-  const kap  = plan ? plan.kapasite : 0;
   const alir = plan ? plan.alinacak : 0;
   const ms   = plan ? plan.sureMs : 0;
 
-  const yaz = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  yaz("araziKap", fmt(kap));
-  yaz("araziAlir", fmt(alir));
-  yaz("araziSure", ms > 0 ? araziSureYazi(ms) : "-");
+  const sureEl = document.getElementById("araziSure");
+  if (sureEl) sureEl.textContent = ms > 0 ? araziSureYazi(ms) : "-";
 
   const git = document.getElementById("araziGit");
   if (git) git.disabled = (alir <= 0);
