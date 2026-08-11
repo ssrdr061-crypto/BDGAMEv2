@@ -162,8 +162,11 @@
       lav:   "#8c3126",
     },
 
-    /* ── Hata ayıklama ── */
-    fpsGoster: true,
+    /* ── Hata ayıklama ──
+       fpsGoster: sol üstteki "60 fps · 1024 karo · 5 düğüm" rozeti.
+       Kapalı; adres sonuna ?fps=1 eklersen o oturumda açılır, yani
+       performans şüphesinde dosyaya dokunmadan bakabilirsin. */
+    fpsGoster: /[?&]fps=1/.test(location.search || ""),
     izgaraCizgisi: false,   // true yaparsan karo kenarları çizilir
   };
 

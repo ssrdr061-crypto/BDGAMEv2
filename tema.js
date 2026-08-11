@@ -2916,17 +2916,17 @@ html body .hud-top{
   flex-wrap:wrap !important;
   align-content:center !important;
   align-items:center !important;
-  row-gap:var(--hud-gap, 0px) !important;
-  height:calc(var(--hud-h, 56px) + env(safe-area-inset-top,0)) !important;
+  row-gap:var(--hud-gap, -2px) !important;
+  height:calc(var(--hud-h, 48px) + env(safe-area-inset-top,0)) !important;
   min-height:0 !important;
-  padding:calc(env(safe-area-inset-top,0) + var(--hud-pt, 0px))
-          var(--hud-px, 8px)
-          var(--hud-pb, 0px) !important;
+  padding:calc(env(safe-area-inset-top,0) + var(--hud-pt, 10px))
+          var(--hud-px, 1.5px)
+          var(--hud-pb, 10.5px) !important;
   width:var(--hud-w, 100%) !important;
   margin:0 auto !important;
   background:linear-gradient(180deg,
       var(--km-1) 0%, var(--km-2) 48%, var(--km-3) 100%) !important;
-  border-radius:0 0 var(--hud-r, 13px) var(--hud-r, 13px) !important;
+  border-radius:0 0 var(--hud-r, 12.5px) var(--hud-r, 12.5px) !important;
   overflow:hidden !important;
   pointer-events:auto !important;
 }
@@ -2959,21 +2959,21 @@ html body .hud-top .kaynak-oge{
   border:none !important;
   border-radius:0 !important;
   margin:0 !important;
-  padding:0 var(--hud-ara, 6px) !important;
+  padding:0 var(--hud-ara, 4px) !important;
   flex:1 1 0 !important;
   justify-content:center !important;
   gap:5px !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-size:var(--hud-f2, 15px) !important;
+  font-size:var(--hud-f2, 14px) !important;
   font-weight:var(--hud-fw, 900) !important;
-  line-height:var(--hud-lh, 1.05) !important;
+  line-height:var(--hud-lh, 1.45) !important;
   letter-spacing:.2px !important;
   color:#f2fbff !important;
   text-shadow:0 1px 2px rgba(0,12,32,.85) !important;
 }
 html body .hud-top .kaynak-ikon{
   font-size:var(--hud-ik, 15px) !important;
-  line-height:var(--hud-lh, 1.05) !important;
+  line-height:var(--hud-lh, 1.45) !important;
   filter:drop-shadow(0 1px 1px rgba(0,12,32,.7)) !important;
 }
 
@@ -2982,20 +2982,20 @@ html body .hud-top .hud-pill,
 html body .hud-top #mslHudPill,
 html body .hud-top #staminaPill{
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-size:var(--hud-f1, 14px) !important;
+  font-size:var(--hud-f1, 15.5px) !important;
   font-weight:var(--hud-fw, 900) !important;
-  line-height:var(--hud-lh, 1.05) !important;
+  line-height:var(--hud-lh, 1.45) !important;
   margin:0 !important;
-  padding:0 var(--hud-ara, 6px) !important;
+  padding:0 var(--hud-ara, 4px) !important;
   color:#f2fbff !important;
   text-shadow:0 1px 2px rgba(0,12,32,.85) !important;
 }
 html body .hud-top .hud-pill.diamond-pill .amount,
 html body .hud-top #staminaPill #staminaText,
 html body .hud-top .user-pill #currentUserLabel{
-  font-size:var(--hud-f1, 14px) !important;
+  font-size:var(--hud-f1, 15.5px) !important;
   font-weight:var(--hud-fw, 900) !important;
-  line-height:var(--hud-lh, 1.05) !important;
+  line-height:var(--hud-lh, 1.45) !important;
   color:#f2fbff !important;
 }
 `;
@@ -3043,19 +3043,19 @@ const ANAHTAR = "hudMenuAyar";
 
 /* [değişken, etiket, en az, en çok, adım, birim, varsayılan] */
 const ALANLAR = [
-  ["--hud-h",  "Menü yüksekliği",   30, 130, 1,    "px", 56],
-  ["--hud-f1", "Üst satır yazı",     8,  26, 0.25, "px", 14],
-  ["--hud-f2", "Kaynak yazı",        8,  26, 0.25, "px", 15],
+  ["--hud-h",  "Menü yüksekliği",   30, 130, 1,    "px", 48],
+  ["--hud-f1", "Üst satır yazı",     8,  26, 0.25, "px", 15.5],
+  ["--hud-f2", "Kaynak yazı",        8,  26, 0.25, "px", 14],
   ["--hud-ik", "Kaynak ikon",        8,  28, 0.25, "px", 15],
   ["--hud-fw", "Yazı kalınlığı",   400, 900, 100,  "",  900],
-  ["--hud-lh", "Satır yüksekliği", 0.7, 1.8, 0.05, "",  1.05],
-  ["--hud-gap","Satır arası",       -8,  20, 0.5,  "px", 0],
-  ["--hud-pt", "Üst boşluk",         0,  24, 0.5,  "px", 0],
-  ["--hud-pb", "Alt boşluk",         0,  24, 0.5,  "px", 0],
-  ["--hud-px", "Yan boşluk",         0,  28, 0.5,  "px", 8],
-  ["--hud-ara","Öğe aralığı",        0,  20, 0.5,  "px", 6],
+  ["--hud-lh", "Satır yüksekliği", 0.7, 1.8, 0.05, "",  1.45],
+  ["--hud-gap","Satır arası",       -8,  20, 0.5,  "px", -2],
+  ["--hud-pt", "Üst boşluk",         0,  24, 0.5,  "px", 10],
+  ["--hud-pb", "Alt boşluk",         0,  24, 0.5,  "px", 10.5],
+  ["--hud-px", "Yan boşluk",         0,  28, 0.5,  "px", 1.5],
+  ["--hud-ara","Öğe aralığı",        0,  20, 0.5,  "px", 4],
   ["--hud-w",  "Menü genişliği",    55, 100, 0.5,  "%",  100],
-  ["--hud-r",  "Köşe yuvarlaklığı",  0,  30, 0.5,  "px", 13],
+  ["--hud-r",  "Köşe yuvarlaklığı",  0,  30, 0.5,  "px", 12.5],
 ];
 
 function yuvarla(v, adim) {
