@@ -1976,6 +1976,13 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .arazi-bilgi-modal .abm-btn-no{ background:linear-gradient(180deg,#5a6b80,#3b4859); }
 .arazi-bilgi-modal .abm-btn-yes{ background:linear-gradient(180deg,#f0a234,#c0700d); }
+/* Canavar penceresine özel: kırmızı saldırı düğmesi (arazi penceresi turuncu kalır) */
+.arazi-bilgi-modal .abm-btn-kirmizi{ background:linear-gradient(180deg,#ef4b4b,#a81616); }
+/* Canavar alt satırı: "Sv.2 · ⚔️ 80 güç" kalın ve daha okunur */
+.arazi-bilgi-modal .abm-alt-kalin{ font-weight:800; opacity:1; font-size:14px; }
+/* Etiketsiz ödül kutusu: yalnız kaynak görseli + adedi, ortada */
+.arazi-bilgi-modal .abm-odul{ justify-content:center; }
+.arazi-bilgi-modal .abm-odul b{ font-size:19px; }
 
 /* ══ TOPLAMA PANELİ ══
    Panel savaş ekranının id'lerini devralır (battleArena, mapBackBtn,
@@ -5520,14 +5527,12 @@ function canavarBilgiAc(d) {
     <div class="overlay-card abm-card">
       <button class="overlay-close abm-close" type="button">✕</button>
       <h2 class="abm-title">${d.ikon} ${escapeHtml(d.ad)}</h2>
-      <div class="abm-alt">Sv.${d.seviye} · ⚔️ ${fmt(d.birlik || 0)} birlik</div>
-      <div class="abm-kalan">
-        <span>Yenince verdiği ödül</span>
+      <div class="abm-alt abm-alt-kalin">Sv.${d.seviye} · ⚔️ ${fmt(d.birlik || 0)} güç</div>
+      <div class="abm-kalan abm-odul">
         <b>${d.kaynakIkon} ${fmt(d.odul || 0)}</b>
       </div>
       <div class="abm-actions">
-        <button class="abm-btn abm-btn-no"  type="button">Kapat</button>
-        <button class="abm-btn abm-btn-yes" type="button">⚔️ Saldırıya git</button>
+        <button class="abm-btn abm-btn-yes abm-btn-kirmizi" type="button">⚔️ Saldırıya git</button>
       </div>
     </div>`;
   document.body.appendChild(kok);
@@ -5537,8 +5542,7 @@ function canavarBilgiAc(d) {
   setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
 
   const kapat = () => kok.remove();
-  kok.querySelector(".abm-close").onclick  = kapat;
-  kok.querySelector(".abm-btn-no").onclick = kapat;
+  kok.querySelector(".abm-close").onclick  = kapat;   /* tek kapatma yolu: ✕ ve dışına dokunma */
   kok.querySelector(".abm-btn-yes").onclick = () => { kapat(); selectEnemyFromMap(_dugumdenCanavar(d)); };
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
