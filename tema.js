@@ -2882,91 +2882,104 @@ document.head.appendChild(st);
 
 
 /* ═══════════════════════════════════════════════════════════════
-   15) KAYNAK ŞERİDİ — ÜST MENÜYE GÖMÜLDÜ
-   Et / demir / su / enerji haritanın üstünde ayrı ayrı yüzen
-   kutucuklardı. Artık üst menünün ALT KATI: aynı mavi zemin, aynı
-   ayraç mantığı, tek parça görünür.
+   15) KAYNAK SATIRI — ÜST MENÜNÜN İÇİNE ALINDI
+   ---------------------------------------------------------------
+   Et / demir / su / enerji önce haritada yüzen kutucuklardı, sonra
+   menünün altına yapıştırılmış AYRI bir şeritti — ikisi de yanlıştı:
+   ayrı zemin, ayrı çerçeve, ayrı gölge, arada çizgi. İki panel gibi
+   duruyordu.
 
-   Şerit mutlak konumlu olduğu için üst menünün altına "yapışması"
-   ölçümle yapılır: menünün yüksekliği çentik (safe-area) ve yazı
-   tipine göre değişiyor, sabit bir piksel vermek küçük ekranlarda
-   çakışma bırakıyordu. ResizeObserver menü her boy değiştirdiğinde
-   şeridi yeniden hizalar.
+   Şimdi kaynak kutusu DOM'da üst menünün İÇİNE taşınıyor ve menü
+   iki satıra sarıyor. Tek zemin, tek çerçeve, tek gölge; kaynaklar
+   menünün ikinci satırı. Önceki sürümdeki "menüyü ölç, şeridi altına
+   hizala" kodu tamamen kalktı — panel artık kendi boyunu kendi
+   buluyor, çentikli ekranda kayma ihtimali de yok.
+
+   Taşıma DOM'da yapılır ama düzen CSS'tedir: index.html'e
+   dokunulmaz, bu dosya silinirse eski hâl geri gelir.
    ═══════════════════════════════════════════════════════════════ */
-(function kaynakSeridi() {
+(function kaynakSatiri() {
 "use strict";
 
 const st = document.createElement("style");
-st.id = "temaKaynakSeridi";
+st.id = "temaKaynakSatiri";
 st.textContent = `
-/* üst menünün alt köşeleri düzleşir — alt kat onun devamı */
-.hud-top{ border-radius:0 !important; box-shadow:none !important; }
+/* menü artık iki satır: üst rozetler, alt kaynaklar */
+.hud-top{
+  flex-wrap:wrap !important;
+  padding:calc(3px + env(safe-area-inset-top,0)) 8px 5px !important;
+}
 
-.hud-kaynak{
-  position:absolute !important;
-  top:var(--kaynak-ust, 30px) !important;
-  left:0 !important; right:0 !important;
+/* üst satır kendi genişliğini korusun, kaynak satırı alta insin */
+.hud-top > .hud-kaynak{
+  flex:0 0 100% !important;
+  order:9 !important;
+  position:static !important;
   transform:none !important;
   display:flex !important;
   justify-content:space-around !important;
   align-items:center !important;
   gap:0 !important;
-  padding:2px 8px 4px !important;
-  z-index:19 !important;
+  margin:4px 0 0 !important;
+  padding:0 !important;
+  /* İÇERİDE: kendi zemini, çerçevesi, gölgesi YOK */
+  background:none !important;
+  border:none !important;
+  border-top:1px solid rgba(160,215,255,.22) !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
   pointer-events:auto !important;
-  background:linear-gradient(180deg, var(--km-2) 0%, var(--km-3) 100%) !important;
-  border-bottom:1px solid var(--km-kenar) !important;
-  border-radius:0 0 13px 13px !important;
-  box-shadow:0 4px 12px rgba(0,15,40,.42), inset 0 1px 0 rgba(160,215,255,.18) !important;
 }
+.hud-top > .hud-kaynak::before{ content:none !important; }
 
-/* kutucuklar sökülür — üst kattaki öğelerle aynı dil */
-.kaynak-oge{
+/* satır başına ayraç yok; sayılar iri ve okunaklı dursun */
+.hud-top .kaynak-oge{
   background:none !important;
   border:none !important;
   border-radius:0 !important;
-  padding:1px 8px !important;
+  padding:3px 6px 1px !important;
   flex:1 1 0 !important;
   justify-content:center !important;
-  color:var(--km-yazi) !important;
-  font-size:13px !important;
+  gap:5px !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-size:15px !important;
   font-weight:800 !important;
+  letter-spacing:.2px !important;
+  color:var(--km-yazi, #eaf6ff) !important;
   text-shadow:0 2px 3px rgba(0,10,30,.75) !important;
 }
-.kaynak-oge:not(:first-child){
-  border-left:1px solid rgba(160,215,255,.25) !important;
+.hud-top .kaynak-ikon{
+  font-size:15px !important;
+  filter:drop-shadow(0 1px 2px rgba(0,10,30,.6)) !important;
 }
-.kaynak-ikon{ font-size:13px !important; }
 
 @media (max-width:360px){
-  .kaynak-oge{ font-size:12px !important; padding:1px 5px !important; }
+  .hud-top .kaynak-oge{ font-size:13.5px !important; padding:3px 3px 1px !important; }
+  .hud-top .kaynak-ikon{ font-size:13.5px !important; }
 }
 `;
 document.head.appendChild(st);
 
-/* ── HİZALAMA ──
-   Şeridin tepesi = üst menünün tam altı. Menü yüksekliği çentiğe
-   ve yazı boyutuna bağlı, o yüzden ölçülür. */
-function hizala() {
+/* ── TAŞIMA ──
+   Kutuyu menünün son çocuğu yap. Yeniden çizen bir kod onu geri
+   koyarsa diye MutationObserver bekçilik eder; taşıma zaten
+   yapılmışsa hiçbir şey olmaz (idempotent). */
+function tasi() {
   const ust = document.querySelector(".hud-top");
-  const ser = document.getElementById("hudKaynak");
-  if (!ust || !ser) return;
-  const h = Math.round(ust.getBoundingClientRect().height);
-  if (h > 0) ser.style.setProperty("--kaynak-ust", h + "px");
+  const kay = document.getElementById("hudKaynak");
+  if (!ust || !kay) return false;
+  if (kay.parentElement !== ust) ust.appendChild(kay);
+  return true;
 }
 
 function baslat() {
-  hizala();
-  const ust = document.querySelector(".hud-top");
-  if (ust && window.ResizeObserver) {
-    new ResizeObserver(hizala).observe(ust);
+  tasi();
+  const govde = document.getElementById("worldScreen") || document.body;
+  if (govde && window.MutationObserver) {
+    new MutationObserver(() => tasi()).observe(govde, { childList: true });
   }
-  window.addEventListener("resize", hizala);
-  window.addEventListener("orientationchange", () => setTimeout(hizala, 120));
-  /* yazı tipi geç yüklenirse menü boyu değişir */
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(hizala);
-  setTimeout(hizala, 400);
-  setTimeout(hizala, 1500);
+  setTimeout(tasi, 500);
+  setTimeout(tasi, 2000);
 }
 
 if (document.readyState === "loading") {
