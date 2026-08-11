@@ -733,7 +733,12 @@ function tuket(slotId, miktar) {
   const uygula = (d) => {
     if (!d) d = { n: nesilOf(slotId), k: (sab.tur === "arazi" ? sab.miktar : sab.birlik) };
     const kalanOnce = typeof d.k === "number" ? d.k : (sab.tur === "arazi" ? sab.miktar : sab.birlik);
-    const alinan = Math.max(0, Math.min(miktar, kalanOnce));
+    /* MİKTAR SAYI DEĞİLSE tamamı istenmiş sayılır. Aksi halde
+       Math.min(undefined, …) NaN üretir, kalan NaN olur, "tükendi"
+       koşulu asla sağlanmaz ve kural da sayı olmayan `k` yüzünden
+       yazmayı geri çevirir — canavar yerinde kalır. */
+    const iste = (typeof miktar === "number" && isFinite(miktar)) ? miktar : kalanOnce;
+    const alinan = Math.max(0, Math.min(iste, kalanOnce));
     const kalanSonra = kalanOnce - alinan;
 
     const yeni = { n: d.n || 0, k: kalanSonra };
@@ -754,26 +759,49 @@ function tuket(slotId, miktar) {
     return Promise.resolve({ ok: true, alinan: r.alinan, bitti: r.bitti });
   }
 
-  let sonuc = { ok: false, alinan: 0, bitti: false };
+  /* ok ARTIK "sunucu KABUL ETTİ" demek.
+     Eskiden transaction gövdesi bir kez çalışır çalışmaz ok:true
+     yazılıyordu; sunucu yazmayı reddetse bile çağıran "oldu"
+     sanıyordu. Belirti: canavar yenildi, ödül alındı, ama düğüm
+     haritada duruyor ve hiçbir hata görünmüyor. */
+  let sonuc = { ok: false, calisti: false, alinan: 0, bitti: false, sebep: "" };
   return firebaseDb.ref(AYAR.KOK + "/" + slotId).transaction(mevcut => {
     const r = uygula(mevcut);
-    sonuc = { ok: true, alinan: r.alinan, bitti: r.bitti };
+    sonuc.calisti = true;
+    sonuc.alinan = r.alinan;
+    sonuc.bitti  = r.bitti;
     return r.yeni;
   }).then(res => {
-    if (res && res.committed) durumUygulaTek(slotId, res.snapshot.val());
+    const kabul = !!(res && res.committed);
+    sonuc.ok = kabul;
+    if (kabul) {
+      durumUygulaTek(slotId, res.snapshot.val());
+    } else {
+      sonuc.sebep = sonuc.calisti
+        ? "sunucu yazmayı kabul etmedi (kural ya da çakışma)"
+        : "işlem hiç çalışmadı (yol okunamadı)";
+    }
     return sonuc;
   }).catch(err => {
     _bulutHata = err && err.message ? err.message : String(err);
-    return { ok: false, alinan: 0, bitti: false };
+    sonuc.ok = false;
+    sonuc.sebep = "hata: " + _bulutHata;
+    return sonuc;
   });
 }
 
 /* Canavarı yen: slot tükenir, ödül döner. */
 function canavarYen(slotId) {
   const d = dugum(slotId);
-  if (!d || d.tur !== "canavar") return Promise.resolve({ ok: false });
+  if (!d || d.tur !== "canavar") {
+    return Promise.resolve({ ok: false, sebep: d ? ("tur=" + d.tur) : "düğüm bulunamadı" });
+  }
+  /* tuket'in ürettiği alinan/bitti/sebep bilgileri BURADA
+     kayboluyordu; çağıran yalnız ok görüyordu. Hepsi taşınıyor. */
   return tuket(slotId, d.kalan).then(r => ({
-    ok: r.ok, kaynak: d.kaynak, miktar: d.odul,
+    ok: r.ok, alinan: r.alinan, bitti: r.bitti, sebep: r.sebep,
+    kalanGirdi: d.kalan,
+    kaynak: d.kaynak, miktar: d.odul,
   }));
 }
 

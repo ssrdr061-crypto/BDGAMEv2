@@ -6788,7 +6788,8 @@ async function startBattle() {
         DUGUM.canavarYen(enemyForBattle.slotId).then(r => {
           renderBattleMap();
           _dugumIz("yen sonuç · ok=" + (r && r.ok) + " · alinan=" + (r && r.alinan) +
-                   " · bitti=" + (r && r.bitti), !!(r && r.ok));
+                   " · bitti=" + (r && r.bitti) + " · kalan=" + (r && r.kalanGirdi) +
+                   (r && r.sebep ? " · " + r.sebep : ""), !!(r && r.ok));
           if (!r || !r.ok) _dugumUyar(enemyForBattle.slotId);
         }).catch(e => {
           _dugumIz("yen HATA · " + (e && e.message ? e.message : e), false);
