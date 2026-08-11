@@ -2882,35 +2882,51 @@ document.head.appendChild(st);
 
 
 /* ═══════════════════════════════════════════════════════════════
-   15) KAYNAK SATIRI — ÜST MENÜNÜN İÇİNE ALINDI
+   15) ÜST MENÜ — KAYNAKLAR MENÜNÜN İKİNCİ SATIRI
    ---------------------------------------------------------------
-   Et / demir / su / enerji önce haritada yüzen kutucuklardı, sonra
-   menünün altına yapıştırılmış AYRI bir şeritti — ikisi de yanlıştı:
-   ayrı zemin, ayrı çerçeve, ayrı gölge, arada çizgi. İki panel gibi
-   duruyordu.
+   Kaynak kutusu DOM'da üst menünün içine alınır ve menü iki satıra
+   sarar. Amaç TEK GÖVDE görünmesi; onu bozan üç şey vardı, üçü de
+   burada iptal edilir:
 
-   Şimdi kaynak kutusu DOM'da üst menünün İÇİNE taşınıyor ve menü
-   iki satıra sarıyor. Tek zemin, tek çerçeve, tek gölge; kaynaklar
-   menünün ikinci satırı. Önceki sürümdeki "menüyü ölç, şeridi altına
-   hizala" kodu tamamen kalktı — panel artık kendi boyunu kendi
-   buluyor, çentikli ekranda kayma ihtimali de yok.
+     1) 14. bölümdeki "ilk çocuk hariç herkesin soluna ayraç" kuralı
+        kaynak kutusunu da bir rozet sanıp SOLUNA dikey çizgi
+        çiziyordu (🍖'nin solundaki çizgi buydu).
+     2) Satırı ayıran yatay çizgi — kaldırıldı.
+     3) Zeminin renk geçişi her satırda ayrı bitiyormuş gibi bant
+        yapıyordu; artık degrade PANELİN TAMAMI boyunca tek seferde
+        akar (satırların kendi zemini yoktur).
 
-   Taşıma DOM'da yapılır ama düzen CSS'tedir: index.html'e
-   dokunulmaz, bu dosya silinirse eski hâl geri gelir.
+   index.html'e dokunulmaz; bu dosya silinirse eski hâl geri gelir.
    ═══════════════════════════════════════════════════════════════ */
-(function kaynakSatiri() {
+(function ustMenuTekGovde() {
 "use strict";
 
 const st = document.createElement("style");
-st.id = "temaKaynakSatiri";
+st.id = "temaUstMenuTekGovde";
 st.textContent = `
-/* menü artık iki satır: üst rozetler, alt kaynaklar */
+/* ── TEK GÖVDE ──
+   Degrade iki satırın toplam boyuna yayılır, gölge ve yuvarlaklık
+   yalnız bu gövdeye aittir. Alt dolgu sayıların hemen altında
+   biter — eskiden satır boşluğu + dolgu üst üste binip fazladan
+   birkaç piksel bırakıyordu. */
 .hud-top{
   flex-wrap:wrap !important;
-  padding:calc(3px + env(safe-area-inset-top,0)) 8px 5px !important;
+  align-content:flex-start !important;
+  row-gap:0 !important;
+  padding:calc(3px + env(safe-area-inset-top,0)) 8px 3px !important;
+  background:linear-gradient(180deg,
+      var(--km-1) 0%, var(--km-2) 48%, var(--km-3) 100%) !important;
+  border-radius:0 0 13px 13px !important;
+  overflow:hidden !important;
 }
 
-/* üst satır kendi genişliğini korusun, kaynak satırı alta insin */
+/* AYRAÇ KURALINI İPTAL — kaynak kutusu rozet değil, satırdır */
+.hud-top > .hud-kaynak{
+  border-left:none !important;
+  border-top:none !important;
+  border:none !important;
+}
+
 .hud-top > .hud-kaynak{
   flex:0 0 100% !important;
   order:9 !important;
@@ -2920,63 +2936,68 @@ st.textContent = `
   justify-content:space-around !important;
   align-items:center !important;
   gap:0 !important;
-  margin:4px 0 0 !important;
+  margin:1px 0 0 !important;
   padding:0 !important;
-  /* İÇERİDE: kendi zemini, çerçevesi, gölgesi YOK */
   background:none !important;
-  border:none !important;
-  border-top:1px solid rgba(160,215,255,.22) !important;
   border-radius:0 !important;
   box-shadow:none !important;
   pointer-events:auto !important;
 }
-.hud-top > .hud-kaynak::before{ content:none !important; }
+.hud-top > .hud-kaynak::before,
+.hud-top > .hud-kaynak::after{ content:none !important; }
 
-/* satır başına ayraç yok; sayılar iri ve okunaklı dursun */
+/* kaynak öğeleri: kutu yok, çizgi yok, dolgun yazı */
 .hud-top .kaynak-oge{
   background:none !important;
   border:none !important;
   border-radius:0 !important;
-  padding:3px 6px 1px !important;
+  padding:1px 6px 0 !important;
   flex:1 1 0 !important;
   justify-content:center !important;
   gap:5px !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-size:15px !important;
-  font-weight:800 !important;
+  font-weight:900 !important;
   letter-spacing:.2px !important;
-  color:var(--km-yazi, #eaf6ff) !important;
-  text-shadow:0 2px 3px rgba(0,10,30,.75) !important;
+  color:#f2fbff !important;
+  text-shadow:0 1px 2px rgba(0,12,32,.85) !important;
 }
 .hud-top .kaynak-ikon{
   font-size:15px !important;
-  filter:drop-shadow(0 1px 2px rgba(0,10,30,.6)) !important;
+  filter:drop-shadow(0 1px 1px rgba(0,12,32,.7)) !important;
+}
+
+/* üst satır aynı doygunlukta konuşsun */
+.hud-top .hud-pill,
+.hud-top .hud-pill.diamond-pill .amount,
+.hud-top #staminaPill #staminaText,
+.hud-top .user-pill #currentUserLabel{
+  font-weight:900 !important;
+  color:#f2fbff !important;
+  text-shadow:0 1px 2px rgba(0,12,32,.85) !important;
 }
 
 @media (max-width:360px){
-  .hud-top .kaynak-oge{ font-size:13.5px !important; padding:3px 3px 1px !important; }
+  .hud-top .kaynak-oge{ font-size:13.5px !important; padding:1px 3px 0 !important; }
   .hud-top .kaynak-ikon{ font-size:13.5px !important; }
 }
 `;
 document.head.appendChild(st);
 
-/* ── TAŞIMA ──
-   Kutuyu menünün son çocuğu yap. Yeniden çizen bir kod onu geri
-   koyarsa diye MutationObserver bekçilik eder; taşıma zaten
-   yapılmışsa hiçbir şey olmaz (idempotent). */
+/* Kutuyu menünün son çocuğu yap. Yeniden çizen kod onu geri koyarsa
+   diye bekçi durur; taşıma yapılmışsa hiçbir şey olmaz. */
 function tasi() {
   const ust = document.querySelector(".hud-top");
   const kay = document.getElementById("hudKaynak");
-  if (!ust || !kay) return false;
+  if (!ust || !kay) return;
   if (kay.parentElement !== ust) ust.appendChild(kay);
-  return true;
 }
 
 function baslat() {
   tasi();
   const govde = document.getElementById("worldScreen") || document.body;
   if (govde && window.MutationObserver) {
-    new MutationObserver(() => tasi()).observe(govde, { childList: true });
+    new MutationObserver(tasi).observe(govde, { childList: true });
   }
   setTimeout(tasi, 500);
   setTimeout(tasi, 2000);
