@@ -5478,8 +5478,67 @@ function dugumeTiklandi(slotId) {
     return;
   }
 
-  if (d.tur === "canavar") { selectEnemyFromMap(_dugumdenCanavar(d)); return; }
+  if (d.tur === "canavar") { canavarBilgiAc(d); return; }  /* önce tanıtım, sonra savaş */
   araziBilgiAc(d);   /* önce "arazide kalan", oradan toplama paneline */
+}
+
+/* Düğüm yazması başarısızsa sebebi ekrana bas. showToast bu
+   cihazda görünmediği için ham div kullanılıyor. */
+function _dugumUyar(slotId) {
+  let sebep = slotId ? "" : "canavarın slotId'si yok (eski kayıt)";
+  try {
+    const t = (window.DUGUM && DUGUM.tani) ? DUGUM.tani() : null;
+    if (!sebep && t && t.bulutHata) sebep = t.bulutHata;
+  } catch (e) {}
+  if (!sebep) sebep = "dugumler/ yoluna yazılamadı (Firebase kuralları?)";
+
+  const d = document.createElement("div");
+  d.style.cssText = "position:fixed;left:8px;right:8px;bottom:96px;z-index:99999;" +
+    "background:rgba(120,20,20,.95);color:#fff;padding:10px 12px;border-radius:12px;" +
+    "font:700 12px 'Baloo 2',sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.5);";
+  d.textContent = "⚠️ Canavar haritadan kaldırılamadı: " + sebep;
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 9000);
+}
+
+/* ── CANAVAR BİLGİ PENCERESİ ──
+   Haritadaki canavara dokununca ÖNCE bu açılır: adı, gücü ve
+   yenilince hangi kaynağı verdiği. Arazi penceresiyle AYNI kabuğu
+   (.arazi-bilgi-modal / .abm-*) kullanır — ayrı bir tema yazılmadı,
+   ikisi tek yerden biçimleniyor. Buradan SALDIRIYA GİT ile eski
+   savaş akışına geçilir. */
+function canavarBilgiAc(d) {
+  const eski = document.getElementById("araziBilgiModal");
+  if (eski) eski.remove();
+
+  const kok = document.createElement("div");
+  kok.id = "araziBilgiModal";
+  kok.className = "arazi-bilgi-modal";
+  kok.innerHTML = `
+    <div class="overlay-card abm-card">
+      <button class="overlay-close abm-close" type="button">✕</button>
+      <h2 class="abm-title">${d.ikon} ${escapeHtml(d.ad)}</h2>
+      <div class="abm-alt">Sv.${d.seviye} · ⚔️ ${fmt(d.birlik || 0)} birlik</div>
+      <div class="abm-kalan">
+        <span>Yenince verdiği ödül</span>
+        <b>${d.kaynakIkon} ${fmt(d.odul || 0)}</b>
+      </div>
+      <div class="abm-actions">
+        <button class="abm-btn abm-btn-no"  type="button">Kapat</button>
+        <button class="abm-btn abm-btn-yes" type="button">⚔️ Saldırıya git</button>
+      </div>
+    </div>`;
+  document.body.appendChild(kok);
+
+  /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu. */
+  kok.style.pointerEvents = "none";
+  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
+
+  const kapat = () => kok.remove();
+  kok.querySelector(".abm-close").onclick  = kapat;
+  kok.querySelector(".abm-btn-no").onclick = kapat;
+  kok.querySelector(".abm-btn-yes").onclick = () => { kapat(); selectEnemyFromMap(_dugumdenCanavar(d)); };
+  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
 
 /* ── ARAZİ BİLGİ PENCERESİ ──
@@ -6694,8 +6753,20 @@ async function startBattle() {
 
       /* Slotu tüket: düğüm haritadan kalkar, 3–4 dk sonra BAŞKA
          bir karoda yeniden doğar. Durum ortak (Firebase). */
+      /* SLOTU TÜKET — canavar haritadan KALKAR (herkes için, durum
+         bulutta ortak) ve 3–4 dk sonra BAŞKA karoda doğar.
+         Bu yazma `dugumler/` yoluna gider; Firebase kuralları o yolu
+         kapatıyorsa işlem sessizce reddedilir ve canavar yerinde
+         kalır — belirtisi tam olarak budur. O yüzden sonucu
+         denetleyip sebebi EKRANA basıyoruz (toast bu telefonda
+         görünmüyor, Tuzak 25). */
       if (window.DUGUM && enemyForBattle.slotId) {
-        DUGUM.canavarYen(enemyForBattle.slotId).then(() => renderBattleMap());
+        DUGUM.canavarYen(enemyForBattle.slotId).then(r => {
+          renderBattleMap();
+          if (!r || !r.ok) _dugumUyar(enemyForBattle.slotId);
+        }).catch(() => _dugumUyar(enemyForBattle.slotId));
+      } else if (!enemyForBattle.slotId) {
+        _dugumUyar(null);
       }
 
       state.maxFrontierLevel = (state.maxFrontierLevel || 0) + 1;

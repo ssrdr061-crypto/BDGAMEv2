@@ -1337,30 +1337,33 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 /* TEK SATIR ve İNCE — oyunun mavi teması (mağaza/panel şablonu).
    Eski hâli üç satırdı, koyu laciverttti ve haritanın köşesini
    kapatıyordu. */
+/* Zemin YARI SAYDAM (%50) ama renk oyunun kendi mavisi — aynı
+   #2fb0ee → #0e6fc0 geçişi, sadece alfası düşük. Böylece harita
+   altından görünür, kutu haritayı boğmaz. */
 .sefer-satir{
-  display:flex; align-items:center; gap:6px;
-  padding:3px 4px 3px 8px; border-radius:10px;
-  background:linear-gradient(180deg,#2fb0ee,#0e6fc0);
-  border:1.5px solid rgba(190,240,255,.75);
-  box-shadow:0 2px 0 #0b4f8c, 0 3px 8px rgba(0,20,45,.35),
-             inset 0 1px 0 rgba(255,255,255,.4);
+  display:flex; align-items:center; gap:5px;
+  padding:2px 3px 2px 7px; border-radius:9px;
+  background:linear-gradient(180deg, rgba(47,176,238,.5), rgba(14,111,192,.5));
+  border:1px solid rgba(190,240,255,.45);
+  box-shadow:0 2px 6px rgba(0,20,45,.28), inset 0 1px 0 rgba(255,255,255,.25);
   font-family:'Baloo 2','Nunito',sans-serif; color:#fff; cursor:pointer;
-  text-shadow:0 1px 2px rgba(0,30,60,.5);
+  text-shadow:0 1px 2px rgba(0,30,60,.55);
 }
-.sefer-ikon{ font-size:12px; line-height:1; }
-.sefer-sure{ font-size:12.5px; font-weight:800; letter-spacing:.2px; }
-.sefer-hedef{ font-size:10px; font-weight:700; opacity:.85; max-width:78px;
+.sefer-ikon{ font-size:11px; line-height:1; }
+.sefer-sure{ font-size:11.5px; font-weight:800; letter-spacing:.2px; }
+.sefer-hedef{ font-size:9.5px; font-weight:700; opacity:.85; max-width:74px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Geri düğmesi: çerçevesiz, emoji küçültüldü. */
 .sefer-geri{
-  flex:0 0 auto; width:24px; height:24px; border-radius:8px; cursor:pointer;
+  flex:0 0 auto; width:19px; height:19px; border-radius:7px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
-  font-size:12px; font-weight:900; color:#fff;
-  background:linear-gradient(180deg,#f0a234,#c0700d);
-  border:1.5px solid rgba(255,235,200,.7);
-  box-shadow:0 2px 0 #7a4708, inset 0 1px 0 rgba(255,255,255,.3);
+  font-size:9.5px; font-weight:900; color:#fff; padding:0;
+  background:linear-gradient(180deg, rgba(240,162,52,.85), rgba(192,112,13,.85));
+  border:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28);
   -webkit-tap-highlight-color:transparent;
 }
-.sefer-geri:active{ transform:translateY(2px); box-shadow:0 0 0 #7a4708; }
+.sefer-geri:active{ transform:translateY(1px); }
 
 .sefer-onay-modal{
   position:fixed; inset:0; z-index:9999;
