@@ -691,8 +691,13 @@ function donuseGec(id, s, yuk) {
 
 /* ── TOPLAMA SEFERİNİ BAŞLAT ──
    index.html'deki arazi paneli bunu çağırır:
-     SEFER.toplamaBaslat(slotId, {knight:10, soldier:0, robot:0}) */
-async function toplamaBaslat(slotId, birlikler) {
+     SEFER.toplamaBaslat(slotId, {knight:10, soldier:0, robot:0}, ["ivanovna"])
+
+   KOMUTANLAR: üçüncü parametre verilmezse ekrandaki seçim
+   (selectedCommanders) kullanılır — savaş seferiyle aynı davranış.
+   Kayıttaki liste dönüşte selectedCommanders'a geri yüklenir; ileride
+   toplayan orduya baskın bağlanınca savaşı bu komutanlar verecek. */
+async function toplamaBaslat(slotId, birlikler, komutanlar) {
   const bk = benKey();
   if (!bk) { toast("Oturum yok — sefer gönderilemiyor."); return false; }
   if (!window.DUGUM) { toast("dugum.js yüklü değil."); return false; }
@@ -759,7 +764,10 @@ async function toplamaBaslat(slotId, birlikler) {
     sureMs: sureMs, gidisAt: Date.now(),
     durum: "gidis", iptal: false,
     birlikler: secili,
-    komutanlar: [],
+    komutanlar: Array.isArray(komutanlar)
+      ? komutanlar.filter(Boolean)
+      : ((typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
+          ? selectedCommanders.filter(Boolean) : []),
   };
 
   birlikDus(secili);
@@ -1289,7 +1297,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "canvas-5",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-6",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   /* harita.js canvas çizimi için — evre ve süre biçimi tek yerde

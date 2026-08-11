@@ -1948,13 +1948,18 @@ body.world-active{padding:0; overflow:hidden;}
 .arazi-panel{
   position:fixed; inset:0; z-index:900;
   background:rgba(6,9,13,.72);
-  display:flex; align-items:center; justify-content:center; padding:18px;
+  display:flex; align-items:flex-start; justify-content:center;
+  padding:18px; overflow-y:auto; -webkit-overflow-scrolling:touch;
 }
 .arazi-kart{
-  width:100%; max-width:330px;
+  width:100%; max-width:420px; margin:auto;
   background:#121820; border:1px solid rgba(255,255,255,.14);
   border-radius:16px; padding:16px;
 }
+/* Savaş ekranındaki kutular panel içinde tam genişlik alsın */
+.arazi-kart .troop-select-box, .arazi-kart .power-compare-box{ max-width:none; }
+.arazi-kart .arazi-ozet{ margin-bottom:10px; padding:4px 14px; }
+.arazi-kart .arazi-ozet .arazi-satir:last-child{ border-bottom:none; }
 .arazi-bas{ display:flex; align-items:center; gap:11px; margin-bottom:13px; }
 .arazi-ikon{ font-size:31px; }
 .arazi-ad{ font-size:15.5px; font-weight:800; color:#eef4fa; }
@@ -5502,20 +5507,75 @@ function dugumeTiklandi(slotId) {
 }
 
 /* ── ARAZİ PANELİ ──
-   Oyuncu kaç birlik göndereceğini seçer; kapasite ve süre canlı
-   hesaplanır. Sefer sefer.js'e devredilir. */
+   Savaş ekranının seçicilerinin AYNISI kullanılır: komutan yuvaları
+   (#heroPicker) + birlik seçici (#troopSelectList) + özet satırı.
+   Kod kopyalanmaz, oyunun kendi renderHeroPickerForBattle /
+   renderTroopSelector fonksiyonları çağrılır — savaş ekranı
+   değişirse arazi paneli kendiliğinden onunla gelir.
+
+   ID DEVRİ: o iki fonksiyon getElementById ile çalışır ve DOM'da
+   ÖNCE gelen battleArena'nın kutularını bulur. Panel açıkken
+   arenadaki kutuların id'si "_uyku" ekiyle uyutulur, panel
+   kapanınca geri verilir. Kapanışın HER dalında iade şart —
+   yoksa savaş ekranındaki seçiciler bir daha çizilmez. */
 let _araziSecim = { knight: 0, soldier: 0, robot: 0 };
+const _ARAZI_DEVIR = ["heroPicker", "troopSelectList", "troopSelectSummary"];
+
+function araziIdDevral() {
+  const arena = document.getElementById("battleArena");
+  if (!arena) return;
+  _ARAZI_DEVIR.forEach(id => {
+    const e = arena.querySelector("#" + id);
+    if (e) e.id = id + "_uyku";
+  });
+}
+function araziIdIade() {
+  const arena = document.getElementById("battleArena");
+  if (!arena) return;
+  _ARAZI_DEVIR.forEach(id => {
+    const e = arena.querySelector("#" + id + "_uyku");
+    if (e) e.id = id;
+  });
+}
+
+/* Savaş seçimini araziye uyarla: elde olandan fazlası seçili kalmasın.
+   Hiç seçim yoksa (ilk açılış) hepsini al — toplamada varsayılan
+   "tüm orduyu gönder"dir. */
+function araziSecimHazirla() {
+  if (typeof selectedTroopsForBattle === "undefined") return;
+  let toplamSecili = 0;
+  ["knight", "soldier", "robot"].forEach(u => {
+    const varOlan = (state.troops || {})[u] || 0;
+    const s = Math.min(selectedTroopsForBattle[u] || 0, varOlan);
+    selectedTroopsForBattle[u] = s;
+    toplamSecili += s;
+  });
+  if (toplamSecili <= 0) {
+    ["knight", "soldier", "robot"].forEach(u => {
+      selectedTroopsForBattle[u] = (state.troops || {})[u] || 0;
+    });
+  }
+}
+
+/* Panelin okuduğu tek yer: savaş seçimi. Ayrı bir _araziSecim
+   tutulsaydı iki kaynak ayrışırdı (bkz. Tuzak 15). */
+function araziSecimOku() {
+  const s = { knight: 0, soldier: 0, robot: 0 };
+  if (typeof selectedTroopsForBattle !== "undefined") {
+    Object.keys(s).forEach(u => {
+      s[u] = Math.min(selectedTroopsForBattle[u] || 0, (state.troops || {})[u] || 0);
+    });
+  }
+  _araziSecim = s;
+  return s;
+}
 
 function araziPaneliAc(d) {
   const eski = document.getElementById("araziPanel");
-  if (eski) eski.remove();
+  if (eski) { eski.remove(); araziIdIade(); }
 
-  /* Varsayılan: elindeki her birlikten hepsi. Oyuncu azaltabilir. */
-  _araziSecim = {
-    knight: (state.troops || {}).knight || 0,
-    soldier: (state.troops || {}).soldier || 0,
-    robot:   (state.troops || {}).robot   || 0,
-  };
+  araziSecimHazirla();
+  araziIdDevral();
 
   const el = document.createElement("div");
   el.id = "araziPanel";
@@ -5530,17 +5590,25 @@ function araziPaneliAc(d) {
         </div>
       </div>
 
-      <div class="arazi-satir"><span>Arazide kalan</span><b>${fmt(d.kalan)}</b></div>
+      <div class="power-compare-box arazi-ozet">
+        <div class="arazi-satir"><span>Arazide kalan</span><b>${fmt(d.kalan)}</b></div>
+        <div class="arazi-satir"><span>Taşıma kapasitesi</span><b id="araziKap">0</b></div>
+        <div class="arazi-satir"><span>Bu seferde alınacak</span><b id="araziAlir">0</b></div>
+        <div class="arazi-satir"><span>Toplama süresi</span><b id="araziSure">-</b></div>
+      </div>
 
-      <div class="arazi-birlikler" id="araziBirlikler"></div>
-
-      <div class="arazi-satir"><span>Taşıma kapasitesi</span><b id="araziKap">0</b></div>
-      <div class="arazi-satir"><span>Bu seferde alınacak</span><b id="araziAlir">0</b></div>
-      <div class="arazi-satir"><span>Toplama süresi</span><b id="araziSure">-</b></div>
+      <div class="troop-select-box">
+        <div class="troop-select-title">🦸 Komutan Seç</div>
+        <div class="hero-picker-row" id="heroPicker"></div>
+        <div class="troop-select-title" style="margin-top:12px;">⛏️ Toplamaya gidecek birlikler</div>
+        <div id="troopSelectList"></div>
+        <div class="troop-select-summary" id="troopSelectSummary"></div>
+      </div>
 
       <div class="arazi-not">
         Şövalye 100 · asker 70 · robot 50 taşır. Kapasite dolunca
         ordu kendiliğinden döner; kalan kaynak arazide durur.
+        Komutanlar orduyla birlikte gider ve dönünce serbest kalır.
       </div>
 
       <div class="arazi-dugmeler">
@@ -5550,10 +5618,18 @@ function araziPaneliAc(d) {
     </div>`;
   document.body.appendChild(el);
 
-  araziBirlikleriCiz(d);
+  /* Savaş ekranının seçicileri — artık bu panelin içine çizilirler. */
+  if (typeof renderTroopSelector === "function") renderTroopSelector();
+  else if (typeof renderHeroPickerForBattle === "function") renderHeroPickerForBattle();
+
   araziOzetTazele(d);
 
-  const kapat = () => el.remove();
+  /* Sürgü, +/- ve elle yazılan sayı hep "input" olayı doğurur ve
+     panele kadar kabarır — tek dinleyici üçünü de yakalar. Böylece
+     troops.js'in içine hiç dokunmadan özet canlı kalır. */
+  el.addEventListener("input", () => araziOzetTazele(d));
+
+  const kapat = () => { el.remove(); araziIdIade(); };
   el.addEventListener("click", ev => { if (ev.target === el) kapat(); });
   const iptal = el.querySelector(".arazi-iptal");
   if (iptal) iptal.addEventListener("click", kapat);
@@ -5567,8 +5643,12 @@ function araziPaneliAc(d) {
     if (!window.SEFER || typeof SEFER.toplamaBaslat !== "function") {
       showToast("⚠️ sefer.js güncel değil (SEFER.toplamaBaslat yok).", 6000); return;
     }
-    const secTop = (_araziSecim.knight || 0) + (_araziSecim.soldier || 0) + (_araziSecim.robot || 0);
+    const sec = araziSecimOku();
+    const secTop = sec.knight + sec.soldier + sec.robot;
     if (secTop <= 0) { showToast("Yanına en az 1 birlik almalısın."); return; }
+
+    const komutanlar = (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
+      ? selectedCommanders.filter(Boolean) : [];
 
     git.disabled = true;
     git.textContent = "Gönderiliyor…";
@@ -5577,7 +5657,7 @@ function araziPaneliAc(d) {
          engellerse işlem ne çözülür ne reddedilir — sonsuza dek
          asılı kalır ve düğme donar. 8 saniyede kesiyoruz. */
       const sonuc = await Promise.race([
-        SEFER.toplamaBaslat(d.slotId, _araziSecim),
+        SEFER.toplamaBaslat(d.slotId, sec, komutanlar),
         new Promise(r => setTimeout(() => r("zamanasimi"), 8000)),
       ]);
 
@@ -5596,41 +5676,10 @@ function araziPaneliAc(d) {
   });
 }
 
-/* Birlik satırları: her tür için kaydırıcı + sayı. */
-function araziBirlikleriCiz(d) {
-  const kap = document.getElementById("araziBirlikler");
-  if (!kap) return;
-  const adlar = { knight: "🛡️ Şövalye", soldier: "🪖 Asker", robot: "🤖 Robot" };
-
-  kap.innerHTML = ["knight", "soldier", "robot"].map(u => {
-    const varOlan = (state.troops || {})[u] || 0;
-    if (varOlan <= 0) return "";
-    return `
-      <div class="arazi-birlik" data-u="${u}">
-        <div class="arazi-birlik-ust">
-          <span>${adlar[u]}</span>
-          <b id="araziSay_${u}">${fmt(_araziSecim[u])}</b>
-        </div>
-        <input type="range" min="0" max="${varOlan}" value="${_araziSecim[u]}"
-               id="araziKay_${u}" class="arazi-kaydirici">
-      </div>`;
-  }).join("") || `<div class="arazi-not">Kalende hiç birlik yok.</div>`;
-
-  ["knight", "soldier", "robot"].forEach(u => {
-    const kay = document.getElementById("araziKay_" + u);
-    if (!kay) return;
-    kay.addEventListener("input", () => {
-      _araziSecim[u] = parseInt(kay.value, 10) || 0;
-      const say = document.getElementById("araziSay_" + u);
-      if (say) say.textContent = fmt(_araziSecim[u]);
-      araziOzetTazele(d);
-    });
-  });
-}
-
 /* Kapasite / alınacak / süre satırlarını tazeler. */
 function araziOzetTazele(d) {
-  const plan = DUGUM.toplamaPlani(d.slotId, _araziSecim);
+  const sec  = araziSecimOku();
+  const plan = DUGUM.toplamaPlani(d.slotId, sec);
   const kap  = plan ? plan.kapasite : 0;
   const alir = plan ? plan.alinacak : 0;
   const ms   = plan ? plan.sureMs : 0;
