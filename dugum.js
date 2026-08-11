@@ -493,6 +493,14 @@ function isgalDiri(d) {
   return (Date.now() - d.iat) < AYAR.ISGAL_OMRU_MS;
 }
 
+/* Ad haritada görünsün mü? Kilit diri OLMALI ve varış anı geçmiş
+   olmalı. Eski kayıtlarda iat kalkış anıdır; o zaman koşul zaten
+   sağlanır — geriye dönük uyumlu, göç gerekmez. */
+function isgalGorunur(d) {
+  if (!isgalDiri(d)) return false;
+  return Date.now() >= (typeof d.iat === "number" ? d.iat : 0);
+}
+
 function slotDurumu(s) {
   const d = _durum[s.slotId] || null;
   const sab = sablon(s.id, s.seviye);
@@ -536,10 +544,16 @@ function slotDurumu(s) {
     stat: sab.stat || null,
     odul: sab.tur === "canavar" ? sab.odul : 0,
     /* İşgal — haritada YALNIZ kullanıcı adı gösterilir.
-       Ne topladığı, ne kadar kaldığı BAŞKASINA GÖSTERİLMEZ. */
-    isgalAd: isgalDiri(d) ? (d.ia || "") : "",
+       Ne topladığı, ne kadar kaldığı BAŞKASINA GÖSTERİLMEZ.
+
+       AD YALNIZ ORDU VARDIKTAN SONRA görünür (`isgalGorunur`):
+       kilit kalkışta alınır ama `iat` varış anını taşır. Kilit
+       (isgalKey/benimMi/isgalRezerve) yolda da diridir — çizim
+       susar, kural konuşur. */
+    isgalAd: isgalGorunur(d) ? (d.ia || "") : "",
     isgalKey: isgalDiri(d) ? (d.it || "") : "",
     benimMi: isgalDiri(d) && d.it === benKey(),
+    isgalRezerve: isgalDiri(d),          /* yolda olan ordu dahil */
   };
 }
 
@@ -565,12 +579,28 @@ function dugum(slotId) {
    aynı anda gönderirse yalnız biri kazanır.
    ═══════════════════════════════════════════════════════════ */
 
-function isgalAl(slotId) {
+/* isgalAl(slotId, varisMs)
+   ── KİLİT KALKIŞTA, AD VARIŞTA ──
+   Arazi yola çıkarken rezerve edilir (yolda kapılmasın), ama
+   haritada oyuncu adının o anda belirmesi yanlış bilgi veriyordu:
+   ordu daha yoldayken arazi ele geçirilmiş görünüyordu.
+
+   `iat` artık "kilidi aldığım an" değil, ORDUNUN VARACAĞI AN'dır.
+   Tek alan iki işi görür ve Firebase kural biçimi DEĞİŞMEZ
+   (yeni alan eklenseydi $other:false yüzünden yazma reddedilirdi):
+     · kilit diriliği  → (now - iat) < ISGAL_OMRU_MS   [ileri damga
+       da diridir; fark negatif olur]
+     · ad görünürlüğü  → now >= iat  (slotDurumu)
+   `varisMs` verilmezse damga şimdidir; ordu zaten yerindedir
+   (toplamaya geçiş, canavar, eski çağrılar). */
+function isgalAl(slotId, varisMs) {
   const s = _slotlar.find(x => x.slotId === slotId);
   if (!s) return Promise.resolve({ ok: false, sebep: "Düğüm yok." });
 
   const bk = benKey();
   if (!bk) return Promise.resolve({ ok: false, sebep: "Oturum yok." });
+
+  const gecikme = Math.max(0, Math.round(Number(varisMs) || 0));
 
   const sab = sablon(s.id, s.seviye);
   const varsayilanKalan = sab.tur === "arazi" ? sab.miktar : sab.birlik;
@@ -582,7 +612,7 @@ function isgalAl(slotId) {
       return Promise.resolve({ ok: false,
         sebep: (d.it === bk ? "Buraya zaten bir ordun gitti." : (d.ia || "Bir oyuncu") + " burada topluyor.") });
     }
-    const kilit = { it: bk, ia: benAd(), iat: Date.now() };
+    const kilit = { it: bk, ia: benAd(), iat: Date.now() + gecikme };
     _yerelIsgal[slotId] = kilit;
     _durum[slotId] = Object.assign({ n: nesilOf(slotId),
                                      k: (d && typeof d.k === "number" ? d.k : varsayilanKalan) }, kilit);
@@ -622,7 +652,7 @@ function isgalAl(slotId) {
 
     d.it = bk;
     d.ia = benAd();
-    d.iat = simdi;
+    d.iat = simdi + gecikme;   /* ordunun VARACAĞI an — bkz. yukarı */
     if (typeof d.k !== "number") d.k = varsayilanKalan;
     delete d.td;
     return d;
@@ -637,7 +667,7 @@ function isgalAl(slotId) {
          oynanıyorsa hiç fark etmez, çok oyunculuda çakışma riski
          var ama oyunu tamamen durdurmaktan iyidir. */
       if (res === "_zamanasimi_") _bulutHata = "dugumler/ yazılamıyor (zaman aşımı) — Firebase kurallarını denetle";
-      const kilit = { it: bk, ia: benAd(), iat: Date.now() };
+      const kilit = { it: bk, ia: benAd(), iat: Date.now() + gecikme };
       _yerelIsgal[slotId] = kilit;   /* bulut ezmesin diye ayrı tutulur */
       _durum[slotId] = Object.assign({ n: nesilOf(slotId), k: varsayilanKalan }, kilit);
       return { ok: true, yerel: true };
@@ -912,7 +942,7 @@ if (typeof window !== "undefined") {
    değişken doğrudan okunmaz — adres tek yerden değişsin.
    ═══════════════════════════════════════════════════════════ */
 window.DUGUM = {
-  SURUM: "canvas-4",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-4-varis",          /* rozet bunu gösterir; yükleme doğrulaması */
 
   /* okuma */
   dugumler: dugumler,

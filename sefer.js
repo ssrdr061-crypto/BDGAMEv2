@@ -114,6 +114,33 @@ function gecerli(s) {
          typeof s.fx === "number" && typeof s.tx === "number";
 }
 
+/* ── HAYALET SEFER KALKANI ──
+   `seferler/{id}` kaydını yalnız SAHİBİ silebilir (Firebase kuralı).
+   Sahip oyundan çıkıp bir daha girmezse kayıt bulutta ÖLÜ kalır ve
+   herkesin haritasında sonsuza dek duran bir ordu + akan kesik
+   çizgi olarak çizilir — "her girişte aynı bug".
+
+   Çözüm iki katmanlı:
+     · GÖSTERİM: ömrü dolmuş kayıt hiç çizilmez (aşağıdaki filtre).
+     · TEMİZLİK: sahibi bir daha girdiğinde tik() onu bitirip
+       buluttan siler.
+   Ömür kaydın KENDİ süresinden hesaplanır, sabit bir saatten değil:
+   uzun bir toplama seferi 2 saati aşabilir ve sabit eşik onu
+   yolun ortasında keserdi. */
+const BAYAT_PAY_MS = 10 * 60 * 1000;   /* sekme uykuda kalırsa diye pay */
+
+function tahminiBitis(s) {
+  const gidisBitis = (s.gidisAt || 0) + (s.sureMs || 0);
+  const topla = s.toplaSureMs || 0;
+  const donus = s.donusSureMs || s.sureMs || 0;
+  if (s.durum === "donus") return (s.donusAt || gidisBitis) + donus;
+  if (s.durum === "topla") return (s.toplaAt || gidisBitis) + topla + donus;
+  return gidisBitis + topla + donus;
+}
+function omruDoldu(s) {
+  return Date.now() > tahminiBitis(s) + BAYAT_PAY_MS;
+}
+
 function evre(s) {
   const now = Date.now();
 
@@ -151,6 +178,7 @@ function hepsi() {
     const s = _uzak[id];
     if (!gecerli(s)) return;
     if (s.sahip === bk) return;          /* benimki yerelden geliyor */
+    if (omruDoldu(s)) return;            /* hayalet: sahibi silemedi */
     out.push({ id, s });
   });
   return out;
@@ -411,10 +439,24 @@ function tik() {
   benimkiler().forEach(({ id, s }) => {
     if (_isleniyor.has(id)) return;
     const ev = evre(s);
-    if (Date.now() - s.gidisAt > AYAR.KAYIT_OMRU_MS) { seferiBitir(id, s, true); return; }
+
+    /* ── ÖNCE EVRE İLERLETİLİR, SONRA ÖMÜR BAKILIR ──
+       Oyunu kapatıp saatler sonra girsen bile sefer buradan sırayla
+       çözülür: varış → toplama → dönüş → kaleye giriş. Her tik bir
+       evre ilerletir, birkaç saniyede tamamlanır ve GANİMET GELİR.
+       Ömür denetimi bu satırların ALTINDA olmalı; üstte olsaydı geç
+       giren oyuncunun tamamlanabilir seferi yükü alınmadan
+       kapatılırdı. */
     if (ev.ad === "gidis" && ev.bitti) { varisiIsle(id, s); return; }
     if (ev.ad === "topla" && ev.bitti) { toplamayiBitir(id, s); return; }
     if (ev.ad === "donus" && ev.bitti) { seferiBitir(id, s); return; }
+
+    /* Buraya düşen kayıt ilerleyemiyor demektir (bozuk durum, eksik
+       alan). Ömrü de dolmuşsa sessizce kapatılır ve buluttan silinir
+       — başkalarının haritasındaki hayalet ordu böyle temizlenir. */
+    if (omruDoldu(s) || Date.now() - s.gidisAt > AYAR.KAYIT_OMRU_MS) {
+      seferiBitir(id, s, true); return;
+    }
 
     /* Uzun toplamalarda işgal kilidi düşmesin — dugum.js kilidi
        yenilenmezse ölü sayıyor (20 dk). Dakikada bir tazelenir. */
@@ -434,7 +476,9 @@ function tik() {
 async function varisiIsle(id, s) {
   _isleniyor.add(id);
   try {
-    await bekle(AYAR.CARPISMA_BEKLE_MS);
+    /* Çarpışma beklemesi SAVAŞ içindir. Toplama seferinde savaş yok;
+       beklemek adın haritada 2 sn geç belirmesine yol açıyordu. */
+    if (s.tur !== "topla") await bekle(AYAR.CARPISMA_BEKLE_MS);
     const gonderilen = s.birlikler || {};
 
     birlikEkle(gonderilen);            /* savaş kaybı bunlardan düşecek */
@@ -575,9 +619,11 @@ async function toplamayaBasla(id, s) {
     return;
   }
 
-  /* Kilit hâlâ bizde mi? Kalkışta aldık ama düşmüş olabilir. */
-  if (d.isgalAd && !d.benimMi) {
-    toast(`${d.isgalAd} araziyi kapmış — ordun geri dönüyor.`, 4000);
+  /* Kilit hâlâ bizde mi? Kalkışta aldık ama düşmüş olabilir.
+     `isgalAd` varış öncesi boştur (ad gizli), o yüzden burada
+     REZERVASYONA bakılır — yoksa kapılmış arazi serbest sanılır. */
+  if (d.isgalRezerve && !d.benimMi) {
+    toast(`${d.isgalAd || "Bir oyuncu"} araziyi kapmış — ordun geri dönüyor.`, 4000);
     donuseGec(id, s, {});
     return;
   }
@@ -688,13 +734,16 @@ async function toplamaBaslat(slotId, birlikler) {
   if (toplam(secili) <= 0) { toast("Yanına en az 1 birlik almalısın!"); return false; }
   if (orduKapasitesi(secili) <= 0) { toast("Bu ordunun taşıma kapasitesi yok."); return false; }
 
-  /* Araziyi ŞİMDİ rezerve et — yolda kapılmasın. */
-  const r = await DUGUM.isgalAl(slotId);
-  if (!r.ok) { toast(r.sebep || "Bu arazi şu an müsait değil.", 4000); return false; }
-
+  /* Süre ÖNCE hesaplanır: kilidin damgası ordunun VARIŞ anıdır.
+     Arazi yine şimdi rezerve edilir (yolda kapılmasın) ama haritada
+     adım ancak ordu vardığında belirir — bkz. dugum.js isgalAl. */
   const fx = state.castle.gx, fy = state.castle.gy;
   const h = { gx: window.KOORD.karodanOlcek(d.kx), gy: window.KOORD.karodanOlcek(d.ky) };
   const sureMs = sureHesapla(fx, fy, h.gx, h.gy);
+
+  const r = await DUGUM.isgalAl(slotId, sureMs);
+  if (!r.ok) { toast(r.sebep || "Bu arazi şu an müsait değil.", 4000); return false; }
+
   const id = bk + "_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
 
   const kayit = {
@@ -849,6 +898,8 @@ function dinle() {
         if (s && s.sahip === bk && gecerli(s) && !_yerel[id] && !_silinen.has(id)) {
           _yerel[id] = s;
           yereliKaydet();
+          /* Ömrü dolmuşsa tik() bir sonraki turda bitirip buluttan
+             siler — hayalet kalıcı olarak temizlenmiş olur. */
         }
       });
       hudCiz(); dongu();
@@ -1238,7 +1289,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "canvas-3",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-5",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   /* harita.js canvas çizimi için — evre ve süre biçimi tek yerde
