@@ -1037,11 +1037,7 @@ function openReportModal(r) {
     <div class="rp-box">
       <button id="repClose" class="rp-close">✕</button>
 
-      <div class="rp-nav">
-        <button class="rp-ok" id="rpOkSol" hidden>‹</button>
-        <div class="rp-ttl">📜 <span id="rpBaslik">SAVAŞ RAPORU</span></div>
-        <button class="rp-ok" id="rpOkSag">›</button>
-      </div>
+      <div class="rp-ttl">📜 <span id="rpBaslik">SAVAŞ RAPORU</span></div>
 
       <!-- SAYFA 1: özet -->
       <div class="rp-sayfa" id="rpSayfa1">
@@ -1090,7 +1086,11 @@ function openReportModal(r) {
         ${unitDetailHTML(r)}
       </div>
 
-      <button class="rp-detail-btn" id="rpAbBtn">SAVAŞ DETAYLARI</button>
+      <div class="rp-alt">
+        <button class="rp-ok" id="rpOkSol" hidden>‹</button>
+        <button class="rp-detail-btn" id="rpAbBtn">SAVAŞ DETAYLARI</button>
+        <button class="rp-ok" id="rpOkSag">›</button>
+      </div>
     </div>`;
   document.body.appendChild(back);
   back.addEventListener("click",e=>{ if(e.target===back) back.remove(); });
@@ -3451,20 +3451,16 @@ st.textContent = `
 /* ── kutu biraz daha geniş ve uzun: oklar içeriğe binmesin ── */
 .rp-box{ position:relative; width:min(410px,96vw) !important; max-height:90vh !important; }
 
-/* ── başlık satırı: ‹ BAŞLIK › — kutucuksuz oklar ── */
-.rp-nav{
-  display:flex; align-items:center; gap:4px;
-  padding-right:34px;            /* sağ üstteki ✕ ile çakışmasın */
-  margin-bottom:6px;
-}
-.rp-nav .rp-ttl{ flex:1 1 auto; margin:0 !important; min-width:0; }
-.rp-nav .rp-ok{
-  flex:0 0 24px; background:none; border:0; padding:0; cursor:pointer;
-  font-family:inherit; font-weight:800; font-size:30px; line-height:1;
+/* ── alt satır: iki köşede oklar, ortada Savaş Detayları ── */
+.rp-alt{ display:flex; align-items:center; gap:6px; margin-top:10px; }
+.rp-alt .rp-detail-btn{ flex:1 1 auto; margin-top:0 !important; }
+.rp-alt .rp-ok{
+  flex:0 0 30px; background:none; border:0; padding:0; cursor:pointer;
+  font-family:inherit; font-weight:800; font-size:32px; line-height:1;
   color:color-mix(in srgb, var(--rp-murekkep) 55%, transparent);
 }
-.rp-nav .rp-ok:active{ color:var(--rp-murekkep); }
-.rp-nav .rp-ok[hidden]{ visibility:hidden; display:block; }  /* yer korunur, başlık kaymaz */
+.rp-alt .rp-ok:active{ color:var(--rp-murekkep); }
+.rp-alt .rp-ok[hidden]{ visibility:hidden; display:block; }  /* köşe yeri korunur */
 
 /* ── SAYFA 2: iki taraflı karşılaştırma ── */
 .rp-krs-ust{
@@ -3545,13 +3541,19 @@ st.textContent = `
 .sd-ab-tik{ cursor:pointer; }
 .sd-ab-tik:active{ transform:scale(.92); }
 .sd-ab-acik{ border-color:var(--rp-murekkep); box-shadow:0 0 0 2px rgba(255,255,255,.35); }
-/* ikona dokununca açılan kısa açıklama (2 satır) */
+/* ikona dokununca AÇILIR PENCERE YOK: açıklama satırın üstünde,
+   ortada belirir. Akışa girmediği için alttaki satırlar aşağı itilmez —
+   ölçüp hizalamak yerine sarmalın içine konuldu (Tuzak 28). */
 .sd-sarmal{ position:relative; }
 .sd-ac{
-  display:block; margin:0 2px 6px; padding:6px 8px; border-radius:8px;
-  background:rgba(255,255,255,.26);
-  border:1px solid color-mix(in srgb, var(--rp-murekkep) 28%, transparent);
+  position:absolute; left:6px; right:6px; top:50%;
+  transform:translateY(-50%); z-index:3;
+  padding:7px 9px; border-radius:9px;
+  background:color-mix(in srgb, var(--rp-kagit) 92%, #000);
+  border:1px solid color-mix(in srgb, var(--rp-murekkep) 45%, transparent);
+  box-shadow:0 4px 12px rgba(30,16,4,.35);
   font-size:10px; line-height:1.35; font-weight:700; color:var(--rp-murekkep);
+  text-align:left;
 }
 .sd-ac[hidden]{ display:none; }
 .sd-ac b{ display:block; font-size:10.5px; margin-bottom:1px; }
