@@ -5482,6 +5482,25 @@ function dugumeTiklandi(slotId) {
   araziBilgiAc(d);   /* önce "arazide kalan", oradan toplama paneline */
 }
 
+/* Teşhis şeridi — konsol telefonda okunamıyor, showToast da
+   görünmüyor (Tuzak 25). Satırlar üst üste yığılır. */
+function _dugumIz(metin, iyi) {
+  let kutu = document.getElementById("dugumIzKutu");
+  if (!kutu) {
+    kutu = document.createElement("div");
+    kutu.id = "dugumIzKutu";
+    kutu.style.cssText = "position:fixed;left:6px;right:6px;bottom:150px;z-index:99999;" +
+      "display:flex;flex-direction:column;gap:3px;pointer-events:none;";
+    document.body.appendChild(kutu);
+  }
+  const sat = document.createElement("div");
+  sat.style.cssText = "background:" + (iyi ? "rgba(16,80,40,.92)" : "rgba(120,20,20,.94)") +
+    ";color:#fff;padding:6px 9px;border-radius:9px;font:700 11px 'Baloo 2',sans-serif;";
+  sat.textContent = "🔎 " + metin;
+  kutu.appendChild(sat);
+  setTimeout(() => { sat.remove(); if (!kutu.children.length) kutu.remove(); }, 20000);
+}
+
 /* Düğüm yazması başarısızsa sebebi ekrana bas. showToast bu
    cihazda görünmediği için ham div kullanılıyor. */
 function _dugumUyar(slotId) {
@@ -6733,6 +6752,7 @@ async function startBattle() {
     let odulKaydi = null;
 
     if (result.win) {
+     try {
 
       /* ── ÖDÜL ARTIK KUTUDAN ALINIYOR ──
          Kaynak savaş biter bitmez eklenmez; günlükteki hediye
@@ -6760,12 +6780,22 @@ async function startBattle() {
          kalır — belirtisi tam olarak budur. O yüzden sonucu
          denetleyip sebebi EKRANA basıyoruz (toast bu telefonda
          görünmüyor, Tuzak 25). */
+      /* TEŞHİS AÇIK: sonuç ne olursa olsun ekrana yazılır. Böylece
+         "çağrıldı mı, buluta yazıldı mı, kaç can düştü" üçü birden
+         görülür. Sorun çözülünce _dugumIz çağrıları silinebilir. */
       if (window.DUGUM && enemyForBattle.slotId) {
+        _dugumIz("yen çağrıldı · slot=" + enemyForBattle.slotId, true);
         DUGUM.canavarYen(enemyForBattle.slotId).then(r => {
           renderBattleMap();
+          _dugumIz("yen sonuç · ok=" + (r && r.ok) + " · alinan=" + (r && r.alinan) +
+                   " · bitti=" + (r && r.bitti), !!(r && r.ok));
           if (!r || !r.ok) _dugumUyar(enemyForBattle.slotId);
-        }).catch(() => _dugumUyar(enemyForBattle.slotId));
-      } else if (!enemyForBattle.slotId) {
+        }).catch(e => {
+          _dugumIz("yen HATA · " + (e && e.message ? e.message : e), false);
+          _dugumUyar(enemyForBattle.slotId);
+        });
+      } else {
+        _dugumIz("DUGUM=" + (!!window.DUGUM) + " · slotId=" + enemyForBattle.slotId, false);
         _dugumUyar(null);
       }
 
@@ -6780,6 +6810,12 @@ async function startBattle() {
       renderBattleMap();
 
       setTimeout(() => { backToMap(); }, 4200);
+     } catch (hata) {
+       /* Zafer dalında bir istisna, canavarın kaldırılmasını da
+          birlikte götürür ve hiçbir belirti bırakmazdı. */
+       console.error("[zafer dalı]", hata);
+       _dugumIz("zafer dalı çöktü · " + (hata && hata.message ? hata.message : hata), false);
+     }
     } else {
       /* CANAVAR SAVAŞINDA ELMAS YOK — ne kazanç ne kayıp.
          Eskiden yenilgide 100–500 arası rastgele elmas gidiyordu. */

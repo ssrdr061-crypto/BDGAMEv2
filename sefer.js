@@ -99,6 +99,9 @@ function toplam(b) { return BIRLIKLER.reduce((a, k) => a + ((b || {})[k] || 0), 
 
 function fmtSure(ms) {
   const t = Math.max(0, Math.ceil(ms / 1000));
+  /* Bir dakikanın altı SANİYE yazılır: 15 sn artık "00.15d" değil
+     "15s". Dakika üstü eskisi gibi dd.ss biçiminde. */
+  if (t < 60) return t + "s";
   const dk = Math.floor(t / 60), sn = t % 60;
   return String(dk).padStart(2, "0") + "." + String(sn).padStart(2, "0") + "d";
 }
@@ -1115,12 +1118,15 @@ function hudCiz() {
      Eskiden üç satırdı ve haritanın köşesini kaplıyordu. */
   el.innerHTML = liste.map((x, i) => {
     const ev = evre(x.s);
-    const ikon = ev.ad === "donus" ? "↩︎" : (ev.ad === "topla" ? "⛏️" : "⚔️");
+    /* Soldaki durum oku KALKTI — dönüş sırasında sağdaki geri
+       düğmesiyle aynı sembol iki kez görünüyordu.
+       Düğmede "↩︎" yerine "⟲": telefon ↩ karakterini EMOJİ olarak
+       çiziyor (mavi kutu içinde beyaz ok) — çerçeve sandığımız şey
+       CSS değil, yazı tipinin kendisiydi. ⟲ düz metin çizilir. */
     return `<div class="sefer-satir" data-sefer="${x.id}">
-      <span class="sefer-ikon">${ikon}</span>
       <span class="sefer-sure">${fmtSure(ev.kalanMs)}</span>
       <span class="sefer-hedef">${String(x.s.hedefAd || "").slice(0, 10)}</span>
-      <button class="sefer-geri" type="button" data-geri="${x.id}" title="Geri çağır">↩︎</button>
+      <button class="sefer-geri" type="button" data-geri="${x.id}" title="Geri çağır">⟲</button>
     </div>`;
   }).join("");
 
@@ -1341,6 +1347,9 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
    #2fb0ee → #0e6fc0 geçişi, sadece alfası düşük. Böylece harita
    altından görünür, kutu haritayı boğmaz. */
 .sefer-satir{
+  /* SABİT GENİŞLİK: süre "15s" ile "02.05d" arasında gidip gelirken
+     kutunun her saniye büyüyüp küçülmesini engeller. */
+  width:124px; box-sizing:border-box;
   display:flex; align-items:center; gap:5px;
   padding:2px 3px 2px 7px; border-radius:9px;
   background:linear-gradient(180deg, rgba(47,176,238,.5), rgba(14,111,192,.5));
@@ -1349,17 +1358,16 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
   font-family:'Baloo 2','Nunito',sans-serif; color:#fff; cursor:pointer;
   text-shadow:0 1px 2px rgba(0,30,60,.55);
 }
-.sefer-ikon{ font-size:11px; line-height:1; }
-.sefer-sure{ font-size:11.5px; font-weight:800; letter-spacing:.2px; }
-.sefer-hedef{ font-size:9.5px; font-weight:700; opacity:.85; max-width:74px;
+.sefer-sure{ flex:0 0 42px; font-size:11.5px; font-weight:800; letter-spacing:.2px; }
+.sefer-hedef{ flex:1 1 auto; min-width:0; font-size:9.5px; font-weight:700; opacity:.85;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 /* Geri düğmesi: çerçevesiz, emoji küçültüldü. */
 .sefer-geri{
   flex:0 0 auto; width:19px; height:19px; border-radius:7px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
-  font-size:9.5px; font-weight:900; color:#fff; padding:0;
+  font-size:12px; font-weight:900; color:#fff; padding:0; line-height:1;
   background:linear-gradient(180deg, rgba(240,162,52,.85), rgba(192,112,13,.85));
-  border:none;
+  border:none !important; outline:none;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.28);
   -webkit-tap-highlight-color:transparent;
 }
