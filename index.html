@@ -4636,7 +4636,7 @@ function renderBattleLogPanel() {
         ${entry.pvp ? "" : `<div class="log-entry-actions">
           <button class="log-open-btn" data-idx="${i}">📜 Aç</button>
           ${entry.odul ? `<button class="log-gift-btn ${entry.odul.alindi ? "alindi" : ""}" data-gift="${i}">
-              ${entry.odul.alindi ? "✅ Alındı" : `🎁 ${entry.odul.ikon} ${fmt(entry.odul.miktar)}`}
+              ${entry.odul.ikon} ${fmt(entry.odul.miktar)}
             </button>` : ""}
         </div>`}
       </div>`).join("");

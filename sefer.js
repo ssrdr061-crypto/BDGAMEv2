@@ -56,6 +56,12 @@ const AYAR = {
   MAX_SEFER: 3,
   KAYIT_OMRU_MS: 2 * 60 * 60 * 1000,
   YAY: 0,                   /* yol kavisi. 0 = DÜZ ÇİZGİ */
+
+  /* HIZLANDIRMA — elmas karşılığı kalan süreyi kısaltır.
+     Bedel ve oran TEK YERDE; menüdeki yazı da buradan okunur,
+     iki ayrı sayı ayrışmasın. */
+  HIZ_BEDEL: 2000,          /* elmas */
+  HIZ_ORANI: 0.25,          /* kalan sürenin %25'i silinir */
 };
 
 const BIRLIKLER = ["knight", "soldier", "robot"];
@@ -1105,12 +1111,16 @@ function hudCiz() {
   const wrap = document.getElementById("battleMapWrap");
   el.style.display = (wrap && wrap.style.display !== "none") ? "flex" : "none";
 
+  /* TEK SATIR: ikon · süre · hedef, sağında geri çağırma düğmesi.
+     Eskiden üç satırdı ve haritanın köşesini kaplıyordu. */
   el.innerHTML = liste.map((x, i) => {
     const ev = evre(x.s);
+    const ikon = ev.ad === "donus" ? "↩︎" : (ev.ad === "topla" ? "⛏️" : "⚔️");
     return `<div class="sefer-satir" data-sefer="${x.id}">
-      <div class="sefer-satir-ust">${ev.ad === "donus" ? "↩︎" : "⚔️"} Birlik ${i + 1}</div>
-      <div class="sefer-satir-alt">${fmtSure(ev.kalanMs)}</div>
-      <div class="sefer-satir-hedef">${String(x.s.hedefAd || "").slice(0, 12)}</div>
+      <span class="sefer-ikon">${ikon}</span>
+      <span class="sefer-sure">${fmtSure(ev.kalanMs)}</span>
+      <span class="sefer-hedef">${String(x.s.hedefAd || "").slice(0, 10)}</span>
+      <button class="sefer-geri" type="button" data-geri="${x.id}" title="Geri çağır">↩︎</button>
     </div>`;
   }).join("");
 
@@ -1118,15 +1128,115 @@ function hudCiz() {
     const f = () => satirTiklandi(row.dataset.sefer);
     if (typeof bindTap === "function") bindTap(row, f); else row.onclick = f;
   });
+
+  /* Geri düğmesi satırın kendi menüsünü AÇMAZ, doğrudan onay sorar. */
+  el.querySelectorAll(".sefer-geri").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      geriCagirSor(btn.dataset.geri);
+    });
+    btn.addEventListener("pointerup", e => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
+  });
 }
+
+/* Satıra dokunma: hızlandır / geri çağır menüsü */
 function satirTiklandi(id) {
   const s = _yerel[id];
   if (!s) return;
-  if (s.durum === "donus") { toast("Ordu dönüş yolunda."); return; }
+  seferMenusu(id, s);
+}
+
+function geriCagirSor(id) {
+  const s = _yerel[id];
+  if (!s) return;
+  if (s.durum === "donus") { toast("Ordu zaten dönüş yolunda."); return; }
   onayPenceresi("GERİ ÇAĞIR",
     `<b>${String(s.hedefAd || "")}</b> üzerine giden <b>${toplam(s.birlikler || {})}</b> birliğin geri çağrılsın mı?` +
     `<br><span class="sefer-onay-not">Ordu bulunduğu noktadan yürüyerek dönecek; gittiği yol kadar süre alır.</span>`,
     "↩︎ Geri Çağır", () => geriCagir(id));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   15b) SEFER MENÜSÜ — hızlandır / geri çağır
+   Gövde yine oyunun kendi .overlay-card'ı; renkler onay
+   penceresiyle aynı yerden gelir, ayrı bir tema yazılmadı.
+   ═══════════════════════════════════════════════════════════ */
+function seferMenusu(id, s) {
+  const eski = document.getElementById("seferOnayModal");
+  if (eski) eski.remove();
+
+  const ev = evre(s);
+  const kazanc = Math.round(ev.kalanMs * AYAR.HIZ_ORANI);
+
+  const kok = document.createElement("div");
+  kok.id = "seferOnayModal";
+  kok.className = "sefer-onay-modal";
+  kok.innerHTML = `
+    <div class="overlay-card som-card">
+      <button class="overlay-close som-close" type="button">✕</button>
+      <h2 class="som-title">${String(s.hedefAd || "SEFER")}</h2>
+      <div class="som-msg">
+        Kalan süre <b>${fmtSure(ev.kalanMs)}</b>
+        <br><span class="sefer-onay-not">Hızlandırma kalan sürenin %${Math.round(AYAR.HIZ_ORANI * 100)}'ini siler (−${fmtSure(kazanc)}).</span>
+      </div>
+      <div class="som-actions som-actions-dikey">
+        <button class="som-btn som-btn-hiz" type="button">⚡ Hızlandır · 💎 ${fmtSayi(AYAR.HIZ_BEDEL)}</button>
+        <button class="som-btn som-btn-yes" type="button">↩︎ Geri Çağır</button>
+      </div>
+    </div>`;
+  document.body.appendChild(kok);
+
+  /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu. */
+  kok.style.pointerEvents = "none";
+  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
+
+  const kapat = () => kok.remove();
+  kok.querySelector(".som-close").onclick = kapat;
+  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
+  kok.querySelector(".som-btn-hiz").onclick = () => { kapat(); hizlandir(id); };
+  kok.querySelector(".som-btn-yes").onclick = () => { kapat(); geriCagirSor(id); };
+}
+
+function fmtSayi(n) {
+  return (typeof fmt === "function") ? fmt(n) : String(n);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   15c) HIZLANDIRMA
+   Süre alanlarına DOKUNULMAZ; yalnız evrenin BAŞLANGIÇ damgası
+   geriye çekilir. Böylece kalan süre kısalır ama toplam süre,
+   ilerleme oranı ve konum hesabı aynı formülle çalışmaya devam
+   eder — ikinci bir zaman hesabı doğmaz.
+   ═══════════════════════════════════════════════════════════ */
+function hizlandir(id) {
+  const s = _yerel[id];
+  if (!s) return;
+
+  const ev = evre(s);
+  if (ev.kalanMs <= 1000) { toast("Bu sefer zaten varmak üzere."); return; }
+
+  const bedel = AYAR.HIZ_BEDEL;
+  const elmas = (typeof state !== "undefined" && state) ? (state.diamonds || 0) : 0;
+  if (elmas < bedel) {
+    toast(`Yetersiz elmas — hızlandırma ${fmtSayi(bedel)} 💎.`, 4000);
+    return;
+  }
+
+  const kazanc = Math.round(ev.kalanMs * AYAR.HIZ_ORANI);
+  if (ev.ad === "topla")      s.toplaAt -= kazanc;
+  else if (ev.ad === "donus") s.donusAt -= kazanc;
+  else                        s.gidisAt -= kazanc;
+
+  state.diamonds = elmas - bedel;
+  ["renderDiamonds", "updateShopButtons", "persistCurrentState"].forEach(f => {
+    if (typeof window[f] === "function") { try { window[f](); } catch (e) {} }
+  });
+
+  seferYaz(id, s);
+  toast(`⚡ Sefer hızlandı — ${fmtSure(kazanc)} kısaldı.`, 3500);
+  hudCiz();
+  dongu();
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1221,19 +1331,36 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 }
 
 #seferHud{
-  position:fixed; left:10px; top:96px; z-index:40;
-  display:flex; flex-direction:column; gap:6px;
+  position:fixed; left:8px; top:96px; z-index:40;
+  display:flex; flex-direction:column; gap:5px;
 }
+/* TEK SATIR ve İNCE — oyunun mavi teması (mağaza/panel şablonu).
+   Eski hâli üç satırdı, koyu laciverttti ve haritanın köşesini
+   kapatıyordu. */
 .sefer-satir{
-  min-width:92px; padding:5px 9px; border-radius:11px;
-  background:linear-gradient(180deg, rgba(14,26,42,.92), rgba(8,16,28,.92));
-  border:1px solid rgba(90,210,255,.45);
-  box-shadow:0 3px 10px rgba(0,0,0,.45);
-  font-family:'Baloo 2','Nunito',sans-serif; color:#eaf6ff; cursor:pointer;
+  display:flex; align-items:center; gap:6px;
+  padding:3px 4px 3px 8px; border-radius:10px;
+  background:linear-gradient(180deg,#2fb0ee,#0e6fc0);
+  border:1.5px solid rgba(190,240,255,.75);
+  box-shadow:0 2px 0 #0b4f8c, 0 3px 8px rgba(0,20,45,.35),
+             inset 0 1px 0 rgba(255,255,255,.4);
+  font-family:'Baloo 2','Nunito',sans-serif; color:#fff; cursor:pointer;
+  text-shadow:0 1px 2px rgba(0,30,60,.5);
 }
-.sefer-satir-ust{ font-size:10.5px; font-weight:800; opacity:.85; line-height:1.2; }
-.sefer-satir-alt{ font-size:15px; font-weight:800; line-height:1.15; color:#7fe3a6; letter-spacing:.4px; }
-.sefer-satir-hedef{ font-size:9.5px; opacity:.6; line-height:1.2; }
+.sefer-ikon{ font-size:12px; line-height:1; }
+.sefer-sure{ font-size:12.5px; font-weight:800; letter-spacing:.2px; }
+.sefer-hedef{ font-size:10px; font-weight:700; opacity:.85; max-width:78px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sefer-geri{
+  flex:0 0 auto; width:24px; height:24px; border-radius:8px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:900; color:#fff;
+  background:linear-gradient(180deg,#f0a234,#c0700d);
+  border:1.5px solid rgba(255,235,200,.7);
+  box-shadow:0 2px 0 #7a4708, inset 0 1px 0 rgba(255,255,255,.3);
+  -webkit-tap-highlight-color:transparent;
+}
+.sefer-geri:active{ transform:translateY(2px); box-shadow:0 0 0 #7a4708; }
 
 .sefer-onay-modal{
   position:fixed; inset:0; z-index:9999;
@@ -1258,6 +1385,8 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:14px;
   color:#fff; border:2px solid rgba(255,255,255,.35);
 }
+.sefer-onay-modal .som-actions-dikey{ flex-direction:column; }
+.sefer-onay-modal .som-btn-hiz{ background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
 .sefer-onay-modal .som-btn-no{ background:linear-gradient(180deg,#5a6b80,#3b4859); }
 .sefer-onay-modal .som-btn-yes{ background:linear-gradient(180deg,#f0a234,#c0700d); }
 .sefer-onay-modal .som-btn:hover{ filter:brightness(1.08); }
@@ -1297,7 +1426,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "canvas-6",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-7",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   /* harita.js canvas çizimi için — evre ve süre biçimi tek yerde

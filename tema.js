@@ -987,6 +987,12 @@ function openReportModal(r) {
   });
 }
 
+/* DIŞA AÇ: bu dosyanın tamamı bir IIFE içinde, yani buradaki
+   fonksiyonlar kendiliğinden window'a çıkmaz. index.html canavar
+   raporunu bu pencerede açıyor; ad window'da olmazsa "Aç" hiçbir
+   şey yapmadan ölür (toast bu telefonda görünmüyor, Tuzak 25). */
+window.openReportModal = openReportModal;
+
 /* günlük kaydından paylaşılabilir rapor objesi üret */
 function entryToReport(entry) {
   if (entry.role === "attacker") {
@@ -3336,14 +3342,16 @@ if (document.readyState === "loading") {
     "  background:linear-gradient(180deg,rgba(34,72,143,.75),rgba(13,34,70,.85));",
     "  border:2px solid rgba(190,240,255,.45);}",
     /* ── SAVAŞ GÜNLÜĞÜ: hediye kutusu ── */
-    ".log-gift-btn{border:none;cursor:pointer;border-radius:10px;padding:8px 12px;",
+    ".log-entry-actions{display:flex;gap:8px;align-items:stretch;}",
+    ".log-open-btn{flex:1 1 auto;width:auto !important;}",
+    ".log-gift-btn{flex:0 0 auto;border:none;cursor:pointer;border-radius:11px;padding:9px 14px;",
     "  font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:12px;color:#fff;",
     "  background:linear-gradient(180deg,#f0a93b,#c47012);",
     "  box-shadow:0 3px 0 #7a4708,inset 0 1px 0 rgba(255,255,255,.3);",
     "  -webkit-tap-highlight-color:transparent;}",
     ".log-gift-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #7a4708;}",
     ".log-gift-btn.alindi{background:linear-gradient(180deg,#5a6b80,#3b4859);",
-    "  box-shadow:0 3px 0 #232c37;opacity:.75;}",
+    "  box-shadow:0 3px 0 #232c37;opacity:.55;}",
   ].join("\n");
   document.head.appendChild(st);
 })();
