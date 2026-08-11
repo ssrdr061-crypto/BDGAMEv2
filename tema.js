@@ -770,135 +770,184 @@ function unitChips(troopsObj) {
 
 /* rapor verisini pencerede göster (açık-mavi güncel arayüz) */
 
-/* ── DETAY: birlik dökümü (kayıplar + rakibe verilen zayiat) ── */
+/* ═══════════════════════════════════════════════════════════════
+   SAVAŞ RAPORU — SAYFALI
+   Sayfa 1: özet (VS, kahramanlar, birlikler, 💎/tur)
+   Sayfa 2: birlik dökümü — iki taraflı, ortada etiket
+   Ayrı pencere: "Savaş Detayları" (kahraman yetenekleri, aynalı)
+
+   RENK KURALI — okuyana göredir, satırın tarafına göre DEĞİL.
+   Kendi tarafımda: Ölen kırmızı, Yaralı turuncu, vuruşlar siyah.
+   Rakip tarafında: Öldürdü kırmızı, Yaraladı turuncu, kayıplar siyah.
+   Eski "Öldürdü hep yeşil" mantığı kaldırıldı: rakibin BENİ öldürdüğü
+   sayı benim raporumda yeşil görünüyordu. Savunan aynı raporu açtığında
+   renkler kendiliğinden yer değiştirir.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Raporu okuyan taraf: saldıran mıyım? Ad eşleşmezse (sohbetten gelen
+   yabancı rapor) saldıran gözünden gösterilir. */
+function benSaldiranMi(r) {
+  const ben = (typeof currentUsername !== "undefined" && currentUsername) ? currentUsername : "";
+  if (!ben) return true;
+  const sad = String(r.attackerName || ""), svd = String(r.defenderName || "");
+  if (sad && sad === ben) return true;
+  if (svd && svd === ben) return false;
+  return true;
+}
+
+/* tip → renk sınıfı. benimTarafim: bu sütun benim tarafım mı? */
+function rpRenk(tip, benimTarafim) {
+  if (benimTarafim) return tip === "olen" ? "rp-kirmizi" : (tip === "yarali" ? "rp-turuncu" : "");
+  return tip === "oldurdu" ? "rp-kirmizi" : (tip === "yaraladi" ? "rp-turuncu" : "");
+}
+
+/* ── SAYFA 2: birlik dökümü ── */
 function unitDetailHTML(r) {
   const AD = { knight: "Şövalye", soldier: "Asker", robot: "Robot" };
-  function tablo(baslik, kayip, dagitim) {
-    const ids = ["knight", "soldier", "robot"].filter(u =>
-      ((kayip && kayip.killed && kayip.killed[u]) || (kayip && kayip.wounded && kayip.wounded[u]) ||
-       (dagitim && dagitim[u] && (dagitim[u].killed || dagitim[u].wounded))));
-    if (!ids.length) return "";
-    const satir = ids.map(u => {
-      const ol = (kayip && kayip.killed && kayip.killed[u]) || 0;
-      const ya = (kayip && kayip.wounded && kayip.wounded[u]) || 0;
-      const d  = (dagitim && dagitim[u]) || { killed: 0, wounded: 0 };
-      return `<tr><td>${AD[u] || u}</td><td class="rp-r">${ya}</td><td class="rp-r">${ol}</td>` +
-             `<td class="rp-r rp-g">${d.killed || 0}</td><td class="rp-r rp-y">${d.wounded || 0}</td></tr>`;
-    }).join("");
-    return `<div class="rp-dsub">${baslik}</div>
-      <table class="rp-tbl"><thead><tr><th>Birlik</th><th class="rp-r">Yaralı</th>
-      <th class="rp-r">Ölen</th><th class="rp-r">Öldürdü</th><th class="rp-r">Yaraladı</th></tr></thead>
-      <tbody>${satir}</tbody></table>`;
-  }
-  const a = tablo("Saldıran", r.attackerLosses, r.attackerAttribution);
-  const d = tablo("Savunan", r.defenderLosses, r.defenderAttribution);
-  if (!a && !d) return "";
-  return `<div class="rp-dttl">⚔️ BİRLİK DÖKÜMÜ</div>${a}${d}
+  const f = (n) => (typeof fmt === "function") ? fmt(n || 0) : String(n || 0);
+  const benS = benSaldiranMi(r);
+
+  const AL = r.attackerLosses || {}, DL = r.defenderLosses || {};
+  const AA = r.attackerAttribution || {}, DA = r.defenderAttribution || {};
+  const sy = (o, k, u) => (o && o[k] && o[k][u]) || 0;          /* kayıplar */
+  const vr = (o, u, k) => (o && o[u] && o[u][k]) || 0;          /* verilen zayiat */
+
+  const OLCU = [
+    { tip: "yarali",   ad: "Yaralı",   sol: u => sy(AL, "wounded", u), sag: u => sy(DL, "wounded", u) },
+    { tip: "olen",     ad: "Ölen",     sol: u => sy(AL, "killed", u),  sag: u => sy(DL, "killed", u) },
+    { tip: "oldurdu",  ad: "Öldürdü",  sol: u => vr(AA, u, "killed"),  sag: u => vr(DA, u, "killed") },
+    { tip: "yaraladi", ad: "Yaraladı", sol: u => vr(AA, u, "wounded"), sag: u => vr(DA, u, "wounded") },
+  ];
+
+  const ids = ["knight", "soldier", "robot"].filter(u =>
+    OLCU.some(o => o.sol(u) || o.sag(u)));
+  if (!ids.length) return `<div class="rp-note">Bu savaşta kayıt altına alınmış birlik dökümü yok.</div>`;
+
+  const blok = ids.map(u => {
+    const satir = OLCU.map(o => `
+      <div class="rp-krs-satir">
+        <span class="rp-krs-sol ${rpRenk(o.tip, benS)}">${f(o.sol(u))}</span>
+        <span class="rp-krs-orta">${o.ad}</span>
+        <span class="rp-krs-sag ${rpRenk(o.tip, !benS)}">${f(o.sag(u))}</span>
+      </div>`).join("");
+    return `<div class="rp-krs-blok"><div class="rp-krs-baslik">${AD[u] || u}</div>${satir}</div>`;
+  }).join("");
+
+  return `
+    <div class="rp-krs-ust">
+      <span class="rp-krs-taraf${benS ? " rp-krs-ben" : ""}">${r.attackerName || "Saldıran"}</span>
+      <span class="rp-krs-taraf${benS ? "" : " rp-krs-ben"}">${r.defenderName || "Savunan"}</span>
+    </div>
+    ${blok}
     <div class="rp-note">Öldürdü/Yaraladı, birliklerin savaştaki hasar payına göre hesaplanır.</div>`;
 }
 
-/* ── DETAY: kahraman yetenekleri ──
-   Yetenek artık YAZI DEĞİL GÖRSEL: heroes.js'teki her yeteneğin
-   kendi `icon` dosyası var, kutucuk içinde o basılır. Yalnız
-   SAVAŞTA TETİKLENEN yetenekler girer; hiç tetiklenmediyse tek
-   satır bilgi çıkar. */
+/* ── SAVAŞ DETAYLARI: kahraman yetenekleri ──
+   Yetenekler kahramana göre gruplanır; iki taraf yan yana eşleşir.
+   Karşılıksız kalan taraf BOŞ bırakılır (kahraman sayıları eşit olmak
+   zorunda değil). Tetiklenme sayısı `heroFx.attacker/defender`, öldürme
+   `attackerKills/defenderKills` alanlarından gelir — ayrı bir hesap
+   yapılmaz. Eski "KAHRAMAN YETENEKLERİ" yazı tablosu iptal edildi. */
+const RP_AB_ANAHTAR = {
+  enemy_freeze_turns: "freeze", damage_reflect_pct: "reflect",
+  enemy_instant_casualty: "instant", periodic_def_reduce_pct: "periodic",
+  power_gap_cap: "gapCap"
+};
 
-/* Yeteneğin görselini bul: önce effect.type, tutmazsa başlık. */
-function abYetenek(heroId, type, title) {
-  if (typeof HERO_STATS === "undefined") return null;
+/* yetenek ikonunu heroes.js'ten bul (kahraman + başlık ile) */
+function rpYetenekIkon(heroId, title) {
+  if (typeof HERO_STATS === "undefined" || !HERO_STATS[heroId]) return "";
   const h = HERO_STATS[heroId];
-  if (!h) return null;
-  const liste = (h.abilities || []).concat(h.passive ? [h.passive] : []);
-  return liste.find(a => a && a.effect && a.effect.type === type)
-      || liste.find(a => a && a.title === title)
-      || null;
+  const ab = (h.abilities || []).find(a => a && a.title === title);
+  if (ab && ab.icon && !String(ab.icon).includes("{{")) return ab.icon;
+  if (h.passive && h.passive.icon) return h.passive.icon;
+  return "";
 }
 
-/* Tetiklenme metni — index.html'deki _repTrigger ile aynı sözlük.
-   İkisi ayrışmasın diye burada TEK yerde duruyor ve dışa açılıyor. */
-function abTetik(type, fx) {
-  fx = fx || {};
-  switch (type) {
-    case "enemy_freeze_turns":      return fx.freezeTurns ? fx.freezeTurns + " tur dondurdu" : null;
-    case "enemy_instant_casualty":  return fx.instantKilled ? fx.instantKilled + " can yok etti" : null;
-    case "damage_reflect_pct":      return fx.reflectTotal ? fx.reflectTotal + " hasar yansıttı" : null;
-    case "periodic_def_reduce_pct": return fx.periodicCount ? fx.periodicCount + " kez savunma kırdı" : null;
-    case "power_gap_cap":           return fx.dmgReduceVsStronger ? "hasarı %" + fx.dmgReduceVsStronger + " azalttı" : null;
-    default: return null;                 /* pasif/sürekli etkiler kutuya girmez */
-  }
-}
-window.abTetik = abTetik;
-
-function abChip(heroId, type, title, etki) {
-  const y = abYetenek(heroId, type, title);
-  const ad = (y && y.title) || title || "";
-  const gorsel = (y && y.icon && y.icon.indexOf("{{") === -1)
-    ? `<img src="${y.icon}" alt="${ad}">`
-    : `<span class="rp-abemoji">✨</span>`;
-  const h = (typeof HERO_STATS !== "undefined") ? HERO_STATS[heroId] : null;
-  return `<div class="rp-abchip" title="${ad}">
-      <div class="rp-abbox">${gorsel}</div>
-      <div class="rp-abfx">${etki}</div>
-      <div class="rp-abwho">${h ? (h.name || "") : ""}</div>
-    </div>`;
+function rpHeroAdi(heroId, yedek) {
+  if (typeof HERO_STATS !== "undefined" && HERO_STATS[heroId] && HERO_STATS[heroId].name)
+    return HERO_STATS[heroId].name;
+  return yedek || "—";
 }
 
-/* PvE kaydı: {type, sources:[{heroId,title}]} + flowFx */
-function abChipsPve(r) {
-  const fx = r.flowFx || {};
-  const out = [];
-  (r.abilities || []).forEach(m => {
-    const etki = abTetik(m.type, fx);
-    if (!etki) return;
-    (m.sources || []).forEach(src => out.push(abChip(src.heroId, m.type, src.title, etki)));
-  });
-  return out;
-}
-
-/* PvP kaydı: heroFx.attackerAbilities + kullanım sayaçları */
-function abChipsPvp(abList, used) {
-  const ANAHTAR = {
-    enemy_freeze_turns: "freeze", damage_reflect_pct: "reflect",
-    enemy_instant_casualty: "instant", periodic_def_reduce_pct: "periodic",
-    power_gap_cap: "gapCap"
-  };
-  const METIN = {
-    enemy_freeze_turns:      n => n + " tur dondurdu",
-    damage_reflect_pct:      n => n + " hasar yansıttı",
-    enemy_instant_casualty:  n => n + " birlik yok etti",
-    periodic_def_reduce_pct: n => n + " kez savunma kırdı",
-    power_gap_cap:           n => n + " tur hasar azalttı",
-  };
-  const out = [];
+/* abList → [{heroId, ad, satirlar:[{ikon,title,tetik,olum}]}] */
+function rpYetenekGruplari(abList, used, kills) {
+  const harita = new Map();
   (abList || []).forEach(m => {
-    const k = ANAHTAR[m.type];
-    const n = (k && used) ? (used[k] || 0) : 0;
-    if (!n || !METIN[m.type]) return;              /* tetiklenmeyen kutuya girmez */
-    const kim = (m.sources || [])[0] || {};
-    const hid = kim.heroId || (typeof heroIdOf === "function" ? heroIdOf(kim.heroName) : "");
-    out.push(abChip(hid, m.type, m.title, METIN[m.type](n)));
+    const k = RP_AB_ANAHTAR[m.type];
+    const tetik = (k && used && used[k]) ? used[k] : 0;
+    const olum = (kills && kills[m.type]) ? kills[m.type] : 0;
+    (m.sources || []).forEach(s => {
+      const id = s.heroId || "";
+      const ad = rpHeroAdi(id, s.heroName);
+      if (!harita.has(id)) harita.set(id, { heroId: id, ad: ad, satirlar: [] });
+      harita.get(id).satirlar.push({
+        ikon: rpYetenekIkon(id, s.title || m.title),
+        title: s.title || m.title || m.type,
+        tetik: tetik, olum: olum
+      });
+    });
   });
-  return out;
+  return Array.from(harita.values());
 }
 
-function abilityDetailHTML(r) {
-  let ben = [], karsi = [];
-  if (r.pve) {
-    ben = abChipsPve(r);
-  } else {
-    const fx = r.heroFx;
-    if (!fx) return "";
-    ben   = abChipsPvp(fx.attackerAbilities, fx.attacker);
-    karsi = abChipsPvp(fx.defenderAbilities, fx.defender);
+function savasDetaylariAc(r) {
+  document.getElementById("temaAbBack")?.remove();
+  const fx = r.heroFx || {};
+  const f = (n) => (typeof fmt === "function") ? fmt(n) : String(n);
+  const A = rpYetenekGruplari(fx.attackerAbilities, fx.attacker, fx.attackerKills);
+  const D = rpYetenekGruplari(fx.defenderAbilities, fx.defender, fx.defenderKills);
+
+  const n = Math.max(A.length, D.length);
+  let govde = "";
+  for (let i = 0; i < n; i++) {
+    const a = A[i] || null, d = D[i] || null;
+    const sat = Math.max(a ? a.satirlar.length : 0, d ? d.satirlar.length : 0);
+    let satirlar = "";
+    for (let j = 0; j < sat; j++) {
+      const x = a && a.satirlar[j], y = d && d.satirlar[j];
+      const kut = (s) => s && s.ikon
+        ? `<span class="sd-ab"><img src="${s.ikon}" alt=""></span>`
+        : (s ? `<span class="sd-ab sd-ab-bos">◈</span>` : `<span class="sd-ab sd-ab-yok"></span>`);
+      satirlar += `
+        <div class="sd-satir">
+          ${kut(x)}
+          <span class="sd-n">${x ? (x.tetik ? f(x.tetik) : "—") : ""}</span>
+          <span class="sd-n">${x ? (x.olum ? f(x.olum) : "—") : ""}</span>
+          <span class="sd-ayrac"></span>
+          <span class="sd-n">${y ? (y.olum ? f(y.olum) : "—") : ""}</span>
+          <span class="sd-n">${y ? (y.tetik ? f(y.tetik) : "—") : ""}</span>
+          ${kut(y)}
+        </div>`;
+    }
+    govde += `
+      <div class="sd-blok">
+        <div class="sd-bas">
+          <div class="sd-bas-sol">${a ? a.ad : ""}</div>
+          <div class="sd-bas-sag">${d ? d.ad : ""}</div>
+        </div>
+        <div class="sd-sutun">
+          <span class="sd-sb">Tetiklendi</span><span class="sd-sb">Öldürme</span>
+          <span class="sd-ayrac"></span>
+          <span class="sd-sb">Öldürme</span><span class="sd-sb">Tetiklendi</span>
+        </div>
+        ${satirlar}
+      </div>`;
   }
-  if (!ben.length && !karsi.length) {
-    return `<div class="rp-dttl">🦸 TETİKLENEN YETENEKLER</div>
-      <div class="rp-note">Bu savaşta tetiklenen bir yetenek olmadı.</div>`;
-  }
-  const blok = (baslik, liste) => liste.length
-    ? `<div class="rp-dsub">${baslik}</div><div class="rp-abrow">${liste.join("")}</div>` : "";
-  return `<div class="rp-dttl">🦸 TETİKLENEN YETENEKLER</div>` +
-    (r.pve ? blok("", ben) : blok("Saldıran", ben) + blok("Savunan", karsi));
+  if (!n) govde = `<div class="rp-note">Bu savaşta kahraman yeteneği kullanılmadı.</div>`;
+
+  const back = document.createElement("div");
+  back.id = "temaAbBack";
+  back.className = "sd-back";
+  back.innerHTML = `
+    <div class="rp-box sd-box">
+      <button id="sdClose" class="rp-close">✕</button>
+      <div class="rp-ttl">⚔️ SAVAŞ DETAYLARI</div>
+      <div class="sd-govde">${govde}</div>
+    </div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => { if (e.target === back) back.remove(); });
+  back.querySelector("#sdClose").onclick = () => back.remove();
 }
 
 function openReportModal(r) {
@@ -909,11 +958,6 @@ function openReportModal(r) {
   const defender = r.defenderName || "Savunan";
   const win = !!r.attackerWon;
 
-  /* PvE (canavar) kipi: elmas yok, savunan tarafta kale değil
-     canavarın kendi görseli var, sonuç şeridi zafer/yenilgi der. */
-  const pve = !!r.pve;
-  const savunanGorsel = pve ? (r.defenderIcon || "🐾") : "🏰";
-
   const back=document.createElement("div");
   back.id="temaReportBack";
   back.style.cssText="position:fixed;inset:0;z-index:9998;background:rgba(2,8,22,.6);"+
@@ -923,75 +967,79 @@ function openReportModal(r) {
     <div class="rp-box">
       <button id="repClose" class="rp-close">✕</button>
 
-      <div class="rp-ttl">📜 SAVAŞ RAPORU</div>
+      <div class="rp-ttl">📜 <span id="rpBaslik">SAVAŞ RAPORU</span></div>
 
-      <div class="rp-sonuc ${win?'rp-win':'rp-lose'}">
-        ${pve ? (win?'🏆 ZAFER':'💢 YENİLGİ')
-              : (win?'🏆 SALDIRAN KAZANDI':'🛡️ SAVUNAN KAZANDI')}
+      <!-- SAYFA 1: özet -->
+      <div class="rp-sayfa" id="rpSayfa1">
+        <div class="rp-sonuc ${win?'rp-win':'rp-lose'}">
+          ${win?'🏆 SALDIRAN KAZANDI':'🛡️ SAVUNAN KAZANDI'}
+        </div>
+
+        <div class="rp-vs">
+          <div class="rp-vs-side">
+            <div class="rp-castle">🏰</div>
+            <div class="rp-name">${attacker}</div>
+            <div class="rp-role">SALDIRAN</div>
+          </div>
+          <div class="rp-vs-mid">VS</div>
+          <div class="rp-vs-side">
+            <div class="rp-castle">🏰</div>
+            <div class="rp-name">${defender}</div>
+            <div class="rp-role">SAVUNAN</div>
+          </div>
+        </div>
+
+        ${(r.attackerCommanders&&r.attackerCommanders.length)||(r.defenderCommanders&&r.defenderCommanders.length)?`
+        <div class="rp-cols rp-cols-hero">
+          <div class="rp-col">
+            <div class="rp-chips">${(r.attackerCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
+          </div>
+          <div class="rp-col">
+            <div class="rp-chips">${(r.defenderCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
+          </div>
+        </div>`:''}
+
+        <div class="rp-div"></div>
+        <div class="rp-cols rp-cols-troop">
+          <div class="rp-col"><div class="rp-chips">${unitChips(r.attackerTroops)}</div></div>
+          <div class="rp-col"><div class="rp-chips">${unitChips(r.defenderTroops)}</div></div>
+        </div>
+
+        <div class="rp-foot">
+          <span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>
+          <span class="rp-turn">⏱️ ${r.turns||0} tur</span>
+        </div>
       </div>
 
-      <!-- saldıran vs savunan -->
-      <div class="rp-vs">
-        <div class="rp-vs-side">
-          <div class="rp-castle">🏰</div>
-          <div class="rp-name">${attacker}</div>
-          <div class="rp-role">SALDIRAN</div>
-        </div>
-        <div class="rp-vs-mid">VS</div>
-        <div class="rp-vs-side">
-          <div class="rp-castle">${savunanGorsel}</div>
-          <div class="rp-name">${defender}</div>
-          <div class="rp-role">${pve ? 'CANAVAR' : 'SAVUNAN'}</div>
-        </div>
-      </div>
-
-      ${(r.attackerCommanders&&r.attackerCommanders.length)||(r.defenderCommanders&&r.defenderCommanders.length)?`
-      <div class="rp-cols rp-cols-hero">
-        <div class="rp-col">
-          <div class="rp-chips">${(r.attackerCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
-        </div>
-        <div class="rp-col">
-          <div class="rp-chips">${(r.defenderCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
-        </div>
-      </div>`:''}
-
-      <div class="rp-div"></div>
-      <div class="rp-cols rp-cols-troop">
-        <div class="rp-col"><div class="rp-chips">${unitChips(r.attackerTroops)}</div></div>
-        <div class="rp-col"><div class="rp-chips">${
-          pve ? (r.defenderCount
-                  ? `<div class="rp-unit"><div class="rp-canavar">${savunanGorsel}</div><span class="rp-ucap">${f(r.defenderCount)}</span></div>`
-                  : '<span class="rp-dash">—</span>')
-              : unitChips(r.defenderTroops)}</div></div>
-      </div>
-
-      <div class="rp-foot">
-        ${pve ? '' : `<span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>`}
-        <span class="rp-turn">⏱️ ${r.turns||0} tur</span>
-      </div>
-
-      <button class="rp-detail-btn" id="rpDetailBtn">DETAY ▾</button>
-      <div class="rp-detail" id="rpDetail" hidden>
+      <!-- SAYFA 2: birlik dökümü -->
+      <div class="rp-sayfa" id="rpSayfa2" hidden>
         ${unitDetailHTML(r)}
-        ${abilityDetailHTML(r)}
       </div>
+
+      <!-- kutucuksuz sayfa okları -->
+      <button class="rp-ok rp-ok-sol" id="rpOkSol" hidden>‹</button>
+      <button class="rp-ok rp-ok-sag" id="rpOkSag">›</button>
+
+      <button class="rp-detail-btn" id="rpAbBtn">SAVAŞ DETAYLARI</button>
     </div>`;
   document.body.appendChild(back);
   back.addEventListener("click",e=>{ if(e.target===back) back.remove(); });
   document.getElementById("repClose").onclick=()=>back.remove();
-  const dBtn = back.querySelector("#rpDetailBtn"), dBox = back.querySelector("#rpDetail");
-  if (dBtn && dBox) dBtn.addEventListener("click", () => {
-    const acik = !dBox.hidden;
-    dBox.hidden = acik;
-    dBtn.textContent = acik ? "DETAY ▾" : "DETAY ▴";
-  });
-}
 
-/* DIŞA AÇ: bu dosyanın tamamı bir IIFE içinde, yani buradaki
-   fonksiyonlar kendiliğinden window'a çıkmaz. index.html canavar
-   raporunu bu pencerede açıyor; ad window'da olmazsa "Aç" hiçbir
-   şey yapmadan ölür (toast bu telefonda görünmüyor, Tuzak 25). */
-window.openReportModal = openReportModal;
+  /* sayfa geçişi — akordeon değil, yatay sayfa */
+  const s1 = back.querySelector("#rpSayfa1"), s2 = back.querySelector("#rpSayfa2");
+  const okS = back.querySelector("#rpOkSol"), okG = back.querySelector("#rpOkSag");
+  const bas = back.querySelector("#rpBaslik");
+  function sayfa(no) {
+    s1.hidden = (no !== 1); s2.hidden = (no !== 2);
+    okS.hidden = (no === 1); okG.hidden = (no === 2);
+    bas.textContent = (no === 1) ? "SAVAŞ RAPORU" : "BİRLİK DÖKÜMÜ";
+  }
+  okG.onclick = () => sayfa(2);
+  okS.onclick = () => sayfa(1);
+
+  back.querySelector("#rpAbBtn").onclick = () => savasDetaylariAc(r);
+}
 
 /* günlük kaydından paylaşılabilir rapor objesi üret */
 function entryToReport(entry) {
@@ -3316,42 +3364,97 @@ if (document.readyState === "loading") {
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   30) YETENEK KUTUCUKLARI + CANAVAR RAPORU
-   Rapor penceresinde tetiklenen yetenekler yazı yerine görsel
-   kutucuk olarak çıkıyor (bkz. abilityDetailHTML). Kurallar dosya
-   sonunda AYRI bir IIFE'de: üstteki büyük şablon dizgisinin içine
-   girmiyor, kaçış derdi olmuyor.
+   RAPOR — SAYFA OKLARI, İKİ TARAFLI DÖKÜM, SAVAŞ DETAYLARI
+   Dosya sonunda ayrı IIFE: sıralamada en son eklendiği için
+   yukarıdaki rapor kurallarını ezer (Tuzak 27 — sıralama kazanır).
    ═══════════════════════════════════════════════════════════════ */
-(function yetenekKutuCSS() {
-  const st = document.createElement("style");
-  st.id = "temaYetenekCSS";
-  st.textContent = [
-    ".rp-abrow{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 10px;}",
-    ".rp-abchip{width:88px;text-align:center;}",
-    ".rp-abbox{width:64px;height:64px;margin:0 auto 5px;border-radius:14px;overflow:hidden;",
-    "  background:linear-gradient(180deg,rgba(34,72,143,.75),rgba(13,34,70,.85));",
-    "  border:2px solid rgba(190,240,255,.55);",
-    "  box-shadow:inset 0 2px 3px rgba(150,205,255,.25),0 4px 10px rgba(0,20,45,.4);",
-    "  display:flex;align-items:center;justify-content:center;}",
-    ".rp-abbox img{width:100%;height:100%;object-fit:cover;display:block;}",
-    ".rp-abemoji{font-size:28px;}",
-    ".rp-abfx{font-size:11px;font-weight:800;color:#8ef0a8;line-height:1.25;}",
-    ".rp-abwho{font-size:10px;font-weight:800;color:#cfeaff;opacity:.75;margin-top:2px;}",
-    ".rp-canavar{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;",
-    "  justify-content:center;font-size:30px;",
-    "  background:linear-gradient(180deg,rgba(34,72,143,.75),rgba(13,34,70,.85));",
-    "  border:2px solid rgba(190,240,255,.45);}",
-    /* ── SAVAŞ GÜNLÜĞÜ: hediye kutusu ── */
-    ".log-entry-actions{display:flex;gap:8px;align-items:stretch;}",
-    ".log-open-btn{flex:1 1 auto;width:auto !important;}",
-    ".log-gift-btn{flex:0 0 auto;border:none;cursor:pointer;border-radius:11px;padding:9px 14px;",
-    "  font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:12px;color:#fff;",
-    "  background:linear-gradient(180deg,#f0a93b,#c47012);",
-    "  box-shadow:0 3px 0 #7a4708,inset 0 1px 0 rgba(255,255,255,.3);",
-    "  -webkit-tap-highlight-color:transparent;}",
-    ".log-gift-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #7a4708;}",
-    ".log-gift-btn.alindi{background:linear-gradient(180deg,#5a6b80,#3b4859);",
-    "  box-shadow:0 3px 0 #232c37;opacity:.55;}",
-  ].join("\n");
-  document.head.appendChild(st);
+(function raporSayfaStil() {
+"use strict";
+const st = document.createElement("style");
+st.id = "temaRaporSayfa";
+st.textContent = `
+/* ── renkler: okuyana göre (yeşil kalktı) ── */
+.rp-box .rp-kirmizi{ color:#b8231f !important; }
+.rp-box .rp-turuncu{ color:#b5710c !important; }
+
+/* ── kutucuksuz sayfa okları ── */
+.rp-box{ position:relative; }
+.rp-box .rp-ok{
+  position:absolute; top:50%; transform:translateY(-50%);
+  background:none; border:0; padding:0 6px; cursor:pointer;
+  font-family:inherit; font-weight:800; font-size:34px; line-height:1;
+  color:color-mix(in srgb, var(--rp-murekkep) 55%, transparent);
+}
+.rp-box .rp-ok:active{ color:var(--rp-murekkep); }
+.rp-box .rp-ok-sol{ left:-2px; }
+.rp-box .rp-ok-sag{ right:-2px; }
+
+/* ── SAYFA 2: iki taraflı karşılaştırma ── */
+.rp-krs-ust{
+  display:flex; justify-content:space-between; gap:8px;
+  font-size:11px; font-weight:800; color:var(--rp-murekkep-2);
+  padding:0 4px 6px; margin-bottom:4px;
+  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 22%, transparent);
+}
+.rp-krs-taraf{ max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rp-krs-ben{ color:var(--rp-murekkep); }
+.rp-krs-blok{ margin-bottom:10px; }
+.rp-krs-baslik{
+  text-align:center; font-size:10.5px; font-weight:800; letter-spacing:1px;
+  color:var(--rp-murekkep-2); margin:6px 0 2px;
+}
+.rp-krs-satir{
+  display:flex; align-items:center; padding:5px 4px;
+  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 10%, transparent);
+  font-weight:800; font-size:12px; color:var(--rp-murekkep);
+  font-variant-numeric:tabular-nums;
+}
+.rp-krs-satir:nth-child(odd){ background:rgba(255,255,255,.14); }
+.rp-krs-sol{ flex:1 1 0; text-align:left; }
+.rp-krs-sag{ flex:1 1 0; text-align:right; }
+.rp-krs-orta{
+  flex:0 0 auto; font-size:10.5px; font-weight:800;
+  color:var(--rp-murekkep-2); padding:0 10px; white-space:nowrap;
+}
+
+/* ── SAVAŞ DETAYLARI penceresi ── */
+.sd-back{
+  position:fixed; inset:0; z-index:9999; background:rgba(2,8,22,.62);
+  backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center;
+  padding:18px; font-family:'Baloo 2','Nunito',sans-serif;
+}
+.sd-box{ max-height:82vh; overflow:auto; }
+.sd-blok{ margin-bottom:12px; }
+.sd-bas{
+  display:flex; border-radius:9px; overflow:hidden;
+  font-size:12px; font-weight:800; color:#fff;
+}
+.sd-bas-sol{ flex:1 1 0; padding:6px 9px; background:linear-gradient(90deg,#2f74c8,#3f8bdc); }
+.sd-bas-sag{ flex:1 1 0; padding:6px 9px; text-align:right; background:linear-gradient(90deg,#c33f3f,#a82626); }
+.sd-sutun, .sd-satir{ display:flex; align-items:center; gap:4px; padding:4px 2px; }
+.sd-sutun{
+  font-size:9.5px; font-weight:800; color:var(--rp-murekkep-2);
+  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 20%, transparent);
+}
+.sd-sb{ flex:1 1 0; text-align:center; }
+.sd-satir{
+  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 10%, transparent);
+  font-size:12px; font-weight:800; color:var(--rp-murekkep);
+  font-variant-numeric:tabular-nums;
+}
+.sd-n{ flex:1 1 0; text-align:center; }
+.sd-ayrac{ flex:0 0 1px; align-self:stretch;
+  background:color-mix(in srgb, var(--rp-murekkep) 22%, transparent); margin:0 4px; }
+/* yetenek ikonu — kahraman görselinden belirgin küçük */
+.sd-ab{
+  flex:0 0 28px; width:28px; height:28px; border-radius:7px; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.18);
+  border:1px solid color-mix(in srgb, var(--rp-murekkep) 35%, transparent);
+}
+.sd-ab img{ width:100%; height:100%; object-fit:cover; }
+.sd-ab-bos{ font-size:13px; color:var(--rp-murekkep-2); }
+.sd-ab-yok{ background:none; border:0; }
+`;
+document.head.appendChild(st);
 })();
