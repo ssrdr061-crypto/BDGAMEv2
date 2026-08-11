@@ -22,10 +22,13 @@
    2) YENİLGİ EŞİĞİ. Ordunun %55'inden fazlası düşerse canavar
       yenilmemiş sayılır — canavar ölse bile. Savaş o anda da biter,
       yani kayıp %55'i aşmaz.
-   3) CANAVAR TEK VARLIKTIR. pvp.js ordu-vs-ordu çalışır ve "birliği
-      olmayan savunmacı hiç vurmaz" kuralı yüzünden canavar oraya
-      doğrudan verilemez. Bu yüzden hasar formülleri ödünç alınıp
-      canavar tek bir varlık olarak modellenmiştir.
+   3) CANAVAR ARTIK ORDUDUR. Eskiden canavar tek dev gövdeye
+      indirgeniyordu (`birlik x stat / 10` ve `/ 2` gibi uydurma
+      bölenlerle) ve senin verdiğin statlar savaşa neredeyse hiç
+      yansımıyordu. Artık canavar da oyuncu ordusu gibi N birlikten
+      oluşur, statlar BİRİM BAŞINA kullanılır, bölen yoktur ve
+      canavar hasar aldıkça birlik kaybeder — yani vuruşu da
+      savunması da savaş ilerledikçe zayıflar.
 
    ── ESKİ DAVRANIŞA DÖNÜŞ ──
    index.html'den bu satırı silmek yeterli; eski simulateBattle
@@ -108,6 +111,30 @@
     return birimler;
   }
 
+  /* ── CANAVAR ORDUSU ───────────────────────────────────────────
+     `enemy.stat` birim başına stat (seviye çarpanı düğüm şablonunda
+     zaten uygulanmış), `enemy.birlik` birlik sayısı. Eski çağrı
+     noktaları (stat taşımayan canavar nesnesi) için tek-gövde
+     yedeği korunur — o zaman adet 1'dir, davranış eskisi gibidir. */
+  function canavarKur(enemy) {
+    const st = enemy && enemy.stat;
+    const n  = Math.max(1, Math.round(say(enemy.birlik, 0)));
+    if (st && say(st.hp, 0) > 0) {
+      return {
+        ordu: true, adet: n,
+        atkBir: Math.max(0, say(st.attack, 1)),
+        defBir: Math.max(0, say(st.defense, 0)),
+        hpBir:  Math.max(1, say(st.hp, 1)),
+      };
+    }
+    return {
+      ordu: false, adet: 1,
+      atkBir: Math.max(1, say(enemy.attack, 1)),
+      defBir: Math.max(0, say(enemy.defense, 0)),
+      hpBir:  Math.max(1, say(enemy.maxHp, 1)),
+    };
+  }
+
   function orduSayi(b)   { return b.reduce((s, u) => s + u.count, 0); }
   function orduAtk(b)    { return b.reduce((s, u) => s + u.atk * u.count, 0); }
   function orduDef(b)    { return b.reduce((s, u) => s + u.def * u.count, 0); }
@@ -184,6 +211,7 @@
      Girdi ve çıktı biçimi eski simulateBattle ile birebir aynı.
      ═════════════════════════════════════════════════════════════ */
   function simulateBattlePvE(hero, enemy, troopRoster) {
+    let enemyHp = 0;                     /* aşağıdaki okların gördüğü değişken */
     const hpMult = say(hero.hpMult, 1) || 1;
     const birimler = orduKur(troopRoster, hpMult);
 
@@ -198,25 +226,37 @@
     const bul = t => ab.find(a => a.type === t);
     let f;
 
-    let enemyAtk  = say(enemy.attack, 1)  * PVE.canavarAtkCarpani;
-    let enemyDef  = say(enemy.defense, 0) * PVE.canavarDefCarpani;
-    let enemyMaxHp = say(enemy.maxHp, 1);
+    /* Canavar ordusu. Yetenek etkileri BİRİM BAŞINA statlara
+       uygulanır; ordu değerleri her turda ayakta kalan birlikten
+       yeniden hesaplanır. */
+    const cv = canavarKur(enemy);
+    let cAtkBir = cv.atkBir * PVE.canavarAtkCarpani;
+    let cDefBir = cv.defBir * PVE.canavarDefCarpani;
+    let cHpBir  = cv.hpBir;
 
     const debuffs = {};
     if ((f = bul("enemy_def_shred_pct")) && f.v) {
-      enemyDef *= (1 - f.v / 100);
+      cDefBir *= (1 - f.v / 100);
       debuffs.defShred = f.v;
     }
     if ((f = bul("enemy_hp_atk_reduce_pct"))) {
       const hpR = f.v || 0;
       const atkR = (f.v2 != null ? f.v2 : f.v) || 0;
-      enemyMaxHp *= (1 - hpR / 100);
-      enemyAtk   *= (1 - atkR / 100);
+      cHpBir  *= (1 - hpR / 100);
+      cAtkBir *= (1 - atkR / 100);
       debuffs.hpReduce = hpR; debuffs.atkReduce = atkR;
     }
-    enemyAtk   = Math.max(1, Math.round(enemyAtk));
-    enemyDef   = sifirAlti(Math.round(enemyDef));
-    enemyMaxHp = Math.max(1, Math.round(enemyMaxHp));
+    cAtkBir = Math.max(cv.ordu ? 0 : 1, Math.round(cAtkBir));
+    cDefBir = sifirAlti(Math.round(cDefBir));
+    cHpBir  = Math.max(1, Math.round(cHpBir));
+
+    const enemyMaxHp = Math.max(1, cv.adet * cHpBir);
+
+    /* Ayakta kalan canavar birliği, kalan candan türer — ayrı sayaç
+       tutulmaz, böylece can çubuğu ile birlik sayısı ayrışamaz. */
+    const canavarAdet = () => Math.ceil(sifirAlti(enemyHp) / cHpBir);
+    const canavarAtk  = () => Math.max(1, canavarAdet() * cAtkBir);
+    const canavarDef  = () => canavarAdet() * cDefBir;
 
     /* Yasak Büyüler: canavarın %v'si anında erir */
     let instantKilled = 0;
@@ -250,11 +290,12 @@
       const benimGuc = orduAtk(birimler) + orduDef(birimler)
                      + say(hero.attack, 0) + say(hero.defense, 0)
                      + Math.round(combinedMaxHp / 4);
-      const onunGuc  = enemyAtk + enemyDef + Math.round(enemyMaxHp / 4);
+      const onunGuc  = cv.adet * cAtkBir + cv.adet * cDefBir
+                     + Math.round(enemyMaxHp / 4);
       if (onunGuc >= benimGuc * (1 + gap / 100)) gucFarkiAzalt = f.v || 0;
     }
 
-    let enemyHp = sifirAlti(enemyMaxHp - instantKilled);
+    enemyHp = sifirAlti(enemyMaxHp - instantKilled);
 
     /* ── SAVAŞ DÖNGÜSÜ ── */
     const rounds = [];
@@ -266,7 +307,7 @@
       turn++;
 
       if (perPct > 0 && turn % perHer === 0) {
-        enemyDef = sifirAlti(Math.round(enemyDef * (1 - perPct / 100)));
+        cDefBir = sifirAlti(cDefBir * (1 - perPct / 100));
         perSayi++;
       }
 
@@ -274,7 +315,7 @@
          Eski motorda sadece kahraman vuruyordu. Artık her birlik
          kendi saldırısıyla katkı veriyor, kahraman bir katkı daha. */
       const hamAtk = orduAtk(birimler) + say(hero.attack, 0);
-      const vurus = hasarHesapla(hamAtk, enemyDef,
+      const vurus = hasarHesapla(hamAtk, canavarDef(),
                                  say(hero.ultiChance, 0.15),
                                  say(hero.ultiMultiplier, 1.8));
       enemyHp = sifirAlti(enemyHp - vurus.dmg);
@@ -297,7 +338,7 @@
 
       /* Birliklerin savunması artık gerçekten sayılıyor */
       const savunma = orduDef(birimler) + say(hero.defense, 0);
-      const gelen = hasarHesapla(enemyAtk, savunma,
+      const gelen = hasarHesapla(canavarAtk(), savunma,
                                  say(enemy.ultiChance, 0),
                                  say(enemy.ultiMultiplier, 1.8));
 
@@ -391,6 +432,9 @@
 
       /* Rapor ekranı kullanmıyor ama hata ayıklarken çok işe yarar */
       pveInfo: {
+        canavarBirlik: cv.adet,
+        canavarKalan: canavarAdet(),
+        canavarStatBir: { attack: cAtkBir, defense: cDefBir, hp: cHpBir },
         baslangicSayi, dusenToplam,
         kayipYuzde: Math.round(kayipOrani * 100),
         yenilgiEsigi: Math.round(PVE.yenilgiEsigi * 100),

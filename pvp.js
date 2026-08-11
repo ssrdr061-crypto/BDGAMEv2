@@ -223,11 +223,6 @@ const HERO_CATEGORY = {
 
 .pvp-sep{ height:1px; background:rgba(190,240,255,.3); margin:9px 0 7px; }
 
-.pvp-verdict{ text-align:center; font-size:12px; font-weight:800; margin-top:8px;
-  padding-top:7px; border-top:1px dashed rgba(190,240,255,.32);
-  text-shadow:0 1px 2px rgba(0,30,55,.6); }
-.pvp-v-green{ color:#7fe3a6; } .pvp-v-yellow{ color:#f2d47a; } .pvp-v-red{ color:#ff8b8b; }
-
 .pvp-actions{ display:flex; gap:9px; }
 .pvp-btn{ flex:1; border:none; cursor:pointer; border-radius:14px;
   padding:13px 6px 15px; font-family:'Baloo 2',sans-serif;
@@ -424,24 +419,6 @@ function buildDefender(acc, fallbackName) {
 
 function hasNewbieShield(d) {
   return !!d.registeredAt && (Date.now() - d.registeredAt) < CFG.newbieShieldMs;
-}
-
-function verdictFor(defender) {
-  let mine = { attack: 0, defense: 0, maxHp: 0 };
-  try {
-    if (typeof getEffectiveHeroStats === "function") {
-      const all = {};
-      Object.keys(state.troops || {}).forEach(k => all[k] = state.troops[k] || 0);
-      mine = getEffectiveHeroStats(all);
-    }
-  } catch (e) {}
-  const r = (defender.attack + defender.defense + defender.maxHp/4) > 0
-    ? (mine.attack + mine.defense + mine.maxHp/4) /
-      (defender.attack + defender.defense + defender.maxHp/4) : 2;
-  if (r >= 1.5)  return { t: "Tüm ordunla rahat ezersin",     c: "pvp-v-green"  };
-  if (r >= 1.05) return { t: "Avantajlısın",                  c: "pvp-v-green"  };
-  if (r >= 0.85) return { t: "Dengeli — birlik kaybın ağır olur", c: "pvp-v-yellow" };
-  return               { t: "Ordusu senden güçlü, dikkat!",   c: "pvp-v-red"    };
 }
 
 /* ═══════════════════════════════════════════════════════════════

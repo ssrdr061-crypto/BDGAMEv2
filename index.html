@@ -4010,14 +4010,24 @@ const state = defaultState();
 
 const ENEMY_TIER = { 1: "easy", 2: "medium", 3: "hard" };
 
+/* Düğüm canavarını savaş nesnesine çevirir.
+   ── BÖLENLER KALDIRILDI ──
+   Eskiden burada `birlik * stat / 10` ve `/ 2` vardı: canavar tek
+   dev gövdeye eziliyordu ve o iki bölen elle uydurulmuştu, yani
+   `dugum.js`'te verilen statlar savaşa neredeyse hiç yansımıyordu.
+   Artık canavar oyuncu ordusu gibi N birliktir; `stat` birim başına
+   olduğu gibi aktarılır (pve.js onu öyle kullanır), buradaki
+   attack/defense/maxHp ise yalnız GÖSTERİM ve güç kıyası içindir:
+   ordunun toplamı. */
 function _dugumdenCanavar(d) {
   const bir = d.birlik || 1;
   return {
     name: d.ad + " Sv." + d.seviye,
     avatar: d.ikon,
-    attack:  Math.max(1, Math.round(bir * d.stat.attack  / 10)),
-    defense: Math.max(1, Math.round(bir * d.stat.defense / 10)),
-    maxHp:   Math.max(1, Math.round(bir * d.stat.hp      / 2)),
+    stat:    d.stat,                        /* birim başına — savaşın kullandığı */
+    attack:  Math.max(1, Math.round(bir * d.stat.attack)),
+    defense: Math.max(0, Math.round(bir * d.stat.defense)),
+    maxHp:   Math.max(1, Math.round(bir * d.stat.hp)),
     ultiChance: 0.08 + d.seviye * 0.04,
     ultiMultiplier: 1.6 + d.seviye * 0.15,
     tier: ENEMY_TIER[d.seviye] || "easy",
