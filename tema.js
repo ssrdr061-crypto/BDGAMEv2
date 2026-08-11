@@ -795,9 +795,17 @@ function benSaldiranMi(r) {
   return true;
 }
 
-/* tip → renk sınıfı. benimTarafim: bu sütun benim tarafım mı? */
+/* tip → renk sınıfı. benimTarafim: bu sütun benim tarafım mı?
+   Benim tarafım: Ölen kırmızı · Yaralı turuncu · Öldürdü YEŞİL (benim
+   kazancım). Rakip tarafı: Öldürdü kırmızı · Yaraladı turuncu (bana
+   verdiği zayiat). Gerisi siyah. */
 function rpRenk(tip, benimTarafim) {
-  if (benimTarafim) return tip === "olen" ? "rp-kirmizi" : (tip === "yarali" ? "rp-turuncu" : "");
+  if (benimTarafim) {
+    if (tip === "olen") return "rp-kirmizi";
+    if (tip === "yarali") return "rp-turuncu";
+    if (tip === "oldurdu") return "rp-yesil";
+    return "";
+  }
   return tip === "oldurdu" ? "rp-kirmizi" : (tip === "yaraladi" ? "rp-turuncu" : "");
 }
 
@@ -830,7 +838,17 @@ function unitDetailHTML(r) {
         <span class="rp-krs-orta">${o.ad}</span>
         <span class="rp-krs-sag ${rpRenk(o.tip, !benS)}">${f(o.sag(u))}</span>
       </div>`).join("");
-    return `<div class="rp-krs-blok"><div class="rp-krs-baslik">${AD[u] || u}</div>${satir}</div>`;
+    /* Başlıkta yazı yok: iki tarafa da o birliğin kafa kutucuğu konur —
+       aynı kadraj birlik seçicide ve raporun özet sayfasında kullanılıyor
+       (.rep-por[data-i]), yeni bir görsel ölçüsü uydurulmadı. */
+    const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[u] : null;
+    const im = (d && d.img) ? `<img src="${d.img}" alt="${AD[u] || u}">` : "";
+    const i = ["knight", "soldier", "robot"].indexOf(u);
+    const kafa = `<div class="rep-por" data-i="${i}">${im}</div>`;
+    return `<div class="rp-krs-blok">
+        <div class="rp-krs-baslik">${kafa}<span class="rp-krs-cizgi"></span>${kafa}</div>
+        ${satir}
+      </div>`;
   }).join("");
 
   return `
@@ -864,13 +882,32 @@ function rpYetenekIkon(heroId, title) {
   return "";
 }
 
+/* Yeteneğin kısa açıklaması — heroes.js'teki descTemplate.
+   {value}/{value2}/{chance} savaşa giren kahramanın O ANKİ seviyesinden
+   gelir: `sources` içindeki v/v2/chance savaş anında yazılmıştır. Kayıtta
+   yoksa (eski kayıt veya PvE yolu) seviye 1 değerine düşülür. */
+function rpYetenekAciklama(heroId, title, s) {
+  if (typeof HERO_STATS === "undefined" || !HERO_STATS[heroId]) return "";
+  const ab = (HERO_STATS[heroId].abilities || []).find(a => a && a.title === title);
+  if (!ab || !ab.descTemplate) return "";
+  const sec = (kayit, dizi) => (typeof kayit === "number") ? kayit
+    : (((ab[dizi] || [])[0] !== undefined) ? ab[dizi][0] : "");
+  const v  = sec(s && s.v,      "valuesByLevel");
+  const v2 = sec(s && s.v2,     "valuesByLevel2");
+  const ch = sec(s && s.chance, "chanceByLevel");
+  return String(ab.descTemplate)
+    .split("{value2}").join("%" + v2)
+    .split("{value}").join("%" + v)
+    .split("{chance}").join("%" + ch);
+}
+
 function rpHeroAdi(heroId, yedek) {
   if (typeof HERO_STATS !== "undefined" && HERO_STATS[heroId] && HERO_STATS[heroId].name)
     return HERO_STATS[heroId].name;
   return yedek || "—";
 }
 
-/* abList → [{heroId, ad, satirlar:[{ikon,title,tetik,olum}]}] */
+/* abList → [{heroId, ad, satirlar:[{ikon,title,aciklama,tetik,olum}]}] */
 function rpYetenekGruplari(abList, used, kills) {
   const harita = new Map();
   (abList || []).forEach(m => {
@@ -880,10 +917,12 @@ function rpYetenekGruplari(abList, used, kills) {
     (m.sources || []).forEach(s => {
       const id = s.heroId || "";
       const ad = rpHeroAdi(id, s.heroName);
+      const bas = s.title || m.title || m.type;
       if (!harita.has(id)) harita.set(id, { heroId: id, ad: ad, satirlar: [] });
       harita.get(id).satirlar.push({
-        ikon: rpYetenekIkon(id, s.title || m.title),
-        title: s.title || m.title || m.type,
+        ikon: rpYetenekIkon(id, bas),
+        title: bas,
+        aciklama: rpYetenekAciklama(id, bas, s),
         tetik: tetik, olum: olum
       });
     });
@@ -898,6 +937,12 @@ function savasDetaylariAc(r) {
   const A = rpYetenekGruplari(fx.attackerAbilities, fx.attacker, fx.attackerKills);
   const D = rpYetenekGruplari(fx.defenderAbilities, fx.defender, fx.defenderKills);
 
+  /* Açıklamalar HTML özniteliğine gömülmez (tırnak/açı kaçışı sorunu):
+     dizide tutulur, ikon yalnız sırasını taşır. */
+  const ACIK = [];
+  const esc = (t) => String(t == null ? "" : t)
+    .split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
+
   const n = Math.max(A.length, D.length);
   let govde = "";
   for (let i = 0; i < n; i++) {
@@ -906,18 +951,25 @@ function savasDetaylariAc(r) {
     let satirlar = "";
     for (let j = 0; j < sat; j++) {
       const x = a && a.satirlar[j], y = d && d.satirlar[j];
-      const kut = (s) => s && s.ikon
-        ? `<span class="sd-ab"><img src="${s.ikon}" alt=""></span>`
-        : (s ? `<span class="sd-ab sd-ab-bos">◈</span>` : `<span class="sd-ab sd-ab-yok"></span>`);
+      /* dokunulabilir ikon: sırasını data-ac ile taşır */
+      const kut = (s) => {
+        if (!s) return `<span class="sd-ab sd-ab-yok"></span>`;
+        const idx = ACIK.push({ title: s.title, aciklama: s.aciklama }) - 1;
+        const ic = s.ikon ? `<img src="${s.ikon}" alt="">` : `<span class="sd-ab-bos">◈</span>`;
+        return `<span class="sd-ab sd-ab-tik" data-ac="${idx}" role="button">${ic}</span>`;
+      };
       satirlar += `
-        <div class="sd-satir">
-          ${kut(x)}
-          <span class="sd-n">${x ? (x.tetik ? f(x.tetik) : "—") : ""}</span>
-          <span class="sd-n">${x ? (x.olum ? f(x.olum) : "—") : ""}</span>
-          <span class="sd-ayrac"></span>
-          <span class="sd-n">${y ? (y.olum ? f(y.olum) : "—") : ""}</span>
-          <span class="sd-n">${y ? (y.tetik ? f(y.tetik) : "—") : ""}</span>
-          ${kut(y)}
+        <div class="sd-sarmal">
+          <div class="sd-satir">
+            ${kut(x)}
+            <span class="sd-n">${x ? (x.tetik ? f(x.tetik) : "—") : ""}</span>
+            <span class="sd-n">${x ? (x.olum ? f(x.olum) : "—") : ""}</span>
+            <span class="sd-ayrac"></span>
+            <span class="sd-n">${y ? (y.olum ? f(y.olum) : "—") : ""}</span>
+            <span class="sd-n">${y ? (y.tetik ? f(y.tetik) : "—") : ""}</span>
+            ${kut(y)}
+          </div>
+          <div class="sd-ac" hidden></div>
         </div>`;
     }
     govde += `
@@ -944,10 +996,28 @@ function savasDetaylariAc(r) {
       <button id="sdClose" class="rp-close">✕</button>
       <div class="rp-ttl">⚔️ SAVAŞ DETAYLARI</div>
       <div class="sd-govde">${govde}</div>
+      <div class="rp-note">Yeteneğin ne yaptığını görmek için görseline dokun.</div>
     </div>`;
   document.body.appendChild(back);
   back.addEventListener("click", e => { if (e.target === back) back.remove(); });
   back.querySelector("#sdClose").onclick = () => back.remove();
+
+  /* ikon → açıklama. Tek seferde tek panel açık kalır. */
+  back.querySelector(".sd-govde").addEventListener("click", (e) => {
+    const ik = e.target.closest(".sd-ab-tik");
+    if (!ik) return;
+    const kutu = ik.closest(".sd-sarmal").querySelector(".sd-ac");
+    const veri = ACIK[parseInt(ik.dataset.ac, 10)] || {};
+    const zaten = !kutu.hidden && kutu.dataset.ac === ik.dataset.ac;
+    back.querySelectorAll(".sd-ac").forEach(k => { k.hidden = true; });
+    back.querySelectorAll(".sd-ab-tik").forEach(k => k.classList.remove("sd-ab-acik"));
+    if (zaten) return;
+    kutu.dataset.ac = ik.dataset.ac;
+    kutu.innerHTML = `<b>${esc(veri.title || "Yetenek")}</b>` +
+      `<span>${esc(veri.aciklama || "Açıklama henüz eklenmedi.")}</span>`;
+    kutu.hidden = false;
+    ik.classList.add("sd-ab-acik");
+  });
 }
 
 function openReportModal(r) {
@@ -967,7 +1037,11 @@ function openReportModal(r) {
     <div class="rp-box">
       <button id="repClose" class="rp-close">✕</button>
 
-      <div class="rp-ttl">📜 <span id="rpBaslik">SAVAŞ RAPORU</span></div>
+      <div class="rp-nav">
+        <button class="rp-ok" id="rpOkSol" hidden>‹</button>
+        <div class="rp-ttl">📜 <span id="rpBaslik">SAVAŞ RAPORU</span></div>
+        <button class="rp-ok" id="rpOkSag">›</button>
+      </div>
 
       <!-- SAYFA 1: özet -->
       <div class="rp-sayfa" id="rpSayfa1">
@@ -1015,10 +1089,6 @@ function openReportModal(r) {
       <div class="rp-sayfa" id="rpSayfa2" hidden>
         ${unitDetailHTML(r)}
       </div>
-
-      <!-- kutucuksuz sayfa okları -->
-      <button class="rp-ok rp-ok-sol" id="rpOkSol" hidden>‹</button>
-      <button class="rp-ok rp-ok-sag" id="rpOkSag">›</button>
 
       <button class="rp-detail-btn" id="rpAbBtn">SAVAŞ DETAYLARI</button>
     </div>`;
@@ -3373,21 +3443,28 @@ if (document.readyState === "loading") {
 const st = document.createElement("style");
 st.id = "temaRaporSayfa";
 st.textContent = `
-/* ── renkler: okuyana göre (yeşil kalktı) ── */
+/* ── renkler: okuyana göre ── */
 .rp-box .rp-kirmizi{ color:#b8231f !important; }
 .rp-box .rp-turuncu{ color:#b5710c !important; }
+.rp-box .rp-yesil{ color:#1f7a34 !important; }
 
-/* ── kutucuksuz sayfa okları ── */
-.rp-box{ position:relative; }
-.rp-box .rp-ok{
-  position:absolute; top:50%; transform:translateY(-50%);
-  background:none; border:0; padding:0 6px; cursor:pointer;
-  font-family:inherit; font-weight:800; font-size:34px; line-height:1;
+/* ── kutu biraz daha geniş ve uzun: oklar içeriğe binmesin ── */
+.rp-box{ position:relative; width:min(410px,96vw) !important; max-height:90vh !important; }
+
+/* ── başlık satırı: ‹ BAŞLIK › — kutucuksuz oklar ── */
+.rp-nav{
+  display:flex; align-items:center; gap:4px;
+  padding-right:34px;            /* sağ üstteki ✕ ile çakışmasın */
+  margin-bottom:6px;
+}
+.rp-nav .rp-ttl{ flex:1 1 auto; margin:0 !important; min-width:0; }
+.rp-nav .rp-ok{
+  flex:0 0 24px; background:none; border:0; padding:0; cursor:pointer;
+  font-family:inherit; font-weight:800; font-size:30px; line-height:1;
   color:color-mix(in srgb, var(--rp-murekkep) 55%, transparent);
 }
-.rp-box .rp-ok:active{ color:var(--rp-murekkep); }
-.rp-box .rp-ok-sol{ left:-2px; }
-.rp-box .rp-ok-sag{ right:-2px; }
+.rp-nav .rp-ok:active{ color:var(--rp-murekkep); }
+.rp-nav .rp-ok[hidden]{ visibility:hidden; display:block; }  /* yer korunur, başlık kaymaz */
 
 /* ── SAYFA 2: iki taraflı karşılaştırma ── */
 .rp-krs-ust{
@@ -3398,10 +3475,20 @@ st.textContent = `
 }
 .rp-krs-taraf{ max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .rp-krs-ben{ color:var(--rp-murekkep); }
-.rp-krs-blok{ margin-bottom:10px; }
+.rp-krs-blok{ margin-bottom:14px; }
+/* başlık: yazı yok — iki tarafta da o birliğin kafa kutucuğu */
 .rp-krs-baslik{
-  text-align:center; font-size:10.5px; font-weight:800; letter-spacing:1px;
-  color:var(--rp-murekkep-2); margin:6px 0 2px;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; margin:8px 0 4px;
+}
+.rp-krs-cizgi{
+  flex:1 1 auto; height:1px;
+  background:color-mix(in srgb, var(--rp-murekkep) 22%, transparent);
+}
+.rp-box .rp-krs-baslik .rep-por{
+  flex:0 0 auto;
+  background:rgba(255,255,255,.22) !important;
+  border:2px solid color-mix(in srgb, var(--rp-murekkep) 45%, transparent) !important;
 }
 .rp-krs-satir{
   display:flex; align-items:center; padding:5px 4px;
@@ -3455,6 +3542,19 @@ st.textContent = `
 .sd-ab img{ width:100%; height:100%; object-fit:cover; }
 .sd-ab-bos{ font-size:13px; color:var(--rp-murekkep-2); }
 .sd-ab-yok{ background:none; border:0; }
+.sd-ab-tik{ cursor:pointer; }
+.sd-ab-tik:active{ transform:scale(.92); }
+.sd-ab-acik{ border-color:var(--rp-murekkep); box-shadow:0 0 0 2px rgba(255,255,255,.35); }
+/* ikona dokununca açılan kısa açıklama (2 satır) */
+.sd-sarmal{ position:relative; }
+.sd-ac{
+  display:block; margin:0 2px 6px; padding:6px 8px; border-radius:8px;
+  background:rgba(255,255,255,.26);
+  border:1px solid color-mix(in srgb, var(--rp-murekkep) 28%, transparent);
+  font-size:10px; line-height:1.35; font-weight:700; color:var(--rp-murekkep);
+}
+.sd-ac[hidden]{ display:none; }
+.sd-ac b{ display:block; font-size:10.5px; margin-bottom:1px; }
 `;
 document.head.appendChild(st);
 })();
