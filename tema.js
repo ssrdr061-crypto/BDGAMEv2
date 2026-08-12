@@ -3568,17 +3568,20 @@ st.textContent = `
    ölçüp hizalamak yerine sarmalın içine konuldu (Tuzak 28). */
 .sd-sarmal{ position:relative; }
 .sd-ac{
-  position:absolute; left:6px; right:6px; top:50%;
-  transform:translateY(-50%); z-index:3;
-  padding:7px 9px; border-radius:9px;
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%); z-index:3;
+  /* kutu metin kadar: kısa açıklamada daralır, uzunda kenara kadar açılır */
+  width:max-content; max-width:calc(100% - 12px);
+  padding:6px 9px 7px; border-radius:9px;
   background:color-mix(in srgb, var(--rp-kagit) 92%, #000);
   border:1px solid color-mix(in srgb, var(--rp-murekkep) 45%, transparent);
   box-shadow:0 4px 12px rgba(30,16,4,.35);
   font-size:10px; line-height:1.35; font-weight:700; color:var(--rp-murekkep);
-  text-align:left;
+  text-align:left; text-wrap:balance;   /* son satır tek kelime kalıp boşluk bırakmasın */
 }
 .sd-ac[hidden]{ display:none; }
-.sd-ac b{ display:block; font-size:10.5px; margin-bottom:1px; }
+/* başlık büyür ama kutu büyümez: satır aralığı ve alt boşluk kısıldı */
+.sd-ac b{ display:block; font-size:12.5px; line-height:1.2; margin-bottom:2px; }
 `;
 document.head.appendChild(st);
 })();
