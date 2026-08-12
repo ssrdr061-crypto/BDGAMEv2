@@ -3587,3 +3587,29 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   SAVAŞ EKRANI — İNCE AYAR (dosya sonunda ayrı IIFE)
+   Sıralamada en son eklendiği için yukarıdaki kuralları ezer
+   (Tuzak 2: sondaki kazanır).
+
+   Üç küçük değişiklik:
+     1) SAVAŞA GİR düğmesi biraz daralır (yan boşluk 40 → 30 px).
+        Yükseklik ve yazı boyutu AYNI kalır.
+     2) Panel biraz uzar (92vh → 96vh) — komutan sırası ve birlik
+        satırları daha rahat sığsın.
+     3) Güçlendirme kutucuğu incelir: YAZI BOYUTLARI DEĞİŞMEZ,
+        yalnız iç boşluk/kenarlık kısılır ve kutu ✕ düğmesinin
+        altına iner; böylece kahraman kartlarındaki (–) çıkarma
+        düğmelerinin üstüne binmez.
+   ═══════════════════════════════════════════════════════════════ */
+(function savasEkraniInceAyar() {
+"use strict";
+const st = document.createElement("style");
+st.id = "temaSavasInceAyar";
+st.textContent = `
+.battle-arena .battle-btn{ padding:14px 30px !important; }
+.battle-arena{ max-height:96vh !important; }
+`;
+document.head.appendChild(st);
+})();

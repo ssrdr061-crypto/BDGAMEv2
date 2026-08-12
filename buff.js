@@ -353,26 +353,32 @@ function savunmaEk(hazir) {
 /* ── 5) GÖRÜNÜM — savaş ekranı köşesindeki yeşil kutucuk ────── */
 
 const CSS = `
+/* Kutucuk ince tutulur: YAZI BOYUTLARI SABİT (12px / 11px), yalnız
+   iç boşluk, aralık ve kenarlık kısıktır. Kalınlaştırılırsa kahraman
+   kartlarındaki (–) çıkarma düğmelerinin üstüne biner.
+   Konum: ✕ düğmesi 12px'te, 38px yüksekliğinde — kutu onun ALTINA
+   oturur (top:56px), üst üste binmesin. */
 #buffKutu{
-  position:absolute; top:10px; right:10px; z-index:40;
-  display:flex; align-items:center; gap:5px;
-  padding:6px 10px; border-radius:12px; cursor:pointer;
+  position:absolute; top:56px; right:10px; z-index:40;
+  display:flex; align-items:center; gap:4px;
+  padding:3px 8px; border-radius:10px; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:12px;
-  color:#eaffef; letter-spacing:.3px; border:2px solid #7ff0a8;
+  line-height:1.15;
+  color:#eaffef; letter-spacing:.3px; border:1.5px solid #7ff0a8;
   background:linear-gradient(180deg,#2fbb62 0%,#1c8544 60%,#12602f 100%);
-  box-shadow:0 4px 0 #0c3d1f, 0 8px 14px rgba(0,40,15,.45),
-             inset 0 2px 3px rgba(180,255,205,.5);
+  box-shadow:0 3px 0 #0c3d1f, 0 6px 12px rgba(0,40,15,.45),
+             inset 0 1px 2px rgba(180,255,205,.5);
   text-shadow:0 1px 2px rgba(0,30,10,.6);
 }
-#buffKutu:active{ transform:translateY(2px); box-shadow:0 2px 0 #0c3d1f; }
-#buffKutu .bk-ico{ font-size:15px; }
+#buffKutu:active{ transform:translateY(2px); box-shadow:0 1px 0 #0c3d1f; }
+#buffKutu .bk-ico{ font-size:14px; }
 #buffKutu .bk-rozet{
-  min-width:16px; text-align:center; border-radius:8px; padding:0 4px;
+  min-width:15px; text-align:center; border-radius:7px; padding:0 4px;
   background:#ffd257; color:#153a22; font-size:11px;
 }
 #buffKutu.bk-hazir{ animation:bkNabiz 1.3s ease-in-out infinite; }
-@keyframes bkNabiz{ 50%{ box-shadow:0 4px 0 #0c3d1f, 0 0 16px rgba(120,255,170,.9),
-                          inset 0 2px 3px rgba(180,255,205,.5); } }
+@keyframes bkNabiz{ 50%{ box-shadow:0 3px 0 #0c3d1f, 0 0 14px rgba(120,255,170,.9),
+                          inset 0 1px 2px rgba(180,255,205,.5); } }
 
 .bk-mask{
   position:fixed; inset:0; z-index:9000; display:flex;
