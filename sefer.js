@@ -1112,22 +1112,7 @@ function hudCiz() {
   if (!liste.length) { el.style.display = "none"; el.innerHTML = ""; return; }
 
   const wrap = document.getElementById("battleMapWrap");
-  const haritaAcik = (wrap && wrap.style.display !== "none");
-
-  /* ── PANEL AÇIKKEN GİZLE ──────────────────────────────────────
-     Kutu yalnız haritanın görünürlüğüne bakıyordu; çanta, market,
-     birlikler, savaş günlüğü, sıralama gibi paneller haritayı
-     GİZLEMEDİĞİ için kutu panelin üstünde asılı kalıyordu.
-     (Kahraman ekranı istisnaydı: o bir .overlay-panel değil, ayrı
-     bir tam ekran katman — heroes.js'te z-index:400 ile açılıyor,
-     yani kutunun z-index:40'ının çok üstünde kalıp onu örtüyordu.)
-
-     Denetim her hudCiz çağrısında yapılır; aşağıdaki CSS kuralı da
-     panel açılır açılmaz anında gizler. İkisi birlikte: biri DOM
-     sırası yüzünden tutmazsa diğeri yakalar. */
-  const panelAcik = !!document.querySelector(".overlay-panel.active");
-  el.style.display = (haritaAcik && !panelAcik) ? "flex" : "none";
-  if (!haritaAcik || panelAcik) { return; }
+  el.style.display = (wrap && wrap.style.display !== "none") ? "flex" : "none";
 
   /* TEK SATIR: ikon · süre · hedef, sağında geri çağırma düğmesi.
      Eskiden üç satırdı ve haritanın köşesini kaplıyordu. */
@@ -1429,15 +1414,17 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 }
 
 #seferHud{
-  position:fixed; left:8px; top:96px; z-index:40;
+  position:fixed; left:8px; top:96px; z-index:5;
   display:flex; flex-direction:column; gap:5px;
 }
-/* Panel açıkken ANINDA gizle. hudCiz saniyede bir çalıştığı için
-   tek başına bırakılsaydı kutu bir saniye kadar panelin üstünde
-   kalırdı. #seferHud body'ye, paneller #appScreen'in içine ekli —
-   kardeş olmadıkları için ~ seçicisi tutmaz, :has gerekir.
-   :has desteklenmeyen bir tarayıcıda hudCiz'deki denetim yakalar. */
-body:has(.overlay-panel.active) #seferHud{ display:none !important; }
+/* ── KATMAN SIRASI ────────────────────────────────────────────
+   Kutu DAİMA açık kalır; gizlenmez. Panel açıldığında yalnızca
+   ARKADA kalması gerekir. Kutu 5'e indirildi ve paneller açıkken
+   120'ye çıkarıldı — aradaki fark, sayfadaki başka bir kural
+   panelin z-index'ini ezse bile sıranın bozulmayacağı kadar
+   geniştir. Kahraman ekranı (heroes.js, z-index:400) ve uyarı
+   katmanları (9998+) zaten üstte kalmaya devam eder. */
+.overlay-panel.active{ z-index:120 !important; }
 /* TEK SATIR ve İNCE — oyunun mavi teması (mağaza/panel şablonu).
    Eski hâli üç satırdı, koyu laciverttti ve haritanın köşesini
    kapatıyordu. */
