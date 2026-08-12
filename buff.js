@@ -353,21 +353,22 @@ function savunmaEk(hazir) {
 /* ── 5) GÖRÜNÜM — savaş ekranı köşesindeki yeşil kutucuk ────── */
 
 const CSS = `
-/* Kutucuk KARE ve SAVAŞA GİR düğmesinin SOLUNDA durur.
-   Eskiden panelin sağ üst köşesindeydi; kahraman kartlarındaki (–)
-   çıkarma düğmelerinin üstüne biniyordu. Artık akışın içinde,
-   düğmeyle aynı satırda — hiçbir şeyin üstüne binmez ve panel
-   kaydırılınca düğmeyle birlikte hareket eder. */
+/* Kutucuk KARE ve panelin SOL alt köşesinde, SAVAŞA GİR düğmesiyle
+   aynı hizada durur.
+   Kap position:relative + kutu position:absolute olduğu için
+   kutu satırda YER KAPLAMAZ — düğme eskisi gibi tam ortada kalır.
+   (İlk denemede kutu akışın içindeydi ve düğmeyi sağa itiyordu.) */
 .bk-satirKap{
+  position:relative !important;
   display:flex !important; align-items:center; justify-content:center;
-  gap:12px; width:100%;
+  width:100%;
 }
 #buffKutu{
-  position:relative; flex:0 0 auto; z-index:40;
+  position:absolute; left:6px; top:50%; transform:translateY(-50%); z-index:40;
   width:62px; height:62px; box-sizing:border-box;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:1px; padding:4px; border-radius:14px; cursor:pointer;
-  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:9px;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800;
   line-height:1.05; text-align:center;
   color:#eaffef; letter-spacing:.2px; border:2px solid #7ff0a8;
   background:linear-gradient(180deg,#2fbb62 0%,#1c8544 60%,#12602f 100%);
@@ -375,14 +376,17 @@ const CSS = `
              inset 0 2px 3px rgba(180,255,205,.5);
   text-shadow:0 1px 2px rgba(0,30,10,.6);
 }
-#buffKutu:active{ transform:translateY(3px); box-shadow:0 1px 0 #0c3d1f; }
+#buffKutu:active{ transform:translateY(-50%) scale(.95); }
 #buffKutu .bk-ico{ font-size:20px; line-height:1; }
-#buffKutu .bk-yazi{ font-size:8.5px; }
+#buffKutu .bk-yazi{ font-size:9px; }
+/* Rozet: rakam ortada dursun diye satır yüksekliğiyle değil
+   flex ile ortalanır — line-height + kenarlık rakamı aşağı kaydırıyordu. */
 #buffKutu .bk-rozet{
-  position:absolute; top:-6px; right:-6px;
-  min-width:18px; height:18px; line-height:18px;
-  text-align:center; border-radius:9px; padding:0 4px;
-  background:#ffd257; color:#153a22; font-size:11px;
+  position:absolute; top:-7px; right:-7px;
+  width:20px; height:20px; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:10px;
+  background:#ffd257; color:#153a22; font-size:11px; line-height:1;
   border:2px solid #12602f;
 }
 #buffKutu.bk-hazir{ animation:bkNabiz 1.3s ease-in-out infinite; }
@@ -486,7 +490,7 @@ function tazele() {
   kutu.classList.toggle("bk-hazir", hazir.length > 0);
   kutu.innerHTML =
     '<span class="bk-ico">⭐</span>' +
-    '<span class="bk-yazi">GÜÇ</span>' +
+    '<span class="bk-yazi">BUFF</span>' +
     '<span class="bk-rozet">' + (hazir.length ? hazir.length + "✓" : sahip.length) + '</span>';
 }
 
