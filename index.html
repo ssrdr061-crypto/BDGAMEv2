@@ -2844,7 +2844,23 @@ function _logImza(list) {
   return n + ":" + t + ":" + alinan;
 }
 
-/* Günlüğü buluta yaz (gecikmeli, sadece değiştiyse) */
+/* ── BOŞ GÜNLÜK ÜSTE YAZILMAZ ─────────────────────────────────
+   Günlüğün silinme sebebi buydu: girişte `state.battleLogHistory`
+   önce BOŞ dizidir (hesap kaydında tutulmuyor, ayrı anahtarda).
+   loadBattleLogLocal/loadBattleLog çalışmadan ÖNCE renderDiamonds
+   gibi bir fonksiyon persistCurrentState çağırınca, boş liste hem
+   localStorage'a hem `battleLogs/{key}` düğümüne yazılıyor ve
+   Firebase boş diziyi düğümü SİLEREK karşılıyordu. Sonra yükleme
+   gelince ortada yükleyecek bir şey kalmıyordu.
+
+   Kural: liste boşsa yazma — kullanıcı "Günlüğü Temizle"ye
+   basmadıkça. O düğme aşağıdaki bayrağı kaldırır. */
+let _logSilmeIzni = false;
+
+function _logYazilabilirMi(list) {
+  if ((list || []).length > 0) return true;
+  return _logSilmeIzni;
+}
 
 let _yerelLogImza = "";
 
@@ -2858,6 +2874,7 @@ function saveBattleLogLocal() {
   try {
     if (!currentUsername) return;
     const list = state.battleLogHistory || [];
+    if (!_logYazilabilirMi(list)) return;     /* boş listeyle diski ezme */
     const imza = _logImza(list);
     if (imza === _yerelLogImza) return;
     _yerelLogImza = imza;
@@ -2882,6 +2899,7 @@ function loadBattleLogLocal() {
 function queueLogSave() {
   if (!firebaseReady || !currentUsername) return;
   const list = state.battleLogHistory || [];
+  if (!_logYazilabilirMi(list)) return;       /* boş listeyle bulutu ezme */
   const imza = _logImza(list);
   if (imza === _logSonImza) return;
   _logSonImza = imza;
@@ -3806,6 +3824,11 @@ function startSessionFor(username) {
   maybeResetChests();
   setSessionKey(key);
 
+  /* Günlük EN BAŞTA belleğe alınır. Aşağıdaki renderDiamonds gibi
+     çağrılar persistCurrentState tetikliyor; günlük o an boşsa
+     kaydın üstüne boş liste yazılırdı (bkz. _logYazilabilirMi). */
+  loadBattleLogLocal();
+
   document.getElementById("currentUserLabel").textContent = currentUsername;
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("appScreen").style.display = "block";
@@ -3826,7 +3849,6 @@ function startSessionFor(username) {
   setTimeout(maybeShowDailyRewardModal, 400);
   startListeningForGifts(username);
   startListeningForChat();
-  loadBattleLogLocal();
   startListeningForCastles();
   loadBattleLog();
 
@@ -4688,6 +4710,9 @@ function odulKutusunuAc(i) {
 }
 
 function clearBattleLogHistory() {
+  /* Silme İZNİ yalnız burada verilir: _logYazilabilirMi boş listeyi
+     ancak bu bayrak açıkken diske/buluta yazdırır. */
+  _logSilmeIzni = true;
   state.battleLogHistory = [];
   _logSonImza = "";
   _yerelLogImza = "";
@@ -4701,6 +4726,9 @@ function clearBattleLogHistory() {
   persistCurrentState();
   renderBattleLogPanel();
   showToast("Savaş günlüğü temizlendi.");
+  /* İzin tek seferliktir: sonraki boş yazma denemeleri (giriş anı,
+     yükleme öncesi) yine reddedilsin. */
+  _logSilmeIzni = false;
 }
 
 let hospitalPendingSelection = {};
@@ -5486,7 +5514,95 @@ function dugumeTiklandi(slotId) {
   }
 
   if (d.tur === "canavar") { canavarBilgiAc(d); return; }  /* önce tanıtım, sonra savaş */
+
+  /* ── ORDUM ZATEN BU ARAZİDEYSE ──────────────────────────────
+     Aynı araziye ikinci ordu gönderilemez. Eskiden toplama paneli
+     yeniden açılıyor ve oyuncu üst üste ordu yollayabiliyordu.
+     Bunun yerine o ana kadar toplanan miktarı CANLI gösteren bir
+     pencere açılır. */
+  const benimSefer = _araziSeferim(d.slotId);
+  if (benimSefer) { araziDurumAc(d, benimSefer); return; }
+
   araziBilgiAc(d);   /* önce "arazide kalan", oradan toplama paneline */
+}
+
+/* Bu slota giden/orada duran KENDİ seferim (varsa). */
+function _araziSeferim(slotId) {
+  try {
+    if (!window.SEFER || typeof SEFER.benimkiler !== "function") return null;
+    return SEFER.benimkiler().find(x =>
+      x && x.s && x.s.slotId === slotId && x.s.durum !== "donus") || null;
+  } catch (e) { return null; }
+}
+
+/* ── ORDUM ARAZİDE: DURUM PENCERESİ ──
+   Yolda ise kalan süreyi, topluyorsa o ana kadar toplanan miktarı
+   gösterir. Sayaç saniyede bir tazelenir; pencere kapanınca
+   durdurulur (kapatmayı unutursak arka planda saatlerce çalışır).
+   "Toplamaya git" düğmesi YOKTUR — ikinci ordu gönderimi buradan
+   engellenir. */
+function araziDurumAc(d, sefer) {
+  const eski = document.getElementById("araziBilgiModal");
+  if (eski) eski.remove();
+
+  const kok = document.createElement("div");
+  kok.id = "araziBilgiModal";
+  kok.className = "arazi-bilgi-modal";
+  kok.innerHTML = `
+    <div class="overlay-card abm-card">
+      <button class="overlay-close abm-close" type="button">✕</button>
+      <h2 class="abm-title">${d.ikon} ${escapeHtml(d.ad)}</h2>
+      <div class="abm-alt">Ordun burada · ${d.kaynakIkon} ${escapeHtml(d.kaynakAd)}</div>
+      <div class="abm-kalan">
+        <span id="araziDurumEtiket">Toplanan</span>
+        <b id="araziDurumDeger">-</b>
+      </div>
+      <div class="abm-alt abm-alt-kalin" id="araziDurumSure"></div>
+      <div class="abm-actions">
+        <button class="abm-btn abm-btn-no" type="button">Kapat</button>
+      </div>
+    </div>`;
+  document.body.appendChild(kok);
+
+  /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu. */
+  kok.style.pointerEvents = "none";
+  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
+
+  let sayac = null;
+  const kapat = () => { if (sayac) clearInterval(sayac); kok.remove(); };
+
+  function tazele() {
+    /* Kayıt her tikte yeniden okunur: evre değişebilir, sefer bitmiş
+       olabilir. Bittiyse pencere kendini kapatır. */
+    const guncel = _araziSeferim(d.slotId);
+    if (!guncel) { kapat(); return; }
+    const s = guncel.s;
+    const ev = (window.SEFER && SEFER.evre) ? SEFER.evre(s) : null;
+    const etiket = document.getElementById("araziDurumEtiket");
+    const deger  = document.getElementById("araziDurumDeger");
+    const sure   = document.getElementById("araziDurumSure");
+    if (!etiket || !deger || !sure || !ev) return;
+
+    if (ev.ad === "topla") {
+      /* Toplanan = hedef miktarın ilerleme oranı. Aynı formül
+         sefer.js'teki geri çağırmada kullanılıyor; ikisi ayrışırsa
+         ekranda gördüğün sayı ile çantana giren tutmaz. */
+      const toplanan = Math.floor((s.hedefMiktar || 0) * ev.p);
+      etiket.textContent = "Toplanan";
+      deger.innerHTML = `${d.kaynakIkon} ${fmt(toplanan)} <span style="opacity:.7;font-size:13px;">/ ${fmt(s.hedefMiktar || 0)}</span>`;
+      sure.textContent = "⏳ Bitmesine " + (SEFER.fmtSure ? SEFER.fmtSure(ev.kalanMs) : "");
+    } else {
+      etiket.textContent = "Ordun yolda";
+      deger.textContent = "⛏️";
+      sure.textContent = "⏳ Varışa " + (SEFER.fmtSure ? SEFER.fmtSure(ev.kalanMs) : "");
+    }
+  }
+  tazele();
+  sayac = setInterval(tazele, 1000);
+
+  kok.querySelector(".abm-close").onclick  = kapat;
+  kok.querySelector(".abm-btn-no").onclick = kapat;
+  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
 
 /* Düğüm yazması başarısızsa sebebi ekrana bas. showToast bu

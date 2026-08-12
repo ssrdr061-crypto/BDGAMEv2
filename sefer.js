@@ -1101,9 +1101,23 @@ function _eskiSvgCizimi(liste) {
 /* ═══════════════════════════════════════════════════════════
    15) SOL ÜST SAYAÇ
    ═══════════════════════════════════════════════════════════ */
+/* ── HUD NEREYE EKLENİR ───────────────────────────────────────
+   ÖNEMLİ: kutu doğrudan <body>'ye ekleniyordu, paneller ise
+   #appScreen'in İÇİNDE. İkisi ayrı yığın (stacking) dallarında
+   olduğu için panelin z-index'i kutuyu örtmüyordu; z-index'i 120'ye
+   çıkarmak bile yetmedi, çünkü karşılaştırma panelin kendi
+   z-index'iyle değil #appScreen'inkiyle yapılıyordu. Kahraman
+   ekranının kutuyu örtmesinin sebebi de buydu: o da body'ye ekli
+   (heroes.js, z-index:400) — yani kutuyla AYNI dalda.
+
+   Çözüm: kutuyu da #appScreen'in içine koy. Artık panellerle aynı
+   dalda ve z-index:40 < 50 olduğu için panel açılınca kendiliğinden
+   arkada kalır. Kutu GİZLENMEZ, sadece arkaya düşer. */
 function hudEl() {
+  const kap = document.getElementById("appScreen") || document.body;
   let el = document.getElementById("seferHud");
-  if (!el) { el = document.createElement("div"); el.id = "seferHud"; document.body.appendChild(el); }
+  if (!el) { el = document.createElement("div"); el.id = "seferHud"; }
+  if (el.parentElement !== kap) kap.appendChild(el);
   return el;
 }
 function hudCiz() {
@@ -1414,17 +1428,9 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 }
 
 #seferHud{
-  position:fixed; left:8px; top:96px; z-index:5;
+  position:fixed; left:8px; top:96px; z-index:40;
   display:flex; flex-direction:column; gap:5px;
 }
-/* ── KATMAN SIRASI ────────────────────────────────────────────
-   Kutu DAİMA açık kalır; gizlenmez. Panel açıldığında yalnızca
-   ARKADA kalması gerekir. Kutu 5'e indirildi ve paneller açıkken
-   120'ye çıkarıldı — aradaki fark, sayfadaki başka bir kural
-   panelin z-index'ini ezse bile sıranın bozulmayacağı kadar
-   geniştir. Kahraman ekranı (heroes.js, z-index:400) ve uyarı
-   katmanları (9998+) zaten üstte kalmaya devam eder. */
-.overlay-panel.active{ z-index:120 !important; }
 /* TEK SATIR ve İNCE — oyunun mavi teması (mağaza/panel şablonu).
    Eski hâli üç satırdı, koyu laciverttti ve haritanın köşesini
    kapatıyordu. */

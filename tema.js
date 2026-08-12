@@ -3613,3 +3613,37 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   SAVAŞ GÜNLÜĞÜ — ÖDÜL KUTUCUĞU (dosya sonunda ayrı IIFE)
+   Canavardan düşen kaynak "📜 Aç"ın yanında hediye düğmesi olarak
+   çıkıyordu ama hiçbir stili yoktu: tarayıcının gri varsayılan
+   düğmesi görünüyordu. Turuncu kutucuk + kaynak görseli + miktar.
+   Alınmış ödül soluk ve tıklanamaz görünür.
+   ═══════════════════════════════════════════════════════════════ */
+(function odulKutucugu() {
+"use strict";
+const st = document.createElement("style");
+st.id = "temaOdulKutucuk";
+st.textContent = `
+.log-entry-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.log-gift-btn{
+  display:inline-flex; align-items:center; gap:5px;
+  border:2px solid #ffd9a1 !important; border-radius:11px;
+  padding:5px 11px; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:13px;
+  color:#fff !important;
+  background:linear-gradient(180deg,#f7a83a 0%,#e2820f 55%,#b95f06 100%) !important;
+  box-shadow:0 3px 0 #8a4604, 0 5px 10px rgba(120,60,0,.35),
+             inset 0 1px 0 rgba(255,235,200,.55) !important;
+  text-shadow:0 1px 2px rgba(90,40,0,.55);
+}
+.log-gift-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #8a4604 !important; }
+/* Alınmış ödül: kutucuk kalır, söner. */
+.log-gift-btn.alindi{
+  filter:saturate(.25) brightness(.85);
+  box-shadow:none !important; cursor:default;
+}
+`;
+document.head.appendChild(st);
+})();
