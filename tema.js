@@ -3638,12 +3638,19 @@ st.textContent = `
 /* ── KAYIT SATIRI: KUTU DEĞİL, ÇİZGİ ──
    Her rapor için ayrı büyük kart çiziliyordu. Kart kaldırıldı,
    yerine alta ince bir ayırıcı çizgi kondu. Sonuncuda çizgi yok. */
-.log-entry{
-  background:none !important; border:0 !important; box-shadow:none !important;
-  border-radius:0 !important; padding:8px 2px 10px !important;
-  border-bottom:1px solid rgba(190,225,255,.28) !important;
+/* Seçici #panel-battlelog ile yazılmak ZORUNDA: baloncuğu çizen kural
+   (bu dosyanın 437. satırı) o kimlikle tanımlı ve sade .log-entry'yi
+   ezip geçiyordu. */
+#panel-battlelog .log-entry,
+#panel-battlelog .log-entry.log-win,
+#panel-battlelog .log-entry.log-loss{
+  background:none !important; box-shadow:none !important;
+  border:0 !important; border-radius:0 !important;
+  border-left:0 !important;
+  padding:9px 2px 9px !important; margin:0 !important;
+  border-bottom:1px solid rgba(190,225,255,.22) !important;
 }
-.log-entry:last-child{ border-bottom:0 !important; }
+#panel-battlelog .log-entry:last-child{ border-bottom:0 !important; }
 
 /* Aç + ödül TEK SATIRDA ve AYNI EBATTA. Aç eskiden %100 genişlikti,
    ödülü alt satıra itiyordu. İkisi de içeriği kadar yer kaplar;
