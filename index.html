@@ -5095,11 +5095,21 @@ function elmasYaz(n) {
   return Number(n || 0).toLocaleString("tr-TR");
 }
 
-function hizlandirmaPenceresi(unitId) {
+/* tur: "hastane" (varsayılan) veya "egitim".
+   Aynı pencere iki kuyruğu da yönetir — eğitim tarafı eskiden
+   düğmeye her basışta sessizce TEK eşya harcıyordu; 74 dakikalık
+   kuyruğu 5'er dakika kısaltmak için 15 kez basmak gerekiyordu. */
+function hizlandirmaPenceresi(unitId, tur) {
+  tur = (tur === "egitim") ? "egitim" : "hastane";
   const liste = sahipOlunanHizlandirmalar();
   const def = UNIT_TYPES[unitId];
 
   function grup() {
+    if (tur === "egitim") {
+      return (state.trainingQueue || [])
+        .filter(j => j.unitId === unitId)
+        .sort((a, b) => a.finishAt - b.finishAt);
+    }
     return state.hospital
       .filter(p => p.unitId === unitId && p.confirmed)
       .sort((a, b) => a.finishAt - b.finishAt);
@@ -5307,10 +5317,17 @@ function hizlandirmaPenceresi(unitId) {
      zincirli olduğu için toplam süre neredeyse hiç değişmiyordu. */
   function kisalt(ms) {
     grup().forEach(p => { p.finishAt = Math.max(Date.now(), p.finishAt - ms); });
-    applyFinishedHospitalRecoveries();
-    _hospitalPendingKey = "";
-    renderHospitalPanel();
-    renderTroopsPanel();
+    if (tur === "egitim") {
+      applyFinishedTraining();
+      renderTroopsPanel();
+      /* birlik ekranı (3D) kendi çiziminde — açıksa tazelensin */
+      try { if (window.TroopViewer && TroopViewer.show) TroopViewer.show(); } catch (e) {}
+    } else {
+      applyFinishedHospitalRecoveries();
+      _hospitalPendingKey = "";
+      renderHospitalPanel();
+      renderTroopsPanel();
+    }
     if (typeof renderInventory === "function") renderInventory();
     persistCurrentState();
   }
@@ -5321,12 +5338,29 @@ function hizlandirmaPenceresi(unitId) {
     if (state.inventory[ad] <= 0) delete state.inventory[ad];
   }
 
+  /* KULLAN pencereyi KAPATMAZ: art arda basılabilsin diye kartlardaki
+     adetler ve kalan süre yerinde tazelenir. Kuyruk bitince pencere
+     kendiliğinden kapanır. */
   const kullanBtn = q(".hsm-use");
   if (kullanBtn) kullanBtn.addEventListener("click", () => {
-    harca(secili, adet);
-    kisalt(adet * liste[secili].ms);
-    kapat();
-    showToast("⏩ Tedavi hızlandırıldı!");
+    if (!liste.length) return;
+    const kalanAdet = (state.inventory || {})[liste[secili].ad] || 0;
+    if (kalanAdet <= 0) { showToast("Bu hızlandırmadan kalmadı."); return; }
+    const n = Math.min(adet, kalanAdet);
+    harca(secili, n);
+    liste[secili].adet -= n;
+    kisalt(n * liste[secili].ms);
+    /* karttaki adeti yerinde güncelle */
+    const kartSayi = kok.querySelector('.hsm-card-item[data-i="' + secili + '"] .hsm-ci-count');
+    if (kartSayi) kartSayi.textContent = liste[secili].adet;
+    if (liste[secili].adet <= 0) {
+      const kart = kok.querySelector('.hsm-card-item[data-i="' + secili + '"]');
+      if (kart) kart.disabled = true;
+    }
+    adet = 1;
+    if (kalanMs() <= 0) { kapat(); showToast(tur === "egitim" ? "⏩ Eğitim tamamlandı!" : "⏩ Tedavi tamamlandı!"); return; }
+    tazele();
+    showToast(tur === "egitim" ? "⏩ Eğitim hızlandırıldı!" : "⏩ Tedavi hızlandırıldı!");
   });
 
   /* HIZLI KULLAN: bitirmeye yetecek kadar hızlandırmayı büyükten
@@ -5346,7 +5380,7 @@ function hizlandirmaPenceresi(unitId) {
     if (toplam <= 0) { showToast("Yeterli hızlandırman yok."); return; }
     kisalt(toplam);
     kapat();
-    showToast("⏩ Tedavi hızlandırıldı!");
+    showToast(tur === "egitim" ? "⏩ Eğitim hızlandırıldı!" : "⏩ Tedavi hızlandırıldı!");
   });
 
   /* BİTİR: elmasla anında tamamlar */
@@ -5359,7 +5393,7 @@ function hizlandirmaPenceresi(unitId) {
     state.diamonds -= maliyet;
     kisalt(kalanMs());
     kapat();
-    showToast("Tedavi tamamlandı!");
+    showToast(tur === "egitim" ? "Eğitim tamamlandı!" : "Tedavi tamamlandı!");
   });
 
   tazele();
@@ -7551,11 +7585,17 @@ const TroopViewer = (function () {
       const instCost = (typeof instantCostFor === "function") ? instantCostFor(uid, qty) : totalCost * 3;
 
       if (isTraining) {
-        const nearest = trainQueueForUnit.reduce((a, b) => a.finishAt < b.finishAt ? a : b);
-        const remaining = nearest.finishAt - Date.now();
+        /* TOPLAM kalan süre = kuyruktaki SON birliğin bitişi.
+           Eskiden SIRADAKİ birliğin süresi yazılıyordu: 37 şövalye
+           kuyruktayken "1:43" görünüyordu, oysa hepsinin bitmesine
+           74 dakika vardı. Biçim de saat gösteren `sureMs`e alındı —
+           formatRemaining saati dakikaya çeviriyor (114:43 gibi). */
+        const sonJob = trainQueueForUnit.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
+        const remaining = sonJob.finishAt - Date.now();
+        const bicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
         html += `<div class="unit-train-bar">
             <div class="utb-training">⏳ Eğitiliyor
-              <span class="unit-train-timer" data-unit="${uid}">x${trainQueueForUnit.length} · ${formatRemaining(remaining)}</span>
+              <span class="unit-train-timer" data-unit="${uid}">x${trainQueueForUnit.length} · ${bicim(remaining)}</span>
             </div>
             <button class="speedup-trigger unit-speedup-btn" data-unit="${uid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
           </div>`;
@@ -7573,7 +7613,7 @@ const TroopViewer = (function () {
             </button>
             <button class="unit-train-btn" data-unit="${uid}">
               <span class="utb-top">Üret ×<span class="utb-qty">${qty}</span></span>
-              <span class="utb-sub"><span class="utb-cost">💎 ${fmt(totalCost)}</span> · ⏱ ${def.trainMinutes} dk</span>
+              <span class="utb-sub"><span class="utb-cost">💎 ${fmt(totalCost)}</span> · ⏱ <span class="utb-sure">${(typeof sureDk === "function") ? sureDk(def.trainMinutes * qty) : (def.trainMinutes * qty) + " dk"}</span></span>
             </button>
           </div>`;
       }
@@ -7595,7 +7635,11 @@ const TroopViewer = (function () {
       });
 
       const spBtn = el.querySelector(".unit-speedup-btn");
-      if (spBtn) bindTap(spBtn, () => { useSpeedUpOnTrainingGroup(uid); renderUnitStats(); });
+      if (spBtn) bindTap(spBtn, () => {
+        /* Tek tek harcamak yerine hızlandırma penceresi açılır. */
+        if (typeof hizlandirmaPenceresi === "function") hizlandirmaPenceresi(uid, "egitim");
+        else { useSpeedUpOnTrainingGroup(uid); renderUnitStats(); }
+      });
 
       /* adet: kaydırıcı + / − / kutu — hepsi birbirini günceller */
       const slider = el.querySelector(".uv-qty-slider");
@@ -7611,6 +7655,12 @@ const TroopViewer = (function () {
         if (c2) c2.textContent = "💎 " + fmt((typeof instantCostFor === "function") ? instantCostFor(uid, v) : def.cost * v * 3);
         const q = el.querySelector(".utb-qty");
         if (q) q.textContent = v;
+        /* SÜRE de adetle güncellenir. Eskiden yalnız elmas
+           hesaplanıyordu; düğmede tek birliğin süresi (2 dk) sabit
+           kalıyor, 30 birlik seçince bile 2 dk yazıyordu. */
+        const sr = el.querySelector(".utb-sure");
+        if (sr) sr.textContent = (typeof sureDk === "function")
+          ? sureDk(def.trainMinutes * v) : (def.trainMinutes * v) + " dk";
       };
       if (slider) slider.addEventListener("input", () => setQty(slider.value));
       if (numBox) numBox.addEventListener("input", () => setQty(numBox.value));
@@ -7633,14 +7683,16 @@ const TroopViewer = (function () {
         if (!uid) return;
         const trainQueueForUnit = (state.trainingQueue || []).filter(j => j.unitId === uid);
         if (trainQueueForUnit.length === 0) return;
-        const nearest = trainQueueForUnit.reduce((a, b) => a.finishAt < b.finishAt ? a : b);
-        const remaining = nearest.finishAt - Date.now();
+        /* TOPLAM: son birliğin bitişi (yukarıdaki çizimle aynı kural) */
+        const sonJob = trainQueueForUnit.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
+        const remaining = sonJob.finishAt - Date.now();
         if (remaining <= 0) {
           applyFinishedTraining();
           renderUnitStats();
           return;
         }
-        span.textContent = "⏱ x" + trainQueueForUnit.length + " " + formatRemaining(remaining);
+        span.textContent = "x" + trainQueueForUnit.length + " · " +
+          ((typeof sureMs === "function") ? sureMs(remaining) : formatRemaining(remaining));
       });
     }, 1000);
   }

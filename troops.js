@@ -290,6 +290,14 @@ function renderTroopQueue() {
 let troopTrainSelection = {};
 
 function useSpeedUpOnTrainingGroup(unitId) {
+  /* Artık hızlandırma PENCERESİ açılır: elindeki hızlandırmalar
+     listelenir, kaç tane kullanacağını seçersin ve pencere açık
+     kalır. Eski davranış (her dokunuşta sessizce tek eşya) yedek
+     olarak duruyor — pencere yoksa oyun kırılmasın. */
+  if (typeof hizlandirmaPenceresi === "function") {
+    hizlandirmaPenceresi(unitId, "egitim");
+    return;
+  }
   useSpeedUpOnGroup(
     state.trainingQueue.filter(j => j.unitId === unitId),
     [applyFinishedTraining, renderTroopsPanel, renderInventory],

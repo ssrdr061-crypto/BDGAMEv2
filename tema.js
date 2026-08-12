@@ -922,7 +922,14 @@ function rpYetenekGruplari(abList, used, kills) {
         ikon: rpYetenekIkon(id, bas),
         title: bas,
         aciklama: rpYetenekAciklama(id, bas, s),
-        tetik: tetik, olum: olum
+        tetik: tetik, olum: olum,
+        /* SAYILABİLİR Mİ? Yalnız RP_AB_ANAHTAR'daki beş tür (dondurma,
+           yansıma, anında kayıp, periyodik kırma, güç farkı) bir "an"
+           yaşar ve sayılabilir. Geri kalanlar (saldırı/savunma/can
+           yüzdeleri, yaralı dönüşü, robot güçlendirme) ordu kurulurken
+           statlara işlenir; tetiklenme diye bir anları yoktur.
+           Onlara "—" yazılınca yetenek ÇALIŞMIYOR sanılıyordu. */
+        sayilir: !!k
       });
     });
   });
@@ -941,6 +948,13 @@ function savasDetaylariAc(r) {
   const ACIK = [];
   const esc = (t) => String(t == null ? "" : t)
     .split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;");
+
+  /* Sürekli etkili yetenekler sayı yerine "✓ Aktif" gösterir. */
+  const tetikYazi = (s) => {
+    if (!s) return "";
+    if (s.tetik) return f(s.tetik);
+    return s.sayilir ? "—" : '<span class="sd-aktif">✓ Aktif</span>';
+  };
 
   const n = Math.max(A.length, D.length);
   let govde = "";
@@ -961,11 +975,11 @@ function savasDetaylariAc(r) {
         <div class="sd-sarmal">
           <div class="sd-satir">
             ${kut(x)}
-            <span class="sd-n">${x ? (x.tetik ? f(x.tetik) : "—") : ""}</span>
+            <span class="sd-n">${tetikYazi(x)}</span>
             <span class="sd-n">${x ? (x.olum ? f(x.olum) : "—") : ""}</span>
             <span class="sd-ayrac"></span>
             <span class="sd-n">${y ? (y.olum ? f(y.olum) : "—") : ""}</span>
-            <span class="sd-n">${y ? (y.tetik ? f(y.tetik) : "—") : ""}</span>
+            <span class="sd-n">${tetikYazi(y)}</span>
             ${kut(y)}
           </div>
           <div class="sd-ac" hidden></div>
@@ -3493,6 +3507,10 @@ st.textContent = `
 .rp-alt .rp-ok:active{ color:var(--rp-murekkep); }
 .rp-alt .rp-ok[hidden]{ visibility:hidden; display:block; }  /* köşe yeri korunur */
 
+/* "✓ Aktif": sürekli etkili yetenekler. Sayı değil, o yüzden daha
+   küçük ve yeşil — sayı sütunlarıyla karışmasın. */
+.sd-aktif{ color:#1f7a34; font-size:11px; font-weight:800; white-space:nowrap; }
+
 /* ── SAYFA 2: iki taraflı karşılaştırma ── */
 .rp-krs-ust{
   display:flex; justify-content:space-between; gap:8px;
@@ -3754,4 +3772,26 @@ document.addEventListener("wheel", e => {
   if ((e.ctrlKey || e.metaKey) && !haritadaMi(e.target)) e.preventDefault();
 }, { passive: false });
 
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   SAVAŞ GÜNLÜĞÜ — KAYDIRMA ÇUBUĞU GİZLİ (dosya sonunda ayrı IIFE)
+   Liste zaten parmakla kaydırılıyor; çubuk yalnız yer kaplıyordu.
+   Kaydırma ÇALIŞMAYA DEVAM EDER, sadece çubuk çizilmez.
+   ═══════════════════════════════════════════════════════════════ */
+(function gunlukCubukGizle() {
+"use strict";
+const st = document.createElement("style");
+st.id = "temaGunlukCubuk";
+st.textContent = `
+#panel-battlelog .log-list, #battleLogHistoryList{
+  scrollbar-width:none !important;      /* Firefox */
+  -ms-overflow-style:none !important;   /* eski Edge */
+}
+#panel-battlelog .log-list::-webkit-scrollbar,
+#battleLogHistoryList::-webkit-scrollbar{
+  width:0 !important; height:0 !important; display:none !important;
+}
+`;
+document.head.appendChild(st);
 })();
