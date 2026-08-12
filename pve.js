@@ -215,6 +215,19 @@
     const hpMult = say(hero.hpMult, 1) || 1;
     const birimler = orduKur(troopRoster, hpMult);
 
+    /* ── MAĞAZA BUFFLARI (buff.js) ────────────────────────────────
+       Şans zarları savaş başında bir kez atılır. Yüzdeler taban
+       (yenilgi eşiği) hesabından ÖNCE uygulanır. buff.js yoksa
+       her şey eskisi gibi çalışır. */
+    const BF = window.BUFF || null;
+    if (BF) BF.savasBaslat();
+
+    /* Hayalet birlik (Paralı Muhafız) eklenmeden ÖNCEKİ gerçek
+       mevcut — hastaneye gidecek yaralı bunu aşamaz. */
+    const gercekSayim = {};
+    birimler.forEach(u => gercekSayim[u.unitId] = u.count);
+    if (BF) BF.orduyaUygula(birimler);
+
     const baslangicSayi = orduSayi(birimler);
     const combinedMaxHp = Math.max(1, orduCan(birimler));
 
@@ -222,7 +235,9 @@
     const taban = Math.max(0, Math.ceil(baslangicSayi * (1 - PVE.yenilgiEsigi)));
 
     /* ── KAHRAMAN YETENEKLERİ (eski motordaki davranış korunuyor) ── */
-    const ab = hero.heroAbilities || [];
+    /* "Artan Aşk" mevcut bir yeteneğin değerini katlar — yetenek
+       listesi okunmadan önce büyütülür. */
+    const ab = (BF ? BF.yetenekleriBuyut(hero.heroAbilities || []) : (hero.heroAbilities || []));
     const bul = t => ab.find(a => a.type === t);
     let f;
 
@@ -318,6 +333,14 @@
       const vurus = hasarHesapla(hamAtk, canavarDef(),
                                  say(hero.ultiChance, 0.15),
                                  say(hero.ultiMultiplier, 1.8));
+      /* Buff: ilk turlar / rastgele turlar / robot periyodu.
+         Robot payı, robotların bu turdaki saldırı oranıdır. */
+      if (BF) {
+        const rb = birimler.find(u => u.unitId === "robot");
+        const pay = (rb && hamAtk > 0) ? (rb.atk * rb.count) / hamAtk : 0;
+        const rc = BF.turHasar(turn, pay);
+        if (rc !== 1) vurus.dmg = Math.max(1, Math.round(vurus.dmg * rc));
+      }
       enemyHp = sifirAlti(enemyHp - vurus.dmg);
       toplamVerilen += vurus.dmg;
       rounds.push({
@@ -344,6 +367,10 @@
 
       let inc = gelen.dmg;
       if (gucFarkiAzalt > 0) inc = Math.round(inc * (1 - gucFarkiAzalt / 100));
+      if (BF) {                                   /* kalkan / periyodik azaltma */
+        const ac = BF.turAlinan(turn);
+        if (ac !== 1) inc = Math.max(0, Math.round(inc * ac));
+      }
 
       /* Canavar sınıfsızdır → ön saf sırasıyla vurur */
       hasariDagit(birimler, "front", inc, taban);
@@ -372,6 +399,13 @@
 
     /* ── YARALILAR ──
        PvE'de ÖLÜM YOK: düşen her birlik hastaneye gider. */
+    /* Hayalet birlikler hastaneye gitmez: yaralı sayısı, savaşa
+       GERÇEKTEN götürülen mevcudu aşamaz. */
+    birimler.forEach(u => {
+      const sinir = gercekSayim[u.unitId] || 0;
+      if (u.dusen > sinir) u.dusen = sinir;
+    });
+
     const troopsWoundedByUnit = {};
     birimler.forEach(u => {
       if (u.dusen <= 0) return;
@@ -401,6 +435,9 @@
     }
 
     const kalanCan = orduCanKalan(birimler);
+
+    /* Buff tek kullanımlıktır: savaş çözüldü, tüketildi. */
+    if (BF) BF.savasBitti();
 
     return {
       rounds, win,

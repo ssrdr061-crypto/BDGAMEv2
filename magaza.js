@@ -330,6 +330,38 @@ function showShopInfoPopup(item, card) {
   pop.addEventListener("click", () => pop.remove());
 }
 
+/* ── BALONCUĞU DIŞARI DOKUNUNCA KAPAT ─────────────────────────────
+   Eskiden kapatma dinleyicisi YALNIZ baloncuğun kendisindeydi:
+   boşluğa, sekmelere ya da panelin başka bir yerine dokunmak
+   baloncuğu kapatmıyordu, ekranda asılı kalıyordu.
+
+   Dinleyici belgeye BİR KEZ kurulur (her renderShop'ta yeniden
+   eklenirse aynı tıklama defalarca işlenir). Baloncuğu açan
+   tıklamanın kendisi kapatmaz: o tıklamanın hedefi kartın içindedir
+   ve aşağıdaki closest() denetimine takılır — bu yüzden ayrıca
+   gecikme/zamanlayıcı hilesine gerek yok.
+
+   pointerdown kullanılır: parmak kalkmadan kapanır, kaydırmayla
+   açılan hayalet tıklamalara bağlı kalmaz. */
+(function shopPopupDisiKapat() {
+  if (window._shopPopDisiKurulu) return;
+  window._shopPopDisiKurulu = true;
+
+  document.addEventListener("pointerdown", function (e) {
+    if (!document.querySelector(".shop-info-pop")) return;      /* açık baloncuk yok */
+    const t = e.target;
+    if (t && t.closest && t.closest(".shop-info-pop, .shop-card2, .bd-buy-mask")) return;
+    document.querySelectorAll(".shop-info-pop").forEach(p => p.remove());
+  }, true);
+
+  /* Listeyi kaydırınca da kapansın — baloncuk karta göre
+     konumlandığı için kaydırmada kartından ayrı düşer. */
+  const grid = document.getElementById("shopGrid");
+  if (grid) grid.addEventListener("scroll", () => {
+    document.querySelectorAll(".shop-info-pop").forEach(p => p.remove());
+  }, { passive: true });
+})();
+
 /* ═══════════════════════════════════════════════════════════════
    SATIN ALMA PENCERESİ  (eski .shop-qty-pop sürgüsünün yerine)
    Ekranın ortasında açılır: ürün · adet ayarı · toplam fiyat.

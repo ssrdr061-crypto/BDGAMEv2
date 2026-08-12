@@ -7859,6 +7859,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
 <script src="magaza.js"></script>
 
+<!-- ═══ KAHRAMAN GÜÇLENDİRMELERİ (mağaza buffları) ═══
+     magaza.js'ten SONRA yüklenir: shopItems listesini okur.
+     pvp.js/pve.js window.BUFF'ı çalışma anında arar, sıra onlar
+     için önemli değil. -->
+<script src="buff.js"></script>
+
 
 </body>
 </html>

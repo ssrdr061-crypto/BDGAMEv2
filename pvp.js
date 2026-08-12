@@ -395,6 +395,10 @@ function buildDefender(acc, fallbackName) {
     accKey: dKey,
     commanderNames: defCommanders,
     commanderSkins: defSkins,
+    /* Savunanın HAZIRLADIĞI mağaza buffları (buff.js).
+       Savunan çevrimdışı olabildiği için planı saldıranın
+       istemcisi çözer; yalnız "savunmada" işleyen türler girer. */
+    hazirBuff: Array.isArray(st.hazirBuff) ? st.hazirBuff.slice() : [],
     avatar: "🏰", tier: "hard",
     /* arena önizlemesi bu 3 alanı kullanıyor */
     attack:  Math.max(5,  Math.round(atk * CFG.castleAtkBonus)),
@@ -793,8 +797,17 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   const atkSkins = (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
     ? selectedCommanders.filter(Boolean) : [];
   const defSkins = Array.isArray(defender.commanderSkins) ? defender.commanderSkins : [];
-  const abA = buffsOf(atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
-  const abD = buffsOf(defSkins);
+  /* ── MAĞAZA BUFFLARI (buff.js) ────────────────────────────────
+     Hazırlanmış buffların şans zarları BURADA bir kez atılır;
+     tur döngüsünde atılsaydı her tur yeniden denenirdi.
+     buff.js yoksa hepsi sessizce atlanır — oyun eskisi gibi çalışır. */
+  const BF = window.BUFF || null;
+  if (BF) BF.savasBaslat();
+
+  let abA = buffsOf(atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
+  if (BF) abA = BF.yetenekleriBuyut(abA);          /* "Artan Aşk" gibi katlayıcılar */
+  let abD = buffsOf(defSkins);
+  if (BF) abD = abD.concat(BF.savunmaEk(defender.hazirBuff));  /* yalnız savunmada işleyenler */
 
   const A = makeArmy(attackerTroops, attackerHero, "attacker", abA,
                      atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
@@ -805,6 +818,10 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     ultiChance: defender.hero.ultiChance,
     ultiMultiplier: defender.hero.ultiMultiplier,
   }, "defender", abD, defSkins);
+
+  /* Buff yüzdeleri (savunma/can/sayı) — TABAN hesabından ÖNCE.
+     Sonra uygulansaydı çekilme eşiği eski sayıya göre kalırdı. */
+  if (BF) BF.orduyaUygula(A.units);
 
   /* ── Karşı tarafı zayıflatan yetenekler ── */
   function weaken(src, tgt) {
@@ -895,6 +912,17 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     if (freezeD > 0) { dmgDtoA = 0; freezeD--; }
     if (freezeA > 0) { dmgAtoD = 0; freezeA--; }
 
+    /* ── MAĞAZA BUFFLARI: tur bazlı çarpanlar ──
+       Verilen hasar (ilk turlar / rastgele turlar / robot periyodu)
+       ve alınan hasar (kalkan / periyodik azaltma). Robot buffu
+       yalnız robotların hasar PAYINI büyütür. */
+    if (BF) {
+      const rc = BF.turHasar(turn, rollA.paylar ? (rollA.paylar["robot"] || 0) : 0);
+      if (rc !== 1) dmgAtoD = Math.max(1, Math.round(dmgAtoD * rc));
+      const ac = BF.turAlinan(turn);
+      if (ac !== 1) dmgDtoA = Math.max(0, Math.round(dmgDtoA * ac));
+    }
+
     /* güç farkı kalkanı: çok güçlü rakipten alınan hasarı azaltır */
     if (A.flow.gapCapPct && armyAtk(D) > armyAtk(A) * 1.5) {
       dmgDtoA = Math.round(dmgDtoA * (1 - A.flow.gapCapPct / 100));
@@ -972,6 +1000,16 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
       });
     }
     return cikti;
+  }
+
+  /* "Paralı Muhafız" savaşa gerçekte olmayan birlik katar; o
+     hayaletler ölünce envanterden düşülmemeli. Kayıp, savaşa
+     GERÇEKTEN götürülen sayıyla sınırlanır. Sonra buff tükenir —
+     tek kullanımlık olduğu için savaşın çözüldüğü yerde biter
+     (panelden de seferden de aynı yol geçilir). */
+  if (BF) {
+    BF.kayipKirp(A.killed, A.wounded, attackerTroops);
+    BF.savasBitti();
   }
 
   const attribA = attribute(A);
@@ -1252,6 +1290,16 @@ function sendRaidReport(enemy, R, delta) {
     if (err) pvpUyar("Savunanın hesabı güncellenemedi: " + (err.message || err));
     else if (!committed) pvpUyar("Savunanın hesabı bulunamadı, kayıp işlenmedi.");
   });
+
+    /* Savunmada işleyen mağaza buffu TEK KULLANIMLIKTIR: savunma
+       gerçekleştiği için burada düşülür. Savunan çevrimdışıyken
+       kendi istemcisi bunu yapamaz. (Bilinen sınır: savunan aynı
+       anda oyundaysa kendi kaydını komple üstüne yazıp buffu geri
+       getirebilir — bkz. Tuzak 19.) */
+    if (Array.isArray(st.hazirBuff) && st.hazirBuff.length && window.BUFF) {
+      const kalanBuff = st.hazirBuff.filter(ad => !window.BUFF.savunmaEk([ad]).length);
+      if (kalanBuff.length !== st.hazirBuff.length) st.hazirBuff = kalanBuff;
+    }
 
     /* yaralıları savunanın hastanesine ekle (girince iyileşsinler).
        Oyunun beklediği biçim: { unitId, finishAt, severe, confirmed } */
