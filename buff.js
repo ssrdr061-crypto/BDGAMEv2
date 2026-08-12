@@ -364,6 +364,7 @@ const CSS = `
   width:100%;
 }
 #buffKutu{
+  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
   position:absolute; left:6px; top:50%; transform:translateY(-50%); z-index:40;
   width:62px; height:62px; box-sizing:border-box;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -403,10 +404,16 @@ const CSS = `
   border-radius:16px; padding:12px 12px 14px;
   background:linear-gradient(180deg,#14432a 0%,#0d2c1c 100%);
   border:2px solid #48c07a; box-shadow:0 14px 30px rgba(0,20,8,.6);
-  font-family:'Baloo 2','Nunito',sans-serif; color:#eaffef;
+  color:#eaffef;
 }
-.bk-card h3{ margin:0 0 2px; font-size:15px; color:#b6ffd0; text-align:center; }
-.bk-alt{ text-align:center; font-size:10.5px; color:#8fd8ab; margin-bottom:8px; }
+/* Yazı tipi ve METİN SEÇİMİ tüm alt öğelere birden verilir.
+   Seçim kapatılmazsa düğmeye basılı tutunca telefon metni seçiyor,
+   kopyala balonu çıkıyordu. */
+.bk-card, .bk-card *{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+}
+.bk-card h3{ margin:0 0 8px; font-size:15px; color:#b6ffd0; text-align:center; }
 .bk-satir{
   display:flex; align-items:center; gap:8px; margin-bottom:7px;
   padding:7px 8px; border-radius:11px;
@@ -510,8 +517,7 @@ function pencereAc() {
 
   const sahip = buffUrunleri().filter(u => cantaAdet(u.name) > 0 || hazirMi(u.name));
 
-  let html = '<h3>⭐ Güçlendirmeler</h3>' +
-             '<div class="bk-alt">Tek kullanımlık — bir sonraki savaşta işler.</div>';
+  let html = '<h3>⭐ Güçlendirmeler</h3>';
 
   if (!sahip.length) {
     html += '<div class="bk-bos">Çantanda güçlendirme yok.<br>Mağazadan alabilirsin.</div>';

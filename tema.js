@@ -3626,7 +3626,13 @@ document.head.appendChild(st);
 const st = document.createElement("style");
 st.id = "temaOdulKutucuk";
 st.textContent = `
-.log-entry-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+/* Aç + ödül TEK SATIRDA: Aç kalan yeri doldurur, ödül sağda durur.
+   Kutucukların kendi tasarımına dokunulmuyor; yalnız satır yerleşimi
+   ve Aç düğmesinin genişliği ayarlanıyor (eskiden %100'dü ve ödülü
+   alt satıra itiyordu). */
+.log-entry-actions{ display:flex; align-items:center; gap:8px; flex-wrap:nowrap; }
+.log-entry-actions .log-open-btn{ flex:1 1 auto; width:auto !important; min-width:0; }
+.log-entry-actions .log-gift-btn{ flex:0 0 auto; margin-left:auto; }
 .log-gift-btn{
   display:inline-flex; align-items:center; gap:5px;
   border:2px solid #ffd9a1 !important; border-radius:11px;
