@@ -2330,6 +2330,15 @@ if (document.readyState === "loading") {
 
 })();
 
+/* ── DIŞA AÇ: GÜNLÜKTEKİ "Aç" DÜĞMESİ BUNA BAĞLI ──────────────
+   Bu dosyanın tamamı bir IIFE içinde; buradaki fonksiyonlar
+   window'a KENDİLİĞİNDEN çıkmaz. Bu satır olmayınca
+   index.html'deki openLogReportModal ilk şartında dönüyor ve
+   "📜 Aç" düğmesi HİÇBİR ŞEY yapmadan ölüyordu (OKU-BENİ Tuzak 29).
+   Uyarı showToast ile veriliyor, o da bu cihazda görünmediği için
+   hata tamamen sessiz kalıyordu. SİLME. */
+window.openReportModal = openReportModal;
+
 console.log("[tema.js] Görünüm dosyası yüklendi ✔");
 })();
 
@@ -3626,13 +3635,29 @@ document.head.appendChild(st);
 const st = document.createElement("style");
 st.id = "temaOdulKutucuk";
 st.textContent = `
-/* Aç + ödül TEK SATIRDA: Aç kalan yeri doldurur, ödül sağda durur.
-   Kutucukların kendi tasarımına dokunulmuyor; yalnız satır yerleşimi
-   ve Aç düğmesinin genişliği ayarlanıyor (eskiden %100'dü ve ödülü
-   alt satıra itiyordu). */
+/* ── KAYIT SATIRI: KUTU DEĞİL, ÇİZGİ ──
+   Her rapor için ayrı büyük kart çiziliyordu. Kart kaldırıldı,
+   yerine alta ince bir ayırıcı çizgi kondu. Sonuncuda çizgi yok. */
+.log-entry{
+  background:none !important; border:0 !important; box-shadow:none !important;
+  border-radius:0 !important; padding:8px 2px 10px !important;
+  border-bottom:1px solid rgba(190,225,255,.28) !important;
+}
+.log-entry:last-child{ border-bottom:0 !important; }
+
+/* Aç + ödül TEK SATIRDA ve AYNI EBATTA. Aç eskiden %100 genişlikti,
+   ödülü alt satıra itiyordu. İkisi de içeriği kadar yer kaplar;
+   ölçüler (yükseklik, yazı, köşe) eşitlenir — renk ve gölge
+   tasarımlarına dokunulmaz. */
 .log-entry-actions{ display:flex; align-items:center; gap:8px; flex-wrap:nowrap; }
-.log-entry-actions .log-open-btn{ flex:1 1 auto; width:auto !important; min-width:0; }
-.log-entry-actions .log-gift-btn{ flex:0 0 auto; margin-left:auto; }
+.log-entry-actions .log-open-btn,
+.log-entry-actions .log-gift-btn{
+  flex:0 0 auto; width:auto !important; min-width:112px;
+  height:38px; box-sizing:border-box;
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:0 12px !important; border-radius:11px !important;
+  font-size:13px !important;
+}
 .log-gift-btn{
   display:inline-flex; align-items:center; gap:5px;
   border:2px solid #ffd9a1 !important; border-radius:11px;
@@ -3709,16 +3734,13 @@ document.addEventListener("touchmove", e => {
   }
 }, { passive: false });
 
-/* Çift dokunuşla yakınlaştırma. touch-action bunu zaten kapatır;
-   bu satır "yakınlaştırmayı zorla" ayarı açık telefonlar için.
-   300 ms'den kısa aralıkla gelen İKİNCİ dokunuş iptal edilir —
-   tek dokunuşlara hiç dokunulmaz, oyunun düğmeleri etkilenmez. */
-let sonDokunus = 0;
-document.addEventListener("touchend", e => {
-  const simdi = Date.now();
-  if (simdi - sonDokunus < 300 && !haritadaMi(e.target)) e.preventDefault();
-  sonDokunus = simdi;
-}, { passive: false });
+/* NOT — ÇİFT DOKUNUŞ ENGELİ KALDIRILDI.
+   Burada "300 ms içinde gelen ikinci dokunuşu iptal et" diye bir
+   kalkan vardı. touchend'de preventDefault çağırmak o dokunuşun
+   CLICK olayını da iptal ediyor; arka arkaya basılan düğmeler
+   (ör. paneli açıp hemen "Aç"a basmak) çalışmıyordu.
+   Çift dokunuşla yakınlaştırmayı yukarıdaki `touch-action` zaten
+   kapatıyor — ayrı bir kalkana gerek yok. Geri EKLEME. */
 
 /* Masaüstü: Ctrl + tekerlek yakınlaştırması (harita kendi işler). */
 document.addEventListener("wheel", e => {
