@@ -15,7 +15,14 @@ window.onerror = function(msg, src, line) {
      Yoksa arka plan gelir, logo sonra düşer ve kart aşağı kayar (açılışta
      gördüğün fazladan "yükleme" adımlarından biri buydu). -->
 <link rel="preload" as="image" href="gorsel2.webp" fetchpriority="high">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- YAKINLAŞTIRMA: tarayıcının kendi zoom'u KAPALI.
+     Oyunun yakınlaştırması yalnız haritaya aittir (battleMapWrap kendi
+     iki parmak kodunu çalıştırır). Tarayıcı zoom'u açıkken paneller,
+     birlik ekranı, hatta alt menü bile büyütülebiliyordu; düzen bozuluyor
+     ve oyun gereksiz yere yoruluyordu.
+     maximum-scale + user-scalable birlikte yazılır: bazı tarayıcılar
+     yalnız birine bakar. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <title>BurstDiamond</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

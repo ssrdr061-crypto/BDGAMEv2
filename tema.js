@@ -3647,3 +3647,76 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   YAKINLAŞTIRMA KİLİDİ (dosya sonunda ayrı IIFE)
+   Yakınlaştırma SADECE haritaya aittir. Tarayıcının kendi zoom'u
+   panelleri, birlik ekranını ve alt menüyü de büyütüyordu.
+
+   Üç katman:
+     1) index.html'deki viewport meta (maximum-scale / user-scalable)
+     2) touch-action: iki parmak hareketi tarayıcıya gitmesin.
+        DEĞER SEÇİMİ ÖNEMLİ — "manipulation" pinch'e İZİN VERİR,
+        bize gereken "pan-x pan-y".
+     3) JS kalkanı: telefonun erişilebilirlik ayarındaki "yakınlaştırmayı
+        zorla" seçeneği meta etiketini yok sayar; iki parmak dokunuşu ve
+        çift dokunuş orada da engellenir.
+
+   HARİTA MUAF: #battleMapWrap kendi `touch-action:none` kuralını
+   korur ve kendi iki parmak kodunu çalıştırır (index.html, touchmove
+   → zoomAtPoint). Aşağıdaki kalkan harita içinden gelen dokunuşa
+   KARIŞMAZ — karışsaydı haritanın yakınlaştırması da ölürdü.
+   ═══════════════════════════════════════════════════════════════ */
+(function zoomKilidi() {
+"use strict";
+
+const st = document.createElement("style");
+st.id = "temaZoomKilit";
+st.textContent = `
+html, body{ touch-action:pan-x pan-y; }
+/* Panellerin içi de kilitli: kart, liste ve ızgaralar yalnız kayar. */
+.overlay-panel, .overlay-card, .battle-arena, .nav-dock,
+#appScreen, #loginScreen{ touch-action:pan-x pan-y; }
+/* Harita ve kendi sürgüleri dokunma yönetimini kendileri yapar. */
+.battle-map-wrap, #battleMapWrap,
+.hospital-slider, .hsm-slider, .troop-slider{ touch-action:none; }
+`;
+document.head.appendChild(st);
+
+/* Harita içinden mi geldi? Harita kendi yakınlaştırmasını yapar. */
+function haritadaMi(t) {
+  return !!(t && t.closest && t.closest("#battleMapWrap, .battle-map-wrap"));
+}
+
+/* iOS Safari: pinch `gesture*` olayları üretir, touch-action tutmaz. */
+["gesturestart", "gesturechange", "gestureend"].forEach(ad => {
+  document.addEventListener(ad, e => {
+    if (haritadaMi(e.target)) return;
+    e.preventDefault();
+  }, { passive: false });
+});
+
+/* Android/masaüstü: iki parmak hareketi haritanın dışındaysa yut. */
+document.addEventListener("touchmove", e => {
+  if (e.touches && e.touches.length > 1 && !haritadaMi(e.target)) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+/* Çift dokunuşla yakınlaştırma. touch-action bunu zaten kapatır;
+   bu satır "yakınlaştırmayı zorla" ayarı açık telefonlar için.
+   300 ms'den kısa aralıkla gelen İKİNCİ dokunuş iptal edilir —
+   tek dokunuşlara hiç dokunulmaz, oyunun düğmeleri etkilenmez. */
+let sonDokunus = 0;
+document.addEventListener("touchend", e => {
+  const simdi = Date.now();
+  if (simdi - sonDokunus < 300 && !haritadaMi(e.target)) e.preventDefault();
+  sonDokunus = simdi;
+}, { passive: false });
+
+/* Masaüstü: Ctrl + tekerlek yakınlaştırması (harita kendi işler). */
+document.addEventListener("wheel", e => {
+  if ((e.ctrlKey || e.metaKey) && !haritadaMi(e.target)) e.preventDefault();
+}, { passive: false });
+
+})();
