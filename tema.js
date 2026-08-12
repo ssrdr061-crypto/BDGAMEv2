@@ -859,38 +859,6 @@ function unitDetailHTML(r) {
     ${blok}`;
 }
 
-/* ── SAYFA 1: taraf toplamları (yalnız PvP) ──
-   Birlikler = savaşa sürülen, Ölen/Yaralanan = kayıt altındaki kayıplar,
-   Hayatta kalanlar = artan. Ölen satırı iki tarafta da kırmızıdır. */
-function rpOzetToplam(r) {
-  const f = (n) => (typeof fmt === "function") ? fmt(n || 0) : String(n || 0);
-  const U = ["knight", "soldier", "robot"];
-  const top = (o) => U.reduce((s, u) => s + ((o && o[u]) || 0), 0);
-  const kyp = (L, k) => U.reduce((s, u) => s + ((L && L[k] && L[k][u]) || 0), 0);
-
-  const yap = (t, L) => {
-    const bir = top(t), ol = kyp(L, "killed"), ya = kyp(L, "wounded");
-    return { bir: bir, ol: ol, ya: ya, sag: Math.max(0, bir - ol - ya) };
-  };
-  const A = yap(r.attackerTroops, r.attackerLosses);
-  const D = yap(r.defenderTroops, r.defenderLosses);
-  if (!A.bir && !D.bir) return "";
-
-  const SATIR = [
-    { ad: "BİRLİKLER",        a: A.bir, d: D.bir, sinif: "" },
-    { ad: "ÖLEN",             a: A.ol,  d: D.ol,  sinif: " rp-kirmizi" },
-    { ad: "YARALANAN",        a: A.ya,  d: D.ya,  sinif: "" },
-    { ad: "HAYATTA KALANLAR", a: A.sag, d: D.sag, sinif: "" },
-  ];
-  return '<div class="rp-ozet">' + SATIR.map(function (s) {
-    return '<div class="rp-ozet-satir">' +
-      '<span class="rp-ozet-yan' + s.sinif + '">' + f(s.a) + '</span>' +
-      '<span class="rp-ozet-orta">' + s.ad + '</span>' +
-      '<span class="rp-ozet-yan' + s.sinif + '">' + f(s.d) + '</span>' +
-    '</div>';
-  }).join("") + '</div>';
-}
-
 /* ── SAVAŞ DETAYLARI: kahraman yetenekleri ──
    Yetenekler kahramana göre gruplanır; iki taraf yan yana eşleşir.
    Karşılıksız kalan taraf BOŞ bırakılır (kahraman sayıları eşit olmak
@@ -1123,8 +1091,6 @@ function openReportModal(r) {
           <div class="rp-col"><div class="rp-chips">${unitChips(r.attackerTroops)}</div></div>
           <div class="rp-col"><div class="rp-chips">${unitChips(r.defenderTroops)}</div></div>
         </div>
-
-        ${r.pve ? '' : rpOzetToplam(r)}
 
         <div class="rp-foot">
           <span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>
@@ -3583,21 +3549,6 @@ st.textContent = `
   color:var(--rp-murekkep-2); padding:0 10px; white-space:nowrap;
 }
 
-/* ── SAYFA 1: taraf toplamları (BİRLİKLER / ÖLEN / YARALANAN / HAYATTA KALANLAR) ── */
-.rp-ozet{ margin-top:10px; }
-.rp-ozet-satir{
-  display:flex; align-items:center; padding:5px 4px;
-  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 10%, transparent);
-  font-weight:800; font-size:12.5px; color:var(--rp-murekkep);
-  font-variant-numeric:tabular-nums;
-}
-.rp-ozet-satir:nth-child(odd){ background:rgba(255,255,255,.14); }
-.rp-ozet-yan{ flex:1 1 0; text-align:center; }
-.rp-ozet-orta{
-  flex:0 0 auto; font-size:10.5px; font-weight:800; letter-spacing:.3px;
-  color:var(--rp-murekkep-2); padding:0 10px; white-space:nowrap; text-align:center;
-}
-
 /* ── SAVAŞ DETAYLARI penceresi ── */
 .sd-back{
   position:fixed; inset:0; z-index:9999; background:rgba(2,8,22,.62);
@@ -3840,6 +3791,91 @@ st.textContent = `
 #panel-battlelog .log-list::-webkit-scrollbar,
 #battleLogHistoryList::-webkit-scrollbar{
   width:0 !important; height:0 !important; display:none !important;
+}
+`;
+document.head.appendChild(st);
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   BİRLİK PANELİ — ROL SEÇİCİ + DERLİ TOPLU STAT/ADET ÇUBUĞU
+   (dosya sonunda ayrı IIFE — üstteki şablon dizgisine dokunulmadı)
+
+   · Solda alt alta Savunma / Güç / Nişan düğmeleri
+   · Stat listesi 4 satır oldu (Güç eklendi): fontlar AYNI kaldı,
+     sadece satır aralığı/dolgusu daraltıldı
+   · − / kutu / + daha düzgün ebatta, sürgü kendi satırına indi
+   ═══════════════════════════════════════════════════════════════ */
+(function birlikPaneliRolVeDuzen() {
+"use strict";
+const st = document.createElement("style");
+st.id = "temaBirlikRol";
+st.textContent = `
+/* ── ROL SEÇİCİ ── */
+#panel-troops .uv-roles{
+  position:absolute !important; left:8px !important; top:46% !important;
+  transform:translateY(-50%) !important; z-index:30 !important;
+  display:flex !important; flex-direction:column !important; gap:8px !important;
+}
+/* "Birlikler" sekmesindeyken gizlen */
+#unitViewer.tp-off .uv-roles{ display:none !important; }
+#panel-troops .uv-role{
+  width:58px !important; padding:6px 2px 5px !important; cursor:pointer !important;
+  display:flex !important; flex-direction:column !important;
+  align-items:center !important; gap:2px !important;
+  border-radius:14px !important;
+  background:rgba(4,32,60,.32) !important;
+  border:2px solid rgba(190,240,255,.4) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25) !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  -webkit-tap-highlight-color:transparent;
+  transition:border-color .15s, transform .15s, box-shadow .15s;
+}
+#panel-troops .uv-role .uvr-ico{ font-size:20px !important; line-height:1 !important; }
+#panel-troops .uv-role .uvr-txt{
+  font-size:10px !important; font-weight:800 !important; letter-spacing:.2px !important;
+  color:#dff4ff !important; text-shadow:0 1px 2px rgba(0,30,55,.55) !important;
+}
+#panel-troops .uv-role.is-active{
+  border-color:#ffd257 !important; background:rgba(255,210,87,.18) !important;
+  box-shadow:0 0 0 2px rgba(255,210,87,.3), 0 4px 10px rgba(0,25,50,.35) !important;
+  transform:translateX(2px) !important;
+}
+#panel-troops .uv-role.is-active .uvr-txt{ color:#fff !important; }
+
+/* ── STATLAR: 4 satır sığsın — font AYNI, boşluk daraldı ── */
+#panel-troops .stats{
+  padding:4px 4px calc(4px + env(safe-area-inset-bottom,0)) !important;
+}
+#panel-troops .stats-grid{ gap:1px !important; }
+#panel-troops .stat-row{
+  padding:4px 12px !important; gap:9px !important; border-radius:9px !important;
+}
+#panel-troops .uv-portraits{ margin:0 0 6px !important; }
+/* Güç satırı (kale gücüne katkı) vurgulu.
+   :nth-child(odd) ile aynı özgüllükte olsun diye çift sınıf yazıldı. */
+#panel-troops .stat-row.stat-row-power{
+  background:rgba(255,210,87,.16) !important;
+  box-shadow:inset 0 0 0 1px rgba(255,210,87,.45) !important;
+}
+#panel-troops .stat-row.stat-row-power .stat-val{ color:#ffd257 !important; }
+
+/* ── ADET ÇUBUĞU: − / kutu / + ortada, sürgü kendi satırında ── */
+#panel-troops .unit-qty-bar{
+  flex-wrap:wrap !important; justify-content:center !important;
+  gap:10px !important; margin:8px 10px 0 !important;
+}
+#panel-troops .uq-btn{
+  width:34px !important; height:34px !important;
+  font-size:19px !important; border-radius:10px !important;
+}
+#panel-troops .uq-input{
+  width:70px !important; padding:6px 4px !important;
+  font-size:17px !important; border-radius:10px !important;
+}
+#panel-troops .uv-qty-slider{
+  flex:1 1 100% !important; order:9 !important; width:100% !important;
+  height:20px !important; margin:2px 2px 0 !important;
 }
 `;
 document.head.appendChild(st);

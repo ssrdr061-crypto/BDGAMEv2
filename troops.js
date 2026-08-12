@@ -26,10 +26,35 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, modelScale: 0.80, img: "gorsel8.webp" },
-  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, modelScale: 0.80, img: "gorsel9.webp" },
-  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp" },
+  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, power: 5,  level: 1, role: "savunma", modelScale: 0.80, img: "gorsel8.webp" },
+  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, power: 7,  level: 1, role: "guc",     modelScale: 0.80, img: "gorsel9.webp" },
+  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, power: 10, level: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp" },
 };
+
+/*  ─────────────────────────────────────────────
+    1.a) ROLLER — eğitim ekranının solundaki üç düğme
+    Savunma → Şövalye · Güç → Asker · Nişan → Robot
+    Düğmeye basınca o birliğin ekranı gelir. Yeni birlik/rol
+    eklersen sadece UNIT_TYPES'ı ve bu listeyi düzenle.
+    ───────────────────────────────────────────── */
+const UNIT_ROLES = [
+  { id: "savunma", label: "Savunma", icon: "🛡️", unit: "knight"  },
+  { id: "guc",     label: "Güç",     icon: "⚔️", unit: "soldier" },
+  { id: "nisan",   label: "Nişan",   icon: "🎯", unit: "robot"   },
+];
+
+/*  Ekranda görünen ad: "1.Sv Şövalye".
+    Seviye UNIT_TYPES.level'dan gelir; seviye sistemi yazılınca
+    o alanı güncellemek yeter, başlık kendiliğinden değişir.
+    NOT: def.name (ham ad) toast ve savaş metinlerinde kalır.       */
+function unitAdi(x) {
+  const d = (typeof x === "string") ? UNIT_TYPES[x] : x;
+  if (!d) return "";
+  return (d.level || 1) + ".Sv " + d.name;
+}
+
+/*  power: birliğin KALE GÜCÜNE kattığı puan. Sıralama ekranındaki
+    TROOP_POWER bu alandan türetilir — değeri sadece burada değiştir. */
 
 /*  ─────────────────────────────────────────────
     1.b) SÜRE BİÇİMLENDİRME
@@ -751,7 +776,7 @@ const TroopTabs = (function () {
         <div class="tp-row${n > 0 ? "" : " tp-none"}" data-unit="${def.id}" style="animation-delay:${i * 0.05}s">
           <div class="tp-img">${pic}</div>
           <div class="tp-mid">
-            <div class="tp-name">${def.name}</div>
+            <div class="tp-name">${unitAdi(def)}</div>
             <div class="tp-count" data-count="${def.id}">x${money(n)}</div>
           </div>
           <button class="tp-up" data-unit="${def.id}">Geliştir</button>

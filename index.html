@@ -2279,6 +2279,10 @@ body.world-active{padding:0; overflow:hidden;}
       <button class="uv-arrow uv-prev" id="uvPrev" aria-label="Önceki">‹</button>
       <button class="uv-arrow uv-next" id="uvNext" aria-label="Sonraki">›</button>
 
+      <!-- ROL SEÇİCİ (Savunma / Güç / Nişan) — içeriği troops.js'teki
+           UNIT_ROLES'tan TroopViewer.buildRoles() doldurur -->
+      <div class="uv-roles" id="uvRoles"></div>
+
       <section class="unit-screen us-knight is-active" data-unit="knight">
         <div class="stage">
           <div class="ground-shadow"></div>
@@ -7031,7 +7035,15 @@ async function startBattle() {
 /* ═══ GÜÇ PUANI + SIRALAMA (RANK) ═══
    Güç = birlik gücü (Şövalye 2, asker 5, robot 10) + sahip olunan kahraman katkıları.
    Bu "göstermelik" bir güçtür (stat değildir); sıralama ve kale panelinde gösterilir. */
-const TROOP_POWER = { knight: 2, soldier: 5, robot: 10 };
+/* Birlik güç puanları TEK YERDE: troops.js → UNIT_TYPES[x].power
+   (troops.js bu koddan ÖNCE yüklenir). Buraya elle sayı yazma. */
+const TROOP_POWER = (function () {
+  const o = {};
+  if (typeof UNIT_TYPES !== "undefined") {
+    Object.keys(UNIT_TYPES).forEach(k => { o[k] = UNIT_TYPES[k].power || 0; });
+  }
+  return o;
+})();
 const HERO_POWER = {
   buz_savascisi: 15000,   // Halvorsen
   celik_savasci: 20000,   // Stellin
@@ -7044,9 +7056,7 @@ function computePlayerPower(st) {
   if (!st || typeof st !== "object") return 0;
   let p = 0;
   const t = st.troops || {};
-  p += (t.knight || 0) * TROOP_POWER.knight;
-  p += (t.soldier || 0) * TROOP_POWER.soldier;
-  p += (t.robot || 0) * TROOP_POWER.robot;
+  Object.keys(TROOP_POWER).forEach(k => { p += (t[k] || 0) * TROOP_POWER[k]; });
   const owned = Array.isArray(st.ownedHeroSkins) ? st.ownedHeroSkins : [];
   owned.forEach(id => { p += (HERO_POWER[id] || 0); });
   return p;
@@ -7515,6 +7525,7 @@ const TroopViewer = (function () {
     if (prev) bindTap(prev, () => go(idx - 1));
     if (next) bindTap(next, () => go(idx + 1));
     setupSwipe(viewerEl);
+    buildRoles();
     inited = true;
     apply(true);
   }
@@ -7525,6 +7536,28 @@ const TroopViewer = (function () {
      hızlandırma sonrası yapılır. */
   let _drawn = false;
 
+  /* Rol düğmeleri bir kez kurulur (UNIT_ROLES → troops.js).
+     Basınca ilgili birliğin ekranına geçer; portre seçiciyle
+     aynı `go()` kapısını kullanır, iki seçici hep aynı kalır. */
+  function buildRoles() {
+    const box = document.getElementById("uvRoles");
+    if (!box || box.dataset.ok || typeof UNIT_ROLES === "undefined") return;
+    box.innerHTML = UNIT_ROLES.map(r => {
+      const i = ORDER.indexOf(r.unit);
+      if (i < 0) return "";
+      return `<button class="uv-role" data-i="${i}" aria-label="${r.label}">` +
+             `<span class="uvr-ico">${r.icon}</span><span class="uvr-txt">${r.label}</span></button>`;
+    }).join("");
+    box.querySelectorAll(".uv-role").forEach(b => bindTap(b, () => go(parseInt(b.dataset.i, 10) || 0)));
+    box.dataset.ok = "1";
+  }
+
+  function syncRoles() {
+    document.querySelectorAll("#panel-troops .uv-role").forEach(b => {
+      b.classList.toggle("is-active", (parseInt(b.dataset.i, 10) || 0) === idx);
+    });
+  }
+
   function syncPortraits() {
     document.querySelectorAll("#panel-troops .uv-portrait").forEach(b => {
       b.classList.toggle("is-active", (parseInt(b.dataset.i, 10) || 0) === idx);
@@ -7534,16 +7567,18 @@ const TroopViewer = (function () {
   function apply(fullRedraw) {
     screens.forEach((s, i) => { if (s) s.classList.toggle("is-active", i === idx); });
     dots.forEach((d, i) => d.classList.toggle("is-active", i === idx));
-    if (titleEl) titleEl.textContent = NAMES[ORDER[idx]];
+    if (titleEl) titleEl.textContent = (typeof unitAdi === "function")
+      ? unitAdi(ORDER[idx]) : NAMES[ORDER[idx]];
+    syncRoles();
     if (fullRedraw || !_drawn) { renderUnitStats(); _drawn = true; }
     else syncPortraits();
   }
 
   function renderUnitStats() {
     const STAT_MAP = {
-      knight:  { el: "knightStats",  icons: ["⚔️","❤️","🛡️"], labels: ["Saldırı","Can","Savunma"] },
-      soldier: { el: "soldierStats", icons: ["⚔️","❤️","🛡️"], labels: ["Saldırı","Can","Savunma"] },
-      robot:   { el: "robotStats",   icons: ["⚡","❤️","🛡️"], labels: ["Saldırı","Can","Savunma"] },
+      knight:  { el: "knightStats",  icons: ["⚔️","❤️","🛡️","🏰"], labels: ["Saldırı","Can","Savunma","Güç"] },
+      soldier: { el: "soldierStats", icons: ["⚔️","❤️","🛡️","🏰"], labels: ["Saldırı","Can","Savunma","Güç"] },
+      robot:   { el: "robotStats",   icons: ["⚡","❤️","🛡️","🏰"], labels: ["Saldırı","Can","Savunma","Güç"] },
     };
     ORDER.forEach(uid => {
       const cfg = STAT_MAP[uid];
@@ -7565,10 +7600,12 @@ const TroopViewer = (function () {
       }).join("") + `</div>`;
 
       /* ── İSTATİSTİKLER ── */
-      const stats = [def.attack, def.hp, def.defense];
+      /* 4. satır: birliğin KALE GÜCÜNE kattığı puan (troops.js → power) */
+      const stats = [def.attack, def.hp, def.defense, def.power || 0];
       html += '<div class="stats-grid">';
       stats.forEach((val, i2) => {
-        html += `<div class="stat-row"><span class="stat-ico">${cfg.icons[i2]}</span><span class="stat-name">${cfg.labels[i2]}</span><span class="stat-val">${fmt(val)}</span></div>`;
+        const ek = (cfg.labels[i2] === "Güç") ? " stat-row-power" : "";
+        html += `<div class="stat-row${ek}"><span class="stat-ico">${cfg.icons[i2]}</span><span class="stat-name">${cfg.labels[i2]}</span><span class="stat-val">${fmt(val)}</span></div>`;
       });
       html += `</div>`;
 
@@ -7716,7 +7753,7 @@ const TroopViewer = (function () {
     let x0 = 0, y0 = 0, tracking = false;
     /* Sürgü, buton, kutu gibi kontrollerin üstünde kaydırma çalışmasın —
        yoksa sürgüyü çekerken diğer birliğe atlıyor. */
-    const NO_SWIPE = "input, button, select, textarea, .uv-portrait, .unit-qty-bar, .unit-train-bar, .stats";
+    const NO_SWIPE = "input, button, select, textarea, .uv-portrait, .uv-role, .uv-roles, .unit-qty-bar, .unit-train-bar, .stats";
     const inControl = (t) => !!(t && t.closest && t.closest(NO_SWIPE));
 
     el.addEventListener("touchstart", (e) => {
