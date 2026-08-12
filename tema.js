@@ -3570,11 +3570,10 @@ st.textContent = `
 .sd-ac{
   position:absolute; left:50%; top:50%;
   transform:translate(-50%,-50%); z-index:3;
-  /* kutu metin kadar: kısa açıklamada daralır, uzunda 240 px'te durur.
-     CSS kutuyu "en uzun satır kadar" küçültemez (max-content sarmadan
-     önceki tek satırdır), o yüzden daraltma üst sınırla yapılır; balance
-     satırları eşitlediği için sağda boşluk kalmaz. */
-  width:max-content; max-width:min(240px, calc(100% - 24px));
+  /* TEK STANDART ÖLÇÜ: metne göre değişmez, hepsi aynı genişlikte ve
+     dar. Değişken genişlik (max-content) her yetenekte farklı boyda
+     kutu üretiyordu; sabit genişlik hem kırpar hem hizayı korur. */
+  width:min(205px, calc(100% - 32px));
   padding:6px 9px 7px; border-radius:9px;
   background:color-mix(in srgb, var(--rp-kagit) 92%, #000);
   border:1px solid color-mix(in srgb, var(--rp-murekkep) 45%, transparent);
