@@ -859,6 +859,38 @@ function unitDetailHTML(r) {
     ${blok}`;
 }
 
+/* ── SAYFA 1: taraf toplamları (yalnız PvP) ──
+   Birlikler = savaşa sürülen, Ölen/Yaralanan = kayıt altındaki kayıplar,
+   Hayatta kalanlar = artan. Ölen satırı iki tarafta da kırmızıdır. */
+function rpOzetToplam(r) {
+  const f = (n) => (typeof fmt === "function") ? fmt(n || 0) : String(n || 0);
+  const U = ["knight", "soldier", "robot"];
+  const top = (o) => U.reduce((s, u) => s + ((o && o[u]) || 0), 0);
+  const kyp = (L, k) => U.reduce((s, u) => s + ((L && L[k] && L[k][u]) || 0), 0);
+
+  const yap = (t, L) => {
+    const bir = top(t), ol = kyp(L, "killed"), ya = kyp(L, "wounded");
+    return { bir: bir, ol: ol, ya: ya, sag: Math.max(0, bir - ol - ya) };
+  };
+  const A = yap(r.attackerTroops, r.attackerLosses);
+  const D = yap(r.defenderTroops, r.defenderLosses);
+  if (!A.bir && !D.bir) return "";
+
+  const SATIR = [
+    { ad: "BİRLİKLER",        a: A.bir, d: D.bir, sinif: "" },
+    { ad: "ÖLEN",             a: A.ol,  d: D.ol,  sinif: " rp-kirmizi" },
+    { ad: "YARALANAN",        a: A.ya,  d: D.ya,  sinif: "" },
+    { ad: "HAYATTA KALANLAR", a: A.sag, d: D.sag, sinif: "" },
+  ];
+  return '<div class="rp-ozet">' + SATIR.map(function (s) {
+    return '<div class="rp-ozet-satir">' +
+      '<span class="rp-ozet-yan' + s.sinif + '">' + f(s.a) + '</span>' +
+      '<span class="rp-ozet-orta">' + s.ad + '</span>' +
+      '<span class="rp-ozet-yan' + s.sinif + '">' + f(s.d) + '</span>' +
+    '</div>';
+  }).join("") + '</div>';
+}
+
 /* ── SAVAŞ DETAYLARI: kahraman yetenekleri ──
    Yetenekler kahramana göre gruplanır; iki taraf yan yana eşleşir.
    Karşılıksız kalan taraf BOŞ bırakılır (kahraman sayıları eşit olmak
@@ -1091,6 +1123,8 @@ function openReportModal(r) {
           <div class="rp-col"><div class="rp-chips">${unitChips(r.attackerTroops)}</div></div>
           <div class="rp-col"><div class="rp-chips">${unitChips(r.defenderTroops)}</div></div>
         </div>
+
+        ${r.pve ? '' : rpOzetToplam(r)}
 
         <div class="rp-foot">
           <span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>
@@ -3547,6 +3581,21 @@ st.textContent = `
 .rp-krs-orta{
   flex:0 0 auto; font-size:10.5px; font-weight:800;
   color:var(--rp-murekkep-2); padding:0 10px; white-space:nowrap;
+}
+
+/* ── SAYFA 1: taraf toplamları (BİRLİKLER / ÖLEN / YARALANAN / HAYATTA KALANLAR) ── */
+.rp-ozet{ margin-top:10px; }
+.rp-ozet-satir{
+  display:flex; align-items:center; padding:5px 4px;
+  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 10%, transparent);
+  font-weight:800; font-size:12.5px; color:var(--rp-murekkep);
+  font-variant-numeric:tabular-nums;
+}
+.rp-ozet-satir:nth-child(odd){ background:rgba(255,255,255,.14); }
+.rp-ozet-yan{ flex:1 1 0; text-align:center; }
+.rp-ozet-orta{
+  flex:0 0 auto; font-size:10.5px; font-weight:800; letter-spacing:.3px;
+  color:var(--rp-murekkep-2); padding:0 10px; white-space:nowrap; text-align:center;
 }
 
 /* ── SAVAŞ DETAYLARI penceresi ── */
