@@ -300,8 +300,9 @@ function renderTroopQueue() {
             ${sureMs(remaining)} ⏩
           </button>
         </div>`;
-      const sp = slot.querySelector(".speedup-trigger");
-      if (sp) bindTap(sp, () => useSpeedUpOnTrainingGroup(unitId));
+      /* Dinleyici BURAYA bağlanmaz: bu iskelet saniyede bir yeniden
+         yazılabiliyor ve bağ kopuyordu. index.html'deki belge düzeyi
+         dinleyici .speedup-trigger'ı data-unit üzerinden yakalar. */
     } else {
       const sayacEl = slot.querySelector(".q-timer");
       if (sayacEl) {

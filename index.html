@@ -2272,7 +2272,9 @@ body.world-active{padding:0; overflow:hidden;}
   <div class="overlay-panel" id="panel-troops">
     <div class="uv-viewer" id="unitViewer">
       <div class="uv-title" id="uvTitle">Şövalye</div>
-      <button class="uv-close" data-close aria-label="Kapat">✕</button>
+      <!-- Kapatma: artık savaş raporundakiyle AYNI düğme (.overlay-close).
+           Eski .uv-close sınıfı kaldırıldı, konum aynı köşede kalıyor. -->
+      <button class="overlay-close" data-close aria-label="Kapat">✕</button>
       <div class="uv-dots" id="uvDots">
         <span class="uv-dot is-active"></span><span class="uv-dot"></span><span class="uv-dot"></span>
       </div>
@@ -7110,7 +7112,24 @@ function renderRankPanel() {
   }
 }
 
+/* Alt menüden başka bir bölüme geçerken açık olan ekran KENDİLİĞİNDEN
+   kapanır. Eskiden yeni panel açılıyordu ama üstte duran eskisi onu
+   örtüyordu; oyuncunun önce ✕'e basması gerekiyordu. */
+function tumPanelleriKapat(haric) {
+  document.querySelectorAll(".overlay-panel.active").forEach(p => {
+    if (p.id === "panel-" + haric) return;
+    closeOverlayPanel(p);
+  });
+  /* Kahraman ekranı #appScreen'de değil, body'ye ekli ayrı katmandır
+     (heroes.js → #heroDetailOverlay). Panel değil, o yüzden elle. */
+  if (haric !== "hero") {
+    const heroOv = document.getElementById("heroDetailOverlay");
+    if (heroOv) heroOv.style.display = "none";
+  }
+}
+
 function openOverlayPanel(panelKey) {
+  tumPanelleriKapat(panelKey);
   if (panelKey === "hero") { openHeroDetail(heroSkins[0].id); return; }
   const el = document.getElementById("panel-" + panelKey);
   if (!el) return;
@@ -7671,12 +7690,9 @@ const TroopViewer = (function () {
         renderUnitStats();
       });
 
-      const spBtn = el.querySelector(".unit-speedup-btn");
-      if (spBtn) bindTap(spBtn, () => {
-        /* Tek tek harcamak yerine hızlandırma penceresi açılır. */
-        if (typeof hizlandirmaPenceresi === "function") hizlandirmaPenceresi(uid, "egitim");
-        else { useSpeedUpOnTrainingGroup(uid); renderUnitStats(); }
-      });
+      /* HIZLANDIR düğmesi burada BAĞLANMAZ — belge düzeyindeki tek
+         dinleyici işi görür (aşağıda "HIZLANDIR: TEK DİNLEYİCİ").
+         Buraya tekrar bindTap eklersen pencere iki kez açılır. */
 
       /* adet: kaydırıcı + / − / kutu — hepsi birbirini günceller */
       const slider = el.querySelector(".uv-qty-slider");
@@ -7778,6 +7794,39 @@ const TroopViewer = (function () {
 
 setupNav();
 TroopViewer.init();
+/* kisalt() içindeki tazeleme window.TroopViewer'ı arıyor; const ile
+   tanımlanan değişken window'a kendiliğinden ÇIKMAZ, elle veriyoruz.
+   Bu olmadan hızlandırmadan sonra ekran eski süreyi göstermeye devam
+   ediyordu — hata sessizdi (try/catch yutuyordu). */
+window.TroopViewer = TroopViewer;
+
+/*  ── HIZLANDIR: TEK DİNLEYİCİ (olay delegasyonu) ──
+    Düğme hem eğitim ekranında hem kuyrukta saniyede bir yeniden
+    çizilebiliyor. Dinleyici tek tek düğmeye bağlanınca, pencere bir
+    kez kullanılıp kapandıktan sonra bağ kopuyor ve düğme SESSİZCE
+    ölüyordu. Belge düzeyinde tek dinleyici bunu kökten çözer:
+    düğme yeniden doğsa da dinleyici yerinde durur.
+    Yeni bir hızlandırma düğmesi eklersen tek şart: sınıfı
+    "speedup-trigger" ve data-unit'i dolu olsun.                      */
+let _hizSonTiklama = 0;
+document.addEventListener("pointerup", (e) => {
+  const btn = e.target && e.target.closest && e.target.closest(".speedup-trigger");
+  if (!btn) return;
+  const uid = btn.dataset.unit;
+  if (!uid) return;
+  const now = Date.now();
+  if (now - _hizSonTiklama < 400) return;                 /* çift tetikleme */
+  _hizSonTiklama = now;
+  if (document.getElementById("hospSpeedModal")) return;  /* zaten açık */
+  try {
+    hizlandirmaPenceresi(uid, "egitim");
+  } catch (err) {
+    /* Yarım kalan pencere ekranı kaplayıp tüm dokunuşları yutmasın. */
+    const yarim = document.getElementById("hospSpeedModal");
+    if (yarim) yarim.remove();
+    showToast("Hızlandırma penceresi açılamadı.");
+  }
+});
 
 /* Tüm elementlerde uzun basma/bağlantı açma/mavi seçim engelle */
 document.addEventListener("contextmenu", function(e) { e.preventDefault(); }, true);

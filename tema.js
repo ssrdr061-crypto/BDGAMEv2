@@ -1623,16 +1623,8 @@ if (document.readyState === "loading") {
 
 
 /* ── KAPAT ── */
-#panel-troops .uv-close{
-  top:12px !important; right:12px !important;
-  width:36px !important; height:36px !important; border-radius:11px !important;
-  font-size:16px !important; line-height:1 !important;
-  border:2px solid rgba(255,190,190,.75) !important;
-  background:linear-gradient(180deg,#ff6b6b,#e03131) !important;
-  box-shadow:0 4px 0 #a01b1b, inset 0 1px 0 rgba(255,255,255,.4) !important;
-  z-index:60 !important;
-}
-#panel-troops .uv-close:active{ transform:translateY(3px) !important; box-shadow:0 1px 0 #a01b1b !important; }
+/* .uv-close kaldırıldı — birlik panelinin ✕'i artık savaş raporuyla
+   aynı düğme (.overlay-close), stilini oradan alıyor. */
 
 /* ── GÖRSELLER: boya göre ölçek, kırpılma yok ── */
 #panel-troops .us-knight .knight-wrap{
