@@ -353,32 +353,41 @@ function savunmaEk(hazir) {
 /* ── 5) GÖRÜNÜM — savaş ekranı köşesindeki yeşil kutucuk ────── */
 
 const CSS = `
-/* Kutucuk ince tutulur: YAZI BOYUTLARI SABİT (12px / 11px), yalnız
-   iç boşluk, aralık ve kenarlık kısıktır. Kalınlaştırılırsa kahraman
-   kartlarındaki (–) çıkarma düğmelerinin üstüne biner.
-   Konum: ✕ düğmesi 12px'te, 38px yüksekliğinde — kutu onun ALTINA
-   oturur (top:56px), üst üste binmesin. */
+/* Kutucuk KARE ve SAVAŞA GİR düğmesinin SOLUNDA durur.
+   Eskiden panelin sağ üst köşesindeydi; kahraman kartlarındaki (–)
+   çıkarma düğmelerinin üstüne biniyordu. Artık akışın içinde,
+   düğmeyle aynı satırda — hiçbir şeyin üstüne binmez ve panel
+   kaydırılınca düğmeyle birlikte hareket eder. */
+.bk-satirKap{
+  display:flex !important; align-items:center; justify-content:center;
+  gap:12px; width:100%;
+}
 #buffKutu{
-  position:absolute; top:56px; right:10px; z-index:40;
-  display:flex; align-items:center; gap:4px;
-  padding:3px 8px; border-radius:10px; cursor:pointer;
-  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:12px;
-  line-height:1.15;
-  color:#eaffef; letter-spacing:.3px; border:1.5px solid #7ff0a8;
+  position:relative; flex:0 0 auto; z-index:40;
+  width:62px; height:62px; box-sizing:border-box;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:1px; padding:4px; border-radius:14px; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:9px;
+  line-height:1.05; text-align:center;
+  color:#eaffef; letter-spacing:.2px; border:2px solid #7ff0a8;
   background:linear-gradient(180deg,#2fbb62 0%,#1c8544 60%,#12602f 100%);
-  box-shadow:0 3px 0 #0c3d1f, 0 6px 12px rgba(0,40,15,.45),
-             inset 0 1px 2px rgba(180,255,205,.5);
+  box-shadow:0 4px 0 #0c3d1f, 0 7px 14px rgba(0,40,15,.45),
+             inset 0 2px 3px rgba(180,255,205,.5);
   text-shadow:0 1px 2px rgba(0,30,10,.6);
 }
-#buffKutu:active{ transform:translateY(2px); box-shadow:0 1px 0 #0c3d1f; }
-#buffKutu .bk-ico{ font-size:14px; }
+#buffKutu:active{ transform:translateY(3px); box-shadow:0 1px 0 #0c3d1f; }
+#buffKutu .bk-ico{ font-size:20px; line-height:1; }
+#buffKutu .bk-yazi{ font-size:8.5px; }
 #buffKutu .bk-rozet{
-  min-width:15px; text-align:center; border-radius:7px; padding:0 4px;
+  position:absolute; top:-6px; right:-6px;
+  min-width:18px; height:18px; line-height:18px;
+  text-align:center; border-radius:9px; padding:0 4px;
   background:#ffd257; color:#153a22; font-size:11px;
+  border:2px solid #12602f;
 }
 #buffKutu.bk-hazir{ animation:bkNabiz 1.3s ease-in-out infinite; }
-@keyframes bkNabiz{ 50%{ box-shadow:0 3px 0 #0c3d1f, 0 0 14px rgba(120,255,170,.9),
-                          inset 0 1px 2px rgba(180,255,205,.5); } }
+@keyframes bkNabiz{ 50%{ box-shadow:0 4px 0 #0c3d1f, 0 0 16px rgba(120,255,170,.9),
+                          inset 0 2px 3px rgba(180,255,205,.5); } }
 
 .bk-mask{
   position:fixed; inset:0; z-index:9000; display:flex;
@@ -430,20 +439,31 @@ const CSS = `
   document.head.appendChild(st);
 })();
 
-/* Kutucuk savaş ekranının içine oturur. Arena kabı arazi paneli
-   tarafından devralınabildiği için (index.html'deki _ARAZI_DEVIR)
-   her tazelemede GÜNCEL #battleArena aranır. */
-function arenaKabi() {
+/* Kutucuk artık SAVAŞA GİR düğmesiyle aynı satırda duruyor.
+   Düğme, ilk seferde bir esnek satır kabına (.bk-satirKap) alınır;
+   kutucuk onun soluna girer. Kap bir kez kurulur, sonraki
+   tazelemelerde yeniden sarılmaz.
+   Not: arena kabı arazi paneli tarafından devralınabildiği için
+   (index.html'deki _ARAZI_DEVIR) her tazelemede GÜNCEL düğme
+   aranır. */
+function satirKabi() {
   const arena = document.getElementById("battleArena");
   if (!arena) return null;
-  const ic = arena.querySelector(".battle-arena") || arena;
-  const kon = getComputedStyle(ic).position;
-  if (kon === "static") ic.style.position = "relative";
-  return ic;
+  const btn = arena.querySelector("#battleBtn, .battle-btn");
+  if (!btn) return null;
+
+  let kap = btn.parentElement;
+  if (!kap || !kap.classList.contains("bk-satirKap")) {
+    kap = document.createElement("div");
+    kap.className = "bk-satirKap";
+    btn.parentElement.insertBefore(kap, btn);
+    kap.appendChild(btn);
+  }
+  return kap;
 }
 
 function tazele() {
-  const kap = arenaKabi();
+  const kap = satirKabi();
   if (!kap) return;
 
   /* Çantada buff yoksa ve hazır da yoksa kutucuk hiç görünmesin. */
@@ -457,15 +477,17 @@ function tazele() {
     kutu = document.createElement("div");
     kutu.id = "buffKutu";
     kutu.addEventListener("click", (e) => { e.stopPropagation(); pencereAc(); });
-    kap.appendChild(kutu);
-  } else if (kutu.parentElement !== kap) {
-    kap.appendChild(kutu);
+  }
+  /* Düğmenin SOLUNDA dursun (kap içindeki ilk çocuk) */
+  if (kutu.parentElement !== kap || kap.firstElementChild !== kutu) {
+    kap.insertBefore(kutu, kap.firstElementChild);
   }
 
   kutu.classList.toggle("bk-hazir", hazir.length > 0);
   kutu.innerHTML =
-    '<span class="bk-ico">⭐</span><span>GÜÇLENDİRME</span>' +
-    '<span class="bk-rozet">' + (hazir.length ? hazir.length + " ✓" : sahip.length) + '</span>';
+    '<span class="bk-ico">⭐</span>' +
+    '<span class="bk-yazi">GÜÇ</span>' +
+    '<span class="bk-rozet">' + (hazir.length ? hazir.length + "✓" : sahip.length) + '</span>';
 }
 
 function pencereKapat() {
