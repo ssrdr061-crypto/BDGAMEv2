@@ -3515,6 +3515,36 @@ function openLogReportModal(entry) {
     /* yetenek kutucukları bu ikisinden üretilir */
     abilities: r.abilities || [],
     flowFx: r.flowFx || {},
+
+    /* ── SAVAŞ DETAYLARI PENCERESİ İÇİN ──────────────────────────
+       O pencere (tema.js `savasDetaylariAc`) verisini YALNIZ
+       `heroFx`ten okur; yukarıdaki `abilities`/`flowFx` alanlarına
+       hiç bakmaz. Bu yüzden canavar raporlarında tablo boş kalıyordu.
+       Kayıttaki veriyi burada o biçime çeviriyoruz.
+
+       SAVUNAN TARAF BOŞ: canavarın komutanı yoktur. Sağ sütunda
+       kahraman görünüyorsa o rapor canavardan değil, bir OYUNCU
+       savaşından gelmiştir. */
+    heroFx: {
+      attackerAbilities: (r.abilities || []).map(m => ({
+        type: m.type,
+        title: (m.sources && m.sources[0] && m.sources[0].title) || "",
+        sources: m.sources || [],
+      })),
+      defenderAbilities: [],
+      /* PvE sayaçları başka adlarla tutuluyor; pencerenin beklediği
+         anahtarlara çevriliyor (freeze/reflect/instant/periodic/gapCap). */
+      attacker: {
+        freeze:   (r.flowFx && r.flowFx.freezeTurns)   || 0,
+        reflect:  (r.flowFx && r.flowFx.reflectTotal)  || 0,
+        instant:  (r.flowFx && r.flowFx.instantKilled) || 0,
+        periodic: (r.flowFx && r.flowFx.periodicCount) || 0,
+        gapCap:   (r.flowFx && r.flowFx.dmgReduceVsStronger) ? 1 : 0,
+      },
+      defender: {},
+      attackerKills: {},
+      defenderKills: {},
+    },
   });
 }
 
