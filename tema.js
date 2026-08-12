@@ -3813,17 +3813,17 @@ st.id = "temaBirlikRol";
 st.textContent = `
 /* ── ROL SEÇİCİ ── */
 #panel-troops .uv-roles{
-  position:absolute !important; left:8px !important; top:46% !important;
+  position:absolute !important; left:8px !important; top:33% !important;
   transform:translateY(-50%) !important; z-index:30 !important;
-  display:flex !important; flex-direction:column !important; gap:8px !important;
+  display:flex !important; flex-direction:column !important; gap:6px !important;
 }
 /* "Birlikler" sekmesindeyken gizlen */
 #unitViewer.tp-off .uv-roles{ display:none !important; }
 #panel-troops .uv-role{
-  width:58px !important; padding:6px 2px 5px !important; cursor:pointer !important;
+  width:50px !important; padding:4px 2px 3px !important; cursor:pointer !important;
   display:flex !important; flex-direction:column !important;
-  align-items:center !important; gap:2px !important;
-  border-radius:14px !important;
+  align-items:center !important; gap:1px !important;
+  border-radius:12px !important;
   background:rgba(4,32,60,.32) !important;
   border:2px solid rgba(190,240,255,.4) !important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.25) !important;
@@ -3831,9 +3831,10 @@ st.textContent = `
   -webkit-tap-highlight-color:transparent;
   transition:border-color .15s, transform .15s, box-shadow .15s;
 }
-#panel-troops .uv-role .uvr-ico{ font-size:20px !important; line-height:1 !important; }
+#panel-troops .uv-role .uvr-ico{ font-size:16px !important; line-height:1 !important; }
 #panel-troops .uv-role .uvr-txt{
-  font-size:10px !important; font-weight:800 !important; letter-spacing:.2px !important;
+  font-size:9px !important; font-weight:800 !important; letter-spacing:0 !important;
+  line-height:1.1 !important;
   color:#dff4ff !important; text-shadow:0 1px 2px rgba(0,30,55,.55) !important;
 }
 #panel-troops .uv-role.is-active{
@@ -3852,31 +3853,47 @@ st.textContent = `
   padding:4px 12px !important; gap:9px !important; border-radius:9px !important;
 }
 #panel-troops .uv-portraits{ margin:0 0 6px !important; }
-/* Güç satırı (kale gücüne katkı) vurgulu.
-   :nth-child(odd) ile aynı özgüllükte olsun diye çift sınıf yazıldı. */
+/* Güç satırı (kale gücüne katkı): çerçeve/zemin YOK — sarı kutu
+   "seçili" gibi duruyordu. Sadece rakam altın renkte kalıyor.
+   :nth-child(odd) ile aynı özgüllük için çift sınıf yazıldı. */
 #panel-troops .stat-row.stat-row-power{
-  background:rgba(255,210,87,.16) !important;
-  box-shadow:inset 0 0 0 1px rgba(255,210,87,.45) !important;
+  background:transparent !important;
+  box-shadow:none !important;
 }
 #panel-troops .stat-row.stat-row-power .stat-val{ color:#ffd257 !important; }
 
 /* ── ADET ÇUBUĞU: − / kutu / + ortada, sürgü kendi satırında ── */
 #panel-troops .unit-qty-bar{
   flex-wrap:wrap !important; justify-content:center !important;
-  gap:10px !important; margin:8px 10px 0 !important;
+  gap:7px !important; margin:8px 10px 0 !important;
 }
 #panel-troops .uq-btn{
-  width:34px !important; height:34px !important;
-  font-size:19px !important; border-radius:10px !important;
+  width:30px !important; height:30px !important;
+  font-size:17px !important; border-radius:9px !important;
+  box-shadow:0 2px 0 #a8641a, inset 0 1px 0 rgba(255,255,255,.5) !important;
 }
 #panel-troops .uq-input{
-  width:70px !important; padding:6px 4px !important;
-  font-size:17px !important; border-radius:10px !important;
+  width:52px !important; padding:5px 2px !important;
+  font-size:15px !important; border-radius:9px !important;
+  border-width:2px !important;
 }
 #panel-troops .uv-qty-slider{
   flex:1 1 100% !important; order:9 !important; width:100% !important;
   height:20px !important; margin:2px 2px 0 !important;
 }
+
+/* ── ÜRET / ANINDA: alt satır ASLA alta taşmasın ──
+   "1 sa 40 dk" iki satıra düşünce düğme uzuyordu. Metin tek satıra
+   kilitlendi, taşarsa font kendiliğinden ufalır (kutuda yer var). */
+#panel-troops .unit-instant-btn,
+#panel-troops .unit-train-btn{
+  padding:6px 4px !important; min-height:52px !important;
+}
+#panel-troops .utb-sub{
+  white-space:nowrap !important; font-size:11px !important;
+  letter-spacing:0 !important; opacity:.92 !important;
+}
+#panel-troops .utb-top{ white-space:nowrap !important; }
 `;
 document.head.appendChild(st);
 })();
