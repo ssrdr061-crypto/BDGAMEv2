@@ -856,8 +856,7 @@ function unitDetailHTML(r) {
       <span class="rp-krs-taraf${benS ? " rp-krs-ben" : ""}">${r.attackerName || "Saldıran"}</span>
       <span class="rp-krs-taraf${benS ? "" : " rp-krs-ben"}">${r.defenderName || "Savunan"}</span>
     </div>
-    ${blok}
-    <div class="rp-note">Öldürdü/Yaraladı, birliklerin savaştaki hasar payına göre hesaplanır.</div>`;
+    ${blok}`;
 }
 
 /* ── SAVAŞ DETAYLARI: kahraman yetenekleri ──
@@ -1002,16 +1001,20 @@ function savasDetaylariAc(r) {
   back.addEventListener("click", e => { if (e.target === back) back.remove(); });
   back.querySelector("#sdClose").onclick = () => back.remove();
 
-  /* ikon → açıklama. Tek seferde tek panel açık kalır. */
-  back.querySelector(".sd-govde").addEventListener("click", (e) => {
+  /* ikon → açıklama. Tek panel açık kalır; pencere içinde BAŞKA HERHANGİ
+     bir yere (kutunun kendisi dahil) dokunmak açık açıklamayı kapatır. */
+  const hepsiniKapat = () => {
+    back.querySelectorAll(".sd-ac").forEach(k => { k.hidden = true; });
+    back.querySelectorAll(".sd-ab-tik").forEach(k => k.classList.remove("sd-ab-acik"));
+  };
+  back.addEventListener("click", (e) => {
     const ik = e.target.closest(".sd-ab-tik");
-    if (!ik) return;
+    if (!ik) { hepsiniKapat(); return; }           /* boşluk / açıklama / başlık */
     const kutu = ik.closest(".sd-sarmal").querySelector(".sd-ac");
     const veri = ACIK[parseInt(ik.dataset.ac, 10)] || {};
     const zaten = !kutu.hidden && kutu.dataset.ac === ik.dataset.ac;
-    back.querySelectorAll(".sd-ac").forEach(k => { k.hidden = true; });
-    back.querySelectorAll(".sd-ab-tik").forEach(k => k.classList.remove("sd-ab-acik"));
-    if (zaten) return;
+    hepsiniKapat();
+    if (zaten) return;                              /* aynı ikon = kapat */
     kutu.dataset.ac = ik.dataset.ac;
     kutu.innerHTML = `<b>${esc(veri.title || "Yetenek")}</b>` +
       `<span>${esc(veri.aciklama || "Açıklama henüz eklenmedi.")}</span>`;
@@ -1107,6 +1110,25 @@ function openReportModal(r) {
   }
   okG.onclick = () => sayfa(2);
   okS.onclick = () => sayfa(1);
+
+  /* parmakla geçiş — kutu dikey de kaydığı için hareket ayrıştırılır:
+     yatay yol 45 px'i aşmalı VE dikeyin en az 1.5 katı olmalı. Aksi
+     hâlde dokunuşa karışılmaz, normal aşağı-yukarı kaydırma bozulmaz. */
+  const kutu = back.querySelector(".rp-box");
+  let bx = 0, by = 0, izle = false;
+  kutu.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) { izle = false; return; }
+    bx = e.touches[0].clientX; by = e.touches[0].clientY; izle = true;
+  }, { passive: true });
+  kutu.addEventListener("touchend", (e) => {
+    if (!izle) return;
+    izle = false;
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - bx, dy = t.clientY - by;
+    if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    sayfa(dx < 0 ? 2 : 1);                 /* sola sürükle → döküm, sağa → özet */
+  }, { passive: true });
 
   back.querySelector("#rpAbBtn").onclick = () => savasDetaylariAc(r);
 }
