@@ -279,6 +279,20 @@ function _klistKartAyar(id) {
   max-height:78px; overflow:auto; white-space:pre-wrap; word-break:break-all;
   user-select:text; -webkit-user-select:text; display:none;
 }
+/* ── KAHRAMAN EKRANI PERDESİ ──
+   tema.js'teki kaydırma bloğu geçişte kartı 120 ms boyunca saydamlaştırıyor (opacity 0).
+   Kartın kararmayı kendi dev gölgesiyle (0 0 0 9999px) yaptığı için o an
+   perde de kartla birlikte kayboluyor ve altından HARİTA görünüyordu.
+   Çözüm: kararmayı karttan alıp ayrı bir katmana taşımak. Perde kartın
+   ALTINDA (z-index 398) sabit durur, kart sönerken yerinde kalır. */
+#klistPerde{
+  position:fixed; inset:0; z-index:398; display:none;
+  background:rgba(5,4,10,.72);
+  -webkit-tap-highlight-color:transparent;
+}
+/* Kartın 9999px'lik kararması iptal (inline stili !important ezer) */
+#heroDetailOverlay{ box-shadow:0 10px 34px rgba(0,0,0,.55) !important; }
+
 @keyframes klistPop{ from{opacity:0; transform:translateX(-50%) translateY(10px) scale(.97)} }
 `;
   document.head.appendChild(st);
@@ -601,6 +615,7 @@ function kapatKahramanListesi() {
   const ov = document.getElementById("kahramanListesi");
   if (ov) ov.style.display = "none";
   _klistDetayda = false;
+  _klistPerdeKapat();
 }
 
 /*  ─────────────────────────────────────────────
@@ -622,7 +637,29 @@ function _klistKahramanAc(id) {
   const ov = document.getElementById("kahramanListesi");
   if (ov) ov.style.display = "none";
   _klistDetayda = true;
+  _klistPerdeAc();
   openHeroDetail(id);
+}
+
+/* ── perde ── */
+let _klistPerdeSaat = null;
+function _klistPerdeAc() {
+  let p = document.getElementById("klistPerde");
+  if (!p) { p = document.createElement("div"); p.id = "klistPerde"; document.body.appendChild(p); }
+  p.style.display = "block";
+  /* Kahraman ekranı başka bir yoldan kapanırsa (alt menüden başka bölüme
+     geçmek gibi) perde ekranda kalmasın diye kısa aralıklarla denetlenir. */
+  if (_klistPerdeSaat) clearInterval(_klistPerdeSaat);
+  _klistPerdeSaat = setInterval(() => {
+    const ov = document.getElementById("heroDetailOverlay");
+    const acik = ov && ov.style.display !== "none" && ov.offsetWidth > 0;
+    if (!acik) _klistPerdeKapat();
+  }, 300);
+}
+function _klistPerdeKapat() {
+  const p = document.getElementById("klistPerde");
+  if (p) p.style.display = "none";
+  if (_klistPerdeSaat) { clearInterval(_klistPerdeSaat); _klistPerdeSaat = null; }
 }
 
 /* Kahraman ekranı ✕ ile kapanınca listeye dön */
@@ -631,6 +668,7 @@ document.addEventListener("click", e => {
   if (!e.target.closest("#hdClose")) return;
   if (!_klistDetayda) return;
   _klistDetayda = false;
+  _klistPerdeKapat();
   setTimeout(() => {
     const ov = document.getElementById("kahramanListesi");
     if (!ov) return;
