@@ -92,6 +92,32 @@ const KLIST_KART = {
 };
 
 
+/*  ─────────────────────────────────────────────
+    4) KAHRAMAN KADEMESİ ve KART ZEMİNİ
+
+    Kartın arkasına gömülen renkli zemin görseli. Kahramanın altında,
+    kutucuğun içinde durur: taşmaz (object-fit:cover + kart overflow:hidden),
+    boşluk da bırakmaz.
+
+    KLIST_ZEMIN  → kademe adı : dosya adı  (düz mod, klasörsüz)
+    KLIST_KADEME → kahraman   : kademe adı
+    Listede olmayan kahraman "normal" sayılır.
+    Renkler ters gelirse SADECE aşağıdaki iki dosya adını yer değiştir.
+    ───────────────────────────────────────────── */
+const KLIST_ZEMIN = {
+  ss:     "gorsel22.webp",   /* TURUNCU — SS kahramanlar */
+  normal: "gorsel23.webp"    /* YEŞİL   — normal kahramanlar */
+};
+
+const KLIST_KADEME = {
+  ivanovna:      "ss",
+  revolia:       "ss",
+  ates_buyucusu: "normal",   /* MİKİAN    */
+  celik_savasci: "normal",   /* STELLİN   */
+  buz_savascisi: "normal"    /* HALVORSEN */
+};
+
+
 /* ══════════════════════════════════════════════
    BURADAN AŞAĞISI MOTOR — ayar için yukarısı yeter
    ══════════════════════════════════════════════ */
@@ -168,8 +194,13 @@ function _klistKartAyar(id) {
   -webkit-tap-highlight-color:transparent;
 }
 .klist-card:not(.empty):active{ transform:scale(.96); }
+/* Zemin: kahramanın ALTINDA, kutucuğu tam doldurur, taşmaz */
+.klist-card .klist-zemin{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; object-position:center; z-index:0; pointer-events:none;
+}
 .klist-card .klist-portrait{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;
 }
 .klist-portrait.klist-noimg{
   display:flex; align-items:center; justify-content:center; font-size:32px;
@@ -196,7 +227,8 @@ function _klistKartAyar(id) {
 
 /* ── SAHİP OLUNMAYAN KAHRAMAN: tamamen gri ── */
 .klist-card.locked{ border-color:rgba(150,175,205,.35); }
-.klist-card.locked .klist-portrait{ filter:grayscale(1) brightness(.5); }
+.klist-card.locked .klist-portrait,
+.klist-card.locked .klist-zemin{ filter:grayscale(1) brightness(.5); }
 .klist-card.locked .klist-name{ color:#c9d6e6; }
 .klist-lock{
   position:absolute; inset:0; z-index:4; display:flex;
@@ -342,6 +374,11 @@ function _klistKartHTML(id) {
   const gen = KV.kart_gen * (k.gen / 100);         /* kahramana özel genişlik  */
   const yuk = KV.kart_yuk * (k.yuk / 100);         /* kahramana özel yükseklik */
 
+  const kademe = KLIST_KADEME[id] || "normal";
+  const zeminSrc = KLIST_ZEMIN[kademe] || "";
+  const zemin = zeminSrc
+    ? `<img class="klist-zemin" src="${zeminSrc}" alt="" draggable="false">` : "";
+
   const portre = img
     ? `<img class="klist-portrait" src="${img}" alt="${h.name}" draggable="false"
          style="object-position:${k.poz};transform:translate(${dx}px,${dy}px) scale(${sc});">`
@@ -370,6 +407,7 @@ function _klistKartHTML(id) {
     <div class="klist-card ${sahip ? "" : "locked"}" data-hero="${id}"
          style="width:${gen}%;height:${yuk}%;border-radius:${KV.kart_r}px;
                 transform:translate(${KV.kart_dx + k.kdx}px,${KV.kart_dy + k.kdy}px);">
+      ${zemin}
       ${portre}
       <div class="klist-spec">${h.specialtyIcon || "⚔️"}</div>
       ${kilit}
