@@ -43,8 +43,11 @@ const KLIST_UI = {
   kart_dy:  1,      /* tüm kartları dikey kaydır (px)  */
 
   kart_cer: 0,      /* kart çerçeve kalınlığı (px) — 0 = çerçeve YOK */
-  silik_bas: 58,    /* kahraman görseli alttan silikleşmeye NEREDE başlasın (% ) */
-  alt_koyu:  55,    /* alttaki karartma şeridinin koyuluğu (0-100) */
+  silik_bas: 55,    /* kahraman görseli alttan silikleşmeye NEREDE başlasın (%) */
+  alt_koyu:  0,     /* alttaki KARARTMA şeridi (0-100). 0 = karartma yok:
+                       görsel doğrudan zemin rengine erir (istenen görünüm).
+                       Yazılar bir zemin üzerinde daha okunaklı olsun istersen
+                       10-25 arası küçük bir değer yeter. */
 
   isim_bs:  11.5,   /* kahraman adı yazı boyutu (px) — isimGoster açıksa */
   sv_bs:    10,     /* "Sv. 1" yazı boyutu (px)      */
@@ -234,8 +237,10 @@ function _klistKartAyar(id) {
   text-shadow:0 1px 3px rgba(0,0,0,.85);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.klist-lv{ font-weight:800; color:#ffe9a8; line-height:1.2; text-shadow:0 1px 2px rgba(0,0,0,.8); }
-.klist-stars{ letter-spacing:.5px; line-height:1.1; margin-top:1px; }
+.klist-lv{ font-weight:800; color:#fff; line-height:1.2;
+  text-shadow:0 1px 2px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.6); }
+.klist-stars{ letter-spacing:.5px; line-height:1.1; margin-top:1px;
+  text-shadow:0 1px 2px rgba(0,0,0,.55); }
 
 /* ── SAHİP OLUNMAYAN KAHRAMAN: tamamen gri ── */
 .klist-card.locked{ border-color:rgba(150,175,205,.35); }
