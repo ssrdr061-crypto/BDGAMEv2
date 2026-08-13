@@ -151,8 +151,15 @@
 
     /* Her biyom için kaç farklı karo hazırlansın. Tek varyantta doku
        her karede birebir aynı tekrar eder ve ızgara deseni göze batar.
-       4 varyant bunu büyük ölçüde kırar. */
-    varyant: 9,
+       4 varyant bunu büyük ölçüde kırar.
+
+       DİKKAT: varyantlar artık dokunun FARKLI BÖLGELERİNDEN değil, AYNI
+       bölgenin ayna/çevirme hallerinden üretiliyor (bkz. karoUret).
+       Sebep: farklı bölgelerin ortalama parlaklığı farklı çıkıyordu ve
+       harita yama yama görünüyordu. Ayna parlaklığı değiştirmez.
+       Dörtgen iki eksende de simetrik olduğu için maske bozulmaz.
+       4'ten büyük yapmanın faydası yok — 4 ayna hali var. */
+    varyant: 4,
 
     /* Görsel yokken kullanılacak düz renkler (aynı zamanda mini-harita
        rengi olarak da işe yarar) */
@@ -320,10 +327,14 @@
      taşan kısmın çizilebileceği yeri açıyor. Karo ekrana çizilirken
      aynı pay kadar sola/yukarı kaydırılıp o kadar büyük basılıyor,
      böylece komşularla tam opak örtüşme oluyor ve dikiş çizgisi
-     kalmıyor. */
-  const PAY = 1;
+     kalmıyor.
 
-  function karoUret(img, tw, th, s, kaydirX, kaydirY) {
+     1'den 2'ye çıkarıldı: clip() kenarı kenar yumuşatmalıdır, yani yarı
+     saydamdır. 1 piksel pay komşunun yarı saydam kenarını tam örtmüyor,
+     araya hayalet çizgi giriyordu. */
+  const PAY = 2;
+
+  function karoUret(img, tw, th, s, kaydirX, kaydirY, vi) {
     const p = PAY * s;                       // ön-render ölçeğinde pay
     const c = document.createElement("canvas");
     c.width  = tw + 2 * p;
@@ -341,6 +352,15 @@
     x.lineTo(-d,       th / 2);
     x.closePath();
     x.clip();
+
+    /* ── VARYANT: AYNA ──
+       Dokuyu yatay/dikey çeviriyoruz. Dört farklı görünüş çıkar ama
+       dördünün de ortalama parlaklığı AYNI kalır — bölge kaydırmasıyla
+       yapılan eski yöntemin yama etkisi böyle ortadan kalkıyor.
+       Çevirme, iso matrisinden ÖNCE ve karo merkezine göre yapılmalı. */
+    x.translate(tw / 2, th / 2);
+    x.scale((vi & 1) ? -1 : 1, (vi & 2) ? -1 : 1);
+    x.translate(-tw / 2, -th / 2);
 
     /* Kaynak dokudan kare bir bölge seç (varyant için kaydırmalı) */
     const S = Math.min(img.width, img.height);
@@ -366,10 +386,9 @@
     const parcalar = [];
 
     for (let i = 0; i < CFG.varyant; i++) {
-      /* Varyantlar dokunun farklı bölgelerinden alınır → tekrar kırılır */
-      const kx = (i % 3) * 0.45 + 0.05;
-      const ky = (Math.floor(i / 3) % 3) * 0.45 + 0.05;
-      parcalar.push(karoUret(img, tw, th, s, kx, ky));
+      /* Hep dokunun ORTASINDAN aynı kare alınır; varyantı ayna yapar.
+         Böylece varyantlar arası parlaklık farkı sıfır. */
+      parcalar.push(karoUret(img, tw, th, s, 0.5, 0.5, i));
     }
 
     karolar[ad] = { hazir: true, parcalar };
@@ -562,6 +581,14 @@
     c.height = Math.ceil(h * s);
     const x2 = c.getContext("2d");
     x2.setTransform(s, 0, 0, s, 0, 0);
+
+    /* Parçanın zeminini, ortasındaki karonun biyom rengiyle doldur.
+       Karoların yarı saydam clip kenarları böylece SAYDAMLIĞA değil
+       kendi rengine düşer; dikiş çizgileri görünmez olur.
+       Tek fillRect, maliyeti ihmal edilebilir. */
+    const ortaTip = biyom(gx0 + (C >> 1), gy0 + (C >> 1));
+    x2.fillStyle = CFG.karoRenk[ortaTip] || "#5f9e4a";
+    x2.fillRect(0, 0, w, h);
 
     for (let gy = gy0; gy <= gy1; gy++) {
       for (let gx = gx0; gx <= gx1; gx++) {
