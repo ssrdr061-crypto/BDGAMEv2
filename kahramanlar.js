@@ -31,25 +31,26 @@ const KLIST_UI = {
   sutun:    3,      /* ızgara sütun sayısı   */
   satir:    3,      /* ızgara satır sayısı   → toplam yuva = sutun × satir */
 
-  bosluk_x: 8,      /* kartlar arası YATAY boşluk (px)  */
-  bosluk_y: 8,      /* kartlar arası DİKEY boşluk (px)  */
-  ic_yan:   10,     /* ızgaranın sağ/sol iç boşluğu (px) */
-  ic_ust:   10,     /* ızgaranın üst/alt iç boşluğu (px) */
+  bosluk_x: 5,      /* kartlar arası YATAY boşluk (px)  */
+  bosluk_y: 5,      /* kartlar arası DİKEY boşluk (px)  */
+  ic_yan:   7,      /* ızgaranın sağ/sol iç boşluğu (px) */
+  ic_ust:   1,      /* ızgaranın üst/alt iç boşluğu (px) */
 
-  kart_gen: 100,    /* kartın yuvayı doldurma oranı — GENİŞLİK % */
+  kart_gen: 99,     /* kartın yuvayı doldurma oranı — GENİŞLİK % */
   kart_yuk: 100,    /* kartın yuvayı doldurma oranı — YÜKSEKLİK % */
-  kart_r:   13,     /* kart köşe yuvarlaklığı (px) */
+  kart_r:   9,      /* kart köşe yuvarlaklığı (px) */
   kart_dx:  0,      /* tüm kartları yatay kaydır (px) */
-  kart_dy:  0,      /* tüm kartları dikey kaydır (px)  */
+  kart_dy:  1,      /* tüm kartları dikey kaydır (px)  */
 
-  isim_bs:  10,     /* kahraman adı yazı boyutu (px) */
-  sv_bs:    9.5,    /* "Sv. 1" yazı boyutu (px)      */
-  yildiz_bs: 8,     /* yıldız boyutu (px)            */
+  isim_bs:  11.5,   /* kahraman adı yazı boyutu (px) — isimGoster açıksa */
+  sv_bs:    10,     /* "Sv. 1" yazı boyutu (px)      */
+  yildiz_bs: 19,    /* yıldız boyutu (px)            */
 
   portre_dx: 0,     /* TÜM portreleri kaydır (px) — tek tek ayar: KLIST_KART */
   portre_dy: 0,
-  portre_s:  1,     /* TÜM portrelerin büyütmesi */
+  portre_s:  1.08,  /* TÜM portrelerin büyütmesi */
 
+  isimGoster:   false,  /* kart üstünde kahraman adı yazsın mı */
   yildizGoster: true,
   seviyeGoster: true,
   alBtnYazi:  "Kahraman Al",
@@ -73,10 +74,13 @@ const KLIST_SIRA = [
 
 
 /*  ─────────────────────────────────────────────
-    3) KLIST_KART — KAHRAMAN BAŞINA PORTRE İNCE AYARI
-    Global portre ayarının ÜSTÜNE biner.
-      dx / dy → piksel kaydırma (dy eksi = yukarı)
-      s       → büyütme çarpanı
+    3) KLIST_KART — KAHRAMAN BAŞINA İNCE AYAR
+    Genel ayarın ÜSTÜNE biner. 🎛 şeridinde 👤 ile kahraman seçip
+    ayarlarsan buraya yapıştıracağın satırlar üretilir.
+      s       → portre büyütme çarpanı
+      dx / dy → portre kaydırma (dy eksi = yukarı)
+      gen/yuk → o kahramanın kart genişliği/yüksekliği (% — genelin üstüne)
+      kdx/kdy → o kahramanın kartını kaydır (px)
       poz     → object-position (varsayılan "top center")
     ───────────────────────────────────────────── */
 const KLIST_KART = {
@@ -88,8 +92,18 @@ const KLIST_KART = {
    BURADAN AŞAĞISI MOTOR — ayar için yukarısı yeter
    ══════════════════════════════════════════════ */
 
-/* Çalışma kopyası: 🎛 editörü bunu değiştirir, KLIST_UI bozulmaz */
+/* Çalışma kopyaları: 🎛 editörü bunları değiştirir, KLIST_UI/KLIST_KART bozulmaz */
 const KV = Object.assign({}, KLIST_UI);
+
+/* Kahraman başına ayarın varsayılanı */
+const KLIST_KART_VARSAYILAN = { dx: 0, dy: 0, s: 1, gen: 100, yuk: 100, kdx: 0, kdy: 0, poz: "top center" };
+
+/* Kahramanın etkin ayarı: varsayılan → KLIST_KART → 🎛 ile yapılan canlı değişiklik */
+const KVK = {};   /* editörün çalışma kopyası */
+function _klistKartAyar(id) {
+  if (!KVK[id]) KVK[id] = Object.assign({}, KLIST_KART_VARSAYILAN, KLIST_KART[id] || {});
+  return KVK[id];
+}
 
 /* ── CSS (bir kez enjekte edilir) ──
    Renkler tema.js'in :root değişkenlerinden gelir; değişken yoksa
@@ -167,6 +181,7 @@ const KV = Object.assign({}, KLIST_UI);
   padding:16px 3px 4px; text-align:center;
   background:linear-gradient(180deg, transparent, rgba(3,8,20,.92));
 }
+.kt-hedef{ color:#8fe3ff !important; }
 .klist-name{
   font-weight:900; color:#fff; line-height:1.15;
   text-shadow:0 1px 3px rgba(0,0,0,.85);
@@ -290,11 +305,13 @@ function _klistKartHTML(id) {
 
   const h = HERO_STATS[id];
   const cfg = (typeof HERO_3D !== "undefined") ? HERO_3D[id] : null;
-  const k = Object.assign({ dx: 0, dy: 0, s: 1, poz: "top center" }, KLIST_KART[id] || {});
+  const k = _klistKartAyar(id);                    /* kahramana özel ayar */
   const img = (typeof HERO_IMG !== "undefined") ? HERO_IMG[id] : null;
   const sahip = _klistSahip(id);
 
   const dx = KV.portre_dx + k.dx, dy = KV.portre_dy + k.dy, sc = KV.portre_s * k.s;
+  const gen = KV.kart_gen * (k.gen / 100);         /* kahramana özel genişlik  */
+  const yuk = KV.kart_yuk * (k.yuk / 100);         /* kahramana özel yükseklik */
 
   const portre = img
     ? `<img class="klist-portrait" src="${img}" alt="${h.name}" draggable="false"
@@ -313,19 +330,22 @@ function _klistKartHTML(id) {
   const seviye = (KV.seviyeGoster && sahip)
     ? `<div class="klist-lv" style="font-size:${KV.sv_bs}px;">Sv. ${_klistSeviye(id)}</div>` : "";
 
+  const isim = KV.isimGoster
+    ? `<div class="klist-name" style="font-size:${KV.isim_bs}px;">${h.name}</div>` : "";
+
   const kilit = sahip ? "" :
     `<div class="klist-lock"><span>🔒</span>
        <div class="klist-price">💎 ${(h.price || 0).toLocaleString("tr-TR")}</div></div>`;
 
   return `
     <div class="klist-card ${sahip ? "" : "locked"}" data-hero="${id}"
-         style="width:${KV.kart_gen}%;height:${KV.kart_yuk}%;border-radius:${KV.kart_r}px;
-                transform:translate(${KV.kart_dx}px,${KV.kart_dy}px);">
+         style="width:${gen}%;height:${yuk}%;border-radius:${KV.kart_r}px;
+                transform:translate(${KV.kart_dx + k.kdx}px,${KV.kart_dy + k.kdy}px);">
       ${portre}
       <div class="klist-spec">${h.specialtyIcon || "⚔️"}</div>
       ${kilit}
       <div class="klist-foot">
-        <div class="klist-name" style="font-size:${KV.isim_bs}px;">${h.name}</div>
+        ${isim}
         ${seviye}
         ${yildiz}
       </div>
@@ -385,10 +405,15 @@ function renderKahramanListesi() {
 
 
 /*  ─────────────────────────────────────────────
-    🎛 CANLI AYAR MENÜSÜ
-    Her satır: – / değer / + . Değiştirdiğin an ekran yenilenir.
-    "📋 Kopyala" → KLIST_UI bloğunu panoya alır, dosyanın başına yapıştır.
+    🎛 CANLI AYAR ŞERİDİ
+    İki satır: üstte ‹ ayar adı ›, altta – değer + .
+    👤 düğmesi hedefi değiştirir:
+       GENEL  → tüm ızgara/kart ayarları (KLIST_UI)
+       <isim> → SADECE o kahramanın kartı (KLIST_KART)
+    "📋 Kopyala" → iki bloğu da panoya alır; dosyanın başına yapıştır.
     ───────────────────────────────────────────── */
+
+/* GENEL hedefin alanları → KV (KLIST_UI) */
 const _KLIST_ALANLAR = [
   { k: "sutun",     ad: "Sütun sayısı",      adim: 1,   min: 1,  max: 6 },
   { k: "satir",     ad: "Satır sayısı",      adim: 1,   min: 1,  max: 8 },
@@ -403,16 +428,39 @@ const _KLIST_ALANLAR = [
   { k: "kart_dy",   ad: "Kart kaydır ↕",     adim: 1,   min: -40, max: 40 },
   { k: "isim_bs",   ad: "İsim yazı boyutu",  adim: 0.5, min: 6,  max: 22 },
   { k: "sv_bs",     ad: "Sv. yazı boyutu",   adim: 0.5, min: 6,  max: 20 },
-  { k: "yildiz_bs", ad: "Yıldız boyutu",     adim: 0.5, min: 4,  max: 20 },
+  { k: "yildiz_bs", ad: "Yıldız boyutu",     adim: 0.5, min: 4,  max: 22 },
   { k: "portre_dx", ad: "Portre ↔ (hepsi)",  adim: 1,   min: -60, max: 60 },
   { k: "portre_dy", ad: "Portre ↕ (hepsi)",  adim: 1,   min: -60, max: 60 },
   { k: "portre_s",  ad: "Portre büyütme",    adim: 0.02, min: .5, max: 2.5 }
 ];
 
+/* KAHRAMAN hedefinin alanları → KVK[id] (KLIST_KART) */
+const _KLIST_ALANLAR_KAHRAMAN = [
+  { k: "s",   ad: "Portre büyütme",   adim: 0.02, min: .4, max: 3 },
+  { k: "dx",  ad: "Portre ↔",         adim: 1,    min: -80, max: 80 },
+  { k: "dy",  ad: "Portre ↕",         adim: 1,    min: -80, max: 80 },
+  { k: "gen", ad: "Kart genişliği %", adim: 1,    min: 30, max: 100 },
+  { k: "yuk", ad: "Kart yüksekliği %",adim: 1,    min: 30, max: 100 },
+  { k: "kdx", ad: "Kart kaydır ↔",    adim: 1,    min: -40, max: 40 },
+  { k: "kdy", ad: "Kart kaydır ↕",    adim: 1,    min: -40, max: 40 }
+];
+
 /* Ayar şeridinin durumu (ekran yenilense de korunur) */
-let _ktAcik = false;   /* şerit açık mı            */
-let _ktIdx  = 0;       /* hangi ayar seçili        */
-let _ktUst  = false;   /* şerit üstte mi (⇅ ile)   */
+let _ktAcik  = false;   /* şerit açık mı                       */
+let _ktIdx   = 0;       /* hangi ayar seçili                   */
+let _ktUst   = false;   /* şerit üstte mi (⇅ ile)              */
+let _ktHedef = 0;       /* 0 = GENEL, 1..n = KLIST_SIRA[n-1]   */
+
+function _ktHedefId() {
+  return _ktHedef === 0 ? null : KLIST_SIRA[_ktHedef - 1];
+}
+function _ktAlanlar() {
+  return _ktHedef === 0 ? _KLIST_ALANLAR : _KLIST_ALANLAR_KAHRAMAN;
+}
+function _ktKap() {   /* değerlerin tutulduğu nesne */
+  const id = _ktHedefId();
+  return id ? _klistKartAyar(id) : KV;
+}
 
 /* 🎛 düğmesi: aç/kapat */
 function _klistTunerAc() {
@@ -421,14 +469,27 @@ function _klistTunerAc() {
   else { const t = document.getElementById("klistTuner"); if (t) t.style.display = "none"; }
 }
 
-/* Şeridi çiz — SADECE İKİ SATIR, kartların üstünü kapatmaz */
+/* Şeridi çiz — üç satır, kartların üstünü kapatmaz */
 function _klistTunerCiz() {
   const t = document.getElementById("klistTuner");
   if (!t) return;
-  const f = _KLIST_ALANLAR[_ktIdx];
+
+  const alanlar = _ktAlanlar();
+  if (_ktIdx >= alanlar.length) _ktIdx = 0;
+  const f   = alanlar[_ktIdx];
+  const kap = _ktKap();
+  const id  = _ktHedefId();
+  const hedefAd = id
+    ? ((typeof HERO_STATS !== "undefined" && HERO_STATS[id]) ? HERO_STATS[id].name : id)
+    : "GENEL (hepsi)";
 
   t.className = _ktUst ? "kt-ust" : "kt-alt";
   t.innerHTML = `
+    <div class="kt-line">
+      <button class="kt-nav" id="ktHPrev">‹</button>
+      <span class="kt-lbl kt-hedef">👤 ${hedefAd}</span>
+      <button class="kt-nav" id="ktHNext">›</button>
+    </div>
     <div class="kt-line">
       <button class="kt-nav" id="ktPrev">‹</button>
       <span class="kt-lbl">${f.ad}</span>
@@ -436,7 +497,7 @@ function _klistTunerCiz() {
     </div>
     <div class="kt-line">
       <button class="kt-b" id="ktMinus">–</button>
-      <span class="kt-val">${KV[f.k]}</span>
+      <span class="kt-val">${kap[f.k]}</span>
       <button class="kt-b" id="ktPlus">+</button>
       <button class="kt-copy" id="ktCopy">📋 Kopyala</button>
       <button class="kt-move" id="ktMove" title="Şeridi taşı">⇅</button>
@@ -446,20 +507,22 @@ function _klistTunerCiz() {
   t.style.display = "block";
 
   const degistir = yon => {
-    let v = KV[f.k] + f.adim * yon;
+    let v = kap[f.k] + f.adim * yon;
     v = Math.max(f.min, Math.min(f.max, Math.round(v * 100) / 100));
-    KV[f.k] = v;
+    kap[f.k] = v;
     renderKahramanListesi();     /* ekran canlı değişir, şerit yerinde kalır */
   };
   t.querySelector("#ktMinus").onclick = () => degistir(-1);
   t.querySelector("#ktPlus").onclick  = () => degistir(1);
 
-  t.querySelector("#ktPrev").onclick = () => {
-    _ktIdx = (_ktIdx - 1 + _KLIST_ALANLAR.length) % _KLIST_ALANLAR.length; _klistTunerCiz();
-  };
-  t.querySelector("#ktNext").onclick = () => {
-    _ktIdx = (_ktIdx + 1) % _KLIST_ALANLAR.length; _klistTunerCiz();
-  };
+  const n = alanlar.length;
+  t.querySelector("#ktPrev").onclick = () => { _ktIdx = (_ktIdx - 1 + n) % n; _klistTunerCiz(); };
+  t.querySelector("#ktNext").onclick = () => { _ktIdx = (_ktIdx + 1) % n; _klistTunerCiz(); };
+
+  const hn = KLIST_SIRA.length + 1;   /* GENEL + kahramanlar */
+  t.querySelector("#ktHPrev").onclick = () => { _ktHedef = (_ktHedef - 1 + hn) % hn; _ktIdx = 0; _klistTunerCiz(); };
+  t.querySelector("#ktHNext").onclick = () => { _ktHedef = (_ktHedef + 1) % hn; _ktIdx = 0; _klistTunerCiz(); };
+
   t.querySelector("#ktMove").onclick  = () => { _ktUst = !_ktUst; _klistTunerCiz(); };
   t.querySelector("#ktClose").onclick = () => { _ktAcik = false; t.style.display = "none"; };
 
@@ -482,7 +545,21 @@ function _klistTunerCiz() {
   };
 }
 
+/* Kopyalanan metin: KLIST_UI + (değişmiş) KLIST_KART satırları */
 function _klistDegerMetni() {
+  let kartlar = "";
+  KLIST_SIRA.forEach(id => {
+    const k = KVK[id];
+    if (!k) return;
+    const fark = [];
+    Object.keys(KLIST_KART_VARSAYILAN).forEach(a => {
+      if (k[a] !== KLIST_KART_VARSAYILAN[a]) {
+        fark.push(`${a}: ${typeof k[a] === "string" ? `"${k[a]}"` : k[a]}`);
+      }
+    });
+    if (fark.length) kartlar += `\n  ${id}: { ${fark.join(", ")} },`;
+  });
+
   return `── kahramanlar.js → KLIST_UI ──
   sutun: ${KV.sutun},  satir: ${KV.satir},
   bosluk_x: ${KV.bosluk_x},  bosluk_y: ${KV.bosluk_y},
@@ -490,7 +567,9 @@ function _klistDegerMetni() {
   kart_gen: ${KV.kart_gen},  kart_yuk: ${KV.kart_yuk},
   kart_r: ${KV.kart_r},  kart_dx: ${KV.kart_dx},  kart_dy: ${KV.kart_dy},
   isim_bs: ${KV.isim_bs},  sv_bs: ${KV.sv_bs},  yildiz_bs: ${KV.yildiz_bs},
-  portre_dx: ${KV.portre_dx},  portre_dy: ${KV.portre_dy},  portre_s: ${KV.portre_s},`;
+  portre_dx: ${KV.portre_dx},  portre_dy: ${KV.portre_dy},  portre_s: ${KV.portre_s},
+
+── kahramanlar.js → KLIST_KART ──${kartlar || "\n  (kahramana özel değişiklik yok)"}`;
 }
 
 
