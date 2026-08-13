@@ -891,6 +891,26 @@ function heroPortraitHTML(id, cls) {
   return `<div class="${cls} hpk-noimg" style="background:${h.color}22;color:${h.color};">${h.specialtyIcon || "🦸"}</div>`;
 }
 
+/*  ─────────────────────────────────────────────
+    HPK_KART — SAVAŞ YUVASININ KART AYARI
+
+    Savaş ekranındaki komutan yuvaları artık Kahramanlar menüsündeki
+    kartın AYNISINI çizer. Kartın kendisi kahramanlar.js'in
+    _klistKartHTML() fonksiyonundan gelir; zemin (KLIST_ZEMIN),
+    kademe (KLIST_KADEME), portre kaydırma/büyütme (KLIST_KART) ve
+    siliklik oradan okunur — burada TEKRAR YAZILMAZ. Kahramanın
+    duruşunu düzeltmek istersen kahramanlar.js → KLIST_KART'a git,
+    iki menü birden düzelir.
+
+    Burada yalnız savaş ekranına özgü ölçüler var.
+    ───────────────────────────────────────────── */
+const HPK_KART = {
+  oran:      "3 / 4",  /* yuvanın en/boy oranı — liste kartıyla aynı */
+  sv_bs:     12,       /* "Sv. 1" yazı boyutu (px) — 0 = listedeki değer  */
+  yildiz_bs: 17,       /* yıldız boyutu (px)      — 0 = listedeki değer  */
+  specGoster: true     /* sol üstteki uzmanlık rozeti                    */
+};
+
 /* ── panel CSS (bir kez enjekte edilir) ── */
 (function injectPickerCSS() {
   if (document.getElementById("hpkStyles")) return;
@@ -912,8 +932,8 @@ function heroPortraitHTML(id, cls) {
 .hpk-slot{
   position:relative;
   flex:1 1 0; min-width:0; max-width:none;
-  height:132px;                      /* sabit yükseklik — aspect-ratio kutuları çökertiyordu */
-  border-radius:14px; cursor:pointer; overflow:hidden; box-sizing:border-box;
+  aspect-ratio:${HPK_KART.oran};     /* liste kartıyla aynı oran */
+  border-radius:14px; cursor:pointer; box-sizing:border-box;
   background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(8,45,80,.35));
   border:2px dashed rgba(190,240,255,.6);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -921,11 +941,22 @@ function heroPortraitHTML(id, cls) {
   -webkit-tap-highlight-color:transparent;
 }
 .hpk-slot:active{ transform:scale(.97); }
+/* DOLU YUVA: görünümün tamamı içindeki .klist-card'a aittir.
+   Yuvanın kendi zemini/çerçevesi kapatılır, yoksa kartın altından
+   ikinci bir kutu görünür. */
 .hpk-slot.filled{
-  border-style:solid;
-  border-color:rgba(190,240,255,.55) !important;
-  box-shadow:inset 0 2px 3px rgba(150,205,255,.35) !important;
+  background:none !important; border:0 !important; box-shadow:none !important;
+  padding:0 !important;
 }
+/* Liste kartı savaş yuvasının içinde: yuvayı tam doldurur */
+.hpk-slot .klist-card{
+  width:100% !important; height:100% !important;
+  transform:none !important;          /* listedeki ızgara kaydırması burada geçersiz */
+  cursor:pointer;
+}
+.hpk-slot .klist-lv{ ${HPK_KART.sv_bs ? `font-size:${HPK_KART.sv_bs}px !important;` : ""} }
+.hpk-slot .klist-stars{ ${HPK_KART.yildiz_bs ? `font-size:${HPK_KART.yildiz_bs}px !important;` : ""} }
+${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"}
 .hpk-plus{ font-size:38px; font-weight:900; color:rgba(235,250,255,.85); line-height:1;
   text-shadow:0 2px 5px rgba(0,30,55,.55); }
 .hpk-hint{ display:none; }
@@ -1031,6 +1062,29 @@ function heroPortraitHTML(id, cls) {
   document.head.appendChild(st);
 })();
 
+/*  ── KART KÖPRÜSÜ ──
+    Savaş yuvasının içeriğini kahramanlar.js'in kart üreticisinden alır:
+    zemin, kademe rengi, portre ayarı, siliklik, uzmanlık rozeti,
+    seviye ve yıldızlar tek elden gelir.
+
+    kahramanlar.js heroes.js'ten SONRA yüklenir; bu yüzden fonksiyon
+    çağrı ANINDA aranır (yükleme anında değil). Dosya hiç yoksa veya
+    sırası bozulursa eski düz portreye düşer — savaş ekranı kırılmaz.
+
+    data-hero özniteliği bilerek silinir: kahramanlar.js o özniteliğe
+    kendi listesi içinde tıklama bağlıyor, savaş ekranında kartın
+    tıklaması yuvaya aittir.                                          */
+function hpkKartHTML(id) {
+  if (typeof _klistKartHTML === "function") {
+    try {
+      return _klistKartHTML(id).replace(/\sdata-hero="[^"]*"/, "");
+    } catch (e) {
+      console.warn("[heroes.js] Kart çizilemedi, düz portreye dönüldü:", e);
+    }
+  }
+  return heroPortraitHTML(id, "hpk-portrait");
+}
+
 /* ── hangi yuva için seçim yapılıyor ── */
 let _hpkTargetSlot = 0;
 
@@ -1057,10 +1111,9 @@ function renderHeroPickerForBattle() {
   for (let i = 0; i < MAX_KOMUTAN; i++) {
     const id = selectedCommanders[i];
     if (id) {
-      /* h yalnızca ada erişim için gerekliydi; artık kullanılmıyor */
       html += `
         <div class="hpk-slot filled" data-slot="${i}">
-          ${heroPortraitHTML(id, "hpk-portrait")}
+          ${hpkKartHTML(id)}
           <button class="hpk-x" data-remove="${i}" title="Çıkar">✕</button>
         </div>`;
     } else {
