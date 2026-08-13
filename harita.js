@@ -138,6 +138,13 @@
        ama bellek üç katına çıkar. */
     kalite: 2,
 
+    /* ── Desen bloğu (dünya pikseli) ──
+       Zemin dokusu bu boyutta, 2x2 aynalı, dikişsiz bir blok olarak
+       serilir. Büyütürsen doku iri görünür ve tekrar geç fark edilir;
+       küçültürsen çim sıklaşır ama desen daha çabuk tekrar eder.
+       128 = iki karo genişliği; iyi bir başlangıç. */
+    dokuBoyu: 128,
+
     /* ── Chunk (parça) önbelleği ──
        Karolar tek tek çizilmez; CHUNK x CHUNK'lık parçalar BİR KEZ
        çizilip saklanır, sonra tek drawImage ile ekrana basılır.
@@ -392,8 +399,96 @@
     }
 
     karolar[ad] = { hazir: true, parcalar };
+
+    /* Asıl zemin artık DESEN ile seriliyor (aşağı bak); karolar yalnız
+       desen üretilemezse yedek olarak kullanılıyor. */
+    desenler[ad] = desenUret(img, Math.round(CFG.dokuBoyu * s));
+
     onbellegiBosalt();
     ciz();
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════
+     DESEN (PATTERN) — ASIL ZEMİN
+
+     NEDEN: doku karo karo eşkenar dörtgene BÜKÜLÜNCE her karoda farklı
+     yöne eğiliyordu; yan yana gelince çim "burma / balıksırtı" gibi
+     görünüyordu. Ayna varyantları bunu daha da belirginleştirdi.
+
+     ÇÖZÜM: çim dokusunun izometriye eğilmesi GEREKMEZ. Zemin, dünya
+     koordinatına sabitlenmiş dikişsiz bir desenle seriliyor; eşkenar
+     dörtgen yalnız NEREYE serileceğini belirleyen maske olarak kalıyor.
+     Böylece büküm yok, varyant yok, karo dikişi yok.
+
+     DİKİŞSİZLİK: kaynak resim dikişsiz olmayabilir (fotoğrafsa kesin
+     değildir). Bu yüzden desen 2x2 AYNA olarak kuruluyor — aynalanmış
+     döşeme her zaman kenarları tutar, dosya ne olursa olsun.
+     ═════════════════════════════════════════════════════════════════════ */
+
+  const desenler = {};   // { cimen: canvas, ... }
+
+  function desenUret(img, tam) {
+    const c = document.createElement("canvas");
+    c.width = c.height = tam;
+    const x = c.getContext("2d");
+
+    const q = tam / 2;                       // çeyrek blok
+    const S  = Math.min(img.width, img.height);
+    const sx = (img.width  - S) >> 1;
+    const sy = (img.height - S) >> 1;
+
+    /* sol üst */
+    x.drawImage(img, sx, sy, S, S, 0, 0, q, q);
+    /* sağ üst — yatay ayna */
+    x.save(); x.translate(tam, 0); x.scale(-1, 1);
+    x.drawImage(img, sx, sy, S, S, 0, 0, q, q); x.restore();
+    /* sol alt — dikey ayna */
+    x.save(); x.translate(0, tam); x.scale(1, -1);
+    x.drawImage(img, sx, sy, S, S, 0, 0, q, q); x.restore();
+    /* sağ alt — iki eksen */
+    x.save(); x.translate(tam, tam); x.scale(-1, -1);
+    x.drawImage(img, sx, sy, S, S, 0, 0, q, q); x.restore();
+
+    return c;
+  }
+
+  /* Deseni DÜNYA koordinatına sabitleyip verilen alanı doldurur.
+     Faz her yerde aynı hesaplandığı için parçalar ve karolar arasında
+     desen kesintisiz devam eder — dikiş görünmez. */
+  function desenDoldur(x2, tip, minX, minY, s, bx, by, bw, bh) {
+    const dz = desenler[tip];
+    if (!dz) return false;
+
+    const P  = dz.width;
+    const dx = -((((minX * s) % P) + P) % P);
+    const dy = -((((minY * s) % P) + P) % P);
+
+    x2.translate(dx, dy);
+    x2.fillStyle = x2.createPattern(dz, "repeat");
+    x2.fillRect(bx - dx, by - dy, bw, bh);
+    x2.translate(-dx, -dy);
+    return true;
+  }
+
+  /* Tek karoyu DESENLE çizer (büküm yok). saydamlik < 1 ise karışım. */
+  function desenKaroCiz(x2, tip, px, py, tw, th, saydamlik, minX, minY, s) {
+    if (!desenler[tip]) return false;
+
+    const X = px * s, Y = py * s, W = tw * s, H = th * s, D = PAY * s;
+
+    x2.save();
+    x2.setTransform(1, 0, 0, 1, 0, 0);
+    x2.beginPath();
+    x2.moveTo(X + W / 2, Y - D);
+    x2.lineTo(X + W + D, Y + H / 2);
+    x2.lineTo(X + W / 2, Y + H + D);
+    x2.lineTo(X - D,     Y + H / 2);
+    x2.closePath();
+    x2.clip();
+    if (saydamlik < 1) x2.globalAlpha = saydamlik;
+    desenDoldur(x2, tip, minX, minY, s, X - D, Y - D, W + 2 * D, H + 2 * D);
+    x2.restore();
+    return true;
   }
 
   function karolariYukle() {
@@ -601,25 +696,54 @@
     const kSol = gridToWorld(gx0, gy1);   // sol köşe karosu
 
     const ortaTip = biyom(gx0 + (C >> 1), gy0 + (C >> 1));
-    x2.fillStyle = CFG.karoRenk[ortaTip] || "#5f9e4a";
+
+    x2.save();
+    x2.setTransform(1, 0, 0, 1, 0, 0);      // elması DEVICE pikselinde çiz
+    /* Elmas PAY kadar dışarı taşkın: bitişik parçalar 2 px örtüşsün,
+       aralarında saç teli çizgi kalmasın. Taşan yere komşuyla AYNI
+       desen (dünyaya sabit faz) düştüğü için örtüşme görünmez.
+       Kutu dolgusu (fillRect) ise ASLA kullanılmaz — parça iso uzayda
+       elmastır, kutuyu doldurmak komşunun dokusunu ezer. */
+    const D = PAY * s;
     x2.beginPath();
-    x2.moveTo(kTop.x - minX + tw / 2, kTop.y - minY);
-    x2.lineTo(kSag.x - minX + tw,     kSag.y - minY + th / 2);
-    x2.lineTo(kAlt.x - minX + tw / 2, kAlt.y - minY + th);
-    x2.lineTo(kSol.x - minX,          kSol.y - minY + th / 2);
+    x2.moveTo((kTop.x - minX + tw / 2) * s, (kTop.y - minY) * s - D);
+    x2.lineTo((kSag.x - minX + tw)     * s + D, (kSag.y - minY + th / 2) * s);
+    x2.lineTo((kAlt.x - minX + tw / 2) * s, (kAlt.y - minY + th) * s + D);
+    x2.lineTo((kSol.x - minX)          * s - D, (kSol.y - minY + th / 2) * s);
     x2.closePath();
-    x2.fill();
+    x2.clip();
+
+    /* Parçanın TAMAMI tek seferde desenle seriliyor. İç bölgelerde
+       (tek biyom) iş burada biter: 64 karo yerine tek fillRect. */
+    if (!desenDoldur(x2, ortaTip, minX, minY, s, 0, 0, c.width, c.height)) {
+      x2.fillStyle = CFG.karoRenk[ortaTip] || "#5f9e4a";
+      x2.fillRect(0, 0, c.width, c.height);
+    }
+    x2.restore();
+
+    x2.setTransform(s, 0, 0, s, 0, 0);
 
     for (let gy = gy0; gy <= gy1; gy++) {
       for (let gx = gx0; gx <= gx1; gx++) {
+        const kr = biyomKarisim(gx, gy);
+
+        /* Alt katman parçanın geneliyle aynıysa ve karışım yoksa,
+           yukarıdaki tek dolgu o karoyu zaten kapladı. */
+        if (kr.alt === ortaTip && !(kr.ust && kr.k > 0.02)) continue;
+
         const p = gridToWorld(gx, gy);
         const px = p.x - minX, py = p.y - minY;
-        const kr = biyomKarisim(gx, gy);
         const vi = Math.floor(hash2(gx * 7 + 3, gy * 11 + 5) * CFG.varyant) % CFG.varyant;
 
-        karoCiz(x2, kr.alt, vi, px, py, tw, th, 1);
+        if (kr.alt !== ortaTip &&
+            !desenKaroCiz(x2, kr.alt, px, py, tw, th, 1, minX, minY, s)) {
+          karoCiz(x2, kr.alt, vi, px, py, tw, th, 1);
+        }
         if (kr.ust && kr.k > 0.02) {
-          karoCiz(x2, kr.ust, vi, px, py, tw, th, Math.min(1, kr.k));
+          const a = Math.min(1, kr.k);
+          if (!desenKaroCiz(x2, kr.ust, px, py, tw, th, a, minX, minY, s)) {
+            karoCiz(x2, kr.ust, vi, px, py, tw, th, a);
+          }
         }
       }
     }
