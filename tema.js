@@ -809,6 +809,50 @@ function rpRenk(tip, benimTarafim) {
   return tip === "oldurdu" ? "rp-kirmizi" : (tip === "yaraladi" ? "rp-turuncu" : "");
 }
 
+/*  ── SAYFA 1: TOPLAM ÖZET ──
+    Birlik kutucuklarının hemen altında, ortalanmış dört satır:
+    BİRLİKLER / ÖLEN / YARALANAN / HAYATTA KALANLAR.
+    Solda saldıranın, sağda savunanın TOPLAMI (birlik ayrımı yok;
+    tür bazlı döküm zaten sayfa 2'de).
+
+    Hayatta kalan = götürülen − ölen − yaralı. Ayrı bir alan olarak
+    kaydedilmiyor, o yüzden burada çıkarılıyor; negatif çıkmasın diye
+    sıfırda kesiliyor (eski raporlarda kayıp alanı eksik olabilir).
+    Satır/renk sınıfları sayfa 2 ile AYNI (.rp-krs-*) — yeni bir
+    görünüm uydurulmadı, ikisi hep aynı kalır.                        */
+function ozetHTML(r) {
+  const f = (n) => (typeof fmt === "function") ? fmt(n || 0) : String(n || 0);
+  const benS = benSaldiranMi(r);
+  const sira = ["knight", "soldier", "robot"];
+
+  const toplam = (o) => sira.reduce((s, u) => s + ((o && o[u]) || 0), 0);
+  const kayip  = (L, k) => sira.reduce((s, u) => s + ((L && L[k] && L[k][u]) || 0), 0);
+
+  const AT = r.attackerTroops || {}, DT = r.defenderTroops || {};
+  const AL = r.attackerLosses || {}, DL = r.defenderLosses || {};
+
+  const aGiden = toplam(AT), dGiden = toplam(DT);
+  if (aGiden <= 0 && dGiden <= 0) return "";      /* veri yoksa blok hiç çizilmez */
+
+  const aOlen = kayip(AL, "killed"),  dOlen = kayip(DL, "killed");
+  const aYar  = kayip(AL, "wounded"), dYar  = kayip(DL, "wounded");
+  const kalan = (giden, olen, yar) => Math.max(0, giden - olen - yar);
+
+  const SATIR = [
+    { tip: "",       ad: "BİRLİKLER",        sol: aGiden, sag: dGiden },
+    { tip: "olen",   ad: "ÖLEN",             sol: aOlen,  sag: dOlen },
+    { tip: "yarali", ad: "YARALANAN",        sol: aYar,   sag: dYar },
+    { tip: "",       ad: "HAYATTA KALANLAR", sol: kalan(aGiden, aOlen, aYar), sag: kalan(dGiden, dOlen, dYar) },
+  ];
+
+  return `<div class="rp-ozet">` + SATIR.map(s => `
+      <div class="rp-krs-satir">
+        <span class="rp-krs-sol ${s.tip ? rpRenk(s.tip, benS) : ""}">${f(s.sol)}</span>
+        <span class="rp-krs-orta">${s.ad}</span>
+        <span class="rp-krs-sag ${s.tip ? rpRenk(s.tip, !benS) : ""}">${f(s.sag)}</span>
+      </div>`).join("") + `</div>`;
+}
+
 /* ── SAYFA 2: birlik dökümü ── */
 function unitDetailHTML(r) {
   const AD = { knight: "Şövalye", soldier: "Asker", robot: "Robot" };
@@ -1091,6 +1135,8 @@ function openReportModal(r) {
           <div class="rp-col"><div class="rp-chips">${unitChips(r.attackerTroops)}</div></div>
           <div class="rp-col"><div class="rp-chips">${unitChips(r.defenderTroops)}</div></div>
         </div>
+
+        ${ozetHTML(r)}
 
         <div class="rp-foot">
           <span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>
@@ -3540,6 +3586,15 @@ st.textContent = `
   flex:0 0 auto; font-size:10.5px; font-weight:800;
   color:var(--rp-murekkep-2); padding:0 10px; white-space:nowrap;
 }
+
+/* Sayfa 1'deki toplam özet — satırları sayfa 2 ile aynı (.rp-krs-*),
+   sadece kendi çerçevesi ve üst boşluğu var. */
+.rp-ozet{
+  margin:8px 2px 0;
+  border-radius:10px; overflow:hidden;
+  border:1px solid color-mix(in srgb, var(--rp-murekkep) 14%, transparent);
+}
+.rp-ozet .rp-krs-satir:last-child{ border-bottom:0; }
 
 /* ── SAVAŞ DETAYLARI penceresi ── */
 .sd-back{
