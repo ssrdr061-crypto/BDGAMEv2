@@ -139,11 +139,34 @@
     kalite: 2,
 
     /* ── Desen bloğu (dünya pikseli) ──
-       Zemin dokusu bu boyutta, 2x2 aynalı, dikişsiz bir blok olarak
-       serilir. Büyütürsen doku iri görünür ve tekrar geç fark edilir;
-       küçültürsen çim sıklaşır ama desen daha çabuk tekrar eder.
-       128 = iki karo genişliği; iyi bir başlangıç. */
-    dokuBoyu: 128,
+       Zemin dokusu bu boyutta dikişsiz bir blok olarak serilir.
+       Büyütürsen doku iri görünür ve tekrar geç fark edilir, ama
+       bellek karesiyle artar (256 → 512x512 canvas, kalite 2'de).
+       Küçültürsen doku sıklaşır ve tekrar göze batar.
+
+       TEŞHİS: adres sonuna ?doku=512 (veya 128 / 1024) eklersen o
+       oturumda bu değer değişir — dosyaya dokunmadan denenebilir.
+       Lekelerin boyu bu sayıyla birlikte büyüyüp küçülüyorsa sorun
+       DOKUDADIR, izometrik kodda değil. */
+    dokuBoyu: (function () {
+      const m = /[?&]doku=(\d+)/.exec(location.search || "");
+      const v = m ? parseInt(m[1], 10) : 256;
+      return (v >= 64 && v <= 2048) ? v : 256;
+    })(),
+
+    /* Kenar karışım bandının, karenin oranı olarak genişliği.
+       Bant = dikişi kapatan hayalet şerit. Genişse dikiş kesin kapanır
+       ama şeritte hayalet/bulanıklık artar; darsa daha net ama dikiş
+       riski doğar. ?bant=6 gibi yüzdeyle denenebilir. */
+    bantOran: (function () {
+      const m = /[?&]bant=(\d+)/.exec(location.search || "");
+      const v = m ? parseInt(m[1], 10) / 100 : 0.08;
+      return (v >= 0.02 && v <= 0.30) ? v : 0.08;
+    })(),
+
+    /* Blok sınırlarını kırmızı çizgiyle göster — ?blok=1.
+       Lekeler bu çizgilerle hizalıysa suçlu desen bloğudur. */
+    blokGoster: /[?&]blok=1/.test(location.search || ""),
 
     /* ── Chunk (parça) önbelleği ──
        Karolar tek tek çizilmez; CHUNK x CHUNK'lık parçalar BİR KEZ
@@ -421,13 +444,88 @@
      Böylece büküm yok, varyant yok, karo dikişi yok.
 
      DİKİŞSİZLİK: kaynak resim dikişsiz olmayabilir (fotoğrafsa kesin
-     değildir). Bu yüzden desen 2x2 AYNA olarak kuruluyor — aynalanmış
-     döşeme her zaman kenarları tutar, dosya ne olursa olsun.
+     değildir). İki yöntem var:
+
+       1) KENAR KARIŞIMI (varsayılan). Resimden N x N'lik bir kare
+          alınır; sol kenara, o karenin HEMEN SAĞINDAN devam eden B
+          genişliğindeki şerit, saydamlığı 1'den 0'a inen bir rampayla
+          bindirilir. Sol kenar artık sağ kenarın doğal devamı olur →
+          dikiş yok. Aynısı dikeyde yapılır. Simetri ÜRETMEZ.
+
+       2) 2x2 AYNA (yedek). Her zaman kenar tutturur ama KELEBEK/
+          KALEYDOSKOP deseni üretir — büyük ölçekte göze batar.
+          Denendi, lav bölgesinde felaket görünüyordu. Sadece resim
+          çok küçükse (karışım bandına yer yoksa) devreye girer, ya da
+          adres sonuna ?desen=ayna eklenirse.
      ═════════════════════════════════════════════════════════════════════ */
 
   const desenler = {};   // { cimen: canvas, ... }
 
+  const AYNA_ZORLA = /[?&]desen=ayna/.test(location.search || "");
+
+  /* Bir şeridi çizip üstüne saydamlık rampası uygular.
+     destination-in: sadece rampanın alfası kalır, şerit kenarda
+     yumuşak biter. */
+  function seritMaske(ciz, w, h, yon) {
+    const t = document.createElement("canvas");
+    t.width = Math.max(1, Math.round(w));
+    t.height = Math.max(1, Math.round(h));
+    const tx = t.getContext("2d");
+
+    ciz(tx);
+
+    tx.globalCompositeOperation = "destination-in";
+    const g = (yon === "yatay")
+      ? tx.createLinearGradient(0, 0, t.width, 0)
+      : tx.createLinearGradient(0, 0, 0, t.height);
+    g.addColorStop(0, "rgba(0,0,0,1)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    tx.fillStyle = g;
+    tx.fillRect(0, 0, t.width, t.height);
+    return t;
+  }
+
   function desenUret(img, tam) {
+    const S  = Math.min(img.width, img.height);
+    const B  = Math.floor(S * CFG.bantOran);  // karışım bandı
+    const N  = S - B;                         // ana kare — kalan her şey
+    const ox = (img.width  - S) >> 1;
+    const oy = (img.height - S) >> 1;
+
+    /* Bant için yer yoksa aynaya düş */
+    if (AYNA_ZORLA || N < 8 || N + B > S) return desenUretAyna(img, tam);
+
+    const bp = Math.max(2, Math.round(B * (tam / N)));   // desen pikselinde bant
+
+    /* ── 1) ARA KATMAN: yatayda dikişsiz, boyu bant kadar FAZLA ──
+       Dikey karışımı ham resimden yaparsak köşelerde uyumsuzluk kalır;
+       bu yüzden dikey adım, yatayı çoktan halletmiş bu ara katmandan
+       beslenir. */
+    const ara = document.createElement("canvas");
+    ara.width  = tam;
+    ara.height = tam + bp;
+    const ax = ara.getContext("2d");
+
+    ax.drawImage(img, ox, oy, N, N + B, 0, 0, tam, tam + bp);
+    ax.drawImage(seritMaske(function (tx) {
+      tx.drawImage(img, ox + N, oy, B, N + B, 0, 0, bp, tam + bp);
+    }, bp, tam + bp, "yatay"), 0, 0);
+
+    /* ── 2) SON: dikey dikişi kapat ── */
+    const c = document.createElement("canvas");
+    c.width = c.height = tam;
+    const x = c.getContext("2d");
+
+    x.drawImage(ara, 0, 0, tam, tam, 0, 0, tam, tam);
+    x.drawImage(seritMaske(function (tx) {
+      tx.drawImage(ara, 0, tam, tam, bp, 0, 0, tam, bp);
+    }, tam, bp, "dikey"), 0, 0);
+
+    return c;
+  }
+
+  /* YEDEK — 2x2 ayna. Kaleydoskop yapar, son çare. */
+  function desenUretAyna(img, tam) {
     const c = document.createElement("canvas");
     c.width = c.height = tam;
     const x = c.getContext("2d");
@@ -718,6 +816,23 @@
     if (!desenDoldur(x2, ortaTip, minX, minY, s, 0, 0, c.width, c.height)) {
       x2.fillStyle = CFG.karoRenk[ortaTip] || "#5f9e4a";
       x2.fillRect(0, 0, c.width, c.height);
+    }
+
+    /* ── TEŞHİS: desen bloğu sınırları (?blok=1) ──
+       Zemindeki lekeler bu kırmızı kareye oturuyorsa suçlu doku/desen
+       bloğudur; oturmuyorsa başka bir katman konuşuyordur. */
+    if (CFG.blokGoster) {
+      const P = CFG.dokuBoyu * s;
+      x2.strokeStyle = "rgba(255,0,0,0.55)";
+      x2.lineWidth = 1;
+      const bx = -((((minX * s) % P) + P) % P);
+      const by = -((((minY * s) % P) + P) % P);
+      for (let X = bx; X < c.width + P; X += P) {
+        x2.beginPath(); x2.moveTo(X, 0); x2.lineTo(X, c.height); x2.stroke();
+      }
+      for (let Y = by; Y < c.height + P; Y += P) {
+        x2.beginPath(); x2.moveTo(0, Y); x2.lineTo(c.width, Y); x2.stroke();
+      }
     }
     x2.restore();
 
