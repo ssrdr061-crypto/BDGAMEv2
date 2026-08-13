@@ -84,7 +84,11 @@ const KLIST_SIRA = [
       poz     → object-position (varsayılan "top center")
     ───────────────────────────────────────────── */
 const KLIST_KART = {
-  /* örnek:  buz_savascisi: { dy: -6, s: 1.08 },  */
+  buz_savascisi: { dx: 1,  dy: 43, s: 1.66 },
+  celik_savasci: {         dy: 11, s: 1.70 },
+  ates_buyucusu: { dx: -3, dy: 62, s: 2.08, gen: 98 },
+  ivanovna:      { dx: -1, dy: 61, s: 1.98 },
+  revolia:       { dx: 2,  dy: 69, s: 2.46 }
 };
 
 
@@ -163,7 +167,7 @@ function _klistKartAyar(id) {
   transition:transform .1s;
   -webkit-tap-highlight-color:transparent;
 }
-.klist-card:active{ transform:scale(.96); }
+.klist-card:not(.empty):active{ transform:scale(.96); }
 .klist-card .klist-portrait{
   position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
 }
@@ -203,13 +207,18 @@ function _klistKartAyar(id) {
 .klist-price{ font-size:9.5px; font-weight:900; color:#ffe9a8; text-shadow:0 1px 3px rgba(0,0,0,.85); }
 
 /* ── BOŞ YUVA (ileride doldurulacak) ── */
+/* Boş yuva: kahraman kartıyla AYNI kutu — sadece içi boş ve soluk.
+   Ölçüsü satır içinde kart ile aynı verilir, burada sadece görünüm. */
 .klist-card.empty{
-  border:2px dashed rgba(160,215,255,.35);
-  background:linear-gradient(180deg, rgba(40,80,140,.35), rgba(9,26,58,.55));
+  border-color:rgba(160,215,255,.28);
+  background:linear-gradient(180deg, rgba(96,150,215,.28) 0%, rgba(24,58,112,.55) 60%, rgba(9,26,58,.75) 100%);
+  box-shadow:inset 0 2px 3px rgba(150,205,255,.22), 0 4px 8px rgba(0,15,40,.35);
   cursor:default; display:flex; align-items:center; justify-content:center;
 }
-.klist-card.empty:active{ transform:none; }
-.klist-card.empty b{ font-size:26px; font-weight:900; color:rgba(200,225,255,.35); }
+.klist-card.empty b{
+  font-size:30px; font-weight:900; color:rgba(200,225,255,.30);
+  text-shadow:0 1px 3px rgba(0,0,0,.5);
+}
 
 .klist-bottom{
   flex:0 0 auto; display:flex; align-items:center; gap:9px;
@@ -301,7 +310,13 @@ function _klistSahip(id) {
 
 /* ── tek kart ── */
 function _klistKartHTML(id) {
-  if (!id) return `<div class="klist-card empty"><b>＋</b></div>`;
+  /* BOŞ YUVA — kahraman kartıyla birebir aynı ölçü ve köşe, sadece içi boş */
+  if (!id) return `
+    <div class="klist-card empty"
+         style="width:${KV.kart_gen}%;height:${KV.kart_yuk}%;border-radius:${KV.kart_r}px;
+                transform:translate(${KV.kart_dx}px,${KV.kart_dy}px);">
+      <b>＋</b>
+    </div>`;
 
   const h = HERO_STATS[id];
   const cfg = (typeof HERO_3D !== "undefined") ? HERO_3D[id] : null;
