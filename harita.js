@@ -138,52 +138,6 @@
        ama bellek üç katına çıkar. */
     kalite: 2,
 
-    /* ── Desen bloğu (dünya pikseli) ──
-       Zemin dokusu bu boyutta dikişsiz bir blok olarak serilir.
-       Büyütürsen doku iri görünür ve tekrar geç fark edilir, ama
-       bellek karesiyle artar (256 → 512x512 canvas, kalite 2'de).
-       Küçültürsen doku sıklaşır ve tekrar göze batar.
-
-       TEŞHİS: adres sonuna ?doku=512 (veya 128 / 1024) eklersen o
-       oturumda bu değer değişir — dosyaya dokunmadan denenebilir.
-       Lekelerin boyu bu sayıyla birlikte büyüyüp küçülüyorsa sorun
-       DOKUDADIR, izometrik kodda değil. */
-    dokuBoyu: (function () {
-      const m = /[?&]doku=(\d+)/.exec(location.search || "");
-      const v = m ? parseInt(m[1], 10) : 128;
-      return (v >= 64 && v <= 2048) ? v : 128;
-    })(),
-
-    /* ── İkinci katman (tekrar kırıcı) ──
-       Aynı doku bu kat büyütülüp soluk geçilir. 1 yaparsan katman
-       kapanır. Ölçek 2–4 arası mantıklı; büyütürsen dalgalanma
-       yavaşlar ama iri nesneler yeniden belirginleşir.
-       ?kat2=3 ve ?kat2a=35 (yüzde) ile canlı denenebilir. */
-    kat2Olcek: (function () {
-      const m = /[?&]kat2=(\d+(?:\.\d+)?)/.exec(location.search || "");
-      const v = m ? parseFloat(m[1]) : 3;
-      return (v >= 1 && v <= 8) ? v : 3;
-    })(),
-    kat2Alfa: (function () {
-      const m = /[?&]kat2a=(\d+)/.exec(location.search || "");
-      const v = m ? parseInt(m[1], 10) / 100 : 0.35;
-      return (v >= 0 && v <= 1) ? v : 0.35;
-    })(),
-
-    /* Kenar karışım bandının, karenin oranı olarak genişliği.
-       Bant = dikişi kapatan hayalet şerit. Genişse dikiş kesin kapanır
-       ama şeritte hayalet/bulanıklık artar; darsa daha net ama dikiş
-       riski doğar. ?bant=6 gibi yüzdeyle denenebilir. */
-    bantOran: (function () {
-      const m = /[?&]bant=(\d+)/.exec(location.search || "");
-      const v = m ? parseInt(m[1], 10) / 100 : 0.08;
-      return (v >= 0.02 && v <= 0.30) ? v : 0.08;
-    })(),
-
-    /* Blok sınırlarını kırmızı çizgiyle göster — ?blok=1.
-       Lekeler bu çizgilerle hizalıysa suçlu desen bloğudur. */
-    blokGoster: /[?&]blok=1/.test(location.search || ""),
-
     /* ── Chunk (parça) önbelleği ──
        Karolar tek tek çizilmez; CHUNK x CHUNK'lık parçalar BİR KEZ
        çizilip saklanır, sonra tek drawImage ile ekrana basılır.
@@ -197,15 +151,8 @@
 
     /* Her biyom için kaç farklı karo hazırlansın. Tek varyantta doku
        her karede birebir aynı tekrar eder ve ızgara deseni göze batar.
-       4 varyant bunu büyük ölçüde kırar.
-
-       DİKKAT: varyantlar artık dokunun FARKLI BÖLGELERİNDEN değil, AYNI
-       bölgenin ayna/çevirme hallerinden üretiliyor (bkz. karoUret).
-       Sebep: farklı bölgelerin ortalama parlaklığı farklı çıkıyordu ve
-       harita yama yama görünüyordu. Ayna parlaklığı değiştirmez.
-       Dörtgen iki eksende de simetrik olduğu için maske bozulmaz.
-       4'ten büyük yapmanın faydası yok — 4 ayna hali var. */
-    varyant: 4,
+       4 varyant bunu büyük ölçüde kırar. */
+    varyant: 9,
 
     /* Görsel yokken kullanılacak düz renkler (aynı zamanda mini-harita
        rengi olarak da işe yarar) */
@@ -214,50 +161,6 @@
       cimen: "#5f9e4a",
       lav:   "#8c3126",
     },
-
-    /* ── ZEMİN YÖNTEMİ ──
-       "prosedurel" (varsayılan): zemin resimden değil, gürültüden
-         üretilir. Döşenen bir şey olmadığı için TEKRAR YOKTUR — desen
-         tekrarı, kaleydoskop, burgu, dev leke sorunlarının hepsi
-         tanım gereği ortadan kalkar. Her nokta kendi koordinatından
-         hesaplandığı için dikiş de olmaz.
-       "doku": eski yöntem, resmi döşer. ?zemin=doku ile açılır.
-       Elindeki resimler zemin dokusu değil illüstrasyon olduğu için
-       varsayılan prosedürel. */
-    zemin: /[?&]zemin=doku/.test(location.search || "") ? "doku" : "prosedurel",
-
-    /* Prosedürel zemin paleti. Her biyom için üç renk:
-       koyu → orta → açık. Gürültü bu üçü arasında geziniyor.
-       Renkleri değiştirmek zeminin tamamını değiştirir; başka
-       hiçbir yere dokunman gerekmez. */
-    zeminPalet: {
-      kar:   ["#a9c6dc", "#cfe4f2", "#eef7ff"],
-      cimen: ["#3f7a35", "#5f9e4a", "#7fbb5e"],
-      lav:   ["#5c1f18", "#8c3126", "#c4562b"],
-    },
-
-    /* Gürültünün kaç karoda bir dalgalandığı (büyük → yavaş dalga).
-       Üç oktav üst üste binerek hem geniş lekeler hem ince benek
-       verir. ?zeminOlcek=6 ile denenebilir. */
-    zeminOlcek: (function () {
-      const m = /[?&]zeminOlcek=(\d+(?:\.\d+)?)/.exec(location.search || "");
-      const v = m ? parseFloat(m[1]) : 2;
-      return (v >= 0.5 && v <= 40) ? v : 2;
-    })(),
-
-    /* İnce tane miktarı. 0 yaparsan zemin sis gibi bulanık olur —
-       doku hissini bu veriyor. 0.45 ekranda karşılaştırılarak seçildi.
-       ?zeminTane=60 (yüzde) ile denenebilir. */
-    zeminTane: (function () {
-      const m = /[?&]zeminTane=(\d+)/.exec(location.search || "");
-      const v = m ? parseInt(m[1], 10) / 100 : 0.45;
-      return (v >= 0 && v <= 1) ? v : 0.45;
-    })(),
-
-    /* Prosedürel zemin kaç device pikselde bir örnekleniyor.
-       1 = en net ama en yavaş, 4 = hızlı ama yumuşak.
-       Parçalar önbelleğe alındığı için 2 rahatça kaldırılıyor. */
-    zeminAdim: 2,
 
     /* ── Hata ayıklama ──
        fpsGoster: sol üstteki "60 fps · 1024 karo · 5 düğüm" rozeti.
@@ -417,14 +320,10 @@
      taşan kısmın çizilebileceği yeri açıyor. Karo ekrana çizilirken
      aynı pay kadar sola/yukarı kaydırılıp o kadar büyük basılıyor,
      böylece komşularla tam opak örtüşme oluyor ve dikiş çizgisi
-     kalmıyor.
+     kalmıyor. */
+  const PAY = 1;
 
-     1'den 2'ye çıkarıldı: clip() kenarı kenar yumuşatmalıdır, yani yarı
-     saydamdır. 1 piksel pay komşunun yarı saydam kenarını tam örtmüyor,
-     araya hayalet çizgi giriyordu. */
-  const PAY = 2;
-
-  function karoUret(img, tw, th, s, kaydirX, kaydirY, vi) {
+  function karoUret(img, tw, th, s, kaydirX, kaydirY) {
     const p = PAY * s;                       // ön-render ölçeğinde pay
     const c = document.createElement("canvas");
     c.width  = tw + 2 * p;
@@ -442,15 +341,6 @@
     x.lineTo(-d,       th / 2);
     x.closePath();
     x.clip();
-
-    /* ── VARYANT: AYNA ──
-       Dokuyu yatay/dikey çeviriyoruz. Dört farklı görünüş çıkar ama
-       dördünün de ortalama parlaklığı AYNI kalır — bölge kaydırmasıyla
-       yapılan eski yöntemin yama etkisi böyle ortadan kalkıyor.
-       Çevirme, iso matrisinden ÖNCE ve karo merkezine göre yapılmalı. */
-    x.translate(tw / 2, th / 2);
-    x.scale((vi & 1) ? -1 : 1, (vi & 2) ? -1 : 1);
-    x.translate(-tw / 2, -th / 2);
 
     /* Kaynak dokudan kare bir bölge seç (varyant için kaydırmalı) */
     const S = Math.min(img.width, img.height);
@@ -476,319 +366,15 @@
     const parcalar = [];
 
     for (let i = 0; i < CFG.varyant; i++) {
-      /* Hep dokunun ORTASINDAN aynı kare alınır; varyantı ayna yapar.
-         Böylece varyantlar arası parlaklık farkı sıfır. */
-      parcalar.push(karoUret(img, tw, th, s, 0.5, 0.5, i));
+      /* Varyantlar dokunun farklı bölgelerinden alınır → tekrar kırılır */
+      const kx = (i % 3) * 0.45 + 0.05;
+      const ky = (Math.floor(i / 3) % 3) * 0.45 + 0.05;
+      parcalar.push(karoUret(img, tw, th, s, kx, ky));
     }
 
     karolar[ad] = { hazir: true, parcalar };
-
-    /* Asıl zemin artık DESEN ile seriliyor (aşağı bak); karolar yalnız
-       desen üretilemezse yedek olarak kullanılıyor. */
-    desenler[ad] = desenUret(img, Math.round(CFG.dokuBoyu * s));
-
     onbellegiBosalt();
     ciz();
-  }
-
-  /* ═════════════════════════════════════════════════════════════════════
-     DESEN (PATTERN) — ASIL ZEMİN
-
-     NEDEN: doku karo karo eşkenar dörtgene BÜKÜLÜNCE her karoda farklı
-     yöne eğiliyordu; yan yana gelince çim "burma / balıksırtı" gibi
-     görünüyordu. Ayna varyantları bunu daha da belirginleştirdi.
-
-     ÇÖZÜM: çim dokusunun izometriye eğilmesi GEREKMEZ. Zemin, dünya
-     koordinatına sabitlenmiş dikişsiz bir desenle seriliyor; eşkenar
-     dörtgen yalnız NEREYE serileceğini belirleyen maske olarak kalıyor.
-     Böylece büküm yok, varyant yok, karo dikişi yok.
-
-     DİKİŞSİZLİK: kaynak resim dikişsiz olmayabilir (fotoğrafsa kesin
-     değildir). İki yöntem var:
-
-       1) KENAR KARIŞIMI (varsayılan). Resimden N x N'lik bir kare
-          alınır; sol kenara, o karenin HEMEN SAĞINDAN devam eden B
-          genişliğindeki şerit, saydamlığı 1'den 0'a inen bir rampayla
-          bindirilir. Sol kenar artık sağ kenarın doğal devamı olur →
-          dikiş yok. Aynısı dikeyde yapılır. Simetri ÜRETMEZ.
-
-       2) 2x2 AYNA (yedek). Her zaman kenar tutturur ama KELEBEK/
-          KALEYDOSKOP deseni üretir — büyük ölçekte göze batar.
-          Denendi, lav bölgesinde felaket görünüyordu. Sadece resim
-          çok küçükse (karışım bandına yer yoksa) devreye girer, ya da
-          adres sonuna ?desen=ayna eklenirse.
-     ═════════════════════════════════════════════════════════════════════ */
-
-  const desenler = {};   // { cimen: canvas, ... }
-
-  const AYNA_ZORLA = /[?&]desen=ayna/.test(location.search || "");
-
-  /* Bir şeridi çizip üstüne saydamlık rampası uygular.
-     destination-in: sadece rampanın alfası kalır, şerit kenarda
-     yumuşak biter. */
-  function seritMaske(ciz, w, h, yon) {
-    const t = document.createElement("canvas");
-    t.width = Math.max(1, Math.round(w));
-    t.height = Math.max(1, Math.round(h));
-    const tx = t.getContext("2d");
-
-    ciz(tx);
-
-    tx.globalCompositeOperation = "destination-in";
-    const g = (yon === "yatay")
-      ? tx.createLinearGradient(0, 0, t.width, 0)
-      : tx.createLinearGradient(0, 0, 0, t.height);
-    g.addColorStop(0, "rgba(0,0,0,1)");
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    tx.fillStyle = g;
-    tx.fillRect(0, 0, t.width, t.height);
-    return t;
-  }
-
-  function desenUret(img, tam) {
-    const S  = Math.min(img.width, img.height);
-    const B  = Math.floor(S * CFG.bantOran);  // karışım bandı
-    const N  = S - B;                         // ana kare — kalan her şey
-    const ox = (img.width  - S) >> 1;
-    const oy = (img.height - S) >> 1;
-
-    /* Bant için yer yoksa aynaya düş */
-    if (AYNA_ZORLA || N < 8 || N + B > S) return desenUretAyna(img, tam);
-
-    const bp = Math.max(2, Math.round(B * (tam / N)));   // desen pikselinde bant
-
-    /* ── 1) ARA KATMAN: yatayda dikişsiz, boyu bant kadar FAZLA ──
-       Dikey karışımı ham resimden yaparsak köşelerde uyumsuzluk kalır;
-       bu yüzden dikey adım, yatayı çoktan halletmiş bu ara katmandan
-       beslenir. */
-    const ara = document.createElement("canvas");
-    ara.width  = tam;
-    ara.height = tam + bp;
-    const ax = ara.getContext("2d");
-
-    ax.drawImage(img, ox, oy, N, N + B, 0, 0, tam, tam + bp);
-    ax.drawImage(seritMaske(function (tx) {
-      tx.drawImage(img, ox + N, oy, B, N + B, 0, 0, bp, tam + bp);
-    }, bp, tam + bp, "yatay"), 0, 0);
-
-    /* ── 2) SON: dikey dikişi kapat ── */
-    const c = document.createElement("canvas");
-    c.width = c.height = tam;
-    const x = c.getContext("2d");
-
-    x.drawImage(ara, 0, 0, tam, tam, 0, 0, tam, tam);
-    x.drawImage(seritMaske(function (tx) {
-      tx.drawImage(ara, 0, tam, tam, bp, 0, 0, tam, bp);
-    }, tam, bp, "dikey"), 0, 0);
-
-    return c;
-  }
-
-  /* YEDEK — 2x2 ayna. Kaleydoskop yapar, son çare. */
-  function desenUretAyna(img, tam) {
-    const c = document.createElement("canvas");
-    c.width = c.height = tam;
-    const x = c.getContext("2d");
-
-    const q = tam / 2;                       // çeyrek blok
-    const S  = Math.min(img.width, img.height);
-    const sx = (img.width  - S) >> 1;
-    const sy = (img.height - S) >> 1;
-
-    /* sol üst */
-    x.drawImage(img, sx, sy, S, S, 0, 0, q, q);
-    /* sağ üst — yatay ayna */
-    x.save(); x.translate(tam, 0); x.scale(-1, 1);
-    x.drawImage(img, sx, sy, S, S, 0, 0, q, q); x.restore();
-    /* sol alt — dikey ayna */
-    x.save(); x.translate(0, tam); x.scale(1, -1);
-    x.drawImage(img, sx, sy, S, S, 0, 0, q, q); x.restore();
-    /* sağ alt — iki eksen */
-    x.save(); x.translate(tam, tam); x.scale(-1, -1);
-    x.drawImage(img, sx, sy, S, S, 0, 0, q, q); x.restore();
-
-    return c;
-  }
-
-  /* Deseni DÜNYA koordinatına sabitleyip verilen alanı doldurur.
-     Faz her yerde aynı hesaplandığı için parçalar ve karolar arasında
-     desen kesintisiz devam eder — dikiş görünmez. */
-  /* ── İKİ ÖLÇEKLİ SERME ──
-     Tek ölçekte döşemenin çıkmazı şu: doku küçükse aynı parça sık sık
-     tekrar eder (göz yakalar), büyükse resmin içindeki iri nesneler
-     DEV LEKE olur (lav "poster" gibi görünür). İkisinin arası yoktur.
-
-     Çözüm iki katman:
-       1. katman — küçük ölçek, ince detayı verir
-       2. katman — aynı doku 3 kat büyük, soluk ve kaydırılmış
-     İkincisi büyük ölçekte yavaş bir açıklık/koyuluk dalgalanması
-     yaratır; birinci katmanın tekrarı bu dalgalanmanın altında kaybolur.
-     Maliyet: parça başına bir fillRect daha, ihmal edilebilir. */
-  function desenDoldur(x2, tip, minX, minY, s, bx, by, bw, bh) {
-    const dz = desenler[tip];
-    if (!dz) return false;
-
-    const P = dz.width;
-    const dsn = x2.createPattern(dz, "repeat");
-
-    /* Bir katmanı çiz. k = ölçek çarpanı, o = faz kaydırması.
-       Faz her zaman DÜNYA koordinatından hesaplanır; böylece parça
-       sınırlarında ve karo karışımlarında desen kaymaz. */
-    function katman(k, alfa, o) {
-      x2.save();
-      if (alfa < 1) x2.globalAlpha *= alfa;
-      x2.scale(k, k);
-
-      const u0 = (minX * s) / k + o;
-      const v0 = (minY * s) / k + o;
-      const dx = -(((u0 % P) + P) % P);
-      const dy = -(((v0 % P) + P) % P);
-
-      x2.translate(dx, dy);
-      x2.fillStyle = dsn;
-      x2.fillRect(bx / k - dx, by / k - dy, bw / k, bh / k);
-      x2.restore();
-    }
-
-    katman(1, 1, 0);
-    if (CFG.kat2Olcek > 1 && CFG.kat2Alfa > 0.01) {
-      katman(CFG.kat2Olcek, CFG.kat2Alfa, P * 0.37);
-    }
-    return true;
-  }
-
-  /* ═════════════════════════════════════════════════════════════════════
-     PROSEDÜREL ZEMİN
-
-     NEDEN: bir resmi döşemenin çıkmazı şu — göz tekrarı MUTLAKA yakalar.
-     Küçük döşersen desen tekrarı, büyük döşersen dev leke, aynalarsan
-     kaleydoskop, kenarları harmanlarsan burgu görünür. Hepsi aynı kök
-     sorunun yüzleri: sonlu bir resmi sonsuz bir alana yaymak.
-
-     ÇÖZÜM: hiçbir şey döşeme. Zeminin her noktasının rengini kendi
-     DÜNYA KOORDİNATINDAN hesapla. Tekrar diye bir kavram kalmaz,
-     dikiş kalmaz, parça sınırı kalmaz — çünkü ortada kopyalanan bir
-     kare yok. Üstelik gürültü tohumlu olduğu için zemin her cihazda
-     aynı; çok oyunculuda "sende başka bende başka" olmaz.
-
-     3 oktav: geniş lekeler + orta doku + ince benek.
-     ═════════════════════════════════════════════════════════════════════ */
-
-  /* "#rrggbb" → [r,g,b] */
-  function renkAyristir(h) {
-    return [
-      parseInt(h.slice(1, 3), 16),
-      parseInt(h.slice(3, 5), 16),
-      parseInt(h.slice(5, 7), 16),
-    ];
-  }
-
-  const paletOnbellek = {};
-  function palet(tip) {
-    if (!paletOnbellek[tip]) {
-      const p = CFG.zeminPalet[tip] || CFG.zeminPalet.cimen;
-      paletOnbellek[tip] = p.map(renkAyristir);
-    }
-    return paletOnbellek[tip];
-  }
-
-  /* 0..1 gürültü → palet üzerinde renk (koyu→orta→açık) */
-  function paletRenk(p, t) {
-    if (t < 0.5) {
-      const k = t * 2;
-      return [
-        p[0][0] + (p[1][0] - p[0][0]) * k,
-        p[0][1] + (p[1][1] - p[0][1]) * k,
-        p[0][2] + (p[1][2] - p[0][2]) * k,
-      ];
-    }
-    const k = (t - 0.5) * 2;
-    return [
-      p[1][0] + (p[2][0] - p[1][0]) * k,
-      p[1][1] + (p[2][1] - p[1][1]) * k,
-      p[1][2] + (p[2][2] - p[1][2]) * k,
-    ];
-  }
-
-  /* Üç oktavlı gürültü + ince tane, dünya pikselinden.
-     Değerler ekranda karşılaştırılarak seçildi: taneli hal olmadan
-     zemin "sis" gibi bulanık görünüyor; doku hissini veren tanedir.
-     y frekansı 2 kat: izometride dikey eksen yarı yükseklikte,
-     olmasa lekeler dikey ezik çıkıyor. */
-  function zeminGurultu(wx, wy) {
-    const f = 1 / (CFG.zeminOlcek * CFG.tileW);
-    let v = smoothNoise(wx * f,        wy * f * 2)         * 0.50
-          + smoothNoise(wx * f * 3.5,  wy * f * 7)         * 0.30
-          + smoothNoise(wx * f * 11,   wy * f * 22)        * 0.20;
-
-    if (CFG.zeminTane > 0) {
-      v += (hash2(Math.floor(wx * 2), Math.floor(wy * 2)) - 0.5) * CFG.zeminTane;
-    }
-    return Math.max(0, Math.min(1, v));
-  }
-
-  /* Bir parçanın zeminini piksel piksel üretir.
-     Örnekleme CFG.zeminAdim device pikselde bir yapılır, sonra
-     yumuşatılarak büyütülür — hem hızlı hem pürüzsüz. */
-  function zeminUret(tip, minX, minY, s, genislik, yukseklik) {
-    const adim = Math.max(1, CFG.zeminAdim);
-    const kw = Math.max(1, Math.ceil(genislik / adim));
-    const kh = Math.max(1, Math.ceil(yukseklik / adim));
-
-    const kucuk = document.createElement("canvas");
-    kucuk.width = kw;
-    kucuk.height = kh;
-    const kx = kucuk.getContext("2d");
-    const img = kx.createImageData(kw, kh);
-    const d = img.data;
-    const p = palet(tip);
-
-    for (let j = 0; j < kh; j++) {
-      /* device piksel → dünya pikseli */
-      const wy = minY + (j * adim) / s;
-      for (let i = 0; i < kw; i++) {
-        const wx = minX + (i * adim) / s;
-        const c = paletRenk(p, zeminGurultu(wx, wy));
-        const o = (j * kw + i) * 4;
-        d[o]     = c[0];
-        d[o + 1] = c[1];
-        d[o + 2] = c[2];
-        d[o + 3] = 255;
-      }
-    }
-    kx.putImageData(img, 0, 0);
-    return kucuk;
-  }
-
-  /* Zemini verilen alana serer. Doku yönteminde desene, prosedürelde
-     hesaba düşer; her iki halde de dünya koordinatına sabittir. */
-  function zeminDoldur(x2, tip, minX, minY, s, bx, by, bw, bh) {
-    if (CFG.zemin === "doku") return desenDoldur(x2, tip, minX, minY, s, bx, by, bw, bh);
-
-    const kucuk = zeminUret(tip, minX + bx / s, minY + by / s, s, bw, bh);
-    x2.imageSmoothingEnabled = true;
-    x2.drawImage(kucuk, 0, 0, kucuk.width, kucuk.height, bx, by, bw, bh);
-    return true;
-  }
-
-  function desenKaroCiz(x2, tip, px, py, tw, th, saydamlik, minX, minY, s) {
-    if (CFG.zemin === "doku" && !desenler[tip]) return false;
-
-    const X = px * s, Y = py * s, W = tw * s, H = th * s, D = PAY * s;
-
-    x2.save();
-    x2.setTransform(1, 0, 0, 1, 0, 0);
-    x2.beginPath();
-    x2.moveTo(X + W / 2, Y - D);
-    x2.lineTo(X + W + D, Y + H / 2);
-    x2.lineTo(X + W / 2, Y + H + D);
-    x2.lineTo(X - D,     Y + H / 2);
-    x2.closePath();
-    x2.clip();
-    if (saydamlik < 1) x2.globalAlpha = saydamlik;
-    zeminDoldur(x2, tip, minX, minY, s, X - D, Y - D, W + 2 * D, H + 2 * D);
-    x2.restore();
-    return true;
   }
 
   function karolariYukle() {
@@ -977,90 +563,16 @@
     const x2 = c.getContext("2d");
     x2.setTransform(s, 0, 0, s, 0, 0);
 
-    /* ── ALT DOLGU ──
-       Karoların yarı saydam clip kenarları SAYDAMLIĞA düşmesin diye
-       altlarına biyom rengi seriliyor; dikiş çizgileri böyle kayboluyor.
-
-       DİKKAT — BURADA fillRect KULLANILMAZ. Bir parça iso uzayda
-       DİKDÖRTGEN değil ELMAS'tır; canvas ise onun kutusudur. Kutuyu
-       doldurursan elmasın dışında kalan dört köşe düz renkle dolar ve
-       o köşeler komşu parçaların DOKUSUNU EZER — ekranda dev düz yeşil
-       üçgenler belirir. (Denendi, tam olarak bu oldu.)
-
-       Bu yüzden yalnız parçanın kendi elması doldurulur. Elmasın dört
-       köşesi = köşe karolarının dış uçları. Taşma payı YOK: pay
-       verilirse aynı ezme sorunu küçük ölçekte geri döner. */
-    const kTop = gridToWorld(gx0, gy0);   // üst köşe karosu
-    const kSag = gridToWorld(gx1, gy0);   // sağ köşe karosu
-    const kAlt = gridToWorld(gx1, gy1);   // alt köşe karosu
-    const kSol = gridToWorld(gx0, gy1);   // sol köşe karosu
-
-    const ortaTip = biyom(gx0 + (C >> 1), gy0 + (C >> 1));
-
-    x2.save();
-    x2.setTransform(1, 0, 0, 1, 0, 0);      // elması DEVICE pikselinde çiz
-    /* Elmas PAY kadar dışarı taşkın: bitişik parçalar 2 px örtüşsün,
-       aralarında saç teli çizgi kalmasın. Taşan yere komşuyla AYNI
-       desen (dünyaya sabit faz) düştüğü için örtüşme görünmez.
-       Kutu dolgusu (fillRect) ise ASLA kullanılmaz — parça iso uzayda
-       elmastır, kutuyu doldurmak komşunun dokusunu ezer. */
-    const D = PAY * s;
-    x2.beginPath();
-    x2.moveTo((kTop.x - minX + tw / 2) * s, (kTop.y - minY) * s - D);
-    x2.lineTo((kSag.x - minX + tw)     * s + D, (kSag.y - minY + th / 2) * s);
-    x2.lineTo((kAlt.x - minX + tw / 2) * s, (kAlt.y - minY + th) * s + D);
-    x2.lineTo((kSol.x - minX)          * s - D, (kSol.y - minY + th / 2) * s);
-    x2.closePath();
-    x2.clip();
-
-    /* Parçanın TAMAMI tek seferde desenle seriliyor. İç bölgelerde
-       (tek biyom) iş burada biter: 64 karo yerine tek fillRect. */
-    if (!zeminDoldur(x2, ortaTip, minX, minY, s, 0, 0, c.width, c.height)) {
-      x2.fillStyle = CFG.karoRenk[ortaTip] || "#5f9e4a";
-      x2.fillRect(0, 0, c.width, c.height);
-    }
-
-    /* ── TEŞHİS: desen bloğu sınırları (?blok=1) ──
-       Zemindeki lekeler bu kırmızı kareye oturuyorsa suçlu doku/desen
-       bloğudur; oturmuyorsa başka bir katman konuşuyordur. */
-    if (CFG.blokGoster) {
-      const P = CFG.dokuBoyu * s;
-      x2.strokeStyle = "rgba(255,0,0,0.55)";
-      x2.lineWidth = 1;
-      const bx = -((((minX * s) % P) + P) % P);
-      const by = -((((minY * s) % P) + P) % P);
-      for (let X = bx; X < c.width + P; X += P) {
-        x2.beginPath(); x2.moveTo(X, 0); x2.lineTo(X, c.height); x2.stroke();
-      }
-      for (let Y = by; Y < c.height + P; Y += P) {
-        x2.beginPath(); x2.moveTo(0, Y); x2.lineTo(c.width, Y); x2.stroke();
-      }
-    }
-    x2.restore();
-
-    x2.setTransform(s, 0, 0, s, 0, 0);
-
     for (let gy = gy0; gy <= gy1; gy++) {
       for (let gx = gx0; gx <= gx1; gx++) {
-        const kr = biyomKarisim(gx, gy);
-
-        /* Alt katman parçanın geneliyle aynıysa ve karışım yoksa,
-           yukarıdaki tek dolgu o karoyu zaten kapladı. */
-        if (kr.alt === ortaTip && !(kr.ust && kr.k > 0.02)) continue;
-
         const p = gridToWorld(gx, gy);
         const px = p.x - minX, py = p.y - minY;
+        const kr = biyomKarisim(gx, gy);
         const vi = Math.floor(hash2(gx * 7 + 3, gy * 11 + 5) * CFG.varyant) % CFG.varyant;
 
-        if (kr.alt !== ortaTip &&
-            !desenKaroCiz(x2, kr.alt, px, py, tw, th, 1, minX, minY, s)) {
-          karoCiz(x2, kr.alt, vi, px, py, tw, th, 1);
-        }
+        karoCiz(x2, kr.alt, vi, px, py, tw, th, 1);
         if (kr.ust && kr.k > 0.02) {
-          const a = Math.min(1, kr.k);
-          if (!desenKaroCiz(x2, kr.ust, px, py, tw, th, a, minX, minY, s)) {
-            karoCiz(x2, kr.ust, vi, px, py, tw, th, a);
-          }
+          karoCiz(x2, kr.ust, vi, px, py, tw, th, Math.min(1, kr.k));
         }
       }
     }
