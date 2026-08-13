@@ -582,13 +582,33 @@
     const x2 = c.getContext("2d");
     x2.setTransform(s, 0, 0, s, 0, 0);
 
-    /* Parçanın zeminini, ortasındaki karonun biyom rengiyle doldur.
-       Karoların yarı saydam clip kenarları böylece SAYDAMLIĞA değil
-       kendi rengine düşer; dikiş çizgileri görünmez olur.
-       Tek fillRect, maliyeti ihmal edilebilir. */
+    /* ── ALT DOLGU ──
+       Karoların yarı saydam clip kenarları SAYDAMLIĞA düşmesin diye
+       altlarına biyom rengi seriliyor; dikiş çizgileri böyle kayboluyor.
+
+       DİKKAT — BURADA fillRect KULLANILMAZ. Bir parça iso uzayda
+       DİKDÖRTGEN değil ELMAS'tır; canvas ise onun kutusudur. Kutuyu
+       doldurursan elmasın dışında kalan dört köşe düz renkle dolar ve
+       o köşeler komşu parçaların DOKUSUNU EZER — ekranda dev düz yeşil
+       üçgenler belirir. (Denendi, tam olarak bu oldu.)
+
+       Bu yüzden yalnız parçanın kendi elması doldurulur. Elmasın dört
+       köşesi = köşe karolarının dış uçları. Taşma payı YOK: pay
+       verilirse aynı ezme sorunu küçük ölçekte geri döner. */
+    const kTop = gridToWorld(gx0, gy0);   // üst köşe karosu
+    const kSag = gridToWorld(gx1, gy0);   // sağ köşe karosu
+    const kAlt = gridToWorld(gx1, gy1);   // alt köşe karosu
+    const kSol = gridToWorld(gx0, gy1);   // sol köşe karosu
+
     const ortaTip = biyom(gx0 + (C >> 1), gy0 + (C >> 1));
     x2.fillStyle = CFG.karoRenk[ortaTip] || "#5f9e4a";
-    x2.fillRect(0, 0, w, h);
+    x2.beginPath();
+    x2.moveTo(kTop.x - minX + tw / 2, kTop.y - minY);
+    x2.lineTo(kSag.x - minX + tw,     kSag.y - minY + th / 2);
+    x2.lineTo(kAlt.x - minX + tw / 2, kAlt.y - minY + th);
+    x2.lineTo(kSol.x - minX,          kSol.y - minY + th / 2);
+    x2.closePath();
+    x2.fill();
 
     for (let gy = gy0; gy <= gy1; gy++) {
       for (let gx = gx0; gx <= gx1; gx++) {
