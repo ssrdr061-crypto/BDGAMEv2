@@ -2471,6 +2471,8 @@ body.world-active{padding:0; overflow:hidden;}
      Bu HTML'e bir daha dokunman gerekmez.
      ═══════════════════════════════════════════════════════ -->
 <script src="heroes.js"></script>
+<!-- KAHRAMAN LİSTESİ EKRANI: heroes.js'ten SONRA yüklenmeli (HERO_STATS/HERO_IMG/openHeroDetail'i kullanır). -->
+<script src="kahramanlar.js"></script>
 <!-- BİRLİK DOSYASI: her zaman "troops.js" adıyla yüklenir (heroes.js ile aynı kural). -->
 <script src="troops.js"></script>
 <script>
@@ -7125,12 +7127,21 @@ function tumPanelleriKapat(haric) {
   if (haric !== "hero") {
     const heroOv = document.getElementById("heroDetailOverlay");
     if (heroOv) heroOv.style.display = "none";
+    /* Kahraman listesi de body'ye ekli ayrı katman (kahramanlar.js) */
+    const heroLs = document.getElementById("kahramanListesi");
+    if (heroLs) heroLs.style.display = "none";
   }
 }
 
 function openOverlayPanel(panelKey) {
   tumPanelleriKapat(panelKey);
-  if (panelKey === "hero") { openHeroDetail(heroSkins[0].id); return; }
+  /* Kahraman düğmesi ÖNCE liste ekranını açar (kahramanlar.js).
+     Detay/satın alma ekranı oradan bir karta dokununca açılır. */
+  if (panelKey === "hero") {
+    if (typeof acKahramanListesi === "function") acKahramanListesi();
+    else openHeroDetail(heroSkins[0].id);   /* kahramanlar.js yoksa eski yol */
+    return;
+  }
   const el = document.getElementById("panel-" + panelKey);
   if (!el) return;
   el.classList.add("active");
