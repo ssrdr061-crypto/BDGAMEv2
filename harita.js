@@ -150,8 +150,24 @@
        DOKUDADIR, izometrik kodda değil. */
     dokuBoyu: (function () {
       const m = /[?&]doku=(\d+)/.exec(location.search || "");
-      const v = m ? parseInt(m[1], 10) : 256;
-      return (v >= 64 && v <= 2048) ? v : 256;
+      const v = m ? parseInt(m[1], 10) : 128;
+      return (v >= 64 && v <= 2048) ? v : 128;
+    })(),
+
+    /* ── İkinci katman (tekrar kırıcı) ──
+       Aynı doku bu kat büyütülüp soluk geçilir. 1 yaparsan katman
+       kapanır. Ölçek 2–4 arası mantıklı; büyütürsen dalgalanma
+       yavaşlar ama iri nesneler yeniden belirginleşir.
+       ?kat2=3 ve ?kat2a=35 (yüzde) ile canlı denenebilir. */
+    kat2Olcek: (function () {
+      const m = /[?&]kat2=(\d+(?:\.\d+)?)/.exec(location.search || "");
+      const v = m ? parseFloat(m[1]) : 3;
+      return (v >= 1 && v <= 8) ? v : 3;
+    })(),
+    kat2Alfa: (function () {
+      const m = /[?&]kat2a=(\d+)/.exec(location.search || "");
+      const v = m ? parseInt(m[1], 10) / 100 : 0.35;
+      return (v >= 0 && v <= 1) ? v : 0.35;
     })(),
 
     /* Kenar karışım bandının, karenin oranı olarak genişliği.
@@ -553,18 +569,47 @@
   /* Deseni DÜNYA koordinatına sabitleyip verilen alanı doldurur.
      Faz her yerde aynı hesaplandığı için parçalar ve karolar arasında
      desen kesintisiz devam eder — dikiş görünmez. */
+  /* ── İKİ ÖLÇEKLİ SERME ──
+     Tek ölçekte döşemenin çıkmazı şu: doku küçükse aynı parça sık sık
+     tekrar eder (göz yakalar), büyükse resmin içindeki iri nesneler
+     DEV LEKE olur (lav "poster" gibi görünür). İkisinin arası yoktur.
+
+     Çözüm iki katman:
+       1. katman — küçük ölçek, ince detayı verir
+       2. katman — aynı doku 3 kat büyük, soluk ve kaydırılmış
+     İkincisi büyük ölçekte yavaş bir açıklık/koyuluk dalgalanması
+     yaratır; birinci katmanın tekrarı bu dalgalanmanın altında kaybolur.
+     Maliyet: parça başına bir fillRect daha, ihmal edilebilir. */
   function desenDoldur(x2, tip, minX, minY, s, bx, by, bw, bh) {
     const dz = desenler[tip];
     if (!dz) return false;
 
-    const P  = dz.width;
-    const dx = -((((minX * s) % P) + P) % P);
-    const dy = -((((minY * s) % P) + P) % P);
+    const P = dz.width;
+    const dsn = x2.createPattern(dz, "repeat");
 
-    x2.translate(dx, dy);
-    x2.fillStyle = x2.createPattern(dz, "repeat");
-    x2.fillRect(bx - dx, by - dy, bw, bh);
-    x2.translate(-dx, -dy);
+    /* Bir katmanı çiz. k = ölçek çarpanı, o = faz kaydırması.
+       Faz her zaman DÜNYA koordinatından hesaplanır; böylece parça
+       sınırlarında ve karo karışımlarında desen kaymaz. */
+    function katman(k, alfa, o) {
+      x2.save();
+      if (alfa < 1) x2.globalAlpha *= alfa;
+      x2.scale(k, k);
+
+      const u0 = (minX * s) / k + o;
+      const v0 = (minY * s) / k + o;
+      const dx = -(((u0 % P) + P) % P);
+      const dy = -(((v0 % P) + P) % P);
+
+      x2.translate(dx, dy);
+      x2.fillStyle = dsn;
+      x2.fillRect(bx / k - dx, by / k - dy, bw / k, bh / k);
+      x2.restore();
+    }
+
+    katman(1, 1, 0);
+    if (CFG.kat2Olcek > 1 && CFG.kat2Alfa > 0.01) {
+      katman(CFG.kat2Olcek, CFG.kat2Alfa, P * 0.37);
+    }
     return true;
   }
 
