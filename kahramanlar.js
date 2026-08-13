@@ -1,52 +1,84 @@
 /*  ═══════════════════════════════════════════════════════════
     KAHRAMANLAR.JS — KAHRAMAN LİSTESİ EKRANI
-    SÜRÜM: 1.0
+    SÜRÜM: 2.0   (sürümü buradan takip et, dosya adı hep kahramanlar.js)
 
     NE YAPAR?
       Alt menüdeki "Kahraman" düğmesine basınca ÖNCE bu liste açılır.
-      Sahip olunan/olunmayan tüm kahramanlar ızgara halinde görünür.
-      Bir karta dokununca eski kahraman ekranı (heroes.js → openHeroDetail)
-      açılır. Sağ alttaki "Kahraman Al" düğmesi de aynı ekranı açar.
+      3×3 = 9 yuva. İlk 5'i kahramanlar, kalan 4'ü ileride doldurulacak
+      boş yuva. Bir karta dokununca kahraman ekranı (heroes.js →
+      openHeroDetail) açılır. Sağ alttaki "Kahraman Al" da onu açar.
 
-    ÇERÇEVE: heroes.js → HERO_UI (kartUst/kartAlt/kartKenar/kartMaxGenislik/
-    kartRadius/kartCerceve) değerlerinden okunur; yani kahraman ekranıyla
-    BİREBİR aynı çerçevede durur. Orayı değiştirirsen burası da uyar.
+    RENK: Oyunun koyu mavi teması (tema.js → :root --km-1/2/3).
+    Ayrı bir renk tanımı YOK; tema.js'te rengi değiştirirsen burası uyar.
+
+    ÇERÇEVE: heroes.js → HERO_UI (kartUst/kartAlt/kartKenar/
+    kartMaxGenislik/kartRadius/kartCerceve) — kahraman ekranıyla aynı kutu.
 
     BAĞIMLILIK: heroes.js'ten SONRA yüklenmeli.
 
-    AYAR: aşağıdaki KLIST_UI (genel görünüm) ve KLIST_KART (kahraman
-    başına görsel ince ayarı) blokları. Ana koda dokunma.
+    AYAR: 🎛 düğmesi (sol üst) canlı ayar menüsünü açar. Ayarladıktan
+    sonra "📋 Kopyala" ile çıkan bloğu aşağıdaki KLIST_UI'ın üstüne yapıştır.
     ═══════════════════════════════════════════════════════════ */
 
 
 /*  ─────────────────────────────────────────────
-    1) KLIST_UI — GENEL GÖRÜNÜM
+    1) KLIST_UI — YERLEŞİM ve ÖLÇÜLER
+    (🎛 menüsünün ürettiği değerler buraya yapıştırılır)
     ───────────────────────────────────────────── */
 const KLIST_UI = {
-  baslik:      "Kahramanlar",
-  sutun:       3,        /* ızgara sütun sayısı (3 veya 4)                */
-  bosluk:      "9px",    /* kartlar arası boşluk                          */
-  kartRadius:  "13px",   /* kart köşe yuvarlaklığı                        */
-  kartOran:    "3/4",    /* kart en/boy oranı (genişlik/yükseklik)        */
-  yildizGoster: true,    /* kart altında yıldızlar görünsün mü            */
-  seviyeGoster: true,    /* kart altında "Sv. 1" yazısı görünsün mü       */
-  siralamaGoster: true,  /* sağ üstteki sıralama menüsü görünsün mü       */
-  alBtnYazi:   "Kahraman Al",
-  alBtnHedef:  "ilk_sahipsiz"  /* "ilk_sahipsiz" = ilk sahip olmadığın kahramanı açar
-                                  "ilk"          = listenin ilk kahramanını açar */
+  baslik:   "Kahramanlar",
+
+  sutun:    3,      /* ızgara sütun sayısı   */
+  satir:    3,      /* ızgara satır sayısı   → toplam yuva = sutun × satir */
+
+  bosluk_x: 8,      /* kartlar arası YATAY boşluk (px)  */
+  bosluk_y: 8,      /* kartlar arası DİKEY boşluk (px)  */
+  ic_yan:   10,     /* ızgaranın sağ/sol iç boşluğu (px) */
+  ic_ust:   10,     /* ızgaranın üst/alt iç boşluğu (px) */
+
+  kart_gen: 100,    /* kartın yuvayı doldurma oranı — GENİŞLİK % */
+  kart_yuk: 100,    /* kartın yuvayı doldurma oranı — YÜKSEKLİK % */
+  kart_r:   13,     /* kart köşe yuvarlaklığı (px) */
+  kart_dx:  0,      /* tüm kartları yatay kaydır (px) */
+  kart_dy:  0,      /* tüm kartları dikey kaydır (px)  */
+
+  isim_bs:  10,     /* kahraman adı yazı boyutu (px) */
+  sv_bs:    9.5,    /* "Sv. 1" yazı boyutu (px)      */
+  yildiz_bs: 8,     /* yıldız boyutu (px)            */
+
+  portre_dx: 0,     /* TÜM portreleri kaydır (px) — tek tek ayar: KLIST_KART */
+  portre_dy: 0,
+  portre_s:  1,     /* TÜM portrelerin büyütmesi */
+
+  yildizGoster: true,
+  seviyeGoster: true,
+  alBtnYazi:  "Kahraman Al",
+  alBtnHedef: "ilk_sahipsiz"  /* "ilk_sahipsiz" = ilk sahip olmadığın kahraman
+                                 "ilk"          = listenin ilk kahramanı */
 };
 
 
 /*  ─────────────────────────────────────────────
-    2) KLIST_KART — KAHRAMAN BAŞINA GÖRSEL İNCE AYARI
-    Karttaki portrenin yerini/büyüklüğünü kahraman başına düzeltmek için.
-      dx / dy → piksel kaydırma (dy eksi = yukarı)
-      s       → büyütme çarpanı (1 = normal)
-      poz     → object-position (varsayılan "top center")
-    Burada olmayan kahraman VARSAYILAN değerleri kullanır.
-    (İnce ayar menüsü sonradan bu değerleri üretecek.)
+    2) KLIST_SIRA — KAHRAMAN SIRASI
+    Yuvalar bu sırayla dolar. Yeni kahraman geldiğinde
+    id'sini buraya ekle; boş yuvalar kendiliğinden azalır.
     ───────────────────────────────────────────── */
-const KLIST_KART_VARSAYILAN = { dx: 0, dy: 0, s: 1, poz: "top center" };
+const KLIST_SIRA = [
+  "buz_savascisi",   /* 1 · HALVORSEN */
+  "celik_savasci",   /* 2 · STELLİN   */
+  "ates_buyucusu",   /* 3 · MİKİAN    */
+  "ivanovna",        /* 4 · İVANOVNA  */
+  "revolia"          /* 5 · REVOLİA   */
+];
+
+
+/*  ─────────────────────────────────────────────
+    3) KLIST_KART — KAHRAMAN BAŞINA PORTRE İNCE AYARI
+    Global portre ayarının ÜSTÜNE biner.
+      dx / dy → piksel kaydırma (dy eksi = yukarı)
+      s       → büyütme çarpanı
+      poz     → object-position (varsayılan "top center")
+    ───────────────────────────────────────────── */
 const KLIST_KART = {
   /* örnek:  buz_savascisi: { dy: -6, s: 1.08 },  */
 };
@@ -56,52 +88,65 @@ const KLIST_KART = {
    BURADAN AŞAĞISI MOTOR — ayar için yukarısı yeter
    ══════════════════════════════════════════════ */
 
-/* ── CSS (bir kez enjekte edilir) ── */
+/* Çalışma kopyası: 🎛 editörü bunu değiştirir, KLIST_UI bozulmaz */
+const KV = Object.assign({}, KLIST_UI);
+
+/* ── CSS (bir kez enjekte edilir) ──
+   Renkler tema.js'in :root değişkenlerinden gelir; değişken yoksa
+   yedek olarak aynı koyu maviler yazılıdır. */
 (function injectKListCSS() {
   if (document.getElementById("klistStyles")) return;
   const st = document.createElement("style");
   st.id = "klistStyles";
   st.textContent = `
 #kahramanListesi{
-  font-family:'Baloo 2',sans-serif; color:#eaf4ff;
+  font-family:'Baloo 2','Nunito',sans-serif; color:var(--km-yazi,#eaf4ff);
   display:flex; flex-direction:column; overflow:hidden;
   background:
-    radial-gradient(ellipse 100% 45% at 50% 0%, rgba(170,240,255,.45), transparent 70%),
-    radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
-    linear-gradient(180deg, #1fa3ea, #0e6fc0);
+    radial-gradient(ellipse 115% 55% at 50% -6%, rgba(130,200,255,.30), transparent 68%),
+    radial-gradient(ellipse 90% 45% at 50% 106%, rgba(3,10,26,.55), transparent 74%),
+    linear-gradient(180deg, var(--km-1,#3d7ccc) 0%, var(--km-2,#22488f) 52%, var(--km-3,#152e5e) 100%);
+  box-shadow:0 0 26px rgba(20,60,120,.5), inset 0 3px 0 var(--km-parlak,rgba(150,205,255,.55)),
+             inset 0 -14px 26px rgba(0,10,30,.45);
 }
 .klist-top{
-  display:flex; align-items:center; gap:8px; flex:0 0 auto;
-  padding:11px 12px; border-bottom:2px solid rgba(190,240,255,.35);
+  position:relative; flex:0 0 auto;
+  display:flex; align-items:center; padding:12px 60px 10px 12px;
+  border-bottom:2px solid rgba(160,215,255,.30);
 }
-.klist-back{
-  width:38px; height:34px; flex:0 0 38px; border:none; border-radius:10px;
-  background:linear-gradient(180deg,#8894ad,#4a566e); color:#fff;
-  font-size:20px; font-weight:900; line-height:1; cursor:pointer;
-  box-shadow:0 3px 0 #2b3448; -webkit-tap-highlight-color:transparent;
-}
-.klist-back:active{ transform:translateY(2px); box-shadow:none; }
 .klist-title{
-  flex:1 1 auto; font-size:17px; font-weight:900; color:#fff;
-  text-shadow:0 2px 4px rgba(0,40,70,.6); padding-left:2px;
+  font-size:18px; font-weight:900; color:#fff;
+  text-shadow:0 2px 4px rgba(0,40,70,.6);
 }
-.klist-sort{
-  flex:0 0 auto; height:32px; max-width:44%;
-  border-radius:9px; border:2px solid rgba(190,240,255,.6);
-  background:rgba(8,45,80,.5); color:#eaf4ff;
-  font-family:'Baloo 2',sans-serif; font-size:12px; font-weight:800;
-  padding:0 6px; -webkit-appearance:none; appearance:none; cursor:pointer;
+/* Kapatma: oyunun her yerindeki kırmızı düğmenin aynısı (.overlay-close) */
+.klist-x{
+  position:absolute; top:10px; right:12px;
+  width:38px; height:38px; border-radius:10px; z-index:5;
+  background:linear-gradient(180deg,#f03434,#c00d0d);
+  border:2px solid rgba(255,220,220,.9); color:#fff;
+  font-size:19px; font-weight:900; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 10px rgba(120,0,0,.4);
+  -webkit-tap-highlight-color:transparent;
+}
+.klist-x:active{ transform:scale(.92); }
+.klist-tune{
+  position:absolute; top:14px; right:58px;
+  width:30px; height:30px; border-radius:9px; z-index:5;
+  background:rgba(6,26,56,.6); border:1px solid #d4af37; color:#d4af37;
+  font-size:14px; cursor:pointer; -webkit-tap-highlight-color:transparent;
 }
 .klist-grid{
-  flex:1 1 auto; display:grid; padding:12px 13px 14px;
+  flex:1 1 auto; display:grid; min-height:0;
   overflow-y:auto; -webkit-overflow-scrolling:touch;
 }
+.klist-cell{ display:flex; align-items:center; justify-content:center; min-width:0; min-height:0; }
 .klist-card{
-  position:relative; border-radius:13px; overflow:hidden; cursor:pointer;
-  border:2px solid rgba(190,240,255,.45);
-  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
-  box-shadow:inset 0 2px 3px rgba(150,205,255,.5), 0 4px 8px rgba(0,20,45,.4);
-  transition:transform .1s, box-shadow .15s;
+  position:relative; overflow:hidden; cursor:pointer; box-sizing:border-box;
+  border:2px solid rgba(160,215,255,.45);
+  background:linear-gradient(180deg, rgba(96,150,215,.55) 0%, rgba(24,58,112,.85) 60%, rgba(9,26,58,.95) 100%);
+  box-shadow:inset 0 2px 3px rgba(150,205,255,.4), 0 4px 8px rgba(0,15,40,.45);
+  transition:transform .1s;
   -webkit-tap-highlight-color:transparent;
 }
 .klist-card:active{ transform:scale(.96); }
@@ -114,7 +159,7 @@ const KLIST_KART = {
 .klist-spec{
   position:absolute; top:4px; left:4px; z-index:3;
   width:21px; height:21px; border-radius:7px;
-  background:rgba(4,16,36,.62); border:1px solid rgba(190,240,255,.5);
+  background:rgba(4,16,36,.65); border:1px solid rgba(160,215,255,.45);
   display:flex; align-items:center; justify-content:center; font-size:11px;
 }
 .klist-foot{
@@ -123,47 +168,85 @@ const KLIST_KART = {
   background:linear-gradient(180deg, transparent, rgba(3,8,20,.92));
 }
 .klist-name{
-  font-size:10px; font-weight:900; color:#fff; line-height:1.1;
+  font-weight:900; color:#fff; line-height:1.15;
   text-shadow:0 1px 3px rgba(0,0,0,.85);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.klist-lv{
-  font-size:9.5px; font-weight:800; color:#ffe9a8; line-height:1.2;
-  text-shadow:0 1px 2px rgba(0,0,0,.8);
-}
-.klist-stars{ font-size:8px; letter-spacing:.5px; line-height:1.1; margin-top:1px; }
-.klist-card.locked .klist-portrait{ filter:grayscale(.85) brightness(.55); }
+.klist-lv{ font-weight:800; color:#ffe9a8; line-height:1.2; text-shadow:0 1px 2px rgba(0,0,0,.8); }
+.klist-stars{ letter-spacing:.5px; line-height:1.1; margin-top:1px; }
+
+/* ── SAHİP OLUNMAYAN KAHRAMAN: tamamen gri ── */
+.klist-card.locked{ border-color:rgba(150,175,205,.35); }
+.klist-card.locked .klist-portrait{ filter:grayscale(1) brightness(.5); }
+.klist-card.locked .klist-name{ color:#c9d6e6; }
 .klist-lock{
   position:absolute; inset:0; z-index:4; display:flex;
   flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  background:rgba(2,8,22,.34);
+  background:rgba(2,8,22,.30);
 }
 .klist-lock span{ font-size:22px; filter:drop-shadow(0 2px 4px rgba(0,0,0,.7)); }
-.klist-price{
-  font-size:9.5px; font-weight:900; color:#ffe9a8;
-  text-shadow:0 1px 3px rgba(0,0,0,.85);
+.klist-price{ font-size:9.5px; font-weight:900; color:#ffe9a8; text-shadow:0 1px 3px rgba(0,0,0,.85); }
+
+/* ── BOŞ YUVA (ileride doldurulacak) ── */
+.klist-card.empty{
+  border:2px dashed rgba(160,215,255,.35);
+  background:linear-gradient(180deg, rgba(40,80,140,.35), rgba(9,26,58,.55));
+  cursor:default; display:flex; align-items:center; justify-content:center;
 }
+.klist-card.empty:active{ transform:none; }
+.klist-card.empty b{ font-size:26px; font-weight:900; color:rgba(200,225,255,.35); }
+
 .klist-bottom{
   flex:0 0 auto; display:flex; align-items:center; gap:9px;
-  padding:9px 12px 11px; border-top:2px solid rgba(190,240,255,.35);
-  background:rgba(6,40,74,.35);
+  padding:9px 12px 11px; border-top:2px solid rgba(160,215,255,.30);
+  background:rgba(4,20,45,.35);
 }
 .klist-count{
   flex:1 1 0; height:44px; border-radius:12px;
-  border:2px solid rgba(190,240,255,.45); background:rgba(8,45,80,.45);
+  border:2px solid rgba(160,215,255,.40); background:rgba(6,30,62,.5);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  font-size:12px; font-weight:900; color:#eaf4ff; line-height:1.15;
+  font-size:13px; font-weight:900; color:#eaf4ff; line-height:1.15;
 }
-.klist-count small{ font-size:9px; font-weight:700; color:#cfe8ff; }
+.klist-count small{ font-size:9px; font-weight:700; color:#bcd6f2; }
 .klist-buy{
   flex:1 1 0; height:44px; border-radius:12px; cursor:pointer;
   border:2px solid #d4af37; color:#1b1430;
   background:linear-gradient(180deg,#f0c94f,#b8860b);
-  font-family:'Baloo 2',sans-serif; font-size:15px; font-weight:900;
+  font-family:'Baloo 2','Nunito',sans-serif; font-size:15px; font-weight:900;
   box-shadow:0 4px 0 #6d4f06; -webkit-tap-highlight-color:transparent;
 }
 .klist-buy:active{ transform:translateY(2px); box-shadow:none; }
-.klist-empty{ padding:20px; text-align:center; font-size:12px; font-weight:700; color:#dff2ff; }
+
+/* ── 🎛 AYAR MENÜSÜ ── */
+#klistTuner{
+  position:absolute; top:52px; left:8px; right:8px; z-index:30;
+  max-height:70%; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  background:rgba(4,14,32,.95); border:1px solid #d4af37; border-radius:12px;
+  padding:9px; color:#fff; font-size:12px; display:none;
+}
+#klistTuner .kt-row{
+  display:flex; align-items:center; gap:6px; margin-bottom:4px;
+}
+#klistTuner .kt-lbl{ flex:1 1 auto; font-weight:700; font-size:11.5px; }
+#klistTuner .kt-val{ flex:0 0 46px; text-align:center; font-family:monospace; color:#2DC9FC; }
+#klistTuner button.kt-b{
+  flex:0 0 34px; height:30px; border-radius:8px; border:1px solid #4a6a90;
+  background:#12294c; color:#fff; font-size:16px; font-weight:900; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+#klistTuner button.kt-b:active{ background:#1d4478; }
+#klistTuner .kt-copy{
+  width:100%; margin-top:6px; padding:9px; border:none; border-radius:8px;
+  background:#2DC9FC; color:#000; font-weight:900; cursor:pointer;
+}
+#klistTuner .kt-close{
+  width:100%; margin-top:4px; padding:8px; border:none; border-radius:8px;
+  background:#c00d0d; color:#fff; font-weight:800; cursor:pointer;
+}
+#klistTuner .kt-out{
+  margin-top:6px; font-family:monospace; font-size:10px; color:#8fe3ff;
+  white-space:pre-wrap; word-break:break-all; user-select:text; -webkit-user-select:text;
+}
 @keyframes klistPop{ from{opacity:0; transform:translateX(-50%) translateY(10px) scale(.97)} }
 `;
   document.head.appendChild(st);
@@ -173,71 +256,68 @@ const KLIST_KART = {
 /* ── çerçeveyi HERO_UI'dan kur (kahraman ekranıyla aynı hiza) ── */
 function _klistCerceveStili() {
   const U = (typeof HERO_UI !== "undefined") ? HERO_UI : {};
-  if (U.kartTamEkran) {
-    return "position:fixed;inset:0;z-index:395;";
-  }
+  if (U.kartTamEkran) return "position:fixed;inset:0;z-index:395;";
   return "position:fixed;left:50%;transform:translateX(-50%);" +
     "top:" + (U.kartUst || "60px") + ";bottom:" + (U.kartAlt || "70px") + ";" +
     "width:calc(100% - " + (U.kartKenar || "12px") + " * 2);" +
     "max-width:" + (U.kartMaxGenislik || "420px") + ";" +
     "z-index:395;border:" + (U.kartCerceve || "3px solid rgba(190,240,255,.85)") + ";" +
     "border-radius:" + (U.kartRadius || "22px") + ";box-sizing:border-box;" +
-    "box-shadow:0 0 0 9999px rgba(5,4,10,.72), 0 10px 34px rgba(0,0,0,.55);" +
     "animation:klistPop .18s cubic-bezier(.2,.9,.3,1.3);";
 }
 
-/* ── kahramanın seviyesi (seviye sistemi kurulunca burası okur) ── */
 function _klistSeviye(id) {
   const s = (typeof state !== "undefined" && state) ? state : {};
   return (s.heroLevels && s.heroLevels[id]) || 1;
 }
 
-/* ── kahramanın gücü (index.html → HERO_POWER) ── */
-function _klistGuc(id) {
-  return (typeof HERO_POWER !== "undefined" && HERO_POWER[id]) ? HERO_POWER[id] : 0;
+function _klistSahip(id) {
+  const s = (typeof state !== "undefined" && state) ? state : {};
+  return Array.isArray(s.ownedHeroSkins) && s.ownedHeroSkins.indexOf(id) !== -1;
 }
 
-let _klistSirala = "guc";   /* guc | seviye | isim */
+/* ── tek kart ── */
+function _klistKartHTML(id) {
+  if (!id) return `<div class="klist-card empty"><b>＋</b></div>`;
 
-/* ── kart HTML'i ── */
-function _klistKartHTML(id, sahip) {
   const h = HERO_STATS[id];
   const cfg = (typeof HERO_3D !== "undefined") ? HERO_3D[id] : null;
-  const k = Object.assign({}, KLIST_KART_VARSAYILAN, KLIST_KART[id] || {});
+  const k = Object.assign({ dx: 0, dy: 0, s: 1, poz: "top center" }, KLIST_KART[id] || {});
   const img = (typeof HERO_IMG !== "undefined") ? HERO_IMG[id] : null;
+  const sahip = _klistSahip(id);
+
+  const dx = KV.portre_dx + k.dx, dy = KV.portre_dy + k.dy, sc = KV.portre_s * k.s;
 
   const portre = img
     ? `<img class="klist-portrait" src="${img}" alt="${h.name}" draggable="false"
-         style="object-position:${k.poz};transform:translate(${k.dx}px,${k.dy}px) scale(${k.s});">`
+         style="object-position:${k.poz};transform:translate(${dx}px,${dy}px) scale(${sc});">`
     : `<div class="klist-portrait klist-noimg" style="background:${h.color}22;color:${h.color};">${h.specialtyIcon || "🦸"}</div>`;
 
   let yildiz = "";
-  if (KLIST_UI.yildizGoster && cfg && cfg.stars) {
-    const max = cfg.stars.max || 5, dolu = cfg.stars.filled || 0;
+  if (KV.yildizGoster && cfg && cfg.stars) {
+    const max = cfg.stars.max || 5, dolu = sahip ? (cfg.stars.filled || 0) : 0;
     let t = "";
-    for (let i = 0; i < max; i++) {
+    for (let i = 0; i < max; i++)
       t += `<span style="color:${i < dolu ? (cfg.stars.color || "#ffd700") : "rgba(255,255,255,.28)"};">★</span>`;
-    }
-    yildiz = `<div class="klist-stars">${t}</div>`;
+    yildiz = `<div class="klist-stars" style="font-size:${KV.yildiz_bs}px;">${t}</div>`;
   }
 
-  const seviye = (KLIST_UI.seviyeGoster && sahip)
-    ? `<div class="klist-lv">Sv. ${_klistSeviye(id)}</div>` : "";
+  const seviye = (KV.seviyeGoster && sahip)
+    ? `<div class="klist-lv" style="font-size:${KV.sv_bs}px;">Sv. ${_klistSeviye(id)}</div>` : "";
 
   const kilit = sahip ? "" :
-    `<div class="klist-lock">
-       <span>🔒</span>
-       <div class="klist-price">💎 ${(h.price || 0).toLocaleString("tr-TR")}</div>
-     </div>`;
+    `<div class="klist-lock"><span>🔒</span>
+       <div class="klist-price">💎 ${(h.price || 0).toLocaleString("tr-TR")}</div></div>`;
 
   return `
     <div class="klist-card ${sahip ? "" : "locked"}" data-hero="${id}"
-         style="aspect-ratio:${KLIST_UI.kartOran};border-radius:${KLIST_UI.kartRadius};">
+         style="width:${KV.kart_gen}%;height:${KV.kart_yuk}%;border-radius:${KV.kart_r}px;
+                transform:translate(${KV.kart_dx}px,${KV.kart_dy}px);">
       ${portre}
       <div class="klist-spec">${h.specialtyIcon || "⚔️"}</div>
       ${kilit}
       <div class="klist-foot">
-        <div class="klist-name">${h.name}</div>
+        <div class="klist-name" style="font-size:${KV.isim_bs}px;">${h.name}</div>
         ${seviye}
         ${yildiz}
       </div>
@@ -249,80 +329,147 @@ function renderKahramanListesi() {
   const ov = document.getElementById("kahramanListesi");
   if (!ov) return;
 
-  const owned = (typeof state !== "undefined" && Array.isArray(state.ownedHeroSkins))
-    ? state.ownedHeroSkins : [];
+  const ids = KLIST_SIRA.filter(id => typeof HERO_STATS !== "undefined" && HERO_STATS[id]);
+  const yuva = Math.max(1, KV.sutun * KV.satir);
 
-  /* sıra: heroSkins listesinden gelir, sonra seçilen ölçüte göre sıralanır */
-  let ids = (typeof heroSkins !== "undefined" ? heroSkins : []).map(s => s.id)
-    .filter(id => typeof HERO_STATS !== "undefined" && HERO_STATS[id]);
+  let hucreler = "";
+  for (let i = 0; i < yuva; i++) hucreler += `<div class="klist-cell">${_klistKartHTML(ids[i] || null)}</div>`;
 
-  const sahipmi = id => owned.indexOf(id) !== -1;
-  ids.sort((a, b) => {
-    /* sahip olunanlar her zaman üstte */
-    if (sahipmi(a) !== sahipmi(b)) return sahipmi(a) ? -1 : 1;
-    if (_klistSirala === "isim")   return HERO_STATS[a].name.localeCompare(HERO_STATS[b].name, "tr");
-    if (_klistSirala === "seviye") return _klistSeviye(b) - _klistSeviye(a);
-    return _klistGuc(b) - _klistGuc(a);
-  });
-
-  const kartlar = ids.length
-    ? ids.map(id => _klistKartHTML(id, sahipmi(id))).join("")
-    : `<div class="klist-empty">Kahraman verisi bulunamadı.</div>`;
-
-  const sortHTML = KLIST_UI.siralamaGoster ? `
-    <select class="klist-sort" id="klistSort">
-      <option value="guc"    ${_klistSirala === "guc"    ? "selected" : ""}>Güç</option>
-      <option value="seviye" ${_klistSirala === "seviye" ? "selected" : ""}>Seviye</option>
-      <option value="isim"   ${_klistSirala === "isim"   ? "selected" : ""}>İsim</option>
-    </select>` : "";
+  const sahipSayi = ids.filter(_klistSahip).length;
+  const tunerAcik = (document.getElementById("klistTuner") || {}).style
+    ? document.getElementById("klistTuner").style.display : "none";
 
   ov.innerHTML = `
     <div class="klist-top">
-      <button class="klist-back" id="klistBack">‹</button>
-      <div class="klist-title">${KLIST_UI.baslik}</div>
-      ${sortHTML}
+      <div class="klist-title">${KV.baslik}</div>
+      <button class="klist-tune" id="klistTuneBtn" title="Ayar">🎛</button>
+      <button class="klist-x" id="klistCloseBtn" aria-label="Kapat">✕</button>
     </div>
     <div class="klist-grid" id="klistGrid"
-         style="grid-template-columns:repeat(${KLIST_UI.sutun},1fr);gap:${KLIST_UI.bosluk};">
-      ${kartlar}
+         style="grid-template-columns:repeat(${KV.sutun},1fr);
+                grid-template-rows:repeat(${KV.satir},1fr);
+                column-gap:${KV.bosluk_x}px; row-gap:${KV.bosluk_y}px;
+                padding:${KV.ic_ust}px ${KV.ic_yan}px;">
+      ${hucreler}
     </div>
     <div class="klist-bottom">
-      <div class="klist-count">
-        ${owned.filter(id => HERO_STATS[id]).length} / ${ids.length}
-        <small>Kahraman</small>
-      </div>
-      <button class="klist-buy" id="klistBuy">${KLIST_UI.alBtnYazi}</button>
-    </div>`;
+      <div class="klist-count">${sahipSayi} / ${ids.length}<small>Kahraman</small></div>
+      <button class="klist-buy" id="klistBuy">${KV.alBtnYazi}</button>
+    </div>
+    <div id="klistTuner"></div>`;
 
-  ov.querySelector("#klistBack").onclick = kapatKahramanListesi;
+  ov.querySelector("#klistCloseBtn").onclick = kapatKahramanListesi;
+  ov.querySelector("#klistTuneBtn").onclick = () => _klistTunerAc();
 
-  const sortEl = ov.querySelector("#klistSort");
-  if (sortEl) sortEl.onchange = () => { _klistSirala = sortEl.value; renderKahramanListesi(); };
-
-  ov.querySelectorAll(".klist-card").forEach(c => {
-    c.onclick = () => {
-      if (typeof openHeroDetail === "function") openHeroDetail(c.dataset.hero);
-    };
+  ov.querySelectorAll(".klist-card[data-hero]").forEach(c => {
+    c.onclick = () => { if (typeof openHeroDetail === "function") openHeroDetail(c.dataset.hero); };
   });
 
   ov.querySelector("#klistBuy").onclick = () => {
     let hedef = ids[0];
-    if (KLIST_UI.alBtnHedef === "ilk_sahipsiz") {
-      const bos = ids.find(id => !sahipmi(id));
+    if (KV.alBtnHedef === "ilk_sahipsiz") {
+      const bos = ids.find(id => !_klistSahip(id));
       if (bos) hedef = bos;
     }
     if (hedef && typeof openHeroDetail === "function") openHeroDetail(hedef);
   };
+
+  if (tunerAcik === "block") _klistTunerAc(true);
 }
+
+
+/*  ─────────────────────────────────────────────
+    🎛 CANLI AYAR MENÜSÜ
+    Her satır: – / değer / + . Değiştirdiğin an ekran yenilenir.
+    "📋 Kopyala" → KLIST_UI bloğunu panoya alır, dosyanın başına yapıştır.
+    ───────────────────────────────────────────── */
+const _KLIST_ALANLAR = [
+  { k: "sutun",     ad: "Sütun sayısı",      adim: 1,   min: 1,  max: 6 },
+  { k: "satir",     ad: "Satır sayısı",      adim: 1,   min: 1,  max: 8 },
+  { k: "bosluk_x",  ad: "Yatay boşluk",      adim: 1,   min: 0,  max: 40 },
+  { k: "bosluk_y",  ad: "Dikey boşluk",      adim: 1,   min: 0,  max: 40 },
+  { k: "ic_yan",    ad: "İç boşluk (yan)",   adim: 1,   min: 0,  max: 40 },
+  { k: "ic_ust",    ad: "İç boşluk (üst)",   adim: 1,   min: 0,  max: 40 },
+  { k: "kart_gen",  ad: "Kart genişliği %",  adim: 1,   min: 30, max: 100 },
+  { k: "kart_yuk",  ad: "Kart yüksekliği %", adim: 1,   min: 30, max: 100 },
+  { k: "kart_r",    ad: "Köşe yuvarlaklığı", adim: 1,   min: 0,  max: 40 },
+  { k: "kart_dx",   ad: "Kart kaydır ↔",     adim: 1,   min: -40, max: 40 },
+  { k: "kart_dy",   ad: "Kart kaydır ↕",     adim: 1,   min: -40, max: 40 },
+  { k: "isim_bs",   ad: "İsim yazı boyutu",  adim: 0.5, min: 6,  max: 22 },
+  { k: "sv_bs",     ad: "Sv. yazı boyutu",   adim: 0.5, min: 6,  max: 20 },
+  { k: "yildiz_bs", ad: "Yıldız boyutu",     adim: 0.5, min: 4,  max: 20 },
+  { k: "portre_dx", ad: "Portre ↔ (hepsi)",  adim: 1,   min: -60, max: 60 },
+  { k: "portre_dy", ad: "Portre ↕ (hepsi)",  adim: 1,   min: -60, max: 60 },
+  { k: "portre_s",  ad: "Portre büyütme",    adim: 0.02, min: .5, max: 2.5 }
+];
+
+function _klistTunerAc(sessiz) {
+  const t = document.getElementById("klistTuner");
+  if (!t) return;
+  if (!sessiz && t.style.display === "block") { t.style.display = "none"; return; }
+
+  t.innerHTML =
+    _KLIST_ALANLAR.map(f => `
+      <div class="kt-row">
+        <span class="kt-lbl">${f.ad}</span>
+        <button class="kt-b" data-k="${f.k}" data-d="-1">–</button>
+        <span class="kt-val" id="ktv-${f.k}">${KV[f.k]}</span>
+        <button class="kt-b" data-k="${f.k}" data-d="1">+</button>
+      </div>`).join("") +
+    `<button class="kt-copy" id="ktCopy">📋 Değerleri Kopyala</button>
+     <button class="kt-close" id="ktClose">Ayarı Kapat</button>
+     <div class="kt-out" id="ktOut"></div>`;
+  t.style.display = "block";
+
+  t.querySelectorAll(".kt-b").forEach(b => {
+    b.onclick = () => {
+      const f = _KLIST_ALANLAR.find(x => x.k === b.dataset.k);
+      let v = KV[f.k] + f.adim * parseInt(b.dataset.d, 10);
+      v = Math.max(f.min, Math.min(f.max, Math.round(v * 100) / 100));
+      KV[f.k] = v;
+      const kaydirma = t.scrollTop;
+      renderKahramanListesi();               /* ekranı canlı yenile (tuner da yeniden kurulur) */
+      const yeni = document.getElementById("klistTuner");
+      if (yeni) yeni.scrollTop = kaydirma;   /* ayar menüsü aynı yerde kalsın */
+    };
+  });
+
+  t.querySelector("#ktClose").onclick = () => { t.style.display = "none"; };
+
+  t.querySelector("#ktCopy").onclick = () => {
+    const txt = _klistDegerMetni();
+    document.getElementById("ktOut").textContent = txt;
+    const btn = t.querySelector("#ktCopy");
+    const bitti = ok => { btn.textContent = ok ? "✅ Kopyalandı" : "✘ Kopyalanamadı";
+                          setTimeout(() => btn.textContent = "📋 Değerleri Kopyala", 1600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(() => bitti(true)).catch(() => bitti(false));
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = txt; ta.style.cssText = "position:fixed;opacity:0;";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      ta.remove(); bitti(ok);
+    }
+  };
+}
+
+function _klistDegerMetni() {
+  return `── kahramanlar.js → KLIST_UI ──
+  sutun: ${KV.sutun},  satir: ${KV.satir},
+  bosluk_x: ${KV.bosluk_x},  bosluk_y: ${KV.bosluk_y},
+  ic_yan: ${KV.ic_yan},  ic_ust: ${KV.ic_ust},
+  kart_gen: ${KV.kart_gen},  kart_yuk: ${KV.kart_yuk},
+  kart_r: ${KV.kart_r},  kart_dx: ${KV.kart_dx},  kart_dy: ${KV.kart_dy},
+  isim_bs: ${KV.isim_bs},  sv_bs: ${KV.sv_bs},  yildiz_bs: ${KV.yildiz_bs},
+  portre_dx: ${KV.portre_dx},  portre_dy: ${KV.portre_dy},  portre_s: ${KV.portre_s},`;
+}
+
 
 /* ── AÇ / KAPA ── */
 function acKahramanListesi() {
   let ov = document.getElementById("kahramanListesi");
-  if (!ov) {
-    ov = document.createElement("div");
-    ov.id = "kahramanListesi";
-    document.body.appendChild(ov);
-  }
+  if (!ov) { ov = document.createElement("div"); ov.id = "kahramanListesi"; document.body.appendChild(ov); }
   ov.style.cssText = _klistCerceveStili();
   ov.style.display = "flex";
   renderKahramanListesi();
@@ -333,8 +480,7 @@ function kapatKahramanListesi() {
   if (ov) ov.style.display = "none";
 }
 
-/* Kahraman ekranı kapanınca liste açıksa sayılar/kilitler tazelensin.
-   (openHeroDetail satın alma yapabiliyor.) */
+/* Kahraman ekranı kapanınca (satın alma olmuş olabilir) liste tazelensin */
 document.addEventListener("click", e => {
   if (!e.target || !e.target.closest) return;
   if (e.target.closest("#hdClose")) {
