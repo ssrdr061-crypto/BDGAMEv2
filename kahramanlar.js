@@ -208,14 +208,22 @@ function _klistKartAyar(id) {
   position:absolute; inset:0; width:100%; height:100%;
   object-fit:cover; object-position:center; z-index:0; pointer-events:none;
 }
-.klist-card .klist-portrait{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;
+/* ── PORTRE KABI ──
+   DİKKAT: siliklik maskesi KABA uygulanır, görselin kendisine DEĞİL.
+   Görsel büyütülüp (scale) aşağı kaydırıldığı için maske ona takılırsa
+   maske de onunla birlikte büyüyüp kartın dışına iniyor ve hiçbir etki
+   görünmüyordu. Kap kartla aynı ölçüdedir, hareket etmez. */
+.klist-card .klist-portre-kap{
+  position:absolute; inset:0; z-index:1; overflow:hidden; pointer-events:none;
 }
-/* Alttan siliklik: kahraman görseli aşağı doğru eriyip zemine karışır,
-   yıldızlar temiz bir alanda kalır. Başlangıç noktası KLIST_UI.silik_bas. */
-.klist-card .klist-portrait.silik{
-  -webkit-mask-image:linear-gradient(180deg, #000 var(--klist-silik,58%), rgba(0,0,0,0) 100%);
-          mask-image:linear-gradient(180deg, #000 var(--klist-silik,58%), rgba(0,0,0,0) 100%);
+.klist-card .klist-portre-kap.silik{
+  -webkit-mask-image:linear-gradient(180deg, #000 var(--klist-silik,55%), rgba(0,0,0,0) 100%);
+          mask-image:linear-gradient(180deg, #000 var(--klist-silik,55%), rgba(0,0,0,0) 100%);
+  -webkit-mask-size:100% 100%; mask-size:100% 100%;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+}
+.klist-card .klist-portrait{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
 }
 .klist-portrait.klist-noimg{
   display:flex; align-items:center; justify-content:center; font-size:32px;
@@ -397,10 +405,11 @@ function _klistKartHTML(id) {
   const zemin = zeminSrc
     ? `<img class="klist-zemin" src="${zeminSrc}" alt="" draggable="false">` : "";
 
-  const portre = img
-    ? `<img class="klist-portrait silik" src="${img}" alt="${h.name}" draggable="false"
+  const icerik = img
+    ? `<img class="klist-portrait" src="${img}" alt="${h.name}" draggable="false"
          style="object-position:${k.poz};transform:translate(${dx}px,${dy}px) scale(${sc});">`
     : `<div class="klist-portrait klist-noimg" style="background:${h.color}22;color:${h.color};">${h.specialtyIcon || "🦸"}</div>`;
+  const portre = `<div class="klist-portre-kap ${KV.silik_bas < 100 ? "silik" : ""}">${icerik}</div>`;
 
   let yildiz = "";
   if (KV.yildizGoster && cfg && cfg.stars) {
