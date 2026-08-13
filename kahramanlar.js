@@ -217,35 +217,43 @@ const KV = Object.assign({}, KLIST_UI);
 }
 .klist-buy:active{ transform:translateY(2px); box-shadow:none; }
 
-/* ── 🎛 AYAR MENÜSÜ ── */
+/* ── 🎛 AYAR ŞERİDİ ──
+   Ekranı kapatmaz: iki satırlık ince bir çubuk. Tek seferde TEK ayar
+   görünür, ‹ › ile ayarlar arasında gezilir. ⇅ ile çubuk üste/alta taşınır. */
 #klistTuner{
-  position:absolute; top:52px; left:8px; right:8px; z-index:30;
-  max-height:70%; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  background:rgba(4,14,32,.95); border:1px solid #d4af37; border-radius:12px;
-  padding:9px; color:#fff; font-size:12px; display:none;
+  position:absolute; left:6px; right:6px; z-index:30; display:none;
+  background:rgba(4,14,32,.92); border:1px solid #d4af37; border-radius:12px;
+  padding:6px 7px; color:#fff;
+  box-shadow:0 6px 18px rgba(0,0,0,.5);
 }
-#klistTuner .kt-row{
-  display:flex; align-items:center; gap:6px; margin-bottom:4px;
+#klistTuner.kt-alt{ bottom:70px; }
+#klistTuner.kt-ust{ top:56px; }
+#klistTuner .kt-line{ display:flex; align-items:center; gap:5px; }
+#klistTuner .kt-line + .kt-line{ margin-top:5px; }
+#klistTuner .kt-lbl{
+  flex:1 1 auto; min-width:0; text-align:center;
+  font-weight:800; font-size:12px; color:#ffe9a8; line-height:1.1;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-#klistTuner .kt-lbl{ flex:1 1 auto; font-weight:700; font-size:11.5px; }
-#klistTuner .kt-val{ flex:0 0 46px; text-align:center; font-family:monospace; color:#2DC9FC; }
-#klistTuner button.kt-b{
-  flex:0 0 34px; height:30px; border-radius:8px; border:1px solid #4a6a90;
-  background:#12294c; color:#fff; font-size:16px; font-weight:900; cursor:pointer;
+#klistTuner .kt-val{
+  flex:0 0 54px; text-align:center; font-family:monospace; font-size:15px;
+  font-weight:900; color:#2DC9FC;
+}
+#klistTuner button{
+  border:1px solid #4a6a90; background:#12294c; color:#fff;
+  border-radius:9px; font-weight:900; cursor:pointer; padding:0;
   -webkit-tap-highlight-color:transparent;
 }
-#klistTuner button.kt-b:active{ background:#1d4478; }
-#klistTuner .kt-copy{
-  width:100%; margin-top:6px; padding:9px; border:none; border-radius:8px;
-  background:#2DC9FC; color:#000; font-weight:900; cursor:pointer;
-}
-#klistTuner .kt-close{
-  width:100%; margin-top:4px; padding:8px; border:none; border-radius:8px;
-  background:#c00d0d; color:#fff; font-weight:800; cursor:pointer;
-}
+#klistTuner button:active{ background:#1d4478; }
+#klistTuner .kt-nav{ flex:0 0 34px; height:30px; font-size:16px; }
+#klistTuner .kt-b{ flex:0 0 52px; height:38px; font-size:22px; }
+#klistTuner .kt-copy{ flex:1 1 0; height:30px; font-size:12px; background:#2DC9FC; color:#000; border-color:#2DC9FC; }
+#klistTuner .kt-move{ flex:0 0 34px; height:30px; font-size:14px; }
+#klistTuner .kt-close{ flex:0 0 34px; height:30px; font-size:14px; background:#c00d0d; border-color:#c00d0d; }
 #klistTuner .kt-out{
-  margin-top:6px; font-family:monospace; font-size:10px; color:#8fe3ff;
-  white-space:pre-wrap; word-break:break-all; user-select:text; -webkit-user-select:text;
+  margin-top:5px; font-family:monospace; font-size:9.5px; color:#8fe3ff;
+  max-height:78px; overflow:auto; white-space:pre-wrap; word-break:break-all;
+  user-select:text; -webkit-user-select:text; display:none;
 }
 @keyframes klistPop{ from{opacity:0; transform:translateX(-50%) translateY(10px) scale(.97)} }
 `;
@@ -336,8 +344,6 @@ function renderKahramanListesi() {
   for (let i = 0; i < yuva; i++) hucreler += `<div class="klist-cell">${_klistKartHTML(ids[i] || null)}</div>`;
 
   const sahipSayi = ids.filter(_klistSahip).length;
-  const tunerAcik = (document.getElementById("klistTuner") || {}).style
-    ? document.getElementById("klistTuner").style.display : "none";
 
   ov.innerHTML = `
     <div class="klist-top">
@@ -374,7 +380,7 @@ function renderKahramanListesi() {
     if (hedef && typeof openHeroDetail === "function") openHeroDetail(hedef);
   };
 
-  if (tunerAcik === "block") _klistTunerAc(true);
+  if (_ktAcik) _klistTunerCiz();
 }
 
 
@@ -403,45 +409,67 @@ const _KLIST_ALANLAR = [
   { k: "portre_s",  ad: "Portre büyütme",    adim: 0.02, min: .5, max: 2.5 }
 ];
 
-function _klistTunerAc(sessiz) {
+/* Ayar şeridinin durumu (ekran yenilense de korunur) */
+let _ktAcik = false;   /* şerit açık mı            */
+let _ktIdx  = 0;       /* hangi ayar seçili        */
+let _ktUst  = false;   /* şerit üstte mi (⇅ ile)   */
+
+/* 🎛 düğmesi: aç/kapat */
+function _klistTunerAc() {
+  _ktAcik = !_ktAcik;
+  if (_ktAcik) _klistTunerCiz();
+  else { const t = document.getElementById("klistTuner"); if (t) t.style.display = "none"; }
+}
+
+/* Şeridi çiz — SADECE İKİ SATIR, kartların üstünü kapatmaz */
+function _klistTunerCiz() {
   const t = document.getElementById("klistTuner");
   if (!t) return;
-  if (!sessiz && t.style.display === "block") { t.style.display = "none"; return; }
+  const f = _KLIST_ALANLAR[_ktIdx];
 
-  t.innerHTML =
-    _KLIST_ALANLAR.map(f => `
-      <div class="kt-row">
-        <span class="kt-lbl">${f.ad}</span>
-        <button class="kt-b" data-k="${f.k}" data-d="-1">–</button>
-        <span class="kt-val" id="ktv-${f.k}">${KV[f.k]}</span>
-        <button class="kt-b" data-k="${f.k}" data-d="1">+</button>
-      </div>`).join("") +
-    `<button class="kt-copy" id="ktCopy">📋 Değerleri Kopyala</button>
-     <button class="kt-close" id="ktClose">Ayarı Kapat</button>
-     <div class="kt-out" id="ktOut"></div>`;
+  t.className = _ktUst ? "kt-ust" : "kt-alt";
+  t.innerHTML = `
+    <div class="kt-line">
+      <button class="kt-nav" id="ktPrev">‹</button>
+      <span class="kt-lbl">${f.ad}</span>
+      <button class="kt-nav" id="ktNext">›</button>
+    </div>
+    <div class="kt-line">
+      <button class="kt-b" id="ktMinus">–</button>
+      <span class="kt-val">${KV[f.k]}</span>
+      <button class="kt-b" id="ktPlus">+</button>
+      <button class="kt-copy" id="ktCopy">📋 Kopyala</button>
+      <button class="kt-move" id="ktMove" title="Şeridi taşı">⇅</button>
+      <button class="kt-close" id="ktClose">✕</button>
+    </div>
+    <div class="kt-out" id="ktOut"></div>`;
   t.style.display = "block";
 
-  t.querySelectorAll(".kt-b").forEach(b => {
-    b.onclick = () => {
-      const f = _KLIST_ALANLAR.find(x => x.k === b.dataset.k);
-      let v = KV[f.k] + f.adim * parseInt(b.dataset.d, 10);
-      v = Math.max(f.min, Math.min(f.max, Math.round(v * 100) / 100));
-      KV[f.k] = v;
-      const kaydirma = t.scrollTop;
-      renderKahramanListesi();               /* ekranı canlı yenile (tuner da yeniden kurulur) */
-      const yeni = document.getElementById("klistTuner");
-      if (yeni) yeni.scrollTop = kaydirma;   /* ayar menüsü aynı yerde kalsın */
-    };
-  });
+  const degistir = yon => {
+    let v = KV[f.k] + f.adim * yon;
+    v = Math.max(f.min, Math.min(f.max, Math.round(v * 100) / 100));
+    KV[f.k] = v;
+    renderKahramanListesi();     /* ekran canlı değişir, şerit yerinde kalır */
+  };
+  t.querySelector("#ktMinus").onclick = () => degistir(-1);
+  t.querySelector("#ktPlus").onclick  = () => degistir(1);
 
-  t.querySelector("#ktClose").onclick = () => { t.style.display = "none"; };
+  t.querySelector("#ktPrev").onclick = () => {
+    _ktIdx = (_ktIdx - 1 + _KLIST_ALANLAR.length) % _KLIST_ALANLAR.length; _klistTunerCiz();
+  };
+  t.querySelector("#ktNext").onclick = () => {
+    _ktIdx = (_ktIdx + 1) % _KLIST_ALANLAR.length; _klistTunerCiz();
+  };
+  t.querySelector("#ktMove").onclick  = () => { _ktUst = !_ktUst; _klistTunerCiz(); };
+  t.querySelector("#ktClose").onclick = () => { _ktAcik = false; t.style.display = "none"; };
 
   t.querySelector("#ktCopy").onclick = () => {
     const txt = _klistDegerMetni();
-    document.getElementById("ktOut").textContent = txt;
+    const out = t.querySelector("#ktOut");
+    out.textContent = txt; out.style.display = "block";
     const btn = t.querySelector("#ktCopy");
-    const bitti = ok => { btn.textContent = ok ? "✅ Kopyalandı" : "✘ Kopyalanamadı";
-                          setTimeout(() => btn.textContent = "📋 Değerleri Kopyala", 1600); };
+    const bitti = ok => { btn.textContent = ok ? "✅ Tamam" : "✘ Olmadı";
+                          setTimeout(() => btn.textContent = "📋 Kopyala", 1600); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(txt).then(() => bitti(true)).catch(() => bitti(false));
     } else {
