@@ -43,15 +43,18 @@ const KLIST_UI = {
   kart_dy:  1,      /* tüm kartları dikey kaydır (px)  */
 
   kart_cer: 0,      /* kart çerçeve kalınlığı (px) — 0 = çerçeve YOK */
-  silik_bas: 55,    /* kahraman görseli alttan silikleşmeye NEREDE başlasın (%) */
+  silik_bas: 72,    /* siliklik NEREDE başlasın (%) — üstü tamamen net kalır  */
+  silik_bit: 88,    /* siliklik NEREDE bitsin (%) — buradan aşağısı tamamen zemin.
+                       İkisi birbirine yakın olursa geçiş dar ve keskin olur;
+                       aralık açılırsa görselin daha büyük kısmı erir. */
   alt_koyu:  0,     /* alttaki KARARTMA şeridi (0-100). 0 = karartma yok:
                        görsel doğrudan zemin rengine erir (istenen görünüm).
                        Yazılar bir zemin üzerinde daha okunaklı olsun istersen
                        10-25 arası küçük bir değer yeter. */
 
   isim_bs:  11.5,   /* kahraman adı yazı boyutu (px) — isimGoster açıksa */
-  sv_bs:    10,     /* "Sv. 1" yazı boyutu (px)      */
-  yildiz_bs: 19,    /* yıldız boyutu (px)            */
+  sv_bs:    13,     /* "Sv. 1" yazı boyutu (px)      */
+  yildiz_bs: 21,    /* yıldız boyutu (px)            */
 
   portre_dx: 0,     /* TÜM portreleri kaydır (px) — tek tek ayar: KLIST_KART */
   portre_dy: 0,
@@ -217,8 +220,8 @@ function _klistKartAyar(id) {
   position:absolute; inset:0; z-index:1; overflow:hidden; pointer-events:none;
 }
 .klist-card .klist-portre-kap.silik{
-  -webkit-mask-image:linear-gradient(180deg, #000 var(--klist-silik,55%), rgba(0,0,0,0) 100%);
-          mask-image:linear-gradient(180deg, #000 var(--klist-silik,55%), rgba(0,0,0,0) 100%);
+  -webkit-mask-image:linear-gradient(180deg, #000 var(--klist-silik,72%), rgba(0,0,0,0) var(--klist-silik-bit,88%));
+          mask-image:linear-gradient(180deg, #000 var(--klist-silik,72%), rgba(0,0,0,0) var(--klist-silik-bit,88%));
   -webkit-mask-size:100% 100%; mask-size:100% 100%;
   -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
 }
@@ -245,10 +248,17 @@ function _klistKartAyar(id) {
   text-shadow:0 1px 3px rgba(0,0,0,.85);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.klist-lv{ font-weight:800; color:#fff; line-height:1.2;
-  text-shadow:0 1px 2px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.6); }
-.klist-stars{ letter-spacing:.5px; line-height:1.1; margin-top:1px;
-  text-shadow:0 1px 2px rgba(0,0,0,.55); }
+.klist-lv{
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; color:#fff; line-height:1.2;
+  text-align:left; padding-left:5px;                 /* sol köşeye yaklaştırıldı */
+  text-shadow:0 1px 2px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.6);
+}
+.klist-stars{
+  font-family:'Baloo 2','Nunito',sans-serif;
+  letter-spacing:.5px; line-height:1.1; margin-top:1px;
+  transform:translateX(-1px);                        /* 1 numara sola */
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+}
 
 /* ── SAHİP OLUNMAYAN KAHRAMAN: tamamen gri ── */
 .klist-card.locked{ border-color:rgba(150,175,205,.35); }
@@ -434,7 +444,8 @@ function _klistKartHTML(id) {
     <div class="klist-card ${sahip ? "" : "locked"} ${KV.kart_cer > 0 ? "cerceveli" : ""}" data-hero="${id}"
          style="width:${gen}%;height:${yuk}%;border-radius:${KV.kart_r}px;
                 border-width:${KV.kart_cer}px;
-                --klist-silik:${KV.silik_bas}%; --klist-alt:${KV.alt_koyu / 100};
+                --klist-silik:${KV.silik_bas}%; --klist-silik-bit:${KV.silik_bit}%;
+                --klist-alt:${KV.alt_koyu / 100};
                 transform:translate(${KV.kart_dx + k.kdx}px,${KV.kart_dy + k.kdy}px);">
       ${zemin}
       ${portre}
@@ -523,7 +534,8 @@ const _KLIST_ALANLAR = [
   { k: "kart_dx",   ad: "Kart kaydır ↔",     adim: 1,   min: -40, max: 40 },
   { k: "kart_dy",   ad: "Kart kaydır ↕",     adim: 1,   min: -40, max: 40 },
   { k: "kart_cer",  ad: "Çerçeve kalınlığı", adim: 1,   min: 0,  max: 5 },
-  { k: "silik_bas", ad: "Alt siliklik %",     adim: 2,   min: 0,  max: 100 },
+  { k: "silik_bas", ad: "Siliklik başı %",   adim: 2,   min: 0,  max: 100 },
+  { k: "silik_bit", ad: "Siliklik sonu %",   adim: 2,   min: 0,  max: 100 },
   { k: "alt_koyu",  ad: "Alt karartma",       adim: 5,   min: 0,  max: 100 },
   { k: "isim_bs",   ad: "İsim yazı boyutu",  adim: 0.5, min: 6,  max: 22 },
   { k: "sv_bs",     ad: "Sv. yazı boyutu",   adim: 0.5, min: 6,  max: 20 },
@@ -665,7 +677,7 @@ function _klistDegerMetni() {
   ic_yan: ${KV.ic_yan},  ic_ust: ${KV.ic_ust},
   kart_gen: ${KV.kart_gen},  kart_yuk: ${KV.kart_yuk},
   kart_r: ${KV.kart_r},  kart_dx: ${KV.kart_dx},  kart_dy: ${KV.kart_dy},
-  kart_cer: ${KV.kart_cer},  silik_bas: ${KV.silik_bas},  alt_koyu: ${KV.alt_koyu},
+  kart_cer: ${KV.kart_cer},  silik_bas: ${KV.silik_bas},  silik_bit: ${KV.silik_bit},  alt_koyu: ${KV.alt_koyu},
   isim_bs: ${KV.isim_bs},  sv_bs: ${KV.sv_bs},  yildiz_bs: ${KV.yildiz_bs},
   portre_dx: ${KV.portre_dx},  portre_dy: ${KV.portre_dy},  portre_s: ${KV.portre_s},
 
