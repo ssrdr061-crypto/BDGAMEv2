@@ -403,7 +403,7 @@ function renderKahramanListesi() {
   ov.querySelector("#klistTuneBtn").onclick = () => _klistTunerAc();
 
   ov.querySelectorAll(".klist-card[data-hero]").forEach(c => {
-    c.onclick = () => { if (typeof openHeroDetail === "function") openHeroDetail(c.dataset.hero); };
+    c.onclick = () => _klistKahramanAc(c.dataset.hero);
   });
 
   ov.querySelector("#klistBuy").onclick = () => {
@@ -412,7 +412,7 @@ function renderKahramanListesi() {
       const bos = ids.find(id => !_klistSahip(id));
       if (bos) hedef = bos;
     }
-    if (hedef && typeof openHeroDetail === "function") openHeroDetail(hedef);
+    if (hedef) _klistKahramanAc(hedef);
   };
 
   if (_ktAcik) _klistTunerCiz();
@@ -600,13 +600,41 @@ function acKahramanListesi() {
 function kapatKahramanListesi() {
   const ov = document.getElementById("kahramanListesi");
   if (ov) ov.style.display = "none";
+  _klistDetayda = false;
 }
 
-/* Kahraman ekranı kapanınca (satın alma olmuş olabilir) liste tazelensin */
+/*  ─────────────────────────────────────────────
+    KAHRAMAN EKRANINA GEÇİŞ
+
+    DİKKAT — kahraman ekranı açıkken liste GİZLENİR.
+    Sebebi: tema.js'teki kaydırma bloğu (‹ › geçişi) kartı önce
+    `opacity:0` yapıp 120 ms sonra öbür kahramanı çiziyor. Liste
+    kartın ARKASINDA (z-index 395 < 400) açık dururken o 120 ms
+    boyunca saydam kartın altından görünüyor ve "menü gelip gidiyor"
+    izlenimi veriyor. Listeyi gizleyince arkada bir şey kalmıyor.
+    Kahraman ekranı kapanınca liste geri açılır ve tazelenir
+    (satın alma olmuş olabilir).
+    ───────────────────────────────────────────── */
+let _klistDetayda = false;   /* kahraman ekranı listeden mi açıldı */
+
+function _klistKahramanAc(id) {
+  if (typeof openHeroDetail !== "function") return;
+  const ov = document.getElementById("kahramanListesi");
+  if (ov) ov.style.display = "none";
+  _klistDetayda = true;
+  openHeroDetail(id);
+}
+
+/* Kahraman ekranı ✕ ile kapanınca listeye dön */
 document.addEventListener("click", e => {
   if (!e.target || !e.target.closest) return;
-  if (e.target.closest("#hdClose")) {
+  if (!e.target.closest("#hdClose")) return;
+  if (!_klistDetayda) return;
+  _klistDetayda = false;
+  setTimeout(() => {
     const ov = document.getElementById("kahramanListesi");
-    if (ov && ov.style.display !== "none") setTimeout(renderKahramanListesi, 0);
-  }
+    if (!ov) return;
+    ov.style.display = "flex";
+    renderKahramanListesi();
+  }, 0);
 }, true);
