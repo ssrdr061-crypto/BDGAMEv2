@@ -215,6 +215,50 @@
       lav:   "#8c3126",
     },
 
+    /* ── ZEMİN YÖNTEMİ ──
+       "prosedurel" (varsayılan): zemin resimden değil, gürültüden
+         üretilir. Döşenen bir şey olmadığı için TEKRAR YOKTUR — desen
+         tekrarı, kaleydoskop, burgu, dev leke sorunlarının hepsi
+         tanım gereği ortadan kalkar. Her nokta kendi koordinatından
+         hesaplandığı için dikiş de olmaz.
+       "doku": eski yöntem, resmi döşer. ?zemin=doku ile açılır.
+       Elindeki resimler zemin dokusu değil illüstrasyon olduğu için
+       varsayılan prosedürel. */
+    zemin: /[?&]zemin=doku/.test(location.search || "") ? "doku" : "prosedurel",
+
+    /* Prosedürel zemin paleti. Her biyom için üç renk:
+       koyu → orta → açık. Gürültü bu üçü arasında geziniyor.
+       Renkleri değiştirmek zeminin tamamını değiştirir; başka
+       hiçbir yere dokunman gerekmez. */
+    zeminPalet: {
+      kar:   ["#a9c6dc", "#cfe4f2", "#eef7ff"],
+      cimen: ["#3f7a35", "#5f9e4a", "#7fbb5e"],
+      lav:   ["#5c1f18", "#8c3126", "#c4562b"],
+    },
+
+    /* Gürültünün kaç karoda bir dalgalandığı (büyük → yavaş dalga).
+       Üç oktav üst üste binerek hem geniş lekeler hem ince benek
+       verir. ?zeminOlcek=6 ile denenebilir. */
+    zeminOlcek: (function () {
+      const m = /[?&]zeminOlcek=(\d+(?:\.\d+)?)/.exec(location.search || "");
+      const v = m ? parseFloat(m[1]) : 2;
+      return (v >= 0.5 && v <= 40) ? v : 2;
+    })(),
+
+    /* İnce tane miktarı. 0 yaparsan zemin sis gibi bulanık olur —
+       doku hissini bu veriyor. 0.45 ekranda karşılaştırılarak seçildi.
+       ?zeminTane=60 (yüzde) ile denenebilir. */
+    zeminTane: (function () {
+      const m = /[?&]zeminTane=(\d+)/.exec(location.search || "");
+      const v = m ? parseInt(m[1], 10) / 100 : 0.45;
+      return (v >= 0 && v <= 1) ? v : 0.45;
+    })(),
+
+    /* Prosedürel zemin kaç device pikselde bir örnekleniyor.
+       1 = en net ama en yavaş, 4 = hızlı ama yumuşak.
+       Parçalar önbelleğe alındığı için 2 rahatça kaldırılıyor. */
+    zeminAdim: 2,
+
     /* ── Hata ayıklama ──
        fpsGoster: sol üstteki "60 fps · 1024 karo · 5 düğüm" rozeti.
        Kapalı; adres sonuna ?fps=1 eklersen o oturumda açılır, yani
@@ -613,9 +657,122 @@
     return true;
   }
 
-  /* Tek karoyu DESENLE çizer (büküm yok). saydamlik < 1 ise karışım. */
+  /* ═════════════════════════════════════════════════════════════════════
+     PROSEDÜREL ZEMİN
+
+     NEDEN: bir resmi döşemenin çıkmazı şu — göz tekrarı MUTLAKA yakalar.
+     Küçük döşersen desen tekrarı, büyük döşersen dev leke, aynalarsan
+     kaleydoskop, kenarları harmanlarsan burgu görünür. Hepsi aynı kök
+     sorunun yüzleri: sonlu bir resmi sonsuz bir alana yaymak.
+
+     ÇÖZÜM: hiçbir şey döşeme. Zeminin her noktasının rengini kendi
+     DÜNYA KOORDİNATINDAN hesapla. Tekrar diye bir kavram kalmaz,
+     dikiş kalmaz, parça sınırı kalmaz — çünkü ortada kopyalanan bir
+     kare yok. Üstelik gürültü tohumlu olduğu için zemin her cihazda
+     aynı; çok oyunculuda "sende başka bende başka" olmaz.
+
+     3 oktav: geniş lekeler + orta doku + ince benek.
+     ═════════════════════════════════════════════════════════════════════ */
+
+  /* "#rrggbb" → [r,g,b] */
+  function renkAyristir(h) {
+    return [
+      parseInt(h.slice(1, 3), 16),
+      parseInt(h.slice(3, 5), 16),
+      parseInt(h.slice(5, 7), 16),
+    ];
+  }
+
+  const paletOnbellek = {};
+  function palet(tip) {
+    if (!paletOnbellek[tip]) {
+      const p = CFG.zeminPalet[tip] || CFG.zeminPalet.cimen;
+      paletOnbellek[tip] = p.map(renkAyristir);
+    }
+    return paletOnbellek[tip];
+  }
+
+  /* 0..1 gürültü → palet üzerinde renk (koyu→orta→açık) */
+  function paletRenk(p, t) {
+    if (t < 0.5) {
+      const k = t * 2;
+      return [
+        p[0][0] + (p[1][0] - p[0][0]) * k,
+        p[0][1] + (p[1][1] - p[0][1]) * k,
+        p[0][2] + (p[1][2] - p[0][2]) * k,
+      ];
+    }
+    const k = (t - 0.5) * 2;
+    return [
+      p[1][0] + (p[2][0] - p[1][0]) * k,
+      p[1][1] + (p[2][1] - p[1][1]) * k,
+      p[1][2] + (p[2][2] - p[1][2]) * k,
+    ];
+  }
+
+  /* Üç oktavlı gürültü + ince tane, dünya pikselinden.
+     Değerler ekranda karşılaştırılarak seçildi: taneli hal olmadan
+     zemin "sis" gibi bulanık görünüyor; doku hissini veren tanedir.
+     y frekansı 2 kat: izometride dikey eksen yarı yükseklikte,
+     olmasa lekeler dikey ezik çıkıyor. */
+  function zeminGurultu(wx, wy) {
+    const f = 1 / (CFG.zeminOlcek * CFG.tileW);
+    let v = smoothNoise(wx * f,        wy * f * 2)         * 0.50
+          + smoothNoise(wx * f * 3.5,  wy * f * 7)         * 0.30
+          + smoothNoise(wx * f * 11,   wy * f * 22)        * 0.20;
+
+    if (CFG.zeminTane > 0) {
+      v += (hash2(Math.floor(wx * 2), Math.floor(wy * 2)) - 0.5) * CFG.zeminTane;
+    }
+    return Math.max(0, Math.min(1, v));
+  }
+
+  /* Bir parçanın zeminini piksel piksel üretir.
+     Örnekleme CFG.zeminAdim device pikselde bir yapılır, sonra
+     yumuşatılarak büyütülür — hem hızlı hem pürüzsüz. */
+  function zeminUret(tip, minX, minY, s, genislik, yukseklik) {
+    const adim = Math.max(1, CFG.zeminAdim);
+    const kw = Math.max(1, Math.ceil(genislik / adim));
+    const kh = Math.max(1, Math.ceil(yukseklik / adim));
+
+    const kucuk = document.createElement("canvas");
+    kucuk.width = kw;
+    kucuk.height = kh;
+    const kx = kucuk.getContext("2d");
+    const img = kx.createImageData(kw, kh);
+    const d = img.data;
+    const p = palet(tip);
+
+    for (let j = 0; j < kh; j++) {
+      /* device piksel → dünya pikseli */
+      const wy = minY + (j * adim) / s;
+      for (let i = 0; i < kw; i++) {
+        const wx = minX + (i * adim) / s;
+        const c = paletRenk(p, zeminGurultu(wx, wy));
+        const o = (j * kw + i) * 4;
+        d[o]     = c[0];
+        d[o + 1] = c[1];
+        d[o + 2] = c[2];
+        d[o + 3] = 255;
+      }
+    }
+    kx.putImageData(img, 0, 0);
+    return kucuk;
+  }
+
+  /* Zemini verilen alana serer. Doku yönteminde desene, prosedürelde
+     hesaba düşer; her iki halde de dünya koordinatına sabittir. */
+  function zeminDoldur(x2, tip, minX, minY, s, bx, by, bw, bh) {
+    if (CFG.zemin === "doku") return desenDoldur(x2, tip, minX, minY, s, bx, by, bw, bh);
+
+    const kucuk = zeminUret(tip, minX + bx / s, minY + by / s, s, bw, bh);
+    x2.imageSmoothingEnabled = true;
+    x2.drawImage(kucuk, 0, 0, kucuk.width, kucuk.height, bx, by, bw, bh);
+    return true;
+  }
+
   function desenKaroCiz(x2, tip, px, py, tw, th, saydamlik, minX, minY, s) {
-    if (!desenler[tip]) return false;
+    if (CFG.zemin === "doku" && !desenler[tip]) return false;
 
     const X = px * s, Y = py * s, W = tw * s, H = th * s, D = PAY * s;
 
@@ -629,7 +786,7 @@
     x2.closePath();
     x2.clip();
     if (saydamlik < 1) x2.globalAlpha = saydamlik;
-    desenDoldur(x2, tip, minX, minY, s, X - D, Y - D, W + 2 * D, H + 2 * D);
+    zeminDoldur(x2, tip, minX, minY, s, X - D, Y - D, W + 2 * D, H + 2 * D);
     x2.restore();
     return true;
   }
@@ -858,7 +1015,7 @@
 
     /* Parçanın TAMAMI tek seferde desenle seriliyor. İç bölgelerde
        (tek biyom) iş burada biter: 64 karo yerine tek fillRect. */
-    if (!desenDoldur(x2, ortaTip, minX, minY, s, 0, 0, c.width, c.height)) {
+    if (!zeminDoldur(x2, ortaTip, minX, minY, s, 0, 0, c.width, c.height)) {
       x2.fillStyle = CFG.karoRenk[ortaTip] || "#5f9e4a";
       x2.fillRect(0, 0, c.width, c.height);
     }
