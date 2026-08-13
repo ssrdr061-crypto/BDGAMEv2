@@ -42,6 +42,10 @@ const KLIST_UI = {
   kart_dx:  0,      /* tüm kartları yatay kaydır (px) */
   kart_dy:  1,      /* tüm kartları dikey kaydır (px)  */
 
+  kart_cer: 0,      /* kart çerçeve kalınlığı (px) — 0 = çerçeve YOK */
+  silik_bas: 58,    /* kahraman görseli alttan silikleşmeye NEREDE başlasın (% ) */
+  alt_koyu:  55,    /* alttaki karartma şeridinin koyuluğu (0-100) */
+
   isim_bs:  11.5,   /* kahraman adı yazı boyutu (px) — isimGoster açıksa */
   sv_bs:    10,     /* "Sv. 1" yazı boyutu (px)      */
   yildiz_bs: 19,    /* yıldız boyutu (px)            */
@@ -187,12 +191,14 @@ function _klistKartAyar(id) {
 .klist-cell{ display:flex; align-items:center; justify-content:center; min-width:0; min-height:0; }
 .klist-card{
   position:relative; overflow:hidden; cursor:pointer; box-sizing:border-box;
-  border:2px solid rgba(160,215,255,.45);
+  border:0 solid rgba(160,215,255,.45);   /* kalınlık satır içinde: KLIST_UI.kart_cer */
   background:linear-gradient(180deg, rgba(96,150,215,.55) 0%, rgba(24,58,112,.85) 60%, rgba(9,26,58,.95) 100%);
-  box-shadow:inset 0 2px 3px rgba(150,205,255,.4), 0 4px 8px rgba(0,15,40,.45);
+  box-shadow:0 4px 8px rgba(0,15,40,.45);
   transition:transform .1s;
   -webkit-tap-highlight-color:transparent;
 }
+/* Çerçeve varken eski iç parlama da gelsin */
+.klist-card.cerceveli{ box-shadow:inset 0 2px 3px rgba(150,205,255,.4), 0 4px 8px rgba(0,15,40,.45); }
 .klist-card:not(.empty):active{ transform:scale(.96); }
 /* Zemin: kahramanın ALTINDA, kutucuğu tam doldurur, taşmaz */
 .klist-card .klist-zemin{
@@ -201,6 +207,12 @@ function _klistKartAyar(id) {
 }
 .klist-card .klist-portrait{
   position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1;
+}
+/* Alttan siliklik: kahraman görseli aşağı doğru eriyip zemine karışır,
+   yıldızlar temiz bir alanda kalır. Başlangıç noktası KLIST_UI.silik_bas. */
+.klist-card .klist-portrait.silik{
+  -webkit-mask-image:linear-gradient(180deg, #000 var(--klist-silik,58%), rgba(0,0,0,0) 100%);
+          mask-image:linear-gradient(180deg, #000 var(--klist-silik,58%), rgba(0,0,0,0) 100%);
 }
 .klist-portrait.klist-noimg{
   display:flex; align-items:center; justify-content:center; font-size:32px;
@@ -214,7 +226,7 @@ function _klistKartAyar(id) {
 .klist-foot{
   position:absolute; left:0; right:0; bottom:0; z-index:3;
   padding:16px 3px 4px; text-align:center;
-  background:linear-gradient(180deg, transparent, rgba(3,8,20,.92));
+  background:linear-gradient(180deg, transparent, rgba(3,8,20,var(--klist-alt,.55)));
 }
 .kt-hedef{ color:#8fe3ff !important; }
 .klist-name{
@@ -360,6 +372,7 @@ function _klistKartHTML(id) {
   if (!id) return `
     <div class="klist-card empty"
          style="width:${KV.kart_gen}%;height:${KV.kart_yuk}%;border-radius:${KV.kart_r}px;
+                border-width:2px;
                 transform:translate(${KV.kart_dx}px,${KV.kart_dy}px);">
       <b>＋</b>
     </div>`;
@@ -380,7 +393,7 @@ function _klistKartHTML(id) {
     ? `<img class="klist-zemin" src="${zeminSrc}" alt="" draggable="false">` : "";
 
   const portre = img
-    ? `<img class="klist-portrait" src="${img}" alt="${h.name}" draggable="false"
+    ? `<img class="klist-portrait silik" src="${img}" alt="${h.name}" draggable="false"
          style="object-position:${k.poz};transform:translate(${dx}px,${dy}px) scale(${sc});">`
     : `<div class="klist-portrait klist-noimg" style="background:${h.color}22;color:${h.color};">${h.specialtyIcon || "🦸"}</div>`;
 
@@ -404,8 +417,10 @@ function _klistKartHTML(id) {
        <div class="klist-price">💎 ${(h.price || 0).toLocaleString("tr-TR")}</div></div>`;
 
   return `
-    <div class="klist-card ${sahip ? "" : "locked"}" data-hero="${id}"
+    <div class="klist-card ${sahip ? "" : "locked"} ${KV.kart_cer > 0 ? "cerceveli" : ""}" data-hero="${id}"
          style="width:${gen}%;height:${yuk}%;border-radius:${KV.kart_r}px;
+                border-width:${KV.kart_cer}px;
+                --klist-silik:${KV.silik_bas}%; --klist-alt:${KV.alt_koyu / 100};
                 transform:translate(${KV.kart_dx + k.kdx}px,${KV.kart_dy + k.kdy}px);">
       ${zemin}
       ${portre}
@@ -493,6 +508,9 @@ const _KLIST_ALANLAR = [
   { k: "kart_r",    ad: "Köşe yuvarlaklığı", adim: 1,   min: 0,  max: 40 },
   { k: "kart_dx",   ad: "Kart kaydır ↔",     adim: 1,   min: -40, max: 40 },
   { k: "kart_dy",   ad: "Kart kaydır ↕",     adim: 1,   min: -40, max: 40 },
+  { k: "kart_cer",  ad: "Çerçeve kalınlığı", adim: 1,   min: 0,  max: 5 },
+  { k: "silik_bas", ad: "Alt siliklik %",     adim: 2,   min: 0,  max: 100 },
+  { k: "alt_koyu",  ad: "Alt karartma",       adim: 5,   min: 0,  max: 100 },
   { k: "isim_bs",   ad: "İsim yazı boyutu",  adim: 0.5, min: 6,  max: 22 },
   { k: "sv_bs",     ad: "Sv. yazı boyutu",   adim: 0.5, min: 6,  max: 20 },
   { k: "yildiz_bs", ad: "Yıldız boyutu",     adim: 0.5, min: 4,  max: 22 },
@@ -633,6 +651,7 @@ function _klistDegerMetni() {
   ic_yan: ${KV.ic_yan},  ic_ust: ${KV.ic_ust},
   kart_gen: ${KV.kart_gen},  kart_yuk: ${KV.kart_yuk},
   kart_r: ${KV.kart_r},  kart_dx: ${KV.kart_dx},  kart_dy: ${KV.kart_dy},
+  kart_cer: ${KV.kart_cer},  silik_bas: ${KV.silik_bas},  alt_koyu: ${KV.alt_koyu},
   isim_bs: ${KV.isim_bs},  sv_bs: ${KV.sv_bs},  yildiz_bs: ${KV.yildiz_bs},
   portre_dx: ${KV.portre_dx},  portre_dy: ${KV.portre_dy},  portre_s: ${KV.portre_s},
 
