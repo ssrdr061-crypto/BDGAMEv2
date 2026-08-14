@@ -31,7 +31,7 @@
 
 const shopItems = [
 
-  { name: "5 Dakika Hızlandırma", price: 200, isSpeedUpItem: true, speedUpMinutes: 5, icon: "⏩" },
+  { name: "5 Dakika Hızlandırma", price: 200, isSpeedUpItem: true, speedUpMinutes: 5, icon: "⏩", gorsel: "5dkhiz.webp" },
 
   /* ── İNTİKAL HIZLANDIRMA ──
      Çantaya düşer; yoldaki bir seferin KALAN süresini kısaltır.

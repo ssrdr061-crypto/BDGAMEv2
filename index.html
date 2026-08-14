@@ -4616,6 +4616,15 @@ const RARITY_FILL = {
 };
 
 function itemIconSVG(item) {
+  /*  ÜRÜN GÖRSELİ — magaza.js'te bir ürüne `gorsel: "dosya.webp"`
+      yazılırsa çizilen SVG yerine o görsel kullanılır. Sarı kutuyu
+      komple doldurur. Yeni görsel eklemek için burada değişiklik
+      GEREKMEZ, sadece ürüne alanı ekle.
+      DİKKAT: dosya adında Türkçe karakter olmasın (ı, ş, ğ...) —
+      sunucuda sessizce bulunamaz.                                 */
+  if (item && item.gorsel) {
+    return `<img class="sc-img" src="${item.gorsel}" alt="">`;
+  }
   const kind = itemVisualKind(item);
   const rc = rarityClass(item);
   const [c1, c2] = RARITY_FILL[rc] || RARITY_FILL["rq-entry"];
@@ -5124,7 +5133,17 @@ function sahipOlunanHizlandirmalar() {
       const ms = hizlandirmaSuresiMs(ad);
       const dk = Math.round(ms / 60000);
       const etiket = dk >= 60 ? Math.round(dk / 60) + " sa" : dk + " dk";
-      return { ad, adet: env[ad], ms, etiket };
+      /* Görsel mağaza ürününden gelir (magaza.js → gorsel alanı).
+         Böylece tek yerde tanımlı: mağaza kartı ve bu pencere
+         aynı dosyayı kullanır, ikisi ayrışamaz. */
+      let gorsel = "";
+      try {
+        if (typeof shopItems !== "undefined") {
+          const u = shopItems.find(it => it.name === ad);
+          if (u && u.gorsel) gorsel = u.gorsel;
+        }
+      } catch (e) {}
+      return { ad, adet: env[ad], ms, etiket, gorsel };
     })
     .filter(x => x.ms > 0)
     .sort((a, b) => a.ms - b.ms);
@@ -5187,8 +5206,9 @@ function hizlandirmaPenceresi(unitId, tur) {
         : `<div class="hsm-cards">
             ${liste.map((x, i) => `
               <button class="hsm-card-item${i === 0 ? " is-active" : ""}" data-i="${i}" type="button">
-                <span class="hsm-ci-top">${x.etiket}</span>
-                <span class="hsm-ci-icon">⏩</span>
+                ${x.gorsel
+                  ? `<img class="hsm-ci-img" src="${x.gorsel}" alt="">`
+                  : `<span class="hsm-ci-top">${x.etiket}</span><span class="hsm-ci-icon">⏩</span>`}
                 <span class="hsm-ci-count">${x.adet}</span>
               </button>`).join("")}
           </div>

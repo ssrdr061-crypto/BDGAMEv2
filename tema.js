@@ -4175,8 +4175,11 @@ st.textContent = `
   font-family:'Baloo 2','Nunito',sans-serif !important;
 }
 
-/* süre çubuğu: yazının gölgesi yok, dolum yumuşak aksın */
-.hosp-speed-modal .hsm-bar{ margin:2px 0 10px !important; }
+/* süre çubuğu: kapatma düğmesinin altına girmesin */
+.hosp-speed-modal .hsm-bar{
+  margin:2px 0 10px !important;
+  width:calc(100% - 52px) !important;
+}
 .hosp-speed-modal .hsm-bar-fill{
   width:0%; transition:width .5s linear !important;
 }
@@ -4185,13 +4188,38 @@ st.textContent = `
   font-weight:800 !important;
 }
 
-/* "5 dk" kutucuğu: dış 3B yok, seçili sarı çerçeve duruyor */
+/* "5 dk" kutucuğu: dış 3B yok, biraz küçük, görsel kutuyu doldurur */
 .hosp-speed-modal .hsm-cards{ margin:0 0 4px !important; }
 .hosp-speed-modal .hsm-card-item{
+  flex:0 0 64px !important; height:64px !important;
   box-shadow:none !important;
+  border-radius:12px !important;
+  overflow:hidden !important;
+  padding:0 !important;
 }
 .hosp-speed-modal .hsm-card-item.is-active{
   box-shadow:0 0 0 2px rgba(255,210,87,.35) !important;
+}
+.hosp-speed-modal .hsm-ci-img{
+  position:absolute !important; inset:0 !important;
+  width:100% !important; height:100% !important;
+  object-fit:cover !important; display:block !important;
+  pointer-events:none !important;
+}
+/* sahip olunan adet: beyaz, okunaklı, ezik değil */
+.hosp-speed-modal .hsm-ci-count{
+  right:5px !important; bottom:3px !important;
+  color:#fff !important; font-size:13px !important; font-weight:800 !important;
+  letter-spacing:.2px !important; line-height:1.1 !important;
+  text-shadow:0 1px 3px rgba(0,10,30,.95), 0 0 6px rgba(0,10,30,.8) !important;
+}
+
+/* mağazadaki sarı kutu: görsel varsa kutuyu komple doldurur */
+.shop-card2 .sc-icon .sc-img,
+.bd-buy-icon .sc-img{
+  width:100% !important; height:100% !important;
+  object-fit:cover !important; display:block !important;
+  border-radius:8px !important; position:relative !important;
 }
 
 /* − ve + : 3B yok */
