@@ -4077,12 +4077,22 @@ st.textContent = `
   filter:brightness(.94) !important;
 }
 
-/* ── 2) Rol düğmesi yerinden oynamasın ── */
+/* ── 2) Rol düğmeleri: ÇERÇEVESİZ ──
+   Kutu, zemin ve gölge kalktı; sadece emoji + yazı duruyor.
+   Bir tık daha sola ve bir tık daha küçük. Seçili olan artık
+   çerçeveyle değil, SARI yazı ve tam parlaklıkla belli oluyor. */
+#panel-troops .uv-roles{ left:2px !important; gap:4px !important; }
 #panel-troops .uv-role,
 #panel-troops .uv-role.is-active{
+  width:44px !important; height:44px !important;
+  background:none !important; background-color:transparent !important;
+  border:0 !important; box-shadow:none !important;
   transform:none !important;
-  transition:border-color .15s, background-color .15s !important;
+  transition:opacity .15s, color .15s !important;
+  opacity:.75 !important;
 }
+#panel-troops .uv-role.is-active{ opacity:1 !important; }
+#panel-troops .uv-role.is-active .uvr-txt{ color:#ffd257 !important; }
 
 /* ── 3) ADET ÇUBUĞU SOLA YASLI + KAYNAK AYNI SATIRDA ──
    Alta düşme sorunu: satır flex-wrap:wrap ve kaynak kutusu kendi
