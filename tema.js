@@ -4384,3 +4384,94 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   3B KATMAN TEMİZLİĞİ + DOKUNMA TEPKİSİ
+   1) Birlik paneli ve mağaza panelinin çerçevesindeki kabartma
+      (kalın açık kenar + üstteki beyaz `inset` çizgi) kaldırıldı.
+      Çerçeve inceldi, gölge yumuşadı.
+   2) Mağaza kartlarının 3B alt kenarı ve iç kabartması kalktı.
+   3) Mağaza yazılarındaki 8 yönlü koyu kontur kaldırıldı; yerine
+      tek, ince bir gölge kaldı. Rakamlar artık "kabartma" değil.
+   4) DOKUNMA TEPKİSİ: basılan düğme/kart içindeki görselle
+      birlikte hafifçe küçülüp koyulaşıyor (.96 ölçek, 90 ms).
+      Görsel ayrı bir katman değil, kutunun içinde olduğu için
+      ölçek onu da kapsıyor — "baskı uygulanmış" hissi buradan
+      geliyor. Değeri sertleştirmek istersen .96'yı düşür.
+   ══════════════════════════════════════════════════════════════ */
+(function ucBoyutTemizligi(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaUcBoyutTemizlik";
+st.textContent = `
+
+/* ── 1) PANEL ÇERÇEVELERİ ── */
+#panel-troops .uv-viewer,
+#panel-shop .overlay-card{
+  border-width:2px !important;
+  border-color:rgba(190,240,255,.5) !important;
+  box-shadow:0 8px 26px rgba(0,15,40,.45) !important;
+}
+#panel-shop .overlay-card{
+  border-top-width:2px !important;
+}
+
+/* ── 2) MAĞAZA KARTLARI ── */
+.shop-card2{
+  box-shadow:0 2px 8px rgba(0,20,45,.3) !important;
+}
+.shop-card2 .sc-icon{
+  box-shadow:0 2px 6px rgba(0,15,40,.3) !important;
+}
+.shop-card2 .sc-icon::before{ display:none !important; }
+.shop-card2 .sc-price{
+  box-shadow:none !important;
+}
+
+/* ── 3) MAĞAZA YAZILARI: kontur yok ── */
+.shop-card2 .sc-left,
+.shop-card2 .sc-price,
+.shop-card2 .sc-tag,
+.shop-card2 .sc-badge,
+#panel-shop .shop-tier-header{
+  -webkit-text-stroke:0 !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+}
+
+/* ── 4) DOKUNMA TEPKİSİ ── */
+.shop-card2,
+.hosp-speed-modal .hsm-card-item,
+#panel-troops .uv-portrait,
+#panel-troops .tp-up,
+#panel-troops .uq-btn,
+.hosp-speed-modal .hsm-step,
+.hosp-speed-modal .hsm-btn{
+  transition:transform .09s ease, filter .09s ease !important;
+  -webkit-tap-highlight-color:transparent;
+}
+.shop-card2:active,
+.hosp-speed-modal .hsm-card-item:active,
+#panel-troops .uv-portrait:active,
+#panel-troops .tp-up:active,
+#panel-troops .uq-btn:active,
+.hosp-speed-modal .hsm-step:active,
+.hosp-speed-modal .hsm-btn:active{
+  transform:scale(.96) !important;
+  filter:brightness(.93) !important;
+}
+/* "Anında" ve "Üret": aynı tepki, zıplama yok */
+#panel-troops .unit-instant-btn,
+#panel-troops .unit-train-btn,
+#panel-troops .unit-speedup-btn{
+  transition:transform .09s ease, filter .09s ease !important;
+}
+#panel-troops .unit-instant-btn:active,
+#panel-troops .unit-train-btn:active,
+#panel-troops .unit-speedup-btn:active{
+  transform:scale(.97) !important;
+  filter:brightness(.93) !important;
+}
+`;
+document.head.appendChild(st);
+})();
