@@ -4590,3 +4590,65 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   ARAZİ / SAVAŞ PANELİ — GÖRÜNÜM DÜZENİ
+   Dosyanın SONUNDA yeni IIFE: eski satırlar silinmedi, aynı
+   özgüllükle sonda yazıldığı için bunlar kazanır.
+   ═══════════════════════════════════════════════════════════════ */
+(function araziPanelDuzen(){
+  const st = document.createElement("style");
+  st.id = "araziPanelDuzenStyle";
+  st.textContent = `
+
+/* 1) Panel komple birkaç kademe aşağı */
+#battleArena{ padding:76px 12px 54px !important; }
+
+/* 2) Üstte yer açıldı — ✕ artık panelin İÇİNDE */
+#battleArena .battle-arena{ padding-top:40px !important; }
+#battleArena #mapBackBtn{
+  top:8px !important; right:8px !important;
+  width:34px !important; height:34px !important;
+  border-radius:10px !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+#battleArena #mapBackBtn::after{ font-size:19px !important; }
+
+/* 3) Kahraman kartındaki çıkarma düğmesi küçültüldü */
+#heroPicker .hpk-x{
+  top:-7px !important; right:-7px !important;
+  width:22px !important; height:22px !important;
+  border-width:2px !important;
+  box-shadow:0 2px 5px rgba(120,0,0,.45) !important;
+}
+#heroPicker .hpk-x::before{ font-size:17px !important; }
+
+/* 4) Birlik satırları aşağı alındı, üstte nefes payı */
+#battleArena #troopSelectList{ margin-top:12px !important; }
+
+/* 5) Kum saati satırı TOPLA'ya yaklaştırıldı */
+#battleArena .arazi-sure-satir{ margin:2px 0 -6px !important; }
+
+/* 6) TOPLA: turuncu, 3B çerçeve yok, biraz daha dar.
+      Kalın alt kenar (box-shadow:0 5px 0 ...) ve yazı konturu
+      kaldırıldı — oyunun düz/sade kuralı. */
+#battleArena .battle-arena .battle-btn{
+  background:linear-gradient(180deg,#ffa62e,#e8720d) !important;
+  border:2px solid rgba(255,220,175,.7) !important;
+  color:#fff !important;
+  font-size:15px !important;
+  padding:10px 24px !important;
+  border-radius:13px !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  -webkit-text-stroke:0 !important;
+  transition:transform .09s, filter .09s !important;
+}
+#battleArena .battle-arena .battle-btn:active{
+  transform:scale(.96) !important;
+  filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+`;
+  document.head.appendChild(st);
+})();
