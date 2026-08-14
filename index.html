@@ -3671,26 +3671,63 @@ function closeDailyRewardModal() {
   if (modal) modal.style.display = "none";
 }
 
+/*  EĞİTİM TESLİMATI — PARTİ HALİNDE
+    Eskiden kuyruktaki her birlik kendi saati gelince TEK TEK orduya
+    ekleniyordu: 76 şövalye verince iki dakikada bir sayı 1 artıyordu.
+    Oysa ekranda partinin TOPLAM süresi yazıyor ("×76 · 2 sa 31 dk"),
+    yani ekran "hepsi sonunda gelecek" diyor, arka taraf damla damla
+    veriyordu. Artık o türün kuyruğundaki SON iş bitmeden hiçbiri
+    eklenmez; bitince tamamı bir anda eklenir.
+
+    Kuyruğun yapısı bilerek DEĞİŞTİRİLMEDİ: ekrandaki adet kuyruk
+    uzunluğundan, kalan süre son işin saatinden okunuyor ve
+    hızlandırma zincirin tamamını kaydırıyor. Tek kapı burası
+    olduğu için o üç şeyin hiçbirine dokunmak gerekmedi.          */
 function applyFinishedTraining() {
   if (!state.trainingQueue || state.trainingQueue.length === 0) return;
   const now = Date.now();
+
+  /* birlik türüne göre partinin son bitişi */
+  const sonBitis = {};
+  state.trainingQueue.forEach(job => {
+    if (!(job.unitId in sonBitis) || job.finishAt > sonBitis[job.unitId]) {
+      sonBitis[job.unitId] = job.finishAt;
+    }
+  });
+
   const stillTraining = [];
   state.trainingQueue.forEach(job => {
-    if (now >= job.finishAt) {
+    if (now >= sonBitis[job.unitId]) {
       state.troops[job.unitId] = (state.troops[job.unitId] || 0) + 1;
     } else {
-      stillTraining.push(job);
+      stillTraining.push(job);       /* parti daha bitmedi, hepsi bekler */
     }
   });
   state.trainingQueue = stillTraining;
 }
 
+/*  HASTANE TESLİMATI — PARTİ HALİNDE (eğitimle aynı kural)
+    Tedavisi biten asker tek tek dönmüyor; o birliğin ONAYLANMIŞ
+    partisinin tamamı bitmeden hiçbiri dönmez, bitince topluca döner.
+    Onaylanmamış (henüz sıraya alınmamış) yaralılar hesaba katılmaz,
+    yoksa hiç onaylanmamış tek bir yaralı bütün partiyi kilitler.   */
 function applyFinishedHospitalRecoveries() {
   if (!state.hospital || state.hospital.length === 0) return;
   const now = Date.now();
+
+  /* birlik türüne göre onaylanmış partinin son bitişi */
+  const sonBitis = {};
+  state.hospital.forEach(p => {
+    if (!p.confirmed) return;
+    if (!(p.unitId in sonBitis) || p.finishAt > sonBitis[p.unitId]) {
+      sonBitis[p.unitId] = p.finishAt;
+    }
+  });
+
   const stillRecovering = [];
   state.hospital.forEach(patient => {
-    if (patient.confirmed && now >= patient.finishAt) {
+    const bitis = sonBitis[patient.unitId];
+    if (patient.confirmed && typeof bitis === "number" && now >= bitis) {
       state.troops[patient.unitId] = (state.troops[patient.unitId] || 0) + 1;
     } else {
       stillRecovering.push(patient);
