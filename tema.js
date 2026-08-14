@@ -4185,6 +4185,9 @@ st.textContent = `
   background:none !important; background-color:transparent !important;
   border:0 !important; box-shadow:none !important;
   color:rgba(255,255,255,.72) !important; text-shadow:none !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:15px !important;
+  letter-spacing:.2px !important;
 }
 #panel-troops .tp-tab.active,
 .tp-tab.active{
@@ -4223,21 +4226,38 @@ st.textContent = `
   text-shadow:0 1px 3px rgba(0,20,45,.5) !important;
 }
 
-/* ── 5) Sadece KAFA görünsün ── */
-#panel-troops .tp-row{ --tp-kafa:2.5; --tp-kafa-y:15%; }
-#panel-troops .tp-row[data-unit="robot"]{ --tp-kafa:2.5; --tp-kafa-y:11%; }
+/* ── 5) KAFA: eğitim ekranındaki portre kutusunun AYNISI ──
+   Yuvarlak değil, köşeleri yumuşak kare + ince çerçeve.
+   Kırpma değerleri .uv-portrait ile birebir aynı alındı, böylece
+   iki ekranda kafalar tıpatıp aynı duruyor. */
 #panel-troops .tp-img{
+  flex:0 0 44px !important; width:44px !important; height:44px !important;
+  display:block !important;
   overflow:hidden !important;
-  flex:0 0 50px !important; width:50px !important; height:50px !important;
-  border-radius:50% !important;
+  border-radius:12px !important;
+  background:transparent !important;
+  border:2px solid rgba(190,240,255,.45) !important;
+  box-shadow:none !important;
 }
 #panel-troops .tp-img img{
-  width:100% !important; height:100% !important;
-  object-fit:contain !important;
-  transform:scale(var(--tp-kafa,2.5)) !important;
-  transform-origin:50% var(--tp-kafa-y,15%) !important;
-  filter:none !important;
+  height:auto !important; display:block !important;
+  object-fit:unset !important; transform:none !important;
+  filter:none !important; pointer-events:none !important;
 }
+#panel-troops .tp-row[data-unit="knight"] .tp-img img{
+  width:150% !important; margin:-29% 0 0 -26% !important;
+}
+#panel-troops .tp-row[data-unit="soldier"] .tp-img img{
+  width:130% !important; margin:-16% 0 0 -21% !important;
+}
+#panel-troops .tp-row[data-unit="robot"] .tp-img img{
+  width:140% !important; margin:-10% 0 0 -18% !important;
+}
+
+/* ── 5b) Satırlar biraz daha sola ── */
+#panel-troops .tp-screen{ padding-left:6px !important; padding-right:10px !important; }
+#panel-troops .tp-list{ padding-left:0 !important; }
+#panel-troops .tp-row{ padding-left:2px !important; }
 
 /* ── 6) Geliştir düğmesi ── */
 #panel-troops .tp-up{
