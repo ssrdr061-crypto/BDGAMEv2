@@ -4084,20 +4084,30 @@ st.textContent = `
   transition:border-color .15s, background-color .15s !important;
 }
 
-/* ── 3) ADET ÇUBUĞU SOLA YASLI + KAYNAK AYNI SATIRDA ── */
+/* ── 3) ADET ÇUBUĞU SOLA YASLI + KAYNAK AYNI SATIRDA ──
+   Alta düşme sorunu: satır flex-wrap:wrap ve kaynak kutusu kendi
+   doğal genişliğini istiyordu; rakam bir hane büyüyünce (24→30)
+   satır taşıp alta atlıyordu. Çözüm flex:1 1 0 — kaynak kutusu
+   ARTAN yeri alır, kendi genişliğini dayatmaz, asla taşırmaz.
+   İçerideki üç kaynak da kalan yere eşit dağılır, çerçeve dolu
+   kullanılmış olur. */
 #panel-troops .unit-qty-bar{
   justify-content:flex-start !important;
   align-items:center !important;
-  gap:7px !important;
-  margin:8px 10px 0 !important;
+  gap:5px !important;
+  margin:8px 6px 0 !important;
 }
+#panel-troops .uq-input{ width:46px !important; }
 #panel-troops .uv-res{
+  flex:1 1 0 !important; min-width:0 !important;
   display:flex !important; align-items:center !important;
-  gap:12px !important; margin-left:12px !important;
+  justify-content:space-evenly !important;
+  gap:4px !important; margin-left:6px !important;
   background:none !important; background-color:transparent !important;
   border:0 !important; box-shadow:none !important; padding:0 !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   pointer-events:none !important;
+  white-space:nowrap !important;
 }
 #panel-troops .uv-res-oge{
   display:flex !important; align-items:center !important; gap:4px !important;
