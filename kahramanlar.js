@@ -95,7 +95,7 @@ const KLIST_SIRA = [
 const KLIST_KART = {
   buz_savascisi: { dx: 1,  dy: 43, s: 1.66 },
   celik_savasci: {         dy: 11, s: 1.70 },
-  ates_buyucusu: { dx: -3, dy: 62, s: 2.08 },
+  ates_buyucusu: { dx: -3, dy: 62, s: 2.08, gen: 98 },
   ivanovna:      { dx: -1, dy: 61, s: 1.98 },
   revolia:       { dx: 2,  dy: 69, s: 2.46 }
 };
