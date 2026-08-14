@@ -3944,3 +3944,193 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   STAT İNCE AYAR ŞERİDİ  —  adrese ?stat=1 eklenince açılır
+   ------------------------------------------------------------
+   Sadece eğitim ekranındaki 4 stat kutucuğunu (Saldırı / Can /
+   Savunma / Güç) canlı ayarlar. Menünün içine hiçbir şey
+   eklemez; şerit ekranın altında ayrı bir kattır.
+   Ayarlar bitince "CSS'i GÖSTER" düğmesi son hâli ekrana basar;
+   o metin kalıcı olarak dosyaya gömülüp bu blok silinecektir.
+   ══════════════════════════════════════════════════════════════ */
+(function statInceAyar(){
+  try{
+    if (!/[?&]stat=1/.test(location.search)) return;
+  }catch(e){ return; }
+
+  /* ── Varsayılan değerler ── */
+  var A = {
+    duzen: "4",      /* 4 | 2x2 | eski            */
+    ikon:  "yan",    /* yan | ust | kapali        */
+    ped:   6,        /* kutu iç boşluğu (px)      */
+    bosluk:6,        /* kutular arası boşluk      */
+    isimF: 12,       /* başlık yazı boyutu        */
+    rakamF:20,       /* rakam yazı boyutu         */
+    ikonF: 16,       /* ikon boyutu               */
+    zemin: 22,       /* zemin koyuluğu (%)        */
+    kose:  10        /* köşe yuvarlaklığı         */
+  };
+
+  /* ── CSS üretici ── */
+  function cssUret(){
+    if (A.duzen === "eski") return "";
+
+    var sut = (A.duzen === "2x2") ? 2 : 4;
+    var s = "";
+
+    s += "#panel-troops .stats-grid{\n";
+    s += "  display:grid !important;\n";
+    s += "  grid-template-columns:repeat(" + sut + ",1fr) !important;\n";
+    s += "  gap:" + A.bosluk + "px !important;\n";
+    s += "  flex-direction:row !important;\n";
+    s += "  max-width:520px !important; margin:0 auto !important;\n";
+    s += "}\n";
+
+    s += "#panel-troops .stat-row,\n";
+    s += "#panel-troops .stat-row:nth-child(odd),\n";
+    s += "#panel-troops .stat-row.stat-row-power{\n";
+    s += "  display:grid !important;\n";
+    s += "  justify-items:center !important; align-content:center !important;\n";
+    s += "  gap:1px !important;\n";
+    s += "  padding:" + A.ped + "px 2px !important;\n";
+    s += "  border-radius:" + A.kose + "px !important;\n";
+    s += "  background:rgba(4,32,60," + (A.zemin/100).toFixed(2) + ") !important;\n";
+    s += "  text-align:center !important;\n";
+    s += "}\n";
+
+    if (A.ikon === "kapali"){
+      s += "#panel-troops .stat-ico{ display:none !important; }\n";
+      s += "#panel-troops .stat-row{ grid-template-columns:1fr !important; }\n";
+      s += "#panel-troops .stat-name{ grid-row:1 !important; }\n";
+      s += "#panel-troops .stat-val{ grid-row:2 !important; }\n";
+    } else if (A.ikon === "ust"){
+      s += "#panel-troops .stat-row{ grid-template-columns:1fr !important; }\n";
+      s += "#panel-troops .stat-ico{ grid-row:1 !important; }\n";
+      s += "#panel-troops .stat-name{ grid-row:2 !important; }\n";
+      s += "#panel-troops .stat-val{ grid-row:3 !important; }\n";
+    } else {
+      s += "#panel-troops .stat-row{ grid-template-columns:auto auto !important; justify-content:center !important; }\n";
+      s += "#panel-troops .stat-ico{ grid-column:1 !important; grid-row:1 !important; }\n";
+      s += "#panel-troops .stat-name{ grid-column:2 !important; grid-row:1 !important; }\n";
+      s += "#panel-troops .stat-val{ grid-column:1 / -1 !important; grid-row:2 !important; }\n";
+    }
+
+    s += "#panel-troops .stat-ico{\n";
+    s += "  width:auto !important; font-size:" + A.ikonF + "px !important;\n";
+    s += "  line-height:1 !important; text-align:center !important;\n";
+    s += "}\n";
+    s += "#panel-troops .stat-name{\n";
+    s += "  flex:none !important; font-size:" + A.isimF + "px !important;\n";
+    s += "  white-space:nowrap !important; line-height:1.1 !important;\n";
+    s += "  opacity:.92 !important;\n";
+    s += "}\n";
+    s += "#panel-troops .stat-val{\n";
+    s += "  font-size:" + A.rakamF + "px !important; line-height:1.05 !important;\n";
+    s += "  min-width:0 !important; text-align:center !important;\n";
+    s += "}\n";
+    s += "#panel-troops .stat-row.stat-row-power .stat-val{ color:#ffd257 !important; }\n";
+    return s;
+  }
+
+  /* ── Canlı stil düğümü ── */
+  var stil = document.createElement("style");
+  stil.id = "statAyarStil";
+  document.head.appendChild(stil);
+  function uygula(){ stil.textContent = cssUret(); }
+
+  /* ── Şerit ── */
+  var kap = document.createElement("div");
+  kap.id = "statAyarSerit";
+  kap.innerHTML = ""
+   + "<style>"
+   + "#statAyarSerit{position:fixed;left:0;right:0;bottom:0;z-index:99999;"
+   + "background:rgba(3,20,38,.96);border-top:2px solid #ffd257;"
+   + "font-family:'Baloo 2',sans-serif;color:#fff;padding:6px 8px;"
+   + "max-height:52vh;overflow:auto;box-shadow:0 -6px 18px rgba(0,0,0,.5);}"
+   + "#statAyarSerit.kapali{max-height:34px;overflow:hidden;}"
+   + "#statAyarSerit .sa-ust{display:flex;align-items:center;gap:8px;margin-bottom:4px;}"
+   + "#statAyarSerit .sa-ust b{flex:1;font-size:13px;color:#ffd257;}"
+   + "#statAyarSerit button{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);"
+   + "border-radius:7px;padding:4px 9px;font-size:12px;font-family:inherit;font-weight:700;}"
+   + "#statAyarSerit button.sec{background:#ffd257;color:#0a2038;border-color:#ffd257;}"
+   + "#statAyarSerit .sa-sat{display:flex;align-items:center;gap:7px;margin:3px 0;}"
+   + "#statAyarSerit .sa-et{width:74px;font-size:11px;opacity:.85;flex:none;}"
+   + "#statAyarSerit input[type=range]{flex:1;height:22px;}"
+   + "#statAyarSerit .sa-dg{width:34px;text-align:right;font-size:12px;color:#ffd257;flex:none;}"
+   + "#statAyarCikti{white-space:pre;font-family:monospace;font-size:10px;background:#000;"
+   + "color:#8f8;padding:6px;border-radius:6px;margin-top:6px;max-height:30vh;overflow:auto;display:none;}"
+   + "</style>"
+   + "<div class='sa-ust'><b>STAT AYAR</b>"
+   + "<button data-is='css'>CSS'i GÖSTER</button>"
+   + "<button data-is='gizle'>▼</button></div>"
+   + "<div class='sa-sat'><span class='sa-et'>Düzen</span>"
+   + "<button data-d='4'>4'lü</button><button data-d='2x2'>2x2</button><button data-d='eski'>Eski</button></div>"
+   + "<div class='sa-sat'><span class='sa-et'>İkon</span>"
+   + "<button data-i='yan'>Yanda</button><button data-i='ust'>Üstte</button><button data-i='kapali'>Kapalı</button></div>"
+   + sat("ped","Yükseklik",0,20)
+   + sat("bosluk","Boşluk",0,16)
+   + sat("isimF","İsim yazı",7,20)
+   + sat("rakamF","Rakam",10,32)
+   + sat("ikonF","İkon",8,28)
+   + sat("zemin","Zemin",0,70)
+   + sat("kose","Köşe",0,20)
+   + "<div id='statAyarCikti'></div>";
+
+  function sat(ad,etiket,min,max){
+    return "<div class='sa-sat'><span class='sa-et'>" + etiket + "</span>"
+         + "<input type='range' data-a='" + ad + "' min='" + min + "' max='" + max + "' value='" + A[ad] + "'>"
+         + "<span class='sa-dg' data-g='" + ad + "'>" + A[ad] + "</span></div>";
+  }
+
+  function baglaVeAc(){
+    document.body.appendChild(kap);
+    uygula();
+    isaretle();
+
+    kap.addEventListener("input", function(e){
+      var ad = e.target && e.target.dataset && e.target.dataset.a;
+      if (!ad) return;
+      A[ad] = parseInt(e.target.value, 10);
+      var g = kap.querySelector("[data-g='" + ad + "']");
+      if (g) g.textContent = A[ad];
+      uygula();
+    });
+
+    kap.addEventListener("click", function(e){
+      var b = e.target.closest && e.target.closest("button");
+      if (!b) return;
+      if (b.dataset.d){ A.duzen = b.dataset.d; uygula(); isaretle(); return; }
+      if (b.dataset.i){ A.ikon  = b.dataset.i; uygula(); isaretle(); return; }
+      if (b.dataset.is === "gizle"){
+        kap.classList.toggle("kapali");
+        b.textContent = kap.classList.contains("kapali") ? "▲" : "▼";
+        return;
+      }
+      if (b.dataset.is === "css"){
+        var c = kap.querySelector("#statAyarCikti");
+        if (c.style.display === "block"){ c.style.display = "none"; return; }
+        c.textContent = cssUret() || "(eski düzen — ek CSS yok)";
+        c.style.display = "block";
+        return;
+      }
+    });
+
+    /* Şeridin üstündeki dokunuşlar haritaya sızmasın */
+    ["touchstart","touchmove","touchend","pointerdown"].forEach(function(t){
+      kap.addEventListener(t, function(ev){ ev.stopPropagation(); }, {passive:true});
+    });
+  }
+
+  function isaretle(){
+    kap.querySelectorAll("[data-d]").forEach(function(b){
+      b.classList.toggle("sec", b.dataset.d === A.duzen);
+    });
+    kap.querySelectorAll("[data-i]").forEach(function(b){
+      b.classList.toggle("sec", b.dataset.i === A.ikon);
+    });
+  }
+
+  if (document.body) baglaVeAc();
+  else document.addEventListener("DOMContentLoaded", baglaVeAc);
+})();
