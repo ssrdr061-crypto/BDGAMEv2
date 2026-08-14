@@ -4602,7 +4602,7 @@ document.head.appendChild(st);
   st.textContent = `
 
 /* 1) Panel komple birkaç kademe aşağı */
-#battleArena{ padding:18px 12px 100px !important; }
+#battleArena{ padding:6px 12px 140px !important; }
 
 /* 2) Üstte yer açıldı — ✕ artık panelin İÇİNDE */
 #battleArena .battle-arena{ padding-top:25px !important; }
