@@ -1118,6 +1118,29 @@ function hpkKartHTML(id) {
 /* ── hangi yuva için seçim yapılıyor ── */
 let _hpkTargetSlot = 0;
 
+/*  ── YOLDAKİ KAHRAMANLAR ──
+    Her kahramandan bir tane var; yolda olan bir orduyla giden kahraman
+    ikinci bir sefere verilemez. Ayrı bir liste TUTULMAZ — tek doğru
+    kaynak sefer kayıtlarıdır (`SEFER.benimkiler()`), her kayıtta
+    `komutanlar` yazılı. Ordu dönünce kayıt silindiği için kahraman
+    kendiliğinden serbest kalır.
+    sefer.js yoksa veya bir hata olursa boş liste döner — kilit
+    devreye girmez, oyun eski gibi çalışır.                          */
+function seferdekiKomutanlar() {
+  const out = [];
+  try {
+    if (!window.SEFER || typeof window.SEFER.benimkiler !== "function") return out;
+    window.SEFER.benimkiler().forEach(x => {
+      const k = x && x.s && x.s.komutanlar;
+      if (!Array.isArray(k)) return;
+      k.forEach(id => { if (id && out.indexOf(id) === -1) out.push(id); });
+    });
+  } catch (e) {
+    console.warn("[heroes.js] Seferdeki kahramanlar okunamadı:", e);
+  }
+  return out;
+}
+
 /* ── ANA FONKSİYON: yuvaları çiz ── */
 function renderHeroPickerForBattle() {
   const el = document.getElementById("heroPicker");
@@ -1136,6 +1159,13 @@ function renderHeroPickerForBattle() {
 
   /* elde olmayan komutanları listeden temizle */
   selectedCommanders = selectedCommanders.filter(id => owned.indexOf(id) !== -1);
+
+  /* YOLDA OLANI YUVADAN DÜŞÜR — yuva boş "+" görünür, tekrar
+     gönderilemez. Ordu dönünce kahraman yeniden seçilebilir. */
+  const yolda = seferdekiKomutanlar();
+  if (yolda.length) {
+    selectedCommanders = selectedCommanders.filter(id => yolda.indexOf(id) === -1);
+  }
 
   let html = `<div class="hpk-slots">`;
   for (let i = 0; i < MAX_KOMUTAN; i++) {
@@ -1177,8 +1207,16 @@ function openHeroPickModal(slotIndex) {
   closeHeroPickModal();
   _hpkTargetSlot = slotIndex;
 
-  const owned = (state.ownedHeroSkins || []).filter(id => HERO_STATS[id]);
-  if (!owned.length) { if (typeof showToast === "function") showToast("Hiç kahramanın yok."); return; }
+  const tumu = (state.ownedHeroSkins || []).filter(id => HERO_STATS[id]);
+  if (!tumu.length) { if (typeof showToast === "function") showToast("Hiç kahramanın yok."); return; }
+
+  /* Yolda olan kahraman listede HİÇ ÇIKMAZ. */
+  const yolda = seferdekiKomutanlar();
+  const owned = tumu.filter(id => yolda.indexOf(id) === -1);
+  if (!owned.length) {
+    if (typeof showToast === "function") showToast("Bütün kahramanların yolda.");
+    return;
+  }
 
   const cards = owned.map(id => {
     const h = HERO_STATS[id];
@@ -1220,6 +1258,14 @@ function closeHeroPickModal() {
 /* ── kahramanı yuvaya ata (gerekirse yer değiştir) ── */
 function assignCommander(heroId, slotIndex) {
   if (!HERO_STATS[heroId]) return;
+
+  /* Pencere açıkken o kahraman yola çıkmış olabilir — son kontrol. */
+  if (seferdekiKomutanlar().indexOf(heroId) !== -1) {
+    if (typeof showToast === "function") showToast("Bu kahraman şu an yolda.");
+    closeHeroPickModal();
+    renderHeroPickerForBattle();
+    return;
+  }
 
   /* listeyi MAX_KOMUTAN uzunluğunda sabit bir diziye çevir */
   const slots = [];
