@@ -1094,7 +1094,7 @@ function _enterBattleWith(defender) {
   const log = document.getElementById("battleLog");
   if (log) log.innerHTML = "";
   const btn = document.getElementById("battleBtn");
-  if (btn) btn.textContent = "⚔️ Orduyla Saldır";
+  if (btn && !btn.disabled) btn.textContent = "SAVAŞ";
 }
 
 function hookBattleButton() {
