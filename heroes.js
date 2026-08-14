@@ -904,8 +904,29 @@ function heroPortraitHTML(id, cls) {
 
     Burada yalnız savaş ekranına özgü ölçüler var.
     ───────────────────────────────────────────── */
+/*  ── HPK_YUVA — YUVANIN ÖLÇÜSÜ (tek yer) ──────────────────────
+    ESKİ HALİ SİLİNDİ. Önceden "aspect-ratio: 3/4" yazıyordu; yani
+    yükseklik, panelin o anki genişliğinden HESAPLANIYORDU. Kahraman
+    eklenince panelin içeriği uzuyor, kaydırma alanı değişiyor,
+    genişlik bir tık oynuyor ve yükseklik onunla birlikte yeniden
+    hesaplanıyordu — menü her seferinde zıplıyordu.
+
+    Artık yükseklik SABİT PİKSEL. İçerikten, kaydırmadan, portrenin
+    ne zaman yüklendiğinden bağımsız. Hiç kıpırdamaz.
+
+    Boyu değiştirmek istersen SADECE `yukseklik` sayısını değiştir.
+    226 sayısı kahraman menüsündeki kartın oranından geliyor
+    (orada kart ~128 en / ~247 boy; burada yuva ~117 en).
+    ───────────────────────────────────────────────────────────── */
+const HPK_YUVA = {
+  yukseklik: 226,   /* yuvanın SABİT boyu (px) — asıl ayar bu */
+  bosluk:      9,   /* yuvalar arası boşluk (px) */
+  pay_yan:    11,   /* satırın sağ/sol iç boşluğu (px) — − düğmesi taşıyor */
+  pay_ust:    11,   /* satırın üst iç boşluğu (px)     — − düğmesi taşıyor */
+  kose:       14    /* boş yuvanın köşe yuvarlaklığı (px) */
+};
+
 const HPK_KART = {
-  oran:      "3 / 4",  /* yuvanın en/boy oranı — liste kartıyla aynı */
   sv_bs:     12,       /* "Sv. 1" yazı boyutu (px) — 0 = listedeki değer  */
   yildiz_bs: 17,       /* yıldız boyutu (px)      — 0 = listedeki değer  */
   specGoster: true     /* sol üstteki uzmanlık rozeti                    */
@@ -925,15 +946,22 @@ const HPK_KART = {
   display:block !important;
   overflow-x:visible !important;
 }
+/* Izgara: sütunlar eşit böler, yükseklik SABİT.
+   flex + aspect-ratio bilerek kullanılmadı — bkz. HPK_YUVA notu. */
 .hpk-slots{
-  display:flex; gap:9px; width:100%;
-  padding:2px 0 4px; box-sizing:border-box;
+  display:grid;
+  grid-auto-flow:column; grid-auto-columns:1fr;
+  gap:${HPK_YUVA.bosluk}px; width:100%;
+  padding:${HPK_YUVA.pay_ust}px ${HPK_YUVA.pay_yan}px 4px;
+  box-sizing:border-box;
 }
 .hpk-slot{
   position:relative;
-  flex:1 1 0; min-width:0; max-width:none;
-  aspect-ratio:${HPK_KART.oran};     /* liste kartıyla aynı oran */
-  border-radius:14px; cursor:pointer; box-sizing:border-box;
+  min-width:0;
+  height:${HPK_YUVA.yukseklik}px;         /* SABİT — hesaplanmaz */
+  min-height:${HPK_YUVA.yukseklik}px;
+  max-height:${HPK_YUVA.yukseklik}px;
+  border-radius:${HPK_YUVA.kose}px; cursor:pointer; box-sizing:border-box;
   background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(8,45,80,.35));
   border:2px dashed rgba(190,240,255,.6);
   display:flex; flex-direction:column; align-items:center; justify-content:center;

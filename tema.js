@@ -2932,10 +2932,12 @@ console.log("[tema.js] Kahraman kartı kaydırma açık ✔");
 const st = document.createElement("style");
 st.id = "temaSaldiriHiza";
 st.textContent = `
+/* Panel yukarı alındı: üstteki pay küçüldü, alttaki büyüdü.
+   Böylece köşeye taşan ✕ düğmesine yer kalıyor, kırpılmıyor. */
 #battleArena{
-  align-items:center !important;
+  align-items:flex-start !important;
   justify-content:center !important;
-  padding:60px 12px 70px !important;
+  padding:26px 12px 104px !important;
 }
 #battleArena .battle-arena{
   width:100% !important;
@@ -3106,9 +3108,8 @@ st.textContent = `
    Yuva overflow:hidden'dı, düğme kırpılıyordu; portrenin kendisine
    köşe yarıçapı verilip yuva serbest bırakıldı. */
 #heroPicker, #heroPicker .hpk-slots, #heroPicker .hpk-slot{ overflow:visible !important; }
-/* düğme dışarı taştığı için satırın çevresinde pay bırakılıyor;
-   yoksa panelin kaydırma alanı düğmeyi kesiyor */
-#heroPicker .hpk-slots{ padding:11px 11px 4px !important; box-sizing:border-box !important; }
+/* Satırın iç boşluğu buradan KALDIRILDI — artık heroes.js → HPK_YUVA
+   (pay_yan / pay_ust) tek sahibi. İki yerde tutulursa ayrışır. */
 #heroPicker .hpk-slot .hpk-portrait{ border-radius:12px !important; }
 #heroPicker .hpk-x{
   top:-9px !important; right:-9px !important;
