@@ -882,7 +882,7 @@ const TroopTabs = (function () {
           <div class="tp-img">${pic}</div>
           <div class="tp-mid">
             <div class="tp-name">${unitAdi(def)}</div>
-            <div class="tp-count" data-count="${def.id}">x${money(n)}</div>
+            <div class="tp-count" data-count="${def.id}">${money(n)}</div>
           </div>
           <button class="tp-up" data-unit="${def.id}">Geliştir</button>
         </div>`;
@@ -898,7 +898,7 @@ const TroopTabs = (function () {
     if (!list) return;
     list.querySelectorAll("[data-count]").forEach(el => {
       const n = (state.troops && state.troops[el.dataset.count]) || 0;
-      const txt = "x" + money(n);
+      const txt = money(n);          /* baştaki "x" kaldırıldı */
       if (el.textContent !== txt) el.textContent = txt;
       el.closest(".tp-row").classList.toggle("tp-none", n <= 0);
     });

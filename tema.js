@@ -4148,3 +4148,112 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   "BİRLİKLER" SEKMESİ — SADELEŞTİRME
+   1) Sekme çubuğunun arkasındaki koyu mavi hap kalktı; sadece
+      seçili sekmenin beyaz kalıbı duruyor.
+   2) Birlik satırlarının kutusu kalktı (zemin + 3B alt kenar).
+      Satırlar arası ince bir çizgi kaldı, hepsi birbirine
+      girmesin diye.
+   3) Rakamın başındaki "x" troops.js'te silindi; buradaki kalın
+      koyu kontur (text-stroke + 8 yönlü gölge) da kaldırıldı.
+   4) Birlik adı: Baloo 2, büyük harf, düz beyaz — konturu yok.
+   5) GÖRSEL: tam boy değil, sadece KAFA. Görsel büyütülüp üstten
+      hizalanıyor, kutu taşanı kırpıyor.
+      Kafa ortalanmıyorsa iki değişkeni oynat:
+        --tp-kafa    → yakınlaştırma (büyütürsen daha yakın)
+        --tp-kafa-y  → dikey odak (küçültürsen daha yukarı)
+      Robotun kafası diğerlerinden yukarıda, onun için ayrı değer.
+   6) "Geliştir": 3B alt kenar ve yazıdaki kalın kontur kaldırıldı.
+   ══════════════════════════════════════════════════════════════ */
+(function birliklerSekmesiSade(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaBirliklerSade";
+st.textContent = `
+
+/* ── 1) Sekme çubuğu: arka hap yok ── */
+#panel-troops .tp-tabs{
+  background:none !important; background-color:transparent !important;
+  border:0 !important; box-shadow:none !important;
+  backdrop-filter:none !important;
+  padding:3px 0 !important;
+}
+#panel-troops .tp-tab,
+.tp-tab{
+  background:none !important; background-color:transparent !important;
+  border:0 !important; box-shadow:none !important;
+  color:rgba(255,255,255,.72) !important; text-shadow:none !important;
+}
+#panel-troops .tp-tab.active,
+.tp-tab.active{
+  background:#fff !important; background-color:#fff !important;
+  color:#0e6fc0 !important;
+  box-shadow:0 2px 6px rgba(0,30,60,.22) !important;
+}
+
+/* ── 2) Birlik satırı: kutu yok ── */
+#panel-troops .tp-row{
+  background:none !important; background-color:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  border-radius:0 !important;
+  padding:4px 6px !important;
+  border-bottom:1px solid rgba(190,240,255,.14) !important;
+}
+#panel-troops .tp-row:last-child{ border-bottom:0 !important; }
+
+/* ── 3) Rakam: kontur yok ── */
+#panel-troops .tp-count{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:23px !important;
+  color:#fff !important;
+  -webkit-text-stroke:0 !important;
+  text-shadow:0 1px 3px rgba(0,20,45,.5) !important;
+  letter-spacing:.3px !important;
+}
+
+/* ── 4) Birlik adı ── */
+#panel-troops .tp-name{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:15px !important;
+  text-transform:uppercase !important; letter-spacing:1.1px !important;
+  color:#cdeeff !important;
+  text-shadow:0 1px 3px rgba(0,20,45,.5) !important;
+}
+
+/* ── 5) Sadece KAFA görünsün ── */
+#panel-troops .tp-row{ --tp-kafa:2.5; --tp-kafa-y:15%; }
+#panel-troops .tp-row[data-unit="robot"]{ --tp-kafa:2.5; --tp-kafa-y:11%; }
+#panel-troops .tp-img{
+  overflow:hidden !important;
+  flex:0 0 50px !important; width:50px !important; height:50px !important;
+  border-radius:50% !important;
+}
+#panel-troops .tp-img img{
+  width:100% !important; height:100% !important;
+  object-fit:contain !important;
+  transform:scale(var(--tp-kafa,2.5)) !important;
+  transform-origin:50% var(--tp-kafa-y,15%) !important;
+  filter:none !important;
+}
+
+/* ── 6) Geliştir düğmesi ── */
+#panel-troops .tp-up{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:12.5px !important;
+  color:#fff !important;
+  text-shadow:0 1px 2px rgba(0,40,20,.45) !important;
+  -webkit-text-stroke:0 !important;
+  box-shadow:0 2px 5px rgba(0,25,10,.28) !important;
+  border:0 !important;
+}
+#panel-troops .tp-up:active{
+  transform:none !important;
+  box-shadow:0 1px 3px rgba(0,25,10,.3) !important;
+  filter:brightness(.94) !important;
+}
+`;
+document.head.appendChild(st);
+})();
