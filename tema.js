@@ -4602,12 +4602,12 @@ document.head.appendChild(st);
   st.textContent = `
 
 /* 1) Panel komple birkaç kademe aşağı */
-#battleArena{ padding:6px 12px 140px !important; }
+#battleArena{ padding:18px 12px 100px !important; }
 
 /* 2) Üstte yer açıldı — ✕ artık panelin İÇİNDE */
-#battleArena .battle-arena{ padding-top:25px !important; }
+#battleArena .battle-arena{ padding-top:42px !important; }
 #battleArena #mapBackBtn{
-  top:-17px !important; right:6px !important;
+  top:0px !important; right:6px !important;   /* panelin üst kenarına dayalı, tamamen içeride */
   width:36px !important; height:36px !important;
   border-radius:10px !important;
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
