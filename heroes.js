@@ -915,11 +915,13 @@ function heroPortraitHTML(id, cls) {
     ne zaman yüklendiğinden bağımsız. Hiç kıpırdamaz.
 
     Boyu değiştirmek istersen SADECE `yukseklik` sayısını değiştir.
-    226 sayısı kahraman menüsündeki kartın oranından geliyor
-    (orada kart ~128 en / ~247 boy; burada yuva ~117 en).
+    119 sayısı ÖLÇÜLEREK bulundu: kahraman menüsündeki kart
+    100 en × 133 boy, yani tam 3'e 4. Savaş panelinin iç boşlukları
+    (12 + 14 + 11) düşünce yuvaya ~89 genişlik kalıyor; aynı oranı
+    tutturan boy 119'dur. Genişlik değişirse bu sayı da değişmeli.
     ───────────────────────────────────────────────────────────── */
 const HPK_YUVA = {
-  yukseklik: 226,   /* yuvanın SABİT boyu (px) — asıl ayar bu */
+  yukseklik: 119,   /* yuvanın SABİT boyu (px) — asıl ayar bu */
   bosluk:      9,   /* yuvalar arası boşluk (px) */
   pay_yan:    11,   /* satırın sağ/sol iç boşluğu (px) — − düğmesi taşıyor */
   pay_ust:    11,   /* satırın üst iç boşluğu (px)     — − düğmesi taşıyor */

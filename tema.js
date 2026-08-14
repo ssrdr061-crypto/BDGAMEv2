@@ -2935,7 +2935,7 @@ st.textContent = `
 /* Panel yukarı alındı: üstteki pay küçüldü, alttaki büyüdü.
    Böylece köşeye taşan ✕ düğmesine yer kalıyor, kırpılmıyor. */
 #battleArena{
-  align-items:flex-start !important;
+  align-items:center !important;
   justify-content:center !important;
   padding:26px 12px 104px !important;
 }
