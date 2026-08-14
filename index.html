@@ -2285,6 +2285,11 @@ body.world-active{padding:0; overflow:hidden;}
            UNIT_ROLES'tan TroopViewer.buildRoles() doldurur -->
       <div class="uv-roles" id="uvRoles"></div>
 
+      <!-- KAYNAK GEREKSİNİMİ — rol düğmelerinin tam karşısı, sağ kenar.
+           Kutu yok: sadece emoji + sayı. İçeriği seçili birliğe ve
+           seçilen adede göre uvGereksinim() tazeler. -->
+      <div class="uv-res" id="uvRes"></div>
+
       <section class="unit-screen us-knight is-active" data-unit="knight">
         <div class="stage">
           <div class="ground-shadow"></div>
@@ -7601,7 +7606,31 @@ const TroopViewer = (function () {
       ? unitAdi(ORDER[idx]) : NAMES[ORDER[idx]];
     syncRoles();
     if (fullRedraw || !_drawn) { renderUnitStats(); _drawn = true; }
-    else syncPortraits();
+    else { syncPortraits(); uvGereksinim(); }
+  }
+
+  /*  KAYNAK GEREKSİNİMİ — sağ kenardaki sütun.
+      Seçili birliğin ve seçilen ADEDİN toplam kaynağını yazar.
+      Sayı kısaltılır (10200 → 10.2K), yoksa rakamlar birlik
+      görselinin üstüne taşıyor. Kaynağı yetmeyen satır kırmızı.  */
+  function uvGereksinim() {
+    const box = document.getElementById("uvRes");
+    if (!box) return;
+    const uid = ORDER[idx];
+    const def = UNIT_TYPES[uid];
+    if (!def || !def.kaynak) { box.innerHTML = ""; return; }
+    const adet = Math.max(1, unitTrainQty[uid] || 1);
+    const gerek = (typeof kaynakMaliyet === "function")
+      ? kaynakMaliyet(uid, adet)
+      : {};
+    const kay = (state && state.kaynaklar) || {};
+    const kisa = (n) => (typeof kisaSayi === "function") ? kisaSayi(n) : String(n);
+    box.innerHTML = Object.keys(gerek).map(k => {
+      const yetersiz = (kay[k] || 0) < gerek[k];
+      return `<div class="uv-res-oge${yetersiz ? " yok" : ""}">` +
+             `<span class="uvr-em">${(typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || ""}</span>` +
+             `<span class="uvr-mik">${kisa(gerek[k])}</span></div>`;
+    }).join("");
   }
 
   function renderUnitStats() {
@@ -7645,7 +7674,13 @@ const TroopViewer = (function () {
       const speedUpCount = state.inventory["5 Dakika Hızlandırma"] || 0;
       const selQty = unitTrainQty[uid] || 1;
       const affordableMax = Math.max(1, Math.floor(state.diamonds / def.cost));
-      const sliderMax = Math.min(affordableMax, 500);
+      /* Üst sınır artık SADECE elmasa değil, kaynağa da bakar.
+         maxUretilebilir (troops.js) elmas ve her kaynak için ayrı ayrı
+         hesaplar, en küçüğünü verir — böylece oyuncu ödeyemeyeceği bir
+         adede hiç çıkamaz ("yetmiyorsa yettiği kadar"). Tavan 500. */
+      const sliderMax = (typeof maxUretilebilir === "function")
+        ? maxUretilebilir(uid, 500)
+        : Math.min(affordableMax, 500);
       const qty = Math.min(selQty, sliderMax);
       unitTrainQty[uid] = qty;
       const totalCost = def.cost * qty;
@@ -7725,6 +7760,8 @@ const TroopViewer = (function () {
         const sr = el.querySelector(".utb-sure");
         if (sr) sr.textContent = (typeof sureDk === "function")
           ? sureDk(def.trainMinutes * v) : (def.trainMinutes * v) + " dk";
+        /* sağdaki kaynak sütunu adetle birlikte anında değişir */
+        uvGereksinim();
       };
       if (slider) slider.addEventListener("input", () => setQty(slider.value));
       if (numBox) numBox.addEventListener("input", () => setQty(numBox.value));
@@ -7733,6 +7770,7 @@ const TroopViewer = (function () {
       if (minus) bindTap(minus, () => setQty((unitTrainQty[uid] || 1) - 1));
       if (plus) bindTap(plus, () => setQty((unitTrainQty[uid] || 1) + 1));
     });
+    uvGereksinim();
   }
 
   /* Canlı sayaç — her saniye timer güncelle (DOM üzerinden, innerHTML yeniden yazılmadan) */

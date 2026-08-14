@@ -26,10 +26,94 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, power: 5,  level: 1, role: "savunma", modelScale: 0.80, img: "gorsel8.webp" },
-  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, power: 7,  level: 1, role: "guc",     modelScale: 0.80, img: "gorsel9.webp" },
-  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, power: 10, level: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp" },
+  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, power: 5,  level: 1, role: "savunma", modelScale: 0.80, img: "gorsel8.webp",
+             kaynak: { et: 6,  su: 2, demir: 9  } },
+  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, power: 7,  level: 1, role: "guc",     modelScale: 0.80, img: "gorsel9.webp",
+             kaynak: { et: 12, su: 3, demir: 12 } },
+  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, power: 10, level: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp",
+             kaynak: { su: 5, demir: 15, enerji: 5 } },
 };
+
+/*  ─────────────────────────────────────────────
+    1.a2) BİRLİK BAŞINA KAYNAK — UNIT_TYPES.kaynak
+    Yukarıdaki `kaynak` alanı TEK BİRLİK için gereken kaynaktır.
+    Toplam = birim × adet. Yeni kaynak türü eklemek için sadece
+    o birliğin nesnesine alan ekle; ekran ve sınır kendiliğinden
+    uyum sağlar (KAYNAK_IKON'a ikonunu eklemeyi unutma).
+
+    Bir birlikte OLMAYAN kaynak hiç istenmez — robot et yemez,
+    bu yüzden robotun listesinde `et` yok, ekranda da çıkmaz.
+
+    NOT: "Anında" üretim şu an kaynak ALMAZ, sadece elmas alır.
+    Test aşaması için bilinçli bırakıldı. Kaynak alması istenirse
+    trainUnitInstant içindeki işaretli bloğun yorumu kaldırılır.
+    ───────────────────────────────────────────── */
+const KAYNAK_IKON = { et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
+
+/* Tek birlik için değil, İSTENEN ADET için toplam kaynak. */
+function kaynakMaliyet(unitId, count) {
+  const def = UNIT_TYPES[unitId];
+  const n = Math.max(1, count || 1);
+  const out = {};
+  if (!def || !def.kaynak) return out;
+  Object.keys(def.kaynak).forEach(k => { out[k] = (def.kaynak[k] || 0) * n; });
+  return out;
+}
+
+/* Elmas VE kaynak birlikte bakılarak en fazla kaç birlik üretilebilir.
+   "Yetmiyorsa yettiği kadar" kuralı buradan gelir: kaydırma çubuğunun
+   üst sınırı bu sayıdır, oyuncu ödeyemeyeceği bir adede hiç çıkamaz. */
+function maxUretilebilir(unitId, tavan) {
+  const def = UNIT_TYPES[unitId];
+  if (!def) return 1;
+  const ust = (typeof tavan === "number" && tavan > 0) ? tavan : 500;
+
+  let en = ust;
+
+  /* elmas */
+  if (def.cost > 0) {
+    en = Math.min(en, Math.floor((state.diamonds || 0) / def.cost));
+  }
+  /* kaynaklar */
+  const kay = (state && state.kaynaklar) || {};
+  if (def.kaynak) {
+    Object.keys(def.kaynak).forEach(k => {
+      const gerek = def.kaynak[k] || 0;
+      if (gerek > 0) en = Math.min(en, Math.floor((kay[k] || 0) / gerek));
+    });
+  }
+  return Math.max(1, en);      /* çubuk hep en az 1 göstersin */
+}
+
+/* Ödeme yapılabilir mi? (adet dahil) */
+function kaynakYeterli(unitId, count) {
+  const gerek = kaynakMaliyet(unitId, count);
+  const kay = (state && state.kaynaklar) || {};
+  return Object.keys(gerek).every(k => (kay[k] || 0) >= gerek[k]);
+}
+
+/* Kaynağı düş. Çağırmadan ÖNCE kaynakYeterli ile bak. */
+function kaynakDus(unitId, count) {
+  const gerek = kaynakMaliyet(unitId, count);
+  if (!state.kaynaklar) state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
+  Object.keys(gerek).forEach(k => {
+    state.kaynaklar[k] = Math.max(0, (state.kaynaklar[k] || 0) - gerek[k]);
+  });
+}
+
+/*  Kısa sayı — 10200 → "10.2K". Eğitim ekranındaki kaynak sütunu dar,
+    tam sayı yazılınca rakamlar birlik görselinin üstüne taşıyordu.
+    1000'in altı olduğu gibi yazılır.                                */
+function kisaSayi(n) {
+  n = Math.round(Number(n) || 0);
+  if (n < 1000) return String(n);
+  if (n < 1000000) {
+    const b = n / 1000;
+    return (b >= 100 ? Math.round(b) : (Math.round(b * 10) / 10)).toString().replace(".", ",") + "K";
+  }
+  const m = n / 1000000;
+  return (m >= 100 ? Math.round(m) : (Math.round(m * 10) / 10)).toString().replace(".", ",") + "M";
+}
 
 /*  ─────────────────────────────────────────────
     1.a) ROLLER — eğitim ekranının solundaki üç düğme
@@ -108,6 +192,14 @@ function trainUnitInstant(unitId, count) {
   count = count || 1;
   const def = UNIT_TYPES[unitId];
   if (!def) return;
+  /* ANINDA: şimdilik SADECE elmas alır, kaynak almaz (test kolaylığı).
+     Kaynak da alması istenirse: aşağıya kaynakYeterli kontrolü ve
+     kaynakDus(unitId, count) eklemek yeterli — başka yeri değişmez. */
+  const enFazlaElmas = (UNIT_TYPES[unitId].cost * INSTANT_COST_MULT > 0)
+    ? Math.floor((state.diamonds || 0) / (UNIT_TYPES[unitId].cost * INSTANT_COST_MULT))
+    : count;
+  if (enFazlaElmas < count) count = Math.max(1, enFazlaElmas);
+
   const totalCost = instantCostFor(unitId, count);
   if (state.diamonds < totalCost) {
     showToast(`Yeterli elmasın yok. ${count} ${def.name} anında üretmek ${fmt(totalCost)} elmas.`);
@@ -126,12 +218,24 @@ function trainUnit(unitId, count) {
   count = count || 1;
   const def = UNIT_TYPES[unitId];
   if (!def) return;
+
+  /* "Yetmiyorsa yettiği kadar": adet, ödenebilir en yüksek sayıya
+     kırpılır. Çubuğun üst sınırı zaten bunu engelliyor ama arada
+     kaynak harcayan başka bir iş (sefer dönüşü, başka sekme) araya
+     girebilir — burada ikinci kez bakılıyor.                       */
+  const enFazla = maxUretilebilir(unitId, count);
+  if (enFazla < count) count = enFazla;
+
   const totalCost = def.cost * count;
-  if (state.diamonds < totalCost) {
-    showToast(`Yeterli elmasın yok. ${count} ${def.name} için ${fmt(totalCost)} elmas gerekiyor.`);
+  if (state.diamonds < totalCost || !kaynakYeterli(unitId, count)) {
+    const g = kaynakMaliyet(unitId, count);
+    const liste = Object.keys(g).map(k => `${KAYNAK_IKON[k] || ""} ${fmt(g[k])}`).join(" · ");
+    showToast(`Yeterli kaynağın yok. ${count} ${def.name} için 💎 ${fmt(totalCost)}${liste ? " · " + liste : ""} gerekiyor.`);
     return;
   }
   state.diamonds -= totalCost;
+  kaynakDus(unitId, count);
+  if (typeof renderKaynaklar === "function") { try { renderKaynaklar(); } catch (e) {} }
 
   /* SIRALI EĞİTİM: birlikler teker teker çıkar. Yeni sipariş, o
      birlik türünün kuyruğundaki son işin ARKASINA eklenir.

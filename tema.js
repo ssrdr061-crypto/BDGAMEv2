@@ -4033,41 +4033,81 @@ document.head.appendChild(st);
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   BİRLİK EKRANI — DÜĞME SADELEŞTİRME
-   1) "Anında" ve "Üret" düğmelerinin altındaki kalın 3B kenar
-      kaldırıldı (0 4px 0 / 0 5px 0 gölgeler). Yerine yumuşak,
-      ince bir gölge kaldı. Basınca aşağı zıplama da yok.
-   2) Rol düğmesi (Savunma/Güç/Nişan) seçilince artık büyümüyor /
-      kaymıyor — sarı çerçeve ve zemin zaten yeterli işaret.
-   Not: 3B gölge iki ayrı yerde tanımlıydı (birlik bloğu + ortak
-   mavi düğme bloğu). Bu blok dosyanın SONUNDA olduğu için
-   ikisini de eziyor; ikisini ayrı ayrı silmeye gerek yok.
+   DÜĞME SADELEŞTİRME + KAYNAK SÜTUNU
+   1) Kalın 3B alt kenar (0 4px 0 / 0 5px 0) tüm ortak düğmelerden
+      kaldırıldı: birlik "Anında"/"Üret", hastane "Tedaviyi Onayla",
+      kahraman "Satın Al", günlük ödül kapat, günlük "Aç", can potu,
+      "Devam" ve giriş ekranı "Giriş Yap".
+      Basınca zıplama yok; yerine hafif koyulaşma var.
+   2) Rol düğmesi seçilince büyümüyor/kaymıyor.
+   3) #uvRes — eğitim ekranının SAĞ kenarındaki kaynak gereksinimi.
+      Rol düğmelerinin aynası: kutu yok, sadece emoji + sayı.
+   Bu blok dosyanın SONUNDA olduğu için önceki 3B tanımlarını ezer;
+   eski satırları tek tek silmeye gerek yok.
    ══════════════════════════════════════════════════════════════ */
-(function birlikDugmeSade(){
+(function dugmeSadeVeKaynak(){
 "use strict";
 const st = document.createElement("style");
-st.id = "temaBirlikDugmeSade";
+st.id = "temaDugmeSadeKaynak";
 st.textContent = `
 
-#panel-troops .unit-instant-btn{
-  box-shadow:0 2px 6px rgba(0,20,45,.28) !important;
-}
-#panel-troops .unit-train-btn{
+/* ── 1) 3B kenar yok ── */
+#panel-troops .unit-instant-btn{ box-shadow:0 2px 6px rgba(0,20,45,.28) !important; }
+#panel-troops .unit-train-btn,
+#panel-hospital .hospital-confirm-btn,
+#heroDetailOverlay #hdBuyBtn,
+.daily-reward-close-btn,
+.log-open-btn,
+.stamina-potion-popup .spp-btn,
+#welcomeBack .wc-next,
+#loginScreen .login-btn{
   box-shadow:0 2px 6px rgba(0,20,45,.32) !important;
 }
 #panel-troops .unit-instant-btn:active,
-#panel-troops .unit-train-btn:active{
+#panel-troops .unit-train-btn:active,
+#panel-hospital .hospital-confirm-btn:active,
+#heroDetailOverlay #hdBuyBtn:active,
+.daily-reward-close-btn:active,
+.log-open-btn:active,
+.stamina-potion-popup .spp-btn:active,
+#welcomeBack .wc-next:active,
+#loginScreen .login-btn:active{
   transform:none !important;
   box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
   filter:brightness(.94) !important;
 }
 
-/* Rol düğmesi seçiliyken yerinden oynamasın */
+/* ── 2) Rol düğmesi yerinden oynamasın ── */
 #panel-troops .uv-role,
 #panel-troops .uv-role.is-active{
   transform:none !important;
   transition:border-color .15s, background-color .15s !important;
 }
+
+/* ── 3) KAYNAK GEREKSİNİMİ: sağ kenar, rol düğmelerinin aynası ── */
+#panel-troops .uv-res{
+  position:absolute !important; right:10px !important; top:33% !important;
+  transform:translateY(-50%) !important; z-index:30 !important;
+  display:flex !important; flex-direction:column !important;
+  align-items:flex-end !important; gap:10px !important;
+  pointer-events:none !important;
+  background:none !important; border:0 !important; box-shadow:none !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+}
+#unitViewer.tp-off .uv-res{ display:none !important; }
+#panel-troops .uv-res-oge{
+  display:flex !important; align-items:center !important; gap:5px !important;
+  background:none !important; border:0 !important; padding:0 !important;
+}
+#panel-troops .uv-res .uvr-em{ font-size:17px !important; line-height:1 !important; }
+#panel-troops .uv-res .uvr-mik{
+  font-size:14px !important; font-weight:800 !important; color:#fff !important;
+  text-shadow:0 1px 3px rgba(0,25,50,.85), 0 0 6px rgba(0,20,45,.6) !important;
+  white-space:nowrap !important;
+}
+/* kaynağı yetmeyen satır */
+#panel-troops .uv-res-oge.yok .uvr-mik{ color:#ff8a8a !important; }
+#panel-troops .uv-res-oge.yok .uvr-em{ filter:grayscale(.5) !important; opacity:.85 !important; }
 `;
 document.head.appendChild(st);
 })();
