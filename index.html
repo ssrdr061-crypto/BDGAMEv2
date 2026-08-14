@@ -2285,11 +2285,6 @@ body.world-active{padding:0; overflow:hidden;}
            UNIT_ROLES'tan TroopViewer.buildRoles() doldurur -->
       <div class="uv-roles" id="uvRoles"></div>
 
-      <!-- KAYNAK GEREKSİNİMİ — rol düğmelerinin tam karşısı, sağ kenar.
-           Kutu yok: sadece emoji + sayı. İçeriği seçili birliğe ve
-           seçilen adede göre uvGereksinim() tazeler. -->
-      <div class="uv-res" id="uvRes"></div>
-
       <section class="unit-screen us-knight is-active" data-unit="knight">
         <div class="stage">
           <div class="ground-shadow"></div>
@@ -7606,25 +7601,24 @@ const TroopViewer = (function () {
       ? unitAdi(ORDER[idx]) : NAMES[ORDER[idx]];
     syncRoles();
     if (fullRedraw || !_drawn) { renderUnitStats(); _drawn = true; }
-    else { syncPortraits(); uvGereksinim(); }
+    else syncPortraits();
   }
 
-  /*  KAYNAK GEREKSİNİMİ — sağ kenardaki sütun.
+  /*  KAYNAK GEREKSİNİMİ — adet çubuğunun sağında, aynı satırda.
       Seçili birliğin ve seçilen ADEDİN toplam kaynağını yazar.
-      Sayı kısaltılır (10200 → 10.2K), yoksa rakamlar birlik
-      görselinin üstüne taşıyor. Kaynağı yetmeyen satır kırmızı.  */
-  function uvGereksinim() {
-    const box = document.getElementById("uvRes");
+      Sayı kısaltılır (10200 → 10,2K), yoksa rakamlar taşıyor.
+      Kaynağı yetmeyen satır kırmızı. Zemin/kutu YOK.
+      `kap` o birliğin stats bölümüdür; kutu onun içinde aranır.   */
+  function uvGereksinim(uid, kap, adet) {
+    if (!kap) return;
+    const box = kap.querySelector(".uv-res");
     if (!box) return;
-    const uid = ORDER[idx];
     const def = UNIT_TYPES[uid];
     if (!def || !def.kaynak) { box.innerHTML = ""; return; }
-    const adet = Math.max(1, unitTrainQty[uid] || 1);
-    const gerek = (typeof kaynakMaliyet === "function")
-      ? kaynakMaliyet(uid, adet)
-      : {};
+    const n = Math.max(1, adet || 1);
+    const gerek = (typeof kaynakMaliyet === "function") ? kaynakMaliyet(uid, n) : {};
     const kay = (state && state.kaynaklar) || {};
-    const kisa = (n) => (typeof kisaSayi === "function") ? kisaSayi(n) : String(n);
+    const kisa = (v) => (typeof kisaSayi === "function") ? kisaSayi(v) : String(v);
     box.innerHTML = Object.keys(gerek).map(k => {
       const yetersiz = (kay[k] || 0) < gerek[k];
       return `<div class="uv-res-oge${yetersiz ? " yok" : ""}">` +
@@ -7706,6 +7700,7 @@ const TroopViewer = (function () {
             <button class="uq-btn uq-minus" data-unit="${uid}">−</button>
             <input type="number" class="uq-input" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}" inputmode="numeric">
             <button class="uq-btn uq-plus" data-unit="${uid}">+</button>
+            <div class="uv-res"></div>
             <input type="range" class="uv-qty-slider" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}">
           </div>`;
         html += `<div class="unit-train-bar">
@@ -7760,8 +7755,8 @@ const TroopViewer = (function () {
         const sr = el.querySelector(".utb-sure");
         if (sr) sr.textContent = (typeof sureDk === "function")
           ? sureDk(def.trainMinutes * v) : (def.trainMinutes * v) + " dk";
-        /* sağdaki kaynak sütunu adetle birlikte anında değişir */
-        uvGereksinim();
+        /* kaynak gereksinimi adetle birlikte anında değişir */
+        uvGereksinim(uid, el, v);
       };
       if (slider) slider.addEventListener("input", () => setQty(slider.value));
       if (numBox) numBox.addEventListener("input", () => setQty(numBox.value));
@@ -7769,8 +7764,10 @@ const TroopViewer = (function () {
       const plus = el.querySelector(".uq-plus");
       if (minus) bindTap(minus, () => setQty((unitTrainQty[uid] || 1) - 1));
       if (plus) bindTap(plus, () => setQty((unitTrainQty[uid] || 1) + 1));
+
+      /* ilk çizimde de kaynak yazısı dolsun */
+      uvGereksinim(uid, el, qty);
     });
-    uvGereksinim();
   }
 
   /* Canlı sayaç — her saniye timer güncelle (DOM üzerinden, innerHTML yeniden yazılmadan) */

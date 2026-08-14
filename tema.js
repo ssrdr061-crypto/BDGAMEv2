@@ -4033,17 +4033,17 @@ document.head.appendChild(st);
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   DÜĞME SADELEŞTİRME + KAYNAK SÜTUNU
+   DÜĞME SADELEŞTİRME + KAYNAK GEREKSİNİMİ
    1) Kalın 3B alt kenar (0 4px 0 / 0 5px 0) tüm ortak düğmelerden
       kaldırıldı: birlik "Anında"/"Üret", hastane "Tedaviyi Onayla",
       kahraman "Satın Al", günlük ödül kapat, günlük "Aç", can potu,
       "Devam" ve giriş ekranı "Giriş Yap".
       Basınca zıplama yok; yerine hafif koyulaşma var.
    2) Rol düğmesi seçilince büyümüyor/kaymıyor.
-   3) #uvRes — eğitim ekranının SAĞ kenarındaki kaynak gereksinimi.
-      Rol düğmelerinin aynası: kutu yok, sadece emoji + sayı.
-   Bu blok dosyanın SONUNDA olduğu için önceki 3B tanımlarını ezer;
-   eski satırları tek tek silmeye gerek yok.
+   3) Adet çubuğu (− / kutu / +) SOLA yaslandı; kaynak gereksinimi
+      aynı satırda, hemen sağında. Zemin, kutu, çerçeve YOK —
+      sadece emoji + sayı.
+   Bu blok dosyanın SONUNDA olduğu için önceki tanımları ezer.
    ══════════════════════════════════════════════════════════════ */
 (function dugmeSadeVeKaynak(){
 "use strict";
@@ -4084,30 +4084,39 @@ st.textContent = `
   transition:border-color .15s, background-color .15s !important;
 }
 
-/* ── 3) KAYNAK GEREKSİNİMİ: sağ kenar, rol düğmelerinin aynası ── */
+/* ── 3) ADET ÇUBUĞU SOLA YASLI + KAYNAK AYNI SATIRDA ── */
+#panel-troops .unit-qty-bar{
+  justify-content:flex-start !important;
+  align-items:center !important;
+  gap:7px !important;
+  margin:8px 10px 0 !important;
+}
 #panel-troops .uv-res{
-  position:absolute !important; right:10px !important; top:33% !important;
-  transform:translateY(-50%) !important; z-index:30 !important;
-  display:flex !important; flex-direction:column !important;
-  align-items:flex-end !important; gap:10px !important;
-  pointer-events:none !important;
-  background:none !important; border:0 !important; box-shadow:none !important;
+  display:flex !important; align-items:center !important;
+  gap:12px !important; margin-left:12px !important;
+  background:none !important; background-color:transparent !important;
+  border:0 !important; box-shadow:none !important; padding:0 !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
+  pointer-events:none !important;
 }
-#unitViewer.tp-off .uv-res{ display:none !important; }
 #panel-troops .uv-res-oge{
-  display:flex !important; align-items:center !important; gap:5px !important;
-  background:none !important; border:0 !important; padding:0 !important;
+  display:flex !important; align-items:center !important; gap:4px !important;
+  background:none !important; background-color:transparent !important;
+  border:0 !important; box-shadow:none !important; padding:0 !important;
+  border-radius:0 !important;
 }
-#panel-troops .uv-res .uvr-em{ font-size:17px !important; line-height:1 !important; }
+#panel-troops .uv-res .uvr-em{
+  font-size:16px !important; line-height:1 !important;
+  background:none !important; border:0 !important;
+}
 #panel-troops .uv-res .uvr-mik{
   font-size:14px !important; font-weight:800 !important; color:#fff !important;
-  text-shadow:0 1px 3px rgba(0,25,50,.85), 0 0 6px rgba(0,20,45,.6) !important;
+  text-shadow:0 1px 2px rgba(0,25,50,.7) !important;
   white-space:nowrap !important;
+  background:none !important; border:0 !important;
 }
 /* kaynağı yetmeyen satır */
 #panel-troops .uv-res-oge.yok .uvr-mik{ color:#ff8a8a !important; }
-#panel-troops .uv-res-oge.yok .uvr-em{ filter:grayscale(.5) !important; opacity:.85 !important; }
 `;
 document.head.appendChild(st);
 })();
