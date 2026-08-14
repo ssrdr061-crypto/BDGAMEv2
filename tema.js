@@ -4592,42 +4592,43 @@ document.head.appendChild(st);
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   ARAZİ (TOPLAMA) PANELİ — GÖRÜNÜM DÜZENİ
+   SAVAŞ / CANAVAR / ARAZİ PANELLERİ — ORTAK GÖRÜNÜM DÜZENİ
 
-   DİKKAT: buradaki her kural `#battleArena[data-arazi="1"]` ile
-   başlar. Arazi paneli savaş ekranının id'lerini DEVRALIR; işaretsiz
-   yazılırsa savaşa girme ve canavara saldırma panelleri de bozulur.
-   Turuncu TOPLA yalnız burada; savaş/canavar düğmesi KIRMIZI kalır.
+   Üç panel de #battleArena id'sini kullanır. Yerleşim kuralları
+   ORTAKTIR; ayrılan tek şey düğme rengidir:
+     arazi (data-arazi="1") → TURUNCU
+     savaş / canavar        → KIRMIZI
+   Düğme biçimi (dar kutu, 3B alt kenar yok, basınca küçülme)
+   üçünde de aynıdır.
    ═══════════════════════════════════════════════════════════════ */
-(function araziPanelDuzen(){
+(function savasPanelDuzen(){
   const st = document.createElement("style");
-  st.id = "araziPanelDuzenStyle";
+  st.id = "savasPanelDuzenStyle";
   st.textContent = `
 
 /* 1) Panelin ekrandaki yeri — alt sınırı kahraman menüsüyle aynı hizada */
-#battleArena[data-arazi="1"]{ padding:65px 12px 53px !important; }
+#battleArena{ padding:65px 12px 53px !important; }
 
-/* 2) Üst kenar ✕'i içine alacak kadar uzun */
-#battleArena[data-arazi="1"] .battle-arena{ padding-top:42px !important; }
-#battleArena[data-arazi="1"] #mapBackBtn{
+/* 2) Üst kenar ✕'i içine alacak kadar uzun, ✕ tamamen içeride */
+#battleArena .battle-arena{ padding-top:42px !important; }
+#battleArena #mapBackBtn{
   top:0px !important; right:6px !important;
   width:36px !important; height:36px !important;
   border-radius:10px !important;
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
-#battleArena[data-arazi="1"] #mapBackBtn::after{ font-size:20px !important; }
+#battleArena #mapBackBtn::after{ font-size:20px !important; }
 
 /* 3) Birlik satırları aşağı alındı */
-#battleArena[data-arazi="1"] #troopSelectList{ margin-top:12px !important; }
+#battleArena #troopSelectList{ margin-top:12px !important; }
 
-/* 4) Kum saati satırı TOPLA'ya yaklaştırıldı */
-#battleArena[data-arazi="1"] .arazi-sure-satir{ margin:-13px 0 -4px !important; }
+/* 4) Kum saati satırı düğmeye yaklaştırıldı (yalnız arazi panelinde var) */
+#battleArena .arazi-sure-satir{ margin:-13px 0 -4px !important; }
 
-/* 5) TOPLA: turuncu, 3B çerçeve yok, dar.
-      SADECE arazi paneli — savaş/canavar düğmesi kırmızı kalır. */
-#battleArena[data-arazi="1"] .battle-arena .battle-btn{
-  background:linear-gradient(180deg,#ffa62e,#e8720d) !important;
-  border:2px solid rgba(255,220,175,.7) !important;
+/* 5) DÜĞME BİÇİMİ — üç panelde de ortak.
+      Kalın 3B alt kenar (box-shadow:0 5px 0 ...), yazı konturu ve
+      basınca zıplama kaldırıldı; oyunun düz/sade kuralı. */
+#battleArena .battle-arena .battle-btn{
   color:#fff !important;
   font-size:15px !important;
   padding:7px 24px !important;
@@ -4637,13 +4638,25 @@ document.head.appendChild(st);
   -webkit-text-stroke:0 !important;
   transition:transform .09s, filter .09s !important;
 }
-#battleArena[data-arazi="1"] .battle-arena .battle-btn:active{
+#battleArena .battle-arena .battle-btn:active{
   transform:scale(.96) !important;
   filter:brightness(.93) !important;
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 
-/* 6) Kahraman kartındaki çıkarma düğmesi — her iki ekranda da küçük */
+/* 6) RENK — tek ayrılan yer */
+/* savaş ve canavar: KIRMIZI */
+#battleArena .battle-arena .battle-btn{
+  background:linear-gradient(180deg,#ff3b3b,#c50f0f) !important;
+  border:2px solid rgba(255,170,170,.75) !important;
+}
+/* arazi toplama: TURUNCU */
+#battleArena[data-arazi="1"] .battle-arena .battle-btn{
+  background:linear-gradient(180deg,#ffa62e,#e8720d) !important;
+  border:2px solid rgba(255,220,175,.7) !important;
+}
+
+/* 7) Kahraman kartındaki çıkarma düğmesi — her ekranda küçük */
 #heroPicker .hpk-x{
   top:-7px !important; right:-7px !important;
   width:22px !important; height:22px !important;
