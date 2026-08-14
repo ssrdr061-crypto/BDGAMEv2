@@ -4605,10 +4605,10 @@ document.head.appendChild(st);
 #battleArena{ padding:43px 12px 54px !important; }
 
 /* 2) Üstte yer açıldı — ✕ artık panelin İÇİNDE */
-#battleArena .battle-arena{ padding-top:26px !important; }
+#battleArena .battle-arena{ padding-top:25px !important; }
 #battleArena #mapBackBtn{
-  top:-17px !important; right:5px !important;
-  width:35px !important; height:35px !important;
+  top:-36px !important; right:6px !important;    /* alt kenarı panelin üst kenarına dayanır */
+  width:36px !important; height:36px !important;
   border-radius:10px !important;
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
