@@ -4150,6 +4150,85 @@ document.head.appendChild(st);
 })();
 
 /* ══════════════════════════════════════════════════════════════
+   HIZLANDIRMA PENCERESİ — İNCELTME
+   Başlık, "Hızlandırma" etiketi ve "Hızlandırma Süresi" satırı
+   index.html'den TAMAMEN silindi (gizlenmedi). Burada kalanlar:
+   dış çerçevenin 3B kabartması, düğmelerin kalın alt kenarı,
+   iç boşluklar ve fontlar.
+   Yeşil çubuk artık canlı doluyor (hesabı index.html'de).
+   ══════════════════════════════════════════════════════════════ */
+(function hizlandirPenceresiSade(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaHizlandirSade";
+st.textContent = `
+
+/* pencere gövdesi: 3B kabartma yok, daha dar */
+.hosp-speed-modal .hsm-card{
+  max-width:320px !important;
+  padding:14px 12px 12px !important;
+  border-width:1px !important;
+  box-shadow:0 8px 26px rgba(0,15,40,.5) !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+}
+.hosp-speed-modal, .hosp-speed-modal *{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+}
+
+/* süre çubuğu: yazının gölgesi yok, dolum yumuşak aksın */
+.hosp-speed-modal .hsm-bar{ margin:2px 0 10px !important; }
+.hosp-speed-modal .hsm-bar-fill{
+  width:0%; transition:width .5s linear !important;
+}
+.hosp-speed-modal .hsm-bar-txt{
+  text-shadow:none !important; -webkit-text-stroke:0 !important;
+  font-weight:800 !important;
+}
+
+/* "5 dk" kutucuğu: dış 3B yok, seçili sarı çerçeve duruyor */
+.hosp-speed-modal .hsm-cards{ margin:0 0 4px !important; }
+.hosp-speed-modal .hsm-card-item{
+  box-shadow:none !important;
+}
+.hosp-speed-modal .hsm-card-item.is-active{
+  box-shadow:0 0 0 2px rgba(255,210,87,.35) !important;
+}
+
+/* − ve + : 3B yok */
+.hosp-speed-modal .hsm-pick{ margin-top:10px !important; }
+.hosp-speed-modal .hsm-step{
+  box-shadow:0 2px 5px rgba(0,20,45,.25) !important;
+}
+.hosp-speed-modal .hsm-step:active{
+  transform:none !important;
+  box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
+  filter:brightness(.94) !important;
+}
+
+/* eylem düğmeleri: ince, çerçevesiz, 3B'siz */
+.hosp-speed-modal .hsm-actions{ margin-top:10px !important; gap:8px !important; }
+.hosp-speed-modal .hsm-btn{
+  padding:6px 6px !important; border:0 !important;
+  border-radius:10px !important; letter-spacing:.4px !important;
+  box-shadow:0 2px 5px rgba(0,20,45,.25) !important;
+  text-shadow:none !important;
+}
+.hosp-speed-modal .hsm-finish{ font-size:15px !important; }
+.hosp-speed-modal .hsm-finish small{ font-size:13px !important; text-shadow:none !important; }
+.hosp-speed-modal .hsm-use{ font-size:14px !important; }
+.hosp-speed-modal .hsm-quick{
+  margin-top:8px !important; font-size:14px !important; padding:6px !important;
+}
+.hosp-speed-modal .hsm-btn:active{
+  transform:none !important;
+  box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
+  filter:brightness(.94) !important;
+}
+`;
+document.head.appendChild(st);
+})();
+
+/* ══════════════════════════════════════════════════════════════
    "BİRLİKLER" SEKMESİ — SADELEŞTİRME
    1) Sekme çubuğunun arkasındaki koyu mavi hap kalktı; sadece
       seçili sekmenin beyaz kalıbı duruyor.

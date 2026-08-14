@@ -5179,11 +5179,8 @@ function hizlandirmaPenceresi(unitId, tur) {
   kok.innerHTML = `
     <div class="overlay-card hsm-card">
       <button class="overlay-close hsm-close" type="button">✕</button>
-      <h2 class="hsm-title">HIZLANDIR</h2>
 
       <div class="hsm-bar"><i class="hsm-bar-fill"></i><span class="hsm-bar-txt"></span></div>
-
-      <div class="hsm-label">Hızlandırma</div>
 
       ${liste.length === 0
         ? `<div class="hsm-empty">Hızlandırman yok.<br>Mağazadan ⏩ Hızlandırma satın alabilirsin.</div>`
@@ -5206,8 +5203,7 @@ function hizlandirmaPenceresi(unitId, tur) {
             <button class="hsm-step hsm-plus" type="button">+</button>
             <input class="hsm-qty" type="number" inputmode="numeric" min="1" value="1">
           </div>
-
-          <div class="hsm-total">Hızlandırma Süresi: <b id="hsmTotal">—</b></div>`}
+`}
 
       <div class="hsm-actions">
         <button class="hsm-btn hsm-finish" type="button">
@@ -5237,10 +5233,26 @@ function hizlandirmaPenceresi(unitId, tur) {
     return sa > 0 ? `${sa}:${iki(dk)}:${iki(sn)}` : `${dk}:${iki(sn)}`;
   }
 
+  /*  Partinin TOPLAM süresi — çubuğun doluluğu buna göre hesaplanır.
+      Adet × birim süre; hastanede iyileşme, eğitim süresinin 5'te 1'i.
+      Pencere açıldıktan sonra hızlandırma yapılırsa kalan süre düşer
+      ama toplam aynı kalır, yani çubuk ileri sıçrar — istenen bu. */
+  const birimMs = (tur === "egitim")
+    ? (def ? def.trainMinutes * 60 * 1000 : 0)
+    : (def ? Math.round(def.trainMinutes * 60 * 1000 / 5) : 0);
+  const toplamMs = Math.max(1, grup().length * birimMs);
+
   function tazele() {
     const kalan = kalanMs();
     const txt = q(".hsm-bar-txt");
     if (txt) txt.textContent = sureYaz(kalan);
+
+    /* Süre azaldıkça dolan çubuk: biten kısım kadar genişler. */
+    const fillBar = q(".hsm-bar-fill");
+    if (fillBar) {
+      const oranBitmis = Math.max(0, Math.min(1, 1 - (kalan / toplamMs)));
+      fillBar.style.width = (oranBitmis * 100).toFixed(2) + "%";
+    }
 
     const maliyet = Math.max(1, Math.ceil(kalan / 60000) * BITIR_ELMAS_DK);
     const costEl = q("#hsmCost");
@@ -5281,7 +5293,10 @@ function hizlandirmaPenceresi(unitId, tur) {
          eklenir, rakam kırpılmaz. */
       qtyEl.style.width = String(qtyEl.value || "1").length + "ch";
     }
-    q("#hsmTotal").textContent = sureYaz(adet * liste[secili].ms);
+    /* "Hızlandırma Süresi" satırı kaldırıldı; öğe varsa yine yazılır,
+       yoksa sessizce geçilir (hesap aynen çalışmaya devam eder). */
+    const topEl = q("#hsmTotal");
+    if (topEl) topEl.textContent = sureYaz(adet * liste[secili].ms);
   }
 
   /* Kart seçimi */
