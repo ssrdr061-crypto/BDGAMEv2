@@ -4031,3 +4031,43 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   BİRLİK EKRANI — DÜĞME SADELEŞTİRME
+   1) "Anında" ve "Üret" düğmelerinin altındaki kalın 3B kenar
+      kaldırıldı (0 4px 0 / 0 5px 0 gölgeler). Yerine yumuşak,
+      ince bir gölge kaldı. Basınca aşağı zıplama da yok.
+   2) Rol düğmesi (Savunma/Güç/Nişan) seçilince artık büyümüyor /
+      kaymıyor — sarı çerçeve ve zemin zaten yeterli işaret.
+   Not: 3B gölge iki ayrı yerde tanımlıydı (birlik bloğu + ortak
+   mavi düğme bloğu). Bu blok dosyanın SONUNDA olduğu için
+   ikisini de eziyor; ikisini ayrı ayrı silmeye gerek yok.
+   ══════════════════════════════════════════════════════════════ */
+(function birlikDugmeSade(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaBirlikDugmeSade";
+st.textContent = `
+
+#panel-troops .unit-instant-btn{
+  box-shadow:0 2px 6px rgba(0,20,45,.28) !important;
+}
+#panel-troops .unit-train-btn{
+  box-shadow:0 2px 6px rgba(0,20,45,.32) !important;
+}
+#panel-troops .unit-instant-btn:active,
+#panel-troops .unit-train-btn:active{
+  transform:none !important;
+  box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
+  filter:brightness(.94) !important;
+}
+
+/* Rol düğmesi seçiliyken yerinden oynamasın */
+#panel-troops .uv-role,
+#panel-troops .uv-role.is-active{
+  transform:none !important;
+  transition:border-color .15s, background-color .15s !important;
+}
+`;
+document.head.appendChild(st);
+})();
