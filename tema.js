@@ -4592,47 +4592,40 @@ document.head.appendChild(st);
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   ARAZİ / SAVAŞ PANELİ — GÖRÜNÜM DÜZENİ
-   Dosyanın SONUNDA yeni IIFE: eski satırlar silinmedi, aynı
-   özgüllükle sonda yazıldığı için bunlar kazanır.
+   ARAZİ (TOPLAMA) PANELİ — GÖRÜNÜM DÜZENİ
+
+   DİKKAT: buradaki her kural `#battleArena[data-arazi="1"]` ile
+   başlar. Arazi paneli savaş ekranının id'lerini DEVRALIR; işaretsiz
+   yazılırsa savaşa girme ve canavara saldırma panelleri de bozulur.
+   Turuncu TOPLA yalnız burada; savaş/canavar düğmesi KIRMIZI kalır.
    ═══════════════════════════════════════════════════════════════ */
 (function araziPanelDuzen(){
   const st = document.createElement("style");
   st.id = "araziPanelDuzenStyle";
   st.textContent = `
 
-/* 1) Panel komple birkaç kademe aşağı */
-#battleArena{ padding:18px 12px 100px !important; }
+/* 1) Panelin ekrandaki yeri — alt sınırı kahraman menüsüyle aynı hizada */
+#battleArena[data-arazi="1"]{ padding:65px 12px 53px !important; }
 
-/* 2) Üstte yer açıldı — ✕ artık panelin İÇİNDE */
-#battleArena .battle-arena{ padding-top:42px !important; }
-#battleArena #mapBackBtn{
-  top:0px !important; right:6px !important;   /* panelin üst kenarına dayalı, tamamen içeride */
+/* 2) Üst kenar ✕'i içine alacak kadar uzun */
+#battleArena[data-arazi="1"] .battle-arena{ padding-top:42px !important; }
+#battleArena[data-arazi="1"] #mapBackBtn{
+  top:0px !important; right:6px !important;
   width:36px !important; height:36px !important;
   border-radius:10px !important;
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
-#battleArena #mapBackBtn::after{ font-size:20px !important; }
+#battleArena[data-arazi="1"] #mapBackBtn::after{ font-size:20px !important; }
 
-/* 3) Kahraman kartındaki çıkarma düğmesi küçültüldü */
-#heroPicker .hpk-x{
-  top:-7px !important; right:-7px !important;
-  width:22px !important; height:22px !important;
-  border-width:2px !important;
-  box-shadow:0 2px 5px rgba(120,0,0,.45) !important;
-}
-#heroPicker .hpk-x::before{ font-size:17px !important; }
+/* 3) Birlik satırları aşağı alındı */
+#battleArena[data-arazi="1"] #troopSelectList{ margin-top:12px !important; }
 
-/* 4) Birlik satırları aşağı alındı, üstte nefes payı */
-#battleArena #troopSelectList{ margin-top:12px !important; }
+/* 4) Kum saati satırı TOPLA'ya yaklaştırıldı */
+#battleArena[data-arazi="1"] .arazi-sure-satir{ margin:-13px 0 -4px !important; }
 
-/* 5) Kum saati satırı TOPLA'ya yaklaştırıldı */
-#battleArena .arazi-sure-satir{ margin:-13px 0 -4px !important; }
-
-/* 6) TOPLA: turuncu, 3B çerçeve yok, biraz daha dar.
-      Kalın alt kenar (box-shadow:0 5px 0 ...) ve yazı konturu
-      kaldırıldı — oyunun düz/sade kuralı. */
-#battleArena .battle-arena .battle-btn{
+/* 5) TOPLA: turuncu, 3B çerçeve yok, dar.
+      SADECE arazi paneli — savaş/canavar düğmesi kırmızı kalır. */
+#battleArena[data-arazi="1"] .battle-arena .battle-btn{
   background:linear-gradient(180deg,#ffa62e,#e8720d) !important;
   border:2px solid rgba(255,220,175,.7) !important;
   color:#fff !important;
@@ -4644,11 +4637,20 @@ document.head.appendChild(st);
   -webkit-text-stroke:0 !important;
   transition:transform .09s, filter .09s !important;
 }
-#battleArena .battle-arena .battle-btn:active{
+#battleArena[data-arazi="1"] .battle-arena .battle-btn:active{
   transform:scale(.96) !important;
   filter:brightness(.93) !important;
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
+
+/* 6) Kahraman kartındaki çıkarma düğmesi — her iki ekranda da küçük */
+#heroPicker .hpk-x{
+  top:-7px !important; right:-7px !important;
+  width:22px !important; height:22px !important;
+  border-width:2px !important;
+  box-shadow:0 2px 5px rgba(120,0,0,.45) !important;
+}
+#heroPicker .hpk-x::before{ font-size:17px !important; }
 `;
   document.head.appendChild(st);
 })();
