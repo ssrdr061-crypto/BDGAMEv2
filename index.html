@@ -4726,11 +4726,17 @@ function useStaminaPotion() {
 /* Mağaza kartlarındaki slot etiketleri için kullanılıyor: */
 const SLOT_LABELS_SHORT = { weapon: "Silah", armor: "Zırh", accessory: "Aks." };
 
+/*  Kalan süre. Eskiden saat hiç kullanılmıyordu, 2 saat "120:00"
+    diye yazılıyordu. Artık 60 dakikayı geçince saat basamağı açılır:
+    "2:05:30". Bir saatin altında eski biçim korunur: "9:41".        */
 function formatRemaining(ms) {
   const totalSec = ensure(Math.ceil(ms / 1000));
-  const m = Math.floor(totalSec / 60);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  const iki = (n) => n.toString().padStart(2, "0");
+  if (h > 0) return `${h}:${iki(m)}:${iki(s)}`;
+  return `${m}:${iki(s)}`;
 }
 
 function formatLogTime(ts) {
@@ -4995,8 +5001,7 @@ function renderHospitalPanel() {
           <div class="hospital-face" data-unit="${unitId}">${unitFace(def)}</div>
           <div class="hospital-heal-mid">
             <div class="hospital-heal-top">
-              <span class="t-name">${def ? def.name : unitId}</span>
-              <span class="t-count">x${woundedCount}</span>
+              <span class="t-count">${woundedCount}</span>
             </div>
             <div class="hospital-qty">
               <div class="hospital-slider" data-unit="${unitId}">
@@ -5045,7 +5050,7 @@ function renderHospitalPanel() {
         <span class="hospital-face hospital-face-sm" data-unit="${unitId}">${unitFace(def)}</span>
         <div class="troop-queue-name-col">
           <span class="troop-queue-name">
-            ${def ? def.name : unitId}<span class="hosp-adet">${group.length}</span>
+            <span class="hosp-adet">${group.length}</span>
           </span>
           <span class="hospital-heal-total-time">${formatRemaining(totalRemaining)}</span>
         </div>

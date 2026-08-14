@@ -4518,6 +4518,74 @@ st.textContent = `
   box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
   filter:brightness(.93) !important;
 }
+/* ── 6) HASTANE: birlik listesiyle aynı sadelik ── */
+#panel-hospital .overlay-card{
+  border-width:2px !important;
+  border-color:rgba(190,240,255,.5) !important;
+  box-shadow:0 8px 26px rgba(0,15,40,.45) !important;
+}
+#panel-hospital .hospital-heal-card,
+#panel-hospital .hospital-queue-card{
+  background:none !important; background-color:transparent !important;
+  border:0 !important; box-shadow:none !important; border-radius:0 !important;
+  padding:6px 2px !important;
+  border-bottom:1px solid rgba(190,240,255,.14) !important;
+}
+#panel-hospital .hospital-heal-card:last-child,
+#panel-hospital .hospital-queue-card:last-child{ border-bottom:0 !important; }
+
+/* yaralı sayısı: kırmızı, okunaklı */
+#panel-hospital .t-count{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:19px !important;
+  color:#ff6b6b !important;
+  -webkit-text-stroke:0 !important;
+  text-shadow:0 1px 3px rgba(0,20,45,.55) !important;
+  letter-spacing:.2px !important;
+}
+#panel-hospital .hospital-heal-top{ margin-bottom:2px !important; }
+
+/* yazılar tek font, kontursuz */
+#panel-hospital .hq-input,
+#panel-hospital .hq-max,
+#panel-hospital .hospital-queue-title,
+#panel-hospital .hospital-confirm-btn{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  -webkit-text-stroke:0 !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.5) !important;
+}
+#panel-hospital .hospital-confirm-btn{ text-shadow:none !important; border:0 !important; }
+#panel-hospital .hospital-confirm-btn,
+#panel-hospital .hospital-speed-btn{
+  box-shadow:0 2px 5px rgba(0,20,45,.25) !important;
+  transition:transform .09s ease, filter .09s ease !important;
+}
+#panel-hospital .hospital-confirm-btn:active,
+#panel-hospital .hospital-speed-btn:active{
+  transform:scale(.96) !important;
+  box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
+  filter:brightness(.93) !important;
+}
+/* tedavide olanlar: adet kırmızı, isim yok */
+#panel-hospital .hosp-adet{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:19px !important;
+  color:#ff6b6b !important; background:none !important;
+  border:0 !important; padding:0 !important; margin:0 !important;
+  -webkit-text-stroke:0 !important;
+  text-shadow:0 1px 3px rgba(0,20,45,.55) !important;
+}
+#panel-hospital .hospital-heal-total-time{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  -webkit-text-stroke:0 !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.5) !important;
+}
+#panel-hospital .hosp-queue-row{
+  background:none !important; border:0 !important; box-shadow:none !important;
+  border-bottom:1px solid rgba(190,240,255,.14) !important;
+  border-radius:0 !important; padding:6px 2px !important;
+}
+#panel-hospital .hosp-queue-row:last-child{ border-bottom:0 !important; }
 `;
 document.head.appendChild(st);
 })();
