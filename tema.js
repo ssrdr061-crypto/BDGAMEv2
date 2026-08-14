@@ -4472,6 +4472,52 @@ st.textContent = `
   transform:scale(.97) !important;
   filter:brightness(.93) !important;
 }
+/* ── 5) SATIN AL PENCERESİ ── */
+.bd-buy-box{
+  border-width:2px !important;
+  border-color:rgba(160,215,255,.5) !important;
+  box-shadow:0 10px 30px rgba(0,10,30,.5) !important;
+}
+.bd-buy-head{
+  border-bottom-width:1px !important;
+  text-shadow:0 1px 2px rgba(0,15,40,.55) !important;
+}
+.bd-buy-icon{
+  box-shadow:0 2px 6px rgba(0,10,30,.32) !important;
+  overflow:hidden !important;
+}
+.bd-buy-name,
+.bd-buy-desc,
+.bd-qnum,
+.bd-buy-go,
+.bd-qmax,
+.bd-qbtn{
+  text-shadow:0 1px 2px rgba(0,15,40,.5) !important;
+  -webkit-text-stroke:0 !important;
+}
+.bd-buy-go{ text-shadow:none !important; }
+.bd-qbtn,
+.bd-qmax,
+.bd-buy-go{
+  box-shadow:0 2px 5px rgba(0,20,45,.25) !important;
+  border-width:0 !important;
+}
+.bd-buy-x{ box-shadow:0 2px 5px rgba(120,0,0,.3) !important; }
+.bd-qbtn,
+.bd-qmax,
+.bd-buy-go,
+.bd-buy-x{
+  transition:transform .09s ease, filter .09s ease !important;
+  -webkit-tap-highlight-color:transparent;
+}
+.bd-qbtn:active,
+.bd-qmax:active,
+.bd-buy-go:active,
+.bd-buy-x:active{
+  transform:scale(.96) !important;
+  box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
+  filter:brightness(.93) !important;
+}
 `;
 document.head.appendChild(st);
 })();
