@@ -4602,17 +4602,17 @@ document.head.appendChild(st);
   st.textContent = `
 
 /* 1) Panel komple birkaç kademe aşağı */
-#battleArena{ padding:76px 12px 54px !important; }
+#battleArena{ padding:43px 12px 54px !important; }
 
 /* 2) Üstte yer açıldı — ✕ artık panelin İÇİNDE */
-#battleArena .battle-arena{ padding-top:40px !important; }
+#battleArena .battle-arena{ padding-top:26px !important; }
 #battleArena #mapBackBtn{
-  top:8px !important; right:8px !important;
-  width:34px !important; height:34px !important;
+  top:-17px !important; right:5px !important;
+  width:35px !important; height:35px !important;
   border-radius:10px !important;
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
-#battleArena #mapBackBtn::after{ font-size:19px !important; }
+#battleArena #mapBackBtn::after{ font-size:20px !important; }
 
 /* 3) Kahraman kartındaki çıkarma düğmesi küçültüldü */
 #heroPicker .hpk-x{
@@ -4627,7 +4627,7 @@ document.head.appendChild(st);
 #battleArena #troopSelectList{ margin-top:12px !important; }
 
 /* 5) Kum saati satırı TOPLA'ya yaklaştırıldı */
-#battleArena .arazi-sure-satir{ margin:2px 0 -6px !important; }
+#battleArena .arazi-sure-satir{ margin:-13px 0 -4px !important; }
 
 /* 6) TOPLA: turuncu, 3B çerçeve yok, biraz daha dar.
       Kalın alt kenar (box-shadow:0 5px 0 ...) ve yazı konturu
@@ -4637,7 +4637,7 @@ document.head.appendChild(st);
   border:2px solid rgba(255,220,175,.7) !important;
   color:#fff !important;
   font-size:15px !important;
-  padding:10px 24px !important;
+  padding:7px 24px !important;
   border-radius:13px !important;
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
   text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
@@ -4651,149 +4651,4 @@ document.head.appendChild(st);
 }
 `;
   document.head.appendChild(st);
-})();
-
-/* ═══════════════════════════════════════════════════════════════
-   ARAZİ PANELİ — CANLI İNCE AYAR ŞERİDİ
-   Açmak için adresin sonuna:  ?ince=1
-   Değerleri beğenince "DEĞERLERİ GÖSTER"e bas, ekrandaki yazıyı
-   bana yapıştır; ben sabitler ve bu bloğu silerim.
-   ═══════════════════════════════════════════════════════════════ */
-(function araziInceAyar(){
-  if (location.search.indexOf("ince=1") === -1) return;
-
-  /* Başlangıç değerleri = şu an ekranda görünen hâli */
-  const A = {
-    x_ust:      8,   /* ✕ üstten uzaklık (px) */
-    x_sag:      8,   /* ✕ sağdan uzaklık (px) */
-    x_boy:     34,   /* ✕ düğme boyu (px) */
-
-    ust_pay:   40,   /* panelin ÜST iç boşluğu (px) — ✕ için açılan yer */
-
-    sure_ust:   2,   /* süre satırının ÜSTÜNDEKİ boşluk (px) */
-    sure_alt:  -6,   /* süre satırının ALTINDAKİ boşluk (px) — eksi = yaklaşır */
-
-    topla_yan: 24,   /* TOPLA yatay iç boşluk (px) — genişliği belirler */
-    topla_dik: 10,   /* TOPLA dikey iç boşluk (px)  — boyunu belirler   */
-    topla_kay:  0,   /* TOPLA aşağı/yukarı kaydır (px) */
-
-    panel_ust: 76,   /* menünün üstündeki boşluk (px) — büyürse aşağı iner */
-    panel_alt: 54    /* menünün altındaki boşluk (px)  */
-  };
-
-  const SIRA = [
-    ["x_ust",     "✕ üst",         -30,  60],
-    ["x_sag",     "✕ sağ",         -30,  60],
-    ["x_boy",     "✕ boy",          20,  56],
-    ["ust_pay",   "Panel üst payı",  0, 110],
-    ["sure_ust",  "Süre üst",      -30,  40],
-    ["sure_alt",  "Süre alt",      -30,  40],
-    ["topla_yan", "TOPLA yan",      6,   70],
-    ["topla_dik", "TOPLA dik",      4,   30],
-    ["topla_kay", "TOPLA kaydır",  -40,  40],
-    ["panel_ust", "Menü üst",       0,  220],
-    ["panel_alt", "Menü alt",       0,  220]
-  ];
-
-  function uygula(){
-    let el = document.getElementById("araziInceStyle");
-    if (!el) { el = document.createElement("style"); el.id = "araziInceStyle"; document.head.appendChild(el); }
-    el.textContent =
-      "#battleArena{ padding:" + A.panel_ust + "px 12px " + A.panel_alt + "px !important; }" +
-      "#battleArena .battle-arena{ padding-top:" + A.ust_pay + "px !important; }" +
-      "#battleArena #mapBackBtn{" +
-        "top:" + A.x_ust + "px !important; right:" + A.x_sag + "px !important;" +
-        "width:" + A.x_boy + "px !important; height:" + A.x_boy + "px !important; }" +
-      "#battleArena #mapBackBtn::after{ font-size:" + Math.round(A.x_boy * 0.56) + "px !important; }" +
-      "#battleArena .arazi-sure-satir{ margin:" + A.sure_ust + "px 0 " + A.sure_alt + "px !important; }" +
-      "#battleArena .battle-arena .battle-btn{" +
-        "padding:" + A.topla_dik + "px " + A.topla_yan + "px !important;" +
-        "transform:translateY(" + A.topla_kay + "px) !important; }";
-    const kutu = document.getElementById("inceDeger");
-    if (kutu && kutu.dataset.acik === "1") kutu.textContent = metin();
-  }
-
-  function metin(){
-    let s = "ARAZİ PANELİ AYARLARI\n";
-    SIRA.forEach(r => { s += r[1] + " (" + r[0] + ") = " + A[r[0]] + "\n"; });
-    return s;
-  }
-
-  function serit(){
-    const d = document.createElement("div");
-    d.id = "inceSerit";
-    d.style.cssText =
-      "position:fixed; left:0; right:0; bottom:0; z-index:99999;" +
-      "background:rgba(6,16,34,.94); color:#eaf7ff; font-family:'Baloo 2','Nunito',sans-serif;" +
-      "font-size:13px; max-height:52vh; overflow-y:auto; padding:6px 8px 10px;" +
-      "border-top:2px solid rgba(160,215,255,.5);";
-
-    let ic = "<div style='display:flex; justify-content:space-between; align-items:center; padding:2px 2px 6px;'>" +
-             "<b style='font-size:14px;'>İNCE AYAR</b>" +
-             "<button id='inceKapa' style='background:#c00d0d; color:#fff; border:0; border-radius:8px; padding:4px 12px; font-weight:800;'>GİZLE</button></div>";
-
-    SIRA.forEach(r => {
-      const k = r[0];
-      ic += "<div style='display:flex; align-items:center; gap:6px; padding:2px 0;'>" +
-            "<span style='flex:0 0 96px;'>" + r[1] + "</span>" +
-            "<button data-az='" + k + "' style='width:34px; height:30px; border:0; border-radius:8px; background:#1f4a86; color:#fff; font-size:17px; font-weight:900;'>−</button>" +
-            "<b data-gos='" + k + "' style='flex:0 0 44px; text-align:center; font-size:14px;'>" + A[k] + "</b>" +
-            "<button data-cok='" + k + "' style='width:34px; height:30px; border:0; border-radius:8px; background:#1f4a86; color:#fff; font-size:17px; font-weight:900;'>+</button>" +
-            "<input type='range' data-cek='" + k + "' min='" + r[2] + "' max='" + r[3] + "' value='" + A[k] + "' style='flex:1 1 auto; min-width:60px;'>" +
-            "</div>";
-    });
-
-    ic += "<button id='inceGoster' style='width:100%; margin-top:8px; padding:9px; border:0; border-radius:10px; background:#e8720d; color:#fff; font-weight:900; font-size:14px;'>DEĞERLERİ GÖSTER</button>" +
-          "<pre id='inceDeger' style='display:none; white-space:pre-wrap; background:#0b1c38; border:1px solid rgba(160,215,255,.35); border-radius:8px; padding:8px; margin:8px 0 0; font-size:12px; color:#ffd257; -webkit-user-select:text; user-select:text;'></pre>";
-
-    d.innerHTML = ic;
-    document.body.appendChild(d);
-
-    function tazele(k){
-      const g = d.querySelector("[data-gos='" + k + "']");
-      const c = d.querySelector("[data-cek='" + k + "']");
-      if (g) g.textContent = A[k];
-      if (c) c.value = A[k];
-      uygula();
-    }
-
-    d.addEventListener("click", e => {
-      const az = e.target.closest("[data-az]");
-      const cok = e.target.closest("[data-cok]");
-      if (az)  { A[az.dataset.az]--;   tazele(az.dataset.az);  return; }
-      if (cok) { A[cok.dataset.cok]++; tazele(cok.dataset.cok); return; }
-      if (e.target.id === "inceKapa") { d.style.display = "none"; acAcButon(); return; }
-      if (e.target.id === "inceGoster") {
-        const kutu = document.getElementById("inceDeger");
-        kutu.dataset.acik = "1";
-        kutu.style.display = "block";
-        kutu.textContent = metin();
-      }
-    });
-
-    d.addEventListener("input", e => {
-      const c = e.target.closest("[data-cek]");
-      if (!c) return;
-      A[c.dataset.cek] = parseInt(c.value, 10);
-      const g = d.querySelector("[data-gos='" + c.dataset.cek + "']");
-      if (g) g.textContent = A[c.dataset.cek];
-      uygula();
-    });
-  }
-
-  function acAcButon(){
-    if (document.getElementById("inceAc")) return;
-    const b = document.createElement("button");
-    b.id = "inceAc";
-    b.textContent = "AYAR";
-    b.style.cssText = "position:fixed; left:8px; bottom:8px; z-index:99999; background:#e8720d;" +
-      "color:#fff; border:0; border-radius:10px; padding:8px 14px; font-weight:900; font-size:13px;" +
-      "font-family:'Baloo 2','Nunito',sans-serif;";
-    b.onclick = () => { document.getElementById("inceSerit").style.display = "block"; b.remove(); };
-    document.body.appendChild(b);
-  }
-
-  function baslat(){ serit(); uygula(); }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", baslat);
-  else baslat();
 })();
