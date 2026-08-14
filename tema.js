@@ -4053,6 +4053,14 @@ st.textContent = `
 
 /* ── 1) 3B kenar yok ── */
 #panel-troops .unit-instant-btn{ box-shadow:0 2px 6px rgba(0,20,45,.28) !important; }
+#panel-troops .unit-speedup-btn{ box-shadow:0 2px 6px rgba(0,20,45,.28) !important; }
+#panel-troops .uq-btn{ box-shadow:0 2px 5px rgba(0,20,45,.25) !important; }
+#panel-troops .unit-speedup-btn:active,
+#panel-troops .uq-btn:active{
+  transform:none !important;
+  box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
+  filter:brightness(.94) !important;
+}
 #panel-troops .unit-train-btn,
 #panel-hospital .hospital-confirm-btn,
 #heroDetailOverlay #hdBuyBtn,
