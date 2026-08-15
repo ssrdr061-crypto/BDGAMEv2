@@ -1159,7 +1159,7 @@ function geriCagirSor(id) {
   onayPenceresi("GERİ ÇAĞIR",
     `<b>${String(s.hedefAd || "")}</b> üzerine giden <b>${toplam(s.birlikler || {})}</b> birliğin geri çağrılsın mı?` +
     `<br><span class="sefer-onay-not">Ordu bulunduğu noktadan yürüyerek dönecek; gittiği yol kadar süre alır.</span>`,
-    "⟲ Geri Çağır", () => geriCagir(id));
+    "Geri Çağır", () => geriCagir(id));
 }
 
 function fmtSayi(n) {
@@ -1202,18 +1202,12 @@ function hizlandirSor(id) {
   const s = _yerel[id];
   if (!s) return;
 
-  const ev = evre(s);
   const ekler = cantaEkleri(id);
-  const not = ekler.length
-    ? `Elmas bedeli ${fmtSayi(AYAR.HIZ_BEDEL)} 💎; çantandaki ürün bedava.`
-    : `Bedel ${fmtSayi(AYAR.HIZ_BEDEL)} 💎. Çantanda hızlandırma ürünü yok.`;
 
   onayPenceresi("HIZLANDIR",
-    `<b>${String(s.hedefAd || "")}</b> · Kalan süre <b>${fmtSure(ev.kalanMs)}</b>.` +
-    `<br>Bunun <b>%${Math.round(AYAR.HIZ_ORANI * 100)}</b>'i silinsin mi?` +
-    `<br><span class="sefer-onay-not">${not}</span>`,
-    `⏩ Hızlandır · 💎 ${fmtSayi(AYAR.HIZ_BEDEL)}`, () => hizlandir(id),
-    { ekler: ekler, solEtiket: "⟲ Geri Çağır", solFn: () => geriCagirSor(id) });
+    `%${Math.round(AYAR.HIZ_ORANI * 100)} Hızlandır`,
+    `${fmtSayi(AYAR.HIZ_BEDEL)} 💎`, () => hizlandir(id),
+    { ekler: ekler, solEtiket: "Geri Çağır", solFn: () => geriCagirSor(id) });
 }
 
 /* Ürünle hızlandırma: elmas ALINMAZ, çantadan bir adet düşer. */
@@ -1424,35 +1418,38 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 }
 
 .sefer-onay-modal{
+  /* Ekranın ALTINDA açılır, arka plan KARARMAZ. */
   position:fixed; inset:0; z-index:9999;
-  display:flex; align-items:center; justify-content:center;
-  background:rgba(2,10,26,.72); padding:18px;
+  display:flex; align-items:flex-end; justify-content:center;
+  background:transparent; padding:0 18px 104px;
 }
-.sefer-onay-modal .som-card{ max-width:340px; border-radius:22px; padding:18px 16px;
+.sefer-onay-modal .som-card{ max-width:300px; border-radius:18px; padding:16px 14px;
   border:1px solid rgba(190,240,255,.14); box-shadow:0 2px 6px rgba(0,20,45,.3); }
 .sefer-onay-modal .som-close{ top:12px; right:12px; }
 /* .overlay-card h2 display:flex — text-align burada işe yaramaz */
 .sefer-onay-modal .som-title{
-  justify-content:center; font-size:22px; letter-spacing:1.6px;
-  padding-right:0; margin:0 0 12px;
+  justify-content:center; font-size:20px; letter-spacing:.2px;
+  text-transform:none; padding-right:0; margin:0 0 10px;
 }
 .sefer-onay-modal .som-msg{
   font-family:'Baloo 2','Nunito',sans-serif; font-size:14px;
-  line-height:1.5; text-align:center; margin:0 0 16px;
+  line-height:1.4; text-align:center; margin:0 0 12px;
 }
 .sefer-onay-modal .sefer-onay-not{ font-size:12px; opacity:.75; }
-.sefer-onay-modal .som-actions{ display:flex; gap:10px; }
+.sefer-onay-modal .som-actions{ display:flex; gap:8px; justify-content:center; }
 /* Düğmeler: çerçevesiz, kalın alt kenar yok, basma tepkisi zıplama değil. */
 .sefer-onay-modal .som-btn{
-  flex:1; padding:11px 8px; border-radius:13px; cursor:pointer;
+  flex:0 1 auto; min-width:104px; padding:8px 12px; border-radius:11px; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:14px;
+  white-space:nowrap;
   color:#fff; border:none; outline:none;
   box-shadow:0 2px 6px rgba(0,20,45,.3);
   -webkit-tap-highlight-color:transparent;
   transition:transform .09s ease, filter .09s ease;
 }
 .sefer-onay-modal .som-btn:active{ transform:scale(.96); filter:brightness(.93); }
-.sefer-onay-modal .som-actions-dikey{ flex-direction:column; margin-bottom:10px; }
+.sefer-onay-modal .som-actions-dikey{ flex-direction:column; margin-bottom:8px; }
+.sefer-onay-modal .som-actions-dikey .som-btn{ flex:1 1 auto; width:100%; }
 .sefer-onay-modal .som-btn-canta{ background:linear-gradient(180deg,#f0c34f,#d1901a); }
 .sefer-onay-modal .som-btn-no{ background:linear-gradient(180deg,#5a6b80,#3b4859); }
 .sefer-onay-modal .som-btn-yes{ background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
@@ -1493,7 +1490,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "canvas-9",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-10",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   /* harita.js canvas çizimi için — evre ve süre biçimi tek yerde
