@@ -51,7 +51,11 @@ const AYAR = {
      OKUNUR — buraya 4.7 gibi bir sayı GÖMÜLMEZ. Gömülürse
      ızgara boyu değiştiğinde hata sessiz olur. */
   SANIYE_PER_GORSEL_KARO: 5.3,   /* ≈ 25 sn / mantıksal karo */
-  MIN_SURE_MS: 15000,
+  /* EN KISA İNTİKAL — 1 karoluk yürüyüş bu kadar sürer.
+     5,3 sn'lik karo hızı bunun altında kaldığı için komşu karoya
+     gitmek pratikte HEP bu sayı kadar sürer. 15.000'di, 7.000
+     yapıldı: yakın hedeflere gidiş gelişi hızlandırır. */
+  MIN_SURE_MS: 7000,
   CARPISMA_BEKLE_MS: 2000,
   MAX_SEFER: 3,
   KAYIT_OMRU_MS: 2 * 60 * 60 * 1000,

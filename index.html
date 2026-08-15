@@ -2062,6 +2062,14 @@ body.world-active{padding:0; overflow:hidden;}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <!-- Koordinat çevrimi için tek kapı. DOM/harita bağımlılığı yok, en başta yüklenir. -->
 <script src="koordinat.js"></script>
+<style id="scEmojiStil">
+/* Mağaza kartındaki emoji simge — sarı kutuyu SVG gibi doldurur. */
+.shop-card2 .sc-emoji{
+  font-size:34px; line-height:1; position:relative;
+  filter:drop-shadow(0 2px 3px rgba(0,15,40,.5));
+}
+.bd-buy-icon .sc-emoji{ font-size:30px; }
+</style>
 <style id="onDuzStil">
 /* ══ AÇILIŞ 3B PARLAMASINI ÖNLER ══
    Bu kurallar tema.js icinde de var, ama tema.js sayfanin EN SONUNDA
@@ -3381,6 +3389,10 @@ function defaultState() {
     /* KAYNAKLAR — arazilerden toplanır, canavarlardan düşer.
        Harcama yeri henüz yok; şimdilik yalnız birikir. */
     kaynaklar: { et: 0, demir: 0, su: 0, enerji: 0 },
+    /* Kaynak üretiminin en son işlendiği an (ms).
+       0 = hiç işlenmedi; uretim.js ilk çalıştığında "şimdi" yazar,
+       böylece yeni hesaba geçmişe dönük kaynak verilmez. */
+    uretimAt: 0,
     battleLogHistory: [],
     lastDailyRewardDate: null,
     hospital: [],
@@ -4092,6 +4104,9 @@ function compactStateForExport(s) {
   if (s.lastDailyExplore)    out.lde = s.lastDailyExplore;
   if (s.maxFrontierLevel) out.mfl = s.maxFrontierLevel;
   if (s.kaynaklar) out.kyn = s.kaynaklar;
+  /* Üretim damgası kaydedilmezse her girişte "şimdi" olur ve
+     oyuncu yokken üretilen kaynak hiç verilmez. */
+  if (s.uretimAt) out.uat = s.uretimAt;
   if (s.troops && (s.troops.knight || s.troops.soldier || s.troops.robot)) {
     out.tr = [s.troops.knight || 0, s.troops.soldier || 0, s.troops.robot || 0];
   }
@@ -4120,6 +4135,7 @@ function expandCompactState(c) {
   if (c.sc) s.selectedCommanders = c.sc;
   if (c.mfl) s.maxFrontierLevel = c.mfl;
   if (c.kyn) s.kaynaklar = c.kyn;
+  if (c.uat) s.uretimAt = c.uat;
   if (c.tr) s.troops = { knight: c.tr[0] || 0, soldier: c.tr[1] || 0, robot: c.tr[2] || 0 };
   if (c.tq) s.trainingQueue = c.tq.map(j => ({ unitId: j[0], finishAt: j[1] }));
   return s;
@@ -4675,6 +4691,7 @@ const SHOP_CATEGORIES = [
   { id: "all",       label: "Tümü" },
   { id: "boost",     label: "⭐ Güçlendirme" },
   { id: "potion",    label: "❤️ İksir" },
+  { id: "kaynak",    label: "🍖 Kaynak" },
 ];
 let activeShopCategory = "all";
 
@@ -4734,6 +4751,12 @@ function itemIconSVG(item) {
       sunucuda sessizce bulunamaz.                                 */
   if (item && item.gorsel) {
     return `<img class="sc-img" src="${item.gorsel}" alt="">`;
+  }
+  /*  EMOJİ SİMGE — ürüne `emoji: "🍖"` yazılırsa çizim yerine o
+      kullanılır. Görsel dosyası hazırlamaya değmeyen ürünler
+      (kaynak paketleri gibi) için kısa yol.                        */
+  if (item && item.emoji) {
+    return `<span class="sc-emoji">${item.emoji}</span>`;
   }
   const kind = itemVisualKind(item);
   const rc = rarityClass(item);
@@ -8172,6 +8195,7 @@ setInterval(() => {
 <script src="sefer.js"></script>
 <script src="karo.js"></script>
 <script src="kale2x2.js"></script>
+<script src="uretim.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════
      3D BİRLİK VIEWER — Three.js ile OBJ/MTL/Texture
