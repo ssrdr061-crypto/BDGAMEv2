@@ -32,6 +32,8 @@
 const shopItems = [
 
   { name: "5 Dakika Hızlandırma", price: 200, isSpeedUpItem: true, speedUpMinutes: 5, icon: "⏩", gorsel: "5dkhiz.webp" },
+  { name: "1 Saat Hızlandırma", price: 2000, isSpeedUpItem: true, speedUpMinutes: 60, icon: "⏩", gorsel: "1shiz.webp" },
+  { name: "3 Saat Hızlandırma", price: 5000, isSpeedUpItem: true, speedUpMinutes: 180, icon: "⏩", gorsel: "3shiz.webp" },
 
   /* ── İNTİKAL HIZLANDIRMA ──
      Çantaya düşer; yoldaki bir seferin KALAN süresini kısaltır.
@@ -52,19 +54,18 @@ const shopItems = [
        Demir  5.000 → 12,5 dk → 500
        Su     5.000 → 20 dk   → 800
        Enerji 1.000 → 6,7 dk  → 400  (×1,5 — en yavaş üretilen, darboğaz)
-     Yani paketler "kaynak kazanma yolu" değil, sıkışınca alınan
-     hızlandırma. Dengeyi değiştirmek istersen tek yer burası. */
+     Dengeyi değiştirmek istersen tek yer burası. */
   { name: "Et Sandığı", price: 800, isKaynak: true, kaynakId: "et", miktar: 10000,
-    icon: "🍖", emoji: "🍖",
+    icon: "🍖", gorsel: "10ket.webp",
     kaynakDesc: "10.000 🍖 Et doğrudan kaynaklarına eklenir. Kalen dakikada 500 üretir; bu paket 20 dakikalık üretime denktir." },
   { name: "Demir Sandığı", price: 500, isKaynak: true, kaynakId: "demir", miktar: 5000,
-    icon: "⛓️", emoji: "⛓️",
+    icon: "⛓️", gorsel: "5kdemir.webp",
     kaynakDesc: "5.000 ⛓️ Demir doğrudan kaynaklarına eklenir. Kalen dakikada 400 üretir; bu paket 12,5 dakikalık üretime denktir." },
   { name: "Su Sandığı", price: 800, isKaynak: true, kaynakId: "su", miktar: 5000,
-    icon: "💧", emoji: "💧",
+    icon: "💧", gorsel: "5ksu.webp",
     kaynakDesc: "5.000 💧 Su doğrudan kaynaklarına eklenir. Kalen dakikada 250 üretir; bu paket 20 dakikalık üretime denktir." },
   { name: "Enerji Hücresi", price: 400, isKaynak: true, kaynakId: "enerji", miktar: 1000,
-    icon: "⚡", emoji: "⚡",
+    icon: "⚡", gorsel: "1kenerji.webp",
     kaynakDesc: "1.000 ⚡ Enerji doğrudan kaynaklarına eklenir. Enerji en yavaş üretilen kaynaktır (dakikada 150), o yüzden birimi diğerlerinden pahalıdır." },
 
   /* ── FÜZE (kale saldırısı) ── */
@@ -123,7 +124,9 @@ function getItemDef(name) {
    Burada OLMAYAN ürünler limitsizdir (kartta ∞ görünür). */
 const SHOP_LIMITS = {
   "Füze": 2,
-  "5 Dakika Hızlandırma": 10000,
+  "5 Dakika Hızlandırma": 1000,
+  "1 Saat Hızlandırma": 500,
+  "3 Saat Hızlandırma": 200,
   "Can Potu": 30,
   "Buzul Özü": 5,
   "Direnç İlacı": 5,
@@ -284,8 +287,13 @@ function renderShop() {
     const left = shopLeft(item);
     const soldOut = left <= 0;
     const badge = item.isSeferHiz ? ("%" + Math.round(item.hizOran * 100))
-                : item.isKaynak ? (item.miktar >= 1000 ? (item.miktar / 1000) + "K" : String(item.miktar))
-                : (item.isSpeedUpItem ? "5dk" : "1");
+                : item.isKaynak
+                    ? (item.miktar >= 1000 ? (item.miktar / 1000) + "K" : String(item.miktar))
+                : (item.isSpeedUpItem
+                    ? (item.speedUpMinutes >= 60
+                        ? Math.round(item.speedUpMinutes / 60) + "sa"
+                        : item.speedUpMinutes + "dk")
+                    : "1");
 
     html += `
       <div class="shop-card2 ${soldOut ? "soldout" : ""}" data-idx="${realIdx}" style="animation-delay:${i * 0.04}s">
@@ -332,7 +340,11 @@ function closeShopPopups() {
 /* ürün açıklaması — hem baloncuk hem satın alma penceresi kullanır */
 function shopItemDesc(item) {
   if (item.isMissile)        return item.missileDesc || "";
-  if (item.isSpeedUpItem)    return "Eğitim/iyileşme süresini 5 dk kısaltır.";
+  if (item.isSpeedUpItem)    return "Eğitim/iyileşme süresini " +
+                                    (item.speedUpMinutes >= 60
+                                      ? Math.round(item.speedUpMinutes / 60) + " saat"
+                                      : item.speedUpMinutes + " dk") +
+                                    " kısaltır.";
   if (item.isSeferHiz)       return "Yoldaki bir intikalin kalan süresini %" +
                                     Math.round(item.hizOran * 100) +
                                     " kısaltır. Haritadaki sefer kutusuna dokunup kullanılır.";
@@ -551,9 +563,9 @@ function buyItem(idx, count) {
     if (!state.kaynaklar || typeof state.kaynaklar !== "object") {
       state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
     }
-    const k = item.kaynakId;
-    const eski = state.kaynaklar[k];
-    state.kaynaklar[k] = (typeof eski === "number" && isFinite(eski) ? eski : 0) + item.miktar * count;
+    const _k = item.kaynakId;
+    const _eski = state.kaynaklar[_k];
+    state.kaynaklar[_k] = (typeof _eski === "number" && isFinite(_eski) ? _eski : 0) + item.miktar * count;
     if (typeof renderKaynaklar === "function") renderKaynaklar();
   } else {
     state.inventory[item.name] = (state.inventory[item.name] || 0) + count;
