@@ -364,7 +364,9 @@ function renderTroopQueue() {
   if (banner) banner.style.display = hasTraining ? "none" : "";
 
   const byUnit = hasTraining ? groupBy(state.trainingQueue, j => j.unitId) : {};
-  const speedUpCount = state.inventory["5 Dakika Hızlandırma"] || 0;
+  const speedUpCount = Object.keys(state.inventory || {})
+    .filter(ad => /Hızlandırma/i.test(ad) && /\d+\s*(Dakika|Saat|Gün)/i.test(ad))
+    .reduce((t, ad) => t + (state.inventory[ad] || 0), 0);
 
   ["knight", "soldier", "robot"].forEach(unitId => {
     const slot = document.getElementById("train_" + unitId);

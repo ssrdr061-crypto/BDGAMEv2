@@ -32,6 +32,8 @@
 const shopItems = [
 
   { name: "5 Dakika Hızlandırma", price: 200, isSpeedUpItem: true, speedUpMinutes: 5, icon: "⏩", gorsel: "5dkhiz.webp" },
+  { name: "1 Saat Hızlandırma", price: 2000, isSpeedUpItem: true, speedUpMinutes: 60, icon: "⏩", gorsel: "1shiz.webp" },
+  { name: "3 Saat Hızlandırma", price: 5000, isSpeedUpItem: true, speedUpMinutes: 180, icon: "⏩", gorsel: "3shiz.webp" },
 
   /* ── İNTİKAL HIZLANDIRMA ──
      Çantaya düşer; yoldaki bir seferin KALAN süresini kısaltır.
@@ -98,7 +100,9 @@ function getItemDef(name) {
    Burada OLMAYAN ürünler limitsizdir (kartta ∞ görünür). */
 const SHOP_LIMITS = {
   "Füze": 2,
-  "5 Dakika Hızlandırma": 10000,
+  "5 Dakika Hızlandırma": 1000,
+  "1 Saat Hızlandırma": 500,
+  "3 Saat Hızlandırma": 200,
   "Can Potu": 30,
   "Buzul Özü": 5,
   "Direnç İlacı": 5,
@@ -252,7 +256,11 @@ function renderShop() {
     const left = shopLeft(item);
     const soldOut = left <= 0;
     const badge = item.isSeferHiz ? ("%" + Math.round(item.hizOran * 100))
-                : (item.isSpeedUpItem ? "5dk" : "1");
+                : (item.isSpeedUpItem
+                    ? (item.speedUpMinutes >= 60
+                        ? Math.round(item.speedUpMinutes / 60) + "sa"
+                        : item.speedUpMinutes + "dk")
+                    : "1");
 
     html += `
       <div class="shop-card2 ${soldOut ? "soldout" : ""}" data-idx="${realIdx}" style="animation-delay:${i * 0.04}s">
@@ -299,7 +307,11 @@ function closeShopPopups() {
 /* ürün açıklaması — hem baloncuk hem satın alma penceresi kullanır */
 function shopItemDesc(item) {
   if (item.isMissile)        return item.missileDesc || "";
-  if (item.isSpeedUpItem)    return "Eğitim/iyileşme süresini 5 dk kısaltır.";
+  if (item.isSpeedUpItem)    return "Eğitim/iyileşme süresini " +
+                                    (item.speedUpMinutes >= 60
+                                      ? Math.round(item.speedUpMinutes / 60) + " saat"
+                                      : item.speedUpMinutes + " dk") +
+                                    " kısaltır.";
   if (item.isSeferHiz)       return "Yoldaki bir intikalin kalan süresini %" +
                                     Math.round(item.hizOran * 100) +
                                     " kısaltır. Haritadaki sefer kutusuna dokunup kullanılır.";

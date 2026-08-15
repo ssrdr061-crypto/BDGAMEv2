@@ -5031,7 +5031,9 @@ function renderHospitalPanel() {
   }
   if (queueTitle) queueTitle.classList.remove("is-hidden");
   const byUnitConfirmed = groupBy(confirmed, p => p.unitId);
-  const speedUpCount = state.inventory["5 Dakika Hızlandırma"] || 0;
+  const speedUpCount = Object.keys(state.inventory || {})
+    .filter(ad => /Hızlandırma/i.test(ad) && /\d+\s*(Dakika|Saat|Gün)/i.test(ad))
+    .reduce((t, ad) => t + (state.inventory[ad] || 0), 0);
 
   queueEl.innerHTML = Object.keys(byUnitConfirmed).map(unitId => {
     const def = UNIT_TYPES[unitId];
