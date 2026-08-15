@@ -25,25 +25,21 @@
   function hazir() { return !!(K() && typeof K().kaleSolUst === "function"); }
 
   /* ── GÖRÜNÜM ──────────────────────────────────────────────────
-     İki değişiklik var, ikisi de yalnız CSS:
+     Kale ALAN olarak dört karo, GÖRSEL olarak tek karo boyunda
+     kalıyor — büyütülünce haritayı eziyordu. Yani tek değişiklik
+     kaymadır: resim dört karonun tam ortasına oturur.
 
-     1) BOY. Kale resmi 100px'ti; harita.js düğümleri
-        zoom × 0.64 ile ölçekliyor, yani ekranda 64px = TAM BİR
-        KARO genişliği ediyordu. 200px yazınca 128px = İKİ KARO
-        olur. Sayı buradan çıkıyor: karo genişliği 64, düğüm
-        ölçeği 0.64 → 64 × 2 ÷ 0.64 = 200.
-
-     2) KAYMA. Düğüm hâlâ SOL ÜST karonun üstüne yerleşiyor
-        (data-cx/cy'ye dokunmadık — koordinat kutusu ve diğer her
-        şey doğru kalsın diye). Görsel merkez ise yarım karo sağ
-        ve yarım karo aşağıda. İzometride bu ikisi TOPLANIR ve
-        yatay bileşenleri birbirini götürür:
-             ekran x = (kx − ky) × karo/2  → +0.5, +0.5 → DEĞİŞMEZ
-             ekran y = (kx + ky) × boy/2   → +0.5, +0.5 → +yarım boy
-        Yani tek yapılacak şey DÜZ AŞAĞI kaydırmak. Karo yüksekliği
-        32 olduğuna göre yarısı 16px; düğümün kendi ölçeği 0.64
-        olduğu için içeride 16 ÷ 0.64 = 25px yazılır ve zoom ile
-        kendiliğinden ölçeklenir.
+     Düğüm hâlâ SOL ÜST karonun üstüne yerleşiyor (data-cx/cy'ye
+     dokunmadık — koordinat kutusu ve diğer her şey doğru kalsın
+     diye). Görsel merkez ise yarım karo sağ ve yarım karo aşağıda.
+     İzometride bu ikisi TOPLANIR ve yatay bileşenleri birbirini
+     götürür:
+          ekran x = (kx − ky) × karo/2  → +0.5, +0.5 → DEĞİŞMEZ
+          ekran y = (kx + ky) × boy/2   → +0.5, +0.5 → +yarım boy
+     Yani tek yapılacak şey DÜZ AŞAĞI kaydırmak. Karo yüksekliği 32
+     olduğuna göre yarısı 16px; düğümün kendi ölçeği 0.64 olduğu için
+     içeride 16 ÷ 0.64 = 25px yazılır ve zoom ile kendiliğinden
+     ölçeklenir.
 
      DİKKAT: harita.js her karede düğümün transform'unu baştan
      yazıyor. Bu yüzden kaydırma düğümün KENDİSİNE değil,
@@ -53,13 +49,8 @@
     const st = document.createElement("style");
     st.id = "kale2x2Stil";
     st.textContent = `
-.map-node.castle-node .node-avatar{ width:200px; height:200px; }
 .map-node.castle-node .node-ring{  transform:translateY(25px); }
 .map-node.castle-node .node-label{ transform:translateY(25px); }
-
-/* Taşıma silüeti de iki karo genişliğinde olmalı; yoksa oyuncu
-   küçük bir kale sürükleyip büyük bir kale bırakıyor. */
-#castleMoveGhost img{ width:140px; }
 `;
     document.head.appendChild(st);
   })();

@@ -2062,6 +2062,118 @@ body.world-active{padding:0; overflow:hidden;}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <!-- Koordinat çevrimi için tek kapı. DOM/harita bağımlılığı yok, en başta yüklenir. -->
 <script src="koordinat.js"></script>
+<style id="onDuzStil">
+/* ══ AÇILIŞ 3B PARLAMASINI ÖNLER ══
+   Bu kurallar tema.js icinde de var, ama tema.js sayfanin EN SONUNDA
+   yukleniyor. Tarayici o satira varmadan once ekrani bir kez boyuyor,
+   yani kullanici eski kalin-kenarli 3B gorunumu bir an goruyor ve
+   ardindan duzlesiyor ("acilista kutucuklar 3B yapiyor" hatasi).
+   Ayni kurallar burada, BASLIKTA duruyor: ilk boyamada zaten duz.
+   tema.js sonra ayni kurallari tekrar yaziyor, catisma olmuyor.
+   DIKKAT: tema.js degisirse burasi da guncellenmeli. */
+/* — gunlukDuzles (tema.js ile birebir aynı) — */
+/* Panelin kendisi: radial parlaklık, 3px çerçeve ve dış ışıma yok */
+#panel-battlelog .overlay-card{
+  background:linear-gradient(180deg, var(--km-1, #1fa3ea), var(--km-3, #0e6fc0)) !important;
+  border:1px solid rgba(190,240,255,.20) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+#panel-battlelog h2{
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  -webkit-text-stroke:0 !important;
+}
+#panel-battlelog .desc{ text-shadow:0 1px 2px rgba(0,20,45,.55) !important; }
+
+/* Kayıt kartı: kutu içinde kutu yok — sadece ayırıcı çizgi */
+#panel-battlelog .log-entry{
+  background:none !important;
+  border:none !important;
+  border-bottom:1px solid rgba(190,240,255,.14) !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  padding-left:0 !important;
+}
+#panel-battlelog .log-entry.log-win,
+#panel-battlelog .log-entry.log-loss{ border-left:none !important; }
+
+/* Aç düğmesi: kalın alt kenar ve inset kalktı */
+#panel-battlelog .log-open-btn{
+  background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;
+  border:none !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  transition:transform .09s, filter .09s !important;
+}
+#panel-battlelog .log-open-btn:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+
+/* Ödül düğmesi: aynı sadeleştirme, rengi korunuyor */
+#panel-battlelog .log-gift-btn{
+  background:linear-gradient(180deg,#f7a83a,#c86a08) !important;
+  border:none !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  transition:transform .09s, filter .09s !important;
+}
+#panel-battlelog .log-gift-btn:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+#panel-battlelog .log-gift-btn.alindi{ box-shadow:none !important; }
+
+/* Günlüğü temizle düğmesi */
+#panel-battlelog .log-clear-btn{
+  border:none !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  transition:transform .09s, filter .09s !important;
+}
+#panel-battlelog .log-clear-btn:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+
+/* Kapat ✕ — sadece bu panelde düzleşir */
+#panel-battlelog .overlay-close{
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  transition:transform .09s, filter .09s !important;
+}
+#panel-battlelog .overlay-close:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+
+/* — girisDuzles (tema.js ile birebir aynı) — */
+#loginScreen .field input{
+  border:1px solid rgba(190,240,255,.22) !important;
+  border-radius:13px !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:none !important;
+}
+#loginScreen .field input:focus{
+  border-color:rgba(190,240,255,.45) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+#loginScreen .field input::placeholder{ text-shadow:none !important; }
+
+#loginScreen .login-btn{
+  border:none !important;
+  border-radius:13px !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  -webkit-text-stroke:0 !important;
+  transition:transform .09s, filter .09s !important;
+}
+#loginScreen .login-btn:active{
+  transform:scale(.96) !important;
+  filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+
+#loginScreen .login-switch a{ text-shadow:0 1px 2px rgba(0,20,45,.55) !important; }
+</style>
 </head>
 <body>
 
@@ -6272,32 +6384,45 @@ function setupMapPanning() {
     return { gx: Math.round(gx*10)/10, gy: Math.round(gy*10)/10 };
   }
 
+  /* ── DÜĞÜM LİSTESİ ÖNBELLEĞİ ──
+     cellFree, kale sürüklenirken parmağın HER kıpırdamasında
+     çağrılıyor. Liste 176 slotu baştan kurduğu için saniyede
+     yüzlerce kez yeniden hesaplanıyordu; oyun donuyordu.
+     Yarım saniye tazelik yeter — düğümler o hızda yer değiştirmez. */
+  let _bosDugumler = null, _bosZaman = 0;
+  function _dolulukListesi(){
+    const simdi = Date.now();
+    if (_bosDugumler && (simdi - _bosZaman) < 500) return _bosDugumler;
+    let liste = [];
+    try {
+      if (window.DUGUM && DUGUM.haritaDugumleri) liste = DUGUM.haritaDugumleri();
+    } catch(e){ liste = []; }
+    _bosDugumler = liste; _bosZaman = simdi;
+    return liste;
+  }
+
   function cellFree(gx, gy){
     /* ── KALE 2×2 ──
        Artık NOKTA MESAFESİ değil ALAN ÇAKIŞMASI sınanıyor. Kale dört
        karo kaplıyor; tek noktaya bakan eski hesap "burası boş" deyip
        kaleyi bir canavarın ya da komşu kalenin üstüne oturtuyordu.
-       Kural koordinat.js'te tek yerde duruyor. */
+       Kural koordinat.js'te tek yerde duruyor.
+
+       DİKKAT — `enemies` bir GETTER'dır: her okunduğunda canavar
+       listesini BAŞTAN kurar. Döngü koşulunda `enemies.length`
+       yazmak listeyi her adımda yeniden hesaplatır ve oyunu
+       kilitler. Zaten canavarlar aşağıdaki düğüm listesinde de
+       var, o yüzden ayrıca okunmuyorlar. */
     const K = window.KOORD;
     if (!K || typeof K.kaleSolUst !== "function") return true;   /* eski koordinat.js */
     const s = K.kaleSolUst(K.olcektenKaro(gx), K.olcektenKaro(gy));
 
     /* Canavarlar ve kaynak arazileri — tek karo, kale onları örtmesin. */
-    try {
-      if (window.DUGUM && DUGUM.haritaDugumleri) {
-        const dl = DUGUM.haritaDugumleri();
-        for (let i = 0; i < dl.length; i++) {
-          const d = dl[i];
-          if (d && K.kaleKaplarMi(s.kx, s.ky, d.kx, d.ky)) return false;
-        }
-      }
-    } catch(e){}
-    try {
-      for (let i = 0; i < enemies.length; i++) {
-        const e = enemies[i];
-        if (e && K.kaleKaplarMi(s.kx, s.ky, e.kx, e.ky)) return false;
-      }
-    } catch(e){}
+    const dl = _dolulukListesi();
+    for (let i = 0; i < dl.length; i++) {
+      const d = dl[i];
+      if (d && K.kaleKaplarMi(s.kx, s.ky, d.kx, d.ky)) return false;
+    }
 
     /* Başka oyuncuların kaleleri — 2×2 ile 2×2. Bitişik durabilirler,
        tek karo bile iç içe geçerlerse dolu sayılır. */

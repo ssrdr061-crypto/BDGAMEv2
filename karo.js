@@ -56,14 +56,18 @@
 }
 
 /* Karonun tepesindeki çubuk.
-   DİKKAT — position:fixed DEĞİL: çubuk artık haritanın kendi düğüm
-   katmanının (#battleMap) İÇİNDE duruyor. İki kazanç:
-     1) Her karede getBoundingClientRect okunmuyordu; okunuyordu ve
-        bu zorla yeniden yerleşim doğurup çubuğu titretiyordu.
-     2) Katman numarası haritanın içinde kaldığı için paneller
-        (kale bilgisi, savaş, mağaza) artık çubuğun ÜSTÜNDE çizilir. */
+   DİKKAT — position:fixed DEĞİL: çubuk haritanın kendi düğüm
+   katmanının (#battleMap) İÇİNDE duruyor. Böylece harita ölçülmeden
+   yerleşiyor ve paneller (kale bilgisi, savaş, mağaza) üstünde
+   çizilebiliyor.
+
+   z-index NEDEN BU KADAR BÜYÜK: harita.js her kaleye derinliğine
+   göre katman numarası veriyor (10 + (gx+gy)*10), bu da haritanın
+   alt tarafındaki kalelerde 400'ü aşıyor. Küçük bir sayı verilirse
+   çubuk kalenin ALTINDA kalıyor. Bu numara #battleMap'in KENDİ
+   katmanının içinde geçerli — dışarıdaki panellerin üstüne çıkmaz. */
 #karoCubuk{
-  position:absolute; z-index:40; transform:translate(-50%,-100%);
+  position:absolute; z-index:99999; transform:translate(-50%,-100%);
   display:flex; gap:5px; padding:0;
   font-family:'Baloo 2','Nunito',sans-serif;
   -webkit-tap-highlight-color:transparent;
@@ -376,6 +380,37 @@
     }, 1000);
   }
 
+  /* ── KAYDIRINCA SEÇİMİ BIRAK ──
+     Seçim haritaya yapışık duruyor, yani harita kayarken çubuğun da
+     her karede yeniden yerleşmesi gerekiyordu. Zemin canvas'ı bir
+     kare geriden geldiği için çubuk ekranda titriyordu — ve zaten
+     kaydırırken seçili karoyla işi olan yok.
+
+     Artık parmak haritada gezinmeye başlar başlamaz seçim düşüyor:
+     titreme kalmıyor, çubuk ekranda peşimizden sürüklenmiyor.
+     Eşik 6 px — dokunuşun kendisi seçimi hemen bozmasın diye. */
+  function kaydirmayiIzle() {
+    const wrap = sarmal();
+    if (!wrap || wrap._karoKaydirma) return false;
+    wrap._karoKaydirma = true;
+
+    let bx = 0, by = 0, basili = false;
+    const ESIK = 6;
+
+    wrap.addEventListener("pointerdown", (e) => {
+      basili = true; bx = e.clientX; by = e.clientY;
+    }, true);
+    const bitir = () => { basili = false; };
+    wrap.addEventListener("pointerup", bitir, true);
+    wrap.addEventListener("pointercancel", bitir, true);
+
+    wrap.addEventListener("pointermove", (e) => {
+      if (!basili || !_secili) return;
+      if (Math.abs(e.clientX - bx) > ESIK || Math.abs(e.clientY - by) > ESIK) birak();
+    }, true);
+    return true;
+  }
+
   /* ── KUR ──────────────────────────────────────────────────── */
   (function kur() {
     let kalan = 60;
@@ -384,6 +419,7 @@
       if (window.handleMapTap && window.handleMapTap._karoSarildi) {
         clearInterval(t);
         disariyiIzle();
+        kaydirmayiIzle();
         ekraniIzle();
       } else if (--kalan <= 0) {
         clearInterval(t);
