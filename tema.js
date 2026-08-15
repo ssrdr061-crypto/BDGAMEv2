@@ -4694,7 +4694,7 @@ document.head.appendChild(st);
     "#panel-inventory .inv-row{" +
     "  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;" +
     "  position:relative !important;" +
-    "  padding-bottom:10px !important;" +
+    "  padding:8px 6px 8px !important;" +
     "  aspect-ratio:1 / 1.12 !important;" +
     "  overflow:hidden !important;" +
     "}" +
