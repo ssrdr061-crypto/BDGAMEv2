@@ -4695,7 +4695,7 @@ document.head.appendChild(st);
     "  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;" +
     "  position:relative !important;" +
     "  padding-bottom:24px !important;" +
-    "  aspect-ratio:1 / 1.35 !important;" +
+    "  aspect-ratio:1 / 1.12 !important;" +
     "  overflow:hidden !important;" +
     "}" +
     /* adet kutucuğun İÇİNDE, altta ortalı */
@@ -4706,8 +4706,10 @@ document.head.appendChild(st);
     "}" +
     /* yazı konturu yok, tek ince gölge */
     "#panel-inventory .qty{" +
-    "  font-size:14px !important;" +
+    "  font-size:15px !important;" +
     "  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;" +
-    "}";
+    "}" +
+    /* isim yazısı gitsin, sadece adet kalsın */
+    "#panel-inventory .item-name{ display:none !important; }";
   document.head.appendChild(s);
 })();
