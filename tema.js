@@ -4710,6 +4710,10 @@ document.head.appendChild(st);
     "  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;" +
     "}" +
     /* isim yazısı gitsin, sadece adet kalsın */
-    "#panel-inventory .item-name{ display:none !important; }";
+    "#panel-inventory .item-name{ display:none !important; }" +
+    /* boş kalan orta kutu yer kaplamasın */
+    "#panel-inventory .card-mid{ display:none !important; }" +
+    "#panel-inventory .inv-card," +
+    "#panel-inventory .shop-card{ gap:2px !important; }";
   document.head.appendChild(s);
 })();
