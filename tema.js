@@ -4667,3 +4667,18 @@ document.head.appendChild(st);
 `;
   document.head.appendChild(st);
 })();
+
+/* ── ÇANTA GÖRSELLERİ ──
+   Mağazadaki .sc-img kuralı yalnız .shop-card2 kabına yazılıydı;
+   çanta .icon-box kullandığı için görsel boyutsuz kalıyor ve
+   kutuya sığmayıp kırpılıyordu. */
+(function () {
+  const s = document.createElement("style");
+  s.textContent =
+    "#panel-inventory .icon-box{ position:relative; overflow:hidden; }" +
+    "#panel-inventory .icon-box .sc-img{" +
+    "  width:100%; height:100%; object-fit:cover;" +
+    "  display:block; border-radius:8px; position:relative;" +
+    "}";
+  document.head.appendChild(s);
+})();
