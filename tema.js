@@ -4717,3 +4717,88 @@ document.head.appendChild(st);
     "#panel-inventory .shop-card{ gap:2px !important; }";
   document.head.appendChild(s);
 })();
+/* ═══════════════════════════════════════════════════════════════
+   SAVAŞ GÜNLÜĞÜ — 3B TEMİZLİĞİ
+   Görünüm kuralı: kalın alt kenar, kontur, inset kabartı ve
+   zıplayan basma tepkisi yok. Eski satırlar silinmedi; dosyanın
+   sonundaki bu blok aynı özgüllükle ezer.
+   ═══════════════════════════════════════════════════════════════ */
+(function gunlukDuzles() {
+  const st = document.createElement("style");
+  st.id = "gunlukDuzStil";
+  st.textContent = `
+/* Panelin kendisi: radial parlaklık, 3px çerçeve ve dış ışıma yok */
+#panel-battlelog .overlay-card{
+  background:linear-gradient(180deg, var(--km-1, #1fa3ea), var(--km-3, #0e6fc0)) !important;
+  border:1px solid rgba(190,240,255,.20) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+#panel-battlelog h2{
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  -webkit-text-stroke:0 !important;
+}
+#panel-battlelog .desc{ text-shadow:0 1px 2px rgba(0,20,45,.55) !important; }
+
+/* Kayıt kartı: kutu içinde kutu yok — sadece ayırıcı çizgi */
+#panel-battlelog .log-entry{
+  background:none !important;
+  border:none !important;
+  border-bottom:1px solid rgba(190,240,255,.14) !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  padding-left:0 !important;
+}
+#panel-battlelog .log-entry.log-win,
+#panel-battlelog .log-entry.log-loss{ border-left:none !important; }
+
+/* Aç düğmesi: kalın alt kenar ve inset kalktı */
+#panel-battlelog .log-open-btn{
+  background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;
+  border:none !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  transition:transform .09s, filter .09s !important;
+}
+#panel-battlelog .log-open-btn:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+
+/* Ödül düğmesi: aynı sadeleştirme, rengi korunuyor */
+#panel-battlelog .log-gift-btn{
+  background:linear-gradient(180deg,#f7a83a,#c86a08) !important;
+  border:none !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  transition:transform .09s, filter .09s !important;
+}
+#panel-battlelog .log-gift-btn:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+#panel-battlelog .log-gift-btn.alindi{ box-shadow:none !important; }
+
+/* Günlüğü temizle düğmesi */
+#panel-battlelog .log-clear-btn{
+  border:none !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  transition:transform .09s, filter .09s !important;
+}
+#panel-battlelog .log-clear-btn:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+
+/* Kapat ✕ — sadece bu panelde düzleşir */
+#panel-battlelog .overlay-close{
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  transition:transform .09s, filter .09s !important;
+}
+#panel-battlelog .overlay-close:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+`;
+  document.head.appendChild(st);
+})();
