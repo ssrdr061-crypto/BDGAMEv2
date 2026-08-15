@@ -154,6 +154,89 @@ function kaleKayit(kx, ky) {
   return k;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   KALE ARTIK 2×2 KARO
+   -----------------------------------------------------------
+   TEK KURAL: kayıttaki kx/ky kalenin SOL ÜST karosudur.
+   Bu seçim bilerek yapıldı — eski kayıtlarda da kx/ky zaten
+   kalenin durduğu karoydu, yani hiçbir kayıt bozulmaz; kale
+   yalnızca sağ ve alt komşusuna doğru büyür.
+
+   Kale şu dört karoyu kaplar:
+       (kx  , ky  )   (kx+1, ky  )
+       (kx  , ky+1)   (kx+1, ky+1)
+
+   GÖRSEL MERKEZ tam karo değildir: kx+0.5 / ky+0.5. Kale resmi,
+   panel çapası, füze hedefi ve ordu varışı hep BURAYA bakar;
+   sol üst köşeye bakan her yer kaleyi yarım karo kaymış gösterir.
+
+   KALE_BOY dışında hiçbir dosyaya "2" yazılmaz. Kale 3×3 olursa
+   yalnız aşağıdaki sayı değişir.
+   ═══════════════════════════════════════════════════════════ */
+const KALE_BOY = 2;
+
+function kaleBoy() { return KALE_BOY; }
+
+/* Sol üst karoyu ızgaraya oturt: kale ızgaranın dışına TAŞMASIN.
+   karoyaOturt tek karo için yazılmıştı ve son karoya kadar izin
+   veriyor; 2×2 için sağ/alt kenarda bir karo pay bırakmak şart. */
+function kaleSolUst(kx, ky) {
+  const son = karoSayisi() - KALE_BOY;
+  return {
+    kx: Math.max(0, Math.min(son, Math.round(kx))),
+    ky: Math.max(0, Math.min(son, Math.round(ky)))
+  };
+}
+
+/* Kalenin kapladığı karoların listesi. Düğüm yerleştirme ve
+   çakışma denetimi bunu kullanır. */
+function kaleKarolari(kx, ky) {
+  const s = kaleSolUst(kx, ky);
+  const liste = [];
+  for (let y = 0; y < KALE_BOY; y++) {
+    for (let x = 0; x < KALE_BOY; x++) liste.push({ kx: s.kx + x, ky: s.ky + y });
+  }
+  return liste;
+}
+
+/* Görsel merkez — ONDALIK karo. Çizim yapan her yer bunu ister. */
+function kaleMerkez(kx, ky) {
+  const s = kaleSolUst(kx, ky);
+  const yari = (KALE_BOY - 1) / 2;
+  return { kx: s.kx + yari, ky: s.ky + yari };
+}
+
+/* Merkez, oyunun 0..30 ölçeğinde — eski hesaplara doğrudan girer. */
+function kaleMerkezOlcek(kx, ky) {
+  const m = kaleMerkez(kx, ky);
+  return { gx: karodanOlcek(m.kx), gy: karodanOlcek(m.ky) };
+}
+
+/* Bir karo bu kalenin altında mı? Dokunma sınaması için. */
+function kaleKaplarMi(kaleKx, kaleKy, kx, ky) {
+  const s = kaleSolUst(kaleKx, kaleKy);
+  return kx >= s.kx && kx < s.kx + KALE_BOY &&
+         ky >= s.ky && ky < s.ky + KALE_BOY;
+}
+
+/* İki kale çakışıyor mu?
+   bosluk: aralarında kaç karo BOŞ kalmalı (0 = bitişik durabilir).
+   Mesafe hesabı DEĞİL, alan çakışması: iki kare dikdörtgen üst
+   üste biniyorsa doludur. Eski `Math.hypot(...) >= 0.25` sınavı
+   tek noktaya bakıyordu, 2×2'de yanlış cevap verir. */
+function kaleCakisirMi(aKx, aKy, bKx, bKy, bosluk) {
+  const a = kaleSolUst(aKx, aKy), b = kaleSolUst(bKx, bKy);
+  const p = (typeof bosluk === "number" ? bosluk : 0);
+  return Math.abs(a.kx - b.kx) < KALE_BOY + p &&
+         Math.abs(a.ky - b.ky) < KALE_BOY + p;
+}
+
+/* Kalenin alanı tek karo bir engelle (canavar, kaynak, işaret)
+   çakışıyor mu? */
+function kaleKaroylaCakisirMi(kaleKx, kaleKy, kx, ky) {
+  return kaleKaplarMi(kaleKx, kaleKy, kx, ky);
+}
+
 /* Bir noktayı üç birimde birden göster — teşhis ve gelecek
    aşamalarda karşılaştırma için. */
 function ucBirim(g30x, g30y) {
@@ -228,6 +311,29 @@ function dogrula() {
       if (karoyaOturt(olcektenKaro(karodanOlcek(k))) !== k) sapan++;
     }
     sonuc.push({ sinav: "karoya oturtma kayıpsız", beklenen: 0, bulunan: sapan, gecti: sapan === 0 });
+  } catch (e) {}
+
+  /* KALE 2×2 DENETİMİ — dört ayrı karo, doğru merkez, kenardan
+     taşmama ve çakışma sınavı. Biri bozulursa kale görseli ile
+     kapladığı alan ayrışır; sessiz kalmasın. */
+  try {
+    const dort = kaleKarolari(10, 10);
+    const tekil = new Set(dort.map(k => k.kx + ":" + k.ky));
+    ekle("kale karo sayısı", KALE_BOY * KALE_BOY, tekil.size);
+
+    const m = kaleMerkez(10, 10);
+    ekle("kale merkezi x", 10.5, m.kx);
+    ekle("kale merkezi y", 10.5, m.ky);
+
+    /* Sağ alt köşe: sol üst en fazla (son - 1) olabilmeli. */
+    const kenar = kaleSolUst(karoSayisi() + 5, karoSayisi() + 5);
+    ekle("kale kenardan taşmıyor", karoSayisi() - KALE_BOY, kenar.kx);
+
+    /* Bitişik iki kale çakışmaz, bir karo iç içe olan çakışır. */
+    ekle("bitişik kaleler serbest", 0, kaleCakisirMi(10, 10, 12, 10, 0) ? 1 : 0);
+    ekle("iç içe kaleler dolu",     1, kaleCakisirMi(10, 10, 11, 10, 0) ? 1 : 0);
+    ekle("kale kendi karosunu kapsar", 1, kaleKaplarMi(10, 10, 11, 11) ? 1 : 0);
+    ekle("kale dışı karo kapsanmaz",   0, kaleKaplarMi(10, 10, 12, 11) ? 1 : 0);
   } catch (e) {}
 
   const kalan = sonuc.filter(x => !x.gecti);
@@ -322,6 +428,12 @@ window.KOORD = {
   olcektenYuzde: olcektenYuzde, karodanYuzde: karodanYuzde,
   karoyaOturt: karoyaOturt, mesafeKaro: mesafeKaro, ucBirim: ucBirim,
   kaleKaro: kaleKaro, kaleKayit: kaleKayit,
+  /* kale 2×2 */
+  KALE_BOY: KALE_BOY, kaleBoy: kaleBoy,
+  kaleSolUst: kaleSolUst, kaleKarolari: kaleKarolari,
+  kaleMerkez: kaleMerkez, kaleMerkezOlcek: kaleMerkezOlcek,
+  kaleKaplarMi: kaleKaplarMi, kaleCakisirMi: kaleCakisirMi,
+  kaleKaroylaCakisirMi: kaleKaroylaCakisirMi,
   /* teşhis */
   dogrula: dogrula, tani: tani,
 };
