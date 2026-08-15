@@ -208,6 +208,12 @@ function _klistKartAyar(id) {
 .klist-card .klist-zemin{
   position:absolute; inset:0; width:100%; height:100%;
   object-fit:cover; object-position:center; z-index:0; pointer-events:none;
+  /* KÖŞE TAŞIRMA: görselin kendi köşeleri yuvarlak ve SAYDAM. Birebir
+     oturtulursa o saydam köşelerden arkadaki panel mavi sivri uçlar
+     halinde sızıyor. Görseli biraz büyütüyoruz; kart taşanı kırptığı
+     için (overflow:hidden) köşeler tamamen dolar. Hâlâ sızıyorsa bu
+     sayıyı 1.14'e çıkar, fazlası kenardaki çizimi yer. */
+  transform:scale(1.08);
 }
 /* ── PORTRE KABI ──
    DİKKAT: siliklik maskesi KABA uygulanır, görselin kendisine DEĞİL.
