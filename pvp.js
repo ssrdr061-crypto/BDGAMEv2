@@ -134,9 +134,12 @@ const HERO_CATEGORY = {
    arka plan KARARMAZ. Altındaki üçgen kaleyi gösterir. */
 .pvp-backdrop.pvp-capa{
   background:transparent; -webkit-backdrop-filter:none; backdrop-filter:none;
-  display:block; padding:0;
+  display:block; padding:0; animation:none;
 }
-.pvp-backdrop.pvp-capa .pvp-pop{ position:absolute; margin:0; }
+/* Konumu hesaplanana kadar GİZLİ — ortada bir kare görünüp
+   yerine zıplaması "ekran refresh attı" hissini veriyordu. */
+.pvp-backdrop.pvp-capa .pvp-pop{ position:absolute; margin:0; animation:none; }
+.pvp-backdrop.pvp-capa.pvp-hazir .pvp-pop{ animation:pvpFadeIn .12s ease; }
 .pvp-pop-ok{
   position:absolute; left:var(--ok-x, 50%); width:0; height:0;
   transform:translateX(-50%); pointer-events:none;
@@ -166,8 +169,8 @@ const HERO_CATEGORY = {
 }
 
 .pvp-pop{
-  position:relative; width:min(340px, 92vw);
-  border-radius:20px; padding:16px 15px 15px;
+  position:relative; width:min(272px, 78vw);
+  border-radius:16px; padding:12px 12px 12px;
   font-family:'Baloo 2',sans-serif; color:#eaf4ff;
   animation:pvpPopIn .18s cubic-bezier(.2,.9,.3,1.3);
 }
@@ -190,16 +193,17 @@ const HERO_CATEGORY = {
   text-shadow:0 1px 2px rgba(0,20,45,.55); pointer-events:none; white-space:nowrap;
 }
 
-.pvp-head{ display:flex; align-items:center; gap:11px; margin:4px 0 12px; }
+.pvp-head{ display:flex; flex-direction:column; align-items:center; gap:3px;
+  margin:2px 0 9px; text-align:center; }
 .pvp-ava{
-  width:54px; height:54px; flex:0 0 54px; border-radius:14px;
+  width:46px; height:46px; flex:0 0 46px; border-radius:12px;
   background:linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,.06));
   border:1px solid rgba(190,240,255,.20);
   display:flex; align-items:center; justify-content:center; font-size:26px;
 }
-.pvp-name{ font-weight:900; font-size:18px; line-height:1.1; color:#ffd257;
-  text-shadow:0 2px 4px rgba(0,40,70,.7); word-break:break-word; }
-.pvp-sub{ font-size:11.5px; font-weight:700; color:#dff2ff; margin-top:3px;
+.pvp-name{ font-weight:800; font-size:17px; line-height:1.1; color:#fff;
+  text-shadow:0 1px 2px rgba(0,20,45,.55); word-break:break-word; }
+.pvp-sub{ font-size:11.5px; font-weight:700; color:#dff2ff; margin-top:1px;
   text-shadow:0 1px 2px rgba(0,30,55,.5); }
 /* Koordinat satırı sohbette paylaşmak için tıklanabilir */
 .pvp-sub-share{ display:inline-block; cursor:pointer; border-radius:8px;
@@ -217,24 +221,24 @@ const HERO_CATEGORY = {
 /* Ortadaki "kutu içinde kutu" kaldırıldı — sadece boşluk kaldı. */
 .pvp-stats{
   background:none; border:none; box-shadow:none;
-  padding:0; margin-bottom:12px;
+  padding:0; margin-bottom:10px;
 }
 .pvp-stat-row{ display:flex; justify-content:space-between; align-items:center; gap:8px;
   font-size:12.5px; font-weight:700; padding:3px 0; color:#dff2ff;
   text-shadow:0 1px 2px rgba(0,30,55,.5); }
 .pvp-stat-row b{ color:#fff; font-weight:900; }
 
-.pvp-hp-bar{ height:9px; border-radius:5px; overflow:hidden; margin-top:2px;
-  background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.16); }
+.pvp-hp-bar{ height:7px; border-radius:4px; overflow:hidden; margin:3px 0 0 auto;
+  width:100%; max-width:132px;
+  background:rgba(0,0,0,.40); border:none; }
 .pvp-hp-bar i{ display:block; height:100%; border-radius:4px; transition:width .4s; }
-.pvp-hp-note{ font-size:9.5px; font-weight:700; color:#7d90ae; margin-top:3px; text-align:right; }
 
-.pvp-sep{ height:1px; background:rgba(190,240,255,.3); margin:9px 0 7px; }
+.pvp-sep{ height:1px; background:rgba(190,240,255,.14); margin:7px 0 5px; }
 
-.pvp-actions{ display:flex; gap:9px; }
+.pvp-actions{ display:flex; gap:8px; }
 .pvp-btn{ flex:1; border:none; cursor:pointer; border-radius:13px;
-  padding:9px 10px; font-family:'Baloo 2',sans-serif;
-  font-weight:800; font-size:15px; letter-spacing:.4px; color:#fff;
+  padding:8px 8px; font-family:'Baloo 2',sans-serif;
+  font-weight:800; font-size:14px; letter-spacing:.4px; color:#fff;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
   box-shadow:0 2px 6px rgba(0,20,45,.3);
   transition:transform .09s, filter .09s;
@@ -485,6 +489,7 @@ function capala(back, gx, gy) {
     const okX = Math.max(16, Math.min(cx - left, w - 16));
     ok.style.setProperty("--ok-x", okX + "px");
   }
+  return true;
 }
 
 function openCastlePopup(name, gx, gy, isOwn) {
@@ -505,7 +510,7 @@ function openCastlePopup(name, gx, gy, isOwn) {
 
   const hp      = castleHpOf(isOwn ? (currentUsername || "") : name);
   const hpPct   = Math.round(hp / CFG.castleMaxHp * 100);
-  const hpColor = hpPct > 50 ? "#5ec46a" : hpPct > 20 ? "#e0b24a" : "#e05a4a";
+  const hpColor = "#e0332b";                     /* bar her zaman KIRMIZI */
 
   const acc      = isOwn ? null : findAccountByName(name);
   const defender = isOwn ? null : buildDefender(acc, name);
@@ -520,11 +525,10 @@ function openCastlePopup(name, gx, gy, isOwn) {
 
   /* Kale HP — SADECE füze sisteminin bilgisi, saldırıyla ilgisi yok */
   const hpBlock = `
-    <div class="pvp-stat-row" style="padding-bottom:2px;">
-      <span>🏰 Kale HP</span><b>${money(hp)} / ${money(CFG.castleMaxHp)}</b>
+    <div class="pvp-stat-row" style="padding-bottom:0;">
+      <span>🏰 Kale HP</span><b>${hpPct}</b>
     </div>
-    <div class="pvp-hp-bar"><i style="width:${hpPct}%; background:${hpColor};"></i></div>
-    <div class="pvp-hp-note">🚀 füze hasarı — saldırıdan etkilenmez</div>`;
+    <div class="pvp-hp-bar"><i style="width:${hpPct}%; background:${hpColor};"></i></div>`;
 
   /* Rakibin BİRLİK DÖKÜMÜ gizli — sadece TOPLAM GÜÇ gösterilir.
      Güç = saldırı + savunma + can/4 (savaş öncesi kaba bir kıyas). */
@@ -539,7 +543,7 @@ function openCastlePopup(name, gx, gy, isOwn) {
           .map(u => `<div class="pvp-stat-row"><span>${unitLabel(u)}</span><b>x${money(state.troops[u])}</b></div>`).join("")}`
     : hpBlock + `<div class="pvp-sep"></div>
         <div class="pvp-stat-row" style="font-size:14px;">
-          <span>⚔️ Toplam Güç</span><b style="color:#ffd257;">${money(totalPower)}</b>
+          <span>⚔️ Güç</span><b style="color:#ffd257;">${money(totalPower)}</b>
         </div>`;
 
   const actionsHTML = isOwn ? "" : `
@@ -556,18 +560,20 @@ function openCastlePopup(name, gx, gy, isOwn) {
   else if (cdLeft > 0) note = `Tekrar saldırmak için ${fmtLeft(cdLeft)} beklemelisin.`;
 
   const back = document.createElement("div");
-  back.className = "pvp-backdrop";
+  /* Çapa sınıfı DOM'a girmeden veriliyor: önce ortada bir kare
+     çizilip sonra yerine zıplaması ekranın yenilendiği hissini
+     veriyordu. */
+  back.className = "pvp-backdrop pvp-capa";
+  back.style.visibility = "hidden";
   back.innerHTML = `
     <div class="pvp-pop">
       <i class="pvp-pop-ok asagi" id="pvpPopOk"></i>
       <button class="pvp-missile" id="pvpMissileBtn" title="Füze gönder">🚀</button>
       <div class="pvp-head">
         <div class="pvp-ava">🏰</div>
-        <div>
-          <div class="pvp-name">${esc(name || "Oyuncu")}</div>
-          <div class="pvp-sub pvp-sub-share" id="pvpCoordShare" title="Sohbette paylaş">📍 x:${window.KOORD.karoyaOturt(window.KOORD.olcektenKaro(gx))} &nbsp; y:${window.KOORD.karoyaOturt(window.KOORD.olcektenKaro(gy))} &nbsp;<span class="pvp-share-ico">📤</span></div>
-          ${tag}
-        </div>
+        <div class="pvp-name">${esc(name || "Oyuncu")}</div>
+        <div class="pvp-sub pvp-sub-share" id="pvpCoordShare" title="Sohbette paylaş">📍 x:${window.KOORD.karoyaOturt(window.KOORD.olcektenKaro(gx))} &nbsp; y:${window.KOORD.karoyaOturt(window.KOORD.olcektenKaro(gy))} &nbsp;<span class="pvp-share-ico">📤</span></div>
+        ${tag}
       </div>
       <div class="pvp-stats">${statsHTML}</div>
       ${actionsHTML}
@@ -577,12 +583,16 @@ function openCastlePopup(name, gx, gy, isOwn) {
   _popEl = back;
 
   /* Kalenin üstüne çapala. Harita hazır değilse ortada açılır. */
-  capala(back, gx, gy);
+  if (!capala(back, gx, gy)) back.classList.remove("pvp-capa");
+  back.classList.add("pvp-hazir");
+  back.style.visibility = "";
 
   /* Paneli açan dokunuşun devamı (click) hemen arka plana düşüp
      paneli kapatmasın diye kısa bir gecikme koyuyoruz. */
   setTimeout(() => {
-    back.addEventListener("click", e => { if (e.target === back) closeCastlePopup(); });
+    const disari = e => { if (e.target === back) closeCastlePopup(); };
+    back.addEventListener("pointerdown", disari);
+    back.addEventListener("click", disari);
   }, 300);
   /* ✕ kaldırıldı; varsa yine de bağlan (başka pencere kullanıyorsa). */
   const _kapatBtn = back.querySelector("#pvpCloseBtn");
@@ -1633,7 +1643,11 @@ function startFriendInbox() {
 function showFriendRequestPopup(fromName) {
   closeCastlePopup();
   const back = document.createElement("div");
-  back.className = "pvp-backdrop";
+  /* Çapa sınıfı DOM'a girmeden veriliyor: önce ortada bir kare
+     çizilip sonra yerine zıplaması ekranın yenilendiği hissini
+     veriyordu. */
+  back.className = "pvp-backdrop pvp-capa";
+  back.style.visibility = "hidden";
   back.innerHTML = `
     <div class="pvp-pop">
       <div class="pvp-head">
