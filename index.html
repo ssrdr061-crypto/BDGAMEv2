@@ -6425,6 +6425,11 @@ function setupMapPanning() {
     if(typeof panTweenToGrid === "function"){ try{ panTweenToGrid(g.gx, g.gy, 420); }catch(e){} }
   }
 
+  /* ── KARO SEÇİMİ İÇİN KAPI (karo.js kullanır) ──
+     Bedel ve boşluk denetimi burada TEK yerde duruyor; karo.js
+     kendi kopyasını yazmasın diye dışa açılıyor. */
+  window.KALE_TASIMA = { tasi: doCastleMove, bosMu: cellFree, bedel: MOVE_COST };
+
   wrapEl.addEventListener("pointerdown", (e) => {
     activePointers.add(e.pointerId);
     if (activePointers.size >= 2) {        // ikinci parmak indi → pinch modu, pan'ı durdur
@@ -8012,6 +8017,7 @@ setInterval(() => {
 <script src="harita.js"></script>
 <script src="dugum.js"></script>
 <script src="sefer.js"></script>
+<script src="karo.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════
      3D BİRLİK VIEWER — Three.js ile OBJ/MTL/Texture
