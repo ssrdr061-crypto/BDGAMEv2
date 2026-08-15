@@ -4694,7 +4694,7 @@ document.head.appendChild(st);
     "#panel-inventory .inv-row{" +
     "  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;" +
     "  position:relative !important;" +
-    "  padding-bottom:26px !important;" +
+    "  padding-bottom:28px !important;" +
     "  overflow:hidden !important;" +
     "}" +
     /* adet kutucuğun İÇİNDE, altta ortalı */
