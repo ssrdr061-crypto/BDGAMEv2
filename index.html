@@ -4550,7 +4550,7 @@ function renderInventory() {
         iconHTML: itemIconSVG(def),
         slotTag,
         bonusText,
-        rightHTML: `<span class="qty">x${qty}</span>
+        rightHTML: `<span class="qty">${qty}</span>
             ${def.isStaminaPotion ? `<button class="inv-use-btn" data-item="${def.name}">Kullan</button>` : ""}`,
       });
     }).join("");
@@ -7742,7 +7742,9 @@ const TroopViewer = (function () {
       /* ── EĞİT BÖLÜMÜ ── */
       const trainQueueForUnit = (state.trainingQueue || []).filter(j2 => j2.unitId === uid);
       const isTraining = trainQueueForUnit.length > 0;
-      const speedUpCount = state.inventory["5 Dakika Hızlandırma"] || 0;
+      const speedUpCount = Object.keys(state.inventory || {})
+        .filter(ad => /Hızlandırma/i.test(ad) && /\d+\s*(Dakika|Saat|Gün)/i.test(ad))
+        .reduce((t, ad) => t + (state.inventory[ad] || 0), 0);
       const selQty = unitTrainQty[uid] || 1;
       const affordableMax = Math.max(1, Math.floor(state.diamonds / def.cost));
       /* Üst sınır artık SADECE elmasa değil, kaynağa da bakar.

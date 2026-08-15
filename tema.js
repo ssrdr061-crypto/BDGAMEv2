@@ -4682,3 +4682,31 @@ document.head.appendChild(st);
     "}";
   document.head.appendChild(s);
 })();
+/* ── ÇANTA SADELEŞTİRME ── */
+(function () {
+  const s = document.createElement("style");
+  s.textContent =
+    /* elmas bilgi kutusu gitsin */
+    "#panel-inventory .inv-summary{ display:none !important; }" +
+    /* kalın 3B alt kenar yerine tek yumuşak gölge */
+    "#panel-inventory .inv-card," +
+    "#panel-inventory .shop-card," +
+    "#panel-inventory .inv-row{" +
+    "  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;" +
+    "  position:relative !important;" +
+    "  padding-bottom:24px !important;" +
+    "  overflow:hidden !important;" +
+    "}" +
+    /* adet kutucuğun İÇİNDE, altta ortalı */
+    "#panel-inventory .card-right{" +
+    "  position:absolute !important;" +
+    "  left:0 !important; right:0 !important; bottom:6px !important;" +
+    "  display:flex !important; justify-content:center !important;" +
+    "}" +
+    /* yazı konturu yok, tek ince gölge */
+    "#panel-inventory .qty{" +
+    "  font-size:14px !important;" +
+    "  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;" +
+    "}";
+  document.head.appendChild(s);
+})();
