@@ -135,13 +135,11 @@ const HERO_CATEGORY = {
    (tema.js yüklü değilse de kutucuk düzgün görünsün diye burada
    kendi kopyası duruyor.)
    ═══════════════════════════════════════════════════════════════ */
+/* DÜZ: radial parlaklıklar, 3px çerçeve, dış ışıma ve inset kalktı. */
 .pvp-pop{
-  background:
-    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
-    radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
-    linear-gradient(180deg, #1fa3ea, #0e6fc0) !important;
-  border:3px solid rgba(190,240,255,.85) !important;
-  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45) !important;
+  background:linear-gradient(180deg, #1fa3ea, #0e6fc0) !important;
+  border:1px solid rgba(190,240,255,.20) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 
 .pvp-pop{
@@ -152,41 +150,29 @@ const HERO_CATEGORY = {
 }
 
 
-/* SAĞ ÜST KÖŞE: FÜZE */
+/* SOL ÜST KÖŞE: FÜZE (eski ✕ yeri). ✕ kaldırıldı — panel dışına
+   dokununca zaten kapanıyor. */
 .pvp-missile{
-  position:absolute; top:-13px; right:-11px; z-index:6;
+  position:absolute; top:-13px; left:-11px; z-index:6;
   width:46px; height:46px; border:none; cursor:pointer; border-radius:50%;
   background:linear-gradient(180deg,#ffb44d,#e0631b);
-  box-shadow:0 5px 0 #8d3208, 0 8px 16px rgba(0,10,30,.5), inset 0 1px 0 rgba(255,255,255,.55);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
   font-size:22px; line-height:1; display:flex; align-items:center; justify-content:center;
-  transition:transform .07s, box-shadow .07s; -webkit-tap-highlight-color:transparent;
+  transition:transform .09s, filter .09s; -webkit-tap-highlight-color:transparent;
 }
-.pvp-missile:active{ transform:translateY(4px); box-shadow:0 1px 0 #8d3208; }
+.pvp-missile:active{ transform:scale(.96); filter:brightness(.93); }
 .pvp-missile::after{
   content:"FÜZE"; position:absolute; bottom:-15px; left:50%; transform:translateX(-50%);
   font-weight:800; font-size:9px; letter-spacing:.5px; color:#ffd9a8;
-  text-shadow:0 1px 3px rgba(0,10,30,.9); pointer-events:none; white-space:nowrap;
+  text-shadow:0 1px 2px rgba(0,20,45,.55); pointer-events:none; white-space:nowrap;
 }
-
-/* SOL ÜST KÖŞE: KAPAT */
-.pvp-close{
-  position:absolute; top:-11px; left:-9px; z-index:6;
-  width:32px; height:32px; border:none; cursor:pointer; border-radius:50%;
-  background:linear-gradient(180deg,#8894ad,#4a566e);
-  box-shadow:0 4px 0 #2b3448, inset 0 1px 0 rgba(255,255,255,.35);
-  color:#fff; font-weight:800; font-size:15px;
-  display:flex; align-items:center; justify-content:center;
-  -webkit-tap-highlight-color:transparent;
-}
-.pvp-close:active{ transform:translateY(3px); box-shadow:0 0 0 #2b3448; }
 
 .pvp-head{ display:flex; align-items:center; gap:11px; margin:4px 0 12px; }
 .pvp-ava{
   width:54px; height:54px; flex:0 0 54px; border-radius:14px;
   background:linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,.06));
-  border:2px solid rgba(190,240,255,.6);
+  border:1px solid rgba(190,240,255,.20);
   display:flex; align-items:center; justify-content:center; font-size:26px;
-  box-shadow:inset 0 2px 0 rgba(255,255,255,.35);
 }
 .pvp-name{ font-weight:900; font-size:18px; line-height:1.1; color:#ffd257;
   text-shadow:0 2px 4px rgba(0,40,70,.7); word-break:break-word; }
@@ -197,7 +183,7 @@ const HERO_CATEGORY = {
   padding:1px 7px; margin-left:-7px; background:rgba(255,255,255,.10);
   transition:background .12s, transform .06s; }
 .pvp-sub-share:hover{ background:rgba(255,255,255,.20); }
-.pvp-sub-share:active{ transform:translateY(1px); }
+.pvp-sub-share:active{ transform:scale(.96); }
 .pvp-share-ico{ font-size:.95em; opacity:.9; }
 .pvp-tag{ display:inline-block; margin-top:5px; padding:2px 8px; border-radius:999px;
   font-size:10px; font-weight:800; letter-spacing:.4px; }
@@ -205,11 +191,10 @@ const HERO_CATEGORY = {
 .pvp-tag.shield{ background:rgba(95,217,138,.18); color:#7fe3a6; border:1px solid rgba(95,217,138,.4); }
 .pvp-tag.own{    background:rgba(212,175,55,.18); color:#f2d47a; border:1px solid rgba(212,175,55,.45); }
 
+/* Ortadaki "kutu içinde kutu" kaldırıldı — sadece boşluk kaldı. */
 .pvp-stats{
-  background:linear-gradient(180deg, rgba(34,72,143,.7), rgba(13,34,70,.8));
-  border:2px solid rgba(190,240,255,.4);
-  border-radius:13px; padding:10px 11px; margin-bottom:12px;
-  box-shadow:inset 0 2px 3px rgba(150,205,255,.25);
+  background:none; border:none; box-shadow:none;
+  padding:0; margin-bottom:12px;
 }
 .pvp-stat-row{ display:flex; justify-content:space-between; align-items:center; gap:8px;
   font-size:12.5px; font-weight:700; padding:3px 0; color:#dff2ff;
@@ -224,20 +209,20 @@ const HERO_CATEGORY = {
 .pvp-sep{ height:1px; background:rgba(190,240,255,.3); margin:9px 0 7px; }
 
 .pvp-actions{ display:flex; gap:9px; }
-.pvp-btn{ flex:1; border:none; cursor:pointer; border-radius:14px;
-  padding:13px 6px 15px; font-family:'Baloo 2',sans-serif;
-  font-weight:900; font-size:14px; letter-spacing:.4px; color:#fff;
-  text-shadow:0 2px 3px rgba(0,0,0,.45);
-  transition:transform .07s, box-shadow .07s, filter .12s;
+.pvp-btn{ flex:1; border:none; cursor:pointer; border-radius:13px;
+  padding:9px 10px; font-family:'Baloo 2',sans-serif;
+  font-weight:800; font-size:15px; letter-spacing:.4px; color:#fff;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  transition:transform .09s, filter .09s;
   -webkit-tap-highlight-color:transparent; }
-.pvp-btn:active{ transform:translateY(4px); }
+.pvp-btn:active{ transform:scale(.96); filter:brightness(.93); }
 .pvp-btn:disabled{ filter:saturate(.25) brightness(.65); cursor:not-allowed; }
-.pvp-btn-attack{ background:linear-gradient(180deg, ${CFG.attackColor1}, ${CFG.attackColor2});
-  box-shadow:0 5px 0 ${CFG.attackShadow}, 0 8px 16px rgba(0,10,30,.45), inset 0 1px 0 rgba(255,255,255,.28); }
-.pvp-btn-attack:active{ box-shadow:0 1px 0 ${CFG.attackShadow}; }
+/* SALDIR = savaş panelindeki düğmenin kırmızısı (tema.js ile aynı) */
+.pvp-btn-attack{ background:linear-gradient(180deg,#ff3b3b,#c50f0f);
+  border:2px solid rgba(255,170,170,.75); }
 .pvp-btn-friend{ background:linear-gradient(180deg, ${CFG.friendColor1}, ${CFG.friendColor2});
-  box-shadow:0 5px 0 ${CFG.friendShadow}, 0 8px 16px rgba(0,10,30,.45), inset 0 1px 0 rgba(255,255,255,.28); }
-.pvp-btn-friend:active{ box-shadow:0 1px 0 ${CFG.friendShadow}; }
+  border:2px solid rgba(150,190,255,.45); }
 
 .pvp-note{ margin-top:9px; text-align:center; font-size:10.5px; font-weight:700;
   color:#dff2ff; line-height:1.45; text-shadow:0 1px 2px rgba(0,30,55,.6); }
@@ -488,8 +473,8 @@ function openCastlePopup(name, gx, gy, isOwn) {
 
   const actionsHTML = isOwn ? "" : `
     <div class="pvp-actions">
-      <button class="pvp-btn pvp-btn-attack" id="pvpAttackBtn">⚔️ SALDIR</button>
       <button class="pvp-btn pvp-btn-friend" id="pvpFriendBtn">${friend ? "💔 DOSTLUĞU BİTİR" : "🤝 DOSTLUK"}</button>
+      <button class="pvp-btn pvp-btn-attack" id="pvpAttackBtn">⚔️ SALDIR</button>
     </div>`;
 
   /* Alt bilgi metni yalnızca bir KISIT varsa gösterilir; normal
@@ -503,7 +488,6 @@ function openCastlePopup(name, gx, gy, isOwn) {
   back.className = "pvp-backdrop";
   back.innerHTML = `
     <div class="pvp-pop">
-      <button class="pvp-close"   id="pvpCloseBtn">✕</button>
       <button class="pvp-missile" id="pvpMissileBtn" title="Füze gönder">🚀</button>
       <div class="pvp-head">
         <div class="pvp-ava">🏰</div>
@@ -525,7 +509,9 @@ function openCastlePopup(name, gx, gy, isOwn) {
   setTimeout(() => {
     back.addEventListener("click", e => { if (e.target === back) closeCastlePopup(); });
   }, 300);
-  tap(back.querySelector("#pvpCloseBtn"), closeCastlePopup);
+  /* ✕ kaldırıldı; varsa yine de bağlan (başka pencere kullanıyorsa). */
+  const _kapatBtn = back.querySelector("#pvpCloseBtn");
+  if (_kapatBtn) tap(_kapatBtn, closeCastlePopup);
   tap(back.querySelector("#pvpMissileBtn"), () => fireMissileAt(name, gx, gy, isOwn));
 
   /* 📍 satırına dokun → koordinatı sohbete at.
@@ -1094,7 +1080,7 @@ function _enterBattleWith(defender) {
   const log = document.getElementById("battleLog");
   if (log) log.innerHTML = "";
   const btn = document.getElementById("battleBtn");
-  if (btn && !btn.disabled) btn.textContent = "SAVAŞ";
+  if (btn) btn.textContent = "⚔️ Orduyla Saldır";
 }
 
 function hookBattleButton() {
