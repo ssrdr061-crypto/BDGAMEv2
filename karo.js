@@ -19,11 +19,13 @@
 (function () {
   "use strict";
 
-  const SURUM = "karo-1";
+  const SURUM = "karo-2";
 
   /* Seçili karo: {kx, ky} tam sayı. Yoksa null. */
   let _secili = null;
   let _svg = null, _poly = null, _cubuk = null;
+  let _sonNokta = "";        /* son çizilen köşeler — boşuna DOM yazmamak için */
+  let _dongu = 0;            /* rAF kimliği; seçim yokken hiç dönmez */
 
   function K() { return window.KOORD; }
   function H() { return window.HARITA; }
@@ -134,29 +136,65 @@
     });
     if (kose.some(k => !k)) { gizle(); return; }
 
-    _poly.setAttribute("points", kose.map(p => p.x + "," + p.y).join(" "));
+    const nokta = kose.map(p => Math.round(p.x) + "," + Math.round(p.y)).join(" ");
+    if (nokta !== _sonNokta) {                 /* değişmediyse DOM'a dokunma */
+      _poly.setAttribute("points", nokta);
+      _sonNokta = nokta;
+    }
     sv.style.display = "block";
 
-    /* Çubuk karonun ÜST köşesinin biraz yukarısında. */
+    /* Çubuk karonun ÜST köşesinin biraz yukarısında; ekran dışına
+       taşarsa içeri çekilir (sağdaki "Paylaş" kesiliyordu). */
     const r = mapEl.getBoundingClientRect();
     const ust = kose[0];                       /* (-0.5,-0.5) = üst köşe */
     const c = cubuk();
     c.style.display = "flex";
-    c.style.left = (r.left + ust.x) + "px";
-    c.style.top  = (r.top  + ust.y - 8) + "px";
+
+    const yari = (c.offsetWidth || 200) / 2;
+    const kenar = 8;
+    let cx = r.left + ust.x;
+    cx = Math.max(yari + kenar, Math.min(cx, window.innerWidth - yari - kenar));
+    let cy = r.top + ust.y - 8;
+    cy = Math.max((c.offsetHeight || 36) + kenar, cy);
+
+    c.style.left = Math.round(cx) + "px";
+    c.style.top  = Math.round(cy) + "px";
   }
 
   function gizle() {
     if (_svg) _svg.style.display = "none";
     if (_cubuk) _cubuk.style.display = "none";
+    _sonNokta = "";
+  }
+
+  /* ── TAKİP DÖNGÜSÜ ──
+     harita.js kaydırırken KENDİ içindeki fonksiyonu çağırıyor;
+     dışarıdan sarılan kopya hiç tetiklenmiyordu ve seçim ekranda
+     çakılı kalıp haritanın altından kayıyordu. Çözüm: seçim
+     varken kendi karemizi çeviriyoruz. Seçim yokken döngü HİÇ
+     çalışmaz, boşta harita yavaşlamaz. */
+  function donguBaslat() {
+    if (_dongu) return;
+    const adim = () => {
+      if (!_secili) { _dongu = 0; return; }
+      try { ciz(); } catch (e) {}
+      _dongu = requestAnimationFrame(adim);
+    };
+    _dongu = requestAnimationFrame(adim);
+  }
+  function donguDurdur() {
+    if (_dongu) { cancelAnimationFrame(_dongu); _dongu = 0; }
   }
 
   function sec(kx, ky) {
     _secili = { kx: kx, ky: ky };
+    _sonNokta = "";
     ciz();
+    donguBaslat();
   }
   function birak() {
     _secili = null;
+    donguDurdur();
     gizle();
   }
 
@@ -251,25 +289,6 @@
     return true;
   }
 
-  /* ── HARİTA KAYDIKÇA SEÇİM DE KAYSIN ──────────────────────── */
-  /* Konum hesabı harita.js'in yerleştirme döngüsünde tek yerde
-     durduğu için oraya takılıyoruz; ayrı bir kare döngüsü açmıyoruz. */
-  function yerlestirmeyiSar() {
-    const H0 = H();
-    if (!H0 || typeof H0.dugumleriYerlestir !== "function") return false;
-    if (H0.dugumleriYerlestir._karoSarildi) return true;
-
-    const eski = H0.dugumleriYerlestir;
-    const yeni = function () {
-      const r = eski.apply(this, arguments);
-      if (_secili) { try { ciz(); } catch (e) {} }
-      return r;
-    };
-    yeni._karoSarildi = true;
-    H0.dugumleriYerlestir = yeni;
-    return true;
-  }
-
   /* Harita ekranı kapanınca seçim de kalksın. */
   function ekraniIzle() {
     setInterval(() => {
@@ -285,9 +304,8 @@
   (function kur() {
     let kalan = 60;
     const t = setInterval(() => {
-      const a = dokunmayiDevral();
-      const b = yerlestirmeyiSar();
-      if ((a || (window.handleMapTap && window.handleMapTap._karoSarildi)) && b) {
+      dokunmayiDevral();
+      if (window.handleMapTap && window.handleMapTap._karoSarildi) {
         clearInterval(t);
         ekraniIzle();
       } else if (--kalan <= 0) {
