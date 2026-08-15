@@ -1128,19 +1128,15 @@ function hudCiz() {
   const wrap = document.getElementById("battleMapWrap");
   el.style.display = (wrap && wrap.style.display !== "none") ? "flex" : "none";
 
-  /* TEK SATIR: ikon · süre · hedef, sağında geri çağırma düğmesi.
-     Eskiden üç satırdı ve haritanın köşesini kaplıyordu. */
+  /* TEK SATIR: süre · hedef · hızlandırma simgesi.
+     Kutu BÜTÜN olarak tek bağlantıdır — içindeki ⏩ bir DÜĞME DEĞİL,
+     sadece simge. Nereye dokunulursa dokunulsun aynı pencere açılır. */
   el.innerHTML = liste.map((x, i) => {
     const ev = evre(x.s);
-    /* Soldaki durum oku KALKTI — dönüş sırasında sağdaki geri
-       düğmesiyle aynı sembol iki kez görünüyordu.
-       Düğmede "↩︎" yerine "⟲": telefon ↩ karakterini EMOJİ olarak
-       çiziyor (mavi kutu içinde beyaz ok) — çerçeve sandığımız şey
-       CSS değil, yazı tipinin kendisiydi. ⟲ düz metin çizilir. */
     return `<div class="sefer-satir" data-sefer="${x.id}">
       <span class="sefer-sure">${fmtSure(ev.kalanMs)}</span>
       <span class="sefer-hedef">${String(x.s.hedefAd || "").slice(0, 10)}</span>
-      <button class="sefer-geri" type="button" data-hiz="${x.id}" title="Hızlandır">⚡</button>
+      <span class="sefer-hiz" aria-hidden="true">⏩</span>
     </div>`;
   }).join("");
 
@@ -1148,24 +1144,12 @@ function hudCiz() {
     const f = () => satirTiklandi(row.dataset.sefer);
     if (typeof bindTap === "function") bindTap(row, f); else row.onclick = f;
   });
-
-  /* ⚡ düğmesi satırın menüsünü AÇMAZ, doğrudan hızlandırma sorar.
-     Geri çağırma satıra dokununca çıkan menüde duruyor. */
-  el.querySelectorAll(".sefer-geri").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      hizlandirSor(btn.dataset.hiz);
-    });
-    btn.addEventListener("pointerup", e => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
-  });
 }
 
-/* Satıra dokunma: hızlandır / geri çağır menüsü */
+/* Kutucuğun TEK bağlantısı: her zaman HIZLANDIR penceresi. */
 function satirTiklandi(id) {
-  const s = _yerel[id];
-  if (!s) return;
-  seferMenusu(id, s);
+  if (!_yerel[id]) return;
+  hizlandirSor(id);
 }
 
 function geriCagirSor(id) {
@@ -1175,55 +1159,7 @@ function geriCagirSor(id) {
   onayPenceresi("GERİ ÇAĞIR",
     `<b>${String(s.hedefAd || "")}</b> üzerine giden <b>${toplam(s.birlikler || {})}</b> birliğin geri çağrılsın mı?` +
     `<br><span class="sefer-onay-not">Ordu bulunduğu noktadan yürüyerek dönecek; gittiği yol kadar süre alır.</span>`,
-    "↩︎ Geri Çağır", () => geriCagir(id));
-}
-
-/* ═══════════════════════════════════════════════════════════
-   15b) SEFER MENÜSÜ — hızlandır / geri çağır
-   Gövde yine oyunun kendi .overlay-card'ı; renkler onay
-   penceresiyle aynı yerden gelir, ayrı bir tema yazılmadı.
-   ═══════════════════════════════════════════════════════════ */
-function seferMenusu(id, s) {
-  const eski = document.getElementById("seferOnayModal");
-  if (eski) eski.remove();
-
-  const ev = evre(s);
-  const kazanc = Math.round(ev.kalanMs * AYAR.HIZ_ORANI);
-
-  const kok = document.createElement("div");
-  kok.id = "seferOnayModal";
-  kok.className = "sefer-onay-modal";
-  kok.innerHTML = `
-    <div class="overlay-card som-card">
-      <button class="overlay-close som-close" type="button">✕</button>
-      <h2 class="som-title">${String(s.hedefAd || "SEFER")}</h2>
-      <div class="som-msg">
-        Kalan süre <b>${fmtSure(ev.kalanMs)}</b>
-        <br><span class="sefer-onay-not">Hızlandırma kalan sürenin %${Math.round(AYAR.HIZ_ORANI * 100)}'ini siler (−${fmtSure(kazanc)}).</span>
-      </div>
-      <div class="som-actions som-actions-dikey">
-        ${cantaHTML()}
-        <button class="som-btn som-btn-hiz" type="button">⚡ Hızlandır · 💎 ${fmtSayi(AYAR.HIZ_BEDEL)}</button>
-        <button class="som-btn som-btn-yes" type="button">↩︎ Geri Çağır</button>
-      </div>
-    </div>`;
-  document.body.appendChild(kok);
-
-  /* Çantadaki hızlandırma ürünleri — varsa elmastan ÖNCE gelir. */
-  kok.querySelectorAll(".som-btn-canta").forEach(b => {
-    b.onclick = () => { kapatKok(); urunleHizlandir(id, b.dataset.urun); };
-  });
-
-  /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu. */
-  kok.style.pointerEvents = "none";
-  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
-
-  const kapat = () => kok.remove();
-  kok.querySelector(".som-close").onclick = kapat;
-  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
-  kok.querySelector(".som-btn-hiz").onclick = () => { kapat(); hizlandir(id); };
-  kok.querySelector(".som-btn-yes").onclick = () => { kapat(); geriCagirSor(id); };
-  function kapatKok() { kok.remove(); }
+    "⟲ Geri Çağır", () => geriCagir(id));
 }
 
 function fmtSayi(n) {
@@ -1248,27 +1184,36 @@ function cantada(ad) {
   return (typeof state !== "undefined" && state && state.inventory)
     ? (state.inventory[ad] || 0) : 0;
 }
-function cantaHTML() {
+/* Çantadaki hızlandırma ürünleri, onay penceresine EK DÜĞME olarak. */
+function cantaEkleri(id) {
   return HIZ_URUNLERI.map(ad => {
     const n = cantada(ad);
-    if (n <= 0) return "";
-    return `<button class="som-btn som-btn-canta" type="button" data-urun="${ad}">` +
-           `🎒 %${Math.round(urunOrani(ad) * 100)} Hızlandır · ${n} adet</button>`;
-  }).join("");
+    if (n <= 0) return null;
+    return {
+      etiket: `🎒 %${Math.round(urunOrani(ad) * 100)} Hızlandır · ${n} adet`,
+      fn: () => urunleHizlandir(id, ad)
+    };
+  }).filter(Boolean);
 }
 
-/* Kutucuktaki ⚡ düğmesi: çantada ürün varsa menüyü açar (hangisini
-   harcayacağını oyuncu seçsin), yoksa doğrudan elmas onayına gider. */
+/* İntikal kutucuğunun TEK penceresi. Sol düğme Geri Çağır,
+   sağ düğme elmasla hızlandırma; çantada ürün varsa üstte ek düğme. */
 function hizlandirSor(id) {
   const s = _yerel[id];
   if (!s) return;
-  if (HIZ_URUNLERI.some(ad => cantada(ad) > 0)) { seferMenusu(id, s); return; }
 
   const ev = evre(s);
+  const ekler = cantaEkleri(id);
+  const not = ekler.length
+    ? `Elmas bedeli ${fmtSayi(AYAR.HIZ_BEDEL)} 💎; çantandaki ürün bedava.`
+    : `Bedel ${fmtSayi(AYAR.HIZ_BEDEL)} 💎. Çantanda hızlandırma ürünü yok.`;
+
   onayPenceresi("HIZLANDIR",
-    `Kalan süre <b>${fmtSure(ev.kalanMs)}</b>. Bunun <b>%${Math.round(AYAR.HIZ_ORANI * 100)}</b>'i silinsin mi?` +
-    `<br><span class="sefer-onay-not">Bedel ${fmtSayi(AYAR.HIZ_BEDEL)} 💎. Çantanda hızlandırma ürünü yok.</span>`,
-    `⚡ Hızlandır · 💎 ${fmtSayi(AYAR.HIZ_BEDEL)}`, () => hizlandir(id));
+    `<b>${String(s.hedefAd || "")}</b> · Kalan süre <b>${fmtSure(ev.kalanMs)}</b>.` +
+    `<br>Bunun <b>%${Math.round(AYAR.HIZ_ORANI * 100)}</b>'i silinsin mi?` +
+    `<br><span class="sefer-onay-not">${not}</span>`,
+    `⏩ Hızlandır · 💎 ${fmtSayi(AYAR.HIZ_BEDEL)}`, () => hizlandir(id),
+    { ekler: ekler, solEtiket: "⟲ Geri Çağır", solFn: () => geriCagirSor(id) });
 }
 
 /* Ürünle hızlandırma: elmas ALINMAZ, çantadan bir adet düşer. */
@@ -1339,9 +1284,18 @@ function hizlandir(id) {
 /* ═══════════════════════════════════════════════════════════
    16) ONAY PENCERESİ — gövde oyunun kendi .overlay-card'ı
    ═══════════════════════════════════════════════════════════ */
-function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
+function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   const eski = document.getElementById("seferOnayModal");
   if (eski) eski.remove();
+
+  sec = sec || {};
+  const ekListe   = Array.isArray(sec.ekler) ? sec.ekler : [];
+  const solEtiket = sec.solEtiket || "Vazgeç";
+  const solFn     = (typeof sec.solFn === "function") ? sec.solFn : null;
+
+  const ekHTML = ekListe.map((e, i) =>
+    `<button class="som-btn som-btn-canta" type="button" data-ek="${i}">${e.etiket}</button>`
+  ).join("");
 
   const kok = document.createElement("div");
   kok.id = "seferOnayModal";
@@ -1351,8 +1305,9 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
       <button class="overlay-close som-close" type="button">✕</button>
       <h2 class="som-title">${baslik}</h2>
       <div class="som-msg">${mesajHTML}</div>
+      ${ekHTML ? `<div class="som-actions som-actions-dikey">${ekHTML}</div>` : ""}
       <div class="som-actions">
-        <button class="som-btn som-btn-no"  type="button">Vazgeç</button>
+        <button class="som-btn som-btn-no"  type="button">${solEtiket}</button>
         <button class="som-btn som-btn-yes" type="button">${onayEtiket}</button>
       </div>
     </div>`;
@@ -1363,9 +1318,15 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
   setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
 
   const kapat = () => kok.remove();
-  kok.querySelector(".som-close").onclick   = kapat;
-  kok.querySelector(".som-btn-no").onclick  = kapat;
-  kok.querySelector(".som-btn-yes").onclick = () => { kapat(); try { cb(); } catch (e) { console.error(e); } };
+  const cagir = f => { kapat(); try { f(); } catch (e) { console.error(e); } };
+
+  kok.querySelector(".som-close").onclick  = kapat;
+  kok.querySelector(".som-btn-no").onclick = () => { solFn ? cagir(solFn) : kapat(); };
+  kok.querySelector(".som-btn-yes").onclick = () => cagir(cb);
+  kok.querySelectorAll("[data-ek]").forEach(b => {
+    const e = ekListe[parseInt(b.dataset.ek, 10)];
+    b.onclick = () => { if (e && typeof e.fn === "function") cagir(e.fn); else kapat(); };
+  });
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
 
@@ -1439,37 +1400,36 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
    altından görünür, kutu haritayı boğmaz. */
 .sefer-satir{
   /* SABİT GENİŞLİK: süre "15s" ile "02.05d" arasında gidip gelirken
-     kutunun her saniye büyüyüp küçülmesini engeller. */
+     kutunun her saniye büyüyüp küçülmesini engeller.
+     3B YOK: çerçeve ve inset parlaklık kaldırıldı, tek yumuşak gölge. */
   width:124px; box-sizing:border-box;
   display:flex; align-items:center; gap:5px;
-  padding:2px 3px 2px 7px; border-radius:9px;
+  padding:3px 7px; border-radius:9px;
   background:linear-gradient(180deg, rgba(47,176,238,.5), rgba(14,111,192,.5));
-  border:1px solid rgba(190,240,255,.45);
-  box-shadow:0 2px 6px rgba(0,20,45,.28), inset 0 1px 0 rgba(255,255,255,.25);
+  border:none;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
   font-family:'Baloo 2','Nunito',sans-serif; color:#fff; cursor:pointer;
-  text-shadow:0 1px 2px rgba(0,30,60,.55);
-}
-.sefer-sure{ flex:0 0 42px; font-size:11.5px; font-weight:800; letter-spacing:.2px; }
-.sefer-hedef{ flex:1 1 auto; min-width:0; font-size:9.5px; font-weight:700; opacity:.85;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-/* Geri düğmesi: çerçevesiz, emoji küçültüldü. */
-.sefer-geri{
-  flex:0 0 auto; width:19px; height:19px; border-radius:7px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  font-size:12px; font-weight:900; color:#fff; padding:0; line-height:1;
-  background:linear-gradient(180deg, rgba(240,162,52,.85), rgba(192,112,13,.85));
-  border:none !important; outline:none;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.28);
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
   -webkit-tap-highlight-color:transparent;
+  transition:transform .09s ease, filter .09s ease;
 }
-.sefer-geri:active{ transform:translateY(1px); }
+.sefer-satir:active{ transform:scale(.96); filter:brightness(.93); }
+.sefer-sure{ flex:0 0 42px; font-size:12px; font-weight:800; letter-spacing:.2px; }
+.sefer-hedef{ flex:1 1 auto; min-width:0; font-size:12px; font-weight:700; opacity:.85;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* Hızlandırma SİMGESİ — düğme değil, zemini/çerçevesi yok. */
+.sefer-hiz{
+  flex:0 0 auto; font-size:13px; line-height:1; opacity:.95;
+  pointer-events:none;
+}
 
 .sefer-onay-modal{
   position:fixed; inset:0; z-index:9999;
   display:flex; align-items:center; justify-content:center;
   background:rgba(2,10,26,.72); padding:18px;
 }
-.sefer-onay-modal .som-card{ max-width:340px; border-radius:22px; padding:18px 16px; }
+.sefer-onay-modal .som-card{ max-width:340px; border-radius:22px; padding:18px 16px;
+  border:1px solid rgba(190,240,255,.14); box-shadow:0 2px 6px rgba(0,20,45,.3); }
 .sefer-onay-modal .som-close{ top:12px; right:12px; }
 /* .overlay-card h2 display:flex — text-align burada işe yaramaz */
 .sefer-onay-modal .som-title{
@@ -1482,16 +1442,20 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb) {
 }
 .sefer-onay-modal .sefer-onay-not{ font-size:12px; opacity:.75; }
 .sefer-onay-modal .som-actions{ display:flex; gap:10px; }
+/* Düğmeler: çerçevesiz, kalın alt kenar yok, basma tepkisi zıplama değil. */
 .sefer-onay-modal .som-btn{
   flex:1; padding:11px 8px; border-radius:13px; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:14px;
-  color:#fff; border:2px solid rgba(255,255,255,.35);
+  color:#fff; border:none; outline:none;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .09s ease, filter .09s ease;
 }
-.sefer-onay-modal .som-actions-dikey{ flex-direction:column; }
-.sefer-onay-modal .som-btn-hiz{ background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
+.sefer-onay-modal .som-btn:active{ transform:scale(.96); filter:brightness(.93); }
+.sefer-onay-modal .som-actions-dikey{ flex-direction:column; margin-bottom:10px; }
 .sefer-onay-modal .som-btn-canta{ background:linear-gradient(180deg,#f0c34f,#d1901a); }
 .sefer-onay-modal .som-btn-no{ background:linear-gradient(180deg,#5a6b80,#3b4859); }
-.sefer-onay-modal .som-btn-yes{ background:linear-gradient(180deg,#f0a234,#c0700d); }
+.sefer-onay-modal .som-btn-yes{ background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
 .sefer-onay-modal .som-btn:hover{ filter:brightness(1.08); }
 `;
   document.head.appendChild(st);
@@ -1529,7 +1493,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "canvas-8",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-9",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   /* harita.js canvas çizimi için — evre ve süre biçimi tek yerde
