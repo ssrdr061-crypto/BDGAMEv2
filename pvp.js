@@ -128,6 +128,29 @@ const HERO_CATEGORY = {
   animation:pvpFadeIn .16s ease;
 }
 @keyframes pvpFadeIn{ from{opacity:0} to{opacity:1} }
+
+/* ── KALEYE ÇAPALI PENCERE ────────────────────────────────────
+   Ekranın ortasında değil, dokunulan kalenin ÜSTÜNDE açılır ve
+   arka plan KARARMAZ. Altındaki üçgen kaleyi gösterir. */
+.pvp-backdrop.pvp-capa{
+  background:transparent; -webkit-backdrop-filter:none; backdrop-filter:none;
+  display:block; padding:0;
+}
+.pvp-backdrop.pvp-capa .pvp-pop{ position:absolute; margin:0; }
+.pvp-pop-ok{
+  position:absolute; left:var(--ok-x, 50%); width:0; height:0;
+  transform:translateX(-50%); pointer-events:none;
+}
+.pvp-pop-ok.asagi{
+  bottom:-11px;
+  border-left:11px solid transparent; border-right:11px solid transparent;
+  border-top:12px solid #0e6fc0;
+}
+.pvp-pop-ok.yukari{
+  top:-11px;
+  border-left:11px solid transparent; border-right:11px solid transparent;
+  border-bottom:12px solid #1fa3ea;
+}
 @keyframes pvpPopIn{ from{opacity:0; transform:translateY(14px) scale(.94)} to{opacity:1; transform:none} }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -416,6 +439,54 @@ function hasNewbieShield(d) {
 let _popEl = null;
 function closeCastlePopup() { if (_popEl) { _popEl.remove(); _popEl = null; } }
 
+/* Pencereyi dokunulan kalenin ÜSTÜNE oturtur.
+   ekranKonumu() #battleMap katmanına göre PİKSEL verir; ekran
+   koordinatına çevirmek için katmanın kendi kutusu eklenir. */
+function capala(back, gx, gy) {
+  const mapEl = document.getElementById("battleMap");
+  const H = window.HARITA;
+  if (!mapEl || !H || typeof H.ekranKonumu !== "function") return;
+
+  let p;
+  try { p = H.ekranKonumu(gx, gy); } catch (e) { return; }
+  if (!p || !isFinite(p.x) || !isFinite(p.y)) return;
+
+  const r  = mapEl.getBoundingClientRect();
+  const cx = r.left + p.x;                       /* kalenin ekran x'i */
+  const cy = r.top  + p.y;                       /* kalenin ekran y'si */
+
+  back.classList.add("pvp-capa");
+  const pop = back.querySelector(".pvp-pop");
+  const ok  = back.querySelector("#pvpPopOk");
+  const w   = pop.offsetWidth, h = pop.offsetHeight;
+  const vw  = window.innerWidth, vh = window.innerHeight;
+  const bosluk = Math.max(26, (p.kareYuksekligi || 30) * 0.8);
+  const kenar  = 10;
+
+  /* Yatay: kaleye ortala, ekran kenarını taşarsa içeri çek. */
+  let left = cx - w / 2;
+  left = Math.max(kenar, Math.min(left, vw - w - kenar));
+
+  /* Dikey: üstte yer yoksa kalenin ALTINA düşer, ok ters döner. */
+  let top = cy - bosluk - h;
+  let ustte = true;
+  if (top < kenar + 46) {                        /* 46: füze düğmesi taşması */
+    top = cy + bosluk;
+    ustte = false;
+  }
+  top = Math.max(kenar + 46, Math.min(top, vh - h - kenar));
+
+  pop.style.left = left + "px";
+  pop.style.top  = top  + "px";
+
+  /* Ok kaleyi göstersin — pencere kenara çekilmiş olsa bile. */
+  if (ok) {
+    ok.className = "pvp-pop-ok " + (ustte ? "asagi" : "yukari");
+    const okX = Math.max(16, Math.min(cx - left, w - 16));
+    ok.style.setProperty("--ok-x", okX + "px");
+  }
+}
+
 function openCastlePopup(name, gx, gy, isOwn) {
   /* Rakip verisi artık canlı dinlenmiyor; pencereyi açmadan önce
      o tek hesabı çekeriz. Önbellek tazeyse beklemeden açılır. */
@@ -488,6 +559,7 @@ function openCastlePopup(name, gx, gy, isOwn) {
   back.className = "pvp-backdrop";
   back.innerHTML = `
     <div class="pvp-pop">
+      <i class="pvp-pop-ok asagi" id="pvpPopOk"></i>
       <button class="pvp-missile" id="pvpMissileBtn" title="Füze gönder">🚀</button>
       <div class="pvp-head">
         <div class="pvp-ava">🏰</div>
@@ -503,6 +575,9 @@ function openCastlePopup(name, gx, gy, isOwn) {
     </div>`;
   document.body.appendChild(back);
   _popEl = back;
+
+  /* Kalenin üstüne çapala. Harita hazır değilse ortada açılır. */
+  capala(back, gx, gy);
 
   /* Paneli açan dokunuşun devamı (click) hemen arka plana düşüp
      paneli kapatmasın diye kısa bir gecikme koyuyoruz. */
