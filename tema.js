@@ -4694,14 +4694,14 @@ document.head.appendChild(st);
     "#panel-inventory .inv-row{" +
     "  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;" +
     "  position:relative !important;" +
-    "  padding-bottom:24px !important;" +
+    "  padding-bottom:10px !important;" +
     "  aspect-ratio:1 / 1.12 !important;" +
     "  overflow:hidden !important;" +
     "}" +
     /* adet kutucuğun İÇİNDE, altta ortalı */
     "#panel-inventory .card-right{" +
-    "  position:absolute !important;" +
-    "  left:0 !important; right:0 !important; bottom:6px !important;" +
+    "  position:static !important;" +
+    "  width:100% !important; margin-top:4px !important;" +
     "  display:flex !important; justify-content:center !important;" +
     "}" +
     /* yazı konturu yok, tek ince gölge */
