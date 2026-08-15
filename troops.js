@@ -492,7 +492,8 @@ function renderTroopSelector() {
       const unitId = slider.dataset.unit;
       selectedTroopsForBattle[unitId] = parseInt(slider.value, 10);
       /* yazarken kutuyu ezme: sadece odakta değilse güncelle */
-      const kutu = document.querySelector(`.t-num[data-unit="${unitId}"]`);
+      const satir = slider.closest(".troop-select-row");
+      const kutu = satir ? satir.querySelector(".t-num") : null;
       if (kutu && document.activeElement !== kutu) kutu.value = slider.value;
       if (kutu) tNumBoyutla(kutu);
       updateTroopSelectSummary();
@@ -507,7 +508,8 @@ function renderTroopSelector() {
   listEl.querySelectorAll(".t-num").forEach(kutu => {
     tNumBoyutla(kutu);
     const unitId = kutu.dataset.unit;
-    const s = document.getElementById("troopSlider_" + unitId);
+    const satir2 = kutu.closest(".troop-select-row");
+    const s = satir2 ? satir2.querySelector(".troop-slider") : null;
     if (!s) return;
     const enCok = parseInt(s.max, 10) || 0;
 
@@ -537,7 +539,8 @@ function renderTroopSelector() {
     let tekrar = null, hiz = 220, adim = 1;
 
     function uygula() {
-      const s = document.getElementById("troopSlider_" + btn.dataset.unit);
+      const satir3 = btn.closest(".troop-select-row");
+      const s = satir3 ? satir3.querySelector(".troop-slider") : null;
       if (!s) return;
       const enCok = parseInt(s.max, 10) || 0;
       const yeni = Math.max(0, Math.min(enCok, (parseInt(s.value, 10) || 0) + yon * adim));
