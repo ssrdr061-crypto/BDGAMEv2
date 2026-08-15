@@ -4802,3 +4802,44 @@ document.head.appendChild(st);
 `;
   document.head.appendChild(st);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   GİRİŞ EKRANI — 3B TEMİZLİĞİ
+   Kutular fotoğrafın üstünde durduğu için zemin KORUNUYOR;
+   kalkan sadece kabartı: kalın çerçeve, inset parlaklık ve
+   zıplayan basma tepkisi.
+   ═══════════════════════════════════════════════════════════════ */
+(function girisDuzles() {
+  const st = document.createElement("style");
+  st.id = "girisDuzStil";
+  st.textContent = `
+#loginScreen .field input{
+  border:1px solid rgba(190,240,255,.22) !important;
+  border-radius:13px !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:none !important;
+}
+#loginScreen .field input:focus{
+  border-color:rgba(190,240,255,.45) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+#loginScreen .field input::placeholder{ text-shadow:none !important; }
+
+#loginScreen .login-btn{
+  border:none !important;
+  border-radius:13px !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  -webkit-text-stroke:0 !important;
+  transition:transform .09s, filter .09s !important;
+}
+#loginScreen .login-btn:active{
+  transform:scale(.96) !important;
+  filter:brightness(.93) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+
+#loginScreen .login-switch a{ text-shadow:0 1px 2px rgba(0,20,45,.55) !important; }
+`;
+  document.head.appendChild(st);
+})();
