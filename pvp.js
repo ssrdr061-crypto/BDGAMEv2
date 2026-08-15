@@ -452,19 +452,41 @@ function capala(back, gx, gy) {
   if (!mapEl || !H || typeof H.ekranKonumu !== "function") return;
 
   let p;
-  try { p = H.ekranKonumu(gx, gy); } catch (e) { return; }
+  /* ── KALE 2×2 ──
+     Çapa artık kalenin SOL ÜST karosu değil, kapladığı dört karonun
+     TEPE KÖŞESİ. Kale iki kat büyüdüğü için eski çapa panelin kale
+     görselinin üstüne binmesine yol açıyordu.
+
+     İzometride tepe köşe, sol üst karonun (-0.5,-0.5) köşesidir ve
+     kalenin görsel merkeziyle AYNI dikey eksende durur — yani okun
+     yatay konumu değişmez, panel yalnız yukarı çıkar. */
+  try {
+    const K = window.KOORD;
+    let ax = gx, ay = gy;
+    if (K && typeof K.kaleSolUst === "function") {
+      const k = K.kaleKaro({ gx: gx, gy: gy });
+      if (k) {
+        const s = K.kaleSolUst(k.kx, k.ky);
+        ax = K.karodanOlcek(s.kx - 0.5);
+        ay = K.karodanOlcek(s.ky - 0.5);
+      }
+    }
+    p = H.ekranKonumu(ax, ay);
+  } catch (e) { return; }
   if (!p || !isFinite(p.x) || !isFinite(p.y)) return;
 
   const r  = mapEl.getBoundingClientRect();
   const cx = r.left + p.x;                       /* kalenin ekran x'i */
-  const cy = r.top  + p.y;                       /* kalenin ekran y'si */
+  const cy = r.top  + p.y;                       /* kalenin tepe y'si */
 
   back.classList.add("pvp-capa");
   const pop = back.querySelector(".pvp-pop");
   const ok  = back.querySelector("#pvpPopOk");
   const w   = pop.offsetWidth, h = pop.offsetHeight;
   const vw  = window.innerWidth, vh = window.innerHeight;
-  const bosluk = Math.max(26, (p.kareYuksekligi || 30) * 0.8);
+  /* Kale görseli tepe köşenin bir karo kadar YUKARISINA taşıyor
+     (resim iki karo boyunda ve alana ortalı). Boşluk ona göre. */
+  const bosluk = Math.max(26, (p.kareYuksekligi || 30) * 1.2);
   const kenar  = 10;
 
   /* Yatay: kaleye ortala, ekran kenarını taşarsa içeri çek. */

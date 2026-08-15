@@ -6273,25 +6273,43 @@ function setupMapPanning() {
   }
 
   function cellFree(gx, gy){
-    const taken = [];
-    try { enemies.forEach(e => taken.push({ gx:KOORD.karodanOlcek(e.kx), gy:KOORD.karodanOlcek(e.ky) })); } catch(e){}
+    /* ── KALE 2×2 ──
+       Artık NOKTA MESAFESİ değil ALAN ÇAKIŞMASI sınanıyor. Kale dört
+       karo kaplıyor; tek noktaya bakan eski hesap "burası boş" deyip
+       kaleyi bir canavarın ya da komşu kalenin üstüne oturtuyordu.
+       Kural koordinat.js'te tek yerde duruyor. */
+    const K = window.KOORD;
+    if (!K || typeof K.kaleSolUst !== "function") return true;   /* eski koordinat.js */
+    const s = K.kaleSolUst(K.olcektenKaro(gx), K.olcektenKaro(gy));
+
+    /* Canavarlar ve kaynak arazileri — tek karo, kale onları örtmesin. */
     try {
-      /* loadAccounts() localStorage'daki ESKİ hesap kopyalarını
-         döndürüyordu; oradaki bayat kale konumları "burası dolu" deyip
-         her yeri kilitliyordu. Canlı kaleler zaten aşağıdaki
-         otherCastles listesinden geliyor. */
-      const accs = {};
-      Object.values(accs).forEach(a => {
-        const _ak = KOORD.kaleKaro(a && a.state && a.state.castle);
-        if(_ak){
-          if(a.displayName && currentUsername && a.displayName.toLowerCase() === currentUsername.toLowerCase()) return; // kendi kalem hariç
-          taken.push({ gx:KOORD.karodanOlcek(_ak.kx), gy:KOORD.karodanOlcek(_ak.ky) });
+      if (window.DUGUM && DUGUM.haritaDugumleri) {
+        const dl = DUGUM.haritaDugumleri();
+        for (let i = 0; i < dl.length; i++) {
+          const d = dl[i];
+          if (d && K.kaleKaplarMi(s.kx, s.ky, d.kx, d.ky)) return false;
         }
-      });
+      }
     } catch(e){}
-    try { (otherCastles||[]).forEach(c => { const k = KOORD.kaleKaro(c && c.castle);
-      if(k) taken.push({ gx:KOORD.karodanOlcek(k.kx), gy:KOORD.karodanOlcek(k.ky) }); }); } catch(e){}
-    return taken.every(t => Math.hypot(t.gx - gx, t.gy - gy) >= MOVE_MINDIST);
+    try {
+      for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (e && K.kaleKaplarMi(s.kx, s.ky, e.kx, e.ky)) return false;
+      }
+    } catch(e){}
+
+    /* Başka oyuncuların kaleleri — 2×2 ile 2×2. Bitişik durabilirler,
+       tek karo bile iç içe geçerlerse dolu sayılır. */
+    try {
+      const liste = otherCastles || [];
+      for (let i = 0; i < liste.length; i++) {
+        const k = K.kaleKaro(liste[i] && liste[i].castle);
+        if (k && K.kaleCakisirMi(s.kx, s.ky, k.kx, k.ky, 0)) return false;
+      }
+    } catch(e){}
+
+    return true;
   }
 
   let ghostGrid = null;
@@ -6302,11 +6320,11 @@ function setupMapPanning() {
     moveGhost.innerHTML = `<img src="gorsel17.webp" alt="" draggable="false" onerror="this.style.display='none'">`;
     document.body.appendChild(moveGhost);
   }
-  /* ── HEDEF KARENİN ÇERÇEVESİ ──
+  /* ── HEDEF ALANIN ÇERÇEVESİ ──
      Karo izometrik çizildiği için ekranda kare değil EŞKENAR DÖRTGEN
-     görünür. O yüzden köşeler tek tek izdüşürülür: karonun dört köşesi
-     (±yarım karo) ekran konumuna çevrilip birleştirilir. Böylece hangi
-     projeksiyon kullanılırsa kullanılsın çerçeve karoya tam oturur. */
+     görünür. O yüzden köşeler tek tek izdüşürülür.
+     KALE 2×2: kx/ky SOL ÜST karo olduğundan çerçeve dört karoyu
+     birden sarar — köşeler -0.5 ile (KALE_BOY-0.5) arasında gezer. */
   const KARE_NS = "http://www.w3.org/2000/svg";
   let _kareSvg = null, _karePoly = null;
 
@@ -6328,7 +6346,8 @@ function setupMapPanning() {
     /* renderBattleMap innerHTML'i siliyor; katman kopmuşsa geri tak. */
     if(_kareSvg.parentNode !== mapEl) mapEl.appendChild(_kareSvg);
 
-    const kose = [[-0.5,-0.5],[0.5,-0.5],[0.5,0.5],[-0.5,0.5]].map(([dx,dy]) => {
+    const B = (KOORD.KALE_BOY || 1) - 0.5;
+    const kose = [[-0.5,-0.5],[B,-0.5],[B,B],[-0.5,B]].map(([dx,dy]) => {
       const p = H.ekranKonumu(KOORD.karodanOlcek(kx+dx), KOORD.karodanOlcek(ky+dy));
       return p ? (p.x + "," + p.y) : null;
     });
@@ -6348,17 +6367,21 @@ function setupMapPanning() {
     const bos = !!(ghostGrid && cellFree(ghostGrid.gx, ghostGrid.gy));
     moveGhost.classList.toggle("bad", !bos);
 
-    /* ── SİLÜET KAREYE OTURSUN ──
+    /* ── SİLÜET ALANA OTURSUN ──
        Eskiden silüet parmağın altında duruyordu; kareye oturduğu
-       görülmüyordu. Artık hedef karonun MERKEZİNE çekiliyor, yani
-       kare kare atlıyor. */
-    const kk = ghostGrid ? KOORD.kaleKaro(ghostGrid) : null;
+       görülmüyordu. Artık hedef ALANIN merkezine çekiliyor.
+       KALE 2×2: sol üst karo kaleSolUst ile bulunur (ızgara kenarında
+       taşmayı da o engeller), silüet ise kaleMerkez'e oturur — yani
+       dört karonun tam ortasına, sol üst köşesine DEĞİL. */
+    const _k0 = ghostGrid ? KOORD.kaleKaro(ghostGrid) : null;
+    const kk  = _k0 ? KOORD.kaleSolUst(_k0.kx, _k0.ky) : null;
     const mapEl = document.getElementById("battleMap");
     const H = window.HARITA;
     let yerlesti = false;
 
     if(kk && mapEl && H && typeof H.ekranKonumu === "function"){
-      const p = H.ekranKonumu(KOORD.karodanOlcek(kk.kx), KOORD.karodanOlcek(kk.ky));
+      const m = KOORD.kaleMerkez(kk.kx, kk.ky);
+      const p = H.ekranKonumu(KOORD.karodanOlcek(m.kx), KOORD.karodanOlcek(m.ky));
       const r = mapEl.getBoundingClientRect();
       if(p && r.width){
         moveGhost.style.left = (r.left + p.x) + "px";
@@ -6409,8 +6432,12 @@ function setupMapPanning() {
   }
   function doCastleMove(g){
     state.diamonds -= MOVE_COST;
-    /* ÇİFT YAZIM: kx/ky gerçek kaynak, gx/gy ondan türetilir. */
-    const _kk = KOORD.kaleKaro(g);
+    /* ÇİFT YAZIM: kx/ky gerçek kaynak, gx/gy ondan türetilir.
+       KALE 2×2: kaleSolUst, sağ/alt kenarda bir karo pay bırakır —
+       kaleKayit tek başına son karoya kadar izin verdiği için kale
+       ızgaranın dışına taşabiliyordu. */
+    const _k0 = KOORD.kaleKaro(g);
+    const _kk = KOORD.kaleSolUst(_k0.kx, _k0.ky);
     state.castle = KOORD.kaleKayit(_kk.kx, _kk.ky);   /* assign DEĞİL: bkz. kaleKayit */
     if(typeof renderDiamonds === "function") renderDiamonds();
     if(typeof persistCurrentState === "function") persistCurrentState();
@@ -6429,7 +6456,7 @@ function setupMapPanning() {
      Bedel ve boşluk denetimi burada TEK yerde duruyor; karo.js
      kendi kopyasını yazmasın diye dışa açılıyor. */
   window.KALE_TASIMA = { tasi: doCastleMove, bosMu: cellFree, bedel: MOVE_COST,
-                       mod: enterCastleMoveMode, iptal: cancelCastleMove };
+                         mod: enterCastleMoveMode, iptal: cancelCastleMove };
 
   wrapEl.addEventListener("pointerdown", (e) => {
     activePointers.add(e.pointerId);
@@ -8019,6 +8046,7 @@ setInterval(() => {
 <script src="dugum.js"></script>
 <script src="sefer.js"></script>
 <script src="karo.js"></script>
+<script src="kale2x2.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════
      3D BİRLİK VIEWER — Three.js ile OBJ/MTL/Texture
