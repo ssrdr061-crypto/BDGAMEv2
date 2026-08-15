@@ -1029,58 +1029,46 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
     radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
     radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
     linear-gradient(180deg, #1fa3ea, #0e6fc0);
-  border:3px solid rgba(190,240,255,.85);
-  box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45);
+  border:2px solid rgba(190,240,255,.5);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
   font-family:'Baloo 2',sans-serif; color:#eaf4ff;
   animation:hpkPop .18s cubic-bezier(.2,.9,.3,1.3);
 }
-.hpk-top{
-  display:flex; align-items:center; justify-content:space-between; gap:8px;
-  padding:12px 14px; border-bottom:2px solid rgba(190,240,255,.35);
-}
-.hpk-top b{ font-size:15px; font-weight:900; color:#fff; text-shadow:0 2px 4px rgba(0,40,70,.6); }
-.hpk-top small{ display:block; font-size:10px; font-weight:700; color:#dff2ff; margin-top:1px;
-  text-shadow:0 1px 2px rgba(0,30,55,.5); }
-.hpk-close{
-  border:none; cursor:pointer; width:30px; height:30px; border-radius:50%;
-  background:linear-gradient(180deg,#8894ad,#4a566e); color:#fff;
-  font-weight:900; font-size:14px; box-shadow:0 3px 0 #2b3448;
-  -webkit-tap-highlight-color:transparent; flex:0 0 30px;
-}
-.hpk-close:active{ transform:translateY(2px); box-shadow:none; }
+/* Başlık şeridi ve ✕ düğmesi KALDIRILDI — pencere yalnız kartlardan
+   ibaret. Kapatma: dışarıya dokunmak. Kurallar duruyor ki eski bir
+   kayıttan gelen artık düğüm ekranda görünmesin. */
+.hpk-top{ display:none !important; }
+.hpk-close{ display:none !important; }
 .hpk-grid{
   display:grid; grid-template-columns:repeat(3,1fr); gap:9px;
-  padding:12px 13px 16px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:14px 13px 16px; overflow-y:auto; -webkit-overflow-scrolling:touch;
 }
+/*  KART: kendi kutusu YOK. Görünümün tamamı içindeki .klist-card'a
+    aittir — kahraman menüsüyle birebir aynı kart. Buraya zemin,
+    çerçeve veya gölge yazarsan kartın altından ikinci bir kutu
+    görünür (savaş yuvasında da aynı kural geçerli). */
 .hpk-card{
-  position:relative; aspect-ratio:3/4; border-radius:13px; overflow:hidden;
-  cursor:pointer; border:2px solid rgba(190,240,255,.45);
-  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
-  box-shadow:inset 0 2px 3px rgba(150,205,255,.5), 0 4px 8px rgba(0,20,45,.4);
-  transition:transform .1s, border-color .15s, box-shadow .15s;
-  -webkit-tap-highlight-color:transparent;
+  position:relative; aspect-ratio:3/4; min-width:0;
+  background:none; border:0; box-shadow:none; padding:0;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  transition:transform .09s;
 }
 .hpk-card:active{ transform:scale(.96); }
-.hpk-card.chosen{
-  border-color:rgba(255,255,255,.9) !important;
-  box-shadow:inset 0 2px 3px rgba(150,205,255,.5), 0 0 14px rgba(190,240,255,.65) !important;
+/* Liste kartı pencerenin içinde: hücreyi tam doldurur */
+.hpk-card .klist-card{
+  width:100% !important; height:100% !important;
+  transform:none !important;          /* listedeki ızgara kaydırması burada geçersiz */
+  cursor:pointer;
 }
-.hpk-card img.hpk-portrait, .hpk-card .hpk-portrait{
-  position:absolute; inset:0; width:100%; height:100%;
-  object-fit:cover; object-position:top center;
+.hpk-card .klist-lv{ ${HPK_KART.sv_bs ? `font-size:${HPK_KART.sv_bs}px !important;` : ""} }
+.hpk-card .klist-stars{ ${HPK_KART.yildiz_bs ? `font-size:${HPK_KART.yildiz_bs}px !important;` : ""} }
+${HPK_KART.specGoster ? "" : ".hpk-card .klist-spec{ display:none !important; }"}
+/* Zaten yuvada olan kahraman: ince beyaz kenar, kart görünümü bozulmaz */
+.hpk-card.chosen .klist-card{
+  border:2px solid rgba(255,255,255,.9) !important;
+  box-shadow:0 0 12px rgba(190,240,255,.55) !important;
 }
-.hpk-card .hpk-cap{
-  position:absolute; left:0; right:0; bottom:0; z-index:2;
-  padding:14px 4px 5px; text-align:center;
-  background:linear-gradient(180deg, transparent, rgba(3,8,20,.93));
-  font-size:10.5px; font-weight:900; color:#fff;
-  text-shadow:0 1px 3px rgba(0,0,0,.8);
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
-.hpk-card.taken::after{
-  content:""; position:absolute; inset:0; z-index:3;
-  background:rgba(2,8,22,.62);
-}
+.hpk-card .hpk-cap{ display:none; }
 .hpk-badge{ display:none; }
 .hpk-spec{ display:none; }
 .hpk-note{
@@ -1218,14 +1206,14 @@ function openHeroPickModal(slotIndex) {
     return;
   }
 
+  /* KART: kahraman menüsündekiyle AYNI kart (hpkKartHTML → kahramanlar.js).
+     Eski düz portre + isim şeridi kaldırıldı; seviye, yıldız, kademe
+     zemini ve uzmanlık rozeti artık burada da görünür. Tek tip. */
   const cards = owned.map(id => {
-    const h = HERO_STATS[id];
     const at = selectedCommanders.indexOf(id);
-    const taken = at !== -1 && at !== slotIndex;
     return `
-      <div class="hpk-card ${taken ? "taken" : ""} ${at !== -1 ? "chosen" : ""}" data-pick="${id}">
-        ${heroPortraitHTML(id, "hpk-portrait")}
-        <div class="hpk-cap">${h.name}</div>
+      <div class="hpk-card ${at !== -1 ? "chosen" : ""}" data-pick="${id}">
+        ${hpkKartHTML(id)}
       </div>`;
   }).join("");
 
@@ -1234,16 +1222,11 @@ function openHeroPickModal(slotIndex) {
   back.id = "hpkBack";
   back.innerHTML = `
     <div class="hpk-modal">
-      <div class="hpk-top">
-        <div></div>
-        <button class="hpk-close" id="hpkCloseBtn">✕</button>
-      </div>
       <div class="hpk-grid">${cards}</div>
     </div>`;
   document.body.appendChild(back);
 
   back.addEventListener("click", e => { if (e.target === back) closeHeroPickModal(); });
-  document.getElementById("hpkCloseBtn").addEventListener("click", closeHeroPickModal);
 
   back.querySelectorAll(".hpk-card").forEach(card => {
     card.addEventListener("click", () => assignCommander(card.dataset.pick, slotIndex));
