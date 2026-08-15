@@ -1134,13 +1134,19 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   };
 }
 
-/* {knight:3} → hastane formatı [{severe:true}, ...] */
+/* Yaralı listesi — ARTIK SAYI, dizi değil.
+   ESKİ: her yaralı için bir nesne üretiliyordu ({severe:...}).
+   28.512 yaralı = 28.512 nesne; bu liste hem savaş günlüğüne hem
+   sefer kaydına (Firebase'e!) hem de hastaneye gidiyordu ve
+   tarayıcının kayıt sınırını patlatıyordu.
+   "severe" alanı hiçbir yerde okunmuyordu, kaldırıldı.
+   Alıcı taraf (sendWoundedToHospital / yaraliAdet) iki biçimi de
+   kabul ediyor, eski kayıtlar bozulmaz. */
 function toHospitalFormat(countMap) {
   const out = {};
   Object.keys(countMap || {}).forEach(uid => {
-    const n = countMap[uid]; if (!n) return;
-    out[uid] = [];
-    for (let i = 0; i < n; i++) out[uid].push({ severe: Math.random() < 0.5 });
+    const n = Math.max(0, Math.floor(num(countMap[uid], 0)));
+    if (n > 0) out[uid] = n;
   });
   return out;
 }

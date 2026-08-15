@@ -2647,6 +2647,14 @@ const shopRight = (item, idx, priceClass, tlPrice, maxQty) => `
             : `<button data-idx="${idx}" class="buy-btn">Satın Al</button>`}`;
 
 const groupBy = (arr, keyFn) => arr.reduce((acc, x) => ((acc[keyFn(x)] = acc[keyFn(x)] || []).push(x), acc), {});
+
+/* ── YARALI SAYISI ─────────────────────────────────────────────
+   Yaralı listesi iki biçimde gelebilir:
+     ESKİ : { knight: [{...},{...},{...}] }   → her yaralı ayrı nesne
+     YENİ : { knight: 3 }                     → sadece sayı
+   Eski kayıtlar ve eski PvE kodu hâlâ dizi üretiyor; ikisini de
+   tek yerden sayıya çeviriyoruz ki hiçbir ekran kırılmasın. */
+function yaraliAdet(v) { return Array.isArray(v) ? v.length : (Number(v) || 0); }
 const emptyState = (icon, text, pad) =>
   `<div class="empty-state"${pad ? ` style="padding:${pad};"` : ""}><span class="icon">${icon}</span>${text}</div>`;
 const BONUS_LABELS = { attack: "SLD", defense: "SAV" };
@@ -3560,8 +3568,8 @@ function buildBattleReportHTML(result, effectiveHero, enemy) {
   const olenHTML = Object.keys(olen).filter(u => olen[u] > 0)
     .map(u => _repTroopCard(u, "-" + fmt(olen[u]), "col-red")).join("")
     || `<span class="rep-empty">Kayıp yok</span>`;
-  const yaraliHTML = Object.keys(yarali).filter(u => (yarali[u] || []).length > 0)
-    .map(u => _repTroopCard(u, "-" + fmt(yarali[u].length), "col-yellow")).join("")
+  const yaraliHTML = Object.keys(yarali).filter(u => yaraliAdet(yarali[u]) > 0)
+    .map(u => _repTroopCard(u, "-" + fmt(yaraliAdet(yarali[u])), "col-yellow")).join("")
     || `<span class="rep-empty">Yaralı yok</span>`;
 
   /* ── kahraman yetenekleri: hangisi kaç kez ── */
@@ -3833,47 +3841,117 @@ function applyFinishedTraining() {
     partisinin tamamı bitmeden hiçbiri dönmez, bitince topluca döner.
     Onaylanmamış (henüz sıraya alınmamış) yaralılar hesaba katılmaz,
     yoksa hiç onaylanmamış tek bir yaralı bütün partiyi kilitler.   */
+/*  ═══════════════════════════════════════════════════════════════
+    HASTANE ARTIK "ADET" TUTUYOR — HER YARALI İÇİN AYRI SATIR YOK
+    ---------------------------------------------------------------
+    ESKİ: 40.000 yaralı = state.hospital içinde 40.000 nesne.
+          Kayıt dosyası megabaytlara çıkıyor, tarayıcı depoyu
+          reddediyordu ("KAYIT BAŞARISIZ"). Kayıt yazılamayınca
+          savaş kayıpları da diske işlenmiyor, sayfa yenilenince
+          birlikler geri geliyordu.
+    YENİ: aynı türden yaralılar TEK satırda toplanıyor:
+          { unitId:"soldier", adet:28512, recoveryMs:..., finishAt:0,
+            confirmed:false }
+          40.000 satır → 1 satır. Depo sorunu kökten biter.
+
+    DAVRANIŞ AYNI: teslimat zaten parti halindeydi (bir türün
+    onaylanmış partisi, EN GEÇ bitene kadar beklerdi). Grup satırının
+    finishAt'i o "en geç biten" andır — yani hiçbir şey değişmiyor.
+
+    hastaneyiDuzelt() eski biçimdeki kayıtları açılışta bu biçime
+    çevirir; kimse yaralısını kaybetmez.
+    ═══════════════════════════════════════════════════════════════ */
+
+/* Bir birliğin iyileşme süresi = eğitim süresinin 5'te 1'i */
+function iyilesmeSuresiMs(unitId) {
+  const def = UNIT_TYPES[unitId];
+  return def ? Math.round(def.trainMinutes * 60 * 1000 / 5) : 60000;
+}
+
+/* Hastanedeki toplam yaralı (grup satırlarının adetleri toplamı) */
+function hastaneToplam(liste) {
+  return (liste || state.hospital || []).reduce((t, p) => t + (p.adet || 0), 0);
+}
+
+/* ── ESKİ KAYITLARI YENİ BİÇİME ÇEVİR ──
+   Açılışta bir kez çalışır. Zaten yeni biçimdeyse hiçbir şey yapmaz. */
+function hastaneyiDuzelt() {
+  if (!Array.isArray(state.hospital)) { state.hospital = []; return; }
+  if (state.hospital.length === 0) return;
+
+  const yeni = [];
+  state.hospital.forEach(p => {
+    if (!p || !p.unitId) return;
+    const adet = (typeof p.adet === "number" && p.adet > 0) ? p.adet : 1;
+    const onay = !!p.confirmed;
+    const bitis = onay ? (p.finishAt || 0) : 0;
+
+    /* Aynı tür + aynı onay durumu tek satırda toplanır.
+       Onaylı satırlarda EN GEÇ biten an korunur — teslimat
+       zaten ona göre yapılıyordu. */
+    const es = yeni.find(x => x.unitId === p.unitId && x.confirmed === onay);
+    if (es) {
+      es.adet += adet;
+      if (onay && bitis > es.finishAt) es.finishAt = bitis;
+    } else {
+      yeni.push({
+        unitId: p.unitId,
+        adet: adet,
+        recoveryMs: p.recoveryMs || iyilesmeSuresiMs(p.unitId),
+        finishAt: bitis,
+        confirmed: onay,
+      });
+    }
+  });
+  state.hospital = yeni;
+}
+
 function applyFinishedHospitalRecoveries() {
   if (!state.hospital || state.hospital.length === 0) return;
   const now = Date.now();
 
-  /* birlik türüne göre onaylanmış partinin son bitişi */
-  const sonBitis = {};
+  const kalan = [];
   state.hospital.forEach(p => {
-    if (!p.confirmed) return;
-    if (!(p.unitId in sonBitis) || p.finishAt > sonBitis[p.unitId]) {
-      sonBitis[p.unitId] = p.finishAt;
-    }
-  });
-
-  const stillRecovering = [];
-  state.hospital.forEach(patient => {
-    const bitis = sonBitis[patient.unitId];
-    if (patient.confirmed && typeof bitis === "number" && now >= bitis) {
-      state.troops[patient.unitId] = (state.troops[patient.unitId] || 0) + 1;
+    if (!p || !p.unitId) return;
+    const adet = p.adet || 0;
+    if (adet <= 0) return;                       /* boş satırı at */
+    if (p.confirmed && p.finishAt > 0 && now >= p.finishAt) {
+      state.troops[p.unitId] = (state.troops[p.unitId] || 0) + adet;
     } else {
-      stillRecovering.push(patient);
+      kalan.push(p);
     }
   });
-  state.hospital = stillRecovering;
+  state.hospital = kalan;
 }
 
+/* Yaralıları hastaneye yaz.
+   Gelen liste iki biçimde de olabilir: { knight: 5 } ya da
+   { knight: [{...},{...}] }. İkisini de kabul ediyoruz — PvE tarafı
+   ve eski sefer kayıtları hâlâ dizi gönderiyor. */
 function sendWoundedToHospital(troopsWoundedByUnit) {
   if (!troopsWoundedByUnit) return;
   Object.keys(troopsWoundedByUnit).forEach(unitId => {
-    const def = UNIT_TYPES[unitId];
-    if (!def) return;
-    troopsWoundedByUnit[unitId].forEach(wound => {
-      /* İYİLEŞME SÜRESİ = birliğin eğitim süresinin 5'te 1'i.
-         DİKKAT: sayaç BURADA başlatılmaz. Eskiden finishAt yaralanma
-         anında yazılıyordu; oyuncu hastaneyi açtığında süre çoktan
-         dolmuş oluyor ve birlikler onaya basar basmaz iyileşiyordu.
-         Sayaç artık confirmHospitalSelection'da, ONAY anında başlar. */
-      const recoveryMs = Math.round(def.trainMinutes * 60 * 1000 / 5);
+    if (!UNIT_TYPES[unitId]) return;
+    const adet = yaraliAdet(troopsWoundedByUnit[unitId]);
+    if (adet <= 0) return;
+
+    /* DİKKAT: sayaç BURADA başlatılmaz (finishAt:0). Eskiden
+       yaralanma anında yazılıyordu; oyuncu hastaneyi açtığında süre
+       çoktan dolmuş oluyor ve birlikler onaya basar basmaz
+       iyileşiyordu. Sayaç confirmHospitalSelection'da, ONAY anında
+       başlar. */
+    const bekleyen = state.hospital.find(p => p.unitId === unitId && !p.confirmed);
+    if (bekleyen) {
+      bekleyen.adet += adet;
+    } else {
       state.hospital.push({
-        unitId, recoveryMs, finishAt: 0, severe: !!wound.severe
+        unitId: unitId,
+        adet: adet,
+        recoveryMs: iyilesmeSuresiMs(unitId),
+        finishAt: 0,
+        confirmed: false,
       });
-    });
+    }
   });
 }
 
@@ -3997,6 +4075,10 @@ function startSessionFor(username) {
   if (!state.battleLogHistory) state.battleLogHistory = [];
   if (state.lastDailyRewardDate === undefined) state.lastDailyRewardDate = null;
   if (!state.hospital) state.hospital = [];
+  /* Eski kayıtta her yaralı ayrı satırdı (40.000 yaralı = 40.000
+     satır → depo doluyor, kayıt yazılamıyordu). Burada gruplu
+     biçime çevriliyor; hiçbir yaralı kaybolmuyor. */
+  hastaneyiDuzelt();
   if (!state.troops) state.troops = { knight: 0, soldier: 0, robot: 0 };
   if (!state.trainingQueue) state.trainingQueue = [];
 
@@ -5088,18 +5170,19 @@ function renderHospitalPanel() {
   const floatBtn = document.getElementById("floatingHospitalBtn");
   const floatCount = document.getElementById("floatingHospitalCount");
   const patients = state.hospital || [];
+  const toplamYarali = hastaneToplam(patients);
 
   if (floatBtn) {
-    if (patients.length > 0) {
+    if (toplamYarali > 0) {
       floatBtn.classList.remove("is-hidden");
-      if (floatCount) floatCount.textContent = patients.length;
+      if (floatCount) floatCount.textContent = fmt(toplamYarali);
     } else {
       floatBtn.classList.add("is-hidden");
     }
   }
 
   if (!pendingEl || !queueEl) return;
-  if (patients.length === 0) {
+  if (toplamYarali === 0) {
     pendingEl.innerHTML = `<div class="empty-state" style="padding:18px;"><span class="icon"><img src="gorsel18.webp" style="width:30px;height:30px;object-fit:contain;"/></span>Şu an hastanede yaralı birlik yok.</div>`;
     queueEl.innerHTML = "";
     const qt = document.getElementById("hospitalQueueTitle");
@@ -5112,12 +5195,14 @@ function renderHospitalPanel() {
   const confirmed = patients.filter(p => p.confirmed);
 
   const byUnitWaiting = groupBy(waiting, p => p.unitId);
+  /* Grup satırları adet tutuyor: "kaç yaralı" = adetlerin toplamı */
+  const bekleyenAdet = u => hastaneToplam(byUnitWaiting[u] || []);
 
   /* İmza: SADECE hangi birlikten kaç yaralı olduğu.
      Seçilen miktar bilerek DIŞARIDA — o değer JS tarafından
      doğrudan DOM'a yazılıyor, yeniden çizim gerektirmiyor. */
-  const pendingKey = "v1|" + Object.keys(byUnitWaiting).sort().map(u =>
-    u + ":" + byUnitWaiting[u].length
+  const pendingKey = "v2|" + Object.keys(byUnitWaiting).sort().map(u =>
+    u + ":" + bekleyenAdet(u)
   ).join("|");
   const pendingDegisti = (pendingKey !== _hospitalPendingKey);
   _hospitalPendingKey = pendingKey;
@@ -5127,7 +5212,7 @@ function renderHospitalPanel() {
   } else if (pendingDegisti) {
     pendingEl.innerHTML = Object.keys(byUnitWaiting).map(unitId => {
       const def = UNIT_TYPES[unitId];
-      const woundedCount = byUnitWaiting[unitId].length;
+      const woundedCount = bekleyenAdet(unitId);
       const current = Math.min(hospitalPendingSelection[unitId] || 0, woundedCount);
       return `
         <div class="hospital-heal-card" data-unit="${unitId}" data-max="${woundedCount}">
@@ -5158,7 +5243,7 @@ function renderHospitalPanel() {
   }
 
   const queueTitle = document.getElementById("hospitalQueueTitle");
-  if (confirmed.length === 0) {
+  if (hastaneToplam(confirmed) === 0) {
     /* Tedavide kimse yoksa başlık da yazı da görünmesin */
     queueEl.innerHTML = "";
     if (queueTitle) queueTitle.classList.add("is-hidden");
@@ -5173,10 +5258,9 @@ function renderHospitalPanel() {
   queueEl.innerHTML = Object.keys(byUnitConfirmed).map(unitId => {
     const def = UNIT_TYPES[unitId];
     const group = byUnitConfirmed[unitId].sort((a, b) => a.finishAt - b.finishAt);
-    const soonest = group[0];
     const latest = group[group.length - 1];
-    const remaining = soonest.finishAt - Date.now();
     const totalRemaining = latest.finishAt - Date.now();
+    const grupAdet = hastaneToplam(group);
     /* Tek birlik sayacı yok: 20 şövalye sıralı iyileşirken
        sıradakinin süresini göstermek yanıltıcıydı. Yalnızca GRUBUN
        tamamı için kalan süre var. Hızlandırma düğmesi sağda. */
@@ -5185,7 +5269,7 @@ function renderHospitalPanel() {
         <span class="hospital-face hospital-face-sm" data-unit="${unitId}">${unitFace(def)}</span>
         <div class="troop-queue-name-col">
           <span class="troop-queue-name">
-            <span class="hosp-adet">${group.length}</span>
+            <span class="hosp-adet">${fmt(grupAdet)}</span>
           </span>
           <span class="hospital-heal-total-time">${formatRemaining(totalRemaining)}</span>
         </div>
@@ -5202,24 +5286,45 @@ function confirmHospitalSelection() {
     return;
   }
   Object.keys(hospitalPendingSelection).forEach(unitId => {
-    const wantCount = hospitalPendingSelection[unitId] || 0;
+    let wantCount = hospitalPendingSelection[unitId] || 0;
     if (wantCount <= 0) return;
-    const waitingOfUnit = state.hospital.filter(p => p.unitId === unitId && !p.confirmed);
-    const def = UNIT_TYPES[unitId];
-    /* Varsayılan: eski kayıtlarda recoveryMs yoksa tanımdan üret */
-    const varsayilan = def ? Math.round(def.trainMinutes * 60 * 1000 / 5) : 60000;
-    /* SIRALI İYİLEŞME.
-       Eskiden hepsine aynı finishAt yazılıyordu: 72 şövalye de tek
-       bir birlik kadar, 21 saniyede iyileşiyordu. Artık her birlik
-       bir öncekinin bitişinden sonra başlıyor — toplam süre
-       adet × birim süresi oluyor.
-       (Eğitim kuyruğuyla aynı mantık; oradaki "zincirli" davranış.) */
-    let imlec = Date.now();
-    waitingOfUnit.slice(0, wantCount).forEach(p => {
-      p.confirmed = true;
-      imlec += (p.recoveryMs || varsayilan);
-      p.finishAt = imlec;
-    });
+
+    const birim = iyilesmeSuresiMs(unitId);
+    const bekleyen = state.hospital.filter(p => p.unitId === unitId && !p.confirmed);
+    const varolanOnayli = state.hospital.find(p => p.unitId === unitId && p.confirmed);
+
+    /* Bekleyen satırlardan istenen kadarını ayır. Grup satırı
+       olduğu için "ayırmak" = adeti bölmek. */
+    let alinan = 0;
+    for (const p of bekleyen) {
+      if (wantCount <= 0) break;
+      const n = Math.min(p.adet, wantCount);
+      p.adet -= n;
+      alinan += n;
+      wantCount -= n;
+    }
+    /* boşalan satırları temizle */
+    state.hospital = state.hospital.filter(p => (p.adet || 0) > 0);
+    if (alinan <= 0) return;
+
+    /* SIRALI İYİLEŞME: toplam süre = adet × birim süre.
+       Eskiden her yaralı ayrı satırdı ve bitişleri zincirleniyordu;
+       teslimat da zaten EN GEÇ bitene göre yapılıyordu. Tek satırda
+       aynı sonucu doğrudan yazıyoruz. */
+    if (varolanOnayli) {
+      /* Zaten tedavide olan parti varsa yenisi onun ARDINA eklenir */
+      const taban = Math.max(Date.now(), varolanOnayli.finishAt);
+      varolanOnayli.adet += alinan;
+      varolanOnayli.finishAt = taban + alinan * birim;
+    } else {
+      state.hospital.push({
+        unitId: unitId,
+        adet: alinan,
+        recoveryMs: birim,
+        finishAt: Date.now() + alinan * birim,
+        confirmed: true,
+      });
+    }
   });
   hospitalPendingSelection = {};
   /* İmzayı boşalt: onaylanan birlikler üstteki listeden ANINDA
@@ -5400,7 +5505,12 @@ function hizlandirmaPenceresi(unitId, tur) {
   const birimMs = (tur === "egitim")
     ? (def ? def.trainMinutes * 60 * 1000 : 0)
     : (def ? Math.round(def.trainMinutes * 60 * 1000 / 5) : 0);
-  const toplamMs = Math.max(1, grup().length * birimMs);
+  /* Hastanede satırlar ARTIK GRUP: adet × birim süre.
+     Eğitimde her iş hâlâ ayrı satır, orada satır sayısı doğru. */
+  const toplamAdet = (tur === "egitim")
+    ? grup().length
+    : grup().reduce((t, p) => t + (p.adet || 0), 0);
+  const toplamMs = Math.max(1, toplamAdet * birimMs);
 
   function tazele() {
     const kalan = kalanMs();
@@ -7153,7 +7263,7 @@ async function startBattle() {
     const result = simulateBattle(effectiveHero, enemyForBattle, troopRoster);
 
     Object.keys(result.troopsWoundedByUnit || {}).forEach(unitId => {
-      const n = result.troopsWoundedByUnit[unitId].length;
+      const n = yaraliAdet(result.troopsWoundedByUnit[unitId]);
       state.troops[unitId] = ensure((state.troops[unitId] || 0) - n);
     });
     sendWoundedToHospital(result.troopsWoundedByUnit);
@@ -7162,7 +7272,7 @@ async function startBattle() {
     state.stamina.current = ensure(state.stamina.current - staminaCost);
 
     const troopsWoundedText = result.troopsWounded > 0
-      ? Object.entries(result.troopsWoundedByUnit).map(([id, arr]) => `${UNIT_TYPES[id].icon}${UNIT_TYPES[id].name} x${arr.length}`).join(", ")
+      ? Object.entries(result.troopsWoundedByUnit).map(([id, arr]) => `${UNIT_TYPES[id].icon}${UNIT_TYPES[id].name} x${yaraliAdet(arr)}`).join(", ")
       : null;
 
     const _heroNm = (typeof HERO_STATS !== "undefined" && state.selectedHeroSkin && HERO_STATS[state.selectedHeroSkin])
@@ -7265,7 +7375,10 @@ async function startBattle() {
       dmgTaken: result.totalDamageTakenByHero,
       heroHpFinal: result.heroHpFinal,
       heroMaxHp: effectiveHero.maxHp,
-      troopsWoundedByUnit: result.troopsWoundedByUnit,
+      /* Günlüğe DİZİ değil SAYI yazılır: 40.000 yaralı = 40.000
+         nesne demekti ve kayıt dosyasını şişiriyordu. */
+      troopsWoundedByUnit: Object.keys(result.troopsWoundedByUnit || {})
+        .reduce((o, k) => { o[k] = yaraliAdet(result.troopsWoundedByUnit[k]); return o; }, {}),
       timestamp: Date.now(),
       /* "Aç" ile tekrar çizilebilmesi için sadeleştirilmiş rapor verisi */
       rep: {
@@ -7273,7 +7386,7 @@ async function startBattle() {
         troopsSent: Object.assign({}, selectedTroopsForBattle),
         lostByUnit: Object.assign({}, result.troopsLostByUnit || {}),
         woundedByUnit: Object.keys(result.troopsWoundedByUnit || {})
-          .reduce((o, k) => { o[k] = result.troopsWoundedByUnit[k].length; return o; }, {}),
+          .reduce((o, k) => { o[k] = yaraliAdet(result.troopsWoundedByUnit[k]); return o; }, {}),
         abilities: (result.activeBuffs || []).map(m => ({
           type: m.type,
           sources: (m.sources || []).map(x => ({ heroId: x.heroId, title: x.title || m.title }))
@@ -8196,7 +8309,6 @@ setInterval(() => {
 <script src="karo.js"></script>
 <script src="kale2x2.js"></script>
 <script src="uretim.js"></script>
-<script src="tani.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════
      3D BİRLİK VIEWER — Three.js ile OBJ/MTL/Texture
