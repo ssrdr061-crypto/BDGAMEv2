@@ -1206,8 +1206,18 @@ function hizlandirSor(id) {
 
   onayPenceresi("HIZLANDIR",
     `%${Math.round(AYAR.HIZ_ORANI * 100)} Hızlandır`,
-    `${fmtSayi(AYAR.HIZ_BEDEL)} 💎`, () => hizlandir(id),
-    { ekler: ekler, solEtiket: "Geri Çağır", solFn: () => geriCagirSor(id) });
+    `${fmtSayi(AYAR.HIZ_BEDEL)} 💎`,
+    () => { hizlandir(id); seferBittiyseKapat(id); },
+    { ekler: ekler, solEtiket: "Geri Çağır", solFn: () => geriCagirSor(id), kalici: true });
+}
+
+/* Sefer varmış/silinmişse açık kalan pencereyi kapat. */
+function seferBittiyseKapat(id) {
+  setTimeout(() => {
+    if (_yerel[id]) return;
+    const m = document.getElementById("seferOnayModal");
+    if (m) m.remove();
+  }, 60);
 }
 
 /* Ürünle hızlandırma: elmas ALINMAZ, çantadan bir adet düşer. */
@@ -1296,7 +1306,6 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   kok.className = "sefer-onay-modal";
   kok.innerHTML = `
     <div class="overlay-card som-card">
-      <button class="overlay-close som-close" type="button">✕</button>
       <h2 class="som-title">${baslik}</h2>
       <div class="som-msg">${mesajHTML}</div>
       ${ekHTML ? `<div class="som-actions som-actions-dikey">${ekHTML}</div>` : ""}
@@ -1312,14 +1321,17 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
 
   const kapat = () => kok.remove();
-  const cagir = f => { kapat(); try { f(); } catch (e) { console.error(e); } };
+  /* kapatMi=false: pencere AÇIK kalır — arka arkaya hızlandırmak için. */
+  const cagir = (f, kapatMi) => {
+    if (kapatMi !== false) kapat();
+    try { f(); } catch (e) { console.error(e); }
+  };
 
-  kok.querySelector(".som-close").onclick  = kapat;
-  kok.querySelector(".som-btn-no").onclick = () => { solFn ? cagir(solFn) : kapat(); };
-  kok.querySelector(".som-btn-yes").onclick = () => cagir(cb);
+  kok.querySelector(".som-btn-no").onclick  = () => { solFn ? cagir(solFn) : kapat(); };
+  kok.querySelector(".som-btn-yes").onclick = () => cagir(cb, !sec.kalici);
   kok.querySelectorAll("[data-ek]").forEach(b => {
     const e = ekListe[parseInt(b.dataset.ek, 10)];
-    b.onclick = () => { if (e && typeof e.fn === "function") cagir(e.fn); else kapat(); };
+    b.onclick = () => { if (e && typeof e.fn === "function") cagir(e.fn, !sec.kalici); else kapat(); };
   });
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
@@ -1421,11 +1433,10 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   /* Ekranın ALTINDA açılır, arka plan KARARMAZ. */
   position:fixed; inset:0; z-index:9999;
   display:flex; align-items:flex-end; justify-content:center;
-  background:transparent; padding:0 18px 104px;
+  background:transparent; padding:0 18px 58px;
 }
 .sefer-onay-modal .som-card{ max-width:300px; border-radius:18px; padding:16px 14px;
   border:1px solid rgba(190,240,255,.14); box-shadow:0 2px 6px rgba(0,20,45,.3); }
-.sefer-onay-modal .som-close{ top:12px; right:12px; }
 /* .overlay-card h2 display:flex — text-align burada işe yaramaz */
 .sefer-onay-modal .som-title{
   justify-content:center; font-size:20px; letter-spacing:.2px;
@@ -1490,7 +1501,7 @@ function iadeEt(b) {
 }
 
 window.SEFER = {
-  SURUM: "canvas-10",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canvas-11",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
   liste: hepsi, benimkiler: benimkiler,
   /* harita.js canvas çizimi için — evre ve süre biçimi tek yerde
