@@ -191,7 +191,12 @@ function _klistKartAyar(id) {
 .klist-card{
   position:relative; overflow:hidden; cursor:pointer; box-sizing:border-box;
   border:0 solid rgba(160,215,255,.45);   /* kalınlık satır içinde: KLIST_UI.kart_cer */
-  background:linear-gradient(180deg, rgba(96,150,215,.55) 0%, rgba(24,58,112,.85) 60%, rgba(9,26,58,.95) 100%);
+  /* ZEMİN YOK. Eskiden burada mavi bir degrade vardı; kademe görseli
+     (KLIST_ZEMIN) onun ÜSTÜNE biniyor ve görselin yuvarlatılmış saydam
+     köşelerinden alttaki mavi sivri uçlar halinde sızıyordu. Rengi
+     kartın tamamında kademe görseli veriyor, ikinci bir zemin gereksiz.
+     Görsel yüklenemezse kart şeffaf kalır — panelin rengi görünür. */
+  background:transparent;
   box-shadow:0 4px 8px rgba(0,15,40,.45);
   transition:transform .1s;
   -webkit-tap-highlight-color:transparent;
