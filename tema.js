@@ -5014,3 +5014,69 @@ document.head.appendChild(st);
   if (document.readyState === "complete") setTimeout(baslat, 600);
   else window.addEventListener("load", function () { setTimeout(baslat, 600); });
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   GÖRSEL ARKASI KARARTIYI KALDIR
+   ---------------------------------------------------------------
+   Oyundaki .webp görsellerin siluetine siyah bir gölge basılıyordu
+   (filter: drop-shadow(... rgba(0,0,0,.5)) gibi). Küçük görsellerde
+   bu gölge, resmin arkasında bir kirlilik/karartı olarak okunuyordu.
+
+   BURADA YALNIZ SİYAH/LACİVERT GÖLGELER SÖNDÜRÜLÜR.
+   Renkli parlamalar (robotun mavi ışığı, taşıma hayaletinin kırmızı
+   uyarısı, füzenin turuncu izi, seferin renk halkası) BİLEREK
+   bırakıldı — onlar süs değil, bilgi taşıyor.
+
+   NEDEN BURADA: kurallar index.html, troops.js, kahramanlar.js ve
+   rehber.js'e dağılmış durumda. Hepsini tek tek düzenlemek dört
+   dosyaya dokunmak demekti; tema.js zaten en sonda yüklendiği için
+   buradan ezmek tek dosyada kalıyor.
+
+   `html body` öneki: tema.js'in yükleme sırası değişse bile
+   özgüllük garanti olsun diye (bkz. dosyanın başındaki not).
+
+   GERİ ALMAK İÇİN: bu bloğun tamamını sil, gölgeler geri gelir.
+   ═══════════════════════════════════════════════════════════════ */
+(function golgeleriSondur() {
+  const st = document.createElement("style");
+  st.id = "golgeSondur";
+  st.textContent = `
+/* ── HARİTA ── */
+html body .map-node.castle-node .castle-avatar img{ filter:none !important; }
+
+/* ── ALT MENÜ VE YÜZEN BUTONLAR (üçü de <img>) ── */
+html body .dock-icon{ filter:none !important; }
+html body .floating-chest-btn{ filter:none !important; }
+html body .floating-hospital-btn{ filter:none !important; }
+
+/* ── SANDIK EKRANI (gorsel4.webp) ── */
+html body .chest{ filter:none !important; }
+
+/* ── BİRLİK GÖRSELLERİ ── */
+html body .tp-img img{ filter:none !important; }
+html body .us-knight .knight{ filter:none !important; }
+html body .us-soldier .soldier{ filter:none !important; }
+
+/* Robot: siyah gölge gitti, MAVİ PARLAMA kaldı. Bu yüzden
+   "none" değil, gölgenin sadece renkli yarısı yeniden yazıldı. */
+html body .us-robot .hero-img{ filter:drop-shadow(0 0 22px rgba(56,214,255,.55)) !important; }
+
+/* ── KARŞILAMA GÖRSELİ ── */
+html body #welcomeBack .wc-hero{ filter:none !important; }
+
+/* ── BİLEREK DIŞARIDA BIRAKILANLAR — buraya kural EKLEME ──
+   Bunların hiçbiri yüklenmiş görsel değil; gölgeleri süs değil,
+   okunurluk sağlıyor:
+     · kale taşıma hayaleti  (#castleMoveGhost img)
+     · kilit ikonu           (.klist-lock span)
+     · ✏️ paylaşma işareti    (.coord-share-icon)
+     · kaynak ikonları       (.hud-top .kaynak-ikon)
+     · günlük ödül sandığı   (.daily-reward-chest — SVG çizim)
+     · mağaza ikonları       (.shop-card2 .sc-emoji)
+     · birlik listesi emojisi (.tp-img .tp-emoji)
+     · kahraman yıldızları   (#hdStars span) */
+`;
+  const ekle = () => document.head.appendChild(st);
+  if (document.head) ekle();
+  else document.addEventListener("DOMContentLoaded", ekle);
+})();
