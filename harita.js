@@ -92,6 +92,23 @@
     evButonUstBosluk: 10,
     evButonAltBosluk: 70,
 
+    /* ── KAMERA KENAR KİLİDİ (karo) ──
+       Kameranın merkezinin harita kenarından en az kaç karo İÇERİDE
+       kalacağı. 0 = merkez her karoya gidebilir.
+
+       ESKİDEN bu pay ekran yarıçapından hesaplanıyordu (yatay + dikey
+       toplanarak) ve telefonda 10-19 karoyu bulan bir bant oluyordu.
+       Sonuç: kenara yakın bir koordinat PAYLAŞILDIĞINDA kamera oraya
+       hiç varamıyor, erken duruyordu — ekranın ortasında bambaşka bir
+       karo kalıyor, nişangah kenarda kalıyor ya da hiç görünmüyordu.
+       "Arkadaşım paylaştığım konumda beni bulamıyor" hatası buydu.
+
+       Bedeli: haritanın tam köşesine gidilince ekranın bir kısmı boş
+       (lacivert) kalır. İşlevi kaybetmektense boşluk görünsün.
+       Boşluğu azaltmak istersen bu sayıyı büyüt — ama büyüttüğün
+       karo kadar kenar yeniden ULAŞILMAZ olur. */
+    kameraKenarPayi: 0,
+
     /* Düğüm (kale/canavar) ölçek çarpanı. Kale CSS'te 100px;
        0.64 çarpanı onu 64px'lik karoya tam oturtur. Büyütürsen kale
        karodan taşar, küçültürsen karo içinde küçük kalır. */
@@ -1440,14 +1457,16 @@
       let cgx = c.gx, cgy = c.gy;
 
       /* ── KENAR KİLİDİ ──
-         Merkezi sadece 0..G-1 arasında tutmak yetmiyor: uzaklaşınca
-         ekran haritadan çok daha geniş oluyor ve kamera kenara
-         dayandığında haritanın yarısı ekran dışında kalıyordu.
-         Bu yüzden izin verilen merkez aralığını, o anki görüş
-         alanının ızgara cinsinden yarıçapı kadar İÇERİ çekiyoruz. */
-      const yariX = (ww / 2) / mapZoom / CFG.tileW;
-      const yariY = (wh / 2) / mapZoom / CFG.tileH;
-      const pay = Math.min(G / 2, yariX + yariY);
+         Pay artık EKRAN BOYUTUNDAN hesaplanmıyor. Eski hesap
+         (yariX + yariY) telefonda 10-19 karoluk bir bant üretiyordu
+         ve kenara yakın koordinatlar ULAŞILMAZ oluyordu: paylaşılan
+         konuma gidilince kamera erken duruyor, ekranın ortasında
+         başka bir karo kalıyordu.
+
+         Yeni kural: merkez ızgaranın herhangi bir karosuna gidebilir.
+         Kenarda ekranın bir kısmının boş kalması kabul edilir —
+         koordinatın yanlış yeri göstermesi kabul edilmez. */
+      const pay = Math.max(0, Math.min(G / 2, CFG.kameraKenarPayi || 0));
 
       const alt = pay, ust = (G - 1) - pay;
 
