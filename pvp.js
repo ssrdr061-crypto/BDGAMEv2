@@ -912,7 +912,10 @@ function olumOraniniAyarla(a, vuran, oran) {
   ids.forEach(uid => {
     const dusen = (a.killed[uid] || 0) + (a.wounded[uid] || 0);
     if (dusen <= 0) { delete a.killed[uid]; delete a.wounded[uid]; return; }
-    const olen = Math.round(dusen * oran);
+    /* ±%4 dalgalanma: yoksa ölen ve yaralanan tam eşit çıkar
+       (69.566 / 69.564 gibi) ve rapor uydurma gibi görünür. */
+    const o = Math.min(0.95, Math.max(0.02, oran + (Math.random() - 0.5) * 0.08));
+    const olen = Math.round(dusen * o);
     a.killed[uid]  = olen;
     a.wounded[uid] = dusen - olen;
   });
@@ -1182,12 +1185,18 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
 }
 
 /* {knight:3} → hastane formatı [{severe:true}, ...] */
+/* Yaralı listesi → hastane biçimi.
+   ── DİKKAT ──
+   Eskiden her yaralı için AYRI nesne üretiyordu. 70.000 yaralıda
+   70.000 nesne demek; bu liste hem hastaneye hem savaş günlüğüne
+   yazıldığı için localStorage kotasını patlatıyor ve kayıt sessizce
+   düşüyordu ("telefon deposu dolu olabilir"). Artık SAYI döner.
+   `severe` alanı zaten hiçbir yerde okunmuyordu, kaldırıldı.        */
 function toHospitalFormat(countMap) {
   const out = {};
   Object.keys(countMap || {}).forEach(uid => {
-    const n = countMap[uid]; if (!n) return;
-    out[uid] = [];
-    for (let i = 0; i < n; i++) out[uid].push({ severe: Math.random() < 0.5 });
+    const n = Math.max(0, Math.round(countMap[uid] || 0));
+    if (n > 0) out[uid] = n;
   });
   return out;
 }
@@ -1442,21 +1451,24 @@ function sendRaidReport(enemy, R, delta) {
     }
 
     /* yaralıları savunanın hastanesine ekle (girince iyileşsinler).
-       Oyunun beklediği biçim: { unitId, finishAt, severe, confirmed } */
+       GRUPLU kayıt: her yaralı için ayrı satır açılırsa 70.000 yaralıda
+       70.000 satır olur, savunanın kaydı diske yazılamaz ve saldırı
+       sonucu sessizce kaybolur. Satır başına `adet` tutulur. */
     if (totalLost > 0 && sumMap(wounded) > 0) {
       if (!Array.isArray(st.hospital)) st.hospital = [];
       FRONT_ORDER.forEach(uid => {
+        const n = Math.max(0, Math.round(num(wounded[uid], 0)));
+        if (n <= 0) return;
         const d = UT()[uid];
         const recMs = d ? Math.round(d.trainMinutes * 60 * 1000 / 3) : 10 * 60 * 1000;
-        for (let i = 0; i < num(wounded[uid], 0); i++) {
-          st.hospital.push({
-            unitId: uid,
-            finishAt: Date.now() + recMs,
-            severe: false,
-            confirmed: true,     /* saldırıdan gelen yaralı otomatik tedaviye alınır */
-            fromRaid: true,
-          });
-        }
+        st.hospital.push({
+          unitId: uid,
+          adet: n,
+          recoveryMs: recMs,
+          finishAt: Date.now() + recMs,
+          confirmed: true,     /* saldırıdan gelen yaralı otomatik tedaviye alınır */
+          fromRaid: true,
+        });
       });
     }
     return st;
