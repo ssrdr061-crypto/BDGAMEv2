@@ -6,15 +6,19 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-1';
+  var SURUM = 'kaleici-2';
 
   var CFG = {
     grid: 20,
+    zeminPay: 10,      // bina alanının dışına çizilen dolgu karo sayısı
     tileW: 64,
-    tileH: 32,
+    tileH: 44,         // yüksek = daha dik bakış
     zoom: 1.0,
-    zoomMin: 0.55,
-    zoomMax: 2.20
+    zoomMin: 0.6,
+    zoomMax: 2.20,
+    karoUzak: 9.0,     // en uzakta ekran genişliğinde kaç karo görünsün
+    karoYakin: 3.5,    // en yakında kaç karo
+    karoAcilis: 6.0    // açılışta kaç karo
   };
 
   /* ---- Binalar: konum = sol üst karo, en/boy = kapladığı karo ---- */
@@ -89,6 +93,14 @@
     };
   }
 
+  function zoomSinirlariniHesapla() {
+    var w = tuval.width / eb;
+    CFG.zoomMin = w / (CFG.karoUzak * CFG.tileW);
+    CFG.zoomMax = w / (CFG.karoYakin * CFG.tileW);
+    if (CFG.zoom < CFG.zoomMin) CFG.zoom = CFG.zoomMin;
+    if (CFG.zoom > CFG.zoomMax) CFG.zoom = CFG.zoomMax;
+  }
+
   function kameraSinirla() {
     var s = CFG.grid - 1;
     var enX = s * CFG.tileW / 2;
@@ -110,6 +122,8 @@
     tuval.width = Math.round(katman.clientWidth * eb);
     tuval.height = Math.round(katman.clientHeight * eb);
     ctx.setTransform(eb, 0, 0, eb, 0, 0);
+    zoomSinirlariniHesapla();
+    kameraSinirla();
   }
 
   /* ---- Bir binanın dörtgen tabanı (dünya koordinatı) ---- */
@@ -156,9 +170,10 @@
     ctx.fillStyle = '#6f9d4f';
     ctx.fillRect(0, 0, w, h);
 
-    /* zemin */
-    for (var gy = 0; gy < CFG.grid; gy++) {
-      for (var gx = 0; gx < CFG.grid; gx++) {
+    /* zemin — bina alanının dışına da taşar, kenar görünmesin diye */
+    var p = CFG.zeminPay;
+    for (var gy = -p; gy < CFG.grid + p; gy++) {
+      for (var gx = -p; gx < CFG.grid + p; gx++) {
         var m = dunya(gx, gy), e = ekran(m.x, m.y);
         if (e.x < -CFG.tileW * CFG.zoom || e.x > w + CFG.tileW * CFG.zoom) continue;
         if (e.y < -CFG.tileH * CFG.zoom || e.y > h + CFG.tileH * CFG.zoom) continue;
@@ -326,6 +341,9 @@
     camX = o.x; camY = o.y;
     parmaklar = {}; parmakSayisi = 0; kistirma = false;
     olcuAyarla();
+    CFG.zoom = (tuval.width / eb) / (CFG.karoAcilis * CFG.tileW);
+    zoomSinirlariniHesapla();
+    kameraSinirla();
     ciz();
   }
 
