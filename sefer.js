@@ -1184,6 +1184,15 @@ function urunOrani(ad) {
   const m = String(ad).match(/%(\d+)/);          /* yedek: addan oku */
   return m ? (parseInt(m[1], 10) / 100) : 0;
 }
+/* Ürünün görseli de magaza.js'ten okunur — dosya adı burada
+   ikinci kez yazılmaz. Görsel yoksa çanta emojisine düşer. */
+function urunGorseli(ad) {
+  try {
+    const u = (typeof shopItems !== "undefined" ? shopItems : []).find(x => x && x.name === ad);
+    if (u && u.gorsel) return u.gorsel;
+  } catch (e) {}
+  return "";
+}
 function cantada(ad) {
   return (typeof state !== "undefined" && state && state.inventory)
     ? (state.inventory[ad] || 0) : 0;
@@ -1193,8 +1202,10 @@ function cantaEkleri(id) {
   return HIZ_URUNLERI.map(ad => {
     const n = cantada(ad);
     if (n <= 0) return null;
+    const g = urunGorseli(ad);
+    const simge = g ? `<img class="som-canta-img" src="${g}" alt="">` : "🎒";
     return {
-      etiket: `🎒 %${Math.round(urunOrani(ad) * 100)} Hızlandır · ${n} adet`,
+      etiket: `${simge} %${Math.round(urunOrani(ad) * 100)} Hızlandır · ${n} adet`,
       fn: () => urunleHizlandir(id, ad)
     };
   }).filter(Boolean);
@@ -1466,6 +1477,15 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 .sefer-onay-modal .som-actions-dikey{ flex-direction:column; margin-bottom:8px; }
 .sefer-onay-modal .som-actions-dikey .som-btn{ flex:1 1 auto; width:100%; }
 .sefer-onay-modal .som-btn-canta{ background:linear-gradient(180deg,#f0c34f,#d1901a); }
+/* Çanta düğmesindeki ürün görseli. Düğme basılınca görsel de
+   düğmeyle birlikte küçülür — ayrı bir tepki kuralı gerekmez. */
+.sefer-onay-modal .som-actions-dikey .som-btn-canta{
+  display:flex; align-items:center; justify-content:center; gap:7px;
+}
+.sefer-onay-modal .som-canta-img{
+  width:26px; height:26px; object-fit:contain; flex-shrink:0;
+  filter:drop-shadow(0 1px 2px rgba(0,20,45,.35));
+}
 .sefer-onay-modal .som-btn-no{ background:linear-gradient(180deg,#5a6b80,#3b4859); }
 .sefer-onay-modal .som-btn-yes{ background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
 .sefer-onay-modal .som-btn:hover{ filter:brightness(1.08); }

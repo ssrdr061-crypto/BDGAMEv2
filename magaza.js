@@ -40,8 +40,8 @@ const shopItems = [
      Sefer kutusundaki ⚡ düğmesinden kullanılır — çantada varsa
      önce o harcanır, yoksa elmasla hızlandırma önerilir.
      Görseller şimdilik emoji; sen kendi görsellerini koyacaksın. */
-  { name: "İntikal Hızlandırma %25", price: 2000, isSeferHiz: true, hizOran: 0.25, icon: "⚡" },
-  { name: "İntikal Hızlandırma %50", price: 3500, isSeferHiz: true, hizOran: 0.50, icon: "🌀" },
+  { name: "İntikal Hızlandırma %25", price: 2000, isSeferHiz: true, hizOran: 0.25, icon: "⚡", gorsel: "25intikal.webp" },
+  { name: "İntikal Hızlandırma %50", price: 3500, isSeferHiz: true, hizOran: 0.50, icon: "🌀", gorsel: "50intikal.webp" },
   { name: "Can Potu", price: (typeof STAMINA_POTION_PRICE !== "undefined" ? STAMINA_POTION_PRICE : 6000), isStaminaPotion: true, icon: "❤️" },
 
   /* ── KAYNAK PAKETLERİ ──
