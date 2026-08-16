@@ -1197,33 +1197,30 @@ function cantada(ad) {
   return (typeof state !== "undefined" && state && state.inventory)
     ? (state.inventory[ad] || 0) : 0;
 }
-/* Çantadaki hızlandırma ürünleri, onay penceresine EK DÜĞME olarak. */
-function cantaEkleri(id) {
+/* Çantadaki hızlandırma ürünleri, pencerede SEÇİLEBİLİR KUTUCUK olarak.
+   Görsel olduğu gibi kutuyu doldurur, adet köşede rozet olur. */
+function cantaKutulari() {
   return HIZ_URUNLERI.map(ad => {
     const n = cantada(ad);
     if (n <= 0) return null;
-    const g = urunGorseli(ad);
-    const simge = g ? `<img class="som-canta-img" src="${g}" alt="">` : "🎒";
-    return {
-      etiket: `${simge} %${Math.round(urunOrani(ad) * 100)} Hızlandır · ${n} adet`,
-      fn: () => urunleHizlandir(id, ad)
-    };
+    return { ad: ad, gorsel: urunGorseli(ad), adet: n,
+             oran: Math.round(urunOrani(ad) * 100) };
   }).filter(Boolean);
 }
 
-/* İntikal kutucuğunun TEK penceresi. Sol düğme Geri Çağır,
-   sağ düğme elmasla hızlandırma; çantada ürün varsa üstte ek düğme. */
+/* İntikal kutucuğunun TEK penceresi. Üstte çantadaki ürün kutucukları,
+   altta küçük düğmeler: Geri Çağır · Kullan · elmasla hızlandır. */
 function hizlandirSor(id) {
   const s = _yerel[id];
   if (!s) return;
-
-  const ekler = cantaEkleri(id);
 
   onayPenceresi("HIZLANDIR",
     `%${Math.round(AYAR.HIZ_ORANI * 100)} Hızlandır`,
     `${fmtSayi(AYAR.HIZ_BEDEL)} 💎`,
     () => { hizlandir(id); seferBittiyseKapat(id); },
-    { ekler: ekler, solEtiket: "Geri Çağır", solFn: () => geriCagirSor(id), kalici: true });
+    { kutular: cantaKutulari(),
+      kullanFn: (ad) => urunleHizlandir(id, ad),
+      solEtiket: "Geri Çağır", solFn: () => geriCagirSor(id), kalici: true });
 }
 
 /* Sefer varmış/silinmişse açık kalan pencereyi kapat. */
@@ -1308,12 +1305,16 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   if (eski) eski.remove();
 
   sec = sec || {};
-  const ekListe   = Array.isArray(sec.ekler) ? sec.ekler : [];
+  const kutuListe = Array.isArray(sec.kutular) ? sec.kutular : [];
+  const kullanFn  = (typeof sec.kullanFn === "function") ? sec.kullanFn : null;
   const solEtiket = sec.solEtiket || "Vazgeç";
   const solFn     = (typeof sec.solFn === "function") ? sec.solFn : null;
 
-  const ekHTML = ekListe.map((e, i) =>
-    `<button class="som-btn som-btn-canta" type="button" data-ek="${i}">${e.etiket}</button>`
+  const kutuHTML = kutuListe.map((k, i) =>
+    `<button class="som-kutu${i === 0 ? " secili" : ""}" type="button" data-kutu="${i}">` +
+      (k.gorsel ? `<img src="${k.gorsel}" alt="">` : `<span class="som-kutu-emoji">🎒</span>`) +
+      `<span class="som-kutu-adet">${k.adet}</span>` +
+    `</button>`
   ).join("");
 
   const kok = document.createElement("div");
@@ -1323,9 +1324,10 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
     <div class="overlay-card som-card">
       <h2 class="som-title">${baslik}</h2>
       <div class="som-msg">${mesajHTML}</div>
-      ${ekHTML ? `<div class="som-actions som-actions-dikey">${ekHTML}</div>` : ""}
+      ${kutuHTML ? `<div class="som-kutular">${kutuHTML}</div>` : ""}
       <div class="som-actions">
         <button class="som-btn som-btn-no"  type="button">${solEtiket}</button>
+        ${kutuHTML && kullanFn ? `<button class="som-btn som-btn-kullan" type="button">Kullan</button>` : ""}
         <button class="som-btn som-btn-yes" type="button">${onayEtiket}</button>
       </div>
     </div>`;
@@ -1342,12 +1344,23 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
     try { f(); } catch (e) { console.error(e); }
   };
 
+  let secili = 0;
+  kok.querySelectorAll("[data-kutu]").forEach(b => {
+    b.onclick = () => {
+      secili = parseInt(b.dataset.kutu, 10);
+      kok.querySelectorAll("[data-kutu]").forEach(x => x.classList.remove("secili"));
+      b.classList.add("secili");
+    };
+  });
+
+  const kullanBtn = kok.querySelector(".som-btn-kullan");
+  if (kullanBtn) kullanBtn.onclick = () => {
+    const k = kutuListe[secili];
+    if (k) cagir(() => kullanFn(k.ad), !sec.kalici); else kapat();
+  };
+
   kok.querySelector(".som-btn-no").onclick  = () => { solFn ? cagir(solFn) : kapat(); };
   kok.querySelector(".som-btn-yes").onclick = () => cagir(cb, !sec.kalici);
-  kok.querySelectorAll("[data-ek]").forEach(b => {
-    const e = ekListe[parseInt(b.dataset.ek, 10)];
-    b.onclick = () => { if (e && typeof e.fn === "function") cagir(e.fn, !sec.kalici); else kapat(); };
-  });
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
 
@@ -1465,8 +1478,8 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 .sefer-onay-modal .som-actions{ display:flex; gap:8px; justify-content:center; }
 /* Düğmeler: çerçevesiz, kalın alt kenar yok, basma tepkisi zıplama değil. */
 .sefer-onay-modal .som-btn{
-  flex:0 1 auto; min-width:104px; padding:8px 12px; border-radius:11px; cursor:pointer;
-  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:14px;
+  flex:0 1 auto; min-width:86px; padding:7px 10px; border-radius:10px; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:13px;
   white-space:nowrap;
   color:#fff; border:none; outline:none;
   box-shadow:0 2px 6px rgba(0,20,45,.3);
@@ -1477,6 +1490,28 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 .sefer-onay-modal .som-actions-dikey{ flex-direction:column; margin-bottom:8px; }
 .sefer-onay-modal .som-actions-dikey .som-btn{ flex:1 1 auto; width:100%; }
 .sefer-onay-modal .som-btn-canta{ background:linear-gradient(180deg,#f0c34f,#d1901a); }
+.sefer-onay-modal .som-btn-kullan{ background:linear-gradient(180deg,#f0c34f,#d1901a); }
+/* Çanta kutucukları: görsel kutuyu doldurur, adet köşede. */
+.sefer-onay-modal .som-kutular{
+  display:flex; gap:10px; justify-content:center; margin:0 0 12px;
+}
+.sefer-onay-modal .som-kutu{
+  position:relative; width:62px; height:62px; padding:0;
+  border:none; outline:none; border-radius:12px; cursor:pointer;
+  background:rgba(10,28,52,.55); overflow:hidden;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .09s ease, filter .09s ease;
+}
+.sefer-onay-modal .som-kutu:active{ transform:scale(.96); filter:brightness(.93); }
+.sefer-onay-modal .som-kutu.secili{ box-shadow:0 0 0 2px #f5d271, 0 2px 6px rgba(0,20,45,.3); }
+.sefer-onay-modal .som-kutu img{ width:100%; height:100%; object-fit:cover; display:block; }
+.sefer-onay-modal .som-kutu-emoji{ font-size:26px; line-height:62px; }
+.sefer-onay-modal .som-kutu-adet{
+  position:absolute; right:3px; bottom:2px;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:12px; color:#fff;
+  text-shadow:0 1px 2px rgba(0,20,45,.9);
+}
 /* Çanta düğmesindeki ürün görseli. Düğme basılınca görsel de
    düğmeyle birlikte küçülür — ayrı bir tepki kuralı gerekmez. */
 .sefer-onay-modal .som-actions-dikey .som-btn-canta{
