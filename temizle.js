@@ -56,6 +56,9 @@ function dugmeEkle(yazi, renk, islev) {
 }
 
 /* ── Sayım yardımcıları ── */
+function kb(v) {
+  try { return Math.round(JSON.stringify(v).length / 1024); } catch (e) { return 0; }
+}
 function satirSayisi(h) {
   if (!h) return 0;
   if (Array.isArray(h)) return h.length;
@@ -99,6 +102,25 @@ function raporla() {
       const n = satirSayisi(h);
       yaz("  • " + k + " → " + n + " satır" + (n && eskiBicimMi(h) ? "  <span style='color:#ff8b8b'>[ESKİ BİÇİM]</span>" : ""));
     });
+
+    /* ── ÇÖP GÜNLÜK KOPYASI ──────────────────────────────────
+       Günlüğün doğru yeri battleLogs/{hesap}. Ama queueCloudSave
+       bir de accounts/{hesap}/state/battleLogHistory altına
+       yazıyordu. Oradaki kopya HİÇ OKUNMUYOR, sadece yer kaplıyor
+       ve girişte telefona iniyor.                                */
+    yaz("");
+    yaz("<b>ÇÖP GÜNLÜK KOPYASI (accounts/…/state/battleLogHistory)</b>");
+    let bulunan = 0;
+    ks.forEach(k => {
+      const g = v[k] && v[k].state ? v[k].state.battleLogHistory : null;
+      const n = satirSayisi(g);
+      if (n > 0) {
+        bulunan++;
+        yaz("  • " + k + " → " + n + " kayıt, <b style='color:#ff8b8b'>" + kb(g) + " KB</b>");
+      }
+    });
+    if (!bulunan) yaz("  <span style='color:#7fe3a6'>temiz</span>");
+
     dugmeleriKur(ks);
   }).catch(e => {
     yaz("  <span style='color:#ff8b8b'>okunamadı: " + e.message + "</span>");
@@ -112,6 +134,10 @@ function dugmeleriKur(bulutAnahtarlari) {
   dugmeEkle("🗑️  BÜTÜN HESAPLARIN HASTANESİNİ SİL", "linear-gradient(180deg,#e05555,#a01818)", () => {
     if (!confirm("Bütün hesapların hastanesi silinecek. Tedavideki yaralılar gidecek. Emin misin?")) return;
     temizle(bulutAnahtarlari);
+  });
+  dugmeEkle("🧾  ÇÖP GÜNLÜK KOPYASINI SİL", "linear-gradient(180deg,#e0a020,#a06a00)", () => {
+    if (!confirm("accounts/…/state/battleLogHistory altındaki kopya silinecek.\n\nMesaj kutundaki raporlara DOKUNULMAZ — onlar battleLogs/ düğümünde duruyor. Devam?")) return;
+    gunlukKopyasiniSil(bulutAnahtarlari);
   });
   dugmeEkle("↻  Durumu yenile", "linear-gradient(180deg,#1fa3ea,#0e6fc0)", raporla);
   dugmeEkle("✕  Kapat ve oyuna dön", "linear-gradient(180deg,#5b6b7d,#39434f)", () => {
@@ -152,6 +178,40 @@ function temizle(bulutAnahtarlari) {
   }
   const isler = bulutAnahtarlari.map(k =>
     firebaseDb.ref("accounts/" + k + "/state/hospital").remove()
+      .then(() => yaz("✔ bulut: " + k))
+      .catch(e => yaz("✖ bulut: " + k + " — " + e.message))
+  );
+  Promise.all(isler).then(bitir).catch(bitir);
+}
+
+/* ── ÇÖP GÜNLÜK KOPYASI ──────────────────────────────────────
+   SADECE accounts/{k}/state/battleLogHistory silinir.
+   battleLogs/{k} düğümüne ELLENMEZ — mesaj kutusu oradan okunur. */
+function gunlukKopyasiniSil(bulutAnahtarlari) {
+  govde = "";
+  yaz("<b>Çöp günlük kopyası siliniyor…</b>");
+  yaz("");
+
+  /* a) Telefondaki hesap kaydından çıkar (günlük kendi anahtarında kalır) */
+  try {
+    const acc = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "{}") || {};
+    let n = 0;
+    Object.keys(acc).forEach(k => {
+      if (acc[k] && acc[k].state && acc[k].state.battleLogHistory !== undefined) {
+        delete acc[k].state.battleLogHistory; n++;
+      }
+    });
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(acc));
+    const yeni = Math.round((localStorage.getItem(ACCOUNTS_KEY) || "").length / 1024);
+    yaz("✔ telefon: " + n + " hesap → kayıt artık " + yeni + " KB");
+  } catch (e) { yaz("✖ telefon: " + e.message); }
+
+  if (!bulutAnahtarlari || typeof firebaseDb === "undefined" || !firebaseDb) {
+    yaz("— bulut atlandı (bağlantı yok)");
+    bitir(); return;
+  }
+  const isler = bulutAnahtarlari.map(k =>
+    firebaseDb.ref("accounts/" + k + "/state/battleLogHistory").remove()
       .then(() => yaz("✔ bulut: " + k))
       .catch(e => yaz("✖ bulut: " + k + " — " + e.message))
   );
