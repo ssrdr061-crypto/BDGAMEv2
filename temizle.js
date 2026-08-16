@@ -18,6 +18,7 @@
 if (!/[?&]temizle=1/.test(location.search)) return;
 
 const ACCOUNTS_KEY = "ejderha_diyari_accounts_v1";
+let GUNLUK_ANAHTAR = [];
 
 /* ── Ekran ── */
 const kutu = document.createElement("div");
@@ -121,7 +122,28 @@ function raporla() {
     });
     if (!bulunan) yaz("  <span style='color:#7fe3a6'>temiz</span>");
 
-    dugmeleriKur(ks);
+    /* ── SAVAŞ GÜNLÜĞÜ BOYUTU (battleLogs/{hesap}) ───────────
+       Doğru yer burası, silinmez. Ama eski PvP raporlarının
+       içinde asker asker yaralı dizileri var; onlar sayıya
+       çevrilince günlük küçülür, hiçbir rapor kaybolmaz.       */
+    yaz("");
+    yaz("<b>SAVAŞ GÜNLÜĞÜ (battleLogs/…)</b>");
+    firebaseDb.ref("battleLogs").get().then(gs => {
+      const gv = gs.val() || {};
+      GUNLUK_ANAHTAR = Object.keys(gv);
+      if (!GUNLUK_ANAHTAR.length) yaz("  <i>kayıt yok</i>");
+      GUNLUK_ANAHTAR.forEach(k => {
+        const l = gv[k];
+        const n = Array.isArray(l) ? l.length : satirSayisi(l);
+        const b = kb(l);
+        const renk = b > 300 ? "#ff8b8b" : (b > 50 ? "#ffd9a8" : "#7fe3a6");
+        yaz("  • " + k + " → " + n + " rapor, <b style='color:" + renk + "'>" + b + " KB</b>");
+      });
+      dugmeleriKur(ks);
+    }).catch(e => {
+      yaz("  <span style='color:#ff8b8b'>okunamadı: " + e.message + "</span>");
+      dugmeleriKur(ks);
+    });
   }).catch(e => {
     yaz("  <span style='color:#ff8b8b'>okunamadı: " + e.message + "</span>");
     dugmeleriKur(null);
@@ -138,6 +160,10 @@ function dugmeleriKur(bulutAnahtarlari) {
   dugmeEkle("🧾  ÇÖP GÜNLÜK KOPYASINI SİL", "linear-gradient(180deg,#e0a020,#a06a00)", () => {
     if (!confirm("accounts/…/state/battleLogHistory altındaki kopya silinecek.\n\nMesaj kutundaki raporlara DOKUNULMAZ — onlar battleLogs/ düğümünde duruyor. Devam?")) return;
     gunlukKopyasiniSil(bulutAnahtarlari);
+  });
+  dugmeEkle("📉  SAVAŞ GÜNLÜĞÜNÜ KÜÇÜLT", "linear-gradient(180deg,#2fb37a,#12734a)", () => {
+    if (!confirm("Eski raporların içindeki dev yaralı listeleri sayıya çevrilecek.\n\nHİÇBİR RAPOR SİLİNMEZ, hepsi okunabilir kalır. Devam?")) return;
+    gunlugüKucult();
   });
   dugmeEkle("↻  Durumu yenile", "linear-gradient(180deg,#1fa3ea,#0e6fc0)", raporla);
   dugmeEkle("✕  Kapat ve oyuna dön", "linear-gradient(180deg,#5b6b7d,#39434f)", () => {
@@ -216,6 +242,92 @@ function gunlukKopyasiniSil(bulutAnahtarlari) {
       .catch(e => yaz("✖ bulut: " + k + " — " + e.message))
   );
   Promise.all(isler).then(bitir).catch(bitir);
+}
+
+/* ── SAVAŞ GÜNLÜĞÜNÜ KÜÇÜLT ──────────────────────────────────
+   Eski PvP raporları `troopsWoundedByUnit` / `rep.woundedByUnit`
+   alanlarında ASKER ASKER nesne tutuyor ({knight:[{},{},…]}).
+   Aynı bilgi tek sayıyla ifade edilir. Rapor ekranı zaten
+   yaraliAdet() ile okuduğu için görüntü hiç değişmez.
+   Rapor SİLİNMEZ, sadece içi sadeleşir.                        */
+function sayiyaCevir(v) {
+  if (typeof v === "number") return Math.max(0, Math.round(v));
+  if (Array.isArray(v)) return v.length;
+  if (v && typeof v === "object") {
+    if (typeof v.adet === "number") return Math.max(0, Math.round(v.adet));
+    return Object.keys(v).length;
+  }
+  return 0;
+}
+function haritayiSadelestir(m) {
+  if (!m || typeof m !== "object") return m;
+  const o = {};
+  Object.keys(m).forEach(k => { o[k] = sayiyaCevir(m[k]); });
+  return o;
+}
+function raporuSadelestir(r) {
+  if (!r || typeof r !== "object") return r;
+  if (r.troopsWoundedByUnit) r.troopsWoundedByUnit = haritayiSadelestir(r.troopsWoundedByUnit);
+  if (r.troopsLostByUnit)    r.troopsLostByUnit    = haritayiSadelestir(r.troopsLostByUnit);
+  if (r.myLosses && typeof r.myLosses === "object") {
+    if (r.myLosses.killed)  r.myLosses.killed  = haritayiSadelestir(r.myLosses.killed);
+    if (r.myLosses.wounded) r.myLosses.wounded = haritayiSadelestir(r.myLosses.wounded);
+  }
+  if (r.rep && typeof r.rep === "object") {
+    if (r.rep.woundedByUnit) r.rep.woundedByUnit = haritayiSadelestir(r.rep.woundedByUnit);
+    if (r.rep.lostByUnit)    r.rep.lostByUnit    = haritayiSadelestir(r.rep.lostByUnit);
+    if (r.rep.troopsSent)    r.rep.troopsSent    = haritayiSadelestir(r.rep.troopsSent);
+  }
+  return r;
+}
+
+function gunlugüKucult() {
+  govde = "";
+  yaz("<b>Savaş günlüğü küçültülüyor…</b>");
+  yaz("");
+
+  if (typeof firebaseDb === "undefined" || !firebaseDb) {
+    yaz("<span style='color:#ff8b8b'>bulut bağlantısı yok</span>"); bitir(); return;
+  }
+  if (!GUNLUK_ANAHTAR.length) {
+    yaz("<i>küçültülecek günlük bulunamadı</i>"); bitir(); return;
+  }
+
+  const isler = GUNLUK_ANAHTAR.map(k =>
+    firebaseDb.ref("battleLogs/" + k).get().then(s => {
+      const ham = s.val();
+      if (!ham) return;
+      const liste = Array.isArray(ham) ? ham : Object.values(ham);
+      const once = kb(liste);
+      const yeni = liste.map(raporuSadelestir);
+      const sonra = kb(yeni);
+      if (sonra >= once) { yaz("— " + k + ": zaten sade (" + once + " KB)"); return; }
+      return firebaseDb.ref("battleLogs/" + k).set(yeni)
+        .then(() => yaz("✔ " + k + ": " + once + " KB → <b style='color:#7fe3a6'>" + sonra + " KB</b> · " + yeni.length + " rapor korundu"))
+        .catch(e => yaz("✖ " + k + ": " + e.message));
+    }).catch(e => yaz("✖ " + k + " okunamadı: " + e.message))
+  );
+
+  Promise.all(isler).then(() => {
+    /* Telefondaki kopyayı da sadeleştir — yoksa oyun açılınca
+       eski şişkin hali tekrar buluta yazar. */
+    try {
+      Object.keys(localStorage).forEach(k => {
+        if (k.indexOf("bd_log_") !== 0) return;
+        const l = JSON.parse(localStorage.getItem(k) || "[]");
+        if (!Array.isArray(l) || !l.length) return;
+        const once = kb(l);
+        const yeni = l.map(raporuSadelestir);
+        localStorage.setItem(k, JSON.stringify(yeni));
+        yaz("✔ telefon " + k + ": " + once + " KB → " + kb(yeni) + " KB");
+      });
+      if (typeof state !== "undefined" && state && Array.isArray(state.battleLogHistory)) {
+        state.battleLogHistory = state.battleLogHistory.map(raporuSadelestir);
+        yaz("✔ bellekteki günlük sadeleştirildi");
+      }
+    } catch (e) { yaz("✖ telefon: " + e.message); }
+    bitir();
+  }).catch(bitir);
 }
 
 function bitir() {
