@@ -1358,7 +1358,8 @@ async function runPvpBattle() {
     usedTroops: Object.assign({}, sel),
     enemyTroops: Object.assign({}, enemy.realTroops || enemy.troops || {}),
   });
-  if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
+  if (typeof gunlugüKirp === "function") gunlugüKirp();
+  else if (state.battleLogHistory.length > 70) state.battleLogHistory.length = 70;;
 
   /* ── RAKİBE BİLDİR (birlik kayıpları dahil) ── */
   sendRaidReport(enemy, R, delta);
@@ -1648,7 +1649,8 @@ function startRaidInbox() {
       myAttribution:    r.defAttrib || null,
       heroFx:           r.heroFx || null,
     });
-    if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
+    if (typeof gunlugüKirp === "function") gunlugüKirp();
+  else if (state.battleLogHistory.length > 70) state.battleLogHistory.length = 70;
 
     toast(r.attackerWon
       ? `💥 ${r.from} ordunu dağıttı! -${money(lost)} 💎, -${totalLost} birlik`

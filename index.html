@@ -2970,6 +2970,21 @@ function migrateCastlesOnce() {
    durur: hesap kaydı küçülür, kayıt hızlanır.
    Bellekteki state.battleLogHistory aynen çalışmaya devam eder.
    ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   GÜNLÜK SINIRI — TEK YER
+   ---------------------------------------------------------------
+   Kaç savaş raporu saklanacağı. Bu sayı ÜÇ yerde kullanılıyor
+   (burası, pvp.js'te iki kez) ve eskiden üçüne ayrı ayrı yazılıydı;
+   birini değiştirip diğerini unutmak kolaydı.
+   Rapor başına ~3 KB. 70 rapor ≈ 210 KB.
+   Büyütürsen açılış yavaşlar: günlük her girişte buluttan iner.
+   ═══════════════════════════════════════════════════════════════ */
+window.GUNLUK_SINIR = 70;
+function gunlugüKirp() {
+  if (!state || !Array.isArray(state.battleLogHistory)) return;
+  const n = window.GUNLUK_SINIR || 70;
+  if (state.battleLogHistory.length > n) state.battleLogHistory.length = n;
+}
 let _logSaveTimer = null;
 let _logSonImza = "";
 
@@ -7397,7 +7412,7 @@ async function startBattle() {
         maxHp: effectiveHero.maxHp
       }
     });
-    if (state.battleLogHistory.length > 200) state.battleLogHistory.length = 200;
+    gunlugüKirp();
     renderBattleLogPanel();
     renderHospitalPanel();
     renderTroopsPanel();
