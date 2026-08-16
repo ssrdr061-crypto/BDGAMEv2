@@ -1128,10 +1128,20 @@ function hudCiz() {
   const el = hudEl();
   const liste = benimkiler();
 
-  /* AÇIK PENCERE TEMİZLİĞİ — ordu hedefe varıp sefer kaydı silinince
-     hızlandırma penceresi ekranda asılı kalıyordu. Kendiliğinden kapat. */
+  /* AÇIK PENCERE TEMİZLİĞİ — ordu hedefe varınca hızlandırma penceresi
+     ekranda asılı kalıyordu. İki durumda kapatılır:
+     kayıt silinmişse ya da gidiş evresi dolmuşsa (ordu vardı). */
   const acik = document.getElementById("seferOnayModal");
-  if (acik && acik.dataset.sefer && !_yerel[acik.dataset.sefer]) acik.remove();
+  if (acik && acik.dataset.sefer) {
+    const sid = acik.dataset.sefer;
+    const ss = _yerel[sid];
+    if (!ss) acik.remove();
+    else {
+      const e2 = evre(ss);
+      if (e2.bitti || (acik.dataset.evre && acik.dataset.evre !== e2.ad)) acik.remove();
+      else acik.dataset.evre = e2.ad;
+    }
+  }
 
   if (!liste.length) { el.style.display = "none"; el.innerHTML = ""; return; }
 

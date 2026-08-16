@@ -5088,6 +5088,19 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
 (function hastaneVeSayiBlogu() {
   "use strict";
 
+  /* DİKKAT: index.html'de `const state = ...` yazıyor. `const` ile
+     tanımlanan değişken window'a YAZILMAZ; `window.state` her zaman
+     undefined'dır. Doğrusu değişkeni ADIYLA okumaktır. */
+  function durum() {
+    try { return (typeof state !== "undefined" && state) ? state : null; }
+    catch (e) { return null; }
+  }
+  function birimSure(unitId) {
+    try { if (typeof iyilesmeSuresiMs === "function") return iyilesmeSuresiMs(unitId); }
+    catch (e) {}
+    return 0;
+  }
+
   /* ── 1) SÜRE: "5s 57d 7sn" ── */
   function sureKisa(ms) {
     var t = Math.max(0, Math.round(ms / 1000));
@@ -5115,21 +5128,23 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
      Çanta/panel içindeki sayılara DOKUNULMAZ. */
   var KAYNAK_ID = ["kayEt", "kayDemir", "kaySu", "kayEnerji"];
   function ustSeridiKisalt() {
-    if (!window.state) return;
-    var k = window.state.kaynaklar || {};
+    var s = durum();
+    if (!s) return;
+    var k = s.kaynaklar || {};
     var esle = { kayEt: "et", kayDemir: "demir", kaySu: "su", kayEnerji: "enerji" };
     KAYNAK_ID.forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.textContent = sayiKisa(k[esle[id]] || 0);
     });
     var d = document.getElementById("diamondAmount");
-    if (d) d.textContent = sayiKisa(window.state.diamonds || 0);
+    if (d) d.textContent = sayiKisa(s.diamonds || 0);
   }
 
   /* ── 3) HASTANE: kalan süre yazısı + dolan yeşil şerit ── */
   function hastaneyiSusle() {
     var kuyruk = document.getElementById("hospitalQueueList");
-    if (!kuyruk || !window.state || !Array.isArray(window.state.hospital)) return;
+    var s = durum();
+    if (!kuyruk || !s || !Array.isArray(s.hospital)) return;
     var simdi = Date.now();
 
     kuyruk.querySelectorAll(".hosp-queue-row").forEach(function (satir) {
@@ -5137,7 +5152,7 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
       if (!isaret) return;
       var unitId = isaret.dataset.unit;
 
-      var grup = window.state.hospital.filter(function (p) {
+      var grup = s.hospital.filter(function (p) {
         return p.unitId === unitId && p.confirmed;
       });
       if (!grup.length) return;
@@ -5148,8 +5163,7 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
       /* Toplam süre = adet × birim iyileşme süresi. Hızlandırma
          yapılınca kalan düşer, toplam sabit kalır → şerit sıçrar. */
       var adet = grup.reduce(function (t, p) { return t + (p.adet || 0); }, 0);
-      var birim = (typeof window.iyilesmeSuresiMs === "function")
-        ? window.iyilesmeSuresiMs(unitId) : 0;
+      var birim = birimSure(unitId);
       var toplam = Math.max(1, adet * birim);
       var oran = Math.max(0, Math.min(1, 1 - (kalan / toplam)));
 
@@ -5180,6 +5194,7 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
   }
 
   function kur() {
+    window.TEMA_EK = "tema-ek-2";
     sar("renderKaynaklar", ustSeridiKisalt);
     sar("renderDiamonds", ustSeridiKisalt);
     sar("renderHospitalPanel", hastaneyiSusle);
