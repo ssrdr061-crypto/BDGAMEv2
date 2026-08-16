@@ -1127,6 +1127,12 @@ function hudEl() {
 function hudCiz() {
   const el = hudEl();
   const liste = benimkiler();
+
+  /* AÇIK PENCERE TEMİZLİĞİ — ordu hedefe varıp sefer kaydı silinince
+     hızlandırma penceresi ekranda asılı kalıyordu. Kendiliğinden kapat. */
+  const acik = document.getElementById("seferOnayModal");
+  if (acik && acik.dataset.sefer && !_yerel[acik.dataset.sefer]) acik.remove();
+
   if (!liste.length) { el.style.display = "none"; el.innerHTML = ""; return; }
 
   const wrap = document.getElementById("battleMapWrap");
@@ -1162,10 +1168,8 @@ function geriCagirSor(id) {
   const s = _yerel[id];
   if (!s) return;
   if (s.durum === "donus") { toast("Ordu zaten dönüş yolunda."); return; }
-  onayPenceresi("GERİ ÇAĞIR",
-    `<b>${String(s.hedefAd || "")}</b> üzerine giden <b>${toplam(s.birlikler || {})}</b> birliğin geri çağrılsın mı?` +
-    `<br><span class="sefer-onay-not">Ordu bulunduğu noktadan yürüyerek dönecek; gittiği yol kadar süre alır.</span>`,
-    "Geri Çağır", () => geriCagir(id));
+  /* Sadece başlık ve düğmeler — açıklama metni kaldırıldı. */
+  onayPenceresi("GERİ ÇAĞIR", "", "Geri Çağır", () => geriCagir(id));
 }
 
 function fmtSayi(n) {
@@ -1223,6 +1227,10 @@ function hizlandirSor(id) {
       kullanFn: (ad) => urunleHizlandir(id, ad),
       kapatX: true, solKirmizi: true,
       solEtiket: "Geri Çağır", solFn: () => geriCagirSor(id), kalici: true });
+
+  /* Pencere hangi sefere ait? Ordu varınca hudCiz bunu görüp kapatır. */
+  const m = document.getElementById("seferOnayModal");
+  if (m) m.dataset.sefer = id;
 }
 
 /* Sefer varmış/silinmişse açık kalan pencereyi kapat. */
@@ -1359,7 +1367,16 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   const kullanBtn = kok.querySelector(".som-btn-kullan");
   if (kullanBtn) kullanBtn.onclick = () => {
     const k = kutuListe[secili];
-    if (k) cagir(() => kullanFn(k.ad), !sec.kalici); else kapat();
+    if (!k) { kapat(); return; }
+    /* Görsel tepki: kullanılan kutucuk kısa süre kararıp toparlanır,
+       oyuncu ürünün harcandığını gözle görür. */
+    const kutu = kok.querySelector('[data-kutu="' + secili + '"]');
+    if (kutu) {
+      kutu.classList.remove("kullanildi");
+      void kutu.offsetWidth;
+      kutu.classList.add("kullanildi");
+    }
+    cagir(() => kullanFn(k.ad), !sec.kalici);
   };
 
   const xBtn = kok.querySelector(".som-x");
@@ -1531,6 +1548,14 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 }
 .sefer-onay-modal .som-kutu:active{ transform:scale(.96); filter:brightness(.93); }
 .sefer-onay-modal .som-kutu.secili{ box-shadow:0 0 0 2px #f5d271, 0 2px 6px rgba(0,20,45,.3); }
+/* Kullanıldı tepkisi: kısa bir kararma + küçülme, sonra normale döner. */
+.sefer-onay-modal .som-kutu.kullanildi{ animation:somKullanildi .34s ease; }
+@keyframes somKullanildi{
+  0%{ transform:scale(1); filter:brightness(1); }
+  22%{ transform:scale(.88); filter:brightness(.45); }
+  60%{ transform:scale(1.04); filter:brightness(1.18); }
+  100%{ transform:scale(1); filter:brightness(1); }
+}
 .sefer-onay-modal .som-kutu img{ width:100%; height:100%; object-fit:cover; display:block; }
 .sefer-onay-modal .som-kutu-emoji{ font-size:26px; line-height:62px; }
 .sefer-onay-modal .som-kutu-adet{

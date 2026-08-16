@@ -1242,8 +1242,8 @@ function _enterBattleWith(defender) {
   if (typeof selectEnemyFromMap === "function") selectEnemyFromMap(defender);
   const log = document.getElementById("battleLog");
   if (log) log.innerHTML = "";
-  const btn = document.getElementById("battleBtn");
-  if (btn) btn.textContent = "⚔️ Orduyla Saldır";
+  /* Düğme yazısına DOKUNULMAZ. Eskiden bir salise "⚔️ Orduyla Saldır"
+     yazıp hemen "SAVAŞ"a dönüyordu; göze çarpan bir titremeydi. */
 }
 
 function hookBattleButton() {

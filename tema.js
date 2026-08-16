@@ -5080,3 +5080,164 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
   if (document.head) ekle();
   else document.addEventListener("DOMContentLoaded", ekle);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   HASTANE SÜRE + DOLGU · KISA SAYI · KULLANIM TEPKİSİ
+   index.html'e dokunmadan, oradaki fonksiyonların üstüne sarılarak.
+   ═══════════════════════════════════════════════════════════════ */
+(function hastaneVeSayiBlogu() {
+  "use strict";
+
+  /* ── 1) SÜRE: "5s 57d 7sn" ── */
+  function sureKisa(ms) {
+    var t = Math.max(0, Math.round(ms / 1000));
+    var sa = Math.floor(t / 3600), dk = Math.floor((t % 3600) / 60), sn = t % 60;
+    var p = [];
+    if (sa > 0) p.push(sa + "s");
+    if (dk > 0) p.push(dk + "d");
+    if (sn > 0 || !p.length) p.push(sn + "sn");
+    return p.join(" ");
+  }
+
+  /* ── 2) SAYI: 10.3K · 100.2K · 1.5M ── */
+  function sayiKisa(n) {
+    n = Number(n) || 0;
+    var i = n < 0 ? "-" : "";
+    n = Math.abs(n);
+    if (n >= 1e9) return i + (n / 1e9).toFixed(1).replace(".", ",") + "B";
+    if (n >= 1e6) return i + (n / 1e6).toFixed(1).replace(".", ",") + "M";
+    if (n >= 1e4) return i + (n / 1e3).toFixed(1).replace(".", ",") + "K";
+    if (n >= 1e3) return i + (n / 1e3).toFixed(1).replace(".", ",") + "K";
+    return i + String(Math.round(n));
+  }
+
+  /* Üst şeritteki dört kaynak + elmas sayacı kısaltılır.
+     Çanta/panel içindeki sayılara DOKUNULMAZ. */
+  var KAYNAK_ID = ["kayEt", "kayDemir", "kaySu", "kayEnerji"];
+  function ustSeridiKisalt() {
+    if (!window.state) return;
+    var k = window.state.kaynaklar || {};
+    var esle = { kayEt: "et", kayDemir: "demir", kaySu: "su", kayEnerji: "enerji" };
+    KAYNAK_ID.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = sayiKisa(k[esle[id]] || 0);
+    });
+    var d = document.getElementById("diamondAmount");
+    if (d) d.textContent = sayiKisa(window.state.diamonds || 0);
+  }
+
+  /* ── 3) HASTANE: kalan süre yazısı + dolan yeşil şerit ── */
+  function hastaneyiSusle() {
+    var kuyruk = document.getElementById("hospitalQueueList");
+    if (!kuyruk || !window.state || !Array.isArray(window.state.hospital)) return;
+    var simdi = Date.now();
+
+    kuyruk.querySelectorAll(".hosp-queue-row").forEach(function (satir) {
+      var isaret = satir.querySelector("[data-unit]");
+      if (!isaret) return;
+      var unitId = isaret.dataset.unit;
+
+      var grup = window.state.hospital.filter(function (p) {
+        return p.unitId === unitId && p.confirmed;
+      });
+      if (!grup.length) return;
+
+      var bitis = grup.reduce(function (m, p) { return Math.max(m, p.finishAt || 0); }, 0);
+      var kalan = Math.max(0, bitis - simdi);
+
+      /* Toplam süre = adet × birim iyileşme süresi. Hızlandırma
+         yapılınca kalan düşer, toplam sabit kalır → şerit sıçrar. */
+      var adet = grup.reduce(function (t, p) { return t + (p.adet || 0); }, 0);
+      var birim = (typeof window.iyilesmeSuresiMs === "function")
+        ? window.iyilesmeSuresiMs(unitId) : 0;
+      var toplam = Math.max(1, adet * birim);
+      var oran = Math.max(0, Math.min(1, 1 - (kalan / toplam)));
+
+      var yazi = satir.querySelector(".hospital-heal-total-time");
+      if (yazi) yazi.textContent = sureKisa(kalan);
+
+      var dolgu = satir.querySelector(".hosp-dolgu");
+      if (!dolgu) {
+        dolgu = document.createElement("i");
+        dolgu.className = "hosp-dolgu";
+        satir.insertBefore(dolgu, satir.firstChild);
+      }
+      dolgu.style.width = (oran * 100).toFixed(2) + "%";
+    });
+  }
+
+  /* ── 4) index.html fonksiyonlarının üstüne sarma ── */
+  function sar(ad, sonra) {
+    var eski = window[ad];
+    if (typeof eski !== "function" || eski._temaSarildi) return;
+    var yeni = function () {
+      var r = eski.apply(this, arguments);
+      try { sonra(); } catch (e) {}
+      return r;
+    };
+    yeni._temaSarildi = true;
+    window[ad] = yeni;
+  }
+
+  function kur() {
+    sar("renderKaynaklar", ustSeridiKisalt);
+    sar("renderDiamonds", ustSeridiKisalt);
+    sar("renderHospitalPanel", hastaneyiSusle);
+    ustSeridiKisalt();
+    /* Saniyelik tazeleme: hastane satırları her tik yeniden çiziliyor,
+       şeridi de o hızda güncelleriz. */
+    setInterval(function () {
+      try { hastaneyiSusle(); ustSeridiKisalt(); } catch (e) {}
+    }, 1000);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { setTimeout(kur, 300); });
+  } else {
+    setTimeout(kur, 300);
+  }
+
+  /* ── 5) HIZLANDIRMA KUTUCUĞU KULLANIM TEPKİSİ ──
+     KULLAN / HIZLI KULLAN'a basınca seçili kartın görseli kısa süre
+     kararıp toparlanır. Eğitim ve hastane pencerelerinin ikisinde de. */
+  document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest && e.target.closest(".hsm-use, .hsm-quick");
+    if (!b) return;
+    var kok = b.closest(".hosp-speed-modal");
+    if (!kok) return;
+    var kart = kok.querySelector(".hsm-card-item.is-active") || kok.querySelector(".hsm-card-item");
+    if (!kart) return;
+    kart.classList.remove("kullanildi");
+    void kart.offsetWidth;
+    kart.classList.add("kullanildi");
+  }, true);
+
+  /* ── 6) STİL ── */
+  var st = document.createElement("style");
+  st.textContent = `
+/* Hastane satırında dolan yeşil şerit — intikal kutucuğundaki ile
+   aynı fikir, ayrı bir süre çubuğu koymamak için. */
+html body #panel-hospital .hosp-queue-row{ position:relative; overflow:hidden; }
+html body #panel-hospital .hosp-dolgu{
+  position:absolute; left:0; top:0; bottom:0; z-index:0; width:0;
+  background:linear-gradient(180deg, rgba(88,214,120,.55), rgba(38,158,84,.55));
+  pointer-events:none;
+}
+html body #panel-hospital .hosp-queue-row > *:not(.hosp-dolgu){ position:relative; z-index:1; }
+
+/* "Tüm yaralılar tedaviye alındı" satırındaki ✅ kaldırıldı. */
+html body #hospitalPendingList .empty-state .icon{ display:none !important; }
+
+/* Hızlandırma kartı kullanıldı tepkisi. */
+html body .hsm-card-item.kullanildi{ animation:hsmKullanildi .34s ease; }
+@keyframes hsmKullanildi{
+  0%{ transform:scale(1); filter:brightness(1); }
+  22%{ transform:scale(.88); filter:brightness(.45); }
+  60%{ transform:scale(1.04); filter:brightness(1.18); }
+  100%{ transform:scale(1); filter:brightness(1); }
+}
+`;
+  var ekle2 = function () { document.head.appendChild(st); };
+  if (document.head) ekle2();
+  else document.addEventListener("DOMContentLoaded", ekle2);
+})();
