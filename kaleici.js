@@ -6,10 +6,10 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-2';
+  var SURUM = 'kaleici-3';
 
   var CFG = {
-    grid: 20,
+    grid: 10,
     zeminPay: 10,      // bina alanının dışına çizilen dolgu karo sayısı
     tileW: 64,
     tileH: 44,         // yüksek = daha dik bakış
@@ -23,21 +23,21 @@
 
   /* ---- Binalar: konum = sol üst karo, en/boy = kapladığı karo ---- */
   var BINALAR = [
-    { id: 'kale',      ad: 'Ana Kale',        emoji: '🏰', gx: 8,  gy: 8,  en: 3, boy: 3 },
-    { id: 'sovalye',   ad: 'Şövalye Kışlası', emoji: '⚔️', gx: 4,  gy: 8,  en: 2, boy: 2 },
-    { id: 'asker',     ad: 'Asker Kışlası',   emoji: '🛡️', gx: 8,  gy: 4,  en: 2, boy: 2 },
-    { id: 'robot',     ad: 'Robot Fabrikası', emoji: '🤖', gx: 12, gy: 8,  en: 2, boy: 2 },
-    { id: 'arastirma', ad: 'Araştırma',       emoji: '🔬', gx: 8,  gy: 12, en: 2, boy: 2 },
-    { id: 'fuze',      ad: 'Füze Merkezi',    emoji: '🚀', gx: 4,  gy: 4,  en: 2, boy: 2 },
-    { id: 'konuk',     ad: 'Konuk Evleri',    emoji: '🏘️', gx: 13, gy: 13, en: 2, boy: 2 },
-    { id: 'oyun',      ad: 'Oyun Merkezi',    emoji: '🎲', gx: 13, gy: 4,  en: 2, boy: 2 },
+    { id: 'kale',      ad: 'Ana Kale',        emoji: '🏰', gx: 4, gy: 4, en: 3, boy: 3 },
+    { id: 'sovalye',   ad: 'Şövalye Kışlası', emoji: '⚔️', gx: 1, gy: 4, en: 2, boy: 2 },
+    { id: 'asker',     ad: 'Asker Kışlası',   emoji: '🛡️', gx: 4, gy: 1, en: 2, boy: 2 },
+    { id: 'robot',     ad: 'Robot Fabrikası', emoji: '🤖', gx: 7, gy: 4, en: 2, boy: 2 },
+    { id: 'arastirma', ad: 'Araştırma',       emoji: '🔬', gx: 4, gy: 7, en: 2, boy: 2 },
+    { id: 'fuze',      ad: 'Füze Merkezi',    emoji: '🚀', gx: 1, gy: 1, en: 2, boy: 2 },
+    { id: 'konuk',     ad: 'Konuk Evleri',    emoji: '🏘️', gx: 7, gy: 7, en: 2, boy: 2 },
+    { id: 'oyun',      ad: 'Oyun Merkezi',    emoji: '🎲', gx: 7, gy: 1, en: 2, boy: 2 },
 
-    { id: 'odun',      ad: 'Odun',            emoji: '🪵', gx: 2,  gy: 11, en: 1, boy: 1 },
-    { id: 'demir',     ad: 'Demir',           emoji: '⛏️', gx: 2,  gy: 14, en: 1, boy: 1 },
-    { id: 'su',        ad: 'Su',              emoji: '💧', gx: 11, gy: 2,  en: 1, boy: 1 },
-    { id: 'enerji',    ad: 'Enerji',          emoji: '⚡', gx: 14, gy: 2,  en: 1, boy: 1 },
-    { id: 'atolye',    ad: 'Atölye',          emoji: '🔧', gx: 16, gy: 10, en: 1, boy: 1 },
-    { id: 'degirmen',  ad: 'Değirmen',        emoji: '🌾', gx: 10, gy: 16, en: 1, boy: 1 }
+    { id: 'odun',      ad: 'Odun',            emoji: '🪵', gx: 1, gy: 7, en: 1, boy: 1 },
+    { id: 'demir',     ad: 'Demir',           emoji: '⛏️', gx: 2, gy: 8, en: 1, boy: 1 },
+    { id: 'su',        ad: 'Su',              emoji: '💧', gx: 0, gy: 2, en: 1, boy: 1 },
+    { id: 'enerji',    ad: 'Enerji',          emoji: '⚡', gx: 9, gy: 2, en: 1, boy: 1 },
+    { id: 'atolye',    ad: 'Atölye',          emoji: '🔧', gx: 9, gy: 6, en: 1, boy: 1 },
+    { id: 'degirmen',  ad: 'Değirmen',        emoji: '🌾', gx: 6, gy: 9, en: 1, boy: 1 }
   ];
 
   /* ---- Stil: en az sayıda kural, 3B yok ---- */
