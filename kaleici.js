@@ -6,11 +6,11 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-3';
+  var SURUM = 'kaleici-4';
 
   var CFG = {
     grid: 10,
-    zeminPay: 10,      // bina alanının dışına çizilen dolgu karo sayısı
+    zeminPay: 8,      // bina alanının dışına çizilen dolgu karo sayısı
     tileW: 64,
     tileH: 44,         // yüksek = daha dik bakış
     zoom: 1.0,
@@ -170,16 +170,32 @@
     ctx.fillStyle = '#6f9d4f';
     ctx.fillRect(0, 0, w, h);
 
-    /* zemin — bina alanının dışına da taşar, kenar görünmesin diye */
+    /* zemin — aynı renkler tek çizimde, kenar çizgisi yok (hız için) */
     var p = CFG.zeminPay;
+    var yollar = [[], []];
     for (var gy = -p; gy < CFG.grid + p; gy++) {
       for (var gx = -p; gx < CFG.grid + p; gx++) {
         var m = dunya(gx, gy), e = ekran(m.x, m.y);
         if (e.x < -CFG.tileW * CFG.zoom || e.x > w + CFG.tileW * CFG.zoom) continue;
         if (e.y < -CFG.tileH * CFG.zoom || e.y > h + CFG.tileH * CFG.zoom) continue;
-        var acik = ((gx + gy) % 2) === 0;
-        dortgenCiz(karoDortgeni(gx, gy), acik ? '#8cbb66' : '#84b25f', 'rgba(255,255,255,.10)');
+        yollar[((gx + gy) & 1)].push(e);
       }
+    }
+    var yariW = CFG.tileW / 2 * CFG.zoom, yariH = CFG.tileH / 2 * CFG.zoom;
+    for (var t = 0; t < 2; t++) {
+      var liste = yollar[t];
+      if (!liste.length) continue;
+      ctx.beginPath();
+      for (var i = 0; i < liste.length; i++) {
+        var c = liste[i];
+        ctx.moveTo(c.x, c.y - yariH);
+        ctx.lineTo(c.x + yariW, c.y);
+        ctx.lineTo(c.x, c.y + yariH);
+        ctx.lineTo(c.x - yariW, c.y);
+        ctx.closePath();
+      }
+      ctx.fillStyle = t === 0 ? '#8cbb66' : '#84b25f';
+      ctx.fill();
     }
 
     /* binalar — arkadan öne */
