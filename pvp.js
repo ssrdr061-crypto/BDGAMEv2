@@ -40,7 +40,17 @@ const CFG = {
   minDamagePct:   0.12,   /* savunma ne kadar yüksek olursa olsun bu oran geçer */
   variance:       0.30,   /* hasar dalgalanması (±%15)                     */
   damageScale:    0.35,   /* GENEL HIZ: küçültürsen savaş uzar, kayıplar azalır */
-  deathPct:       0.35,   /* düşen birliklerin %35'i ÖLÜR, kalanı hastaneye */
+  deathPct:       0.35,   /* savaş sırasındaki geçici ayrım — sonunda yeniden bölünür */
+
+  /* ── KAZANAN / KAYBEDEN ÖLÜM ORANI ────────────────────────────
+     Savaş bitip kimin kazandığı belli olunca, DÜŞEN birlikler
+     yeniden ölü/yaralı diye bölünür.
+     Kazanan sahayı tuttuğu için yaralılarını toplar → az ölür.
+     Kaybeden geri çekilirken yaralılarını bırakır → çok ölür.
+     Toplam kayıp DEĞİŞMEZ, sadece ölü/hastane dağılımı değişir.
+     İkisini de 0.35 yaparsan eski davranışa döner.                */
+  kazananOlumPct: 0.15,
+  kaybedenOlumPct: 0.50,
 
   /* ── BOZGUN EŞİĞİ ──────────────────────────────────────────────
      Ordusu, savaşa girdiği birlik sayısının bu oranına DÜŞEN ilk
@@ -885,6 +895,38 @@ function rollDamage(from, to) {
   return { dmg, paylar };
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ÖLÜ / YARALI YENİDEN BÖLÜMÜ
+   ---------------------------------------------------------------
+   Savaş sırasında her düşüş anında `deathPct` ile zar atılıyor.
+   Ama o an kimin kazanacağı HENÜZ BELLİ DEĞİL. Bu yüzden savaş
+   bittikten sonra, toplam düşen sayısı sabit kalacak şekilde
+   ölü/yaralı ayrımı yeniden yapılır.
+
+   zarar gören ordu = `a`  ·  onu vuran ordu = `vuran`
+   `vuran.killsBy` rapor içindir (kim kimi düşürdü); orada da aynı
+   oranı uygulamazsak ekrandaki döküm toplamla tutmaz.
+   ═══════════════════════════════════════════════════════════════ */
+function olumOraniniAyarla(a, vuran, oran) {
+  const ids = new Set([...Object.keys(a.killed || {}), ...Object.keys(a.wounded || {})]);
+  ids.forEach(uid => {
+    const dusen = (a.killed[uid] || 0) + (a.wounded[uid] || 0);
+    if (dusen <= 0) { delete a.killed[uid]; delete a.wounded[uid]; return; }
+    const olen = Math.round(dusen * oran);
+    a.killed[uid]  = olen;
+    a.wounded[uid] = dusen - olen;
+  });
+  if (vuran && vuran.killsBy) {
+    Object.keys(vuran.killsBy).forEach(k => {
+      const v = vuran.killsBy[k];
+      const dusen = (v.killed || 0) + (v.wounded || 0);
+      if (dusen <= 0) return;
+      v.killed  = Math.round(dusen * oran);
+      v.wounded = dusen - v.killed;
+    });
+  }
+}
+
 function pvpSimulate(attackerTroops, attackerHero, defender) {
   /* İKİ TARAFIN da komutan yetenekleri hesaba katılır */
   const atkSkins = (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
@@ -1062,6 +1104,11 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     win = ra > rd;
   }
 
+  /* ── Kazanan belli oldu: ölü/yaralı ayrımını şimdi yap ──
+     A = saldıran, D = savunan. A'nın kayıplarını D vurdu, tersi de öyle. */
+  olumOraniniAyarla(A, D, win ? CFG.kazananOlumPct : CFG.kaybedenOlumPct);
+  olumOraniniAyarla(D, A, win ? CFG.kaybedenOlumPct : CFG.kazananOlumPct);
+
   /* Rakip kayıplarının dökümü — artık TAHMİN DEĞİL, kesin kayıt.
      damageBySource her düşüşü hangi kaynağın yaptığını yazdı.
      Kahraman ve yansıma kaynaklı düşüşler bir birliğin vuruşu
@@ -1134,19 +1181,13 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   };
 }
 
-/* Yaralı listesi — ARTIK SAYI, dizi değil.
-   ESKİ: her yaralı için bir nesne üretiliyordu ({severe:...}).
-   28.512 yaralı = 28.512 nesne; bu liste hem savaş günlüğüne hem
-   sefer kaydına (Firebase'e!) hem de hastaneye gidiyordu ve
-   tarayıcının kayıt sınırını patlatıyordu.
-   "severe" alanı hiçbir yerde okunmuyordu, kaldırıldı.
-   Alıcı taraf (sendWoundedToHospital / yaraliAdet) iki biçimi de
-   kabul ediyor, eski kayıtlar bozulmaz. */
+/* {knight:3} → hastane formatı [{severe:true}, ...] */
 function toHospitalFormat(countMap) {
   const out = {};
   Object.keys(countMap || {}).forEach(uid => {
-    const n = Math.max(0, Math.floor(num(countMap[uid], 0)));
-    if (n > 0) out[uid] = n;
+    const n = countMap[uid]; if (!n) return;
+    out[uid] = [];
+    for (let i = 0; i < n; i++) out[uid].push({ severe: Math.random() < 0.5 });
   });
   return out;
 }
