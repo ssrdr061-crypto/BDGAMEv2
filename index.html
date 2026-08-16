@@ -2868,9 +2868,9 @@ function startListeningForGifts(username) {
       renderDiamonds();
       updateShopButtons();
       showToast(gift.message || `🎁 ${fmt(gift.diamonds)} elmas hediye geldi!`);
+      persistCurrentState();
+      firebaseDb.ref(`gifts/${key}/${giftId}`).remove().catch(() => {});
     }
-
-    firebaseDb.ref(`gifts/${key}/${giftId}`).remove().catch(() => {});
   });
 }
 function stopListeningForGifts() {
