@@ -2803,7 +2803,8 @@ function queueCloudSave(username) {
          Aksi halde bulut kaydi eski kalir ve PvP'de kale bos gorunur. */
       if (typeof currentUsername === "string" && currentUsername.toLowerCase() === key
           && typeof state === "object" && state) {
-        acc.state = state;
+        acc.state = Object.assign({}, state);
+        delete acc.state.battleLogHistory;
       }
 
       accounts[key] = acc;
