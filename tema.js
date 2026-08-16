@@ -4843,3 +4843,174 @@ document.head.appendChild(st);
 `;
   document.head.appendChild(st);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   KOORDİNAT ÖLÇÜMÜ  —  ?olcum=1
+   ---------------------------------------------------------------
+   Paylaşılan konumun neden başka yeri gösterdiğini bulmak için.
+   Hiçbir davranışı DEĞİŞTİRMEZ; sadece zincirin her halkasında
+   hangi karonun geçtiğini ekrana yazar. Adres çubuğuna ?olcum=1
+   eklenmediği sürece tamamen ölüdür.
+
+   Zincirin halkaları:
+     1) DOKUNDUM   → haritada parmağın indiği karo
+     2) GÖNDERDİM  → sohbete yazılan karo (kayda giden kx/ky)
+     3) OKUDUM     → gelen mesajdan çıkarılan karo
+     4) HEDEF      → kameraya verilen karo
+     5) VARDIM     → animasyon bitince ekranın TAM ORTASINDAKİ karo
+
+   HANGİ SATIR SAPIYORSA HATA ORADA:
+     1≠2 → paylaşma yazımı bozuk (index.html shareCoordInChat)
+     2≠3 → kayıt/okuma birimi bozuk (parseCoordFromText)
+     3≠4 → openSharedCoord çevrimi bozuk
+     4≠5 → kamera hedefe varamıyor (harita.js kenar kilidi / clampMapPan)
+
+   Ölçüm bitince BU BLOK SİLİNİR. Kalıcı kod değildir.
+   ═══════════════════════════════════════════════════════════════ */
+(function olcumBlogu() {
+  "use strict";
+  if (!/[?&]olcum=1/.test(location.search || "")) return;
+
+  var kutu = null;
+  var satirlar = [];
+
+  function kutuyuKur() {
+    if (kutu) return kutu;
+    kutu = document.createElement("div");
+    kutu.id = "koordOlcum";
+    kutu.style.cssText =
+      "position:fixed; left:6px; right:6px; top:6px; z-index:99999;" +
+      "max-height:42vh; overflow:auto; padding:8px 10px;" +
+      "background:rgba(4,14,32,.92); color:#cfe6ff;" +
+      "font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;" +
+      "border:1px solid rgba(120,190,255,.45); border-radius:10px;" +
+      "white-space:pre-wrap; -webkit-user-select:text; user-select:text;";
+    kutu.addEventListener("click", function () { satirlar = []; ciz(); });
+    document.body.appendChild(kutu);
+    return kutu;
+  }
+
+  function ciz() {
+    kutuyuKur().textContent =
+      "KOORDİNAT ÖLÇÜMÜ (dokun = temizle)\n" +
+      (satirlar.length ? satirlar.join("\n") : "— henüz kayıt yok —");
+  }
+
+  function yaz(etiket, metin) {
+    var s = new Date();
+    var saat = ("0" + s.getMinutes()).slice(-2) + ":" + ("0" + s.getSeconds()).slice(-2);
+    satirlar.push(saat + "  " + etiket + "  " + metin);
+    if (satirlar.length > 40) satirlar = satirlar.slice(-40);
+    ciz();
+  }
+
+  /* Ölçek (0..30) → karo, tek yerden. */
+  function karo(g) {
+    try { return window.KOORD.karoyaOturt(window.KOORD.olcektenKaro(g)); }
+    catch (e) { return "?"; }
+  }
+  function ck(gx, gy) { return karo(gx) + "," + karo(gy); }
+
+  /* Ekranın tam ortasındaki karo — kameranın gerçekte nerede
+     durduğunu ölçer. Haritanın kendi çevrimini kullanır ki
+     ölçüm ile oyun aynı matematiği paylaşsın. */
+  function ekranOrtasiKaro() {
+    try {
+      var w = document.getElementById("battleMapWrap");
+      if (!w || !window.HARITA || !HARITA.ekranaGoreIzgara) return null;
+      var r = w.getBoundingClientRect();
+      var k = HARITA.ekranaGoreIzgara(r.left + r.width / 2, r.top + r.height / 2, 30, 0);
+      return k ? (k.kx + "," + k.ky) : null;
+    } catch (e) { return null; }
+  }
+
+  function zoomYaz() {
+    try { return " [zoom " + (Math.round(mapZoom * 100) / 100) + "]"; }
+    catch (e) { return ""; }
+  }
+
+  /* ── HALKALARI SAR ──
+     Özgün işlevler aynen çağrılır; sadece önüne/arkasına ölçüm
+     eklenir. Biri yoksa o halka sessizce atlanır. */
+  function sar() {
+    /* 1) DOKUNDUM */
+    if (typeof window.handleMapTap === "function" && !window.handleMapTap._olcum) {
+      var eskiTap = window.handleMapTap;
+      window.handleMapTap = function (cx, cy, hedef) {
+        var s = eskiTap.apply(this, arguments);
+        try {
+          if (window.pendingShareCoord) {
+            yaz("1 DOKUNDUM ", ck(pendingShareCoord.gx, pendingShareCoord.gy) + zoomYaz());
+          }
+        } catch (e) {}
+        return s;
+      };
+      window.handleMapTap._olcum = 1;
+    }
+
+    /* 2) GÖNDERDİM */
+    if (typeof window.shareCoordInChat === "function" && !window.shareCoordInChat._olcum) {
+      var eskiPay = window.shareCoordInChat;
+      window.shareCoordInChat = function (gxIn, gyIn, kimin) {
+        try {
+          var acik = (typeof gxIn === "number" && typeof gyIn === "number");
+          var g = acik ? { gx: gxIn, gy: gyIn } : window.pendingShareCoord;
+          if (g) yaz("2 GÖNDERDİM", ck(g.gx, g.gy) + (acik ? "  (kale penceresinden)" : "  (harita dokunuşundan)"));
+        } catch (e) {}
+        return eskiPay.apply(this, arguments);
+      };
+      window.shareCoordInChat._olcum = 1;
+    }
+
+    /* 3) OKUDUM */
+    if (typeof window.parseCoordFromText === "function" && !window.parseCoordFromText._olcum) {
+      var eskiOku = window.parseCoordFromText;
+      window.parseCoordFromText = function (m) {
+        var s = eskiOku.apply(this, arguments);
+        try {
+          if (s && m && typeof m === "object" && m._olcumYazildi !== true) {
+            m._olcumYazildi = true;
+            yaz("3 OKUDUM   ", ck(s.gx, s.gy) +
+                "  (kayıt kv=" + m.kv + " kx=" + m.kx + " ky=" + m.ky + ")" +
+                "  metin: " + String(m.text || "").slice(0, 30));
+          }
+        } catch (e) {}
+        return s;
+      };
+      window.parseCoordFromText._olcum = 1;
+    }
+
+    /* 4) HEDEF + 5) VARDIM */
+    if (typeof window.goToCoord === "function" && !window.goToCoord._olcum) {
+      var eskiGit = window.goToCoord;
+      window.goToCoord = function (gx, gy) {
+        var hedef = ck(gx, gy);
+        yaz("4 HEDEF    ", hedef + zoomYaz());
+        var s = eskiGit.apply(this, arguments);
+        /* Kaydırma animasyonu ~420ms; bitmesini bekle. */
+        setTimeout(function () {
+          var v = ekranOrtasiKaro();
+          if (!v) { yaz("5 VARDIM   ", "ölçülemedi"); return; }
+          var a = hedef.split(","), b = v.split(",");
+          var dx = Math.abs(+a[0] - +b[0]), dy = Math.abs(+a[1] - +b[1]);
+          var sapma = (dx <= 1 && dy <= 1) ? "  ✅ tutuyor" : "  ❌ SAPMA " + dx + "," + dy + " karo";
+          yaz("5 VARDIM   ", v + sapma);
+        }, 900);
+        return s;
+      };
+      window.goToCoord._olcum = 1;
+    }
+  }
+
+  function baslat() {
+    ciz();
+    yaz("hazır", "haritaya dokun → ✏️ ile paylaş → mesaja dokun");
+    sar();
+    /* index.html blokları geç yüklenirse diye birkaç kez dene. */
+    var n = 0;
+    var t = setInterval(function () { sar(); if (++n > 20) clearInterval(t); }, 500);
+  }
+
+  if (document.readyState === "complete") setTimeout(baslat, 600);
+  else window.addEventListener("load", function () { setTimeout(baslat, 600); });
+})();
