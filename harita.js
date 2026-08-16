@@ -1228,7 +1228,23 @@
        artık yalnız KALELER var (birkaç tane). Onların adı her zaman
        görünmeli — kimin kalesi olduğu haritanın temel bilgisi. */
 
-    const donusum = "translate(-50%,-50%) scale(" + olcek + ")";
+    /* ── KONUM ARTIK left/top DEĞİL, transform ──
+       MİKRO TİTREME SEBEBİ BUYDU: left/top piksel değerleri yerleşim
+       (layout) üretir ve tarayıcı elemanın boyandığı kutuyu TAM
+       piksele oturtur. Zemin canvas'ı ise ondalık piksel hassasiyetiyle
+       kayıyor. Sonuç: harita 0.3 px kayarken kale ya hiç kaymıyor ya
+       da 1 px birden zıplıyor — kale, zeminin üstünde yerinde
+       titriyormuş gibi görünüyordu. Sağa-sola kaydırmada en belirgin
+       haliydi, çünkü yatay yol en uzun olanı.
+
+       transform ondalık kalır, yerleşim doğurmaz ve zeminle aynı
+       hassasiyette hareket eder. translate3d ayrıca elemanı kendi
+       katmanına alır; boyama yükü de düşer.
+
+       SIRA ÖNEMLİ: önce translate3d (ekran konumu), sonra
+       translate(-50%,-50%) (kendi merkezine oturtma), en sonda scale.
+       Sıra bozulursa -50% ölçeklenir ve kale karodan kayar. */
+    const donusumSonu = " translate(-50%,-50%) scale(" + olcek + ")";
     const liste = dugumOnbellegi(mapEl);
 
     for (let i = 0; i < liste.length; i++) {
@@ -1247,11 +1263,15 @@
       if (d.gorunur !== true) {
         d.el.style.display = "";
         d.el.style.zIndex = d.derinlik;   /* derinlik sabit, bir kez yeter */
+        /* index.html elemanı yüzdeli left/top ile doğuruyor; transform
+           konumu onun ÜSTÜNE eklenir, sıfırlanmazsa kale kayar.
+           Bir kez yazmak yeter — her karede değil. */
+        d.el.style.left = "0px";
+        d.el.style.top = "0px";
+        d.el.style.willChange = "transform";
         d.gorunur = true;
       }
-      d.el.style.left = sx + "px";
-      d.el.style.top  = sy + "px";
-      d.el.style.transform = donusum;
+      d.el.style.transform = "translate3d(" + sx + "px," + sy + "px,0)" + donusumSonu;
     }
 
     /* SERBEST İŞARETLER — "Git" nişangahı ve koordinat paylaşma etiketi.
@@ -1277,6 +1297,13 @@
 
       if (!k) { el.style.display = "none"; return; }
 
+      /* DİKKAT: Buraya kalelerdeki gibi transform YAZILMAZ.
+         .coord-marker ve .coord-share'in CSS animasyonları
+         (coordMarkerPulse / coordShareDrop) transform'u sürüyor ve
+         CSS animasyonu satır içi stili EZER — inline transform
+         yazarsak işaret animasyonun ilk karesine, yani haritanın
+         köşesine sıçrar. Bu ikisi left/top ile kalacak; ikisi de
+         geçici ve tek tane, titreme farkı görünmez. */
       const pm = gridToWorld(k.gx * ORAN, k.gy * ORAN);
       el.style.left = ((pm.x + HALF_W) * zoom + panX) + "px";
       el.style.top  = ((pm.y + HALF_H) * zoom + panY) + "px";
