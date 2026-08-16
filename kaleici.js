@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-4';
+  var SURUM = 'kaleici-5';
 
   var CFG = {
     grid: 10,
@@ -65,10 +65,11 @@
       'background:#2f6ea8;color:#eaf6ff;font:600 15px/1 "Baloo 2",sans-serif;' +
       'box-shadow:0 2px 6px rgba(0,20,45,.3);transition:transform .09s,filter .09s}' +
     '#kaleiciPanel button:active{transform:scale(.96);filter:brightness(.93)}' +
-    '#kaleiciGir{position:fixed;left:12px;bottom:120px;z-index:60;' +
-      'padding:10px 14px;border:none;border-radius:12px;background:#1d3f63;color:#eaf6ff;' +
-      'font:600 15px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
+    '#kaleiciGir{position:fixed;left:10px;bottom:108px;z-index:18;display:none;' +
+      'padding:5px 10px;border:none;border-radius:9px;background:rgba(29,63,99,.9);color:#eaf6ff;' +
+      'font:600 12.5px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
       'box-shadow:0 2px 6px rgba(0,20,45,.3);transition:transform .09s,filter .09s}' +
+    '#kaleiciGir.acik{display:block}' +
     '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}';
 
   var katman, tuval, ctx, panel, panelAd, girBtn;
@@ -347,6 +348,26 @@
     girBtn.textContent = '🏰 Kale içi';
     girBtn.addEventListener('click', ac);
     document.body.appendChild(girBtn);
+
+    butonuIzle();
+  }
+
+  /* Giriş ekranı kapalıysa buton görünür, açıksa gizli */
+  function butonuGuncelle() {
+    var g = document.getElementById('loginScreen');
+    var oyunda = !g || getComputedStyle(g).display === 'none';
+    if (girBtn) girBtn.classList.toggle('acik', oyunda);
+  }
+
+  function butonuIzle() {
+    butonuGuncelle();
+    var g = document.getElementById('loginScreen');
+    if (g && window.MutationObserver) {
+      new MutationObserver(butonuGuncelle)
+        .observe(g, { attributes: true, attributeFilter: ['style', 'class'] });
+    } else {
+      setInterval(butonuGuncelle, 1000);
+    }
   }
 
   function ac() {
