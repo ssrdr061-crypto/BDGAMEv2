@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-5';
+  var SURUM = 'kaleici-6';
 
   var CFG = {
     grid: 10,
@@ -352,22 +352,19 @@
     butonuIzle();
   }
 
-  /* Giriş ekranı kapalıysa buton görünür, açıksa gizli */
+  /* Giriş ekranı kapalıysa VE önde açık bir panel yoksa buton görünür.
+     Panel açıkken tamamen gizlenir, hiçbir şeyin üstüne binmez. */
   function butonuGuncelle() {
     var g = document.getElementById('loginScreen');
     var oyunda = !g || getComputedStyle(g).display === 'none';
-    if (girBtn) girBtn.classList.toggle('acik', oyunda);
+    var panelAcik = !!document.querySelector(
+      '.overlay-panel.active, #seferOnayModal, .sefer-onay-modal');
+    if (girBtn) girBtn.classList.toggle('acik', oyunda && !panelAcik);
   }
 
   function butonuIzle() {
     butonuGuncelle();
-    var g = document.getElementById('loginScreen');
-    if (g && window.MutationObserver) {
-      new MutationObserver(butonuGuncelle)
-        .observe(g, { attributes: true, attributeFilter: ['style', 'class'] });
-    } else {
-      setInterval(butonuGuncelle, 1000);
-    }
+    setInterval(butonuGuncelle, 400);
   }
 
   function ac() {
