@@ -1054,6 +1054,30 @@
     requestAnimationFrame(() => { cizimIstendi = false; ciz(); });
   }
 
+  /* ── TEK KARE: ZEMİN + KALELER + EV BUTONU ──
+     TİTREME SEBEBİ BUYDU: zemin (canvas) bir sonraki kareye ertelenip
+     çiziliyordu, kalelerin (DOM) left/top'u ise parmak olayının TAM O
+     ANINDA yazılıyordu. Parmak hareketi kare hızından sık geldiği için
+     kale bir karede 2-3 kez yeni yere, zemin ise hâlâ eski yere
+     denk geliyordu → kale zeminin üstünde titriyordu.
+
+     Artık üçü de AYNI requestAnimationFrame içinde, aynı pan değeriyle
+     yazılıyor. Kaydırma sırasında ikisi asla ayrışmaz.
+
+     DİKKAT: applyMapPan buradan geçer; dugumleriYerlestir'i doğrudan
+     çağıran başka bir yol eklenirse titreme geri gelir. */
+  let kareIstendi = false;
+  function kareIste() {
+    if (kareIstendi) return;
+    kareIstendi = true;
+    requestAnimationFrame(() => {
+      kareIstendi = false;
+      evButonu();
+      dugumleriYerlestir();
+      ciz();
+    });
+  }
+
   /* ═════════════════════════════════════════════════════════════════════
      ADIM D — DÜĞÜMLERİ İZOMETRİĞE OTURTMA
 
@@ -1380,9 +1404,11 @@
 
       /* Eski applyMapPan #battleMap'e transform basıyordu — düğüm
          katmanında bu her şeyi kaydırır, o yüzden çağrılmıyor. */
-      evButonu();
-      dugumleriYerlestir();
-      cizIste();
+
+      /* Ev butonu, kaleler ve zemin TEK karede birlikte yazılır.
+         Ayrı ayrı çağrılırsa kaleler zeminden bir kare önde gider
+         ve kaydırırken titrer. */
+      kareIste();
     };
 
     /* KRİTİK — clamp IZGARA uzayında yapılıyor, dünya dikdörtgeninde değil.
@@ -1644,6 +1670,19 @@
   let sonX = 0, sonY = 0, sonAn = 0;
   let akisId = null, parmakVar = false;
 
+  /* ── ÇOK PARMAK KİLİDİ ──
+     UÇMA SEBEBİ BUYDU: atalet kodu parmak sayısına bakmıyordu. İki
+     parmakla yakınlaştırırken her iki parmağın pointermove'u da buraya
+     geliyor ve "e.clientX - sonX" aslında İKİ PARMAK ARASINDAKİ
+     MESAFE oluyordu. Kıstırma bitince elde kocaman sahte bir hız
+     kalıyor, ilk parmak kalkar kalkmaz harita o hızla fırlıyordu.
+
+     parmaklar: o an ekranda olan parmakların kimlikleri.
+     kistirma:  bu dokunuş sırasında hiç 2 parmak oldu mu. Olduysa
+                parmaklar kalkarken kayma HİÇ başlatılmaz. */
+  const parmaklar = new Set();
+  let kistirma = false;
+
   function akisiDurdur() {
     if (akisId) { cancelAnimationFrame(akisId); akisId = null; }
     hizX = hizY = 0;
@@ -1678,13 +1717,21 @@
     if (!wrap) return;
 
     wrap.addEventListener("pointerdown", e => {
-      parmakVar = true;
+      parmaklar.add(e.pointerId);
       akisiDurdur();
+
+      if (parmaklar.size >= 2) {      /* ikinci parmak indi → kıstırma */
+        kistirma = true;
+        parmakVar = false;            /* hız ölçümü tamamen dursun */
+        return;
+      }
+
+      parmakVar = true;
       sonX = e.clientX; sonY = e.clientY; sonAn = performance.now();
     }, { passive: true });
 
     wrap.addEventListener("pointermove", e => {
-      if (!parmakVar) return;
+      if (!parmakVar || kistirma || parmaklar.size >= 2) return;
       const simdi = performance.now();
       const dt = simdi - sonAn;
       if (dt > 0) {
@@ -1706,10 +1753,22 @@
       kenarBaslat(e.clientX, e.clientY);
     }, { passive: true });
 
-    const birak = () => {
-      if (!parmakVar) return;
+    const birak = (e) => {
+      parmaklar.delete(e.pointerId);
+
+      /* Hâlâ ekranda parmak var (kıstırmanın ilk parmağı kalktı).
+         Kayma başlatma — asıl uçma buradan oluyordu. */
+      if (parmaklar.size > 0) { parmakVar = false; hizX = hizY = 0; return; }
+
+      const kistirmaydi = kistirma;
+      kistirma = false;
+
+      if (!parmakVar) { hizX = hizY = 0; return; }
       parmakVar = false;
       kenarDurdur();
+
+      /* Bu dokunuşta yakınlaştırma yapıldıysa hiç akıtma */
+      if (kistirmaydi) { hizX = hizY = 0; return; }
 
       /* Parmak hareketsiz bekleyip kalktıysa akıtma */
       if (performance.now() - sonAn > 90) { hizX = hizY = 0; return; }
