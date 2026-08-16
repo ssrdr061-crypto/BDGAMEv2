@@ -1359,7 +1359,7 @@ async function runPvpBattle() {
     enemyTroops: Object.assign({}, enemy.realTroops || enemy.troops || {}),
   });
   if (typeof gunlugüKirp === "function") gunlugüKirp();
-  else if (state.battleLogHistory.length > 70) state.battleLogHistory.length = 70;;
+  else if (state.battleLogHistory.length > 70) state.battleLogHistory.length = 70;
 
   /* ── RAKİBE BİLDİR (birlik kayıpları dahil) ── */
   sendRaidReport(enemy, R, delta);

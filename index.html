@@ -2970,21 +2970,21 @@ function migrateCastlesOnce() {
    durur: hesap kaydı küçülür, kayıt hızlanır.
    Bellekteki state.battleLogHistory aynen çalışmaya devam eder.
    ═══════════════════════════════════════════════════════════════ */
-/* ═══════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
    GÜNLÜK SINIRI — TEK YER
    ---------------------------------------------------------------
    Kaç savaş raporu saklanacağı. Bu sayı ÜÇ yerde kullanılıyor
    (burası, pvp.js'te iki kez) ve eskiden üçüne ayrı ayrı yazılıydı;
    birini değiştirip diğerini unutmak kolaydı.
    Rapor başına ~3 KB. 70 rapor ≈ 210 KB.
-   Büyütürsen açılış yavaşlar: günlük her girişte buluttan iner.
-   ═══════════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════════ */
 window.GUNLUK_SINIR = 70;
 function gunlugüKirp() {
   if (!state || !Array.isArray(state.battleLogHistory)) return;
   const n = window.GUNLUK_SINIR || 70;
   if (state.battleLogHistory.length > n) state.battleLogHistory.length = n;
 }
+
 let _logSaveTimer = null;
 let _logSonImza = "";
 
@@ -4152,12 +4152,17 @@ function startSessionFor(username) {
   startListeningForGifts(username);
   startListeningForChat();
   startListeningForCastles();
-  loadBattleLog();
+  /* loadBattleLog() BURADAN KALDIRILDI. Bulut günlüğü açılışta
+     indirilirken 1,7 MB'lık liste oyunu 14 sn kilitliyordu.
+     Artık mesaj kutusu İLK AÇILDIĞINDA iniyor (openOverlayPanel). */
 
   if (_castleJustAssigned) persistCurrentState();
 }
 
 function logout() {
+  /* Bulut günlüğü "bir kez indirildi" bayrağı. Sıfırlanmazsa yeni
+     giren hesabın günlüğü buluttan hiç inmez. */
+  window._gunlukIndi = false;
   persistCurrentState();
   stopListeningForGifts();
   stopListeningForChat();
@@ -7533,7 +7538,17 @@ function openOverlayPanel(panelKey) {
   if (!el) return;
   el.classList.add("active");
   if (panelKey === "troops") { renderTroopsPanel(); TroopViewer.show(); }
-  if (panelKey === "battlelog") renderBattleLogPanel();
+  if (panelKey === "battlelog") {
+    renderBattleLogPanel();
+    /* Bulut günlüğü AÇILIŞTA DEĞİL, kutu ilk açılınca insin.
+       Bir kez indirir; sonraki açılışlarda tekrar istemez.
+       Bayrak logout() içinde sıfırlanır — yoksa başka hesapla
+       girildiğinde o hesabın günlüğü buluttan hiç inmez. */
+    if (!window._gunlukIndi) {
+      window._gunlukIndi = true;
+      if (typeof loadBattleLog === "function") loadBattleLog();
+    }
+  }
   if (panelKey === "hospital") renderHospitalPanel();
   if (panelKey === "rank") renderRankPanel();
 }
@@ -8594,7 +8609,6 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
      pvp.js/pve.js window.BUFF'ı çalışma anında arar, sıra onlar
      için önemli değil. -->
 <script src="buff.js"></script>
-<script src="zaman.js"></script>
 
 
 </body>
