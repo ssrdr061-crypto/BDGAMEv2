@@ -256,24 +256,15 @@ function stil() {
 }
 .ist-list::-webkit-scrollbar{ width:0; height:0; display:none; }
 
-/* rol başlığı — sadece ayırıcı, kutu değil */
-.ist-grup{
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:11px;
-  letter-spacing:.5px; text-transform:uppercase;
-  color:#9fc9ea; padding:12px 2px 4px;
-}
-.ist-grup:first-child{ padding-top:2px; }
-
 .ist-satir{
   display:flex; align-items:center; gap:10px;
-  padding:7px 4px;
+  padding:3px 4px;
   border-bottom:1px solid rgba(160,215,255,.14);
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px;
+  color:#ffffff; text-shadow:none;
 }
-.ist-etiket{ flex:1 1 auto; min-width:0; color:#dcefff;
-  text-shadow:0 1px 2px rgba(0,20,45,.5); }
-.ist-deger{ flex:0 0 auto; color:#ffffff; font-size:14px;
-  text-shadow:0 1px 2px rgba(0,20,45,.6); }
+.ist-etiket{ flex:1 1 auto; min-width:0; }
+.ist-deger{ flex:0 0 auto; }
 `;
   document.head.appendChild(el);
 }
@@ -291,7 +282,7 @@ function grupHTML(unitId) {
         <span class="ist-deger">${sayi(f[s.key])}</span>
       </div>`).join("");
 
-  return `<div class="ist-grup">${rol}</div>${satirlar}`;
+  return satirlar;
 }
 
 /* Tam sayıysa tam yazar, değilse tek ondalık (5,4 gibi). */
