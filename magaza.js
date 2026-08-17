@@ -72,45 +72,58 @@ const shopItems = [
   { name: "Füze", price: 200000, isMissile: true, icon: "🚀",
     missileDesc: "Kale saldırısı için 1 füze. Haritada bir düşman kalesine 🚀 ile atılır ve kaleye ağır hasar verir. Füze yiyen oyuncu 24 saat boyunca hiçbir saldırı yapamaz (yalnızca savunma ve füze). Haftalık en fazla 2 adet alınabilir." },
 
-  /* ── HALVORSEN (Buz Savaşçısı) ── */
-  { name: "Buzul Özü", price: 6000, isBoost: true, heroId: "buz_savascisi", heroName: "HALVORSEN", icon: "🧊",
-    boostDesc: "Halvorsen'in birlik savunmasını %15 artırır.",
-    effect: { type: "boost_troop_def_pct", value: 15 } },
-  { name: "Direnç İlacı", price: 6500, isBoost: true, heroId: "buz_savascisi", heroName: "HALVORSEN", icon: "🩹",
-    boostDesc: "Yalnızca savunmada Halvorsen'in birliklerinin canını %22 artırır.",
-    effect: { type: "boost_troop_hp_pct_defense_only", value: 22 } },
+  /*  ── KAHRAMAN GÜÇLENDİRMELERİ ───────────────────────────────
+      Her güçlendirme artık YALNIZ BİR BİRLİK AİLESİNE işler:
+        birim: "knight"  → Savunucu
+        birim: "soldier" → Koruyucu
+        birim: "robot"   → Nişancı
+      Kademe farkı gözetilmez: Sv1 de Sv6 da aynı ailedendir,
+      ikisi de aynı güçlendirmeden yararlanır.
 
-  /* ── STELLİN (Çelik Savaşçı) ── */
-  { name: "Titanyum Tozu", price: 9000, isBoost: true, heroId: "celik_savasci", heroName: "STELLİN", icon: "✨",
-    boostDesc: "%45 olasılıkla birlikler rastgele 3 tur boyunca %200 hasar verir.",
-    effect: { type: "boost_random_turns_damage", chance: 45, turns: 3, damagePct: 200 } },
-  { name: "Tank Güdüsü", price: 9500, isBoost: true, heroId: "celik_savasci", heroName: "STELLİN", icon: "🛡️",
-    boostDesc: "%60 ihtimalle ilk 3 tur boyunca tüm birliklerin savunma ve canını %150 artırır.",
-    effect: { type: "boost_first_turns_def_hp", chance: 60, turns: 3, valuePct: 150 } },
+      `sans` alanı olan güçlendirmelerde zar SAVAŞ BAŞINDA BİR KEZ
+      atılır. Tuttuysa etki savaş boyunca (ya da belirtilen turlarda)
+      geçerlidir; tutmadıysa hiç çalışmaz.
+      ────────────────────────────────────────────────────────── */
 
-  /* ── MİKİAN (Ateş Büyücüsü) ── */
-  { name: "Perdeleme", price: 8000, isBoost: true, heroId: "ates_buyucusu", heroName: "MİKİAN", icon: "🌫️",
-    boostDesc: "Birliklerin aldığı hasarı 2 turda 1 %50 azaltır.",
-    effect: { type: "boost_periodic_damage_reduce", everyTurns: 2, reducePct: 50 } },
-  { name: "Destek Bilgi", price: 8500, isBoost: true, heroId: "ates_buyucusu", heroName: "MİKİAN", icon: "📡",
-    boostDesc: "İlk 2 tur boyunca tüm rakip birliklere %80 fazla hasar verir.",
-    effect: { type: "boost_first_turns_bonus_damage", turns: 2, bonusPct: 80 } },
+  /* ── HALVORSEN (Buz Savaşçısı) — Savunucu ── */
+  { name: "Buzul Özü", price: 6000, isBoost: true, heroId: "buz_savascisi", heroName: "HALVORSEN", icon: "🧊", gorsel: "buzulozu.webp",
+    boostDesc: "Savunucu birliklerin savunmasını %15 artırır.",
+    effect: { type: "boost_troop_def_pct", value: 15, birim: "knight" } },
+  { name: "Direnç İlacı", price: 6500, isBoost: true, heroId: "buz_savascisi", heroName: "HALVORSEN", icon: "🩹", gorsel: "dirinecilaci.webp",
+    boostDesc: "Yalnızca savunmada Savunucu birliklerin canını %25 artırır.",
+    effect: { type: "boost_troop_hp_pct_defense_only", value: 25, birim: "knight" } },
 
-  /* ── İVANOVNA (Komutan) ── */
-  { name: "Artan Aşk", price: 12000, isBoost: true, heroId: "ivanovna", heroName: "İVANOVNA", icon: "💗",
-    boostDesc: "Birliklerin Sevgilisi yeteneğindeki mevcut değeri 2 katına çıkartır.",
-    effect: { type: "boost_double_ability", ability: "wounded_return_pct" } },
-  { name: "Paralı Muhafız", price: 12500, isBoost: true, heroId: "ivanovna", heroName: "İVANOVNA", icon: "🪙",
-    boostDesc: "Savaşan birliklerin sayısını %20 artırır.",
-    effect: { type: "boost_troop_count_pct", value: 20 } },
+  /* ── STELLİN (Çelik Savaşçı) — Savunucu ── */
+  { name: "Titanyum Tozu", price: 9000, isBoost: true, heroId: "celik_savasci", heroName: "STELLİN", icon: "✨", gorsel: "titanyumtozu.webp",
+    boostDesc: "%45 ihtimalle Savunucu birlikler rastgele 3 tur boyunca %200 hasar verir.",
+    effect: { type: "boost_random_turns_damage", chance: 45, turns: 3, damagePct: 200, birim: "knight" } },
+  { name: "Tank Güdüsü", price: 9500, isBoost: true, heroId: "celik_savasci", heroName: "STELLİN", icon: "🛡️", gorsel: "tankgudusu.webp",
+    boostDesc: "%60 ihtimalle ilk 3 tur boyunca Savunucu birliklerin savunma ve canını %40 artırır.",
+    effect: { type: "boost_first_turns_def_hp", chance: 60, turns: 3, valuePct: 40, birim: "knight" } },
 
-  /* ── REVOLİA (Robot Komutan) ── */
-  { name: "Ek Bağlantı", price: 10000, isBoost: true, heroId: "revolia", heroName: "REVOLİA", icon: "🔌",
+  /* ── MİKİAN (Ateş Büyücüsü) — Koruyucu ── */
+  { name: "Perdeleme", price: 8000, isBoost: true, heroId: "ates_buyucusu", heroName: "MİKİAN", icon: "🌫️", gorsel: "perdeleme.webp",
+    boostDesc: "%50 ihtimalle ilk 4 tur içinde her 2 turda bir Koruyucu birliklerin aldığı hasar %50 azalır.",
+    effect: { type: "boost_periodic_damage_reduce", chance: 50, everyTurns: 2, maxTurns: 4, reducePct: 50, birim: "soldier" } },
+  { name: "Destek Bilgi", price: 8500, isBoost: true, heroId: "ates_buyucusu", heroName: "MİKİAN", icon: "📡", gorsel: "destekbilgi.webp",
+    boostDesc: "%25 ihtimalle Koruyucu birlikler savaş boyunca %50 fazla hasar verir.",
+    effect: { type: "boost_bonus_damage", chance: 25, bonusPct: 50, birim: "soldier" } },
+
+  /* ── İVANOVNA (Komutan) — Koruyucu ── */
+  { name: "Artan Aşk", price: 12000, isBoost: true, heroId: "ivanovna", heroName: "İVANOVNA", icon: "💗", gorsel: "artanask.webp",
+    boostDesc: "Birliklerin Sevgilisi yeteneğinin değerini Koruyucu birlikler için 2 katına çıkarır.",
+    effect: { type: "boost_double_ability", ability: "wounded_return_pct", birim: "soldier" } },
+  { name: "Paralı Muhafız", price: 12500, isBoost: true, heroId: "ivanovna", heroName: "İVANOVNA", icon: "🪙", gorsel: "paralimuhafiz.webp",
+    boostDesc: "Savaşan Koruyucu birliklerin sayısını %20 artırır.",
+    effect: { type: "boost_troop_count_pct", value: 20, birim: "soldier" } },
+
+  /* ── REVOLİA (Robot Komutan) — Nişancı ── */
+  { name: "Ek Bağlantı", price: 10000, isBoost: true, heroId: "revolia", heroName: "REVOLİA", icon: "🔌", gorsel: "ekbaglanti.webp",
     boostDesc: "Nişancı birlikler her 3 turda bir %90 ihtimalle %195 hasar verir.",
-    effect: { type: "boost_robot_periodic_damage", everyTurns: 3, chance: 90, damagePct: 195 } },
-  { name: "Yedek Şarj", price: 10500, isBoost: true, heroId: "revolia", heroName: "REVOLİA", icon: "🔋",
-    boostDesc: "Tüm birliklerin toplam canına ek %50 ekstra can sağlığı ekler.",
-    effect: { type: "boost_total_hp_pct", value: 50 } },
+    effect: { type: "boost_robot_periodic_damage", everyTurns: 3, chance: 90, damagePct: 195, birim: "robot" } },
+  { name: "Yedek Şarj", price: 10500, isBoost: true, heroId: "revolia", heroName: "REVOLİA", icon: "🔋", gorsel: "yedeksarj.webp",
+    boostDesc: "Nişancı birliklerin toplam canını %50 artırır.",
+    effect: { type: "boost_total_hp_pct", value: 50, birim: "robot" } },
 ];
 
 function getItemDef(name) {
