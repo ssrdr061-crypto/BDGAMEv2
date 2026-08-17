@@ -8123,14 +8123,6 @@ const TroopViewer = (function () {
       });
       html += `</div>`;
 
-      /*  ── SAĞ ÜST ROZET ──
-          ✕ düğmesinin altında, alt alta: birliğin kademesi ve
-          kale gücüne kattığı puan. İkisi de sarı.               */
-      html += `<div class="uv-rozet">
-          <span class="uvr-sv">${lv}.Sv</span>
-          <span class="uvr-guc">${fmt(def.power || 0)}</span>
-        </div>`;
-
       /* ── EĞİT BÖLÜMÜ ── */
       const trainQueueForUnit = (state.trainingQueue || []).filter(j2 => j2.unitId === uid);
       const isTraining = trainQueueForUnit.length > 0;
@@ -8205,6 +8197,25 @@ const TroopViewer = (function () {
       }
 
       el.innerHTML = html;
+
+      /*  ── SAĞ ROZET ──
+          Stat satırının İÇİNE yazılmaz; oraya konunca 4. kutunun
+          üstüne biniyordu. Doğrudan .unit-screen'in çocuğu yapılır,
+          böylece sahnenin sağ kenarına, stat kutularıyla aynı
+          görünümde iki kutu olarak oturur: üstte Sv, altta Güç.   */
+      if (scr) {
+        let rz = scr.querySelector(":scope > .uv-rozet");
+        if (!rz) {
+          rz = document.createElement("div");
+          rz.className = "uv-rozet";
+          scr.appendChild(rz);
+        }
+        rz.innerHTML =
+          `<div class="uvr-kutu"><span class="uvr-et">Sv</span>` +
+          `<span class="uvr-dg">${lv}</span></div>` +
+          `<div class="uvr-kutu"><span class="uvr-et">Güç</span>` +
+          `<span class="uvr-dg">${fmt(def.power || 0)}</span></div>`;
+      }
 
       /* Bind events */
       el.querySelectorAll(".uv-portrait").forEach(btn => {

@@ -5367,26 +5367,64 @@ const st = document.createElement("style");
 st.id = "temaEgitimRozet";
 st.textContent = `
 
-/* ── sağ üst rozet: ✕ düğmesinin altında ── */
+/* ── sağ rozet: sahnenin sağ kenarında, stat kutusu görünümünde ──
+   Üstte Sv, altta Güç. Stat satırının içine konunca 4. kutunun
+   üstüne biniyordu; artık .unit-screen'in doğrudan çocuğu.        */
+#panel-troops .unit-screen{ position:relative; }
 #panel-troops .uv-rozet{
   position:absolute; z-index:26;
-  top:calc(56px + env(safe-area-inset-top,0)); right:14px;
-  display:flex; flex-direction:column; align-items:flex-end; gap:1px;
-  font-family:'Baloo 2',sans-serif; line-height:1.05;
+  top:calc(96px + env(safe-area-inset-top,0)); right:12px;
+  display:flex; flex-direction:column; gap:7px;
   pointer-events:none;
 }
-#panel-troops .uv-rozet .uvr-sv{
-  font-weight:800; font-size:15px; color:#ffd257;
-  text-shadow:0 2px 3px rgba(0,20,45,.65);
+#panel-troops .uv-rozet .uvr-kutu{
+  min-width:62px;
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+  padding:5px 9px 6px;
+  border-radius:13px;
+  background:linear-gradient(180deg, rgba(30,68,116,.9), rgba(14,36,68,.92));
+  border:1px solid rgba(160,210,255,.28);
+  box-shadow:0 3px 8px rgba(0,20,45,.4);
+  font-family:'Baloo 2',sans-serif;
 }
-#panel-troops .uv-rozet .uvr-guc{
-  font-weight:800; font-size:19px; color:#ffd257;
-  text-shadow:0 2px 3px rgba(0,20,45,.65);
+#panel-troops .uv-rozet .uvr-et{
+  font-weight:800; font-size:12px; color:#ffd257; line-height:1;
+}
+#panel-troops .uv-rozet .uvr-dg{
+  font-weight:800; font-size:19px; color:#ffd257; line-height:1.1;
+  text-shadow:0 2px 3px rgba(0,20,45,.55);
 }
 
 /* ── stat kutuları: emoji yok ── */
 #panel-troops .stats-grid .stat-ico{ display:none !important; }
 #panel-troops .stats-grid .stat-name{ font-size:12px !important; }
+`;
+document.head.appendChild(st);
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   BİRLİK GÖRSELLERİ — boy ve ortalama (2026-08)
+   Koruyucu ve Nişancı bir kademe küçültüldü, üçü de yatayda
+   tam ortaya alındı (yatay kaydırmalar sıfırlandı).
+   Değerler CSS değişkeni: ?ayar=1 paneli bunları oynatabilir.
+   ══════════════════════════════════════════════════════════════ */
+(function birlikGorselBoyu(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaBirlikGorselBoyu";
+st.textContent = `
+#panel-troops .us-knight .knight-wrap{
+  height:var(--tp-k-h,126%) !important; bottom:var(--tp-k-b,-55px) !important;
+  left:50% !important; transform:translateX(calc(-50% + var(--tp-k-x,0px))) !important;
+}
+#panel-troops .us-soldier .soldier-wrap{
+  height:var(--tp-a-h,106%) !important; bottom:var(--tp-a-b,-24px) !important;
+  left:50% !important; transform:translateX(calc(-50% + var(--tp-a-x,0px))) !important;
+}
+#panel-troops .us-robot .hero-img{
+  height:var(--tp-r-h,106%) !important; bottom:var(--tp-r-b,-30px) !important;
+  left:50% !important; transform:translateX(calc(-50% + var(--tp-r-x,0px))) !important;
+}
 `;
 document.head.appendChild(st);
 })();
