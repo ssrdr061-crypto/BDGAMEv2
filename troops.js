@@ -117,14 +117,14 @@ function kisaSayi(n) {
 
 /*  ─────────────────────────────────────────────
     1.a) ROLLER — eğitim ekranının solundaki üç düğme
-    Savunma → Şövalye · Güç → Asker · Nişan → Robot
+    Savunucu → Şövalye · Koruyucu → Asker · Nişancı → Robot
     Düğmeye basınca o birliğin ekranı gelir. Yeni birlik/rol
     eklersen sadece UNIT_TYPES'ı ve bu listeyi düzenle.
     ───────────────────────────────────────────── */
 const UNIT_ROLES = [
-  { id: "savunma", label: "Savunma", icon: "🛡️", unit: "knight"  },
-  { id: "guc",     label: "Güç",     icon: "⚔️", unit: "soldier" },
-  { id: "nisan",   label: "Nişan",   icon: "🎯", unit: "robot"   },
+  { id: "savunma", label: "Savunucu", icon: "🛡️", unit: "knight"  },
+  { id: "guc",     label: "Koruyucu", icon: "⚔️", unit: "soldier" },
+  { id: "nisan",   label: "Nişancı", icon: "🎯", unit: "robot"   },
 ];
 
 /*  Ekranda görünen ad: "1.Sv Şövalye".

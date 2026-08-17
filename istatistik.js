@@ -67,11 +67,23 @@ const AYAR = {
     ekran ve hesap kendiliğinden uyum sağlar.
     ───────────────────────────────────────────── */
 const STATLAR = [
-  { key: "saldiri", ad: "Saldırı",     ikon: "⚔️", renk: "#ff9d6b" },
-  { key: "savunma", ad: "Savunma",     ikon: "🛡️", renk: "#7fd0f2" },
-  { key: "can",     ad: "Sağlık",      ikon: "❤️", renk: "#ff8fa3" },
-  { key: "olum",    ad: "Öldürücülük", ikon: "💀", renk: "#d3b0ff" },
+  { key: "saldiri", ad: "Saldırı"     },
+  { key: "savunma", ad: "Savunma"     },
+  { key: "can",     ad: "Sağlık"      },
+  { key: "olum",    ad: "Öldürücülük" },
 ];
+
+/*  Ekranda birlik adı DEĞİL rol adı yazar (Savunucu Saldırı gibi).
+    Rol adları troops.js → UNIT_ROLES.label'dan gelir, burada
+    ikinci bir liste tutulmaz.                                    */
+function rolAdi(unitId) {
+  if (typeof UNIT_ROLES !== "undefined") {
+    const r = UNIT_ROLES.find(x => x.unit === unitId);
+    if (r) return r.label;
+  }
+  const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[unitId] : null;
+  return (d && d.name) || unitId;
+}
 
 /* Boş havuz nesnesi — {saldiri:0, savunma:0, can:0, olum:0} */
 function bosStat() {
@@ -236,152 +248,62 @@ function stil() {
   const el = document.createElement("style");
   el.id = "istatStil";
   el.textContent = `
+/* düz liste — kart/kutucuk yok, kaydırma çubuğu gizli */
 .ist-list{
-  display:flex; flex-direction:column; gap:10px;
-  overflow-y:auto; padding:4px 2px 10px;
-  scrollbar-width:thin; scrollbar-color:#5bb9e6 transparent;
+  display:flex; flex-direction:column;
+  overflow-y:auto; padding:2px 4px 14px;
+  scrollbar-width:none; -ms-overflow-style:none;
 }
-.ist-list::-webkit-scrollbar{ width:8px; }
-.ist-list::-webkit-scrollbar-thumb{ background:linear-gradient(180deg,#7fd0f2,#3d9fd6); border-radius:8px; }
+.ist-list::-webkit-scrollbar{ width:0; height:0; display:none; }
 
-.ist-kart{
-  border-radius:12px; padding:8px 10px 9px;
-  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
-  box-shadow:0 5px 0 #0b1c3a, 0 10px 16px rgba(0,20,45,.5),
-             inset 0 2px 3px rgba(150,205,255,.55), inset 0 -4px 8px rgba(0,10,30,.55);
-}
-.ist-bas{ display:flex; align-items:center; gap:8px; margin-bottom:7px; }
-.ist-bas img{ width:34px; height:34px; object-fit:contain; }
-.ist-bas .ist-emoji{ font-size:26px; }
-.ist-ad{
-  flex:1 1 auto; min-width:0;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px;
-  color:#eaf6ff; text-shadow:0 1px 2px rgba(0,20,45,.6);
-}
-.ist-adet{
+/* rol başlığı — sadece ayırıcı, kutu değil */
+.ist-grup{
   font-family:'Baloo 2',sans-serif; font-weight:800; font-size:11px;
-  color:#bfe6ff; background:rgba(0,20,45,.35);
-  padding:2px 8px; border-radius:9px;
+  letter-spacing:.5px; text-transform:uppercase;
+  color:#9fc9ea; padding:12px 2px 4px;
 }
-.ist-satir{
-  display:flex; align-items:center; gap:6px;
-  padding:3px 0; border-top:1px solid rgba(160,215,255,.16);
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:12px;
-}
-.ist-satir:first-of-type{ border-top:none; }
-.ist-ikon{ width:18px; text-align:center; font-size:13px; }
-.ist-etiket{ flex:1 1 auto; color:#d9edff; }
-.ist-taban{ color:#9fc4e6; font-size:11px; }
-.ist-ok{ color:#7fa8cc; font-size:10px; }
-.ist-final{ color:#fff; min-width:34px; text-align:right; }
-.ist-yuzde{
-  min-width:48px; text-align:right; font-size:11px;
-  color:#8ef0a8;
-}
-.ist-yuzde.sifir{ color:#7e9ab5; }
+.ist-grup:first-child{ padding-top:2px; }
 
-.ist-kaynak{
-  border-radius:12px; padding:8px 10px;
-  background:linear-gradient(180deg, rgba(12,40,75,.85), rgba(8,26,52,.9));
-  border:1px solid rgba(150,205,255,.22);
+.ist-satir{
+  display:flex; align-items:center; gap:10px;
+  padding:7px 4px;
+  border-bottom:1px solid rgba(160,215,255,.14);
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px;
 }
-.ist-kaynak-bas{
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:12px;
-  color:#cfe9ff; margin-bottom:5px;
-}
-.ist-kaynak-satir{
-  display:flex; align-items:center; gap:7px; padding:2px 0;
-  font-family:'Baloo 2',sans-serif; font-weight:700; font-size:11px;
-  color:#b6d6f2;
-}
-.ist-kaynak-satir .k-ad{ flex:1 1 auto; }
-.ist-not{
-  font-family:'Baloo 2',sans-serif; font-weight:700; font-size:10.5px;
-  color:#9dbdd8; line-height:1.45; padding:2px 2px 0;
-}
+.ist-etiket{ flex:1 1 auto; min-width:0; color:#dcefff;
+  text-shadow:0 1px 2px rgba(0,20,45,.5); }
+.ist-deger{ flex:0 0 auto; color:#ffffff; font-size:14px;
+  text-shadow:0 1px 2px rgba(0,20,45,.6); }
 `;
   document.head.appendChild(el);
 }
 
-function kartHTML(unitId) {
-  const d = UNIT_TYPES[unitId];
-  const st = S();
-  const adet = (st && st.troops && st.troops[unitId]) || 0;
-  const t = taban(unitId), h = havuz(unitId), f = birim(unitId);
+/*  Bir rolün dört satırı:  "Savunucu Saldırı ........ 5"
+    Görsel, adet, emoji, taban→final geçişi ve yüzde YOK.
+    Sadece o anki gerçek değer yazar (bonuslar zaten içinde).   */
+function grupHTML(unitId) {
+  const rol = rolAdi(unitId);
+  const f = birim(unitId);
 
-  const pic = d.img
-    ? `<img src="${d.img}" alt="">`
-    : `<span class="ist-emoji">${d.icon || "🪖"}</span>`;
-
-  const ad = (typeof unitAdi === "function")
-    ? unitAdi(d)
-    : (seviye(unitId) + ".Sv " + d.name);
-
-  const satirlar = STATLAR.map(s => {
-    const y = h[s.key] || 0;
-    const fin = Math.round(f[s.key] * 10) / 10;
-    return `
+  const satirlar = STATLAR.map(s => `
       <div class="ist-satir">
-        <span class="ist-ikon">${s.ikon}</span>
-        <span class="ist-etiket">${s.ad}</span>
-        <span class="ist-taban">${t[s.key]}</span>
-        <span class="ist-ok">→</span>
-        <span class="ist-final">${fin}</span>
-        <span class="ist-yuzde${y > 0 ? "" : " sifir"}">${y > 0 ? "+%" + (Math.round(y * 10) / 10) : "+%0"}</span>
-      </div>`;
-  }).join("");
+        <span class="ist-etiket">${rol} ${s.ad}</span>
+        <span class="ist-deger">${sayi(f[s.key])}</span>
+      </div>`).join("");
 
-  return `
-    <div class="ist-kart">
-      <div class="ist-bas">
-        ${pic}
-        <div class="ist-ad">${ad}</div>
-        <div class="ist-adet">${adet}</div>
-      </div>
-      ${satirlar}
-    </div>`;
+  return `<div class="ist-grup">${rol}</div>${satirlar}`;
 }
 
-function kaynakHTML() {
-  const satirlar = KAYNAKLAR.map(k => {
-    /* Kaynağın genel katkısı — birlikler arasında farklıysa
-       "değişken" yazar, aynıysa tek sayı gösterir. */
-    const degerler = birlikler().map(u => {
-      const v = k.hesapla(u) || bosStat();
-      return STATLAR.map(s => v[s.key] || 0).join(",");
-    });
-    const hepsiAyni = degerler.every(x => x === degerler[0]);
-    const ilk = k.hesapla(birlikler()[0]) || bosStat();
-    const toplam = STATLAR.reduce((a, s) => a + (ilk[s.key] || 0), 0);
-
-    let ozet;
-    if (!hepsiAyni) ozet = "birliğe göre değişir";
-    else if (toplam <= 0) ozet = "henüz bağlı değil";
-    else ozet = "etkin";
-
-    return `
-      <div class="ist-kaynak-satir">
-        <span>${k.ikon}</span>
-        <span class="k-ad">${k.ad}</span>
-        <span>${ozet}</span>
-      </div>`;
-  }).join("");
-
-  return `
-    <div class="ist-kaynak">
-      <div class="ist-kaynak-bas">Bonus Kaynakları</div>
-      ${satirlar}
-      <div class="ist-not">
-        Yüzdeler toplanır, çarpılmaz. Kahraman ve mağaza güçlendirmeleri
-        bu listeye girmez — onlar savaş anında finalin üstüne biner.
-      </div>
-    </div>`;
+/* Tam sayıysa tam yazar, değilse tek ondalık (5,4 gibi). */
+function sayi(v) {
+  const n = Math.round((Number(v) || 0) * 10) / 10;
+  return (n % 1 === 0) ? String(n) : String(n).replace(".", ",");
 }
 
 function ciz() {
   const liste = document.getElementById("istList");
   if (!liste || typeof UNIT_TYPES === "undefined") return;
-  liste.innerHTML = birlikler().map(kartHTML).join("") + kaynakHTML();
+  liste.innerHTML = birlikler().map(grupHTML).join("");
 }
 
 /* Ekranı ve sekmeyi bir kez kur. troops.js'in build()'i
@@ -397,7 +319,7 @@ function kur() {
   const btn = document.createElement("button");
   btn.className = "tp-tab";
   btn.dataset.tab = SEKME_ID;
-  btn.innerHTML = '<span class="tp-ico">📊</span>İstatistik';
+  btn.innerHTML = 'İstatistik';
   bar.appendChild(btn);
 
   /* kendi ekranımız — troops.js'in .tp-screen kabuğunu kullanır */
