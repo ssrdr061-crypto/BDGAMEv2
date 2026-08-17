@@ -5373,8 +5373,12 @@ st.textContent = `
    Üstteki "6.Sv" tek satır, alttaki "Güç" etiket + değer olarak
    altlı üstlü — stat kutusundaki gibi.
    Stat satırının içine konunca 4. kutunun üstüne biniyordu;
-   artık .unit-screen'in doğrudan çocuğu.                        */
-#panel-troops .unit-screen{ position:relative; }
+   artık .unit-screen'in doğrudan çocuğu.
+
+   DİKKAT: .unit-screen'e position:relative YAZILMAZ. O element
+   zaten position:absolute + inset:0 ile paneli kaplıyor; relative
+   yapılınca kaplama çöker ve ekrandaki her şey yukarı yığılır.
+   Absolute olduğu için rozete kapsayıcılık zaten yapıyor.        */
 #panel-troops .uv-rozet{
   position:absolute; z-index:26;
   top:calc(96px + env(safe-area-inset-top,0)); right:14px;
