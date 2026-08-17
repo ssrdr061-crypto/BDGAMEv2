@@ -2593,7 +2593,6 @@ body.world-active{padding:0; overflow:hidden;}
 <script src="kahramanlar.js"></script>
 <!-- BİRLİK DOSYASI: her zaman "troops.js" adıyla yüklenir (heroes.js ile aynı kural). -->
 <script src="troops.js"></script>
-<script src="istatistik.js"></script>
 <script>
 
 const ensure = (val, min = 0) => Math.max(min, val);
@@ -7942,6 +7941,38 @@ bindEnter(["coordX", "coordY"], handleCoordGo);
 const TroopViewer = (function () {
   const ORDER = ["knight", "soldier", "robot"];
   const NAMES = { knight: "Şövalye", soldier: "Asker", robot: "Robot" };
+
+  /*  ── KADEME SEÇİMİ ──────────────────────────────────────────
+      Kafa kutucukları artık birlik seçici DEĞİL, KADEME seçici.
+      Soldaki rol düğmeleri aileyi (Savunucu/Koruyucu/Nişancı),
+      kutucuklar o ailenin kademesini (Sv1…Sv6) seçer.
+      Her aile kendi seçimini hatırlar.                          */
+  const KADEME_SEC = { knight: 1, soldier: 1, robot: 1 };
+
+  /* Aile + kademe → birlik kimliği. Sv1 kimliği DEĞİŞMEZ
+     ("knight"), üst kademeler "knight2"… biçimindedir.          */
+  function kademeId(aile, lv) {
+    lv = lv || 1;
+    const id = (lv <= 1) ? aile : (aile + lv);
+    return (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES[id]) ? id : aile;
+  }
+
+  /* O ailenin kaç kademesi tanımlı? (troops.js → KADEME_SAYISI) */
+  function kademeSayisi() {
+    return (typeof KADEME_SAYISI !== "undefined") ? KADEME_SAYISI : 1;
+  }
+
+  /* Ekranda görünen ailenin şu anki birlik kimliği. */
+  function aktifId(aile) { return kademeId(aile, KADEME_SEC[aile]); }
+
+  /* Kutucuğa basılınca: aynı ekranda kalır, sadece kademe değişir. */
+  function setKademe(aile, lv) {
+    const en = kademeSayisi();
+    KADEME_SEC[aile] = Math.max(1, Math.min(en, lv || 1));
+    renderUnitStats();
+    const t = document.getElementById("uvTitle");
+    if (t && typeof unitAdi === "function") t.textContent = unitAdi(aktifId(ORDER[idx]));
+  }
   let idx = 0, inited = false, screens = [], dots = [], titleEl = null, viewerEl = null;
 
   const robot = { running: false };
@@ -7991,9 +8022,14 @@ const TroopViewer = (function () {
     });
   }
 
+  /* Kutucuklar artık kademe seçici: her kutucuk kendi ailesinin
+     seçili kademesine göre işaretlenir. */
   function syncPortraits() {
     document.querySelectorAll("#panel-troops .uv-portrait").forEach(b => {
-      b.classList.toggle("is-active", (parseInt(b.dataset.i, 10) || 0) === idx);
+      const aile = b.dataset.unit;
+      const k    = parseInt(b.dataset.kademe, 10) || 1;
+      if (!aile) return;
+      b.classList.toggle("is-active", k === (KADEME_SEC[aile] || 1));
     });
   }
 
@@ -8001,7 +8037,7 @@ const TroopViewer = (function () {
     screens.forEach((s, i) => { if (s) s.classList.toggle("is-active", i === idx); });
     dots.forEach((d, i) => d.classList.toggle("is-active", i === idx));
     if (titleEl) titleEl.textContent = (typeof unitAdi === "function")
-      ? unitAdi(ORDER[idx]) : NAMES[ORDER[idx]];
+      ? unitAdi(aktifId(ORDER[idx])) : NAMES[ORDER[idx]];
     syncRoles();
     if (fullRedraw || !_drawn) { renderUnitStats(); _drawn = true; }
     else syncPortraits();
@@ -8040,20 +8076,34 @@ const TroopViewer = (function () {
       const cfg = STAT_MAP[uid];
       const el = document.getElementById(cfg.el);
       if (!el) return;
-      const def = UNIT_TYPES[uid];
+      /* Gösterilen birlik = ailenin SEÇİLİ KADEMESİ (Sv1 … Sv6). */
+      const lv    = KADEME_SEC[uid] || 1;
+      const kid   = kademeId(uid, lv);
+      const def   = UNIT_TYPES[kid];
       if (!def) return;
-      const count = (state && state.troops && state.troops[uid]) || 0;
+      const kilit = lv > 1;          /* Sv2+ şimdilik üretilemez */
+
+      const count = (state && state.troops && state.troops[kid]) || 0;
       /* Birlik sayısını stage içindeki elemente yaz */
       const countEl = document.getElementById("uvCount_" + uid);
       if (countEl) countEl.textContent = "x" + count;
-      /* ── ÜST: 3 birliğin portresi (seçici) ── */
-      let html = `<div class="uv-portraits">` + ORDER.map((u, k) => {
-        const d = UNIT_TYPES[u];
-        const src = (d && d.img) ? d.img : "";
-        return `<button class="uv-portrait${k === idx ? " is-active" : ""}" data-i="${k}" aria-label="${NAMES[u]}">` +
-               (src ? `<img src="${src}" alt="">` : `<span>${d ? d.icon : "?"}</span>`) +
-               `</button>`;
-      }).join("") + `</div>`;
+
+      /* Üst kademedeyken görsel karartılır (henüz üretilemediği için) */
+      const scr = viewerEl && viewerEl.querySelector('.unit-screen[data-unit="' + uid + '"]');
+      if (scr) scr.classList.toggle("kademe-kilit", kilit);
+
+      /* ── ÜST: bu ailenin KADEMELERİ (Sv1 … Sv6) ── */
+      let html = `<div class="uv-portraits">`;
+      for (let k = 1; k <= kademeSayisi(); k++) {
+        const d = UNIT_TYPES[kademeId(uid, k)];
+        if (!d) continue;
+        const src = d.img || "";
+        html += `<button class="uv-portrait${k === lv ? " is-active" : ""}${k > 1 ? " kp-kilit" : ""}` +
+                `" data-unit="${uid}" data-kademe="${k}" aria-label="${k}.Sv ${d.name}">` +
+                (src ? `<img src="${src}" alt="">` : `<span>${d.icon || "?"}</span>`) +
+                `<span class="kp-sv">${k}</span></button>`;
+      }
+      html += `</div>`;
 
       /* ── İSTATİSTİKLER ── */
       /* 4. satır: birliğin KALE GÜCÜNE kattığı puan (troops.js → power) */
@@ -8085,7 +8135,13 @@ const TroopViewer = (function () {
       const totalCost = def.cost * qty;
       const instCost = (typeof instantCostFor === "function") ? instantCostFor(uid, qty) : totalCost * 3;
 
-      if (isTraining) {
+      if (kilit) {
+        /* Sv2+ : statlar görünür ama üretim yok. Terfi sistemi
+           yazılınca bu blok terfi düğmesiyle değiştirilecek. */
+        html += `<div class="unit-train-bar">
+            <div class="utb-kilit">🔒 ${lv}. Seviye üretimi yakında</div>
+          </div>`;
+      } else if (isTraining) {
         /* TOPLAM kalan süre = kuyruktaki SON birliğin bitişi.
            Eskiden SIRADAKİ birliğin süresi yazılıyordu: 37 şövalye
            kuyruktayken "1:43" görünüyordu, oysa hepsinin bitmesine
@@ -8124,7 +8180,8 @@ const TroopViewer = (function () {
 
       /* Bind events */
       el.querySelectorAll(".uv-portrait").forEach(btn => {
-        bindTap(btn, () => go(parseInt(btn.dataset.i, 10) || 0));
+        bindTap(btn, () => setKademe(btn.dataset.unit || uid,
+                                     parseInt(btn.dataset.kademe, 10) || 1));
       });
 
       const trainBtn = el.querySelector(".unit-train-btn");

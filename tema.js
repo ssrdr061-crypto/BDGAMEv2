@@ -5256,3 +5256,84 @@ html body .hsm-card-item.kullanildi{ animation:hsmKullanildi .34s ease; }
   if (document.head) ekle2();
   else document.addEventListener("DOMContentLoaded", ekle2);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   KADEME SEÇİCİ — kafa kutucukları (2026-08)
+   ------------------------------------------------------------
+   Kutucuklar artık BİRLİK seçici değil, KADEME seçici (Sv1…Sv6).
+   Bu iki şeyi değiştirdi:
+
+   1) KIRPMA ARTIK SIRAYA GÖRE DEĞİL. Eskiden kırpma
+      .uv-portrait[data-i="0/1/2"] ile yazılıydı — 0 şövalyenin,
+      1 askerin, 2 robotun kadrajıydı. Kutucuklar tek bir ailenin
+      kademelerini gösterdiği için o sıra anlamını yitirdi:
+      robot ekranındayken 0. kutucuk şövalye kadrajıyla kırpıyor,
+      robotun kafası yamuk çıkıyordu.
+      Çözüm: kırpma [data-unit="knight|soldier|robot"] ile yazıldı.
+      DEĞİŞKENLER AYNI (--tp-kp-* vb.) — ?ayar=1 ayar paneli ve
+      hastanedeki .hospital-face aynı değerleri okumaya devam eder.
+
+   2) Sv2+ henüz üretilemiyor: görsel karartılır, üretim çubuğu
+      yerine kilit yazısı çıkar.
+   ══════════════════════════════════════════════════════════════ */
+(function kademeSecici(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaKademeSecici";
+st.textContent = `
+
+/* ── 1) KIRPMA: sıraya göre değil, AİLEYE göre ── */
+#panel-troops .uv-portrait[data-unit="knight"] img{
+  width:var(--tp-kp-w,150%) !important;
+  margin:var(--tp-kp-t,-29%) 0 0 var(--tp-kp-l,-26%) !important;
+}
+#panel-troops .uv-portrait[data-unit="soldier"] img{
+  width:var(--tp-ap-w,130%) !important;
+  margin:var(--tp-ap-t,-16%) 0 0 var(--tp-ap-l,-21%) !important;
+}
+#panel-troops .uv-portrait[data-unit="robot"] img{
+  width:var(--tp-rp-w,140%) !important;
+  margin:var(--tp-rp-t,-10%) 0 0 var(--tp-rp-l,-18%) !important;
+}
+
+/* 6 kutucuk yan yana sığsın — biraz daralt ve aralarını kıs */
+#panel-troops .uv-portraits{ gap:5px !important; }
+#panel-troops .uv-portrait{
+  position:relative !important;
+  width:calc(var(--tp-box,44px) * .86) !important;
+  height:calc(var(--tp-box,44px) * .86) !important;
+}
+
+/* köşedeki seviye rakamı */
+#panel-troops .uv-portrait .kp-sv{
+  position:absolute !important; right:1px; bottom:0;
+  width:auto !important; height:auto !important;
+  display:block !important;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:10px !important;
+  color:#fff; line-height:1;
+  padding:1px 3px; border-radius:6px;
+  background:rgba(6,20,40,.72);
+  pointer-events:none;
+}
+
+/* henüz üretilemeyen kademeler soluk durur */
+#panel-troops .uv-portrait.kp-kilit img{ filter:grayscale(1) brightness(.6); }
+#panel-troops .uv-portrait.kp-kilit.is-active img{ filter:grayscale(.55) brightness(.8); }
+
+/* ── 2) Sv2+ : sahnedeki görsel karartılır ── */
+#panel-troops .unit-screen.kademe-kilit .stage{
+  filter:grayscale(.85) brightness(.42) !important;
+}
+
+/* üretim çubuğu yerine kilit yazısı */
+#panel-troops .utb-kilit{
+  flex:1 1 auto; text-align:center;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px;
+  color:#cfe3f5; padding:11px 8px;
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(20,45,80,.85), rgba(10,26,50,.9));
+  border:2px solid rgba(160,210,255,.28);
+}
+`;
+document.head.appendChild(st);
+})();
