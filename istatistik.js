@@ -273,16 +273,16 @@ function stil() {
 
 .ist-satir{
   display:flex; align-items:center; gap:8px;
-  padding:3px 4px;
-  border-bottom:1px solid rgba(160,215,255,.14);
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:18px;
+  padding:4px;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px;
   color:#ffffff; text-shadow:none;
+  white-space:nowrap;              /* hepsi tek satır */
 }
 /* sembol yuvası — her grubun İLK satırında dolu, diğerlerinde boş.
    Boşken de yer kapladığı için yazılar hizada kalır. */
 .ist-sembol{ flex:0 0 26px; text-align:center; font-size:17px; }
 
-.ist-etiket{ flex:1 1 auto; min-width:0; }
+.ist-etiket{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 
 /* sağdaki rakam — sağ kenardan içeri alındı, sabit genişlikte
    hizalı duruyor. Daha sola almak için margin-right'ı büyüt. */
