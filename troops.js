@@ -26,13 +26,87 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, power: 5,  level: 1, role: "savunma", modelScale: 0.80, img: "gorsel8.webp",
+  knight:  { id: "knight",  name: "Şövalye", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, img: "gorsel8.webp",
              kaynak: { et: 6,  su: 2, demir: 9  } },
-  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, power: 7,  level: 1, role: "guc",     modelScale: 0.80, img: "gorsel9.webp",
+  soldier: { id: "soldier", name: "Asker",   icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, img: "gorsel9.webp",
              kaynak: { et: 12, su: 3, demir: 12 } },
-  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, power: 10, level: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp",
+  robot:   { id: "robot",   name: "Robot",   icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp",
              kaynak: { su: 5, demir: 15, enerji: 5 } },
 };
+
+/*  ─────────────────────────────────────────────
+    1.a1) KADEMELER (Sv2 – Sv6)
+    Yukarıdaki üç birlik Sv1'dir ve KİMLİKLERİ DEĞİŞMEZ
+    ("knight", "soldier", "robot") — kayıtlı ordular, hastane
+    kayıtları ve savaş günlükleri bu yüzden bozulmaz.
+
+    Üst kademeler buradan OTOMATİK üretilir:
+        knight2 … knight6 · soldier2 … robot6
+    Elle yazılmaz, aşağıdaki sayıları değiştirmen yeter.
+
+    GÖRSELLER: şimdilik Sv1'in görselini kullanır. Kademelere
+    ayrı görsel çizince KADEME_GORSEL tablosunu doldur, başka
+    hiçbir yeri değiştirmen gerekmez.
+    ───────────────────────────────────────────── */
+const KADEME_SAYISI = 6;
+
+const KADEME = {
+  STAT_ARTIS:  3,     /* her kademede saldırı/savunma/can/öldürücülüğe +3 */
+  MALIYET_KAT: 1.8,   /* elmas maliyeti her kademede bu katsayıyla artar  */
+  SURE_KAT:    1.8,   /* eğitim süresi                                    */
+  KAYNAK_KAT:  1.8,   /* et/su/demir/enerji                               */
+  GUC_KAT:     1.8,   /* sıralamadaki güç puanı                           */
+};
+
+/* Kademe görselleri — boş bırakılan Sv1'inkini kullanır.
+   Örnek: KADEME_GORSEL["knight2"] = "gorsel20.webp"; */
+const KADEME_GORSEL = {};
+
+(function kademeleriUret() {
+  const tabanlar = ["knight", "soldier", "robot"];
+  tabanlar.forEach(tid => {
+    const t = UNIT_TYPES[tid];
+    for (let lv = 2; lv <= KADEME_SAYISI; lv++) {
+      const k = lv - 1;                       /* Sv1'den kaç basamak yukarı */
+      const ek = k * KADEME.STAT_ARTIS;
+      const id = tid + lv;
+
+      const kaynak = {};
+      Object.keys(t.kaynak || {}).forEach(r => {
+        kaynak[r] = Math.round((t.kaynak[r] || 0) * Math.pow(KADEME.KAYNAK_KAT, k));
+      });
+
+      UNIT_TYPES[id] = {
+        id, name: t.name, icon: t.icon,
+        cost:         Math.round(t.cost * Math.pow(KADEME.MALIYET_KAT, k)),
+        trainMinutes: Math.round(t.trainMinutes * Math.pow(KADEME.SURE_KAT, k)),
+        attack:  (t.attack  || 0) + ek,
+        defense: (t.defense || 0) + ek,
+        hp:      (t.hp      || 0) + ek,
+        olum:    (t.olum    || 0) + ek,
+        power:   Math.round((t.power || 0) * Math.pow(KADEME.GUC_KAT, k)),
+        level: lv, aile: tid, kademe: lv,
+        role: t.role, modelScale: t.modelScale,
+        img: KADEME_GORSEL[id] || t.img,
+        kaynak,
+      };
+    }
+  });
+})();
+
+/* Bir birliğin ailesi (knight/soldier/robot). Bonuslar kademeye
+   değil AİLEYE işler: Sv1 de Sv6 da aynı araştırmadan yararlanır. */
+function birlikAilesi(unitId) {
+  const d = UNIT_TYPES[unitId];
+  return (d && d.aile) || unitId;
+}
+
+/* Bir ailenin kademeleri, Sv1'den Sv6'ya sıralı. */
+function aileKademeleri(aile) {
+  return Object.values(UNIT_TYPES)
+    .filter(d => d.aile === aile)
+    .sort((a, b) => (a.kademe || 1) - (b.kademe || 1));
+}
 
 /*  ─────────────────────────────────────────────
     1.a2) BİRLİK BAŞINA KAYNAK — UNIT_TYPES.kaynak
@@ -874,7 +948,10 @@ const TroopTabs = (function () {
     if (!list || typeof UNIT_TYPES === "undefined") return;
     if (typeof applyFinishedTraining === "function") applyFinishedTraining();
 
-    const defs = Object.values(UNIT_TYPES);
+    /* 18 birlik var ama hepsini listelemek anlamsız: sahip olunanlar
+       ve her ailenin Sv1'i görünür, boş kademeler gizlenir. */
+    const defs = Object.values(UNIT_TYPES).filter(def =>
+      (def.kademe || 1) === 1 || ((state.troops && state.troops[def.id]) || 0) > 0);
     if (!defs.length) { list.innerHTML = `<div class="tp-empty">Tanımlı birlik yok.</div>`; return; }
 
     list.innerHTML = defs.map((def, i) => {

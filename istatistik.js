@@ -35,23 +35,13 @@ const ISTATISTIK = (function () {
     1) AYARLAR — DENGE SAYILARI SADECE BURADA
     ───────────────────────────────────────────── */
 const AYAR = {
-  SURUM: 1,
-
-  /* Her seviyede her istatistiğe eklenen sabit sayı.
-     Sv1 asker 5/3/6/3 ise → Sv2 asker 8/6/9/6 olur. */
-  SEVIYE_ARTIS: 3,
-
-  /* ÖLDÜRÜCÜLÜK taban değerleri. Bu istatistik yeni olduğu için
-     troops.js'te yok, burada duruyor. İleride istenirse
-     UNIT_TYPES'a taşınabilir — o zaman sadece taban() değişir. */
-  TABAN_OLUM: { knight: 1, soldier: 3, robot: 5 },
+  SURUM: 2,
 
   /* Öldürücülük rakibin savunmasının en fazla yüzde kaçını
      yok sayabilir. %100 olursa savunma anlamsızlaşır. */
   OLUM_TAVAN: 75,
 
-  /* Öldürücülüğün savunma delmeye çevrilme oranı.
-     delme% = öldürücülük × BU (tavanla sınırlı). */
+  /* delme% = öldürücülük × BU (tavanla sınırlı) */
   OLUM_CARPAN: 1.5,
 
   /* Araştırmada bir dalın her seviyesi kaç yüzde verir. */
@@ -60,6 +50,10 @@ const AYAR = {
   /* Kale seviyesi başına tüm birliklere kaç yüzde. */
   KALE_ADIM: 1,
 };
+
+/*  NOT: Birliklerin taban değerleri ve kademe artışı artık
+    troops.js'tedir (UNIT_TYPES + KADEME). Burada ikinci bir
+    tablo tutulmaz — tek doğruluk kaynağı kuralı.              */
 
 /*  ─────────────────────────────────────────────
     2) İSTATİSTİK LİSTESİ
@@ -76,6 +70,15 @@ const STATLAR = [
 /*  Ekranda birlik adı DEĞİL rol adı yazar (Savunucu Saldırı gibi).
     Rol adları troops.js → UNIT_ROLES.label'dan gelir, burada
     ikinci bir liste tutulmaz.                                    */
+function rolSembol(unitId) {
+  if (typeof UNIT_ROLES !== "undefined") {
+    const r = UNIT_ROLES.find(x => x.unit === unitId);
+    if (r && r.icon) return r.icon;
+  }
+  const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[unitId] : null;
+  return (d && d.icon) || "";
+}
+
 function rolAdi(unitId) {
   if (typeof UNIT_ROLES !== "undefined") {
     const r = UNIT_ROLES.find(x => x.unit === unitId);
@@ -102,6 +105,13 @@ function S() {
   catch (e) { return null; }
 }
 
+/*  Ekranda kademeler DEĞİL aileler listelenir. 18 birlik olsa da
+    bonus 3 role aittir → 3 aile × 4 istatistik = 12 satır.      */
+function aileler() {
+  if (typeof UNIT_ROLES !== "undefined") return UNIT_ROLES.map(r => r.unit);
+  return birlikler().filter(id => (UNIT_TYPES[id].kademe || 1) === 1);
+}
+
 function birlikler() {
   return (typeof UNIT_TYPES !== "undefined") ? Object.keys(UNIT_TYPES) : [];
 }
@@ -110,26 +120,29 @@ function birlikler() {
     4) KATMAN 1 — TABAN
     ───────────────────────────────────────────── */
 
-/* Birliğin şu anki seviyesi. state.birlikSv henüz yoksa
-   troops.js'teki level alanına, o da yoksa 1'e düşer. */
+/* Birliğin kademesi (Sv kaçıncı). Kademe tanımından gelir. */
 function seviye(unitId) {
-  const st = S();
-  const kayit = st && st.birlikSv && st.birlikSv[unitId];
-  if (kayit > 0) return kayit;
   const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[unitId] : null;
-  return (d && d.level) || 1;
+  return (d && (d.kademe || d.level)) || 1;
 }
 
-/* Seviyeye göre ham değerler. Sv1 = troops.js'teki sayılar. */
+/* Bir birliğin ailesi. Bonuslar kademeye değil AİLEYE işler:
+   Sv1 şövalye de Sv6 şövalye de aynı "Savunucu" bonusunu alır. */
+function aile(unitId) {
+  if (typeof birlikAilesi === "function") return birlikAilesi(unitId);
+  const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[unitId] : null;
+  return (d && d.aile) || unitId;
+}
+
+/* Kademesine göre ham değerler — doğrudan troops.js'ten. */
 function taban(unitId) {
   const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[unitId] : null;
   const out = bosStat();
   if (!d) return out;
-  const ek = (seviye(unitId) - 1) * AYAR.SEVIYE_ARTIS;
-  out.saldiri = (d.attack  || 0) + ek;
-  out.savunma = (d.defense || 0) + ek;
-  out.can     = (d.hp      || 0) + ek;
-  out.olum    = (AYAR.TABAN_OLUM[unitId] || 0) + ek;
+  out.saldiri = d.attack  || 0;
+  out.savunma = d.defense || 0;
+  out.can     = d.hp      || 0;
+  out.olum    = d.olum    || 0;
   return out;
 }
 
@@ -144,6 +157,8 @@ const KAYNAKLAR = [
   /* ── ARAŞTIRMA ──────────────────────────────────────────
      Beklenen kayıt biçimi:
        state.arastirma = { soldier: { saldiri: 3, can: 1 }, ... }
+     Anahtar AİLEDİR (knight/soldier/robot), kademe değil —
+     bir araştırma o ailenin bütün kademelerine işler.
      Sayı o dalın SEVİYESİdir, yüzde değil.
      Yüzde = seviye × ARASTIRMA_ADIM.
      (2. adımda araştırma binası bu alanı yazacak.)            */
@@ -152,7 +167,7 @@ const KAYNAKLAR = [
     hesapla(unitId) {
       const out = bosStat();
       const st = S();
-      const dal = st && st.arastirma && st.arastirma[unitId];
+      const dal = st && st.arastirma && st.arastirma[aile(unitId)];
       if (!dal) return out;
       STATLAR.forEach(s => {
         const lv = Number(dal[s.key]) || 0;
@@ -257,29 +272,42 @@ function stil() {
 .ist-list::-webkit-scrollbar{ width:0; height:0; display:none; }
 
 .ist-satir{
-  display:flex; align-items:center; gap:10px;
+  display:flex; align-items:center; gap:8px;
   padding:3px 4px;
   border-bottom:1px solid rgba(160,215,255,.14);
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:18px;
   color:#ffffff; text-shadow:none;
 }
+/* sembol yuvası — her grubun İLK satırında dolu, diğerlerinde boş.
+   Boşken de yer kapladığı için yazılar hizada kalır. */
+.ist-sembol{ flex:0 0 26px; text-align:center; font-size:17px; }
+
 .ist-etiket{ flex:1 1 auto; min-width:0; }
-.ist-deger{ flex:0 0 auto; }
+
+/* sağdaki rakam — sağ kenardan içeri alındı, sabit genişlikte
+   hizalı duruyor. Daha sola almak için margin-right'ı büyüt. */
+.ist-deger{ flex:0 0 auto; min-width:52px; text-align:right; margin-right:26px; }
 `;
   document.head.appendChild(el);
 }
 
-/*  Bir rolün dört satırı:  "Savunucu Saldırı ........ 5"
-    Görsel, adet, emoji, taban→final geçişi ve yüzde YOK.
-    Sadece o anki gerçek değer yazar (bonuslar zaten içinde).   */
+/*  Bir rolün dört satırı:  "Savunucu Saldırı ........ +%0"
+    BU EKRAN OYUNCUNUN EKRANIDIR — birliğin ham değerini değil,
+    hesapta BİRİKMİŞ BONUS YÜZDESİNİ gösterir. Ham taban değerler
+    birliğe aittir (seviye atlayınca değişir), yüzde ise oyuncunun
+    kalıcı ilerlemesidir. İki oyuncuyu karşılaştıran şey budur.
+    Ham değerler yine hesaplanır (birim/ordu) ama burada yazmaz.  */
 function grupHTML(unitId) {
   const rol = rolAdi(unitId);
-  const f = birim(unitId);
+  const h = havuz(unitId);
 
-  const satirlar = STATLAR.map(s => `
+  const sembol = rolSembol(unitId);
+
+  const satirlar = STATLAR.map((s, i) => `
       <div class="ist-satir">
+        <span class="ist-sembol">${i === 0 ? sembol : ""}</span>
         <span class="ist-etiket">${rol} ${s.ad}</span>
-        <span class="ist-deger">${sayi(f[s.key])}</span>
+        <span class="ist-deger">+%${sayi(h[s.key])}</span>
       </div>`).join("");
 
   return satirlar;
@@ -294,7 +322,7 @@ function sayi(v) {
 function ciz() {
   const liste = document.getElementById("istList");
   if (!liste || typeof UNIT_TYPES === "undefined") return;
-  liste.innerHTML = birlikler().map(grupHTML).join("");
+  liste.innerHTML = aileler().map(grupHTML).join("");
 }
 
 /* Ekranı ve sekmeyi bir kez kur. troops.js'in build()'i
