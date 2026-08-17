@@ -106,7 +106,7 @@ const shopItems = [
 
   /* ── REVOLİA (Robot Komutan) ── */
   { name: "Ek Bağlantı", price: 10000, isBoost: true, heroId: "revolia", heroName: "REVOLİA", icon: "🔌",
-    boostDesc: "Robot birlikler her 3 turda bir %90 ihtimalle %195 hasar verir.",
+    boostDesc: "Nişancı birlikler her 3 turda bir %90 ihtimalle %195 hasar verir.",
     effect: { type: "boost_robot_periodic_damage", everyTurns: 3, chance: 90, damagePct: 195 } },
   { name: "Yedek Şarj", price: 10500, isBoost: true, heroId: "revolia", heroName: "REVOLİA", icon: "🔋",
     boostDesc: "Tüm birliklerin toplam canına ek %50 ekstra can sağlığı ekler.",
