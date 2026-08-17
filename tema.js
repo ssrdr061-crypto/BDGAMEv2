@@ -5367,28 +5367,43 @@ const st = document.createElement("style");
 st.id = "temaEgitimRozet";
 st.textContent = `
 
-/* ── sağ üst rozet: ✕ düğmesinin altında, alt alta Sv ve Güç ──
-   Kutu yok, sadece ince sarı yazı. Stat satırının içine konunca
-   4. kutunun üstüne biniyordu; artık .unit-screen'in çocuğu.    */
+/* ── sağ üst rozet: ✕ düğmesinin altında, alt alta iki kutu ──
+   Kutular STAT KUTULARIYLA aynı: aynı zemin (rgba(4,32,60,.22)),
+   aynı köşe yarıçapı, aynı dolgu ve aynı yazı boyutları.
+   Üstteki "6.Sv" tek satır, alttaki "Güç" etiket + değer olarak
+   altlı üstlü — stat kutusundaki gibi.
+   Stat satırının içine konunca 4. kutunun üstüne biniyordu;
+   artık .unit-screen'in doğrudan çocuğu.                        */
 #panel-troops .unit-screen{ position:relative; }
 #panel-troops .uv-rozet{
   position:absolute; z-index:26;
-  top:calc(54px + env(safe-area-inset-top,0)); right:16px;
-  display:flex; flex-direction:column; align-items:flex-end; gap:5px;
+  top:calc(96px + env(safe-area-inset-top,0)); right:14px;
+  display:flex; flex-direction:column; gap:6px;
   pointer-events:none;
-  font-family:'Baloo 2',sans-serif;
+  font-family:'Baloo 2','Nunito',sans-serif;
 }
 #panel-troops .uv-rozet .uvr-kutu{
-  display:flex; align-items:baseline; gap:5px;
+  min-width:66px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:1px;
+  padding:6px 8px;
+  border-radius:10px;
+  background:rgba(4,32,60,.22);
+  box-shadow:0 2px 6px rgba(0,20,45,.28);
+  text-align:center;
 }
 #panel-troops .uv-rozet .uvr-et{
-  font-weight:700; font-size:11px; color:#ffd257; opacity:.72;
-  text-shadow:0 1px 2px rgba(0,20,45,.55);
+  font-weight:700; font-size:12px; line-height:1.1;
+  color:#ffd257; opacity:.92;
+  text-shadow:0 1px 3px rgba(0,40,70,.6);
 }
 #panel-troops .uv-rozet .uvr-dg{
-  font-weight:800; font-size:16px; color:#ffd257;
-  text-shadow:0 1px 3px rgba(0,20,45,.6);
+  font-weight:800; font-size:20px; line-height:1.05;
+  color:#ffd257; font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 3px rgba(0,40,70,.6);
 }
+/* seviye kutusu tek satır — yüksekliği diğeriyle eşitlenir */
+#panel-troops .uv-rozet .uvr-kutu.uvr-sv{ padding:11px 8px; }
 
 /* ── stat kutuları: emoji yok ── */
 #panel-troops .stats-grid .stat-ico{ display:none !important; }
