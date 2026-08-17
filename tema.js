@@ -855,7 +855,7 @@ function ozetHTML(r) {
 
 /* ── SAYFA 2: birlik dökümü ── */
 function unitDetailHTML(r) {
-  const AD = { knight: "Şövalye", soldier: "Asker", robot: "Robot" };
+  const AD = { knight: "Savunucu", soldier: "Koruyucu", robot: "Nişancı" };
   const f = (n) => (typeof fmt === "function") ? fmt(n || 0) : String(n || 0);
   const benS = benSaldiranMi(r);
 
@@ -2211,7 +2211,7 @@ if (document.readyState === "loading") {
   /* ═══ CANLI AYAR PANELİ — adres sonuna ?ayar=1 ekleyince açılır ═══ */
   if (/[?&]ayar=1/.test(location.search)) {
     const P = ["k", "a", "r", "hx"];                 /* şövalye, asker, robot, rapor kahramanı */
-    const AD = ["Şövalye", "Asker", "Robot", "Rapor kah."];
+    const AD = ["Savunucu", "Koruyucu", "Nişancı", "Rapor kah."];
     const VARSAYILAN = {
       box: 44,
       k: { h: 126, b: -55, x: 0,  pw: 150, pl: -26, pt: -29 },
@@ -5349,6 +5349,44 @@ st.textContent = `
 }
 #panel-troops .utb-kilit .utb-top{ font-weight:800; font-size:15px; }
 #panel-troops .utb-kilit .utb-sub{ font-weight:700; font-size:11.5px; opacity:.75; }
+`;
+document.head.appendChild(st);
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   EĞİTİM EKRANI — ROZET VE STAT KUTULARI (2026-08)
+   ------------------------------------------------------------
+   · Güç, stat satırından çıkıp SAĞ ÜST köşeye taşındı; üstünde
+     birliğin kademesi yazıyor. İkisi de sarı.
+   · Stat satırının 4. kutusu artık ÖLDÜRÜCÜLÜK.
+   · Stat kutularındaki emojiler kaldırıldı.
+   ══════════════════════════════════════════════════════════════ */
+(function egitimRozet(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaEgitimRozet";
+st.textContent = `
+
+/* ── sağ üst rozet: ✕ düğmesinin altında ── */
+#panel-troops .uv-rozet{
+  position:absolute; z-index:26;
+  top:calc(56px + env(safe-area-inset-top,0)); right:14px;
+  display:flex; flex-direction:column; align-items:flex-end; gap:1px;
+  font-family:'Baloo 2',sans-serif; line-height:1.05;
+  pointer-events:none;
+}
+#panel-troops .uv-rozet .uvr-sv{
+  font-weight:800; font-size:15px; color:#ffd257;
+  text-shadow:0 2px 3px rgba(0,20,45,.65);
+}
+#panel-troops .uv-rozet .uvr-guc{
+  font-weight:800; font-size:19px; color:#ffd257;
+  text-shadow:0 2px 3px rgba(0,20,45,.65);
+}
+
+/* ── stat kutuları: emoji yok ── */
+#panel-troops .stats-grid .stat-ico{ display:none !important; }
+#panel-troops .stats-grid .stat-name{ font-size:12px !important; }
 `;
 document.head.appendChild(st);
 })();

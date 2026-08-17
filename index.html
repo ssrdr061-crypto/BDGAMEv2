@@ -2389,7 +2389,7 @@ body.world-active{padding:0; overflow:hidden;}
 
   <div class="overlay-panel" id="panel-troops">
     <div class="uv-viewer" id="unitViewer">
-      <div class="uv-title" id="uvTitle">Şövalye</div>
+      <div class="uv-title" id="uvTitle">Savunucu</div>
       <!-- Kapatma: artık savaş raporundakiyle AYNI düğme (.overlay-close).
            Eski .uv-close sınıfı kaldırıldı, konum aynı köşede kalıyor. -->
       <button class="overlay-close" data-close aria-label="Kapat">✕</button>
@@ -3804,7 +3804,7 @@ function openDailyRewardChest() {
   setTimeout(() => {
     chestEl.classList.add("opened");
     resultEl.innerHTML = `
-      <div class="daily-reward-item">🪖 <b>1 Şövalye</b></div>
+      <div class="daily-reward-item">🪖 <b>1 Savunucu</b></div>
       <div class="daily-reward-item">❤️ <b>Genel Can Tam Dolum</b></div>
     `;
     resultEl.style.opacity = "1";
@@ -7942,7 +7942,7 @@ bindEnter(["coordX", "coordY"], handleCoordGo);
 
 const TroopViewer = (function () {
   const ORDER = ["knight", "soldier", "robot"];
-  const NAMES = { knight: "Şövalye", soldier: "Asker", robot: "Robot" };
+  const NAMES = { knight: "Savunucu", soldier: "Koruyucu", robot: "Nişancı" };
 
   /*  ── KADEME SEÇİMİ ──────────────────────────────────────────
       Kafa kutucukları artık birlik seçici DEĞİL, KADEME seçici.
@@ -7973,7 +7973,8 @@ const TroopViewer = (function () {
     KADEME_SEC[aile] = Math.max(1, Math.min(en, lv || 1));
     renderUnitStats();
     const t = document.getElementById("uvTitle");
-    if (t && typeof unitAdi === "function") t.textContent = unitAdi(aktifId(ORDER[idx]));
+    const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[aktifId(ORDER[idx])] : null;
+    if (t && d) t.textContent = d.name;
   }
   let idx = 0, inited = false, screens = [], dots = [], titleEl = null, viewerEl = null;
 
@@ -8038,8 +8039,12 @@ const TroopViewer = (function () {
   function apply(fullRedraw) {
     screens.forEach((s, i) => { if (s) s.classList.toggle("is-active", i === idx); });
     dots.forEach((d, i) => d.classList.toggle("is-active", i === idx));
-    if (titleEl) titleEl.textContent = (typeof unitAdi === "function")
-      ? unitAdi(aktifId(ORDER[idx])) : NAMES[ORDER[idx]];
+    /* Başlıkta seviye YAZMAZ — sadece birliğin adı. Kademe bilgisi
+       sağ üstteki rozette duruyor. */
+    if (titleEl) {
+      const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[aktifId(ORDER[idx])] : null;
+      titleEl.textContent = (d && d.name) || NAMES[ORDER[idx]];
+    }
     syncRoles();
     if (fullRedraw || !_drawn) { renderUnitStats(); _drawn = true; }
     else syncPortraits();
@@ -8070,9 +8075,9 @@ const TroopViewer = (function () {
 
   function renderUnitStats() {
     const STAT_MAP = {
-      knight:  { el: "knightStats",  icons: ["⚔️","❤️","🛡️","🏰"], labels: ["Saldırı","Can","Savunma","Güç"] },
-      soldier: { el: "soldierStats", icons: ["⚔️","❤️","🛡️","🏰"], labels: ["Saldırı","Can","Savunma","Güç"] },
-      robot:   { el: "robotStats",   icons: ["⚡","❤️","🛡️","🏰"], labels: ["Saldırı","Can","Savunma","Güç"] },
+      knight:  { el: "knightStats",  icons: ["","","",""], labels: ["Saldırı","Can","Savunma","Öldürücülük"] },
+      soldier: { el: "soldierStats", icons: ["","","",""], labels: ["Saldırı","Can","Savunma","Öldürücülük"] },
+      robot:   { el: "robotStats",   icons: ["","","",""], labels: ["Saldırı","Can","Savunma","Öldürücülük"] },
     };
     ORDER.forEach(uid => {
       const cfg = STAT_MAP[uid];
@@ -8107,15 +8112,24 @@ const TroopViewer = (function () {
       }
       html += `</div>`;
 
-      /* ── İSTATİSTİKLER ── */
-      /* 4. satır: birliğin KALE GÜCÜNE kattığı puan (troops.js → power) */
-      const stats = [def.attack, def.hp, def.defense, def.power || 0];
+      /* ── İSTATİSTİKLER ──
+         4. kutu artık ÖLDÜRÜCÜLÜK. Güç bu satırdan çıktı, sağ üst
+         köşedeki rozete taşındı (seviye bilgisiyle birlikte). */
+      const stats = [def.attack, def.hp, def.defense, def.olum || 0];
       html += '<div class="stats-grid">';
       stats.forEach((val, i2) => {
         const ek = (cfg.labels[i2] === "Güç") ? " stat-row-power" : "";
         html += `<div class="stat-row${ek}"><span class="stat-ico">${cfg.icons[i2]}</span><span class="stat-name">${cfg.labels[i2]}</span><span class="stat-val">${fmt(val)}</span></div>`;
       });
       html += `</div>`;
+
+      /*  ── SAĞ ÜST ROZET ──
+          ✕ düğmesinin altında, alt alta: birliğin kademesi ve
+          kale gücüne kattığı puan. İkisi de sarı.               */
+      html += `<div class="uv-rozet">
+          <span class="uvr-sv">${lv}.Sv</span>
+          <span class="uvr-guc">${fmt(def.power || 0)}</span>
+        </div>`;
 
       /* ── EĞİT BÖLÜMÜ ── */
       const trainQueueForUnit = (state.trainingQueue || []).filter(j2 => j2.unitId === uid);

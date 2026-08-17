@@ -40,8 +40,8 @@ const shopItems = [
      Sefer kutusundaki ⚡ düğmesinden kullanılır — çantada varsa
      önce o harcanır, yoksa elmasla hızlandırma önerilir.
      Görseller şimdilik emoji; sen kendi görsellerini koyacaksın. */
-  { name: "İntikal Hızlandırma %25", price: 2000, isSeferHiz: true, hizOran: 0.25, icon: "⚡", gorsel: "25intikal.webp" },
-  { name: "İntikal Hızlandırma %50", price: 3500, isSeferHiz: true, hizOran: 0.50, icon: "🌀", gorsel: "50intikal.webp" },
+  { name: "İntikal Hızlandırma %25", price: 2000, isSeferHiz: true, hizOran: 0.25, icon: "⚡" },
+  { name: "İntikal Hızlandırma %50", price: 3500, isSeferHiz: true, hizOran: 0.50, icon: "🌀" },
   { name: "Can Potu", price: (typeof STAMINA_POTION_PRICE !== "undefined" ? STAMINA_POTION_PRICE : 6000), isStaminaPotion: true, icon: "❤️" },
 
   /* ── KAYNAK PAKETLERİ ──
@@ -106,7 +106,7 @@ const shopItems = [
 
   /* ── REVOLİA (Robot Komutan) ── */
   { name: "Ek Bağlantı", price: 10000, isBoost: true, heroId: "revolia", heroName: "REVOLİA", icon: "🔌",
-    boostDesc: "Robot birlikler her 3 turda bir %90 ihtimalle %195 hasar verir.",
+    boostDesc: "Nişancı birlikler her 3 turda bir %90 ihtimalle %195 hasar verir.",
     effect: { type: "boost_robot_periodic_damage", everyTurns: 3, chance: 90, damagePct: 195 } },
   { name: "Yedek Şarj", price: 10500, isBoost: true, heroId: "revolia", heroName: "REVOLİA", icon: "🔋",
     boostDesc: "Tüm birliklerin toplam canına ek %50 ekstra can sağlığı ekler.",
