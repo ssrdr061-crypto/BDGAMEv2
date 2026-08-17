@@ -65,6 +65,31 @@
      pvp.js onu dışa açmadığı için burada tekrar tanımlı; birini
      değiştirirsen diğerini de değiştir. */
   const ON_SAF = ["knight", "soldier", "robot"];
+
+  /*  ── KADEME DESTEĞİ ────────────────────────────────────────
+      troops.js 18 birlik tanımlar (3 aile × 6 kademe). Sabit
+      kimlik yerine AİLEYE bakılır; böylece Sv2+ birlikler de
+      savaşa girer ve hedeflenir. pvp.js ile aynı mantık.      */
+  function AILE(uid) {
+    const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
+    return (d && d.aile) || String(uid).replace(/[0-9]+$/, "") || uid;
+  }
+  function KADEME_NO(uid) {
+    const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
+    return (d && (d.kademe || d.level)) || 1;
+  }
+  /* Kurulum sırası: aile sırası korunur, kademeler Sv1'den yukarı. */
+  function SAF_SIRASI() {
+    const hepsi = (typeof UNIT_TYPES !== "undefined") ? Object.keys(UNIT_TYPES) : [];
+    const out = [];
+    ON_SAF.forEach(fam => {
+      hepsi.filter(id => AILE(id) === fam)
+           .sort((a, b) => KADEME_NO(a) - KADEME_NO(b))
+           .forEach(id => out.push(id));
+    });
+    hepsi.forEach(id => { if (out.indexOf(id) < 0) out.push(id); });
+    return out;
+  }
   const HEDEF_SIRASI = {
     knight:  ["soldier", "robot",   "knight"],
     soldier: ["robot",   "knight",  "soldier"],
@@ -91,18 +116,30 @@
     });
 
     const birimler = [];
-    ON_SAF.forEach(uid => {
+    SAF_SIRASI().forEach(uid => {
       const d = UT()[uid];
       const n = sayim[uid] || 0;
       if (!d || n <= 0) return;
+
+      /*  Statların TEK KAYNAĞI istatistik katmanıdır (istatistik.js):
+          taban + araştırma/kale bonusları. Katman yoksa troops.js'in
+          ham değerine düşer — oyun yine çalışır.                    */
+      let atk = say(d.attack, 1), def = say(d.defense, 0),
+          hp  = say(d.hp, 1),     olum = say(d.olum, 0);
+      if (typeof ISTATISTIK !== "undefined" && ISTATISTIK && ISTATISTIK.birim) {
+        const b = ISTATISTIK.birim(uid);
+        if (b) { atk = b.saldiri; def = b.savunma; hp = b.can; olum = b.olum; }
+      }
+
       birimler.push({
         unitId: uid,
         count: n,
         start: n,
-        atk: say(d.attack, 1),
-        def: say(d.defense, 0),
+        atk: atk,
+        def: def,
+        olum: olum,
         /* Can buff'ı birlik canına yansır — eski motorda da böyleydi */
-        hpEach: Math.max(1, Math.round(say(d.hp, 1) * (hpCarpani || 1))),
+        hpEach: Math.max(1, Math.round(hp * (hpCarpani || 1))),
         /* Yarım kalmış hasar: bir birimi düşürmeye yetmeyen artık */
         artik: 0,
         dusen: 0,
@@ -143,7 +180,28 @@
   /* ── HASAR FORMÜLÜ ────────────────────────────────────────────
      pvp.js rollDamage ile aynı: savunma hasarın bir kısmını emer,
      ne kadar yüksek olursa olsun minDamagePct kadarı geçer. */
-  function hasarHesapla(hamAtk, hedefDef, ultiSans, ultiCarpan) {
+  /*  Ordunun ağırlıklı ortalama öldürücülüğü — ağırlık, o birliğin
+      saldırı payıdır: hasarı kim veriyorsa delme de ondan gelir.
+      Kahramanın öldürücülüğü yoktur, payı ortalamayı seyreltir.   */
+  function orduOlum(b, hamAtk) {
+    if (!hamAtk || hamAtk <= 0) return 0;
+    let top = 0;
+    b.forEach(u => { top += say(u.olum, 0) * (u.atk * u.count); });
+    return top / hamAtk;
+  }
+
+  /* Öldürücülük → rakip savunmasının yüzde kaçı yok sayılır (0–1).
+     Hesap istatistik.js'te; katman yoksa aynı tavan burada uygulanır
+     ki iki yerde farklı sayı oluşmasın. */
+  function olumDelme(olumDeg) {
+    if (!olumDeg || olumDeg <= 0) return 0;
+    if (typeof ISTATISTIK !== "undefined" && ISTATISTIK && ISTATISTIK.olumCarpani) {
+      return ISTATISTIK.olumCarpani(olumDeg) / 100;
+    }
+    return Math.min(75, olumDeg * 1.5) / 100;
+  }
+
+  function hasarHesapla(hamAtk, hedefDef, ultiSans, ultiCarpan, delme) {
     const c = pvpCfg();
     const defenseFactor = say(c.defenseFactor, 0.35);
     const minDamagePct  = say(c.minDamagePct, 0.12);
@@ -152,7 +210,8 @@
 
     if (hamAtk <= 0) return { dmg: 0, isUlti: false };
 
-    const emilen = hedefDef * defenseFactor;
+    /* Savunma emilimi, saldıranın öldürücülüğü kadar delinir. */
+    const emilen = hedefDef * defenseFactor * (1 - (delme || 0));
     let dmg = Math.max(hamAtk * minDamagePct, hamAtk - emilen) * damageScale;
     dmg *= (1 - variance / 2) + Math.random() * variance;
 
@@ -174,14 +233,21 @@
   function hasariDagit(birimler, srcKey, dmg, taban) {
     if (dmg <= 0) return 0;
 
-    const sira = HEDEF_SIRASI[srcKey] || ON_SAF;
+    const sira = HEDEF_SIRASI[AILE(srcKey)] || HEDEF_SIRASI[srcKey] || ON_SAF;
     let kalan = dmg, dusenToplam = 0;
 
-    for (const uid of sira) {
+    /* `sira` AİLE listesidir; bir ailenin birden çok kademesi olabilir.
+       Ön safta önce ALT kademeler kırılır. */
+    const hedefler = [];
+    sira.forEach(fam => {
+      birimler.filter(x => AILE(x.unitId) === fam)
+              .sort((p, q) => KADEME_NO(p.unitId) - KADEME_NO(q.unitId))
+              .forEach(x => hedefler.push(x));
+    });
+
+    for (const u of hedefler) {
       if (kalan <= 0) break;
       if (orduSayi(birimler) <= taban) break;
-
-      const u = birimler.find(x => x.unitId === uid);
       if (!u || u.count <= 0) continue;
 
       /* Bu tipe verilebilecek en fazla hasar */
@@ -214,6 +280,8 @@
     let enemyHp = 0;                     /* aşağıdaki okların gördüğü değişken */
     const hpMult = say(hero.hpMult, 1) || 1;
     const birimler = orduKur(troopRoster, hpMult);
+    /* Öldürücülük sayacı — savaş raporunda gösterilir */
+    const olumFx = { turlar: 0, delmeToplam: 0, kazanc: 0 };
 
     /* ── MAĞAZA BUFFLARI (buff.js) ────────────────────────────────
        Şans zarları savaş başında bir kez atılır. Yüzdeler taban
@@ -330,14 +398,25 @@
          Eski motorda sadece kahraman vuruyordu. Artık her birlik
          kendi saldırısıyla katkı veriyor, kahraman bir katkı daha. */
       const hamAtk = orduAtk(birimler) + say(hero.attack, 0);
+      const delme  = olumDelme(orduOlum(birimler, hamAtk));
       const vurus = hasarHesapla(hamAtk, canavarDef(),
                                  say(hero.ultiChance, 0.15),
-                                 say(hero.ultiMultiplier, 1.8));
+                                 say(hero.ultiMultiplier, 1.8),
+                                 delme);
+      /* Raporda gösterilecek: öldürücülük bu savaşta ne kazandırdı? */
+      if (delme > 0) {
+        olumFx.turlar++;
+        olumFx.delmeToplam += delme;
+        olumFx.kazanc += canavarDef() * say(pvpCfg().defenseFactor, 0.35)
+                       * delme * say(pvpCfg().damageScale, 0.35);
+      }
       /* Buff: ilk turlar / rastgele turlar / robot periyodu.
          Robot payı, robotların bu turdaki saldırı oranıdır. */
       if (BF) {
-        const rb = birimler.find(u => u.unitId === "robot");
-        const pay = (rb && hamAtk > 0) ? (rb.atk * rb.count) / hamAtk : 0;
+        /* Robot payı: TÜM robot kademelerinin bu turdaki saldırı oranı */
+        const rAtk = birimler.reduce((t, u) =>
+          t + (AILE(u.unitId) === "robot" ? u.atk * u.count : 0), 0);
+        const pay = (hamAtk > 0) ? rAtk / hamAtk : 0;
         const rc = BF.turHasar(turn, pay);
         if (rc !== 1) vurus.dmg = Math.max(1, Math.round(vurus.dmg * rc));
       }

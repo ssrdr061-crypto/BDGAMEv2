@@ -51,7 +51,18 @@ const UNIT_TYPES = {
 const KADEME_SAYISI = 6;
 
 const KADEME = {
-  STAT_ARTIS:  3,     /* her kademede saldırı/savunma/can/öldürücülüğe +3 */
+  /*  Her kademede eklenen sabit sayı — AİLEYE GÖRE FARKLI.
+      Birlikler yükseldikçe kendi karakterlerinde uzmanlaşır:
+        Savunucu → savunma ve cana ağırlık verir (tanklaşır)
+        Nişancı  → saldırı ve öldürücülüğe ağırlık verir (delicileşir)
+        Koruyucu → dört yöne dengeli, ama toplamda bir tık az (16'ya 18)
+      Sayıları değiştirmek yeterli, başka hiçbir yeri elleme.       */
+  STAT_ARTIS: {
+    knight:  { attack: 3, defense: 6, hp: 6, olum: 3 },   /* toplam 18 */
+    soldier: { attack: 4, defense: 4, hp: 4, olum: 4 },   /* toplam 16 */
+    robot:   { attack: 6, defense: 3, hp: 3, olum: 6 },   /* toplam 18 */
+  },
+
   MALIYET_KAT: 1.8,   /* elmas maliyeti her kademede bu katsayıyla artar  */
   SURE_KAT:    1.8,   /* eğitim süresi                                    */
   KAYNAK_KAT:  1.8,   /* et/su/demir/enerji                               */
@@ -68,7 +79,7 @@ const KADEME_GORSEL = {};
     const t = UNIT_TYPES[tid];
     for (let lv = 2; lv <= KADEME_SAYISI; lv++) {
       const k = lv - 1;                       /* Sv1'den kaç basamak yukarı */
-      const ek = k * KADEME.STAT_ARTIS;
+      const a = KADEME.STAT_ARTIS[tid] || { attack: 3, defense: 3, hp: 3, olum: 3 };
       const id = tid + lv;
 
       const kaynak = {};
@@ -80,10 +91,10 @@ const KADEME_GORSEL = {};
         id, name: t.name, icon: t.icon,
         cost:         Math.round(t.cost * Math.pow(KADEME.MALIYET_KAT, k)),
         trainMinutes: Math.round(t.trainMinutes * Math.pow(KADEME.SURE_KAT, k)),
-        attack:  (t.attack  || 0) + ek,
-        defense: (t.defense || 0) + ek,
-        hp:      (t.hp      || 0) + ek,
-        olum:    (t.olum    || 0) + ek,
+        attack:  (t.attack  || 0) + k * a.attack,
+        defense: (t.defense || 0) + k * a.defense,
+        hp:      (t.hp      || 0) + k * a.hp,
+        olum:    (t.olum    || 0) + k * a.olum,
         power:   Math.round((t.power || 0) * Math.pow(KADEME.GUC_KAT, k)),
         level: lv, aile: tid, kademe: lv,
         role: t.role, modelScale: t.modelScale,

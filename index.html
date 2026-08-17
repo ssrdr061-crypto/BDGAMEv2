@@ -2593,6 +2593,8 @@ body.world-active{padding:0; overflow:hidden;}
 <script src="kahramanlar.js"></script>
 <!-- BİRLİK DOSYASI: her zaman "troops.js" adıyla yüklenir (heroes.js ile aynı kural). -->
 <script src="troops.js"></script>
+<!-- İSTATİSTİK KATMANI: troops.js'ten SONRA yüklenmeli (UNIT_TYPES + KADEME okur). -->
+<script src="istatistik.js"></script>
 <script>
 
 const ensure = (val, min = 0) => Math.max(min, val);
@@ -8136,10 +8138,22 @@ const TroopViewer = (function () {
       const instCost = (typeof instantCostFor === "function") ? instantCostFor(uid, qty) : totalCost * 3;
 
       if (kilit) {
-        /* Sv2+ : statlar görünür ama üretim yok. Terfi sistemi
-           yazılınca bu blok terfi düğmesiyle değiştirilecek. */
+        /*  Sv2+ : statlar görünür ama üretim yok.
+            PANEL ZIPLAMASIN diye adet çubuğu GÖRÜNMEZ olarak yine
+            basılır — kademeler arası geçerken yükseklik sabit kalır.
+            Kilit kutusu da üretim düğmeleriyle aynı iki satırlıdır. */
+        html += `<div class="unit-qty-bar kilit-hayalet" aria-hidden="true">
+            <button class="uq-btn uq-minus">−</button>
+            <input type="number" class="uq-input" value="1" readonly tabindex="-1">
+            <button class="uq-btn uq-plus">+</button>
+            <div class="uv-res"></div>
+            <input type="range" class="uv-qty-slider" min="1" max="1" value="1" tabindex="-1">
+          </div>`;
         html += `<div class="unit-train-bar">
-            <div class="utb-kilit">🔒 ${lv}. Seviye üretimi yakında</div>
+            <div class="utb-kilit">
+              <span class="utb-top">🔒 ${lv}. Seviye</span>
+              <span class="utb-sub">üretim yakında</span>
+            </div>
           </div>`;
       } else if (isTraining) {
         /* TOPLAM kalan süre = kuyruktaki SON birliğin bitişi.

@@ -93,8 +93,38 @@ const CFG = {
   brokenThreshold:    150,
 };
 
-/* Birliklerin savaş dizilişi: baştakiler ÖN SAFTA, önce onlar kırılır */
+/* Birliklerin savaş dizilişi: baştakiler ÖN SAFTA, önce onlar kırılır.
+   Bunlar AİLELERDİR (knight/soldier/robot). Kademeler (knight2…knight6)
+   kendi ailelerinin içinde, Sv1'den yukarı doğru sıralanır — yani ön
+   safta önce alt kademeler kırılır. */
 const FRONT_ORDER = ["knight", "soldier", "robot"];
+
+/*  ── KADEME DESTEĞİ ─────────────────────────────────────────────
+    troops.js 18 birlik tanımlar (3 aile × 6 kademe). Motorun her
+    yerinde "knight" gibi sabit kimlik aramak yerine AİLEYE bakılır,
+    böylece Sv2+ birlikler de savaşa girer, hedeflenir ve buff alır.  */
+function AILE(uid) {
+  const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
+  return (d && d.aile) || String(uid).replace(/[0-9]+$/, "") || uid;
+}
+function KADEME_NO(uid) {
+  const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
+  return (d && (d.kademe || d.level)) || 1;
+}
+/* Ordunun kurulum sırası: aile sırası korunur, her ailenin
+   kademeleri Sv1'den Sv6'ya. */
+function SAF_SIRASI() {
+  const hepsi = (typeof UNIT_TYPES !== "undefined") ? Object.keys(UNIT_TYPES) : [];
+  const out = [];
+  FRONT_ORDER.forEach(fam => {
+    hepsi.filter(id => AILE(id) === fam)
+         .sort((a, b) => KADEME_NO(a) - KADEME_NO(b))
+         .forEach(id => out.push(id));
+  });
+  /* tanımda olup aileye girmeyen varsa sona eklenir */
+  hepsi.forEach(id => { if (out.indexOf(id) < 0) out.push(id); });
+  return out;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    HEDEF ÖNCELİĞİ (taş-kağıt-makas)
@@ -690,7 +720,7 @@ function findBuff(ab, t) { return (ab || []).find(a => a.type === t); }
 function applyTroopBuffs(units, ab) {
   let f;
   units.forEach(u => {
-    if (u.unitId === "robot") {
+    if (AILE(u.unitId) === "robot") {
       const rob = findBuff(ab, "robot_atk_hp_pct");
       if (rob && rob.v) { u.atk *= (1 + rob.v / 100); u.hp *= (1 + rob.v / 100); }
       const rd = findBuff(ab, "defense_robot_multiplier");
@@ -733,11 +763,23 @@ function flowOf(ab) {
 
 function makeArmy(troopsObj, heroStats, label, abilities, heroSkins) {
   const units = [];
-  FRONT_ORDER.forEach(uid => {
+  SAF_SIRASI().forEach(uid => {
     const d = UT()[uid]; if (!d) return;
     const c = Math.max(0, Math.floor(num((troopsObj || {})[uid], 0)));
-    if (c > 0) units.push({ unitId: uid, count: c, start: c, atk: d.attack, def: d.defense, hp: d.hp,
-                            floor: 0, passive: false });
+    if (c <= 0) return;
+
+    /*  Statların TEK KAYNAĞI istatistik katmanıdır (istatistik.js):
+        taban değer + araştırma/kale bonusları. Katman yüklü değilse
+        troops.js'teki ham değere düşer — oyun yine çalışır.        */
+    let atk = d.attack, def = d.defense, hp = d.hp, olum = d.olum || 0;
+    if (typeof ISTATISTIK !== "undefined" && ISTATISTIK && ISTATISTIK.birim) {
+      const b = ISTATISTIK.birim(uid);
+      if (b) { atk = b.saldiri; def = b.savunma; hp = b.can; olum = b.olum; }
+    }
+
+    units.push({ unitId: uid, count: c, start: c,
+                 atk: atk, def: def, hp: hp, olum: olum,
+                 floor: 0, passive: false });
   });
   const ab = abilities || [];
   applyTroopBuffs(units, ab);
@@ -787,7 +829,8 @@ function armyAlive(a) { return armyActiveCount(a) > 0 || a.hero.hp > 0; }
    tanınmayan/sınıfsız → ön saf sırası */
 function orderFor(srcKey) {
   const t = String(srcKey).split(":")[1] || String(srcKey);
-  return TARGET_ORDER[t] || FRONT_ORDER;
+  /* "knight3" gibi kademe kimlikleri kendi ailesinin sırasını kullanır */
+  return TARGET_ORDER[AILE(t)] || TARGET_ORDER[t] || FRONT_ORDER;
 }
 
 /* Tek bir kaynağın hasarını hedef ordusuna uygula.
@@ -800,29 +843,44 @@ function damageBySource(a, srcKey, dmg, taban, src) {
   a.pendingBy[srcKey] = (a.pendingBy[srcKey] || 0) + dmg;
 
   const sira = orderFor(srcKey);
-  for (const uid of sira) {
+  /* `sira` AİLE listesidir. Bir ailenin birden çok kademesi olabilir
+     (Sv1 … Sv6); ön safta önce ALT kademeler kırılır. */
+  for (const fam of sira) {
     if (a.pendingBy[srcKey] <= 0) break;            /* hasar tükendi */
     if (armyTroopCount(a) <= taban) break;          /* ordu bozguna uğradı */
 
-    const u = a.units.find(x => x.unitId === uid);
-    if (!u || u.passive || u.count <= u.floor) continue;  /* çekilmiş tip → sıradakine TAŞ */
+    const grup = a.units
+      .filter(x => AILE(x.unitId) === fam)
+      .sort((p, q) => KADEME_NO(p.unitId) - KADEME_NO(q.unitId));
+    if (!grup.length) continue;                     /* bu aile yok → sıradakine TAŞ */
 
-    while (u.count > u.floor && a.pendingBy[srcKey] >= u.hp && armyTroopCount(a) > taban) {
-      a.pendingBy[srcKey] -= u.hp;
-      u.count--;
-      const oldu = Math.random() < CFG.deathPct;
-      if (oldu) a.killed[u.unitId]  = (a.killed[u.unitId]  || 0) + 1;
-      else      a.wounded[u.unitId] = (a.wounded[u.unitId] || 0) + 1;
-      /* kesin kayıt: bu düşüşü hangi kaynak yaptı */
-      if (src) {
-        const k = src.killsBy[srcKey] || (src.killsBy[srcKey] = { killed: 0, wounded: 0 });
-        if (oldu) k.killed++; else k.wounded++;
+    let doldu = false;      /* tipte birlik var ama hasar yetmedi */
+
+    for (const u of grup) {
+      if (a.pendingBy[srcKey] <= 0) break;
+      if (armyTroopCount(a) <= taban) break;
+      if (u.passive || u.count <= u.floor) continue;  /* çekilmiş kademe → sıradakine TAŞ */
+
+      while (u.count > u.floor && a.pendingBy[srcKey] >= u.hp && armyTroopCount(a) > taban) {
+        a.pendingBy[srcKey] -= u.hp;
+        u.count--;
+        const oldu = Math.random() < CFG.deathPct;
+        if (oldu) a.killed[u.unitId]  = (a.killed[u.unitId]  || 0) + 1;
+        else      a.wounded[u.unitId] = (a.wounded[u.unitId] || 0) + 1;
+        /* kesin kayıt: bu düşüşü hangi kaynak yaptı */
+        if (src) {
+          const k = src.killsBy[srcKey] || (src.killsBy[srcKey] = { killed: 0, wounded: 0 });
+          if (oldu) k.killed++; else k.wounded++;
+        }
       }
+
+      /* kademe kendi tabanına indi → GERİ ÇEKİLİR, hasar sıradakine taşar */
+      if (u.count <= u.floor) { u.passive = true; continue; }
+      doldu = true;   /* hâlâ birlik var ama hasar yetmedi → biriksin */
+      break;
     }
 
-    /* tip kendi tabanına indi → GERİ ÇEKİLİR, hasar sıradaki tipe taşar */
-    if (u.count <= u.floor) { u.passive = true; continue; }
-    break;   /* tipte hâlâ birlik var ama hasar yetmedi → artık birikir */
+    if (doldu) break;
   }
 
   /* bozguna uğradıysa biriken hasar boşa gider */
@@ -863,14 +921,56 @@ function damageArmy(a, dmg, paylar, taban, src) {
 /* Bu turda ne kadar hasar çıkacağını ve bu hasarın hangi kaynaktan
    ne kadarının geldiğini hesapla (henüz uygulamaz).
    Dönen: { dmg, paylar } — paylar toplamı 1'dir.                    */
+/*  ── ÖLDÜRÜCÜLÜK ────────────────────────────────────────────────
+    Ordunun AĞIRLIKLI ORTALAMA öldürücülüğü. Ağırlık, o birliğin
+    saldırı payıdır: hasarı kim veriyorsa delme de ondan gelir.
+    Karışık ordu (10k Sv1 + 3k Sv3) doğru sonucu ancak böyle verir.
+    Kahramanın öldürücülüğü yoktur; payı ortalamayı SEYRELTİR —
+    bu bilinçli, kahraman zaten ulti çarpanıyla ödüllendiriliyor.   */
+function armyOlum(a) {
+  const raw = armyAtk(a);
+  if (raw <= 0) return 0;
+  let top = 0;
+  a.units.forEach(u => {
+    if (u.passive) return;
+    top += (u.olum || 0) * (u.atk * u.count);
+  });
+  return top / raw;
+}
+
+/*  Öldürücülük → rakip savunmasının yüzde kaçı yok sayılır (0–1).
+    Hesap istatistik.js'te; katman yoksa motor kendi tavanını uygular
+    ki iki yerde farklı sayı oluşmasın.                              */
+function olumDelme(a) {
+  const o = armyOlum(a);
+  if (o <= 0) return 0;
+  if (typeof ISTATISTIK !== "undefined" && ISTATISTIK && ISTATISTIK.olumCarpani) {
+    return ISTATISTIK.olumCarpani(o) / 100;
+  }
+  return Math.min(75, o * 1.5) / 100;
+}
+
 function rollDamage(from, to) {
   const raw = armyAtk(from);
   if (raw <= 0) return { dmg: 0, paylar: {} };
-  const soak = armyDef(to) * CFG.defenseFactor;
+
+  /* Savunma emilimi, saldıranın öldürücülüğü kadar delinir. */
+  const delme = olumDelme(from);
+  const soak  = armyDef(to) * CFG.defenseFactor * (1 - delme);
+
   let dmg = Math.max(raw * CFG.minDamagePct, raw - soak) * CFG.damageScale;
   dmg *= (1 - CFG.variance/2) + Math.random() * CFG.variance;
   if (from.hero.hp > 0 && Math.random() < from.hero.ultiChance) dmg *= from.hero.ultiMul;
   dmg = Math.max(1, Math.round(dmg));
+
+  /* Raporda gösterilecek: öldürücülük bu turda ne kazandırdı? */
+  if (delme > 0) {
+    const soakTam = armyDef(to) * CFG.defenseFactor;
+    from.olumFx = from.olumFx || { turlar: 0, delmeToplam: 0, kazanc: 0 };
+    from.olumFx.turlar++;
+    from.olumFx.delmeToplam += delme;
+    from.olumFx.kazanc += Math.max(0, soakTam - soak) * CFG.damageScale;
+  }
 
   /* Hasarın kaynak dağılımı: her birlik tipi kendi saldırı payı kadar.
      Bu pay, o tipin KENDİ hedef sırasıyla uygulanacak. */

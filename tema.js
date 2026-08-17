@@ -5325,15 +5325,30 @@ st.textContent = `
   filter:grayscale(.85) brightness(.42) !important;
 }
 
-/* üretim çubuğu yerine kilit yazısı */
+/*  Kilitli kademede de adet çubuğu basılır ama GÖRÜNMEZ:
+    yer kaplamaya devam eder, böylece kademeler arasında gezerken
+    panel yüksekliği hiç değişmez (aşağı yukarı zıplama olmaz).   */
+#panel-troops .unit-qty-bar.kilit-hayalet{
+  visibility:hidden !important;
+  pointer-events:none !important;
+}
+
+/*  Kilit kutusu üretim düğmeleriyle AYNI iki satırlı yapıda —
+    üstte başlık, altta açıklama. Yüksekliği .unit-train-btn ile
+    eşleşsin diye aynı dizilim ve dolgu kullanılır.               */
 #panel-troops .utb-kilit{
-  flex:1 1 auto; text-align:center;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px;
-  color:#cfe3f5; padding:11px 8px;
-  border-radius:14px;
+  flex:1 1 auto;
+  display:flex !important; flex-direction:column !important;
+  align-items:center !important; justify-content:center !important;
+  gap:1px;
+  font-family:'Baloo 2',sans-serif; color:#cfe3f5;
+  padding:8px 10px;
+  border-radius:16px;
   background:linear-gradient(180deg, rgba(20,45,80,.85), rgba(10,26,50,.9));
   border:2px solid rgba(160,210,255,.28);
 }
+#panel-troops .utb-kilit .utb-top{ font-weight:800; font-size:15px; }
+#panel-troops .utb-kilit .utb-sub{ font-weight:700; font-size:11.5px; opacity:.75; }
 `;
 document.head.appendChild(st);
 })();
