@@ -4770,7 +4770,9 @@ function renderInventory() {
 
         return `<div class="inv-row"><span>${k}</span><span class="qty">x${qty}</span></div>`;
       }
-      const bonusText = def.isBoost
+      const bonusText = def.isKaynak
+        ? `Kullanınca +${fmt(def.miktar)} ${def.name.replace(/ (Sandığı|Hücresi)$/, "")} verir`
+        : def.isBoost
         ? def.boostDesc
         : (def.isStaminaPotion || def.isSpeedUpItem)
           ? (def.isStaminaPotion ? "Genel Canı Doldurur" : "Eğitim/iyileşme süresini 5 dk kısaltır")
@@ -4784,12 +4786,46 @@ function renderInventory() {
         slotTag,
         bonusText,
         rightHTML: `<span class="qty">${qty}</span>
-            ${def.isStaminaPotion ? `<button class="inv-use-btn" data-item="${def.name}">Kullan</button>` : ""}`,
+            ${(def.isStaminaPotion || def.isKaynak) ? `<button class="inv-use-btn" data-item="${def.name}">Kullan</button>` : ""}`,
       });
     }).join("");
-    bindAll(list, ".inv-use-btn", () => useStaminaPotion());
+    bindAll(list, ".inv-use-btn", (ds) => {
+      const ad = ds && ds.item;
+      const d  = ad ? getItemDef(ad) : null;
+      if (d && d.isKaynak) kaynakPaketiKullan(ad);
+      else useStaminaPotion();
+    });
   }
   persistCurrentState();
+}
+
+/*  ── KAYNAK PAKETİ KULLANMA ──────────────────────────────────
+    Mağazadan alınan sandıklar çantada durur; burada kullanılınca
+    kaynak sayacına girer. Elde kaç tane varsa HEPSİ birden
+    kullanılır — 50 sandığı tek tek tıklatmak anlamsız olurdu.
+    Ne kadar verdiği magaza.js'teki tanımdan (kaynakId + miktar)
+    okunur, burada ikinci bir tablo tutulmaz.                    */
+function kaynakPaketiKullan(ad) {
+  const def = (typeof getItemDef === "function") ? getItemDef(ad) : null;
+  if (!def || !def.isKaynak) return;
+
+  const adet = (state.inventory && state.inventory[ad]) || 0;
+  if (adet <= 0) { showToast("Çantanda bu paketten yok."); return; }
+
+  if (!state.kaynaklar || typeof state.kaynaklar !== "object") {
+    state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
+  }
+  const k = def.kaynakId;
+  const eski = state.kaynaklar[k];
+  const toplam = (def.miktar || 0) * adet;
+  state.kaynaklar[k] = (typeof eski === "number" && isFinite(eski) ? eski : 0) + toplam;
+
+  delete state.inventory[ad];
+
+  if (typeof renderKaynaklar === "function") renderKaynaklar();
+  renderInventory();
+  persistCurrentState();
+  showToast(`${def.icon} +${fmt(toplam)} ${ad.replace(/ (Sandığı|Hücresi)$/, "")} eklendi!`);
 }
 
 const SHOP_CATEGORIES = [

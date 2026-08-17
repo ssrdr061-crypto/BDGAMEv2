@@ -570,16 +570,10 @@ function buyItem(idx, count) {
       }
     });
   } else if (item.isKaynak) {
-    /* Kaynak paketi çantaya DÜŞMEZ — üstteki sayaca doğrudan girer.
-       Çantada duran bir "sandık" ikinci bir kullanma adımı isterdi;
-       oyuncu zaten kaynak almak için tıklıyor. */
-    if (!state.kaynaklar || typeof state.kaynaklar !== "object") {
-      state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
-    }
-    const _k = item.kaynakId;
-    const _eski = state.kaynaklar[_k];
-    state.kaynaklar[_k] = (typeof _eski === "number" && isFinite(_eski) ? _eski : 0) + item.miktar * count;
-    if (typeof renderKaynaklar === "function") renderKaynaklar();
+    /* Kaynak paketi ÇANTAYA düşer; sayaca girmesi için oyuncunun
+       çantadan "Kullan" demesi gerekir (hızlandırma ürünleri gibi). */
+    state.inventory[item.name] = (state.inventory[item.name] || 0) + count;
+    if (typeof renderInventory === "function") renderInventory();
   } else {
     state.inventory[item.name] = (state.inventory[item.name] || 0) + count;
     renderInventory();         // çantaya yansıt
@@ -589,7 +583,7 @@ function buyItem(idx, count) {
   const card = document.querySelector(`.shop-card2[data-idx="${idx}"]`);
   if (card) card.classList.add("bought");
   if (item.isKaynak) {
-    showToast(`${item.icon} +${fmt(item.miktar * count)} ${item.name.replace(/ (Sandığı|Hücresi)$/, "")} eklendi!`);
+    showToast(`${item.icon} ${count}x ${item.name} çantana eklendi!`);
   } else {
     showToast(count === 1
       ? (item.isMissile ? "🚀 Füze hesabına eklendi!" : `${item.name} satın alındı!`)
