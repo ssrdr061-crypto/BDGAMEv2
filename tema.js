@@ -361,34 +361,38 @@ const DRAG_PX = 12;
 /* ═══════════════════════════════════════════════════════════════
    GİRİŞ EKRANI — oyunun açık mavi teması
    ═══════════════════════════════════════════════════════════════ */
+/* DÜZ: çerçeve, kalın alt kenar ve gölge yok. index.html'deki iki blok ve
+   aşağıdaki girisDuzles ile BİREBİR aynı — dördü ayrışırsa giriş ekranı
+   yükleme sırasında görünüm değiştirir. */
 #loginScreen .field input{
-  background:rgba(255,255,255,.18) !important;
-  border:2px solid rgba(190,240,255,.85) !important;
-  border-radius:14px !important;
+  background:linear-gradient(180deg, rgba(61,124,204,.72), rgba(21,46,94,.80)) !important;
+  border:none !important;
+  border-radius:13px !important;
   color:#fff !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:800 !important; font-size:15px !important;
-  text-shadow:0 1px 3px rgba(0,20,45,.7) !important;
+  text-shadow:none !important;
+  box-shadow:none !important;
 }
-#loginScreen .field input::placeholder{ color:rgba(255,255,255,.85) !important; font-weight:700 !important; }
+#loginScreen .field input::placeholder{ color:rgba(215,235,255,.75) !important; font-weight:700 !important; text-shadow:none !important; }
 #loginScreen .field input:focus{
-  background:rgba(255,255,255,.28) !important;
-  border-color:#2DC9FC !important;
-  box-shadow:0 0 0 3px rgba(45,201,252,.35) !important;
+  background:rgba(255,255,255,.30) !important;
+  border:none !important;
+  box-shadow:none !important;
   outline:none !important;
 }
 #loginScreen .login-btn{
-  background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;
-  border:2px solid rgba(190,240,255,.9) !important;
-  border-radius:15px !important;
+  background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%) !important;
+  border:none !important;
+  border-radius:13px !important;
   color:#fff !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:900 !important; font-size:17px !important; letter-spacing:.5px;
-  text-shadow:0 2px 3px rgba(0,40,70,.5) !important;
-  box-shadow:0 5px 0 #0e6fc0, 0 8px 18px rgba(0,20,45,.4), inset 0 1px 0 rgba(255,255,255,.45) !important;
-  transition:transform .08s, box-shadow .08s !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  box-shadow:none !important;
+  transition:transform .09s, filter .09s !important;
 }
-#loginScreen .login-btn:active{ transform:translateY(4px) !important; box-shadow:0 1px 0 #0e6fc0 !important; }
+#loginScreen .login-btn:active{ transform:scale(.98) !important; filter:brightness(.93) !important; box-shadow:none !important; }
 #loginScreen .login-switch a{ color:#2DC9FC !important; font-weight:900 !important; }
 
 /* ── ALT MENÜ (dock): panellerdeki ince açık-mavi çerçeve ── */
@@ -4813,30 +4817,33 @@ document.head.appendChild(st);
   const st = document.createElement("style");
   st.id = "girisDuzStil";
   st.textContent = `
+/* index.html'deki iki blokla BİREBİR aynı tutulacak — üç yer ayrışırsa
+   giriş ekranı yine üç ayrı görünüm arasında gidip gelir. */
 #loginScreen .field input{
-  border:1px solid rgba(190,240,255,.22) !important;
+  border:none !important;
   border-radius:13px !important;
-  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  box-shadow:none !important;
   text-shadow:none !important;
 }
 #loginScreen .field input:focus{
-  border-color:rgba(190,240,255,.45) !important;
-  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  border:none !important;
+  background:rgba(255,255,255,.30) !important;
+  box-shadow:none !important;
 }
 #loginScreen .field input::placeholder{ text-shadow:none !important; }
 
 #loginScreen .login-btn{
   border:none !important;
   border-radius:13px !important;
-  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  box-shadow:none !important;
   text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
   -webkit-text-stroke:0 !important;
   transition:transform .09s, filter .09s !important;
 }
 #loginScreen .login-btn:active{
-  transform:scale(.96) !important;
+  transform:scale(.98) !important;
   filter:brightness(.93) !important;
-  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  box-shadow:none !important;
 }
 
 #loginScreen .login-switch a{ text-shadow:0 1px 2px rgba(0,20,45,.55) !important; }
