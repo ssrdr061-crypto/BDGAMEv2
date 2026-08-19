@@ -606,10 +606,19 @@ function openCastlePopup(name, gx, gy, isOwn) {
     <div class="pvp-hp-bar"><i style="width:${hpPct}%; background:${hpColor};"></i></div>`;
 
   /* Rakibin BİRLİK DÖKÜMÜ gizli — sadece TOPLAM GÜÇ gösterilir.
-     Güç = saldırı + savunma + can/4 (savaş öncesi kaba bir kıyas). */
-  const totalPower = defender
-    ? Math.round(defender.attack + defender.defense + defender.maxHp / 4)
-    : 0;
+
+     GÜÇ HESABI TEK YERDEN: index.html'deki computePlayerPower().
+     Sıralama tablosu da aynı işlevi kullanıyor; böylece kale
+     penceresindeki sayı ile 🏆 Güç Sıralamasındaki sayı BİREBİR
+     aynı olur. Eskiden burada ayrı bir formül vardı
+     (saldırı + savunma + can/4) ve iki ekran farklı sayı
+     gösteriyordu.
+
+     computePlayerPower ham state'i okur (savunma robot çarpanı
+     uygulanmamış hâlini) — sıralama neyi okuyorsa o. */
+  const totalPower = (typeof computePlayerPower === "function")
+    ? computePlayerPower((acc && acc.state) || null)
+    : (defender ? Math.round(defender.attack + defender.defense + defender.maxHp / 4) : 0);
 
   /* KENDİ KALEN: elmas ve birlik dökümü (Savunucu/Koruyucu/Nişancı)
      buradan kaldırıldı — aynı bilgiler üst çubukta ve Birlikler
