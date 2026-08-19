@@ -1224,6 +1224,16 @@
     const gorH = wrapEl ? wrapEl.clientHeight : (window.innerHeight || 0);
     const PAY = 140;   /* düğüm kutusu + etiket payı, piksel */
 
+    /* ── HARİTA KAPALIYKEN KARAR VERME ──
+       Saldırı/arazi paneli açılırken battleMapWrap display:none olur.
+       Kapalı elemanın genişliği ve yüksekliği 0'dır. O anda buraya
+       girilirse HER kale "ekran dışı" sayılır, display:none yazılır ve
+       "gorunur=false" işaretiyle bir daha dokunulmaz — panel kapanınca
+       kaleler görünmez kalır, ancak oyuncu haritayı kaydırınca geri
+       gelirdi. Ölçü yoksa hiçbir şey yazmadan çıkıyoruz: kaleler
+       neyse o hâlde kalır. */
+    if (!(gorW > 0) || !(gorH > 0)) return;
+
     /* Etiket kısma kaldırıldı: düğümler canvas'a taşındı, bu döngüde
        artık yalnız KALELER var (birkaç tane). Onların adı her zaman
        görünmeli — kimin kalesi olduğu haritanın temel bilgisi. */
@@ -1886,10 +1896,17 @@
     ataletKur();
     uygulaMod();
 
-    window.addEventListener("resize", () => { boyutlandir(); cizIste(); });
+    /* Ölçü değişince zemin YENİDEN çizilir ama düğümler kendiliğinden
+       yerleşmezdi. Panel kapanıp harita yeniden görünür olduğunda
+       (0 → gerçek ölçü) burası tetiklenir; kaleleri de yerleştirmek
+       gerekiyor, yoksa oyuncu ekranı kaydırana kadar görünmezler. */
+    window.addEventListener("resize", () => {
+      boyutlandir(); cizIste(); dugumleriYerlestir();
+    });
     if (window.ResizeObserver) {
-      new ResizeObserver(() => { boyutlandir(); cizIste(); })
-        .observe(document.getElementById("battleMapWrap"));
+      new ResizeObserver(() => {
+        boyutlandir(); cizIste(); dugumleriYerlestir();
+      }).observe(document.getElementById("battleMapWrap"));
     }
 
     console.log("[harita.js] İzometrik zemin hazır —",
