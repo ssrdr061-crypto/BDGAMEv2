@@ -69,9 +69,33 @@ const KADEME = {
   GUC_KAT:     1.8,   /* sıralamadaki güç puanı                           */
 };
 
-/* Kademe görselleri — boş bırakılan Sv1'inkini kullanır.
-   Örnek: KADEME_GORSEL["knight2"] = "gorsel20.webp"; */
-const KADEME_GORSEL = {};
+/* Kademe görselleri — burada yazmayan kademe Sv1'inkini kullanır.
+   Sv1'ler bilerek boş: Şövalye gorsel8, Savaş Arabası gorsel9,
+   Okçu gorsel10 olarak kalıyor (UNIT_TYPES içinde yazılı).
+   Dosya adları küçük harf, Türkçe harf yok, gorsel8.webp ile
+   aynı klasörde durmalı. */
+const KADEME_GORSEL = {
+  /* Savunucu */
+  knight2:  "suvari.webp",
+  knight3:  "yeniceri.webp",
+  knight4:  "asker.webp",
+  knight5:  "robot.webp",
+  knight6:  "devrobot.webp",
+
+  /* Koruyucu */
+  soldier2: "savasfili.webp",
+  soldier3: "topcu.webp",
+  soldier4: "tank.webp",
+  soldier5: "saldirihelikopteri.webp",
+  soldier6: "supertank.webp",
+
+  /* Nişancı */
+  robot2:   "arbaletci.webp",
+  robot3:   "tufekci.webp",
+  robot4:   "havanbirligi.webp",
+  robot5:   "savasucagi.webp",
+  robot6:   "fuzesistemi.webp",
+};
 
 /*  ─────────────────────────────────────────────
     BİRLİK ADLARI — 18 ismin TEK KAYNAĞI
