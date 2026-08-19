@@ -361,8 +361,39 @@ const DRAG_PX = 12;
 /* ═══════════════════════════════════════════════════════════════
    GİRİŞ EKRANI — oyunun açık mavi teması
    ═══════════════════════════════════════════════════════════════ */
-/* (18) Giriş ekranı kuralları buradan KALDIRILDI.
-   Tek tanım: index.html ~105. Buraya yeniden yazma. */
+/* DÜZ: çerçeve, kalın alt kenar ve gölge yok. index.html'deki iki blok ve
+   aşağıdaki girisDuzles ile BİREBİR aynı — dördü ayrışırsa giriş ekranı
+   yükleme sırasında görünüm değiştirir. */
+#loginScreen .field input{
+  background:linear-gradient(180deg, rgba(61,124,204,.72), rgba(21,46,94,.80)) !important;
+  border:none !important;
+  border-radius:13px !important;
+  color:#fff !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:15px !important;
+  text-shadow:none !important;
+  box-shadow:none !important;
+}
+#loginScreen .field input::placeholder{ color:rgba(215,235,255,.75) !important; font-weight:700 !important; text-shadow:none !important; }
+#loginScreen .field input:focus{
+  background:rgba(255,255,255,.30) !important;
+  border:none !important;
+  box-shadow:none !important;
+  outline:none !important;
+}
+#loginScreen .login-btn{
+  background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%) !important;
+  border:none !important;
+  border-radius:13px !important;
+  color:#fff !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:900 !important; font-size:17px !important; letter-spacing:.5px;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  box-shadow:none !important;
+  transition:transform .09s, filter .09s !important;
+}
+#loginScreen .login-btn:active{ transform:scale(.98) !important; filter:brightness(.93) !important; box-shadow:none !important; }
+#loginScreen .login-switch a{ color:#2DC9FC !important; font-weight:900 !important; }
 
 /* ── ALT MENÜ (dock): panellerdeki ince açık-mavi çerçeve ── */
 .nav-dock{
@@ -2700,7 +2731,8 @@ st.textContent = `
 .daily-reward-close-btn,
 .log-open-btn,
 .stamina-potion-popup .spp-btn,
-#welcomeBack .wc-next{
+#welcomeBack .wc-next,
+#loginScreen .login-btn{
   background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%) !important;
   border:2px solid rgba(170,220,255,.75) !important;
   color:#ffffff !important;
@@ -2716,16 +2748,33 @@ st.textContent = `
 .daily-reward-close-btn:active,
 .log-open-btn:active,
 .stamina-potion-popup .spp-btn:active,
-#welcomeBack .wc-next:active{
+#welcomeBack .wc-next:active,
+#loginScreen .login-btn:active{
   box-shadow:0 1px 0 #0f2a55 !important;
 }
 /* "Satın Al" ortalanmış duruyor; :active dönüşümünü bozmayalım */
 #heroDetailOverlay #hdBuyBtn:active{ box-shadow:0 2px 0 #0f2a55 !important; }
 
-/* (18) Giriş ekranının KABARTMALI tanımı buradan SİLİNDİ.
-   Açılışta "önce düz, sonra kabartma" sorununun kaynağı buydu:
-   dosyada yukarıdaki düz bloktan SONRA geldiği için onu eziyordu.
-   Tek tanım: index.html ~105. */
+/* ── GİRİŞ EKRANI ────────────────────────────────────────────
+   Kutucuklar fotoğrafın üstünde duruyor. Çerçeveyi koyulaştırdık
+   ama içini de koyulaştırmak gerekti; yoksa açık çerçeve gidince
+   kutular arka plandaki kayaya karışıyordu. */
+#loginScreen .field input{
+  background:linear-gradient(180deg, rgba(61,124,204,.72), rgba(21,46,94,.80)) !important;
+  border:2px solid rgba(130,185,245,.75) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(160,215,255,.30),
+    0 4px 12px rgba(0,10,30,.45) !important;
+}
+#loginScreen .field input::placeholder{ color:rgba(215,235,255,.75) !important; }
+#loginScreen .field input:focus{
+  background:linear-gradient(180deg, rgba(74,139,216,.82), rgba(26,58,112,.86)) !important;
+  border-color:#8fc4ff !important;
+  box-shadow:0 0 0 3px rgba(90,156,224,.40),
+             inset 0 2px 0 rgba(160,215,255,.35) !important;
+}
+/* "Kayıt ol" bağlantısı eski camgöbeğiydi, aileye alındı */
+#loginScreen .login-switch a{ color:#9fd0ff !important; }
 
 /* ── KAHRAMAN KARTI: KAPAT BUTONU + OKLAR ────────────────────
    Kapat butonu gri yuvarlaktı; panellerdeki kırmızı kare X ile
@@ -4023,7 +4072,8 @@ st.textContent = `
 .daily-reward-close-btn,
 .log-open-btn,
 .stamina-potion-popup .spp-btn,
-#welcomeBack .wc-next{
+#welcomeBack .wc-next,
+#loginScreen .login-btn{
   box-shadow:0 2px 6px rgba(0,20,45,.32) !important;
 }
 #panel-troops .unit-instant-btn:active,
@@ -4033,7 +4083,8 @@ st.textContent = `
 .daily-reward-close-btn:active,
 .log-open-btn:active,
 .stamina-potion-popup .spp-btn:active,
-#welcomeBack .wc-next:active{
+#welcomeBack .wc-next:active,
+#loginScreen .login-btn:active{
   transform:none !important;
   box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
   filter:brightness(.94) !important;
@@ -4756,9 +4807,49 @@ document.head.appendChild(st);
   document.head.appendChild(st);
 })();
 
-/* (18) girisDuzles fonksiyonu tamamen SİLİNDİ.
-   Giriş ekranını düzleştiren bu blok gereksizdi: artık ezilecek
-   kabartmalı kural kalmadı. Tek tanım: index.html ~105. */
+/* ═══════════════════════════════════════════════════════════════
+   GİRİŞ EKRANI — 3B TEMİZLİĞİ
+   Kutular fotoğrafın üstünde durduğu için zemin KORUNUYOR;
+   kalkan sadece kabartı: kalın çerçeve, inset parlaklık ve
+   zıplayan basma tepkisi.
+   ═══════════════════════════════════════════════════════════════ */
+(function girisDuzles() {
+  const st = document.createElement("style");
+  st.id = "girisDuzStil";
+  st.textContent = `
+/* index.html'deki iki blokla BİREBİR aynı tutulacak — üç yer ayrışırsa
+   giriş ekranı yine üç ayrı görünüm arasında gidip gelir. */
+#loginScreen .field input{
+  border:none !important;
+  border-radius:13px !important;
+  box-shadow:none !important;
+  text-shadow:none !important;
+}
+#loginScreen .field input:focus{
+  border:none !important;
+  background:rgba(255,255,255,.30) !important;
+  box-shadow:none !important;
+}
+#loginScreen .field input::placeholder{ text-shadow:none !important; }
+
+#loginScreen .login-btn{
+  border:none !important;
+  border-radius:13px !important;
+  box-shadow:none !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  -webkit-text-stroke:0 !important;
+  transition:transform .09s, filter .09s !important;
+}
+#loginScreen .login-btn:active{
+  transform:scale(.98) !important;
+  filter:brightness(.93) !important;
+  box-shadow:none !important;
+}
+
+#loginScreen .login-switch a{ text-shadow:0 1px 2px rgba(0,20,45,.55) !important; }
+`;
+  document.head.appendChild(st);
+})();
 
 /* ═══════════════════════════════════════════════════════════════
    KOORDİNAT ÖLÇÜMÜ  —  ?olcum=1
@@ -5566,9 +5657,26 @@ html body .nav-dock{
 html body .dock-icon{ filter:none !important; }
 html body .dock-btn{ box-shadow:none !important; }
 
-/* (18) Giriş ekranı kuralları buradan çıkarıldı — artık tek tanım
-   index.html ~105'te ve onu ezen kimse kalmadı.
-   Aşağıdaki sona taşıma yaması SADECE üst şerit + alt menü için. */
+/* ── GİRİŞ EKRANI ── */
+html body #loginScreen .field input,
+html body #loginScreen .field input:focus{
+  box-shadow:none !important;
+  border:none !important;          /* çerçeve tamamen kalktı */
+}
+/* Çerçeve yokken "hangi kutudayım" belirsizleşmesin diye
+   odaklanınca zemin biraz açılıyor — çizgi yerine ton farkı. */
+html body #loginScreen .field input:focus{
+  background:rgba(255,255,255,.30) !important;
+}
+html body #loginScreen .login-btn,
+html body #loginScreen .login-btn:active{
+  box-shadow:none !important;
+  border:none !important;          /* çerçeve tamamen kalktı */
+}
+html body #loginScreen .login-btn:active{
+  transform:scale(.98) !important;   /* zıplama yok, hafif basma */
+  filter:brightness(.93) !important;
+}
 `;
 
   /* ── NEDEN İKİ KAT KORUMA ──
@@ -5589,4 +5697,130 @@ html body .dock-btn{ box-shadow:none !important; }
   [400, 1200, 2500, 5000].forEach(function (ms) { setTimeout(sonaTasi, ms); });
   document.addEventListener("DOMContentLoaded", sonaTasi);
   window.addEventListener("load", sonaTasi);
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   ÇANTA · GÜÇLENDİRME DETAY PENCERESİ
+
+   SORUN: Mağazadan alınan güçlendirmeler (Buzul Özü, Titanyum Tozu,
+   Perdeleme …) çantada duruyor ama kutucuğa dokununca hiçbir şey
+   olmuyordu. Ne yaptığı, hangi kahramana ait olduğu ve nasıl
+   kullanıldığı yalnız mağazada yazıyordu.
+
+   ÇÖZÜM: Kaynak paketlerindeki yolun aynısı. Kutucuğa dokununca
+   mağazanın penceresiyle AYNI sınıflarla (.bd-buy-mask /
+   .bd-buy-box / .bd-buy-top …) bir detay penceresi açılır. Yeni
+   CSS yazılmadı; mağaza penceresinin biçimi değişirse bu da
+   kendiliğinden değişir.
+
+   Yakalama (capture) evresinde dinleniyor: yukarıdaki eski
+   dinleyici eşya ne olursa olsun useStaminaPotion() çağırıyor,
+   güçlendirmede "Çantanda can potu yok" deyip susardı. Yolu burada
+   kesiyoruz — o dosyaya dokunmadan. (Tuzak 24 ile aynı yöntem.)
+
+   Buff BURADAN KULLANILMAZ: hazırlama yeri savaş ekranındaki yeşil
+   kutucuk (buff.js), çünkü buff yalnız kahramanı savaşa seçiliyse
+   hazırlanabiliyor. Bu pencere sadece anlatır.
+   ═══════════════════════════════════════════════════════════════ */
+(function cantaBuffDetay() {
+  "use strict";
+
+  var _esc = null;
+
+  function tanim(ad) {
+    try { return (typeof getItemDef === "function") ? getItemDef(ad) : null; }
+    catch (e) { return null; }
+  }
+
+  /* Kartın hangi eşya olduğu: gizli Kullan düğmesinin data-item'ı
+     güçlendirmelerde YOKTUR (o düğme yalnız can potu ve kaynak
+     paketlerine basılıyor), o yüzden isim etiketinden okunur. */
+  function kartAdi(kart) {
+    var b = kart.querySelector(".inv-use-btn");
+    if (b && b.dataset && b.dataset.item) return b.dataset.item;
+    var n = kart.querySelector(".item-name");
+    return n ? n.textContent.trim() : "";
+  }
+
+  function elde(ad) {
+    try { return (state.inventory && state.inventory[ad]) || 0; } catch (e) { return 0; }
+  }
+
+  function simge(d) {
+    try { if (typeof itemIconSVG === "function") return itemIconSVG(d); } catch (e) {}
+    return d.icon || "";
+  }
+
+  function aciklama(d) {
+    try { if (typeof shopItemDesc === "function") return shopItemDesc(d) || ""; } catch (e) {}
+    return d.boostDesc || "";
+  }
+
+  /* Kahraman savaşa seçili mi? Seçili değilse buff hazırlanamaz;
+     oyuncu pencereyi açtığında bunu görsün. */
+  function komutanSecili(heroId) {
+    try {
+      if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders)) {
+        return selectedCommanders.indexOf(heroId) !== -1;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function kapat() {
+    var m = document.querySelector(".bd-buy-mask");
+    if (m) m.remove();
+    if (_esc) { document.removeEventListener("keydown", _esc); _esc = null; }
+  }
+
+  function pencere(d) {
+    kapat();
+
+    var adet = elde(d.name);
+    var secili = komutanSecili(d.heroId);
+    var not = secili
+      ? "Savaş ekranındaki yeşil kutucuktan hazırlanır. Hazırladığın ilk savaşta işler, sonra tükenir."
+      : (d.heroName || "Kahraman") + " savaşa seçili değil. Hazırlamak için önce komutanlardan seç.";
+
+    var mask = document.createElement("div");
+    mask.className = "bd-buy-mask";
+    mask.innerHTML =
+      '<div class="bd-buy-box">' +
+        '<div class="bd-buy-head">' +
+          '<span>Güçlendirme</span>' +
+          '<button class="bd-buy-x" type="button">✕</button>' +
+        '</div>' +
+        '<div class="bd-buy-body">' +
+          '<div class="bd-buy-top">' +
+            '<div class="bd-buy-icon">' + simge(d) + '</div>' +
+            '<div class="bd-buy-txt">' +
+              '<div class="bd-buy-name">' + (d.heroName ? d.heroName + " · " : "") + d.name + '</div>' +
+              '<div class="bd-buy-desc">' + aciklama(d) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="bd-buy-desc" style="margin-bottom:10px">Çantanda: ' + adet + ' adet</div>' +
+          '<div class="bd-buy-desc">' + not + '</div>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(mask);
+
+    mask.querySelector(".bd-buy-x").addEventListener("click", kapat);
+    mask.addEventListener("click", function (e) { if (e.target === mask) kapat(); });
+    _esc = function (e) { if (e.key === "Escape") kapat(); };
+    document.addEventListener("keydown", _esc);
+  }
+
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var kart = t.closest("#invList .inv-card, #invList .shop-card");
+    if (!kart) return;
+
+    var d = tanim(kartAdi(kart));
+    if (!d || !d.isBoost) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+    pencere(d);
+  }, true);
 })();

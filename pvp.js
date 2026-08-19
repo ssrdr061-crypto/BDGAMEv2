@@ -85,7 +85,7 @@ const CFG = {
 
   /* ── Kısıtlar ── */
   attackCooldownMs: 0,                   /* aynı oyuncuya tekrar saldırı beklemesi — 0 = yok */
-  newbieShieldMs:   24 * 60 * 60 * 1000, /* yeni hesap kalkanı                   */
+  newbieShieldMs:   0,                   /* yeni hesap kalkanı — 0 = KAPALI    */
 
   /* ── Sadece GÖSTERİM: missile.js'teki kale HP ayarlarıyla aynı olmalı ── */
   castleMaxHp:        1000,
@@ -485,7 +485,11 @@ function buildDefender(acc, fallbackName) {
   };
 }
 
+/* Yeni oyuncu kalkanı. `CFG.newbieShieldMs` 0 ise kalkan KAPALIDIR —
+   rozet çizilmez, uyarı yazılmaz, SALDIR düğmesi kilitlenmez.
+   Geri açmak için tek yer: CFG.newbieShieldMs. */
 function hasNewbieShield(d) {
+  if (!CFG.newbieShieldMs) return false;
   return !!d.registeredAt && (Date.now() - d.registeredAt) < CFG.newbieShieldMs;
 }
 
