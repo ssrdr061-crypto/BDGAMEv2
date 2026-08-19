@@ -2169,12 +2169,19 @@ body.world-active{padding:0; overflow:hidden;}
 <div id="loginScreen">
   <div class="login-card">
         <div id="secretAdminTrigger" style="text-align:center; margin-bottom:-12px; margin-top:-10px; pointer-events:auto;">
-          <img src="gorsel2.webp"
-               alt="BurstDiamond"
-               fetchpriority="high" decoding="sync"
-               style="width:110%; max-width:360px; margin-left:-5%; display:block;
-                      filter:drop-shadow(0 0 20px rgba(0,210,255,0.5));
-                      position:relative; z-index:2;">
+          <!-- width/height + aspect-ratio ZORUNLU (18): olmazsa görsel inene
+             kadar tarayıcı bu img'yi 0 piksel yüksek sayıyor, kart kısa
+             kalıyor ve logo gelince altındaki her şey aşağı kayıyordu.
+             Gerçek dosya ölçüsü 1024×683 (3:2) — dosya değişirse bu iki
+             sayıyı da güncelle, yoksa kayma geri gelir. -->
+        <img src="gorsel2.webp"
+             alt="BurstDiamond"
+             width="1024" height="683"
+             fetchpriority="high" decoding="sync"
+             style="width:110%; max-width:360px; height:auto; aspect-ratio:1024/683;
+                    margin-left:-5%; display:block;
+                    filter:drop-shadow(0 0 20px rgba(0,210,255,0.5));
+                    position:relative; z-index:2;">
         </div>
     <p class="login-sub" id="loginSubtitle" style="display:none;"></p>
 
