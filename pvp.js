@@ -1436,6 +1436,11 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
      GERÇEKTEN götürülen sayıyla sınırlanır. Sonra buff tükenir —
      tek kullanımlık olduğu için savaşın çözüldüğü yerde biter
      (panelden de seferden de aynı yol geçilir). */
+  /* Rapor satırları savasBitti()'DEN ÖNCE alınmalı: o çağrı planı
+     siler (_plan = null) ve raporSatirlari() boş döner. */
+  const magazaA = magazaSatirlari(BF ? BF.raporSatirlari() : []);
+  const magazaD = magazaSatirlari(BF ? BF.savunmaRapor(defender.hazirBuff) : []);
+
   if (BF) {
     BF.kayipKirp(A.killed, A.wounded, attackerTroops);
     BF.savasBitti();
@@ -1451,10 +1456,8 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     heroFx: {
       attacker: A.flow.used, defender: D.flow.used,
       attackerKills: A.abilityKills, defenderKills: D.abilityKills,
-      attackerAbilities: (A.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources }))
-        .concat(magazaSatirlari(BF ? BF.raporSatirlari() : [])),
-      defenderAbilities: (D.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources }))
-        .concat(magazaSatirlari(BF ? BF.savunmaRapor(defender.hazirBuff) : []))
+      attackerAbilities: (A.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })).concat(magazaA),
+      defenderAbilities: (D.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })).concat(magazaD)
     },
     win, turns: turn,
     attacker: {

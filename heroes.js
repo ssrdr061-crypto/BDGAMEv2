@@ -1052,12 +1052,16 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
 .hpk-empty-msg{ font-size:12px; color:var(--ink-dim); padding:6px 0; }
 
 /* ── seçim penceresi ── */
-/* Arka plan BULANIKLAŞTIRILMAZ ve pencere aşağıda durur: seçim
-   yaparken üstteki komutan yuvaları görünsün, hangi kahramanın
-   nerede olduğu ekrandan kaybolmasın. Karartma da hafifletildi. */
+/* Arka plan NE KARARTILIR NE BULANIKLAŞTIRILIR ve dokunuşları
+   YUTMAZ (pointer-events:none). Savaş paneli açık ve tıklanabilir
+   kalır: yanlış kahraman seçildiyse oyuncu yuvadaki ✕ düğmesine
+   hemen basabilir, pencereyi kapatmasına gerek kalmaz.
+   Pencere aşağıda durur ki üstteki yuvalar görünsün.
+   Dışarı dokununca kapatma işi CSS'e değil, openHeroPickModal
+   içindeki dinleyiciye aittir (zemin artık dokunuş almıyor). */
 .hpk-back{
   position:fixed; inset:0; z-index:340;
-  background:rgba(2,8,22,.42);
+  background:none; pointer-events:none;
   display:flex; align-items:flex-end; justify-content:center;
   padding:16px 16px 9vh;
   animation:hpkFade .15s ease;
@@ -1065,6 +1069,7 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
 @keyframes hpkFade{ from{opacity:0} to{opacity:1} }
 @keyframes hpkPop{ from{opacity:0; transform:translateY(14px) scale(.95)} to{opacity:1; transform:none} }
 .hpk-modal{
+  pointer-events:auto;   /* zemin dokunuş almıyor, pencere alıyor */
   width:min(420px,94vw); max-height:66vh; display:flex; flex-direction:column;
   border-radius:18px; overflow:hidden;
   /* magaza.js ile birebir aynı şablon */
@@ -1238,26 +1243,44 @@ function renderHeroPickerForBattle() {
   });
 }
 
-/* ── SEÇİM PENCERESİ: sahip olunan tüm kahramanlar ── */
-function openHeroPickModal(slotIndex) {
-  closeHeroPickModal();
-  _hpkTargetSlot = slotIndex;
+/* ── SEÇİM PENCERESİ: sahip olunan tüm kahramanlar ──
+   Pencere seçim yapıldığında KAPANMAZ; listesi yenilenir ve dolan
+   ailenin kahramanları listeden düşer. Böylece oyuncu üç yuvayı
+   pencereyi kapatmadan doldurabilir.
 
+   Arka plan karartılmaz ve dokunuşları YUTMAZ (pointer-events:none):
+   savaş paneli açık kalır, yanlış kahraman seçildiyse oyuncu yuvadaki
+   ✕ düğmesine hemen basabilir.
+
+   KAPANIR: boşluğa dokununca ya da bütün yuvalar dolunca.
+   KAPANMAZ: pencerenin kendisi, yuvalar ve ✕ düğmesi — oyuncu ✕
+   yerine yanlışlıkla kahramanın üstüne bassa da pencere durur.      */
+function hpkBosYuva() {
+  for (let i = 0; i < MAX_KOMUTAN; i++) if (!selectedCommanders[i]) return i;
+  return -1;
+}
+
+/* Pencerede gösterilecek kahramanlar:
+   • yolda olan çıkmaz
+   • ailesi başka bir komutanla dolmuşsa çıkmaz (hedef yuvadaki hariç) */
+function hpkListe(slotIndex) {
   const tumu = (state.ownedHeroSkins || []).filter(id => HERO_STATS[id]);
-  if (!tumu.length) { if (typeof showToast === "function") showToast("Hiç kahramanın yok."); return; }
-
-  /* Yolda olan kahraman listede HİÇ ÇIKMAZ. */
   const yolda = seferdekiKomutanlar();
-  const owned = tumu.filter(id => yolda.indexOf(id) === -1);
-  if (!owned.length) {
-    if (typeof showToast === "function") showToast("Bütün kahramanların yolda.");
-    return;
-  }
+  const yuvadaki = selectedCommanders[slotIndex] || null;
+  return tumu.filter(id => {
+    if (yolda.indexOf(id) !== -1) return false;
+    if (id === yuvadaki) return true;
+    return !ayniAileden(selectedCommanders, komutanAilesi(id), yuvadaki);
+  });
+}
 
-  /* KART: kahraman menüsündekiyle AYNI kart (hpkKartHTML → kahramanlar.js).
-     Eski düz portre + isim şeridi kaldırıldı; seviye, yıldız, kademe
-     zemini ve uzmanlık rozeti artık burada da görünür. Tek tip. */
-  const cards = owned.map(id => {
+function hpkGridCiz(back, slotIndex) {
+  const grid = back.querySelector(".hpk-grid");
+  if (!grid) return;
+  const owned = hpkListe(slotIndex);
+
+  /* KART: kahraman menüsündekiyle AYNI kart (hpkKartHTML → kahramanlar.js). */
+  grid.innerHTML = owned.map(id => {
     const at = selectedCommanders.indexOf(id);
     return `
       <div class="hpk-card ${at !== -1 ? "chosen" : ""}" data-pick="${id}">
@@ -1265,25 +1288,63 @@ function openHeroPickModal(slotIndex) {
       </div>`;
   }).join("");
 
+  grid.querySelectorAll(".hpk-card").forEach(card => {
+    card.addEventListener("click", () => assignCommander(card.dataset.pick, _hpkTargetSlot));
+  });
+}
+
+/* Pencere açıkken listeyi tazele (kahraman eklendi/çıkarıldı). */
+function hpkTazele() {
+  const back = document.getElementById("hpkBack");
+  if (!back) return;
+  if (!hpkListe(_hpkTargetSlot).length) { closeHeroPickModal(); return; }
+  hpkGridCiz(back, _hpkTargetSlot);
+}
+
+let _hpkDisDokunus = null;
+
+function openHeroPickModal(slotIndex) {
+  closeHeroPickModal();
+  _hpkTargetSlot = slotIndex;
+
+  if (!(state.ownedHeroSkins || []).filter(id => HERO_STATS[id]).length) {
+    if (typeof showToast === "function") showToast("Hiç kahramanın yok.");
+    return;
+  }
+  if (!hpkListe(slotIndex).length) {
+    if (typeof showToast === "function") showToast("Seçilebilecek kahraman yok.");
+    return;
+  }
+
   const back = document.createElement("div");
   back.className = "hpk-back";
   back.id = "hpkBack";
-  back.innerHTML = `
-    <div class="hpk-modal">
-      <div class="hpk-grid">${cards}</div>
-    </div>`;
+  back.innerHTML = `<div class="hpk-modal"><div class="hpk-grid"></div></div>`;
   document.body.appendChild(back);
+  hpkGridCiz(back, slotIndex);
 
-  back.addEventListener("click", e => { if (e.target === back) closeHeroPickModal(); });
-
-  back.querySelectorAll(".hpk-card").forEach(card => {
-    card.addEventListener("click", () => assignCommander(card.dataset.pick, slotIndex));
-  });
+  /* Dışarı dokunma dinleyicisi. setTimeout(0): pencereyi AÇAN dokunuş
+     hâlâ yayılıyor; hemen bağlanırsa pencere açıldığı anda kapanır. */
+  setTimeout(() => {
+    if (!document.getElementById("hpkBack")) return;
+    _hpkDisDokunus = (e) => {
+      const t = e.target;
+      if (!t || !t.closest) return;
+      /* pencerenin kendisi, yuvalar ve ✕ → kapatmaz */
+      if (t.closest(".hpk-modal, .hpk-slot, .hpk-x")) return;
+      closeHeroPickModal();
+    };
+    document.addEventListener("click", _hpkDisDokunus, true);
+  }, 0);
 }
 
 function closeHeroPickModal() {
   const b = document.getElementById("hpkBack");
   if (b) b.remove();
+  if (_hpkDisDokunus) {
+    document.removeEventListener("click", _hpkDisDokunus, true);
+    _hpkDisDokunus = null;
+  }
 }
 
 /* ── kahramanı yuvaya ata (gerekirse yer değiştir) ── */
@@ -1315,7 +1376,8 @@ function assignCommander(heroId, slotIndex) {
       if (typeof showToast === "function") {
         showToast((KOMUTAN_AILE_ADI[aile] || "Bu") + " yuvası dolu — önce " + adi + " komutanını çıkar.");
       }
-      closeHeroPickModal();
+      /* Pencere kapanmaz; liste zaten bu kahramanı göstermiyor
+         olmalıydı — buraya düşmek bir emniyet frenidir. */
       return;
     }
   }
@@ -1330,7 +1392,14 @@ function assignCommander(heroId, slotIndex) {
   }
 
   selectedCommanders = slots.filter(Boolean);
-  closeHeroPickModal();
+
+  /* Pencere AÇIK KALIR. Hedef yuva bir sonraki boş yuvaya kayar ki
+     ikinci seçim ilkinin üstüne yazmasın. Boş yuva kalmadıysa iş
+     bitmiştir → kapat. */
+  const bos = hpkBosYuva();
+  _hpkTargetSlot = bos;
+  if (bos === -1) closeHeroPickModal();
+
   refreshAfterCommanderChange();
 }
 
@@ -1339,6 +1408,7 @@ function refreshAfterCommanderChange() {
   state.selectedCommanders = selectedCommanders.slice();
   if (typeof persistCurrentState === "function") persistCurrentState();
   renderHeroPickerForBattle();
+  hpkTazele();                 /* pencere açıksa listesi yenilensin */
   if (typeof updateTroopSelectSummary === "function") updateTroopSelectSummary();
   if (typeof renderEnemyPowerPreview === "function") renderEnemyPowerPreview();
 }
