@@ -1323,6 +1323,17 @@ function openHeroPickModal(slotIndex) {
   document.body.appendChild(back);
   hpkGridCiz(back, slotIndex);
 
+  /* PENCERE BOYU İLK AÇILIŞTA KİLİTLENİR.
+     Kahraman seçilince liste kısalıyor; pencere alta yaslı olduğu
+     için kısalan kutu aşağı kayıyor ve ekranda zıplıyordu. İlk
+     ölçülen yükseklik sabitlenirse pencere hep aynı yerde durur.
+     Liste sonradan uzarsa grid zaten kendi içinde kayıyor. */
+  const grid = back.querySelector(".hpk-grid");
+  if (grid) {
+    const y = grid.offsetHeight;
+    if (y > 0) grid.style.height = y + "px";
+  }
+
   /* Dışarı dokunma dinleyicisi. setTimeout(0): pencereyi AÇAN dokunuş
      hâlâ yayılıyor; hemen bağlanırsa pencere açıldığı anda kapanır. */
   setTimeout(() => {
