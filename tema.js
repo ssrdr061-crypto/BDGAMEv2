@@ -5654,9 +5654,12 @@ html body .dock-btn{ box-shadow:none !important; }
 html body #loginScreen .field input,
 html body #loginScreen .field input:focus{
   box-shadow:none !important;
+  border:none !important;          /* çerçeve tamamen kalktı */
 }
+/* Çerçeve yokken "hangi kutudayım" belirsizleşmesin diye
+   odaklanınca zemin biraz açılıyor — çizgi yerine ton farkı. */
 html body #loginScreen .field input:focus{
-  border-color:rgba(190,240,255,.45) !important;
+  background:rgba(255,255,255,.30) !important;
 }
 html body #loginScreen .login-btn,
 html body #loginScreen .login-btn:active{
