@@ -5629,41 +5629,61 @@ document.head.appendChild(st);
   st.id = "menuGirisDuzStil";
   st.textContent = `
 /* ── ÜST ŞERİT ── */
-.hud-top{
+html body .hud-top{
   box-shadow:none !important;
   border-bottom:1px solid rgba(190,240,255,.20) !important;
 }
-.hud-pill, .user-pill,
-.hud-pill.diamond-pill,
-#staminaPill, #mslHudPill{
+html body .hud-top .hud-pill,
+html body .hud-pill, html body .user-pill,
+html body .hud-pill.diamond-pill,
+html body #staminaPill, html body #mslHudPill,
+html body .hud-top .kaynak-oge{
   box-shadow:none !important;
   border:none !important;
 }
 
 /* ── ALT MENÜ ── */
-.nav-dock{
+html body .nav-dock{
   box-shadow:none !important;
   border-top:1px solid rgba(190,240,255,.20) !important;
 }
-.dock-icon{ filter:none !important; }
-.dock-btn{ box-shadow:none !important; }
+html body .dock-icon{ filter:none !important; }
+html body .dock-btn{ box-shadow:none !important; }
 
 /* ── GİRİŞ EKRANI ── */
-#loginScreen .field input,
-#loginScreen .field input:focus{
+html body #loginScreen .field input,
+html body #loginScreen .field input:focus{
   box-shadow:none !important;
 }
-#loginScreen .field input:focus{
+html body #loginScreen .field input:focus{
   border-color:rgba(190,240,255,.45) !important;
 }
-#loginScreen .login-btn,
-#loginScreen .login-btn:active{
+html body #loginScreen .login-btn,
+html body #loginScreen .login-btn:active{
   box-shadow:none !important;
 }
-#loginScreen .login-btn:active{
+html body #loginScreen .login-btn:active{
   transform:scale(.98) !important;   /* zıplama yok, hafif basma */
   filter:brightness(.93) !important;
 }
 `;
-  document.head.appendChild(st);
+
+  /* ── NEDEN İKİ KAT KORUMA ──
+     1) `html body` öneki: bu dosyanın 15. bölümü (ustMenuTekGovde)
+        aynı gerekçeyle bu öneki kullanıyor. Önek olmadan, sonradan
+        eklenen sıradan bir `.hud-top{...!important}` kuralı bizi
+        ezebiliyor.
+     2) SONA TAŞIMA: bir stil, sayfa açıldıktan SONRA (zamanlayıcıyla
+        ya da bir olayla) eklenirse başlığın en sonuna girer ve eşit
+        ağırlıkta bizi geçer. Oyun açılırken menülerin önce düz,
+        bir saniye sonra kabartmalı görünmesinin sebebi buydu.
+        Aynı düğümü yeniden appendChild etmek onu KOPYALAMAZ, sona
+        TAŞIR — birkaç kez tekrarlayıp en sonda kalmayı garantiliyoruz. */
+  function sonaTasi() {
+    try { document.head.appendChild(st); } catch (e) {}
+  }
+  sonaTasi();
+  [400, 1200, 2500, 5000].forEach(function (ms) { setTimeout(sonaTasi, ms); });
+  document.addEventListener("DOMContentLoaded", sonaTasi);
+  window.addEventListener("load", sonaTasi);
 })();
