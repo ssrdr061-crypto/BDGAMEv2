@@ -5416,3 +5416,195 @@ st.textContent = `
 document.head.appendChild(st);
 })();
 
+
+/* ═══════════════════════════════════════════════════════════════
+   ÇANTA · KAYNAK PAKETİ KULLANMA PENCERESİ
+
+   SORUN: Çantadaki kaynak paketlerine (Et/Demir/Su Sandığı, Enerji
+   Hücresi) dokununca hiçbir şey olmuyordu. İki sebep üst üste
+   binmişti:
+     1) Bu dosyanın üst kısmı çantadaki "Kullan" düğmesini
+        gizliyor (#panel-inventory .inv-use-btn{display:none}).
+     2) Kutucuğa dokunma dinleyicisi eşya ne olursa olsun
+        useStaminaPotion() çağırıyordu — kaynak paketinde "Çantanda
+        can potu yok" diyip susuyordu.
+
+   ÇÖZÜM: Kaynak paketine dokunulunca MAĞAZADAKİ SATIN ALMA
+   PENCERESİNİN AYNISI açılır. Aynı sınıflar kullanılıyor
+   (.bd-buy-mask / .bd-buy-box / .bd-q-row ...), yani görünüm
+   birebir mağazanınki; mağaza penceresinin biçimi değişirse bu da
+   kendiliğinden değişir. Tek farkı: elmas değil ADET kullanılır ve
+   düğme "kullan" der.
+
+   Yakalama (capture) evresinde dinliyoruz ki yukarıdaki eski
+   dinleyiciye hiç sıra gelmesin — o dosyaya dokunmadan yolu
+   kesiyoruz.
+   ═══════════════════════════════════════════════════════════════ */
+(function cantaKaynakKullan() {
+  "use strict";
+
+  var _esc = null;
+
+  function sayiYaz(n) {
+    try { if (typeof fmt === "function") return fmt(n); } catch (e) {}
+    return String(n);
+  }
+
+  function tanim(ad) {
+    try { return (typeof getItemDef === "function") ? getItemDef(ad) : null; }
+    catch (e) { return null; }
+  }
+
+  /* Kartın hangi eşya olduğunu, içindeki GİZLİ Kullan düğmesinin
+     data-item'ından okuyoruz — isim etiketi kırpılmış olabilir. */
+  function kartAdi(kart) {
+    var b = kart.querySelector(".inv-use-btn");
+    if (b && b.dataset && b.dataset.item) return b.dataset.item;
+    var n = kart.querySelector(".item-name");
+    return n ? n.textContent.trim() : "";
+  }
+
+  function elde(ad) {
+    try { return (state.inventory && state.inventory[ad]) || 0; } catch (e) { return 0; }
+  }
+
+  function kaynakAdi(ad) { return String(ad).replace(/ (Sandığı|Hücresi)$/, ""); }
+
+  function simge(d) {
+    try { if (typeof itemIconSVG === "function") return itemIconSVG(d); } catch (e) {}
+    return d.emoji || d.icon || "";
+  }
+
+  function aciklama(d) {
+    try { if (typeof shopItemDesc === "function") return shopItemDesc(d) || ""; } catch (e) {}
+    return "Kullanınca +" + sayiYaz(d.miktar) + " " + kaynakAdi(d.name) + " verir.";
+  }
+
+  function kapat() {
+    var m = document.querySelector(".bd-buy-mask");
+    if (m) m.remove();
+    if (_esc) { document.removeEventListener("keydown", _esc); _esc = null; }
+  }
+
+  /* Seçilen adet kadar paketi kaynağa çevirir. index.html'deki
+     kaynakPaketiKullan HEPSİNİ birden harcıyor; burada adet
+     seçilebildiği için kendi hesabımızı yapıyoruz. */
+  function kullan(d, adet) {
+    var ad = d.name;
+    var varOlan = elde(ad);
+    adet = Math.max(1, Math.min(adet, varOlan));
+    if (adet <= 0) { return; }
+
+    if (!state.kaynaklar || typeof state.kaynaklar !== "object") {
+      state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
+    }
+    var k = d.kaynakId;
+    var eski = state.kaynaklar[k];
+    var toplam = (d.miktar || 0) * adet;
+    state.kaynaklar[k] = (typeof eski === "number" && isFinite(eski) ? eski : 0) + toplam;
+
+    state.inventory[ad] = varOlan - adet;
+    if (state.inventory[ad] <= 0) delete state.inventory[ad];
+
+    try { if (typeof renderKaynaklar === "function") renderKaynaklar(); } catch (e) {}
+    try { if (typeof renderInventory === "function") renderInventory(); } catch (e) {}
+    try { if (typeof persistCurrentState === "function") persistCurrentState(); } catch (e) {}
+    try {
+      if (typeof showToast === "function") {
+        showToast((d.emoji || "") + " +" + sayiYaz(toplam) + " " + kaynakAdi(ad) + " eklendi!");
+      }
+    } catch (e) {}
+  }
+
+  function pencere(d) {
+    kapat();
+    try { if (typeof closeShopPopups === "function") closeShopPopups(); } catch (e) {}
+
+    var enFazla = Math.max(1, elde(d.name));
+    var adet = 1;
+
+    var mask = document.createElement("div");
+    mask.className = "bd-buy-mask";
+    mask.innerHTML =
+      '<div class="bd-buy-box">' +
+        '<div class="bd-buy-head">' +
+          '<span>Kullan</span>' +
+          '<button class="bd-buy-x" type="button">✕</button>' +
+        '</div>' +
+        '<div class="bd-buy-body">' +
+          '<div class="bd-buy-top">' +
+            '<div class="bd-buy-icon">' + simge(d) + '</div>' +
+            '<div class="bd-buy-txt">' +
+              '<div class="bd-buy-name">' + d.name + '</div>' +
+              '<div class="bd-buy-desc">' + aciklama(d) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="bd-q-row">' +
+            '<button class="bd-qbtn" type="button" data-d="-1">−</button>' +
+            '<input class="bd-q-range" type="range" min="1" max="' + enFazla + '" value="1">' +
+            '<button class="bd-qbtn" type="button" data-d="1">+</button>' +
+            '<div class="bd-qnum">1</div>' +
+            '<button class="bd-qmax" type="button">MAX</button>' +
+          '</div>' +
+          '<button class="bd-buy-go" type="button"></button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(mask);
+
+    var range = mask.querySelector(".bd-q-range");
+    var num   = mask.querySelector(".bd-qnum");
+    var go    = mask.querySelector(".bd-buy-go");
+
+    function esitle() {
+      adet = Math.min(enFazla, Math.max(1, adet));
+      range.value = adet;
+      num.textContent = adet;
+      var pct = enFazla > 1 ? ((adet - 1) / (enFazla - 1)) * 100 : 100;
+      range.style.setProperty("--fill", pct + "%");
+      /* Mağazada düğmede toplam FİYAT yazar; burada kazanılacak
+         toplam KAYNAK yazıyor — aynı yerde, aynı biçimde. */
+      go.textContent = (d.emoji || "") + " +" + sayiYaz((d.miktar || 0) * adet);
+      go.disabled = false;
+    }
+
+    range.addEventListener("input", function () {
+      adet = parseInt(range.value, 10) || 1; esitle();
+    });
+    mask.querySelectorAll(".bd-qbtn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        adet += parseInt(b.dataset.d, 10); esitle();
+      });
+    });
+    mask.querySelector(".bd-qmax").addEventListener("click", function () {
+      adet = enFazla; esitle();
+    });
+    mask.querySelector(".bd-buy-x").addEventListener("click", kapat);
+    mask.addEventListener("click", function (e) { if (e.target === mask) kapat(); });
+    go.addEventListener("click", function () {
+      var n = adet;
+      kapat();
+      kullan(d, n);
+    });
+    _esc = function (e) { if (e.key === "Escape") kapat(); };
+    document.addEventListener("keydown", _esc);
+
+    esitle();
+  }
+
+  /* CAPTURE: çantadaki kaynak kutucuğuna dokunma buradan öteye
+     geçmez, eski can-potu dinleyicisi hiç çalışmaz. Diğer eşyalar
+     (can potu vb.) eskisi gibi akar. */
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var kart = t.closest("#invList .inv-card, #invList .shop-card");
+    if (!kart) return;
+
+    var d = tanim(kartAdi(kart));
+    if (!d || !d.isKaynak) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+    pencere(d);
+  }, true);
+})();
