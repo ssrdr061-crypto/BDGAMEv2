@@ -412,13 +412,24 @@
       }
       /* Buff: ilk turlar / rastgele turlar / robot periyodu.
          Robot payı, robotların bu turdaki saldırı oranıdır. */
-      if (BF) {
-        /* Robot payı: TÜM robot kademelerinin bu turdaki saldırı oranı */
-        const rAtk = birimler.reduce((t, u) =>
-          t + (AILE(u.unitId) === "robot" ? u.atk * u.count : 0), 0);
-        const pay = (hamAtk > 0) ? rAtk / hamAtk : 0;
-        const rc = BF.turHasar(turn, pay);
-        if (rc !== 1) vurus.dmg = Math.max(1, Math.round(vurus.dmg * rc));
+      if (BF && BF.hasarCarpanlari) {
+        /* Buff artık AİLE bazında. Canavar tek hedef olduğu için
+           hedef dağıtımı yok; toplam hasar, ailelerin saldırı
+           paylarıyla ağırlıklandırılarak çarpılır. Buffsuz ailelerin
+           katkısı olduğu gibi kalır. */
+        const mc = BF.hasarCarpanlari(turn);
+        if (mc && hamAtk > 0) {
+          let agirlik = 0;
+          birimler.forEach(u => {
+            const c = mc[AILE(u.unitId)] || 1;
+            agirlik += (u.atk * u.count) * c;
+          });
+          /* kahramanın kendi saldırısı buffsuz kalır */
+          const birlikAtk = birimler.reduce((t, u) => t + u.atk * u.count, 0);
+          agirlik += Math.max(0, hamAtk - birlikAtk);
+          const rc = agirlik / hamAtk;
+          if (rc !== 1) vurus.dmg = Math.max(1, Math.round(vurus.dmg * rc));
+        }
       }
       enemyHp = sifirAlti(enemyHp - vurus.dmg);
       toplamVerilen += vurus.dmg;
@@ -446,13 +457,34 @@
 
       let inc = gelen.dmg;
       if (gucFarkiAzalt > 0) inc = Math.round(inc * (1 - gucFarkiAzalt / 100));
-      if (BF) {                                   /* kalkan / periyodik azaltma */
-        const ac = BF.turAlinan(turn);
-        if (ac !== 1) inc = Math.max(0, Math.round(inc * ac));
+      /* ALINAN hasar buffu artık AİLE bazında: hasarı kısmak yerine
+         hedef ailenin canı bu tur geçici yükseltilir. Can birim
+         bazında tutulduğu için tek aileye uygulanabilir; sayı yalnız
+         azaldığından canı geri düşürmek ölmüş birliği diriltmez. */
+      let _kalkan = null;
+      if (BF && BF.alinanCarpanlari) {
+        const ac = BF.alinanCarpanlari(turn);
+        if (ac) {
+          _kalkan = [];
+          birimler.forEach(u => {
+            const o = ac[AILE(u.unitId)];
+            if (!o || o >= 1 || o <= 0) return;
+            _kalkan.push({ u: u, hp: u.hpEach });
+            u.hpEach = Math.max(1, Math.round(u.hpEach / o));
+          });
+          if (!_kalkan.length) _kalkan = null;
+        }
       }
 
       /* Canavar sınıfsızdır → ön saf sırasıyla vurur */
       hasariDagit(birimler, "front", inc, taban);
+      /* Can eski değerine dönerken biriken artık hasar da kırpılır.
+         Kırpılmazsa `tavan = count*hpEach - artik` eksiye düşebilir
+         ve hasar hesabı ters işler. */
+      if (_kalkan) _kalkan.forEach(g => {
+        g.u.hpEach = g.hp;
+        if (g.u.artik >= g.u.hpEach) g.u.artik = g.u.hpEach - 1;
+      });
       toplamAlinan += inc;
 
       if (yansimaPct > 0 && inc > 0) {

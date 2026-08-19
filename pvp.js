@@ -762,7 +762,15 @@ function applyTroopBuffs(units, ab) {
       u.hp *= (1 + hpp / 100);
     }
     if ((f = findBuff(ab, "troop_def_pct")) && f.v) u.def *= (1 + f.v / 100);
-    if ((f = findBuff(ab, "troop_hp_pct")) && f.v) u.hp *= (1 + f.v / 100);
+    /* `troop_hp_pct` birden çok kaynaktan gelebilir (kahraman yeteneği
+       + savunanın mağaza buffu) ve buff.js girdisi `aile` taşır.
+       findBuff yalnız İLKİNİ döndürdüğü için burada hepsi gezilir;
+       ailesi tutmayan birime işlemez. */
+    (ab || []).forEach(a => {
+      if (!a || a.type !== "troop_hp_pct" || !a.v) return;
+      if (a.aile && AILE(u.unitId) !== a.aile) return;
+      u.hp *= (1 + a.v / 100);
+    });
 
     u.atk = Math.max(1, Math.round(u.atk));
     u.def = Math.max(0, Math.round(u.def));
@@ -919,29 +927,147 @@ function damageBySource(a, srcKey, dmg, taban, src) {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MAĞAZA BUFFLARININ AİLE BAZINDA UYGULANMASI
+   ---------------------------------------------------------------
+   Eskiden "Savunucu birlikler %200 hasar" gibi bir buff ordunun
+   TAMAMININ hasarını çarpıyordu; oyuncu tek aile yazısını okuyup
+   üç aileye birden etki alıyordu.
+
+   VERİLEN hasar: toplamı çarpmak yerine kaynak PAYLARI çarpılır.
+   Savunucu payı 0.20 iken ×3 buff varsa ağırlık 0.60 olur, toplam
+   hasar da o oranda büyür. Diğer ailelerin hasarı DEĞİŞMEZ ve fazla
+   hasar raporda Savunucu'ya yazılır.
+
+   ALINAN hasar: "alınan hasar yarıya iner" = "can iki katına çıkar".
+   Hasar tek sayı olduğu için aileye kısılamaz, ama can birim bazında
+   tutulduğu için kısılabilir. O yüzden ilgili ailenin canı o tur
+   geçici yükseltilir, tur bitince geri alınır. Sayı yalnız azaldığı
+   için canı geri düşürmek ölmüş birliği DİRİLTMEZ.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* paylar: { knight:0.2, "hero:soldier":0.05, ... } toplamı 1
+   carpanlar: { knight:3, soldier:1, robot:1 }
+   Dönen: { paylar (yeni, toplamı 1), olcek (toplam hasar çarpanı) } */
+function buffPaylariCarp(paylar, carpanlar) {
+  const keys = Object.keys(paylar || {});
+  if (!keys.length) return { paylar: paylar, olcek: 1 };
+
+  const agirlik = {};
+  let top = 0;
+  keys.forEach(k => {
+    /* Kahramanın kendi vuruşu ("hero" / "hero:soldier") ve yansıma
+       bir BİRLİĞİN hasarı değildir; birim buffu onlara işlemez.
+       ("hero:soldier" yalnız hedef sırasını belirtir, aileyi değil.) */
+    const s = String(k);
+    const c = /^hero(:|$)/.test(s) ? 1
+            : ((carpanlar && carpanlar[AILE(s)]) ? carpanlar[AILE(s)] : 1);
+    const w = (paylar[k] || 0) * c;
+    agirlik[k] = w;
+    top += w;
+  });
+  if (top <= 0) return { paylar: paylar, olcek: 1 };
+
+  const yeni = {};
+  keys.forEach(k => yeni[k] = agirlik[k] / top);
+  return { paylar: yeni, olcek: top };
+}
+
+/* Ailenin canını 1/oran kadar geçici yükselt. Geri almak için
+   eski canları döndürür. */
+function buffCanKalkani(birimler, oranlar) {
+  if (!oranlar) return null;
+  const geri = [];
+  birimler.forEach(u => {
+    const o = oranlar[AILE(u.unitId)];
+    if (!o || o >= 1 || o <= 0) return;
+    geri.push({ u: u, hp: u.hp });
+    u.hp = Math.max(1, Math.round(u.hp / o));
+  });
+  return geri.length ? geri : null;
+}
+function buffCanGeriAl(geri) {
+  if (!geri) return;
+  geri.forEach(g => { g.u.hp = g.hp; });
+}
+
+/* Orduyu bozgun tabanına indirmek için EN FAZLA ne kadar hasar gerekir?
+   Pahalı (canı yüksek) birlikten ucuza doğru sayarak ÜST SINIR verir.
+   Üst sınır bilerek seçildi: az tahmin edilirse ordu tabana inmez ve
+   savaşın sonucu değişir. Fazla tahmin yalnız dağıtımı biraz kabalaştırır. */
+function gerekliHasar(a, taban) {
+  const kalan = armyTroopCount(a) - taban;
+  if (kalan <= 0) return 0;
+  const grup = a.units
+    .filter(u => !u.passive && u.count > u.floor)
+    .map(u => ({ n: u.count - u.floor, hp: u.hp }))
+    .sort((p, q) => q.hp - p.hp);
+  let need = kalan, top = 0;
+  for (const g of grup) {
+    const al = Math.min(need, g.n);
+    top += al * g.hp;
+    need -= al;
+    if (need <= 0) break;
+  }
+  return top;
+}
+
 /* Turun toplam hasarını, kaynak paylarına göre bölüp uygular.
-   paylar: { "knight": 0.42, "hero:robot": 0.05, ... } — toplamı 1  */
+   paylar: { "knight": 0.42, "hero:robot": 0.05, ... } — toplamı 1
+
+   ── NEDEN DİLİM DİLİM? ──────────────────────────────────────────
+   Eskiden her kaynağın payı TEK SEFERDE uygulanıyordu. Ezici
+   savaşlarda ilk sıradaki kaynağın payı bile orduyu bozgun tabanına
+   indirmeye yetiyor, sıradaki kaynaklar `armyTroopCount <= taban`
+   kapısından hemen çıkıyordu. Sonuç: kırımın TAMAMI tek bir birliğe
+   yazılıyor, diğer ikisi raporda "Öldürdü 0 / Yaraladı 0" görünüyordu.
+   Sırayı karıştırmak yalnız kimin kazanacağını rastgeleleştirdi,
+   dağıtmadı.
+
+   Artık tabana inmek için gereken hasar önce ölçülüyor, o kadarı
+   DİLİM tur halinde bütün kaynaklara sırayla dağıtılıyor. Ordu tabana
+   inerken her kaynak payı oranında kırım yapmış oluyor.
+   Toplam hasar ve savaşın sonucu DEĞİŞMEZ; yalnız kırımın kime
+   yazıldığı düzelir.                                                */
+const HASAR_DILIM = 12;
+
 function damageArmy(a, dmg, paylar, taban, src) {
   if (dmg <= 0) return;
   const keys = Object.keys(paylar || {});
   if (!keys.length) { damageBySource(a, "reflect", dmg, taban, src); return; }
 
-  /* Kaynak sırası her tur KARIŞTIRILIR. Sabit sırayla uygulansaydı
-     tek turda biten ezici savaşlarda hep ilk sıradaki birlik vurur,
-     sondaki (robot) hiç vuramadan savaş biterdi — hem hedefleme hem
-     rapor sistematik olarak yanlı çıkardı. */
+  /* Kaynak sırası her tur KARIŞTIRILIR — dilim içindeki sıra da
+     yanlı olmasın diye. */
   for (let i = keys.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     const t = keys[i]; keys[i] = keys[j]; keys[j] = t;
   }
 
-  /* yuvarlama artığı son kaynağa verilir → toplam hep tutar */
-  let kalan = dmg;
-  keys.forEach((k, i) => {
-    const pay = (i === keys.length - 1) ? kalan : Math.round(dmg * paylar[k]);
-    kalan -= pay;
-    damageBySource(a, k, Math.max(0, pay), taban, src);
-  });
+  /* Bu turda gerçekten işe yarayacak hasar. Fazlası zaten boşa gidiyor. */
+  const etkin = Math.min(dmg, gerekliHasar(a, taban));
+
+  if (etkin > 0) {
+    for (let r = 0; r < HASAR_DILIM; r++) {
+      if (armyTroopCount(a) <= taban) break;
+      for (const k of keys) {
+        const pay = (etkin * (paylar[k] || 0)) / HASAR_DILIM;
+        if (pay > 0) damageBySource(a, k, pay, taban, src);
+      }
+    }
+  }
+
+  /* Artan hasar (tabana inildikten sonrası ya da birlik kalmayınca
+     komutana taşan kısım) eski yolla, tek seferde uygulanır.
+     yuvarlama artığı son kaynağa verilir → toplam hep tutar */
+  const artan = dmg - etkin;
+  if (artan > 0) {
+    let kalan = artan;
+    keys.forEach((k, i) => {
+      const pay = (i === keys.length - 1) ? kalan : Math.round(artan * (paylar[k] || 0));
+      kalan -= pay;
+      damageBySource(a, k, Math.max(0, pay), taban, src);
+    });
+  }
 }
 
 /* Bu turda ne kadar hasar çıkacağını ve bu hasarın hangi kaynaktan
@@ -1177,14 +1303,19 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     if (freezeA > 0) { dmgAtoD = 0; freezeA--; }
 
     /* ── MAĞAZA BUFFLARI: tur bazlı çarpanlar ──
-       Verilen hasar (ilk turlar / rastgele turlar / robot periyodu)
-       ve alınan hasar (kalkan / periyodik azaltma). Robot buffu
-       yalnız robotların hasar PAYINI büyütür. */
-    if (BF) {
-      const rc = BF.turHasar(turn, rollA.paylar ? (rollA.paylar["robot"] || 0) : 0);
-      if (rc !== 1) dmgAtoD = Math.max(1, Math.round(dmgAtoD * rc));
-      const ac = BF.turAlinan(turn);
-      if (ac !== 1) dmgDtoA = Math.max(0, Math.round(dmgDtoA * ac));
+       Artık her buff YALNIZ kendi ailesine işler (magaza.js'teki
+       `effect.birim`). Verilen hasar tarafında toplam hasarı çarpmak
+       yerine KAYNAK PAYLARI çarpılır (bkz. buffPaylariCarp) — böylece
+       fazla hasar gerçekten o aileden çıkar, raporda da ona yazılır. */
+    if (BF && BF.hasarCarpanlari) {
+      const mc = BF.hasarCarpanlari(turn);
+      if (mc) {
+        const r = buffPaylariCarp(rollA.paylar, mc);
+        if (r.olcek !== 1) {
+          dmgAtoD = Math.max(1, Math.round(dmgAtoD * r.olcek));
+          rollA.paylar = r.paylar;
+        }
+      }
     }
 
     /* güç farkı kalkanı: çok güçlü rakipten alınan hasarı azaltır */
@@ -1214,9 +1345,17 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     damageArmy(D, dmgAtoD, rollA.paylar, tabanD, A);
     if (yansiAtoD > 0) damageBySource(D, "reflect", yansiAtoD, tabanD, A);
 
+    /* ALINAN hasar buffu: yalnız hedef ailenin canı bu tur boyunca
+       geçici yükselir (bkz. buffCanKalkani). Saldıranın buffudur,
+       bu yüzden yalnız A tarafına uygulanır. */
+    const kalkan = (BF && BF.alinanCarpanlari)
+      ? buffCanKalkani(A.units, BF.alinanCarpanlari(turn)) : null;
+
     D.damageDealt += dmgDtoA + yansiDtoA;
     damageArmy(A, dmgDtoA, rollD.paylar, tabanA, D);
     if (yansiDtoA > 0) damageBySource(A, "reflect", yansiDtoA, tabanA, D);
+
+    buffCanGeriAl(kalkan);
   }
 
   /* Kazanan: bozguna uğrayan (ya da tükenen) taraf kaybeder.
@@ -1298,13 +1437,13 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     attacker: {
       killed: A.killed, wounded: A.wounded,
       remaining: armyTroopCount(A),
-      damageDealt: A.damageDealt, damageTaken: A.damageTaken,
+      damageDealt: A.damageDealt, damageTaken: Math.round(A.damageTaken),
       heroHp: Math.round(A.hero.hp), heroMaxHp: Math.round(A.hero.maxHp),
     },
     defender: {
       killed: D.killed, wounded: D.wounded,
       remaining: armyTroopCount(D),
-      damageDealt: D.damageDealt, damageTaken: D.damageTaken,
+      damageDealt: D.damageDealt, damageTaken: Math.round(D.damageTaken),
       heroHp: Math.round(D.hero.hp), heroMaxHp: Math.round(D.hero.maxHp),
     },
   };

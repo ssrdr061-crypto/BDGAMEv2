@@ -24,8 +24,10 @@
      BUFF.plan()             → çözülmüş plan (yoksa null)
      BUFF.yetenekleriBuyut(ab) → "mevcut yeteneği 2 katına çıkar"
      BUFF.orduyaUygula(birimler) → def/can/sayı yüzdeleri
-     BUFF.turHasar(tur, robotPay)  → o turda VERİLEN hasar çarpanı
-     BUFF.turAlinan(tur)     → o turda ALINAN hasar çarpanı
+     BUFF.hasarCarpanlari(tur) → o turda VERİLEN hasarın AİLE
+                               bazında çarpanları (knight/soldier/robot)
+     BUFF.alinanCarpanlari(tur) → o turda ALINAN hasarın aile bazında
+                               oranları (oran<1 = az hasar)
      BUFF.kayipKirp(kayip, gercek) → hayalet birlik kaybını kırpar
      BUFF.savasBitti()       → buffu tüketir, kutucuğu tazeler
      BUFF.savunmaEk(liste)   → SAVUNANIN hazır buffundan yetenek
@@ -148,7 +150,35 @@ function geriAl(ad) {
 
 /* ── 3) SAVAŞ PLANI ──────────────────────────────────────────
    Şans zarları savaş başında BİR KEZ atılır. Tur döngüsünde
-   atılsaydı aynı savaşta her tur yeniden şans denenirdi. */
+   atılsaydı aynı savaşta her tur yeniden şans denenirdi.
+
+   ── BİRİM HEDEFİ (yeni) ─────────────────────────────────────
+   magaza.js'teki her buffun `effect.birim` alanı vardır:
+   "knight" (Savunucu) · "soldier" (Koruyucu) · "robot" (Nişancı).
+   Buff YALNIZ o aileye işler. Alan boşsa eski davranış sürer
+   (tüm orduya işler) — eski kayıtlar bozulmasın diye.
+   Kademe kimlikleri (knight2 … robot6) aileye indirgenir.        */
+
+const AILELER = ["knight", "soldier", "robot"];
+
+/* "knight3" → "knight"; pvp.js'teki AILE ile aynı iş.
+   Burada kendi kopyası var: buff.js pvp.js'ten önce de yüklenebilir. */
+function _aile(id) { return String(id || "").replace(/\d+$/, ""); }
+
+/* Efektin hedef ailesi. Tanımsız/geçersizse null = tüm ordu. */
+function hedefAile(e) {
+  const b = String((e && e.birim) || "");
+  return AILELER.indexOf(b) !== -1 ? b : null;
+}
+
+function bosAile() { return { knight: 0, soldier: 0, robot: 0 }; }
+
+/* Yüzdeyi hedef aileye (ya da hepsine) ekle */
+function aileEkle(kap, aile, deger) {
+  if (!deger) return;
+  if (aile) kap[aile] += deger;
+  else AILELER.forEach(a => kap[a] += deger);
+}
 
 let _plan = null;
 
@@ -158,62 +188,88 @@ function planCoz() {
 
   const p = {
     kaynaklar: liste.slice(),
-    defPct: 0, hpPct: 0, countPct: 0,
-    ilkTurKalkan: { tur: 0, oran: 1 },     /* alınan hasar çarpanı */
-    periyodikAzalt: { her: 0, oran: 1 },
-    rastgeleHasar: { bas: 0, tur: 0, carpan: 1 },
-    ilkTurHasar: { tur: 0, carpan: 1 },
-    robotPeriyodik: { her: 0, carpan: 1, sans: 0 },
+    /* statik yüzdeler — aile bazında */
+    defPct:   bosAile(),
+    hpPct:    bosAile(),
+    countPct: bosAile(),
+    /* tur bazlı çarpanlar — her girdi kendi ailesini taşır
+       { aile, carpan, bas, son }  ya da  { aile, carpan, her }   */
+    verilen: [],   /* VERİLEN hasar çarpanları */
+    alinan:  [],   /* ALINAN hasar çarpanları (oran<1 = az hasar) */
     ciftYetenek: null,
   };
 
   liste.forEach(ad => {
     const u = urunBul(ad); if (!u || !u.effect) return;
     const e = u.effect;
+    const A = hedefAile(e);
+
     switch (e.type) {
 
       case "boost_troop_def_pct":
-        p.defPct += (e.value || 0); break;
+        aileEkle(p.defPct, A, e.value || 0); break;
 
       case "boost_total_hp_pct":
-        p.hpPct += (e.value || 0); break;
+        aileEkle(p.hpPct, A, e.value || 0); break;
 
       case "boost_troop_count_pct":
-        p.countPct += (e.value || 0); break;
+        aileEkle(p.countPct, A, e.value || 0); break;
 
       case "boost_troop_hp_pct_defense_only":
         /* saldırıda işlemez — savunanın tarafında savunmaEk() verir */
         break;
 
-      case "boost_random_turns_damage":
-        if (Math.random() * 100 < (e.chance || 0)) {
-          p.rastgeleHasar.bas = 1 + Math.floor(Math.random() * 3);   /* 1–3. turda başlar */
-          p.rastgeleHasar.tur = e.turns || 1;
-          p.rastgeleHasar.carpan = (e.damagePct || 100) / 100;
+      /* STELLİN · Titanyum Tozu: %45 şansla 3 tur boyunca %200 hasar */
+      case "boost_random_turns_damage": {
+        if (Math.random() * 100 >= (e.chance || 0)) break;
+        const bas = 1 + Math.floor(Math.random() * 3);            /* 1–3. turda başlar */
+        p.verilen.push({ aile: A, carpan: (e.damagePct || 100) / 100,
+                         bas: bas, son: bas + (e.turns || 1) - 1 });
+        break;
+      }
+
+      /* İlk N tur fazla hasar */
+      case "boost_first_turns_bonus_damage":
+        p.verilen.push({ aile: A, carpan: 1 + (e.bonusPct || 0) / 100,
+                         bas: 1, son: (e.turns || 1) });
+        break;
+
+      /* MİKİAN · Destek Bilgi: %25 şansla SAVAŞ BOYU %50 fazla hasar.
+         Bu tür eskiden switch'te YOKTU — hiç işlemiyordu. */
+      case "boost_bonus_damage":
+        if (Math.random() * 100 < (e.chance != null ? e.chance : 100)) {
+          p.verilen.push({ aile: A, carpan: 1 + (e.bonusPct || 0) / 100,
+                           bas: 1, son: Infinity });
         }
         break;
 
+      /* REVOLİA · Ek Bağlantı: her 3 turda bir %195 hasar.
+         Zar savaş başında BİR KEZ atılır (eskiden her turda atılıyordu). */
+      case "boost_robot_periodic_damage":
+        if (Math.random() * 100 < (e.chance != null ? e.chance : 100)) {
+          p.verilen.push({ aile: A, carpan: (e.damagePct || 100) / 100,
+                           her: e.everyTurns || 3 });
+        }
+        break;
+
+      /* STELLİN · Tank Güdüsü: %60 şansla ilk 3 tur savunma+can %40.
+         Can ortada değiştirilemediği için ALINAN hasar tarafında. */
       case "boost_first_turns_def_hp":
         if (Math.random() * 100 < (e.chance || 0)) {
-          p.ilkTurKalkan.tur = e.turns || 1;
-          p.ilkTurKalkan.oran = 1 / (1 + (e.valuePct || 0) / 100);
+          p.alinan.push({ aile: A, oran: 1 / (1 + (e.valuePct || 0) / 100),
+                          bas: 1, son: (e.turns || 1) });
         }
         break;
 
+      /* MİKİAN · Perdeleme: %50 şansla her 2 turda bir alınan hasar
+         yarıya iner, en çok 4 kez. `chance` ve `maxTurns` eskiden
+         okunmuyordu — buff her savaşta ve süresiz işliyordu. */
       case "boost_periodic_damage_reduce":
-        p.periyodikAzalt.her = e.everyTurns || 2;
-        p.periyodikAzalt.oran = 1 - (e.reducePct || 0) / 100;
-        break;
-
-      case "boost_first_turns_bonus_damage":
-        p.ilkTurHasar.tur = e.turns || 1;
-        p.ilkTurHasar.carpan = 1 + (e.bonusPct || 0) / 100;
-        break;
-
-      case "boost_robot_periodic_damage":
-        p.robotPeriyodik.her = e.everyTurns || 3;
-        p.robotPeriyodik.carpan = (e.damagePct || 100) / 100;
-        p.robotPeriyodik.sans = (e.chance || 100);
+        if (Math.random() * 100 < (e.chance != null ? e.chance : 100)) {
+          p.alinan.push({ aile: A, oran: 1 - (e.reducePct || 0) / 100,
+                          her: e.everyTurns || 2,
+                          kalan: (e.maxTurns != null ? e.maxTurns : Infinity) });
+        }
         break;
 
       case "boost_double_ability":
@@ -261,57 +317,71 @@ function yetenekleriBuyut(ab) {
 }
 
 /* Birim statlarına yüzdeler. pvp.js'te makeArmy'den SONRA,
-   taban (floor) hesabından ÖNCE çağrılır. */
+   taban (floor) hesabından ÖNCE çağrılır.
+   Artık her birim YALNIZ kendi ailesinin yüzdesini alır. */
 function orduyaUygula(birimler) {
   const p = _plan;
   if (!p || !Array.isArray(birimler)) return;
   birimler.forEach(u => {
-    if (p.defPct) u.def = Math.max(0, Math.round(u.def * (1 + p.defPct / 100)));
-    if (p.hpPct) {
+    const a = _aile(u.unitId);
+    const dp = p.defPct[a]   || 0;
+    const hp = p.hpPct[a]    || 0;
+    const cp = p.countPct[a] || 0;
+
+    if (dp) u.def = Math.max(0, Math.round(u.def * (1 + dp / 100)));
+    if (hp) {
       /* pvp.js'te birim canı `hp`, pve.js'te `hpEach` */
-      if (typeof u.hp === "number")     u.hp     = Math.max(1, Math.round(u.hp     * (1 + p.hpPct / 100)));
-      if (typeof u.hpEach === "number") u.hpEach = Math.max(1, Math.round(u.hpEach * (1 + p.hpPct / 100)));
+      if (typeof u.hp === "number")     u.hp     = Math.max(1, Math.round(u.hp     * (1 + hp / 100)));
+      if (typeof u.hpEach === "number") u.hpEach = Math.max(1, Math.round(u.hpEach * (1 + hp / 100)));
     }
-    if (p.countPct && u.count > 0) {
-      const ek = Math.floor(u.count * p.countPct / 100);
+    if (cp && u.count > 0) {
+      const ek = Math.floor(u.count * cp / 100);
       u.count += ek;
       if (typeof u.start === "number") u.start += ek;
     }
   });
 }
 
-/* O turda VERİLEN hasarın çarpanı.
-   robotPay: bu turki hasarın robot birliklerden gelen oranı (0–1). */
-function turHasar(tur, robotPay) {
-  const p = _plan; if (!p) return 1;
-  let c = 1;
-
-  if (p.ilkTurHasar.tur && tur <= p.ilkTurHasar.tur) c *= p.ilkTurHasar.carpan;
-
-  if (p.rastgeleHasar.tur &&
-      tur >= p.rastgeleHasar.bas &&
-      tur <  p.rastgeleHasar.bas + p.rastgeleHasar.tur) {
-    c *= p.rastgeleHasar.carpan;
-  }
-
-  /* Robot buffu yalnız robotların payını büyütür; ordunun
-     tamamını çarpmak robotu olmayan orduyu da güçlendirirdi. */
-  if (p.robotPeriyodik.her && tur % p.robotPeriyodik.her === 0) {
-    const pay = Math.max(0, Math.min(1, robotPay || 0));
-    if (pay > 0 && Math.random() * 100 < p.robotPeriyodik.sans) {
-      c *= (1 + pay * (p.robotPeriyodik.carpan - 1));
-    }
-  }
-  return c;
+/* Bir tur girdisi bu turda işliyor mu? */
+function _turUyuyor(e, tur) {
+  if (e.her) return (tur % e.her === 0);
+  return (tur >= (e.bas || 1) && tur <= (e.son != null ? e.son : Infinity));
 }
 
-/* O turda ALINAN hasarın çarpanı. */
-function turAlinan(tur) {
-  const p = _plan; if (!p) return 1;
-  let c = 1;
-  if (p.ilkTurKalkan.tur && tur <= p.ilkTurKalkan.tur) c *= p.ilkTurKalkan.oran;
-  if (p.periyodikAzalt.her && tur % p.periyodikAzalt.her === 0) c *= p.periyodikAzalt.oran;
-  return c;
+/* O turda VERİLEN hasarın AİLE BAZINDA çarpanları.
+   Dönen: { knight:1, soldier:1.5, robot:1 } ya da null (buff yok).
+   Motor bunu toplam hasarı çarpmak için değil, KAYNAK PAYLARINI
+   çarpmak için kullanır — böylece fazla hasar gerçekten o aileden
+   çıkar ve raporda da ona yazılır. */
+function hasarCarpanlari(tur) {
+  const p = _plan; if (!p || !p.verilen.length) return null;
+  let out = null;
+  p.verilen.forEach(e => {
+    if (!_turUyuyor(e, tur)) return;
+    if (e.kalan != null) { if (e.kalan <= 0) return; e.kalan--; }
+    if (!out) out = { knight: 1, soldier: 1, robot: 1 };
+    if (e.aile) out[e.aile] *= e.carpan;
+    else        AILELER.forEach(a => out[a] *= e.carpan);
+  });
+  return out;
+}
+
+/* O turda ALINAN hasarın AİLE BAZINDA oranları (oran<1 = az hasar).
+   Motor bunu, o ailenin canını 1/oran kadar geçici yükselterek
+   uygular — "alınan hasarı yarıya indirmek" ile "canı iki katına
+   çıkarmak" aynı şeydir, ama can birim bazında tutulduğu için
+   ikincisi TEK BİR AİLEYE uygulanabilir. */
+function alinanCarpanlari(tur) {
+  const p = _plan; if (!p || !p.alinan.length) return null;
+  let out = null;
+  p.alinan.forEach(e => {
+    if (!_turUyuyor(e, tur)) return;
+    if (e.kalan != null) { if (e.kalan <= 0) return; e.kalan--; }
+    if (!out) out = { knight: 1, soldier: 1, robot: 1 };
+    if (e.aile) out[e.aile] *= e.oran;
+    else        AILELER.forEach(a => out[a] *= e.oran);
+  });
+  return out;
 }
 
 /* Hayalet birlik kırpması.
@@ -343,7 +413,10 @@ function savunmaEk(hazir) {
     const u = urunBul(ad);
     if (!u || !u.effect) return;
     if (u.effect.type === "boost_troop_hp_pct_defense_only") {
+      /* `aile` alanını pvp.js'teki applyTroopBuffs okur; boşsa
+         eskisi gibi tüm orduya işler. */
       out.push({ type: "troop_hp_pct", v: u.effect.value || 0,
+                 aile: hedefAile(u.effect),
                  title: u.name, sources: [u.name] });
     }
   });
@@ -594,15 +667,15 @@ document.addEventListener("click", function (e) {
 /* ── 7) DIŞA AÇILANLAR ───────────────────────────────────────── */
 
 window.BUFF = {
-  SURUM: 1,
+  SURUM: 2,
   /* motor kapıları */
   savasBaslat: savasBaslat,
   plan: plan,
   savasBitti: savasBitti,
   yetenekleriBuyut: yetenekleriBuyut,
   orduyaUygula: orduyaUygula,
-  turHasar: turHasar,
-  turAlinan: turAlinan,
+  hasarCarpanlari: hasarCarpanlari,
+  alinanCarpanlari: alinanCarpanlari,
   kayipKirp: kayipKirp,
   savunmaEk: savunmaEk,
   /* arayüz */
