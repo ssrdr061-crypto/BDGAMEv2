@@ -5664,6 +5664,7 @@ html body #loginScreen .field input:focus{
 html body #loginScreen .login-btn,
 html body #loginScreen .login-btn:active{
   box-shadow:none !important;
+  border:none !important;          /* çerçeve tamamen kalktı */
 }
 html body #loginScreen .login-btn:active{
   transform:scale(.98) !important;   /* zıplama yok, hafif basma */
