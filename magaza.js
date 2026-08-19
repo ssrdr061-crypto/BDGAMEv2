@@ -409,7 +409,10 @@ function showShopInfoPopup(item, card) {
   document.addEventListener("pointerdown", function (e) {
     if (!document.querySelector(".shop-info-pop")) return;      /* açık baloncuk yok */
     const t = e.target;
-    if (t && t.closest && t.closest(".shop-info-pop, .shop-card2, .bd-buy-mask")) return;
+    /* Çantadaki kutucuklar da baloncuk açıyor (tema.js sonundaki
+       cantaBuffDetay bloğu) — onlara dokunma baloncuğu kapatmamalı,
+       yoksa açılan baloncuk aynı anda kapanır. */
+    if (t && t.closest && t.closest(".shop-info-pop, .shop-card2, .bd-buy-mask, #invList .inv-card")) return;
     document.querySelectorAll(".shop-info-pop").forEach(p => p.remove());
   }, true);
 

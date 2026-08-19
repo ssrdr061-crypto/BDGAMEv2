@@ -931,6 +931,23 @@ function damageBySource(a, srcKey, dmg, taban, src) {
   }
 }
 
+/* Mağaza güçlendirmelerini, savaş raporunun DETAYLAR ekranındaki
+   kahraman yetenek listesiyle AYNI biçime çevirir. `sources.heroId`
+   sayesinde her buff kendi kahramanının bloğuna düşer — ayrı başlık
+   ya da "ekstra" etiketi yoktur, sıradan bir satır gibi görünür.
+   `ikon`/`aciklama` doğrudan taşınır: ürünün kendi görseli ve mağaza
+   açıklaması kullanılır, HERO_STATS'te aranmaz (orada yoklar). */
+function magazaSatirlari(liste) {
+  return (liste || []).map(b => ({
+    type: "magaza_buff",
+    title: b.ad,
+    ikon: b.gorsel || "",
+    aciklama: b.aciklama || "",
+    aktif: !!b.aktif,
+    sources: [{ heroId: b.heroId, heroName: b.heroName, title: b.ad }],
+  }));
+}
+
 /* ═══════════════════════════════════════════════════════════════
    MAĞAZA BUFFLARININ AİLE BAZINDA UYGULANMASI
    ---------------------------------------------------------------
@@ -1434,8 +1451,10 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     heroFx: {
       attacker: A.flow.used, defender: D.flow.used,
       attackerKills: A.abilityKills, defenderKills: D.abilityKills,
-      attackerAbilities: (A.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })),
+      attackerAbilities: (A.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources }))
+        .concat(magazaSatirlari(BF ? BF.raporSatirlari() : [])),
       defenderAbilities: (D.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources }))
+        .concat(magazaSatirlari(BF ? BF.savunmaRapor(defender.hazirBuff) : []))
     },
     win, turns: turn,
     attacker: {

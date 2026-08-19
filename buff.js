@@ -197,12 +197,19 @@ function planCoz() {
     verilen: [],   /* VERİLEN hasar çarpanları */
     alinan:  [],   /* ALINAN hasar çarpanları (oran<1 = az hasar) */
     ciftYetenek: null,
+    /* Savaş raporunun DETAYLAR ekranı için: hazırlanan her buff bir
+       satır. `aktif` = şans zarı tuttu mu (zarsız buff'larda hep true). */
+    rapor: [],
   };
 
   liste.forEach(ad => {
     const u = urunBul(ad); if (!u || !u.effect) return;
     const e = u.effect;
     const A = hedefAile(e);
+    /* Şansa bağlı buff'larda zar tutmadıysa false'a çekilir. Rapor
+       satırı yine yazılır — oyuncu hazırladığı buff'ın tutmadığını da
+       görsün, satırın hiç çıkmaması "kayboldu mu" hissi veriyor. */
+    let basarili = true;
 
     switch (e.type) {
 
@@ -221,7 +228,7 @@ function planCoz() {
 
       /* STELLİN · Titanyum Tozu: %45 şansla 3 tur boyunca %200 hasar */
       case "boost_random_turns_damage": {
-        if (Math.random() * 100 >= (e.chance || 0)) break;
+        if (Math.random() * 100 >= (e.chance || 0)) { basarili = false; break; }
         const bas = 1 + Math.floor(Math.random() * 3);            /* 1–3. turda başlar */
         p.verilen.push({ aile: A, carpan: (e.damagePct || 100) / 100,
                          bas: bas, son: bas + (e.turns || 1) - 1 });
@@ -240,7 +247,7 @@ function planCoz() {
         if (Math.random() * 100 < (e.chance != null ? e.chance : 100)) {
           p.verilen.push({ aile: A, carpan: 1 + (e.bonusPct || 0) / 100,
                            bas: 1, son: Infinity });
-        }
+        } else basarili = false;
         break;
 
       /* REVOLİA · Ek Bağlantı: her 3 turda bir %195 hasar.
@@ -249,7 +256,7 @@ function planCoz() {
         if (Math.random() * 100 < (e.chance != null ? e.chance : 100)) {
           p.verilen.push({ aile: A, carpan: (e.damagePct || 100) / 100,
                            her: e.everyTurns || 3 });
-        }
+        } else basarili = false;
         break;
 
       /* STELLİN · Tank Güdüsü: %60 şansla ilk 3 tur savunma+can %40.
@@ -258,7 +265,7 @@ function planCoz() {
         if (Math.random() * 100 < (e.chance || 0)) {
           p.alinan.push({ aile: A, oran: 1 / (1 + (e.valuePct || 0) / 100),
                           bas: 1, son: (e.turns || 1) });
-        }
+        } else basarili = false;
         break;
 
       /* MİKİAN · Perdeleme: %50 şansla her 2 turda bir alınan hasar
@@ -269,7 +276,7 @@ function planCoz() {
           p.alinan.push({ aile: A, oran: 1 - (e.reducePct || 0) / 100,
                           her: e.everyTurns || 2,
                           kalan: (e.maxTurns != null ? e.maxTurns : Infinity) });
-        }
+        } else basarili = false;
         break;
 
       case "boost_double_ability":
@@ -278,9 +285,44 @@ function planCoz() {
       default:
         console.warn("[buff] bilinmeyen etki türü:", e.type);
     }
+
+    p.rapor.push(raporSatiri(u, basarili));
   });
 
   return p;
+}
+
+/* Savaş raporunun DETAYLAR ekranında gösterilecek satır.
+   Kahraman yetenek satırlarıyla aynı biçim: kimin, hangi görsel,
+   ne yaptığı. `aktif` yanlışsa satır "—" gösterir. */
+function raporSatiri(u, aktif) {
+  return {
+    ad:       u.name,
+    heroId:   u.heroId || "",
+    heroName: u.heroName || "",
+    gorsel:   u.gorsel || "",
+    aciklama: u.boostDesc || "",
+    aktif:    !!aktif,
+  };
+}
+
+/* Saldıranın bu savaşta hazırladığı buff satırları. */
+function raporSatirlari() {
+  const p = _plan;
+  return (p && Array.isArray(p.rapor)) ? p.rapor.slice() : [];
+}
+
+/* SAVUNANIN buff satırları. Savunanda yalnız "yalnızca savunmada"
+   işleyen tür geçerlidir (savunmaEk ile aynı süzgeç); diğerleri
+   savunurken hiç çalışmaz, raporda da görünmemeli. */
+function savunmaRapor(hazir) {
+  const out = [];
+  (Array.isArray(hazir) ? hazir : []).forEach(ad => {
+    const u = urunBul(ad);
+    if (!u || !u.effect) return;
+    if (u.effect.type === "boost_troop_hp_pct_defense_only") out.push(raporSatiri(u, true));
+  });
+  return out;
 }
 
 /* Savaş başlıyor — planı çöz ve sakla. */
@@ -675,6 +717,8 @@ window.BUFF = {
   yetenekleriBuyut: yetenekleriBuyut,
   orduyaUygula: orduyaUygula,
   hasarCarpanlari: hasarCarpanlari,
+  raporSatirlari: raporSatirlari,
+  savunmaRapor: savunmaRapor,
   alinanCarpanlari: alinanCarpanlari,
   kayipKirp: kayipKirp,
   savunmaEk: savunmaEk,

@@ -966,10 +966,13 @@ function rpYetenekGruplari(abList, used, kills) {
       const ad = rpHeroAdi(id, s.heroName);
       const bas = s.title || m.title || m.type;
       if (!harita.has(id)) harita.set(id, { heroId: id, ad: ad, satirlar: [] });
+      /* Mağaza güçlendirmeleri (pvp.js → magazaSatirlari) kendi
+         görselini ve açıklamasını TAŞIR; HERO_STATS'te karşılıkları
+         yoktur, orada aranırsa boş döner. Taşıyorsa onu kullan. */
       harita.get(id).satirlar.push({
-        ikon: rpYetenekIkon(id, bas),
+        ikon: m.ikon || rpYetenekIkon(id, bas),
         title: bas,
-        aciklama: rpYetenekAciklama(id, bas, s),
+        aciklama: m.aciklama || rpYetenekAciklama(id, bas, s),
         tetik: tetik, olum: olum,
         /* SAYILABİLİR Mİ? Yalnız RP_AB_ANAHTAR'daki beş tür (dondurma,
            yansıma, anında kayıp, periyodik kırma, güç farkı) bir "an"
@@ -977,7 +980,9 @@ function rpYetenekGruplari(abList, used, kills) {
            yüzdeleri, yaralı dönüşü, robot güçlendirme) ordu kurulurken
            statlara işlenir; tetiklenme diye bir anları yoktur.
            Onlara "—" yazılınca yetenek ÇALIŞMIYOR sanılıyordu. */
-        sayilir: !!k
+        /* Mağaza buff'ı: şans zarı tuttuysa "✓ Aktif", tutmadıysa "—".
+           `sayilir` tam olarak bu ayrımı yapıyor, ayrı alan gerekmez. */
+        sayilir: (m.type === "magaza_buff") ? !m.aktif : !!k
       });
     });
   });
@@ -5699,42 +5704,48 @@ html body #loginScreen .login-btn:active{
   window.addEventListener("load", sonaTasi);
 })();
 
+
 /* ═══════════════════════════════════════════════════════════════
-   ÇANTA · GÜÇLENDİRME DETAY PENCERESİ
+   ÇANTA · GÜÇLENDİRME BALONCUĞU
 
-   SORUN: Mağazadan alınan güçlendirmeler (Buzul Özü, Titanyum Tozu,
-   Perdeleme …) çantada duruyor ama kutucuğa dokununca hiçbir şey
-   olmuyordu. Ne yaptığı, hangi kahramana ait olduğu ve nasıl
-   kullanıldığı yalnız mağazada yazıyordu.
+   SORUN: Mağazadan alınan güçlendirmeler (Buzul Özü, Perdeleme …)
+   çantada duruyor ama kutucuğa dokununca hiçbir şey olmuyordu.
+   Sebep: çanta kutucuğuna dokunma dinleyicisi eşya ne olursa olsun
+   useStaminaPotion() çağırıyor, güçlendirmede "Çantanda can potu
+   yok" deyip susuyordu. Yolu YAKALAMA (capture) evresinde kesiyoruz
+   — o dosyaya dokunmadan. (Tuzak 24 ile aynı yöntem.)
 
-   ÇÖZÜM: Kaynak paketlerindeki yolun aynısı. Kutucuğa dokununca
-   mağazanın penceresiyle AYNI sınıflarla (.bd-buy-mask /
-   .bd-buy-box / .bd-buy-top …) bir detay penceresi açılır. Yeni
-   CSS yazılmadı; mağaza penceresinin biçimi değişirse bu da
-   kendiliğinden değişir.
-
-   Yakalama (capture) evresinde dinleniyor: yukarıdaki eski
-   dinleyici eşya ne olursa olsun useStaminaPotion() çağırıyor,
-   güçlendirmede "Çantanda can potu yok" deyip susardı. Yolu burada
-   kesiyoruz — o dosyaya dokunmadan. (Tuzak 24 ile aynı yöntem.)
+   Görünüm MAĞAZANIN baloncuğunun aynısı: `.shop-info-pop` sınıfı ve
+   `positionShopPopup` ile birebir aynı ölçü/konum hesabı. Yeni CSS
+   yazılmadı; mağaza baloncuğunun biçimi değişirse bu da kendiliğinden
+   değişir.
 
    Buff BURADAN KULLANILMAZ: hazırlama yeri savaş ekranındaki yeşil
-   kutucuk (buff.js), çünkü buff yalnız kahramanı savaşa seçiliyse
-   hazırlanabiliyor. Bu pencere sadece anlatır.
+   kutucuk (buff.js), çünkü buff ancak kahraman savaşa seçiliyse
+   hazırlanabiliyor. Bu baloncuk sadece anlatır.
    ═══════════════════════════════════════════════════════════════ */
 (function cantaBuffDetay() {
   "use strict";
 
-  var _esc = null;
+  /* Baloncuk kutucuğa göre konumlanır; kapsayıcının konumlandırılmış
+     olması şart. `#panel-shop .shop-grid` bunu zaten yapıyor, çantada
+     yoktu. Tek satırlık kural, bir kez eklenir. */
+  (function kapsayiciKur() {
+    if (document.getElementById("cantaPopStil")) return;
+    var st = document.createElement("style");
+    st.id = "cantaPopStil";
+    st.textContent = "#panel-inventory .inv-list{ position:relative; }";
+    document.head.appendChild(st);
+  })();
 
   function tanim(ad) {
     try { return (typeof getItemDef === "function") ? getItemDef(ad) : null; }
     catch (e) { return null; }
   }
 
-  /* Kartın hangi eşya olduğu: gizli Kullan düğmesinin data-item'ı
-     güçlendirmelerde YOKTUR (o düğme yalnız can potu ve kaynak
-     paketlerine basılıyor), o yüzden isim etiketinden okunur. */
+  /* Kartın hangi eşya olduğu: gizli Kullan düğmesi güçlendirmelerde
+     BASILMIYOR (yalnız can potu ve kaynak paketlerinde var), o yüzden
+     isim etiketinden okunur. */
   function kartAdi(kart) {
     var b = kart.querySelector(".inv-use-btn");
     if (b && b.dataset && b.dataset.item) return b.dataset.item;
@@ -5746,18 +5757,12 @@ html body #loginScreen .login-btn:active{
     try { return (state.inventory && state.inventory[ad]) || 0; } catch (e) { return 0; }
   }
 
-  function simge(d) {
-    try { if (typeof itemIconSVG === "function") return itemIconSVG(d); } catch (e) {}
-    return d.icon || "";
-  }
-
   function aciklama(d) {
     try { if (typeof shopItemDesc === "function") return shopItemDesc(d) || ""; } catch (e) {}
     return d.boostDesc || "";
   }
 
-  /* Kahraman savaşa seçili mi? Seçili değilse buff hazırlanamaz;
-     oyuncu pencereyi açtığında bunu görsün. */
+  /* Kahraman savaşa seçili mi? Seçili değilse buff hazırlanamaz. */
   function komutanSecili(heroId) {
     try {
       if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders)) {
@@ -5767,52 +5772,52 @@ html body #loginScreen .login-btn:active{
     return false;
   }
 
-  function kapat() {
-    var m = document.querySelector(".bd-buy-mask");
-    if (m) m.remove();
-    if (_esc) { document.removeEventListener("keydown", _esc); _esc = null; }
+  function hepsiniKapat() {
+    document.querySelectorAll(".shop-info-pop").forEach(function (p) { p.remove(); });
   }
 
-  function pencere(d) {
-    kapat();
+  /* Mağazadaki positionShopPopup ile aynı hesap. */
+  function konumla(pop, kart, kap) {
+    var g = kart.offsetWidth * 2 + 10;
+    pop.style.width = Math.min(g, kap.clientWidth - 20) + "px";
+    var x = kart.offsetLeft;
+    var enSag = kap.clientWidth - pop.offsetWidth - 10;
+    if (x > enSag) x = Math.max(0, enSag);
+    pop.style.left = x + "px";
+    pop.style.top = (kart.offsetTop + kart.offsetHeight - pop.offsetHeight + 4) + "px";
+  }
 
-    var adet = elde(d.name);
-    var secili = komutanSecili(d.heroId);
-    var not = secili
-      ? "Savaş ekranındaki yeşil kutucuktan hazırlanır. Hazırladığın ilk savaşta işler, sonra tükenir."
-      : (d.heroName || "Kahraman") + " savaşa seçili değil. Hazırlamak için önce komutanlardan seç.";
+  function baloncuk(d, kart) {
+    var kap = document.getElementById("invList");
+    if (!kap) return;
 
-    var mask = document.createElement("div");
-    mask.className = "bd-buy-mask";
-    mask.innerHTML =
-      '<div class="bd-buy-box">' +
-        '<div class="bd-buy-head">' +
-          '<span>Güçlendirme</span>' +
-          '<button class="bd-buy-x" type="button">✕</button>' +
-        '</div>' +
-        '<div class="bd-buy-body">' +
-          '<div class="bd-buy-top">' +
-            '<div class="bd-buy-icon">' + simge(d) + '</div>' +
-            '<div class="bd-buy-txt">' +
-              '<div class="bd-buy-name">' + (d.heroName ? d.heroName + " · " : "") + d.name + '</div>' +
-              '<div class="bd-buy-desc">' + aciklama(d) + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="bd-buy-desc" style="margin-bottom:10px">Çantanda: ' + adet + ' adet</div>' +
-          '<div class="bd-buy-desc">' + not + '</div>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(mask);
+    /* aynı kutucuğa ikinci dokunuş = kapat */
+    var acik = kap.querySelector(".shop-info-pop[data-name='" + d.name + "']");
+    hepsiniKapat();
+    if (acik) return;
 
-    mask.querySelector(".bd-buy-x").addEventListener("click", kapat);
-    mask.addEventListener("click", function (e) { if (e.target === mask) kapat(); });
-    _esc = function (e) { if (e.key === "Escape") kapat(); };
-    document.addEventListener("keydown", _esc);
+    var not = komutanSecili(d.heroId)
+      ? "Savaş ekranındaki yeşil kutucuktan hazırlanır."
+      : (d.heroName || "Kahraman") + " savaşa seçili değil.";
+
+    var pop = document.createElement("div");
+    pop.className = "shop-info-pop";
+    pop.dataset.name = d.name;
+    pop.innerHTML =
+      '<div class="in-name">' + d.name + '</div>' +
+      '<div class="in-desc">' + aciklama(d) + '</div>' +
+      '<div class="in-tl">Çantanda: ' + elde(d.name) + ' adet</div>' +
+      '<div class="in-tl">' + not + '</div>';
+    kap.appendChild(pop);
+    konumla(pop, kart, kap);
+    pop.addEventListener("click", function () { pop.remove(); });
   }
 
   document.addEventListener("click", function (e) {
     var t = e.target;
     if (!t || !t.closest) return;
+    if (t.closest(".shop-info-pop")) return;
+
     var kart = t.closest("#invList .inv-card, #invList .shop-card");
     if (!kart) return;
 
@@ -5821,6 +5826,12 @@ html body #loginScreen .login-btn:active{
 
     e.stopPropagation();
     e.preventDefault();
-    pencere(d);
+    baloncuk(d, kart);
+  }, true);
+
+  /* Liste kaydırılınca baloncuk kartından ayrı düşer — kapat. */
+  document.addEventListener("scroll", function (e) {
+    var t = e.target;
+    if (t && t.id === "invList") hepsiniKapat();
   }, true);
 })();

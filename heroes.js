@@ -429,6 +429,45 @@ const heroSkins = [
     Savaşa götürülen komutanlar (liste — çok komutan sistemi):
     MAX_KOMUTAN sayısını artırırsan (örn. 3) sistem otomatik uyum sağlar. */
 const MAX_KOMUTAN = 3;   /* SAVAŞA KAÇ KOMUTAN GÖTÜRÜLEBİLİR — buradan değiştir */
+
+/* ── KOMUTAN KATEGORİSİ: her birlik ailesinden EN FAZLA 1 komutan ──
+   HALVORSEN · STELLİN  → Savunucu
+   MİKİAN    · İVANOVNA → Koruyucu
+   REVOLİA              → Nişancı
+   Kimlikler pvp.js'teki HERO_CATEGORY ile birebir aynı olmalı; orası
+   hedef sırasını, burası seçim kuralını belirler. Yeni kahraman
+   eklenirse İKİ YERE de yazılmalı — yazılmazsa kategorisiz sayılır
+   ve kural ona işlemez. */
+const KOMUTAN_AILESI = {
+  buz_savascisi: "knight",   /* HALVORSEN */
+  celik_savasci: "knight",   /* STELLİN   */
+  ates_buyucusu: "soldier",  /* MİKİAN    */
+  ivanovna:      "soldier",  /* İVANOVNA  */
+  revolia:       "robot",    /* REVOLİA   */
+};
+const KOMUTAN_AILE_ADI = { knight: "Savunucu", soldier: "Koruyucu", robot: "Nişancı" };
+
+function komutanAilesi(id) { return KOMUTAN_AILESI[id] || null; }
+
+/* Bu aileden listede zaten seçili olan komutan (varsa) döner.
+   `hariç` verilirse o kimlik sayılmaz. */
+function ayniAileden(liste, aile, haric) {
+  if (!aile) return null;
+  return (liste || []).find(x => x && x !== haric && komutanAilesi(x) === aile) || null;
+}
+
+/* Kuralı ihlal eden kayıtlı seçimleri süz: her aileden LİSTEDEKİ İLKİ
+   kalır, sonrakiler düşer. Kategorisiz kahraman dokunulmaz. */
+function komutanlariSuz(liste) {
+  const gorulen = {};
+  return (liste || []).filter(id => {
+    const a = komutanAilesi(id);
+    if (!a) return true;
+    if (gorulen[a]) return false;
+    gorulen[a] = true;
+    return true;
+  });
+}
 let selectedCommanders = [];
 
 /*  SAVAŞ MOTORU NOTU (motor yazılırken okunacak):
@@ -1013,16 +1052,20 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
 .hpk-empty-msg{ font-size:12px; color:var(--ink-dim); padding:6px 0; }
 
 /* ── seçim penceresi ── */
+/* Arka plan BULANIKLAŞTIRILMAZ ve pencere aşağıda durur: seçim
+   yaparken üstteki komutan yuvaları görünsün, hangi kahramanın
+   nerede olduğu ekrandan kaybolmasın. Karartma da hafifletildi. */
 .hpk-back{
   position:fixed; inset:0; z-index:340;
-  background:rgba(2,8,22,.66); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
-  display:flex; align-items:center; justify-content:center; padding:16px;
+  background:rgba(2,8,22,.42);
+  display:flex; align-items:flex-end; justify-content:center;
+  padding:16px 16px 9vh;
   animation:hpkFade .15s ease;
 }
 @keyframes hpkFade{ from{opacity:0} to{opacity:1} }
 @keyframes hpkPop{ from{opacity:0; transform:translateY(14px) scale(.95)} to{opacity:1; transform:none} }
 .hpk-modal{
-  width:min(420px,94vw); max-height:86vh; display:flex; flex-direction:column;
+  width:min(420px,94vw); max-height:66vh; display:flex; flex-direction:column;
   border-radius:18px; overflow:hidden;
   /* magaza.js ile birebir aynı şablon */
   background:
@@ -1148,6 +1191,11 @@ function renderHeroPickerForBattle() {
   /* elde olmayan komutanları listeden temizle */
   selectedCommanders = selectedCommanders.filter(id => owned.indexOf(id) !== -1);
 
+  /* Aile başına tek komutan kuralı — kural konmadan önce kaydedilmiş
+     seçimler ihlal içerebilir (örn. MİKİAN + İVANOVNA birlikte).
+     Fazlası sessizce düşer, listedeki İLKİ kalır. */
+  selectedCommanders = komutanlariSuz(selectedCommanders);
+
   /* YOLDA OLANI YUVADAN DÜŞÜR — yuva boş "+" görünür, tekrar
      gönderilemez. Ordu dönünce kahraman yeniden seçilebilir. */
   const yolda = seferdekiKomutanlar();
@@ -1255,6 +1303,23 @@ function assignCommander(heroId, slotIndex) {
   for (let i = 0; i < MAX_KOMUTAN; i++) slots.push(selectedCommanders[i] || null);
 
   const already = slots.indexOf(heroId);
+
+  /* AİLE BAŞINA TEK KOMUTAN. Aynı aileden ikincisi seçilmeye
+     çalışılırsa seçim DEĞİŞMEZ, uyarı verilir. Kendi yuvasına tekrar
+     dokunmak (çıkarma) ve yuva değiştirme bu kurala takılmaz. */
+  if (already === -1) {
+    const aile = komutanAilesi(heroId);
+    const cakisan = ayniAileden(slots, aile, slots[slotIndex]);
+    if (cakisan) {
+      const adi = (HERO_STATS[cakisan] && HERO_STATS[cakisan].name) || cakisan;
+      if (typeof showToast === "function") {
+        showToast((KOMUTAN_AILE_ADI[aile] || "Bu") + " yuvası dolu — önce " + adi + " komutanını çıkar.");
+      }
+      closeHeroPickModal();
+      return;
+    }
+  }
+
   if (already === slotIndex) {          /* aynı yuvaya tekrar dokunuldu → çıkar */
     slots[slotIndex] = null;
   } else if (already !== -1) {          /* başka yuvadaysa → yer değiştir */
