@@ -233,6 +233,18 @@ const HERO_CATEGORY = {
   text-shadow:0 1px 2px rgba(0,20,45,.55); pointer-events:none; white-space:nowrap;
 }
 
+/* SAĞ ÜST KÖŞE: PAYLAŞ. Koordinat yazısı kaldırıldı; paylaşma işi
+   bu düğmeye taşındı. Füze düğmesinin sol üstteki karşılığı. */
+.pvp-share{
+  position:absolute; top:-11px; right:-9px; z-index:6;
+  width:38px; height:38px; border:none; cursor:pointer; border-radius:50%;
+  background:linear-gradient(180deg,#5fd3ff,#1f7fd0);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  font-size:18px; line-height:1; display:flex; align-items:center; justify-content:center;
+  transition:transform .09s, filter .09s; -webkit-tap-highlight-color:transparent;
+}
+.pvp-share:active{ transform:scale(.94); filter:brightness(.93); }
+
 .pvp-head{ display:flex; flex-direction:column; align-items:center; gap:3px;
   margin:2px 0 9px; text-align:center; }
 .pvp-ava{
@@ -632,10 +644,10 @@ function openCastlePopup(name, gx, gy, isOwn) {
     <div class="pvp-pop">
       <i class="pvp-pop-ok asagi" id="pvpPopOk"></i>
       ${isOwn ? "" : `<button class="pvp-missile" id="pvpMissileBtn" title="Füze gönder">🚀</button>`}
+      <button class="pvp-share" id="pvpCoordShare" title="Sohbette paylaş">📤</button>
       <div class="pvp-head">
         <div class="pvp-ava">🏰</div>
         <div class="pvp-name">${esc(name || "Oyuncu")}</div>
-        <div class="pvp-sub pvp-sub-share" id="pvpCoordShare" title="Sohbette paylaş">📍 x:${window.KOORD.karoyaOturt(window.KOORD.olcektenKaro(gx))} &nbsp; y:${window.KOORD.karoyaOturt(window.KOORD.olcektenKaro(gy))} &nbsp;<span class="pvp-share-ico">📤</span></div>
         ${tag}
       </div>
       <div class="pvp-stats">${statsHTML}</div>
@@ -675,9 +687,9 @@ function openCastlePopup(name, gx, gy, isOwn) {
         window.shareCoordInChat(gx, gy, isOwn ? "" : name);
       });
     } else {
-      coordEl.classList.remove("pvp-sub-share");
-      const ico = coordEl.querySelector(".pvp-share-ico");
-      if (ico) ico.remove();
+      /* Paylaşma işlevi yoksa düğme hiç durmasın — yanlış
+         çalışmaktansa görünmesin. */
+      coordEl.remove();
     }
   }
 
