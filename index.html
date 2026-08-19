@@ -26,7 +26,17 @@ window.onerror = function(msg, src, line) {
 <title>BurstDiamond</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Lilita+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<!-- (18) BALOO 2 AYRI VE ÖNCE İSTENİYOR — display=block.
+     Önceden beş yazı tipi tek bağlantıdaydı ve hepsi display=swap idi:
+     tarayıcı önce telefonun yedek fontuyla çiziyor, Baloo 2 inince
+     DEĞİŞTİRİYORDU. Açılışta görülen yazı oynaması buydu.
+     block = yazıyı yedek fontla hiç çizme, Baloo 2'yi bekle.
+     Böylece oyuncu tek ve doğru yazı tipini görür, geçiş olmaz.
+     Bu bağlantı diğerinden ÖNCE durmalı; sırayı bozma. -->
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=block" rel="stylesheet">
+<!-- Kullanımdan kalkmayı bekleyen diğer aileler (bkz. OKU-BENI 00b).
+     Bunlar swap kalabilir; ana yazı tipi değil. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Lilita+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg-0:#120c1c;
