@@ -5608,3 +5608,62 @@ document.head.appendChild(st);
     pencere(d);
   }, true);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   3B TEMİZLİĞİ — ÜST ŞERİT · ALT MENÜ · GİRİŞ EKRANI
+
+   Bu üç yerde kalan kabartma izleri kaldırılıyor:
+     • dış düşen gölge (0 4px 12px, 0 -6px 18px ...)
+     • içeri kabartı (inset ... rgba(255,255,255,...))
+     • kalın alt kenar (0 5px 0 renk) ve basınca zıplama
+   Geriye tek ince çerçeve ve düz zemin kalıyor.
+
+   Yazı gölgeleri KORUNDU: üst şerit haritanın üstünde duruyor,
+   gölge kalkarsa rakamlar lavın üstünde okunmaz oluyor.
+
+   Eski satırlar silinmedi; dosyanın sonundaki bu blok aynı
+   özgüllükle (ve !important ile) onları eziyor.
+   ═══════════════════════════════════════════════════════════════ */
+(function menuGirisDuzles() {
+  var st = document.createElement("style");
+  st.id = "menuGirisDuzStil";
+  st.textContent = `
+/* ── ÜST ŞERİT ── */
+.hud-top{
+  box-shadow:none !important;
+  border-bottom:1px solid rgba(190,240,255,.20) !important;
+}
+.hud-pill, .user-pill,
+.hud-pill.diamond-pill,
+#staminaPill, #mslHudPill{
+  box-shadow:none !important;
+  border:none !important;
+}
+
+/* ── ALT MENÜ ── */
+.nav-dock{
+  box-shadow:none !important;
+  border-top:1px solid rgba(190,240,255,.20) !important;
+}
+.dock-icon{ filter:none !important; }
+.dock-btn{ box-shadow:none !important; }
+
+/* ── GİRİŞ EKRANI ── */
+#loginScreen .field input,
+#loginScreen .field input:focus{
+  box-shadow:none !important;
+}
+#loginScreen .field input:focus{
+  border-color:rgba(190,240,255,.45) !important;
+}
+#loginScreen .login-btn,
+#loginScreen .login-btn:active{
+  box-shadow:none !important;
+}
+#loginScreen .login-btn:active{
+  transform:scale(.98) !important;   /* zıplama yok, hafif basma */
+  filter:brightness(.93) !important;
+}
+`;
+  document.head.appendChild(st);
+})();
