@@ -581,8 +581,9 @@ function openCastlePopup(name, gx, gy, isOwn) {
   const cdLeft   = isOwn ? 0 : cooldownLeft(name);
 
   let tag = "";
-  if (isOwn)       tag = `<span class="pvp-tag own">👑 SENİN KALEN</span>`;
-  else if (friend) tag = `<span class="pvp-tag friend">🤝 DOSTUN</span>`;
+  /* KENDİ KALEN: "👑 SENİN KALEN" rozeti kaldırıldı — kendi kalene
+     bastığını zaten biliyorsun, pencere sade kalsın. */
+  if (friend) tag = `<span class="pvp-tag friend">🤝 DOSTUN</span>`;
   else if (shield) tag = `<span class="pvp-tag shield">🛡️ YENİ OYUNCU KALKANI</span>`;
 
   /* Kale HP — SADECE füze sisteminin bilgisi, saldırıyla ilgisi yok */
@@ -598,11 +599,11 @@ function openCastlePopup(name, gx, gy, isOwn) {
     ? Math.round(defender.attack + defender.defense + defender.maxHp / 4)
     : 0;
 
+  /* KENDİ KALEN: elmas ve birlik dökümü (Savunucu/Koruyucu/Nişancı)
+     buradan kaldırıldı — aynı bilgiler üst çubukta ve Birlikler
+     ekranında zaten var, pencerede yalnız Kale HP kalır. */
   const statsHTML = isOwn
-    ? hpBlock + `<div class="pvp-sep"></div>
-        <div class="pvp-stat-row"><span>💎 Elmasın</span><b>${money(state.diamonds || 0)}</b></div>
-        ${FRONT_ORDER.filter(u => (state.troops||{})[u] > 0)
-          .map(u => `<div class="pvp-stat-row"><span>${unitLabel(u)}</span><b>x${money(state.troops[u])}</b></div>`).join("")}`
+    ? hpBlock
     : hpBlock + `<div class="pvp-sep"></div>
         <div class="pvp-stat-row" style="font-size:14px;">
           <span>⚔️ Güç</span><b style="color:#ffd257;">${money(totalPower)}</b>
@@ -630,7 +631,7 @@ function openCastlePopup(name, gx, gy, isOwn) {
   back.innerHTML = `
     <div class="pvp-pop">
       <i class="pvp-pop-ok asagi" id="pvpPopOk"></i>
-      <button class="pvp-missile" id="pvpMissileBtn" title="Füze gönder">🚀</button>
+      ${isOwn ? "" : `<button class="pvp-missile" id="pvpMissileBtn" title="Füze gönder">🚀</button>`}
       <div class="pvp-head">
         <div class="pvp-ava">🏰</div>
         <div class="pvp-name">${esc(name || "Oyuncu")}</div>
@@ -659,7 +660,9 @@ function openCastlePopup(name, gx, gy, isOwn) {
   /* ✕ kaldırıldı; varsa yine de bağlan (başka pencere kullanıyorsa). */
   const _kapatBtn = back.querySelector("#pvpCloseBtn");
   if (_kapatBtn) tap(_kapatBtn, closeCastlePopup);
-  tap(back.querySelector("#pvpMissileBtn"), () => fireMissileAt(name, gx, gy, isOwn));
+  /* Kendi kalende füze düğmesi hiç basılmaz — yukarıda çizilmiyor. */
+  const _fuzeBtn = back.querySelector("#pvpMissileBtn");
+  if (_fuzeBtn) tap(_fuzeBtn, () => fireMissileAt(name, gx, gy, isOwn));
 
   /* 📍 satırına dokun → koordinatı sohbete at.
      shareCoordInChat index.html'de tanımlı. Yoksa satır sade yazıya
@@ -691,7 +694,9 @@ function openCastlePopup(name, gx, gy, isOwn) {
    Artık DOM'dan buton bulup tıklama taklit etmiyoruz;
    missile.js window.MISSILE_API'yi dışarı açıyor. ── */
 function fireMissileAt(name, gx, gy, isOwn) {
-  if (isOwn) { toast("Kendi kaleni füzeleyemezsin 😄"); return; }
+  /* Kendi kalende füze düğmesi artık hiç çizilmiyor; buraya
+     gelinirse sessizce çık — uyarı yazısı kaldırıldı. */
+  if (isOwn) return;
   closeCastlePopup();
   const api = window.MISSILE_API;
   if (api && typeof api.open === "function") {
