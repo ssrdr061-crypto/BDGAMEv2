@@ -73,6 +73,27 @@ const KADEME = {
    Örnek: KADEME_GORSEL["knight2"] = "gorsel20.webp"; */
 const KADEME_GORSEL = {};
 
+/*  ─────────────────────────────────────────────
+    BİRLİK ADLARI — 18 ismin TEK KAYNAĞI
+    Sıra Sv1'den Sv6'ya. Aile adları (Savunucu/Koruyucu/Nişancı)
+    bunlardan ayrıdır; onlar rol düğmelerinde ve istatistik
+    ekranında kalır (UNIT_ROLES).
+    Bir ismi değiştireceksen SADECE burayı düzenle — ekranlar,
+    savaş raporu, hastane ve toast'lar def.name okuduğu için
+    kendiliğinden değişir.
+    ───────────────────────────────────────────── */
+const KADEME_ADI = {
+  knight:  ["Şövalye", "Süvari",      "Yeniçeri", "Asker",           "Robot",        "Dev Robot"],
+  soldier: ["Savaş Arabası", "Savaş Fili", "Topçu", "Tank",          "Saldırı Helikopteri", "Süper Tank"],
+  robot:   ["Okçu",     "Arbaletçi",   "Tüfekçi",  "Havan Birliği",  "Savaş Uçağı",  "Füze Sistemi"],
+};
+
+/* Sv1 adlarını da bu tablodan al (iki yerde ad tutulmasın) */
+["knight", "soldier", "robot"].forEach(tid => {
+  const ad = (KADEME_ADI[tid] || [])[0];
+  if (ad) UNIT_TYPES[tid].name = ad;
+});
+
 (function kademeleriUret() {
   const tabanlar = ["knight", "soldier", "robot"];
   tabanlar.forEach(tid => {
@@ -88,7 +109,7 @@ const KADEME_GORSEL = {};
       });
 
       UNIT_TYPES[id] = {
-        id, name: t.name, icon: t.icon,
+        id, name: (KADEME_ADI[tid] || [])[lv - 1] || t.name, icon: t.icon,
         cost:         Math.round(t.cost * Math.pow(KADEME.MALIYET_KAT, k)),
         trainMinutes: Math.round(t.trainMinutes * Math.pow(KADEME.SURE_KAT, k)),
         attack:  (t.attack  || 0) + k * a.attack,
@@ -212,14 +233,13 @@ const UNIT_ROLES = [
   { id: "nisan",   label: "Nişancı", icon: "🎯", unit: "robot"   },
 ];
 
-/*  Ekranda görünen ad: "1.Sv Savunucu".
-    Seviye UNIT_TYPES.level'dan gelir; seviye sistemi yazılınca
-    o alanı güncellemek yeter, başlık kendiliğinden değişir.
-    NOT: def.name (ham ad) toast ve savaş metinlerinde kalır.       */
+/*  Ekranda görünen ad = birliğin kendi adı ("Tüfekçi").
+    Her kademenin ayrı adı olduğu için başa "3.Sv" eklenmiyor;
+    kademe zaten sağ üstteki rozette yazıyor.                       */
 function unitAdi(x) {
   const d = (typeof x === "string") ? UNIT_TYPES[x] : x;
   if (!d) return "";
-  return (d.level || 1) + ".Sv " + d.name;
+  return d.name;
 }
 
 /*  power: birliğin KALE GÜCÜNE kattığı puan. Sıralama ekranındaki
