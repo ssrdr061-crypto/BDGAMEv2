@@ -361,39 +361,8 @@ const DRAG_PX = 12;
 /* ═══════════════════════════════════════════════════════════════
    GİRİŞ EKRANI — oyunun açık mavi teması
    ═══════════════════════════════════════════════════════════════ */
-/* DÜZ: çerçeve, kalın alt kenar ve gölge yok. index.html'deki iki blok ve
-   aşağıdaki girisDuzles ile BİREBİR aynı — dördü ayrışırsa giriş ekranı
-   yükleme sırasında görünüm değiştirir. */
-#loginScreen .field input{
-  background:linear-gradient(180deg, rgba(61,124,204,.72), rgba(21,46,94,.80)) !important;
-  border:none !important;
-  border-radius:13px !important;
-  color:#fff !important;
-  font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:800 !important; font-size:15px !important;
-  text-shadow:none !important;
-  box-shadow:none !important;
-}
-#loginScreen .field input::placeholder{ color:rgba(215,235,255,.75) !important; font-weight:700 !important; text-shadow:none !important; }
-#loginScreen .field input:focus{
-  background:rgba(255,255,255,.30) !important;
-  border:none !important;
-  box-shadow:none !important;
-  outline:none !important;
-}
-#loginScreen .login-btn{
-  background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%) !important;
-  border:none !important;
-  border-radius:13px !important;
-  color:#fff !important;
-  font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:900 !important; font-size:17px !important; letter-spacing:.5px;
-  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
-  box-shadow:none !important;
-  transition:transform .09s, filter .09s !important;
-}
-#loginScreen .login-btn:active{ transform:scale(.98) !important; filter:brightness(.93) !important; box-shadow:none !important; }
-#loginScreen .login-switch a{ color:#2DC9FC !important; font-weight:900 !important; }
+/* (18) Giriş ekranı kuralları buradan KALDIRILDI.
+   Tek tanım: index.html ~105. Buraya yeniden yazma. */
 
 /* ── ALT MENÜ (dock): panellerdeki ince açık-mavi çerçeve ── */
 .nav-dock{
@@ -2731,8 +2700,7 @@ st.textContent = `
 .daily-reward-close-btn,
 .log-open-btn,
 .stamina-potion-popup .spp-btn,
-#welcomeBack .wc-next,
-#loginScreen .login-btn{
+#welcomeBack .wc-next{
   background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%) !important;
   border:2px solid rgba(170,220,255,.75) !important;
   color:#ffffff !important;
@@ -2748,33 +2716,16 @@ st.textContent = `
 .daily-reward-close-btn:active,
 .log-open-btn:active,
 .stamina-potion-popup .spp-btn:active,
-#welcomeBack .wc-next:active,
-#loginScreen .login-btn:active{
+#welcomeBack .wc-next:active{
   box-shadow:0 1px 0 #0f2a55 !important;
 }
 /* "Satın Al" ortalanmış duruyor; :active dönüşümünü bozmayalım */
 #heroDetailOverlay #hdBuyBtn:active{ box-shadow:0 2px 0 #0f2a55 !important; }
 
-/* ── GİRİŞ EKRANI ────────────────────────────────────────────
-   Kutucuklar fotoğrafın üstünde duruyor. Çerçeveyi koyulaştırdık
-   ama içini de koyulaştırmak gerekti; yoksa açık çerçeve gidince
-   kutular arka plandaki kayaya karışıyordu. */
-#loginScreen .field input{
-  background:linear-gradient(180deg, rgba(61,124,204,.72), rgba(21,46,94,.80)) !important;
-  border:2px solid rgba(130,185,245,.75) !important;
-  box-shadow:
-    inset 0 2px 0 rgba(160,215,255,.30),
-    0 4px 12px rgba(0,10,30,.45) !important;
-}
-#loginScreen .field input::placeholder{ color:rgba(215,235,255,.75) !important; }
-#loginScreen .field input:focus{
-  background:linear-gradient(180deg, rgba(74,139,216,.82), rgba(26,58,112,.86)) !important;
-  border-color:#8fc4ff !important;
-  box-shadow:0 0 0 3px rgba(90,156,224,.40),
-             inset 0 2px 0 rgba(160,215,255,.35) !important;
-}
-/* "Kayıt ol" bağlantısı eski camgöbeğiydi, aileye alındı */
-#loginScreen .login-switch a{ color:#9fd0ff !important; }
+/* (18) Giriş ekranının KABARTMALI tanımı buradan SİLİNDİ.
+   Açılışta "önce düz, sonra kabartma" sorununun kaynağı buydu:
+   dosyada yukarıdaki düz bloktan SONRA geldiği için onu eziyordu.
+   Tek tanım: index.html ~105. */
 
 /* ── KAHRAMAN KARTI: KAPAT BUTONU + OKLAR ────────────────────
    Kapat butonu gri yuvarlaktı; panellerdeki kırmızı kare X ile
@@ -4072,8 +4023,7 @@ st.textContent = `
 .daily-reward-close-btn,
 .log-open-btn,
 .stamina-potion-popup .spp-btn,
-#welcomeBack .wc-next,
-#loginScreen .login-btn{
+#welcomeBack .wc-next{
   box-shadow:0 2px 6px rgba(0,20,45,.32) !important;
 }
 #panel-troops .unit-instant-btn:active,
@@ -4083,8 +4033,7 @@ st.textContent = `
 .daily-reward-close-btn:active,
 .log-open-btn:active,
 .stamina-potion-popup .spp-btn:active,
-#welcomeBack .wc-next:active,
-#loginScreen .login-btn:active{
+#welcomeBack .wc-next:active{
   transform:none !important;
   box-shadow:0 1px 3px rgba(0,20,45,.3) !important;
   filter:brightness(.94) !important;
@@ -4807,49 +4756,9 @@ document.head.appendChild(st);
   document.head.appendChild(st);
 })();
 
-/* ═══════════════════════════════════════════════════════════════
-   GİRİŞ EKRANI — 3B TEMİZLİĞİ
-   Kutular fotoğrafın üstünde durduğu için zemin KORUNUYOR;
-   kalkan sadece kabartı: kalın çerçeve, inset parlaklık ve
-   zıplayan basma tepkisi.
-   ═══════════════════════════════════════════════════════════════ */
-(function girisDuzles() {
-  const st = document.createElement("style");
-  st.id = "girisDuzStil";
-  st.textContent = `
-/* index.html'deki iki blokla BİREBİR aynı tutulacak — üç yer ayrışırsa
-   giriş ekranı yine üç ayrı görünüm arasında gidip gelir. */
-#loginScreen .field input{
-  border:none !important;
-  border-radius:13px !important;
-  box-shadow:none !important;
-  text-shadow:none !important;
-}
-#loginScreen .field input:focus{
-  border:none !important;
-  background:rgba(255,255,255,.30) !important;
-  box-shadow:none !important;
-}
-#loginScreen .field input::placeholder{ text-shadow:none !important; }
-
-#loginScreen .login-btn{
-  border:none !important;
-  border-radius:13px !important;
-  box-shadow:none !important;
-  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
-  -webkit-text-stroke:0 !important;
-  transition:transform .09s, filter .09s !important;
-}
-#loginScreen .login-btn:active{
-  transform:scale(.98) !important;
-  filter:brightness(.93) !important;
-  box-shadow:none !important;
-}
-
-#loginScreen .login-switch a{ text-shadow:0 1px 2px rgba(0,20,45,.55) !important; }
-`;
-  document.head.appendChild(st);
-})();
+/* (18) girisDuzles fonksiyonu tamamen SİLİNDİ.
+   Giriş ekranını düzleştiren bu blok gereksizdi: artık ezilecek
+   kabartmalı kural kalmadı. Tek tanım: index.html ~105. */
 
 /* ═══════════════════════════════════════════════════════════════
    KOORDİNAT ÖLÇÜMÜ  —  ?olcum=1
@@ -5657,26 +5566,9 @@ html body .nav-dock{
 html body .dock-icon{ filter:none !important; }
 html body .dock-btn{ box-shadow:none !important; }
 
-/* ── GİRİŞ EKRANI ── */
-html body #loginScreen .field input,
-html body #loginScreen .field input:focus{
-  box-shadow:none !important;
-  border:none !important;          /* çerçeve tamamen kalktı */
-}
-/* Çerçeve yokken "hangi kutudayım" belirsizleşmesin diye
-   odaklanınca zemin biraz açılıyor — çizgi yerine ton farkı. */
-html body #loginScreen .field input:focus{
-  background:rgba(255,255,255,.30) !important;
-}
-html body #loginScreen .login-btn,
-html body #loginScreen .login-btn:active{
-  box-shadow:none !important;
-  border:none !important;          /* çerçeve tamamen kalktı */
-}
-html body #loginScreen .login-btn:active{
-  transform:scale(.98) !important;   /* zıplama yok, hafif basma */
-  filter:brightness(.93) !important;
-}
+/* (18) Giriş ekranı kuralları buradan çıkarıldı — artık tek tanım
+   index.html ~105'te ve onu ezen kimse kalmadı.
+   Aşağıdaki sona taşıma yaması SADECE üst şerit + alt menü için. */
 `;
 
   /* ── NEDEN İKİ KAT KORUMA ──

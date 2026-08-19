@@ -97,11 +97,14 @@ body{
   color:#c9bdf0; font-weight:700; margin-bottom:6px; font-family:'Baloo 2',sans-serif;
   text-shadow:0 1px 3px rgba(0,0,0,.6);
 }
-/* ── GİRİŞ EKRANI: tema.js'in KOYU MAVİ TEMA bloğuyla BİREBİR aynı
-   (aynı #loginScreen özgüllüğü + !important), böylece ilk boyama ile
-   tema.js sonrası arasında hiç fark/flash olmaz.
-   DİKKAT: burayı değiştirirsen tema.js'in sonundaki aynı kuralları da
-   değiştir, yoksa açılışta bir anlık eski renk görünür. Font: Baloo 2 ── */
+/* ══ GİRİŞ EKRANI — TEK TANIM (18) ══════════════════════════════
+   Bu blok giriş ekranının TEK kaynağıdır. Eskiden aynı kurallar
+   yedi ayrı yerde yazılıydı (burası, ~2160, tema.js'te beş yer) ve
+   oyuncu açılışta üç ayrı görüntü arasında geçiş görüyordu.
+   18'de diğer altısı SİLİNDİ.
+   KURAL: giriş ekranı görünümü değişecekse SADECE burası düzenlenir.
+   Başka dosyaya ezen kural yazma — sorun aynen geri gelir.
+   Font: Baloo 2 ── */
 #loginScreen .field input{
   width:100%; padding:11px 14px;
   background:linear-gradient(180deg, rgba(61,124,204,.72), rgba(21,46,94,.80)) !important;
@@ -2157,40 +2160,8 @@ body.world-active{padding:0; overflow:hidden;}
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 
-/* — GİRİŞ EKRANI SON HÂL (tema.js `menuGirisDuzles` ile BİREBİR aynı) —
-   ÜÇ AŞAMALI AÇILIŞIN SEBEBİ BURASIYDI: yukarıdaki asıl tanım kabartmalı,
-   burası yarı düz, tema.js ise tam düzdü. tema.js sayfanın en sonunda
-   yüklendiği için oyuncu üç ayrı görüntü görüyordu. Üçü de aynı değerlere
-   çekildi. BURAYI DEĞİŞTİRİRSEN yukarıdaki asıl tanımı ve tema.js'in
-   sonundaki menuGirisDuzles bloğunu da aynı yap. */
-#loginScreen .field input{
-  border:none !important;
-  border-radius:13px !important;
-  box-shadow:none !important;
-  text-shadow:none !important;
-}
-#loginScreen .field input:focus{
-  border:none !important;
-  background:rgba(255,255,255,.30) !important;
-  box-shadow:none !important;
-}
-#loginScreen .field input::placeholder{ text-shadow:none !important; }
-
-#loginScreen .login-btn{
-  border:none !important;
-  border-radius:13px !important;
-  box-shadow:none !important;
-  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
-  -webkit-text-stroke:0 !important;
-  transition:transform .09s, filter .09s !important;
-}
-#loginScreen .login-btn:active{
-  transform:scale(.98) !important;
-  filter:brightness(.93) !important;
-  box-shadow:none !important;
-}
-
-#loginScreen .login-switch a{ text-shadow:0 1px 2px rgba(0,20,45,.55) !important; }
+/* GİRİŞ EKRANI kopyası buradan KALDIRILDI (18).
+   Tek tanım yukarıda ~105. satırda. tema.js'teki altı kopya da silindi. */
 </style>
 </head>
 <body>
