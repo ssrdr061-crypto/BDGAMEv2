@@ -1258,14 +1258,19 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
       });
     }
   }
-  weaken(A, D);
-  weaken(D, A);
-
   /* Savunanın HİÇ birliği yoksa kale savunmasızdır: komutan da
      dövüşmez, saldırana hasar vermez. Böylece boş kaleyi yağmalarken
-     hiç birlik kaybetmezsin (kolay hedef). */
+     hiç birlik kaybetmezsin (kolay hedef).
+     DİKKAT — bu kontrol weaken()'DAN ÖNCE olmalı: savaş öncesi
+     yetenekler (anlık kayıp / savunma yıpratma) tur döngüsünden
+     bağımsız çalışır, sonra kapatılırsa çoktan vurmuş olur.
+     Boş kale 6.8M'lik orduya %6 anlık kayıp yazdırmıştı (19 raporu). */
   const defenderHasTroops = D.units.reduce((s,u)=>s+u.count,0) > 0;
   if (!defenderHasTroops) { D.hero.atk = 0; D.hero.hp = 0; }
+
+  weaken(A, D);
+  /* savunanın yetenekleri yalnız birliği varsa işler */
+  if (defenderHasTroops) weaken(D, A);
 
   /* savunanın birlik statlarına kale bonusu */
   D.units.forEach(u => { u.def = Math.round(u.def * CFG.castleDefBonus); u.hp = Math.max(1, Math.round(u.hp * CFG.castleHpBonus)); });
