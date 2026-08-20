@@ -578,7 +578,10 @@ const CSS = `
 .bk-detay{
   position:fixed; inset:0; z-index:9100; display:flex;
   align-items:center; justify-content:center; padding:18px;
-  background:rgba(4,18,10,.55);
+  /* Arka plan KARARMIYOR — pencere altındaki kutucuklar görünür
+     kalsın diye. Katman yine tüm ekranı kaplar, çünkü dışarı
+     dokununca kapanma buna bağlı. */
+  background:none;
 }
 .bk-detay-kutu{
   width:min(300px,88vw); border-radius:14px; padding:12px 13px 12px;
@@ -609,7 +612,15 @@ const CSS = `
 }
 .bk-btn:active{ transform:scale(.96); filter:brightness(.93); }
 .bk-btn:disabled{ background:#4d6355; color:#a9bdae; box-shadow:none; cursor:not-allowed; }
-.bk-btn.bk-geri{ background:linear-gradient(180deg,#ffd9a1,#e8a545); }
+/* GERİ AL kırmızı — kullanılmış buff'ı geri almak yıkıcı bir iş */
+.bk-btn.bk-geri{
+  background:linear-gradient(180deg,#ff7a6e,#d92e28); color:#fff;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+/* Açıklamadaki sayı ibareleri */
+.bk-vurgu{ color:#ffd257; font-weight:800; }
+/* Görsellerin köşesi kutucukla uyumlu olsun diye çok hafif yuvarlak */
+.bk-gor img, .bk-detay-gor img{ border-radius:6px; }
 .bk-bos{ text-align:center; font-size:11.5px; color:#9dd3b0; padding:14px 4px; }
 .bk-kapat{
   width:100%; margin-top:6px; border:0; border-radius:10px; cursor:pointer;
@@ -691,6 +702,15 @@ function urunGorsel(u) {
          'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' + yedek + '\'))">';
 }
 
+/*  Açıklamadaki sayı ibarelerini (%45, %200, "3 tur", "2 katına")
+    sarıya boyar ki yetenek bir bakışta okunsun. Yalnız HTML'e
+    basılan yerlerde çağrılır. */
+function vurgula(metin) {
+  return String(metin)
+    .replace(/(%\s?\d+(?:[.,]\d+)?)/g, '<span class="bk-vurgu">$1</span>')
+    .replace(/(\d+\s?(?:tur|kat|katına|saniye))/gi, '<span class="bk-vurgu">$1</span>');
+}
+
 /* Kutunun/pencerenin düğmesi — durumuna göre KULLAN ya da GERİ AL */
 function dugmeHTML(u, d) {
   return d.hazir
@@ -702,7 +722,7 @@ function dugmeHTML(u, d) {
     Kutucuğa dokununca açılır: görsel, ad, kahraman, açıklama ve
     aynı düğme. Hem güçlendirme menüsünden hem ÇANTADAN çağrılır,
     bu yüzden `sonra` geri çağrısı ile açan ekran kendini tazeler. */
-function detayAc(u, sonra) {
+function detayAc(u, sonra, dugmeli) {
   detayKapat();
   const d = durum(u);
 
@@ -715,11 +735,14 @@ function detayAc(u, sonra) {
         '<div class="bk-detay-yazi">' +
           '<div class="bk-ad">' + u.name + '</div>' +
           '<div class="bk-kahraman">🦸 ' + (u.heroName || "") +
-            (d.hazir ? ' · <b style="color:#8dffb9">HAZIR</b>' : (d.ok ? '' : ' · ' + d.sebep)) + '</div>' +
+            (d.hazir || d.ok ? '' : ' · ' + d.sebep) + '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="bk-aciklama">' + (u.boostDesc || "") + '</div>' +
-      dugmeHTML(u, d) +
+      '<div class="bk-aciklama">' + vurgula(u.boostDesc || "") + '</div>' +
+      /* Güçlendirme menüsünde düğme KUTUCUĞUN İÇİNDE zaten var;
+         burada ikinci kez göstermiyoruz. Çantadan açıldığında ise
+         başka düğme olmadığı için gösteriliyor. */
+      (dugmeli ? dugmeHTML(u, d) : "") +
     '</div>';
   document.body.appendChild(kok);
 
@@ -887,7 +910,7 @@ document.addEventListener("click", function (e) {
   e.preventDefault();
   detayAc(u, function () {
     try { if (typeof renderInventory === "function") renderInventory(); } catch (err) {}
-  });
+  }, true);
 }, true);
 
 /* ── 7) DIŞA AÇILANLAR ───────────────────────────────────────── */
