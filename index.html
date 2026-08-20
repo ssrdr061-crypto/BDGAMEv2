@@ -8158,17 +8158,31 @@ const TroopViewer = (function () {
       const countEl = document.getElementById("uvCount_" + uid);
       if (countEl) countEl.textContent = "x" + count;
 
-      /* Üst kademedeyken görsel karartılır (henüz üretilemediği için) */
+      /* Üst kademedeyken görsel karartılır (henüz üretilemediği için).
+         KARARTMA VE GÖRSEL AYNI ANDA DEĞİŞİR. Ayrı ayrı yapılırsa
+         arada bir an yanlış eşleşme görünüyor: Sv2'den Sv1'e dönerken
+         karartma hemen kalkıyor, görsel ise yeni dosya inince
+         değişiyordu — süvari bir an RENKLİ görünüyordu.
+         Bu yüzden yeni görsel önce arka planda indiriliyor, karartma
+         ile birlikte tek karede uygulanıyor. */
       const scr = viewerEl && viewerEl.querySelector('.unit-screen[data-unit="' + uid + '"]');
-      if (scr) scr.classList.toggle("kademe-kilit", kilit);
-      if (scr && def.img) {
-        const buyukGorsel = scr.querySelector(".stage img");
-        if (buyukGorsel && buyukGorsel.getAttribute("src") !== def.img) {
-          const yeniYol = def.img;
-          const onYukle = new Image();
-          onYukle.onload = function () { buyukGorsel.setAttribute("src", yeniYol); };
-          onYukle.src = yeniYol;
-        }
+      const buyukGorsel = scr ? scr.querySelector(".stage img") : null;
+      const gorselDegisecek = !!(buyukGorsel && def.img &&
+                                 buyukGorsel.getAttribute("src") !== def.img);
+
+      if (scr && !gorselDegisecek) scr.classList.toggle("kademe-kilit", kilit);
+
+      if (gorselDegisecek) {
+        const yeniYol = def.img;
+        const onYukle = new Image();
+        onYukle.onload = function () {
+          scr.classList.toggle("kademe-kilit", kilit);
+          buyukGorsel.setAttribute("src", yeniYol);
+        };
+        onYukle.onerror = function () {
+          scr.classList.toggle("kademe-kilit", kilit);
+        };
+        onYukle.src = yeniYol;
       }
 
       /* ── ÜST: bu ailenin KADEMELERİ (Sv1 … Sv6) ── */
