@@ -8057,6 +8057,16 @@ const TroopViewer = (function () {
     return kap;
   }
 
+  /* Kutucuğa basılınca: aynı ekranda kalır, sadece kademe değişir. */
+  function setKademe(aile, lv) {
+    const en = kademeSayisi();
+    KADEME_SEC[aile] = Math.max(1, Math.min(en, lv || 1));
+    renderUnitStats();
+    const t = document.getElementById("uvTitle");
+    const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[aktifId(ORDER[idx])] : null;
+    if (t && d) t.textContent = d.name;
+  }
+
   let idx = 0, inited = false, screens = [], dots = [], titleEl = null, viewerEl = null;
 
   const robot = { running: false };
