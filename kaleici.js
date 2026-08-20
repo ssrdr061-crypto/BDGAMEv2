@@ -359,6 +359,17 @@
     var oyunda = !g || getComputedStyle(g).display === 'none';
     var panelAcik = !!document.querySelector(
       '.overlay-panel.active, #seferOnayModal, .sefer-onay-modal');
+
+    /* Savaş penceresi (#battleArena / arazi paneli aynı kabuğu kullanır)
+       display:none ile açılıp kapandığı için sınıfla anlaşılmıyor;
+       görünür olanı var mı diye bakıyoruz. */
+    if (!panelAcik) {
+      var arenalar = document.querySelectorAll('.battle-arena-overlay');
+      for (var i = 0; i < arenalar.length; i++) {
+        if (getComputedStyle(arenalar[i]).display !== 'none') { panelAcik = true; break; }
+      }
+    }
+
     if (girBtn) girBtn.classList.toggle('acik', oyunda && !panelAcik);
   }
 
