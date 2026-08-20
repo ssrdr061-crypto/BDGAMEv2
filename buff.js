@@ -511,7 +511,10 @@ const CSS = `
 .bk-mask{
   position:fixed; inset:0; z-index:9000; display:flex;
   align-items:center; justify-content:center; padding:16px;
-  background:rgba(4,18,10,.55);
+  /* Karartma yok — altındaki savaş paneli görünür kalır.
+     Katman yine tüm ekranı kaplar, dışarı dokununca kapanma
+     buna bağlı. */
+  background:none;
 }
 .bk-card{
   width:min(340px,92vw); max-height:76vh; overflow-y:auto;
@@ -566,10 +569,11 @@ const CSS = `
   font-size:11px; font-weight:800; color:#eaffef;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
-/* Kutu içindeki düğme: tam genişlik, kutunun altına yaslı */
+/* Kutu içindeki düğme: yazısı kadar geniş, altta ortalı */
 .bk-kutu .bk-btn{
-  width:100%; flex:0 0 25%; padding:0; border-radius:9px;
-  font-size:10.5px; letter-spacing:.2px;
+  align-self:center; width:auto; flex:0 0 auto;
+  padding:5px 12px; border-radius:8px;
+  font-size:10px; letter-spacing:.2px;
 }
 
 /* ── AÇIKLAMA PENCERESİ (kutucuğa dokununca) ──
@@ -598,7 +602,10 @@ const CSS = `
 .bk-detay-gor{ flex:0 0 52px; width:52px; height:52px; }
 .bk-detay-gor img{ width:100%; height:100%; object-fit:contain; display:block; }
 .bk-detay-yazi{ flex:1 1 auto; min-width:0; text-align:left; }
-.bk-detay-kutu .bk-btn{ width:100%; margin-top:11px; padding:8px; font-size:12px; }
+.bk-detay-kutu .bk-btn{
+  display:block; width:auto; margin:11px auto 0;
+  padding:7px 22px; font-size:12px;
+}
 
 .bk-ad{ font-size:14px; font-weight:800; color:#fff; line-height:1.2; }
 .bk-kahraman{ font-size:10.5px; color:#9fe3ff; margin-top:1px; }
