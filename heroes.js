@@ -1056,10 +1056,9 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
    YUTMAZ (pointer-events:none). Savaş paneli açık ve tıklanabilir
    kalır: yanlış kahraman seçildiyse oyuncu yuvadaki ✕ düğmesine
    hemen basabilir, pencereyi kapatmasına gerek kalmaz.
-   Pencere YUKARIDA durur: alt kenarı "Yanına alacağın birlikler"
-   yazısının hemen üstünde biter, yuvalar görünür kalır. Alt pay
-   sabit değildir — açılışta hpkKonumla() o yazıyı ölçüp yazar.
-   Buradaki 9vh yalnız yazı bulunamazsa geçerli olan yedek değerdir.
+   Pencere ALTTA durur; tepesi "Yanına alacağın birlikler"
+   başlığını geçmez — tavanı açılışta hpkKonumla() ölçer.
+   Buradaki 66vh yalnız başlık ölçülemezse geçerli yedektir.
    Dışarı dokununca kapatma işi CSS'e değil, openHeroPickModal
    içindeki dinleyiciye aittir (zemin artık dokunuş almıyor). */
 .hpk-back{
@@ -1306,15 +1305,16 @@ function hpkTazele() {
 
 let _hpkDisDokunus = null;
 
-/*  ── PENCEREYİ YUKARI AL ──
-    Alt kenarı "Yanına alacağın birlikler" başlığının 8px üstünde
-    biter; böylece kahraman yuvaları pencerenin üstünde açıkta kalır
-    ve yanlış seçim yapılırsa − düğmesine hemen basılabilir.
+/*  ── PENCERENİN TAVANI ──
+    Pencere ALTTA açılır (CSS'teki 9vh alt payı). Buradaki iş yalnız
+    ÜST sınırı belirlemek: pencerenin tepesi "Yanına alacağın
+    birlikler" başlığının 8px altında kalır, o yazının üstüne
+    çıkmaz — kahraman yuvaları hep görünür durur.
 
     Ölçü CSS'e yazılamaz: başlığın ekrandaki yeri savaş paneli
     kaydırıldıkça değişir. Her açılışta yeniden ölçülür.
-    Başlık bulunamazsa hiçbir şey yapılmaz — CSS'teki 9vh yedeği
-    devreye girer, pencere eskisi gibi altta açılır.               */
+    Başlık bulunamazsa hiçbir şey yapılmaz — CSS'teki 66vh tavanı
+    geçerli kalır.                                                  */
 function hpkKonumla(back) {
   try {
     const modal = back && back.querySelector(".hpk-modal");
@@ -1327,17 +1327,15 @@ function hpkKonumla(back) {
     const r = hedef.getBoundingClientRect();
     if (!r.height) return;                    /* gizli kapsayıcı — çık */
 
-    const ustPay = 12;                        /* ekranın üstünden pay */
-    const altPay = Math.round(window.innerHeight - r.top + 8);
-    const bos    = window.innerHeight - altPay - ustPay;
+    /* CSS'teki alt pay: 9vh. İkisi ayrışmasın diye tek sayı burada. */
+    const altPay = window.innerHeight * 0.09;
+    const tavan  = Math.round(window.innerHeight - altPay - (r.bottom + 8));
 
-    if (altPay <= 0 || bos < 140) return;     /* yer kalmıyorsa dokunma */
+    if (tavan < 140) return;                  /* yer kalmıyorsa dokunma */
 
-    back.style.paddingBottom = altPay + "px";
-    back.style.paddingTop    = ustPay + "px";
-    modal.style.maxHeight    = bos + "px";
+    modal.style.maxHeight = tavan + "px";
   } catch (e) {
-    console.warn("[heroes.js] Pencere konumlandırılamadı:", e);
+    console.warn("[heroes.js] Pencere tavanı ayarlanamadı:", e);
   }
 }
 
@@ -1361,7 +1359,7 @@ function openHeroPickModal(slotIndex) {
   document.body.appendChild(back);
   hpkGridCiz(back, slotIndex);
 
-  /* Pencereyi yukarı al: yuvalar görünür kalsın. Boy ölçüsü
+  /* Pencerenin tavanını başlığın altına kilitle. Boy ölçüsü
      kilitlenmeden ÖNCE çağrılır, yoksa kilitlenen boy yanlış olur. */
   hpkKonumla(back);
 
