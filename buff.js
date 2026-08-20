@@ -554,6 +554,13 @@ const CSS = `
   display:flex; align-items:center; justify-content:center; font-size:26px;
 }
 .bk-kutu .bk-gor img{ width:100%; height:100%; object-fit:contain; display:block; }
+/* Görselin altında yalnız kahramanın adı — detay pencerede anlatılıyor */
+.bk-kutu .bk-kim{
+  flex:0 0 auto; text-align:center; font-size:9.5px; font-weight:800;
+  color:#9fe3ff; line-height:1.1; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
 .bk-kutu .bk-adet{
   position:absolute; top:4px; right:6px;
   font-size:11px; font-weight:800; color:#eaffef;
@@ -561,34 +568,38 @@ const CSS = `
 }
 /* Kutu içindeki düğme: tam genişlik, kutunun altına yaslı */
 .bk-kutu .bk-btn{
-  width:100%; flex:0 0 28%; padding:0; border-radius:9px;
+  width:100%; flex:0 0 25%; padding:0; border-radius:9px;
   font-size:10.5px; letter-spacing:.2px;
 }
 
-/* ── AÇIKLAMA PENCERESİ (kutucuğa dokununca) ── */
+/* ── AÇIKLAMA PENCERESİ (kutucuğa dokununca) ──
+   Mağazanın satın alma penceresiyle aynı düzen: solda küçük ikon,
+   sağda ad ve kısa açıklama, altta tek düğme. Küçük tutuldu. */
 .bk-detay{
   position:fixed; inset:0; z-index:9100; display:flex;
   align-items:center; justify-content:center; padding:18px;
   background:rgba(4,18,10,.55);
 }
 .bk-detay-kutu{
-  width:min(300px,86vw); border-radius:16px; padding:14px 14px 12px;
+  width:min(300px,88vw); border-radius:14px; padding:12px 13px 12px;
   background:linear-gradient(180deg,#14432a 0%,#0d2c1c 100%);
   border:1px solid rgba(120,230,165,.28);
   box-shadow:0 2px 6px rgba(0,20,45,.3);
-  color:#eaffef; text-align:center;
+  color:#eaffef;
 }
 .bk-detay-kutu, .bk-detay-kutu *{
   font-family:'Baloo 2','Nunito',sans-serif !important;
   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
 }
-.bk-detay-gor{ width:88px; height:88px; margin:0 auto 8px; }
+.bk-detay-ust{ display:flex; align-items:center; gap:11px; }
+.bk-detay-gor{ flex:0 0 52px; width:52px; height:52px; }
 .bk-detay-gor img{ width:100%; height:100%; object-fit:contain; display:block; }
-.bk-detay-kutu .bk-btn{ width:100%; margin-top:10px; padding:9px; font-size:12.5px; }
+.bk-detay-yazi{ flex:1 1 auto; min-width:0; text-align:left; }
+.bk-detay-kutu .bk-btn{ width:100%; margin-top:11px; padding:8px; font-size:12px; }
 
-.bk-ad{ font-size:13.5px; font-weight:800; color:#fff; }
-.bk-kahraman{ font-size:11px; color:#9fe3ff; margin-top:1px; }
-.bk-aciklama{ font-size:11.5px; color:#cfe9d8; line-height:1.35; margin-top:6px; }
+.bk-ad{ font-size:14px; font-weight:800; color:#fff; line-height:1.2; }
+.bk-kahraman{ font-size:10.5px; color:#9fe3ff; margin-top:1px; }
+.bk-aciklama{ font-size:11.5px; color:#cfe9d8; line-height:1.3; margin-top:5px; }
 .bk-btn{
   flex:0 0 auto; border:0; cursor:pointer; border-radius:9px;
   padding:7px 11px; font-family:inherit; font-weight:800; font-size:11.5px;
@@ -699,13 +710,16 @@ function detayAc(u, sonra) {
   kok.className = "bk-detay";
   kok.innerHTML =
     '<div class="bk-detay-kutu">' +
-      '<div class="bk-detay-gor">' + urunGorsel(u) + '</div>' +
-      '<div class="bk-ad">' + u.name + '</div>' +
-      '<div class="bk-kahraman">🦸 ' + (u.heroName || "") +
-        (d.hazir ? ' · <b style="color:#8dffb9">HAZIR</b>' : (d.ok ? '' : ' · ' + d.sebep)) + '</div>' +
+      '<div class="bk-detay-ust">' +
+        '<div class="bk-detay-gor">' + urunGorsel(u) + '</div>' +
+        '<div class="bk-detay-yazi">' +
+          '<div class="bk-ad">' + u.name + '</div>' +
+          '<div class="bk-kahraman">🦸 ' + (u.heroName || "") +
+            (d.hazir ? ' · <b style="color:#8dffb9">HAZIR</b>' : (d.ok ? '' : ' · ' + d.sebep)) + '</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="bk-aciklama">' + (u.boostDesc || "") + '</div>' +
       dugmeHTML(u, d) +
-      '<button class="bk-kapat">Kapat</button>' +
     '</div>';
   document.body.appendChild(kok);
 
@@ -714,7 +728,7 @@ function detayAc(u, sonra) {
   const ger = kok.querySelector("[data-geri]");
   if (kul) kul.addEventListener("click", () => { kullan(u.name); kapat(); });
   if (ger) ger.addEventListener("click", () => { geriAl(u.name); kapat(); });
-  kok.querySelector(".bk-kapat").addEventListener("click", kapat);
+  /* Kapatma: dışarıya dokunmak (mağaza penceresiyle aynı davranış) */
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 
   /* Tuzak 12 — açan dokunuşun devamı pencereyi anında kapatmasın. */
@@ -756,6 +770,7 @@ function icerikCiz(card) {
         '<div class="bk-kutu' + (d.hazir ? ' bk-acik' : '') + '" data-detay="' + u.name + '">' +
           (adet > 1 ? '<span class="bk-adet">×' + adet + '</span>' : '') +
           '<div class="bk-gor">' + urunGorsel(u) + '</div>' +
+          '<div class="bk-kim">' + (u.heroName || "") + '</div>' +
           dugmeHTML(u, d) +
         '</div>';
     });
