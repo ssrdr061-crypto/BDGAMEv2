@@ -527,34 +527,78 @@ const CSS = `
   font-family:'Baloo 2','Nunito',sans-serif !important;
   user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
 }
-.bk-card h3{ margin:0 0 8px; font-size:15px; color:#b6ffd0; text-align:center; }
-.bk-satir{
-  display:flex; align-items:center; gap:8px; margin-bottom:7px;
-  padding:7px 8px; border-radius:11px;
-  background:rgba(255,255,255,.07); border:1px solid rgba(120,230,165,.3);
+.bk-card h3{ margin:0 0 10px; font-size:15px; color:#b6ffd0; text-align:center; }
+
+/*  ── KUTUCUK IZGARASI ──
+    Çantadaki kartla AYNI oran: aspect-ratio 1/1.12, üç sütun.
+    Kutunun içi: üstte görsel (esner), altta tam genişlikte KULLAN.
+    Düğmeye kutunun boyunun ~%28'i ayrıldı ki parmakla rahat
+    basılsın; görsel kalan yeri doldurur.
+    Kutunun kendisine dokunmak AÇIKLAMA penceresini açar.        */
+.bk-izgara{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:9px;
 }
-.bk-satir.bk-acik{ border-color:#7ff0a8; background:rgba(90,235,150,.14); }
-.bk-ikon{
-  font-size:22px; flex:0 0 auto;
-  width:38px; height:38px;
-  display:flex; align-items:center; justify-content:center;
+.bk-kutu{
+  position:relative; aspect-ratio:1 / 1.12; min-width:0;
+  display:flex; flex-direction:column; gap:5px;
+  padding:7px 6px; border-radius:13px; cursor:pointer;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(120,230,165,.28);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  transition:transform .09s, filter .09s;
 }
-/* Mağazadaki ürün görseli — magaza.js'teki gorsel alanından gelir.
-   Dosya yoksa onerror emojiye döner (aşağıda, pencereAc içinde). */
-.bk-ikon img{ width:100%; height:100%; object-fit:contain; display:block; }
-.bk-orta{ flex:1 1 auto; min-width:0; }
-.bk-ad{ font-size:12.5px; font-weight:800; color:#fff; }
-.bk-kahraman{ font-size:10px; color:#9fe3ff; }
-.bk-aciklama{ font-size:10.5px; color:#cfe9d8; line-height:1.3; margin-top:2px; }
+.bk-kutu:active{ transform:scale(.96); filter:brightness(.93); }
+.bk-kutu.bk-acik{ border-color:rgba(127,240,168,.75); background:rgba(90,235,150,.14); }
+.bk-kutu .bk-gor{
+  flex:1 1 auto; min-height:0;
+  display:flex; align-items:center; justify-content:center; font-size:26px;
+}
+.bk-kutu .bk-gor img{ width:100%; height:100%; object-fit:contain; display:block; }
+.bk-kutu .bk-adet{
+  position:absolute; top:4px; right:6px;
+  font-size:11px; font-weight:800; color:#eaffef;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+/* Kutu içindeki düğme: tam genişlik, kutunun altına yaslı */
+.bk-kutu .bk-btn{
+  width:100%; flex:0 0 28%; padding:0; border-radius:9px;
+  font-size:10.5px; letter-spacing:.2px;
+}
+
+/* ── AÇIKLAMA PENCERESİ (kutucuğa dokununca) ── */
+.bk-detay{
+  position:fixed; inset:0; z-index:9100; display:flex;
+  align-items:center; justify-content:center; padding:18px;
+  background:rgba(4,18,10,.55);
+}
+.bk-detay-kutu{
+  width:min(300px,86vw); border-radius:16px; padding:14px 14px 12px;
+  background:linear-gradient(180deg,#14432a 0%,#0d2c1c 100%);
+  border:1px solid rgba(120,230,165,.28);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  color:#eaffef; text-align:center;
+}
+.bk-detay-kutu, .bk-detay-kutu *{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+}
+.bk-detay-gor{ width:88px; height:88px; margin:0 auto 8px; }
+.bk-detay-gor img{ width:100%; height:100%; object-fit:contain; display:block; }
+.bk-detay-kutu .bk-btn{ width:100%; margin-top:10px; padding:9px; font-size:12.5px; }
+
+.bk-ad{ font-size:13.5px; font-weight:800; color:#fff; }
+.bk-kahraman{ font-size:11px; color:#9fe3ff; margin-top:1px; }
+.bk-aciklama{ font-size:11.5px; color:#cfe9d8; line-height:1.35; margin-top:6px; }
 .bk-btn{
   flex:0 0 auto; border:0; cursor:pointer; border-radius:9px;
   padding:7px 11px; font-family:inherit; font-weight:800; font-size:11.5px;
   color:#0d2c1c; background:linear-gradient(180deg,#8dffb9,#33c46e);
-  box-shadow:0 3px 0 #14713c;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  transition:transform .09s, filter .09s;
 }
-.bk-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #14713c; }
+.bk-btn:active{ transform:scale(.96); filter:brightness(.93); }
 .bk-btn:disabled{ background:#4d6355; color:#a9bdae; box-shadow:none; cursor:not-allowed; }
-.bk-btn.bk-geri{ background:linear-gradient(180deg,#ffd9a1,#e8a545); box-shadow:0 3px 0 #96601c; }
+.bk-btn.bk-geri{ background:linear-gradient(180deg,#ffd9a1,#e8a545); }
 .bk-bos{ text-align:center; font-size:11.5px; color:#9dd3b0; padding:14px 4px; }
 .bk-kapat{
   width:100%; margin-top:6px; border:0; border-radius:10px; cursor:pointer;
@@ -627,6 +671,62 @@ function pencereKapat() {
   if (m) m.remove();
 }
 
+/*  Ürün görseli — magaza.js'teki `gorsel` alanı. Dosya açılmazsa
+    emojiye döner, kutu boş kalmaz. */
+function urunGorsel(u) {
+  const yedek = (u.icon || "⭐").replace(/'/g, "");
+  if (!u.gorsel) return yedek;
+  return '<img src="' + u.gorsel + '" alt="" ' +
+         'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' + yedek + '\'))">';
+}
+
+/* Kutunun/pencerenin düğmesi — durumuna göre KULLAN ya da GERİ AL */
+function dugmeHTML(u, d) {
+  return d.hazir
+    ? '<button class="bk-btn bk-geri" data-geri="' + u.name + '">GERİ AL</button>'
+    : '<button class="bk-btn" data-kullan="' + u.name + '"' + (d.ok ? "" : " disabled") + '>KULLAN</button>';
+}
+
+/*  ── AÇIKLAMA PENCERESİ ──
+    Kutucuğa dokununca açılır: görsel, ad, kahraman, açıklama ve
+    aynı düğme. Hem güçlendirme menüsünden hem ÇANTADAN çağrılır,
+    bu yüzden `sonra` geri çağrısı ile açan ekran kendini tazeler. */
+function detayAc(u, sonra) {
+  detayKapat();
+  const d = durum(u);
+
+  const kok = document.createElement("div");
+  kok.className = "bk-detay";
+  kok.innerHTML =
+    '<div class="bk-detay-kutu">' +
+      '<div class="bk-detay-gor">' + urunGorsel(u) + '</div>' +
+      '<div class="bk-ad">' + u.name + '</div>' +
+      '<div class="bk-kahraman">🦸 ' + (u.heroName || "") +
+        (d.hazir ? ' · <b style="color:#8dffb9">HAZIR</b>' : (d.ok ? '' : ' · ' + d.sebep)) + '</div>' +
+      '<div class="bk-aciklama">' + (u.boostDesc || "") + '</div>' +
+      dugmeHTML(u, d) +
+      '<button class="bk-kapat">Kapat</button>' +
+    '</div>';
+  document.body.appendChild(kok);
+
+  const kapat = () => { detayKapat(); if (typeof sonra === "function") sonra(); };
+  const kul = kok.querySelector("[data-kullan]");
+  const ger = kok.querySelector("[data-geri]");
+  if (kul) kul.addEventListener("click", () => { kullan(u.name); kapat(); });
+  if (ger) ger.addEventListener("click", () => { geriAl(u.name); kapat(); });
+  kok.querySelector(".bk-kapat").addEventListener("click", kapat);
+  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
+
+  /* Tuzak 12 — açan dokunuşun devamı pencereyi anında kapatmasın. */
+  kok.style.pointerEvents = "none";
+  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
+}
+
+function detayKapat() {
+  const d = document.querySelector(".bk-detay");
+  if (d) d.remove();
+}
+
 /*  Pencerenin İÇERİĞİ ayrı bir fonksiyondur.
     Sebebi: KULLAN'a basınca eskiden pencere komple kapanıp yeniden
     açılıyordu; kaydırma sıfırlanıp liste en başa zıplıyordu. Artık
@@ -648,37 +748,39 @@ function icerikCiz(card) {
     html += '<div class="bk-bos">Yanına aldığın kahramanların güçlendirmesi yok.<br>' +
             'Önce komutan seç ya da mağazadan güçlendirme al.</div>';
   } else {
+    html += '<div class="bk-izgara">';
     sahip.forEach(u => {
       const d = durum(u);
       const adet = cantaAdet(u.name);
-      const btn = d.hazir
-        ? '<button class="bk-btn bk-geri" data-geri="' + u.name + '">GERİ AL</button>'
-        : '<button class="bk-btn" data-kullan="' + u.name + '"' + (d.ok ? "" : " disabled") + '>KULLAN</button>';
-      /* Görsel magaza.js'teki `gorsel` alanından; yoksa/açılmazsa emoji. */
-      const yedek = (u.icon || "⭐").replace(/'/g, "");
-      const gorsel = u.gorsel
-        ? '<img src="' + u.gorsel + '" alt="" onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' + yedek + '\'))">'
-        : yedek;
       html +=
-        '<div class="bk-satir' + (d.hazir ? ' bk-acik' : '') + '">' +
-          '<div class="bk-ikon">' + gorsel + '</div>' +
-          '<div class="bk-orta">' +
-            '<div class="bk-ad">' + u.name + (adet > 1 ? ' ×' + adet : '') + '</div>' +
-            '<div class="bk-kahraman">🦸 ' + (u.heroName || "") +
-              (d.hazir ? ' · <b style="color:#8dffb9">HAZIR</b>'
-                       : (d.ok ? '' : ' · ' + d.sebep)) + '</div>' +
-            '<div class="bk-aciklama">' + (u.boostDesc || "") + '</div>' +
-          '</div>' + btn +
+        '<div class="bk-kutu' + (d.hazir ? ' bk-acik' : '') + '" data-detay="' + u.name + '">' +
+          (adet > 1 ? '<span class="bk-adet">×' + adet + '</span>' : '') +
+          '<div class="bk-gor">' + urunGorsel(u) + '</div>' +
+          dugmeHTML(u, d) +
         '</div>';
     });
+    html += '</div>';
   }
   html += '<button class="bk-kapat">Kapat</button>';
   card.innerHTML = html;
 
+  /* Düğmeler kutunun içindedir; dokunuş kutuya sızıp açıklama
+     penceresini açmasın diye stopPropagation şart. */
   card.querySelectorAll("[data-kullan]").forEach(b =>
-    b.addEventListener("click", () => { if (kullan(b.dataset.kullan)) icerikCiz(card); }));
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (kullan(b.dataset.kullan)) icerikCiz(card);
+    }));
   card.querySelectorAll("[data-geri]").forEach(b =>
-    b.addEventListener("click", () => { if (geriAl(b.dataset.geri)) icerikCiz(card); }));
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (geriAl(b.dataset.geri)) icerikCiz(card);
+    }));
+  card.querySelectorAll("[data-detay]").forEach(k =>
+    k.addEventListener("click", () => {
+      const u = urunBul(k.dataset.detay);
+      if (u) detayAc(u, () => icerikCiz(card));
+    }));
   card.querySelector(".bk-kapat").addEventListener("click", pencereKapat);
 
   card.scrollTop = kaydirma;
@@ -733,7 +835,44 @@ else kur();
 /* Arena kapanınca pencere de kapansın */
 document.addEventListener("click", function (e) {
   const t = e.target;
-  if (t && (t.id === "mapBackBtn" || t.id === "battleBtn")) pencereKapat();
+  if (t && (t.id === "mapBackBtn" || t.id === "battleBtn")) { pencereKapat(); detayKapat(); }
+}, true);
+
+/*  ── ÇANTADAN KULLANMA ──
+    Çantadaki güçlendirme kutucuğuna dokununca güçlendirme
+    menüsündekinin AYNI açıklama penceresi açılır: açıklama +
+    KULLAN / GERİ AL. Kart adını, kutucuğun içindeki gizli
+    `.inv-use-btn`'in data-item'ından ya da isim etiketinden okuyoruz
+    (tema.js'teki kaynak paketi penceresiyle aynı yöntem).
+
+    CAPTURE evresinde dinleniyor: index.html'in eski kart
+    dinleyicisine sıra gelmesin. Yalnız `isBoost` ürünlerde araya
+    giriyoruz, diğer eşyalar eskisi gibi akıyor.
+
+    NOT: Buff yalnız kahramanı savaşa seçiliyken kullanılabilir.
+    Çantadan bakarken komutan seçili değilse düğme kilitli görünür
+    ve sebebi yazar — kural bilerek korundu, buff boşa gitmesin. */
+document.addEventListener("click", function (e) {
+  const t = e.target;
+  if (!t || !t.closest) return;
+  const kart = t.closest("#invList .inv-card, #invList .shop-card");
+  if (!kart) return;
+
+  let ad = "";
+  const gizli = kart.querySelector(".inv-use-btn");
+  if (gizli && gizli.dataset && gizli.dataset.item) ad = gizli.dataset.item;
+  if (!ad) {
+    const n = kart.querySelector(".item-name");
+    ad = n ? n.textContent.trim() : "";
+  }
+  const u = urunBul(ad);
+  if (!u || !u.isBoost || !u.effect) return;
+
+  e.stopPropagation();
+  e.preventDefault();
+  detayAc(u, function () {
+    try { if (typeof renderInventory === "function") renderInventory(); } catch (err) {}
+  });
 }, true);
 
 /* ── 7) DIŞA AÇILANLAR ───────────────────────────────────────── */
