@@ -392,8 +392,18 @@ function kur() {
 document.addEventListener("DOMContentLoaded", function () {
   const panel = document.getElementById("panel-troops");
   if (!panel) return;
+  /* Panel kapanırken bizim ekranı da kapat. Kapatmazsak "is-active"
+     üstünde kalıyor; panel yeniden açıldığında Eğitim/Birlikler ekranı
+     bizim listenin ÜSTÜNE biniyor (başlıklar üst üste). */
+  function kapali() {
+    const scr = document.getElementById("istScreen");
+    if (scr) scr.classList.remove("is-active");
+    const viewer = document.getElementById("unitViewer");
+    if (viewer) viewer.classList.remove("tp-off");
+  }
+
   function bak() {
-    if (!panel.classList.contains("active")) return;
+    if (!panel.classList.contains("active")) { kapali(); return; }
     if (!kur()) setTimeout(kur, 120);   /* build() geç kaldıysa tekrar dene */
   }
   new MutationObserver(() => setTimeout(bak, 0))
