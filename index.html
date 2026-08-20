@@ -8161,6 +8161,12 @@ const TroopViewer = (function () {
       /* Üst kademedeyken görsel karartılır (henüz üretilemediği için) */
       const scr = viewerEl && viewerEl.querySelector('.unit-screen[data-unit="' + uid + '"]');
       if (scr) scr.classList.toggle("kademe-kilit", kilit);
+      if (scr && def.img) {
+        const buyukGorsel = scr.querySelector(".stage img");
+        if (buyukGorsel && buyukGorsel.getAttribute("src") !== def.img) {
+          buyukGorsel.setAttribute("src", def.img);
+        }
+      }
 
       /* ── ÜST: bu ailenin KADEMELERİ (Sv1 … Sv6) ── */
       let html = `<div class="uv-portraits">`;
