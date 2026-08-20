@@ -497,7 +497,20 @@ function hasNewbieShield(d) {
    5) KALE KUTUCUĞU
    ═══════════════════════════════════════════════════════════════ */
 let _popEl = null;
-function closeCastlePopup() { if (_popEl) { _popEl.remove(); _popEl = null; } }
+let _popAd = null;          /* açık pencerenin ait olduğu oyuncu adı */
+function closeCastlePopup() { if (_popEl) { _popEl.remove(); _popEl = null; } _popAd = null; }
+
+/* Kısa uyarı — showToast bu cihazda görünmüyor, ekrana ham div basıyoruz. */
+function pvpNot(yazi) {
+  const d = document.createElement("div");
+  d.textContent = yazi;
+  d.style.cssText = "position:fixed;left:50%;bottom:22%;transform:translateX(-50%);" +
+    "z-index:99999;background:rgba(10,28,52,.95);color:#fff;padding:8px 14px;" +
+    "border-radius:12px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;" +
+    "box-shadow:0 2px 6px rgba(0,20,45,.3);pointer-events:none;";
+  document.body.appendChild(d);
+  setTimeout(() => { try { d.remove(); } catch (e) {} }, 2200);
+}
 
 /* Pencereyi dokunulan kalenin ÜSTÜNE oturtur.
    ekranKonumu() #battleMap katmanına göre PİKSEL verir; ekran
@@ -571,20 +584,46 @@ function capala(back, gx, gy) {
 }
 
 function openCastlePopup(name, gx, gy, isOwn) {
-  /* Rakip verisi artık canlı dinlenmiyor; pencereyi açmadan önce
-     o tek hesabı çekeriz. Önbellek tazeyse beklemeden açılır. */
+  /* Rakip verisi canlı dinlenmiyor; o tek hesabı çekeriz.
+     BEKLETME YOK: elde eski bir kayıt varsa pencere ANINDA açılır,
+     taze veri gelince içi sessizce yenilenir. Uygulamadan dönerken
+     Firebase bağlantısı yeniden kurulurken 10-20 sn sürüyordu ve
+     kale "tıklanmıyor" gibi görünüyordu — sebep buydu. */
   if (!isOwn) {
     const _k = fbKey(String(name || "").toLowerCase());
     if (!accTaze(_k)) {
-      fetchAccount(name).then(() => {
-        _accZaman[_k] = Date.now();   /* hesap yoksa bile tekrar tekrar deneme */
-        openCastlePopup(name, gx, gy, isOwn);
-      });
-      return;
+      const eldeVar = !!ACCOUNTS[_k];
+
+      if (eldeVar) {
+        /* Arka planda tazele; pencere hâlâ aynı kaleye aitse yenile. */
+        fetchAccount(name).then(() => {
+          _accZaman[_k] = Date.now();
+          if (_popAd === name) openCastlePopup(name, gx, gy, isOwn);
+        });
+        /* return YOK — aşağıda eldeki veriyle hemen açılıyor. */
+      } else {
+        /* Hiç kayıt yok: beklemek zorundayız ama sınırlı.
+           3 saniyede gelmezse sessiz kalmak yerine haber veriyoruz. */
+        let bitti = false;
+        fetchAccount(name).then(() => {
+          if (bitti) return;
+          bitti = true;
+          _accZaman[_k] = Date.now();
+          openCastlePopup(name, gx, gy, isOwn);
+        });
+        setTimeout(() => {
+          if (bitti) return;
+          bitti = true;
+          if (ACCOUNTS[_k]) { _accZaman[_k] = Date.now(); openCastlePopup(name, gx, gy, isOwn); }
+          else pvpNot("Bağlantı kurulamadı, tekrar dene");
+        }, 3000);
+        return;
+      }
     }
   }
 
   closeCastlePopup();
+  _popAd = isOwn ? null : name;
 
   const hp      = castleHpOf(isOwn ? (currentUsername || "") : name);
   const hpPct   = Math.round(hp / CFG.castleMaxHp * 100);
@@ -2139,7 +2178,29 @@ window.stopPvpListeners = stopPvpListeners;
 function startPvp() {
   tick();
   setInterval(tick, 2500);
+  uyandirmayiKur();
   console.log("[pvp.js] Ordu savaşı sistemi yüklendi ✔");
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EKRAN GERİ GELİNCE BAĞLANTIYI UYANDIR
+   Telefon Chrome'u arka plana atınca ağ bağlantısını kapatıyor.
+   Eskiden bağlantı, oyuncu kaleye BASTIĞI anda kurulmaya başlıyordu
+   ve 10-20 sn sürüyordu. Artık ekran geri gelir gelmez başlıyor;
+   oyuncu kaleyi bulup basana kadar iş bitmiş oluyor.
+   ═══════════════════════════════════════════════════════════════ */
+function uyandir() {
+  if (!fbOK()) return;
+  try { if (firebaseDb.goOnline) firebaseDb.goOnline(); } catch (e) {}
+  try { firebaseDb.ref(".info/connected").once("value"); } catch (e) {}
+  try { startWatchers(); } catch (e) {}
+}
+function uyandirmayiKur() {
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) uyandir();
+  });
+  window.addEventListener("pageshow", uyandir);
+  window.addEventListener("focus", uyandir);
 }
 
 function waitAndStart() {
