@@ -298,35 +298,30 @@ function nesilImzasi() {
   return _slotlar.map(s => etkinNesil(s.slotId)).join(",");
 }
 
-/* Kalelerin karo listesi. Düğüm kalenin üstüne doğmasın diye.
-   Kale listesi buluttan gelir, yani tüm istemcilerde aynıdır. */
-function kaleKarolari() {
-  const out = [];
-  try {
-    if (typeof otherCastles !== "undefined" && Array.isArray(otherCastles)) {
-      otherCastles.forEach(c => {
-        const k = window.KOORD && window.KOORD.kaleKaro(c && c.castle);
-        if (k) out.push(k);
-      });
-    }
-  } catch (e) {}
-  try {
-    if (typeof state !== "undefined" && state && state.castle) {
-      const k = window.KOORD && window.KOORD.kaleKaro(state.castle);
-      if (k) out.push(k);
-    }
-  } catch (e) {}
-  /* Sıralanır: liste sırası istemciden istemciye değişmesin. */
-  out.sort((a, b) => (a.kx - b.kx) || (a.ky - b.ky));
-  return out;
-}
 
-/* Tüm slotların konumunu bir kerede hesaplar. */
+/* Tüm slotların konumunu bir kerede hesaplar.
+
+   KALEYE BAKMAZ. Eskiden kalelerden uzak durmaya çalışıyordu ve
+   konum önbelleği kale SAYISINA bağlıydı. Oyuna girerken diğer
+   oyuncuların kaleleri henüz inmemiş oluyor, düğümler boş listeye
+   göre yerleşiyor; kaleler inince sayı değişiyor ve BÜTÜN konumlar
+   yeniden hesaplanıyordu (hesap zincirli, ilk düğüm kayınca hepsi
+   kayıyor). Belirti: düğümler bir yerde beliriyor, kayboluyor,
+   toplu hâlde başka yerde yeniden beliriyor.
+
+   Daha kötüsü: yeni bir oyuncu kaydolduğunda ya da biri kalesini
+   taşıdığında herkesin düğümleri yer değiştiriyordu — yola çıkmış
+   seferin hedefi altından kayıyordu.
+
+   Artık konum yalnız tohum + slot + nesilden gelir. Bir düğüm
+   doğduğu karoda ölene kadar durur. Kale/düğüm çakışması KALE
+   TARAFINDA çözülür: kale taşınırken cellFree zaten bu dosyanın
+   haritaDugumleri() listesine bakıyor; yeni oyuncu kaydında ise
+   _doluNoktalar doluNoktalar()'ı sayıyor (index.html). */
 function konumlariHesapla() {
   const N = (window.KOORD ? window.KOORD.karoSayisi() : 141);
   const pay = AYAR.KENAR_PAY;
   const alan = Math.max(1, N - pay * 2);
-  const kaleler = kaleKarolari();
   const yerlesik = [];
   const sonuc = {};
 
@@ -334,10 +329,6 @@ function konumlariHesapla() {
     for (let i = 0; i < yerlesik.length; i++) {
       const p = yerlesik[i];
       if (Math.hypot(p.kx - kx, p.ky - ky) < AYAR.MIN_ARA_KARO) return true;
-    }
-    for (let i = 0; i < kaleler.length; i++) {
-      const c = kaleler[i];
-      if (Math.hypot(c.kx - kx, c.ky - ky) < AYAR.KALE_PAY_KARO) return true;
     }
     return false;
   };
@@ -366,7 +357,9 @@ function konumlariHesapla() {
 }
 
 function konumlar() {
-  const imza = nesilImzasi() + "#" + kaleKarolari().length;
+  /* Damga yalnız NESİLLERİ içerir. Kale sayısı buraya girerse
+     yeni bir oyuncu geldiğinde bütün konumlar yeniden hesaplanır. */
+  const imza = nesilImzasi();
   if (!_konumOnbellek || _onbellekImza !== imza) {
     _konumOnbellek = konumlariHesapla();
     _onbellekImza  = imza;

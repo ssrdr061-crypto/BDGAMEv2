@@ -4371,6 +4371,11 @@ function _doluNoktalar(GRID) {
 
   /* Canavar konumu YÜZDE tutuluyor; çevrim tek kapıdan (koordinat.js). */
   try { enemies.forEach(e => ekle(KOORD.karodanOlcek(e.kx), KOORD.karodanOlcek(e.ky))); } catch (e) {}
+  try {
+    if (window.DUGUM && DUGUM.doluNoktalar) {
+      DUGUM.doluNoktalar().forEach(p => ekle(p.gx, p.gy));
+    }
+  } catch (e) {}
 
   /* Firebase'den gelen canlı kale listesi (castles/ düğümü) */
   try {
