@@ -103,12 +103,28 @@ function orduKapasitesi(birlikler, seviyeler) {
    hiz → saniyede kaç birim toplanır. ORDUYA GÖRE DEĞİŞMEZ;
    ordunun bileşimi yalnız KAPASİTEYİ etkiler.
    ═══════════════════════════════════════════════════════════ */
+/*  ikon   → EMOJİ. Yalnız METİN bağlamlarında kullanılır
+             (toast, savaş günlüğü butonu, canvas yazısı).
+    gorsel → oyunun kendi kaynak görseli. HTML bağlamlarında
+             `kaynakSimge()` ile basılır; ölçüsü çevresindeki
+             yazıya bağlıdır (.kay-sim → 1.15em), böylece
+             yerine geçtiği emojiyle aynı büyüklükte durur.     */
 const KAYNAK = {
-  et:     { id: "et",     ad: "Et",     ikon: "🍖", hiz: 7 },
-  demir:  { id: "demir",  ad: "Demir",  ikon: "⛓️", hiz: 5 },
-  su:     { id: "su",     ad: "Su",     ikon: "💧", hiz: 3 },
-  enerji: { id: "enerji", ad: "Enerji", ikon: "⚡", hiz: 2 },
+  et:     { id: "et",     ad: "Et",     ikon: "🍖", gorsel: "et.webp",     hiz: 7 },
+  demir:  { id: "demir",  ad: "Demir",  ikon: "⛓️", gorsel: "demir.webp",  hiz: 5 },
+  su:     { id: "su",     ad: "Su",     ikon: "💧", gorsel: "su.webp",     hiz: 3 },
+  enerji: { id: "enerji", ad: "Enerji", ikon: "⚡", gorsel: "enerji.webp", hiz: 2 },
 };
+
+/*  HTML'e basılacak kaynak simgesi. Görsel açılmazsa emojiye döner,
+    yani dosya eksikse ekran boş kalmaz. */
+function kaynakSimge(id) {
+  const k = KAYNAK[id];
+  if (!k) return "";
+  if (!k.gorsel) return k.ikon;
+  return '<img class="kay-sim" src="' + k.gorsel + '" alt="" ' +
+         'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' + k.ikon + '\'))">';
+}
 
 const KAYNAK_IDLER = ["et", "demir", "su", "enerji"];
 
@@ -554,7 +570,10 @@ function slotDurumu(s) {
     ad: sab.ad, ikon: sab.ikon,
     kaynak: sab.kaynak,
     kaynakAd: KAYNAK[sab.kaynak].ad,
-    kaynakIkon: KAYNAK[sab.kaynak].ikon,
+    /* Bu alan YALNIZ innerHTML'e basılır (arazi/canavar pencereleri),
+       bu yüzden emoji değil görsel taşır. Metin gereken yerlerde
+       KAYNAK[...].ikon kullanılmalı. */
+    kaynakIkon: kaynakSimge(sab.kaynak),
     hiz: sab.hiz || 0,
     miktar: sab.tur === "arazi" ? sab.miktar : 0,
     kalan: kalan,
@@ -1012,6 +1031,7 @@ window.DUGUM = {
 
   /* tanım tabloları — salt okunur kullanım için */
   KAYNAK: KAYNAK,
+  kaynakSimge: kaynakSimge,
   KAYNAK_IDLER: KAYNAK_IDLER,
   ARAZILER: ARAZILER,
   CANAVARLAR: CANAVARLAR,

@@ -178,7 +178,22 @@ function aileKademeleri(aile) {
     Test aşaması için bilinçli bırakıldı. Kaynak alması istenirse
     trainUnitInstant içindeki işaretli bloğun yorumu kaldırılır.
     ───────────────────────────────────────────── */
-const KAYNAK_IKON = { et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
+/*  İki tablo, iki bağlam:
+    KAYNAK_EMOJI → toast gibi DÜZ METİN yerlerde.
+    KAYNAK_IKON  → innerHTML'e basılan yerlerde (eğitim ekranının
+                   kaynak satırı). Görsel açılmazsa emojiye döner.
+    Görsel adları dugum.js'teki KAYNAK tablosuyla aynıdır.        */
+const KAYNAK_EMOJI = { et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
+const KAYNAK_GORSEL = { et: "et.webp", demir: "demir.webp", su: "su.webp", enerji: "enerji.webp" };
+const KAYNAK_IKON = (function () {
+  const out = {};
+  Object.keys(KAYNAK_GORSEL).forEach(k => {
+    out[k] = '<img class="kay-sim" src="' + KAYNAK_GORSEL[k] + '" alt="" ' +
+             'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' +
+             KAYNAK_EMOJI[k] + '\'))">';
+  });
+  return out;
+})();
 
 /* Tek birlik için değil, İSTENEN ADET için toplam kaynak. */
 function kaynakMaliyet(unitId, count) {
@@ -358,7 +373,7 @@ function trainUnit(unitId, count) {
   const totalCost = def.cost * count;
   if (state.diamonds < totalCost || !kaynakYeterli(unitId, count)) {
     const g = kaynakMaliyet(unitId, count);
-    const liste = Object.keys(g).map(k => `${KAYNAK_IKON[k] || ""} ${fmt(g[k])}`).join(" · ");
+    const liste = Object.keys(g).map(k => `${KAYNAK_EMOJI[k] || ""} ${fmt(g[k])}`).join(" · ");
     showToast(`Yeterli kaynağın yok. ${count} ${def.name} için 💎 ${fmt(totalCost)}${liste ? " · " + liste : ""} gerekiyor.`);
     return;
   }

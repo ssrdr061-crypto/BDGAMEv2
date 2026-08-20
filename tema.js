@@ -5869,3 +5869,56 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   KAYNAK SİMGELERİ + DÜĞÜM PENCERELERİ
+   ------------------------------------------------------------
+   1) `.kay-sim` — emoji yerine basılan kaynak görselinin ölçüsü.
+      Ölçü `em` cinsindendir: hangi yazının içine girerse onun
+      boyunu alır, yani yerine geçtiği emojiyle aynı büyüklükte
+      görünür. Görselin adı troops.js ve dugum.js'te tanımlı.
+   2) Arazi/canavar pencereleri (.abm-*) düz görünüme çekildi.
+      Gövde `.overlay-card`'ın kalın kenarını ve dış parlamasını
+      miras alıyordu; o kural mağaza/çanta panellerinde de
+      kullanıldığı için silinemez, bu yüzden PANEL kuralı burada
+      yazılıyor — yeni bir kural yığını değil, bu pencerenin
+      kendi tek tanımı.
+   ══════════════════════════════════════════════════════════════ */
+(function kaynakSimgeVeDugumPencere(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaKaynakSimge";
+st.textContent = `
+.kay-sim{
+  display:inline-block; width:1.15em; height:1.15em;
+  object-fit:contain; vertical-align:-.2em;
+}
+
+/* düğüm pencereleri: kalın kenar, dış parlama, iç kabartı YOK */
+.arazi-bilgi-modal .abm-card{
+  border:1px solid rgba(190,240,255,.20) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+/* içerideki kutucuk (arazide kalan / ödül) */
+.arazi-bilgi-modal .abm-kalan{
+  border:1px solid rgba(190,240,255,.20) !important;
+  box-shadow:none !important;
+}
+/* düğmeler: çerçevesiz, düz gölge, basınca küçülme */
+.arazi-bilgi-modal .abm-btn{
+  border:none !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  transition:transform .09s, filter .09s !important;
+}
+.arazi-bilgi-modal .abm-btn:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+}
+/* ✕ düğmesi */
+.arazi-bilgi-modal .abm-close{
+  border:none !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+`;
+document.head.appendChild(st);
+})();
