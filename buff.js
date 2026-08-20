@@ -607,6 +607,18 @@ const CSS = `
   padding:7px 22px; font-size:12px;
 }
 
+/*  ÇANTADA AÇILAN PENCERE — oyunun mavi teması.
+    Yeşil yalnız savaş ekranındaki güçlendirme menüsüne ait.
+    Renkler mağazanın satın alma penceresiyle aynı ailedendir. */
+.bk-detay.bk-mavi .bk-detay-kutu{
+  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
+  border:1px solid rgba(190,240,255,.20);
+  color:#eaf4ff;
+}
+.bk-detay.bk-mavi .bk-aciklama{ color:#cbe4ff; }
+.bk-detay.bk-mavi .bk-kahraman{ color:#9fe3ff; }
+.bk-detay.bk-mavi .bk-btn{ color:#fff; }
+
 .bk-ad{ font-size:14px; font-weight:800; color:#fff; line-height:1.2; }
 .bk-kahraman{ font-size:10.5px; color:#9fe3ff; margin-top:1px; }
 .bk-aciklama{ font-size:11.5px; color:#cfe9d8; line-height:1.3; margin-top:5px; }
@@ -734,15 +746,16 @@ function detayAc(u, sonra, dugmeli) {
   const d = durum(u);
 
   const kok = document.createElement("div");
-  kok.className = "bk-detay";
+  kok.className = "bk-detay" + (dugmeli ? " bk-mavi" : "");
   kok.innerHTML =
     '<div class="bk-detay-kutu">' +
       '<div class="bk-detay-ust">' +
         '<div class="bk-detay-gor">' + urunGorsel(u) + '</div>' +
         '<div class="bk-detay-yazi">' +
           '<div class="bk-ad">' + u.name + '</div>' +
-          '<div class="bk-kahraman">🦸 ' + (u.heroName || "") +
-            (d.hazir || d.ok ? '' : ' · ' + d.sebep) + '</div>' +
+          /* Kahraman adı kutucuğun altında yazıyor; burada tekrar
+             edilmiyor. Yalnız kullanılamama sebebi gösterilir. */
+          (d.hazir || d.ok ? '' : '<div class="bk-kahraman">' + d.sebep + '</div>') +
         '</div>' +
       '</div>' +
       '<div class="bk-aciklama">' + vurgula(u.boostDesc || "") + '</div>' +
