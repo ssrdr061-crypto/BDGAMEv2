@@ -3095,7 +3095,7 @@ st.textContent = `
   flex:0 0 auto; width:28px; height:28px; border-radius:8px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%);
-  border:1px solid rgba(190,240,255,.20);
+  border:none;
   color:#fff; font-family:'Baloo 2','Nunito',sans-serif;
   font-weight:800; font-size:17px; line-height:1;
   text-shadow:0 1px 2px rgba(0,20,45,.55);

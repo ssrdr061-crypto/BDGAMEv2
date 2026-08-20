@@ -486,13 +486,13 @@ const CSS = `
   gap:1px; padding:4px; border-radius:14px; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:800;
   line-height:1.05; text-align:center;
-  color:#eaffef; letter-spacing:.2px; border:2px solid #7ff0a8;
+  color:#eaffef; letter-spacing:.2px; border:none;
   background:linear-gradient(180deg,#2fbb62 0%,#1c8544 60%,#12602f 100%);
-  box-shadow:0 4px 0 #0c3d1f, 0 7px 14px rgba(0,40,15,.45),
-             inset 0 2px 3px rgba(180,255,205,.5);
-  text-shadow:0 1px 2px rgba(0,30,10,.6);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+  transition:transform .09s, filter .09s;
 }
-#buffKutu:active{ transform:translateY(-50%) scale(.95); }
+#buffKutu:active{ transform:translateY(-50%) scale(.96); filter:brightness(.93); }
 #buffKutu .bk-ico{ font-size:20px; line-height:1; }
 #buffKutu .bk-yazi{ font-size:9px; }
 /* Rozet: rakam ortada dursun diye satır yüksekliğiyle değil
@@ -506,8 +506,7 @@ const CSS = `
   border:2px solid #12602f;
 }
 #buffKutu.bk-hazir{ animation:bkNabiz 1.3s ease-in-out infinite; }
-@keyframes bkNabiz{ 50%{ box-shadow:0 4px 0 #0c3d1f, 0 0 16px rgba(120,255,170,.9),
-                          inset 0 2px 3px rgba(180,255,205,.5); } }
+@keyframes bkNabiz{ 50%{ filter:brightness(1.18); } }
 
 .bk-mask{
   position:fixed; inset:0; z-index:9000; display:flex;
@@ -535,7 +534,14 @@ const CSS = `
   background:rgba(255,255,255,.07); border:1px solid rgba(120,230,165,.3);
 }
 .bk-satir.bk-acik{ border-color:#7ff0a8; background:rgba(90,235,150,.14); }
-.bk-ikon{ font-size:22px; flex:0 0 auto; }
+.bk-ikon{
+  font-size:22px; flex:0 0 auto;
+  width:38px; height:38px;
+  display:flex; align-items:center; justify-content:center;
+}
+/* Mağazadaki ürün görseli — magaza.js'teki gorsel alanından gelir.
+   Dosya yoksa onerror emojiye döner (aşağıda, pencereAc içinde). */
+.bk-ikon img{ width:100%; height:100%; object-fit:contain; display:block; }
 .bk-orta{ flex:1 1 auto; min-width:0; }
 .bk-ad{ font-size:12.5px; font-weight:800; color:#fff; }
 .bk-kahraman{ font-size:10px; color:#9fe3ff; }
@@ -621,21 +627,26 @@ function pencereKapat() {
   if (m) m.remove();
 }
 
-function pencereAc() {
-  pencereKapat();
+/*  Pencerenin İÇERİĞİ ayrı bir fonksiyondur.
+    Sebebi: KULLAN'a basınca eskiden pencere komple kapanıp yeniden
+    açılıyordu; kaydırma sıfırlanıp liste en başa zıplıyordu. Artık
+    aynı kutunun içi yeniden çizilir ve kaydırma yerinde bırakılır.  */
+function icerikCiz(card) {
+  const kaydirma = card.scrollTop;
 
-  const mask = document.createElement("div");
-  mask.className = "bk-mask";
-  const card = document.createElement("div");
-  card.className = "bk-card";
-  mask.appendChild(card);
-
-  const sahip = buffUrunleri().filter(u => cantaAdet(u.name) > 0 || hazirMi(u.name));
+  /* YALNIZ SAVAŞA ALDIĞIN KAHRAMANLARIN BUFFLARI.
+     Hazır olan bir buff, kahramanı yuvadan çıkarılsa bile listede
+     kalır — yoksa GERİ AL düğmesine ulaşılamaz, buff çantada
+     kilitli kalırdı. */
+  const sahip = buffUrunleri().filter(u =>
+    (cantaAdet(u.name) > 0 && komutanVar(u.heroId)) || hazirMi(u.name)
+  );
 
   let html = '<h3>⭐ Güçlendirmeler</h3>';
 
   if (!sahip.length) {
-    html += '<div class="bk-bos">Çantanda güçlendirme yok.<br>Mağazadan alabilirsin.</div>';
+    html += '<div class="bk-bos">Yanına aldığın kahramanların güçlendirmesi yok.<br>' +
+            'Önce komutan seç ya da mağazadan güçlendirme al.</div>';
   } else {
     sahip.forEach(u => {
       const d = durum(u);
@@ -643,9 +654,14 @@ function pencereAc() {
       const btn = d.hazir
         ? '<button class="bk-btn bk-geri" data-geri="' + u.name + '">GERİ AL</button>'
         : '<button class="bk-btn" data-kullan="' + u.name + '"' + (d.ok ? "" : " disabled") + '>KULLAN</button>';
+      /* Görsel magaza.js'teki `gorsel` alanından; yoksa/açılmazsa emoji. */
+      const yedek = (u.icon || "⭐").replace(/'/g, "");
+      const gorsel = u.gorsel
+        ? '<img src="' + u.gorsel + '" alt="" onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' + yedek + '\'))">'
+        : yedek;
       html +=
         '<div class="bk-satir' + (d.hazir ? ' bk-acik' : '') + '">' +
-          '<div class="bk-ikon">' + (u.icon || "⭐") + '</div>' +
+          '<div class="bk-ikon">' + gorsel + '</div>' +
           '<div class="bk-orta">' +
             '<div class="bk-ad">' + u.name + (adet > 1 ? ' ×' + adet : '') + '</div>' +
             '<div class="bk-kahraman">🦸 ' + (u.heroName || "") +
@@ -660,10 +676,24 @@ function pencereAc() {
   card.innerHTML = html;
 
   card.querySelectorAll("[data-kullan]").forEach(b =>
-    b.addEventListener("click", () => { if (kullan(b.dataset.kullan)) { pencereKapat(); pencereAc(); } }));
+    b.addEventListener("click", () => { if (kullan(b.dataset.kullan)) icerikCiz(card); }));
   card.querySelectorAll("[data-geri]").forEach(b =>
-    b.addEventListener("click", () => { if (geriAl(b.dataset.geri)) { pencereKapat(); pencereAc(); } }));
+    b.addEventListener("click", () => { if (geriAl(b.dataset.geri)) icerikCiz(card); }));
   card.querySelector(".bk-kapat").addEventListener("click", pencereKapat);
+
+  card.scrollTop = kaydirma;
+}
+
+function pencereAc() {
+  pencereKapat();
+
+  const mask = document.createElement("div");
+  mask.className = "bk-mask";
+  const card = document.createElement("div");
+  card.className = "bk-card";
+  mask.appendChild(card);
+
+  icerikCiz(card);
   mask.addEventListener("click", e => { if (e.target === mask) pencereKapat(); });
 
   document.body.appendChild(mask);

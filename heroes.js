@@ -447,6 +447,21 @@ const KOMUTAN_AILESI = {
 };
 const KOMUTAN_AILE_ADI = { knight: "Savunucu", soldier: "Koruyucu", robot: "Nişancı" };
 
+/*  ── ROZET SİMGESİ ──
+    Kart köşesindeki simge kahramanın "specialty" alanından DEĞİL,
+    AİLESİNDEN gelir. Tek yer burasıdır; değişecekse yalnız bu tablo
+    düzenlenir. Ailesi tanımsız bir kahraman olursa eski
+    specialtyIcon'una düşer.                                        */
+const AILE_SIMGESI = { knight: "🛡️", soldier: "❤️", robot: "⚡" };
+
+function komutanSimgesi(id) {
+  const a = KOMUTAN_AILESI[id];
+  if (a && AILE_SIMGESI[a]) return AILE_SIMGESI[a];
+  const h = HERO_STATS[id];
+  return (h && h.specialtyIcon) || "⚔️";
+}
+window.komutanSimgesi = komutanSimgesi;
+
 function komutanAilesi(id) { return KOMUTAN_AILESI[id] || null; }
 
 /* Bu aileden listede zaten seçili olan komutan (varsa) döner.
