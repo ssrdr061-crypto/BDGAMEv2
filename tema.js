@@ -37,7 +37,6 @@ const DRAG_PX = 12;
    TEK TİP ŞABLON — magaza.js'teki mağaza kartıyla birebir aynı.
    Bu üç değeri değiştirirsen tüm oyunun görünümü değişir.
    ═══════════════════════════════════════════════════════════════ */
-.battle-arena,
 .backup-modal,
 .pvp-pop,
 #panel-inventory .overlay-card,
@@ -50,6 +49,19 @@ const DRAG_PX = 12;
   box-shadow:0 0 26px rgba(120,225,255,.45), inset 0 3px 0 rgba(255,255,255,.45) !important;
 }
 
+/* SAVAŞ MENÜSÜ: aynı zemin, DÜZ çerçeve.
+   Ortak listeden bilerek çıkarıldı — kalın kenar, dış parlama ve
+   inset kabartı yalnız bu ekranda kaldırılıyor, mağaza/çanta/sıralama
+   eski görünümünde kalıyor. */
+.battle-arena{
+  background:
+    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
+    radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
+    linear-gradient(180deg, #1fa3ea, #0e6fc0) !important;
+  border:1px solid rgba(190,240,255,.20) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+
 /* ── savaş ekranı: mağaza şablonuna uydurma ── */
 .battle-arena-top-bar{
   background:transparent !important;
@@ -58,9 +70,9 @@ const DRAG_PX = 12;
 .battle-arena .troop-select-box,
 .battle-arena .battle-log{
   background:linear-gradient(180deg, rgba(34,72,143,.62), rgba(13,34,70,.72)) !important;
-  border:2px solid rgba(190,240,255,.38) !important;
+  border:1px solid rgba(190,240,255,.20) !important;
   border-radius:14px !important;
-  box-shadow:inset 0 2px 3px rgba(150,205,255,.25), 0 4px 10px rgba(0,20,45,.35) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 .battle-arena .troop-select-title,
 .battle-arena .power-compare-label{
@@ -3035,9 +3047,9 @@ st.textContent = `
   position:relative; flex:0 0 46px !important;
   width:46px !important; height:46px !important;
   border-radius:12px !important; overflow:hidden !important;
-  background:linear-gradient(180deg, rgba(150,205,255,.20), rgba(8,30,62,.55)) !important;
-  border:2px solid rgba(160,215,255,.45) !important;
-  box-shadow:inset 0 2px 0 rgba(255,255,255,.25), 0 3px 6px rgba(0,10,30,.45) !important;
+  background:rgba(255,255,255,.06) !important;
+  border:1px solid rgba(190,240,255,.20) !important;
+  box-shadow:none !important;
 }
 #troopSelectList .t-icon img.t-head{
   display:block; position:absolute; top:0; left:0;
@@ -3083,14 +3095,15 @@ st.textContent = `
   flex:0 0 auto; width:28px; height:28px; border-radius:8px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   background:linear-gradient(180deg,#5a9ce0 0%,#3568b4 55%,#22488f 100%);
-  border:2px solid rgba(170,220,255,.75);
+  border:1px solid rgba(190,240,255,.20);
   color:#fff; font-family:'Baloo 2','Nunito',sans-serif;
   font-weight:800; font-size:17px; line-height:1;
-  text-shadow:0 2px 3px rgba(0,15,40,.65);
-  box-shadow:0 3px 0 #0f2a55, inset 0 1px 0 rgba(170,220,255,.55);
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  transition:transform .09s, filter .09s;
   -webkit-tap-highlight-color:transparent; touch-action:none; user-select:none;
 }
-#troopSelectList .t-step:active{ transform:translateY(2px); box-shadow:0 1px 0 #0f2a55; }
+#troopSelectList .t-step:active{ transform:scale(.96); filter:brightness(.93); }
 
 /* ── SAVAŞ GÜNLÜĞÜ + GÜÇ SIRALAMASI HİZASI ──────────────────
    12. bloktaki "ORTALANMIŞ PANELLER" listesine bu ikisi
@@ -3126,10 +3139,10 @@ st.textContent = `
   top:-9px !important; right:-9px !important;
   width:28px !important; height:28px !important;
   border-radius:50% !important;
-  border:2px solid rgba(255,225,225,.92) !important;
+  border:1px solid rgba(255,225,225,.45) !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
   font-size:0 !important; line-height:0 !important;
-  box-shadow:0 3px 7px rgba(120,0,0,.5) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 #heroPicker .hpk-x::before{
   content:"\u2212";
@@ -4671,8 +4684,8 @@ document.head.appendChild(st);
 #heroPicker .hpk-x{
   top:-7px !important; right:-7px !important;
   width:22px !important; height:22px !important;
-  border-width:2px !important;
-  box-shadow:0 2px 5px rgba(120,0,0,.45) !important;
+  border-width:1px !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 #heroPicker .hpk-x::before{ font-size:17px !important; }
 `;
