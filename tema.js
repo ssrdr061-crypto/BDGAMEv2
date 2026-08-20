@@ -244,12 +244,14 @@ const DRAG_PX = 12;
 #panel-inventory .stat-card .num{ color:#fff !important; font-weight:900 !important; }
 #panel-inventory .stat-card .lbl{ color:#bfe6ff !important; }
 
-/* eşya kartları — mağaza kartıyla aynı model */
+/* eşya kutucukları — mağaza kartıyla aynı model.
+   ÇERÇEVE YOK: index.html'deki .shop-card kuralı 2px kenar veriyor
+   (mağaza paneli onu kullanıyor, oradan silinemez), burada kapatılıyor. */
 #panel-inventory .inv-card,
 #panel-inventory .shop-card,
 #panel-inventory .inv-row{
   background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%) !important;
-  border:2px solid rgba(190,240,255,.45) !important;
+  border:none !important;
   border-radius:14px !important;
   box-shadow:0 5px 0 #0b1c3a, 0 8px 14px rgba(0,20,45,.4),
              inset 0 2px 3px rgba(150,205,255,.45) !important;
