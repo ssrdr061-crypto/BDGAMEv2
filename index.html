@@ -8030,6 +8030,38 @@ const TroopViewer = (function () {
   /* Ekranda görünen ailenin şu anki birlik kimliği. */
   function aktifId(aile) { return kademeId(aile, KADEME_SEC[aile]); }
 
+  /* ── KADEME GÖRSELLERİ: KALICI ÖNBELLEK ──
+     Her geçişte yeni bir Image nesnesi kurulunca tarayıcı dosyayı
+     önbellekten alsa bile görüntüyü BAŞTAN çözüyor; geçiş takılıyordu.
+     Nesneler burada tutuluyor, bir kez çözülen görsel bir daha
+     çözülmüyor — ikinci geçişten sonrası anında oluyor. */
+  const _gorselKutu = {};
+  function _gorselOnbellek(yol) {
+    let im = _gorselKutu[yol];
+    if (!im) {
+      im = new Image();
+      im.decoding = "async";
+      im.src = yol;
+      _gorselKutu[yol] = im;
+      /* decode(): görüntüyü çizime hazır hale getirir. Desteklenmiyorsa
+         zararsızca atlanır. */
+      if (im.decode) { try { im.decode().catch(function () {}); } catch (e) {} }
+    }
+    return im;
+  }
+
+  /* Panel açılınca ailenin bütün kademe görsellerini sessizce indir.
+     Oyuncu kutucuğa bastığında dosya çoktan hazır olur. */
+  function _kademeGorselleriniOnYukle() {
+    if (typeof UNIT_TYPES === "undefined") return;
+    ORDER.forEach(function (aile) {
+      for (let k = 1; k <= kademeSayisi(); k++) {
+        const d = UNIT_TYPES[kademeId(aile, k)];
+        if (d && d.img) _gorselOnbellek(d.img);
+      }
+    });
+  }
+
   /* Kutucuğa basılınca: aynı ekranda kalır, sadece kademe değişir. */
   function setKademe(aile, lv) {
     const en = kademeSayisi();
@@ -8056,6 +8088,7 @@ const TroopViewer = (function () {
     if (next) bindTap(next, () => go(idx + 1));
     setupSwipe(viewerEl);
     buildRoles();
+    _kademeGorselleriniOnYukle();
     inited = true;
     apply(true);
   }
@@ -8174,15 +8207,19 @@ const TroopViewer = (function () {
 
       if (gorselDegisecek) {
         const yeniYol = def.img;
-        const onYukle = new Image();
-        onYukle.onload = function () {
+        const uygula = function () {
           scr.classList.toggle("kademe-kilit", kilit);
           buyukGorsel.setAttribute("src", yeniYol);
         };
-        onYukle.onerror = function () {
-          scr.classList.toggle("kademe-kilit", kilit);
-        };
-        onYukle.src = yeniYol;
+        const im = _gorselOnbellek(yeniYol);
+        /* Zaten inmiş VE çözülmüşse hiç beklemeden değiştir. */
+        if (im.complete && im.naturalWidth) uygula();
+        else {
+          im.addEventListener("load", uygula, { once: true });
+          im.addEventListener("error", function () {
+            scr.classList.toggle("kademe-kilit", kilit);
+          }, { once: true });
+        }
       }
 
       /* ── ÜST: bu ailenin KADEMELERİ (Sv1 … Sv6) ── */
