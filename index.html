@@ -6825,7 +6825,20 @@ function setupMapPanning() {
   wrapEl.addEventListener("pointerup", (e) => endPointer(e, true));
   wrapEl.addEventListener("pointercancel", (e) => endPointer(e, false));
   wrapEl.addEventListener("pointerleave", (e) => endPointer(e, false));
-
+function dokunusuSifirla() {
+    activePointers.clear();
+    pinchActive = false;
+    dragging = false;
+    moved = false;
+    mapDragMoved = false;
+    clearHold();
+    wrapEl.classList.remove("is-panning");
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) dokunusuSifirla();
+  });
+  window.addEventListener("pageshow", dokunusuSifirla);
+  window.addEventListener("blur", dokunusuSifirla);
   wrapEl.addEventListener("touchstart", (e) => {
     if (e.touches.length === 1) onDown(e.touches[0].clientX, e.touches[0].clientY);
   }, { passive: true });
