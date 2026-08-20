@@ -8030,47 +8030,33 @@ const TroopViewer = (function () {
   /* Ekranda görünen ailenin şu anki birlik kimliği. */
   function aktifId(aile) { return kademeId(aile, KADEME_SEC[aile]); }
 
-  /* ── KADEME GÖRSELLERİ: KALICI ÖNBELLEK ──
-     Her geçişte yeni bir Image nesnesi kurulunca tarayıcı dosyayı
-     önbellekten alsa bile görüntüyü BAŞTAN çözüyor; geçiş takılıyordu.
-     Nesneler burada tutuluyor, bir kez çözülen görsel bir daha
-     çözülmüyor — ikinci geçişten sonrası anında oluyor. */
-  const _gorselKutu = {};
-  function _gorselOnbellek(yol) {
-    let im = _gorselKutu[yol];
-    if (!im) {
-      im = new Image();
-      im.decoding = "async";
-      im.src = yol;
-      _gorselKutu[yol] = im;
-      /* decode(): görüntüyü çizime hazır hale getirir. Desteklenmiyorsa
-         zararsızca atlanır. */
-      if (im.decode) { try { im.decode().catch(function () {}); } catch (e) {} }
+  /* ── KADEME GÖRSEL KATMANLARI ──
+     Sahnedeki tek <img>, altı kademelik bir yığına çevrilir. Hepsi
+     baştan yüklenir, üst üste durur, yalnız biri görünür. Kademe
+     değişimi böylece dosya indirme/çözme işi olmaktan çıkıp tek bir
+     sınıf değişimine iner — takılma da renk sıçraması da biter. */
+  function _kademeKatmanlari(scr, uid) {
+    const ilk = scr.querySelector(".stage img");
+    if (!ilk || typeof UNIT_TYPES === "undefined") return null;
+    const kap = ilk.parentNode;
+    if (ilk.dataset.kadK) return kap;      /* zaten kurulmuş */
+
+    ilk.dataset.kadK = "1";
+    ilk.classList.add("kad-katman", "kad-acik");
+
+    for (let k = 2; k <= kademeSayisi(); k++) {
+      const d = UNIT_TYPES[kademeId(uid, k)];
+      if (!d || !d.img) continue;
+      const kopya = ilk.cloneNode(false);
+      kopya.removeAttribute("id");         /* id çoğaltılmaz */
+      kopya.classList.remove("kad-acik");
+      kopya.dataset.kadK = String(k);
+      kopya.setAttribute("src", d.img);
+      kap.appendChild(kopya);
     }
-    return im;
+    return kap;
   }
 
-  /* Panel açılınca ailenin bütün kademe görsellerini sessizce indir.
-     Oyuncu kutucuğa bastığında dosya çoktan hazır olur. */
-  function _kademeGorselleriniOnYukle() {
-    if (typeof UNIT_TYPES === "undefined") return;
-    ORDER.forEach(function (aile) {
-      for (let k = 1; k <= kademeSayisi(); k++) {
-        const d = UNIT_TYPES[kademeId(aile, k)];
-        if (d && d.img) _gorselOnbellek(d.img);
-      }
-    });
-  }
-
-  /* Kutucuğa basılınca: aynı ekranda kalır, sadece kademe değişir. */
-  function setKademe(aile, lv) {
-    const en = kademeSayisi();
-    KADEME_SEC[aile] = Math.max(1, Math.min(en, lv || 1));
-    renderUnitStats();
-    const t = document.getElementById("uvTitle");
-    const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[aktifId(ORDER[idx])] : null;
-    if (t && d) t.textContent = d.name;
-  }
   let idx = 0, inited = false, screens = [], dots = [], titleEl = null, viewerEl = null;
 
   const robot = { running: false };
@@ -8088,7 +8074,6 @@ const TroopViewer = (function () {
     if (next) bindTap(next, () => go(idx + 1));
     setupSwipe(viewerEl);
     buildRoles();
-    _kademeGorselleriniOnYukle();
     inited = true;
     apply(true);
   }
@@ -8191,35 +8176,25 @@ const TroopViewer = (function () {
       const countEl = document.getElementById("uvCount_" + uid);
       if (countEl) countEl.textContent = "x" + count;
 
-      /* Üst kademedeyken görsel karartılır (henüz üretilemediği için).
-         KARARTMA VE GÖRSEL AYNI ANDA DEĞİŞİR. Ayrı ayrı yapılırsa
-         arada bir an yanlış eşleşme görünüyor: Sv2'den Sv1'e dönerken
-         karartma hemen kalkıyor, görsel ise yeni dosya inince
-         değişiyordu — süvari bir an RENKLİ görünüyordu.
-         Bu yüzden yeni görsel önce arka planda indiriliyor, karartma
-         ile birlikte tek karede uygulanıyor. */
+      /* ── KADEME GÖRSELİ + KARARTMA ──
+         Görselin src'si ARTIK DEĞİŞMİYOR. src değiştirilince ekranda
+         bir kare boyunca ESKİ görsel kalıyor, karartma ise anında
+         uygulanıyordu: Sv2'den Sv1'e dönerken süvari bir an renkli
+         görünüyordu. Sıra değiştirilerek çözülemedi, çünkü sorun
+         sıralama değil tarayıcının boyama gecikmesiydi.
+
+         Bunun yerine altı kademenin görseli sahneye BİR KEZ konur
+         (_kademeKatmanlari), sonra yalnızca hangisinin görüneceği
+         değişir. Yükleme ve çözme yok, geçiş tek karede oluyor. */
       const scr = viewerEl && viewerEl.querySelector('.unit-screen[data-unit="' + uid + '"]');
-      const buyukGorsel = scr ? scr.querySelector(".stage img") : null;
-      const gorselDegisecek = !!(buyukGorsel && def.img &&
-                                 buyukGorsel.getAttribute("src") !== def.img);
-
-      if (scr && !gorselDegisecek) scr.classList.toggle("kademe-kilit", kilit);
-
-      if (gorselDegisecek) {
-        const yeniYol = def.img;
-        const uygula = function () {
-          scr.classList.toggle("kademe-kilit", kilit);
-          buyukGorsel.setAttribute("src", yeniYol);
-        };
-        const im = _gorselOnbellek(yeniYol);
-        /* Zaten inmiş VE çözülmüşse hiç beklemeden değiştir. */
-        if (im.complete && im.naturalWidth) uygula();
-        else {
-          im.addEventListener("load", uygula, { once: true });
-          im.addEventListener("error", function () {
-            scr.classList.toggle("kademe-kilit", kilit);
-          }, { once: true });
+      if (scr) {
+        const kap = _kademeKatmanlari(scr, uid);
+        if (kap) {
+          kap.querySelectorAll("img[data-kad-k]").forEach(function (im) {
+            im.classList.toggle("kad-acik", (parseInt(im.dataset.kadK, 10) || 1) === lv);
+          });
         }
+        scr.classList.toggle("kademe-kilit", kilit);
       }
 
       /* ── ÜST: bu ailenin KADEMELERİ (Sv1 … Sv6) ── */

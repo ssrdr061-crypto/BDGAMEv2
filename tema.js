@@ -5837,3 +5837,22 @@ html body #loginScreen .login-btn:active{
     if (t && t.id === "invList") hepsiniKapat();
   }, true);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   EĞİTİM EKRANI — KADEME GÖRSEL KATMANLARI
+   ------------------------------------------------------------
+   Sahnedeki görsel artık değişmiyor; altı kademenin görseli üst
+   üste duruyor ve yalnız biri açık. Böylece kademe geçişinde
+   dosya indirme/çözme olmuyor: takılma ve "bir an eski görsel
+   renkli görünüyor" sıçraması bu yüzden bitiyor.
+   ══════════════════════════════════════════════════════════════ */
+(function kademeKatmanlari(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaKademeKatman";
+st.textContent = `
+#panel-troops .unit-screen .stage img.kad-katman{ display:none !important; }
+#panel-troops .unit-screen .stage img.kad-katman.kad-acik{ display:block !important; }
+`;
+document.head.appendChild(st);
+})();
