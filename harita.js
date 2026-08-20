@@ -1838,6 +1838,24 @@
     wrap.addEventListener("pointerup", birak, { passive: true });
     wrap.addEventListener("pointercancel", birak, { passive: true });
     wrap.addEventListener("pointerleave", birak, { passive: true });
+
+    /* HAYALET PARMAK. Tarayıcı arka plana atıldığında (başka uygulamaya
+       geçme, sekme değiştirme) parmağın kalktığı haberi HİÇ gelmiyor.
+       "parmaklar" listesi dolu kalıyor, "kistirma" açık kalıyor; geri
+       dönünce ilk dokunuş ikinci parmak sayılıyor ve harita cevap
+       vermiyor. Ekran geri geldiğinde durumu sıfırlıyoruz. */
+    function parmaklariSifirla() {
+      parmaklar.clear();
+      kistirma = false;
+      parmakVar = false;
+      hizX = hizY = 0;
+      if (typeof kenarDurdur === "function") { try { kenarDurdur(); } catch (e) {} }
+    }
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) parmaklariSifirla();
+    });
+    window.addEventListener("pageshow", parmaklariSifirla);
+    window.addEventListener("blur", parmaklariSifirla);
   }
 
   /* ═════════════════════════════════════════════════════════════════════
