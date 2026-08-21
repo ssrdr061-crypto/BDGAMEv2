@@ -390,7 +390,9 @@ function _klistKartHTML(id) {
   if (KV.yildizGoster && cfg && cfg.stars) {
     /* Dolu yıldız = SEVİYE (gelistir.js). cfg.stars.filled kullanılmaz. */
     const max = cfg.stars.max || 5;
-    const dolu = sahip ? _klistSeviye(id) : 0;
+    /* Geliştirme sistemi kapalıyken kartlar eski hâlinde kalır */
+    const acik = (typeof window.GELISTIR_ACIK === "function") && window.GELISTIR_ACIK();
+    const dolu = (sahip && acik) ? _klistSeviye(id) : (cfg.stars.filled || 0);
     let t = "";
     for (let i = 0; i < max; i++)
       t += `<span style="color:${i < dolu ? (cfg.stars.color || "#ffd700") : "rgba(255,255,255,.28)"};">★</span>`;

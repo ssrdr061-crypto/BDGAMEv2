@@ -69,6 +69,16 @@ const shopItems = [
     kaynakDesc: "1.000 ⚡ Enerji doğrudan kaynaklarına eklenir. Enerji en yavaş üretilen kaynaktır (dakikada 150), o yüzden birimi diğerlerinden pahalıdır." },
 
   /* ── FÜZE (kale saldırısı) ── */
+  /* ── KAHRAMAN PARÇALARI ──
+     Mor parça üç mor kahramanın ORTAK havuzuna, turuncular
+     kahramana ÖZEL havuza düşer (gelistir.js). Haftada 10'ar. */
+  { name: "Mor Kahraman Parçası", price: 15000, isParca: true, parcaKey: "mor",
+    icon: "◆", parcaDesc: "HALVORSEN, STELLİN ve MİKİAN'ın seviyesini yükseltmekte kullanılır." },
+  { name: "İVANOVNA Parçası", price: 30000, isParca: true, parcaKey: "ivanovna",
+    icon: "◆", parcaDesc: "Yalnız İVANOVNA'nın seviyesini yükseltmekte kullanılır." },
+  { name: "REVOLİA Parçası", price: 30000, isParca: true, parcaKey: "revolia",
+    icon: "◆", parcaDesc: "Yalnız REVOLİA'nın seviyesini yükseltmekte kullanılır." },
+
   { name: "Füze", price: 200000, isMissile: true, icon: "🚀",
     missileDesc: "Kale saldırısı için 1 füze. Haritada bir düşman kalesine 🚀 ile atılır ve kaleye ağır hasar verir. Füze yiyen oyuncu 24 saat boyunca hiçbir saldırı yapamaz (yalnızca savunma ve füze). Haftalık en fazla 2 adet alınabilir." },
 
@@ -151,6 +161,11 @@ const SHOP_LIMITS = {
   "Paralı Muhafız": 5,
   "Ek Bağlantı": 5,
   "Yedek Şarj": 5,
+
+  /* Kahraman parçaları — haftada 10'ar. */
+  "Mor Kahraman Parçası": 10,
+  "İVANOVNA Parçası": 10,
+  "REVOLİA Parçası": 10,
 
   /* Kaynak paketleri — haftada 50'şer. */
   "Et Sandığı": 50,
@@ -274,6 +289,9 @@ function renderShop() {
   const tierLabels = { entry: "🔹 Giriş Seviyesi", mid: "🔷 Orta Seviye", elite: "🟠 Elit Seviye" };
 
   const filtered = shopItems.filter(item => {
+    /* Geliştirme sistemi kapalıyken parçalar mağazada GÖRÜNMEZ */
+    if (item.isParca && !(typeof window.GELISTIR_ACIK === "function" && window.GELISTIR_ACIK()))
+      return false;
     if (activeShopCategory === "all") return true;
     if (activeShopCategory === "potion") return !!(item.isStaminaPotion || item.isSpeedUpItem || item.isSeferHiz);
     if (activeShopCategory === "kaynak") return !!item.isKaynak;
@@ -362,6 +380,7 @@ function shopItemDesc(item) {
                                     Math.round(item.hizOran * 100) +
                                     " kısaltır. Haritadaki sefer kutusuna dokunup kullanılır.";
   if (item.isStaminaPotion)  return "Genel Canı doldurur (envanterine düşer).";
+  if (item.isParca)          return item.parcaDesc || "";
   if (item.isKaynak)         return item.kaynakDesc || "";
   if (item.isBoost)          return item.boostDesc || "";
   return formatBonus(item.bonus);
@@ -572,6 +591,9 @@ function buyItem(idx, count) {
         showToast("Füze eklenemedi (bağlantı). Elmasın iade edildi.");
       }
     });
+  } else if (item.isParca) {
+    /* Parça çantaya değil, doğrudan parça havuzuna gider (gelistir.js). */
+    if (typeof window.parcaEkle === "function") window.parcaEkle(item.parcaKey, count);
   } else if (item.isKaynak) {
     /* Kaynak paketi ÇANTAYA düşer; sayaca girmesi için oyuncunun
        çantadan "Kullan" demesi gerekir (hızlandırma ürünleri gibi). */
@@ -585,7 +607,9 @@ function buyItem(idx, count) {
   renderShop();              // kalan sayısı / TÜKENDİ anında güncellensin
   const card = document.querySelector(`.shop-card2[data-idx="${idx}"]`);
   if (card) card.classList.add("bought");
-  if (item.isKaynak) {
+  if (item.isParca) {
+    showToast(`${count}x ${item.name} eklendi!`);
+  } else if (item.isKaynak) {
     showToast(`${item.icon} ${count}x ${item.name} çantana eklendi!`);
   } else {
     showToast(count === 1

@@ -805,15 +805,22 @@ ${modelTxt}`;
   const refreshBuyBtn = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
     /* Sahip olunan kahramanda alt düğme YOK — geliştirme paneli
-       zaten ekranın altında duruyor (gelistir.js). */
-    buyBtn.style.display = owned ? "none" : "";
-    buyBtn.textContent = owned ? "" : `Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}`;
+       zaten ekranın altında duruyor (gelistir.js).
+       Sistem kapalıyken eski davranış: "Geliştir" yazar. */
+    const glsAcik = (typeof window.GELISTIR_ACIK === "function") && window.GELISTIR_ACIK();
+    buyBtn.style.display = (owned && glsAcik) ? "none" : "";
+    buyBtn.textContent = owned
+      ? "Geliştir"
+      : `Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}`;
   };
   buyBtn.onclick = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
     if (owned) {
-      if (typeof window.acGelistirme === "function") window.acGelistirme(skinId);
-      else if (typeof showToast === "function") showToast("Geliştirme dosyası yüklenmedi.");
+      if (typeof window.GELISTIR_ACIK === "function" && window.GELISTIR_ACIK()) {
+        window.acGelistirme(skinId);
+      } else if (typeof showToast === "function") {
+        showToast("Geliştirme sistemi yakında!");
+      }
       refreshBuyBtn();
       return;
     }

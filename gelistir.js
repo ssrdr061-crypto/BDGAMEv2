@@ -44,6 +44,20 @@
   /* ── STATE erişimi ──────────────────────────────────────────
      index.html'de `const state` var → window.state undefined.
      Erişim her zaman bu kapıdan. */
+  /* ── YAYIN KİLİDİ ────────────────────────────────────────────
+     Sistem canlıdaki oyunculara KAPALI. Açılması için ya adres
+     çubuğunda ?gelistir=1 olmalı ya da hesap adı bu listede.
+     Yayına alırken: acikMi() içini `return true;` yap. */
+  const IZINLI = ["moonlight"];
+  function acikMi() {
+    try {
+      if (/[?&]gelistir=1/.test(location.search)) return true;
+      const u = (typeof currentUsername !== "undefined") ? currentUsername : "";
+      return IZINLI.indexOf(String(u || "").toLowerCase()) !== -1;
+    } catch (e) { return false; }
+  }
+  window.GELISTIR_ACIK = acikMi;
+
   function S() {
     try { return (typeof state !== "undefined") ? state : null; }
     catch (e) { return null; }
@@ -194,6 +208,7 @@
 
   /* Paneli çiz. Zaten açıksa içeriği tazeler (kahramanlar arası geçiş). */
   function ac(id) {
+    if (!acikMi()) return;
     const eski = document.getElementById(PANEL_ID);
     if (eski) eski.remove();
     if (typeof HERO_STATS === "undefined" || !HERO_STATS[id]) {
@@ -299,7 +314,7 @@
                 font-family:inherit;font-size:12px;font-weight:800;
                 background:${se ? "rgba(45,201,252,.16)" : "transparent"};
                 color:${se ? "#7fd8ff" : "#8ba3b5"};
-                border-bottom:2px solid ${se ? "#2DC9FC" : "transparent"};">
+                border-top:2px solid ${se ? "#2DC9FC" : "transparent"};">
           ${x.ad}
         </button>`;
     });
@@ -316,12 +331,12 @@
                    font-size:15px;">◆</div>`;
 
     const alt = sonSeviye
-      ? `<div style="text-align:center;padding:9px;border-radius:10px;
+      ? `<div style="text-align:center;padding:10px;border-radius:10px;
               background:rgba(255,255,255,.06);color:#9fb6c9;font-weight:800;
               font-size:13px;">En yüksek seviye</div>`
       : `<div style="display:flex;align-items:center;gap:9px;">
            ${parcaKare}
-           <div style="flex:1;min-width:0;height:20px;border-radius:10px;
+           <div style="flex:1;min-width:0;height:22px;border-radius:11px;
                        background:rgba(0,20,45,.45);position:relative;overflow:hidden;">
              <div style="position:absolute;inset:0 auto 0 0;width:${oran}%;
                          background:linear-gradient(90deg,${r.koyu},${r.ana});"></div>
@@ -331,13 +346,19 @@
                ${Math.min(eldeki, bedel)} / ${bedel}
              </div>
            </div>
-           <button id="glsYukselt" style="flex:0 0 auto;padding:8px 14px;border:none;
-                   border-radius:10px;font-weight:800;font-size:13px;font-family:inherit;
-                   background:${yeter ? "linear-gradient(180deg,#3fbf6a,#248c48)" : "rgba(255,255,255,.08)"};
-                   color:${yeter ? "#fff" : "#8ba3b5"};">
-             Sv${sv + 1}
-           </button>
-         </div>`;
+           <button id="glsArti" style="flex:0 0 auto;width:30px;height:30px;border:none;
+                   border-radius:9px;font-family:inherit;font-size:19px;font-weight:800;
+                   line-height:1;color:#fff;
+                   background:linear-gradient(180deg,#3fa9e8,#1d6ea8);
+                   box-shadow:0 2px 6px rgba(0,20,45,.3);">+</button>
+         </div>
+         <button id="glsYukselt" style="width:100%;margin-top:9px;padding:11px;border:none;
+                 border-radius:11px;font-weight:800;font-size:15px;font-family:inherit;
+                 background:${yeter ? "linear-gradient(180deg,#3fbf6a,#248c48)" : "rgba(255,255,255,.08)"};
+                 color:${yeter ? "#fff" : "#8ba3b5"};
+                 box-shadow:${yeter ? "0 2px 6px rgba(0,20,45,.3)" : "none"};">
+           Sv${sv + 1}'e Yükselt
+         </button>`;
 
     p.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;flex:0 0 auto;">
@@ -348,15 +369,15 @@
         <div style="letter-spacing:1px;">${yildiz}</div>
       </div>
 
-      <div style="display:flex;margin-top:9px;flex:0 0 auto;
-                  border-bottom:1px solid rgba(190,240,255,.12);">${sekmeBar}</div>
+      <div style="flex:0 0 auto;padding:10px 0 2px;">${alt}</div>
 
       <div id="glsIcerik" style="flex:1 1 auto;overflow-y:auto;
-                                 -webkit-overflow-scrolling:touch;padding:2px 2px 8px;">
+                                 -webkit-overflow-scrolling:touch;padding:6px 2px 4px;">
         ${icerik}
       </div>
 
-      <div style="flex:0 0 auto;padding-top:9px;">${alt}</div>
+      <div style="display:flex;flex:0 0 auto;margin-top:6px;
+                  border-top:1px solid rgba(190,240,255,.12);">${sekmeBar}</div>
     `;
 
     Array.prototype.forEach.call(p.querySelectorAll(".glsSekme"), b => {
@@ -368,6 +389,110 @@
       e.stopPropagation();
       if (yukselt(id)) { ciz(p, id); yenile(); }
     };
+
+    const arti = p.querySelector("#glsArti");
+    if (arti) arti.onclick = e => { e.stopPropagation(); parcaPenceresi(id, p); };
+  }
+
+  /* ── PARÇA PENCERESİ — "+" düğmesi açar ─────────────────────
+     Mağazanın satın alma penceresi düzeni: solda ikon, sağda ad,
+     altta açıklama. Kapatma yalnız dışarı dokunarak. */
+  const PP_ID = "glsParcaKat";
+
+  function parcaPenceresi(id, panel) {
+    const eski = document.getElementById(PP_ID);
+    if (eski) eski.remove();
+
+    const h = HERO_STATS[id];
+    const n = nadirlik(id);
+    const r = RENK[n];
+
+    const kat = document.createElement("div");
+    kat.id = PP_ID;
+    kat.style.cssText =
+      "position:fixed;inset:0;z-index:9100;display:flex;" +
+      "align-items:center;justify-content:center;padding:18px;" +
+      "background:rgba(2,10,24,.60);";
+    document.body.appendChild(kat);
+
+    const kutu = document.createElement("div");
+    kutu.style.cssText =
+      "width:min(330px,90vw);box-sizing:border-box;color:#eaf6ff;" +
+      "background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);" +
+      "border-radius:16px;padding:15px;box-shadow:0 2px 6px rgba(0,20,45,.3);";
+    kat.appendChild(kutu);
+
+    /* Dışarı dokunma kapatır — dinleyici GECİKMELİ bağlanır, yoksa
+       "+" düğmesinin kendi dokunuşu pencereyi anında kapatır (Tuzak 35). */
+    setTimeout(() => {
+      kat.addEventListener("pointerup", e => { if (e.target === kat) kat.remove(); });
+    }, 0);
+
+    const ciz2 = () => {
+      const sv = seviye(id);
+      const sonSeviye = sv >= MAX_SV;
+      const bedel = maliyet(id);
+      const eldeki = parcaSayisi(id);
+      const yeter = !sonSeviye && eldeki >= bedel;
+      const eksik = Math.max(0, bedel - eldeki);
+
+      kutu.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:52px;height:52px;border-radius:12px;flex:0 0 auto;
+                      background:linear-gradient(180deg,${r.ana},${r.koyu});
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:25px;">◆</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:800;color:#ffd257;">${r.ad}</div>
+            <div style="font-size:12px;color:#cbe4ff;">
+              ${n === "ssr" ? h.name + "'ya özel" : "Tüm mor kahramanlar için"}
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;font-size:12.5px;color:#cbe4ff;line-height:1.5;">
+          Elindeki: <b style="color:#fff;">${eldeki}</b><br>
+          ${sonSeviye
+            ? "Bu kahraman en yüksek seviyede."
+            : `Sv${sv + 1} için gereken: <b style="color:#fff;">${bedel}</b>` +
+              (eksik ? `<br><span style="color:#ffb08a;">${eksik} parça eksik.</span>` : "")}
+        </div>
+
+        <button id="ppYukselt" style="width:100%;margin-top:13px;padding:11px;border:none;
+                border-radius:11px;font-weight:800;font-size:15px;font-family:inherit;
+                background:${yeter ? "linear-gradient(180deg,#3fbf6a,#248c48)" : "rgba(255,255,255,.10)"};
+                color:${yeter ? "#fff" : "#9fb6c9"};">
+          ${sonSeviye ? "En yüksek seviye" : `Sv${sv + 1}'e Yükselt`}
+        </button>
+
+        <button id="ppMagaza" style="width:100%;margin-top:7px;padding:10px;border:none;
+                border-radius:11px;font-weight:800;font-size:13.5px;font-family:inherit;
+                background:rgba(255,255,255,.10);color:#cbe4ff;">
+          Mağazadan parça al
+        </button>
+      `;
+
+      const y = kutu.querySelector("#ppYukselt");
+      if (y) y.onclick = e => {
+        e.stopPropagation();
+        if (yukselt(id)) {
+          ciz2();
+          if (panel) ciz(panel, id);
+          yenile();
+        }
+      };
+      const m = kutu.querySelector("#ppMagaza");
+      if (m) m.onclick = e => {
+        e.stopPropagation();
+        kat.remove();
+        /* Kahraman ekranını da kapat, yoksa mağazanın üstünde kalır */
+        const hd = document.getElementById("heroDetailOverlay");
+        if (hd) hd.style.display = "none";
+        if (typeof openOverlayPanel === "function") openOverlayPanel("shop");
+        else toast("Mağaza sekmesinden parça alabilirsin.");
+      };
+    };
+    ciz2();
   }
 
   /* Açık ekranları tazele — kart listesi ve kahraman detayı */
