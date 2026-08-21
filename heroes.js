@@ -26,7 +26,7 @@ const HERO_UI = {
   kartKenar:      "12px",    /* sağ/sol boşluk                            */
   kartMaxGenislik:"420px",   /* en fazla genişlik                         */
   kartRadius:     "22px",    /* köşe yuvarlaklığı (dört köşe)             */
-  kartCerceve:    "3px solid rgba(190,240,255,.85)",
+  kartCerceve:    "1px solid rgba(160,215,255,.60)",   /* tema kenarı — 3B/gölge yok */
   kartTamEkran:   false,     /* true = eski tam ekran görünüm             */
 
   /* YETENEK KUTUCUKLARI (kahramanın altındaki 2 kutu) */
@@ -513,7 +513,7 @@ function openHeroDetail(skinId) {
         "border:" + (U0.kartCerceve || "none") + ";" +
         "border-radius:" + (U0.kartRadius || "22px") + ";" +
         "overflow:hidden;box-sizing:border-box;" +
-        "box-shadow:0 0 0 9999px rgba(5,4,10,.72), 0 10px 34px rgba(0,0,0,.55);";
+        "box-shadow:0 0 0 9999px rgba(5,4,10,.72);";   /* dış karartma; kart gölgesi yok */
     }
   }
   ov.innerHTML = `

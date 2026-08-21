@@ -36,14 +36,26 @@
     revolia:       "ssr"    /* REVOLİA   */
   };
 
+  /* Parça kutucuğunun rengi türe göre değişir; BAR her zaman SARI. */
   const RENK = {
     mor: { ana: "#a855f7", koyu: "#6b21a8", ad: "Mor Parça" },
     ssr: { ana: "#f97316", koyu: "#9a3412", ad: "Turuncu Parça" }
   };
 
-  /* ── STATE erişimi ──────────────────────────────────────────
-     index.html'de `const state` var → window.state undefined.
-     Erişim her zaman bu kapıdan. */
+  /* Oyunun mavi teması (tema.js :root) — TEK YER burasıdır. */
+  const TEMA = {
+    ust:    "#3d7ccc",
+    orta:   "#22488f",
+    alt:    "#152e5e",
+    kenar:  "rgba(160,215,255,.60)",
+    yazi:   "#eaf4ff",
+    solgun: "#a8c7e0",
+    sari:   "#ffd257",
+    sariKoyu: "#f0932b",
+    golge:  "0 1px 2px rgba(0,20,45,.55)"
+  };
+  const YAZI = "'Baloo 2','Nunito',sans-serif";
+
   /* ── YAYIN KİLİDİ ────────────────────────────────────────────
      Sistem canlıdaki oyunculara KAPALI. Açılması için ya adres
      çubuğunda ?gelistir=1 olmalı ya da hesap adı bu listede.
@@ -87,6 +99,20 @@
     h[k] = Math.max(0, Math.floor((h[k] || 0) + adet));
     kaydet();
     return h[k];
+  }
+
+  /* Çantadaki parça paketini havuza aktarır (index.html "Kullan").
+     Elde kaç tane varsa HEPSİ birden kullanılır — kaynak paketi gibi. */
+  function parcaPaketiKullan(ad) {
+    const s = S(); if (!s) return;
+    const def = (typeof getItemDef === "function") ? getItemDef(ad) : null;
+    if (!def || !def.isParca) return;
+    const adet = Math.floor((s.inventory && s.inventory[ad]) || 0);
+    if (adet <= 0) { toast("Çantanda bu parçadan yok."); return; }
+    delete s.inventory[ad];
+    parcaEkleAnahtar(def.parcaKey, adet);
+    if (typeof renderInventory === "function") renderInventory();
+    toast(`${adet} ${def.name} kullanıldı.`);
   }
 
   /* Doğrudan anahtarla ekleme — günlük giriş / mağaza / canavar için */
@@ -297,56 +323,57 @@
 
     let yildiz = "";
     for (let i = 0; i < MAX_SV; i++) {
-      yildiz += `<span style="color:${i < sv ? "#ffd700" : "rgba(255,255,255,.22)"};font-size:16px;">★</span>`;
+      yildiz += `<span style="color:${i < sv ? "#ffd257" : "rgba(255,255,255,.30)"};
+                   font-size:19px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
     }
 
     /* Parça kutucuğu — görsel gelene kadar renkli kare */
     const parcaKare =
-      `<div style="width:30px;height:30px;border-radius:8px;flex:0 0 auto;
+      `<div style="width:32px;height:32px;border-radius:9px;flex:0 0 auto;
                    background:linear-gradient(180deg,${r.ana},${r.koyu});
                    display:flex;align-items:center;justify-content:center;
-                   font-size:15px;">◆</div>`;
+                   font-size:16px;line-height:1;">◆</div>`;
 
     const alt = sonSeviye
-      ? `<div style="text-align:center;padding:10px;border-radius:10px;
-              background:rgba(255,255,255,.06);color:#9fb6c9;font-weight:800;
-              font-size:13px;">En yüksek seviye</div>`
+      ? `<div style="text-align:center;padding:10px;border-radius:11px;
+              background:linear-gradient(180deg,${TEMA.ust},${TEMA.alt});
+              color:${TEMA.yazi};font-weight:800;font-size:13.5px;
+              font-family:${YAZI};text-shadow:${TEMA.golge};">En yüksek seviye</div>`
       : `<div style="display:flex;align-items:center;gap:9px;">
            ${parcaKare}
-           <div style="flex:1;min-width:0;height:22px;border-radius:11px;
-                       background:rgba(0,20,45,.45);position:relative;overflow:hidden;">
+           <div style="flex:1;min-width:0;height:24px;border-radius:12px;
+                       background:rgba(11,28,58,.65);position:relative;overflow:hidden;">
              <div style="position:absolute;inset:0 auto 0 0;width:${oran}%;
-                         background:linear-gradient(90deg,${r.koyu},${r.ana});"></div>
+                         background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});"></div>
              <div style="position:absolute;inset:0;display:flex;align-items:center;
-                         justify-content:center;font-size:11.5px;font-weight:800;
-                         color:#fff;text-shadow:0 1px 2px rgba(0,20,45,.55);">
+                         justify-content:center;font-size:12px;font-weight:800;
+                         font-family:${YAZI};color:#fff;text-shadow:${TEMA.golge};">
                ${Math.min(eldeki, bedel)} / ${bedel}
              </div>
            </div>
-           <button id="glsArti" style="flex:0 0 auto;width:30px;height:30px;border:none;
-                   border-radius:9px;font-family:inherit;font-size:19px;font-weight:800;
-                   line-height:1;color:#fff;
-                   background:linear-gradient(180deg,#3fa9e8,#1d6ea8);
+           <button id="glsArti" style="flex:0 0 auto;width:32px;height:32px;padding:0;
+                   border:none;border-radius:9px;font-family:${YAZI};font-size:20px;
+                   font-weight:800;line-height:32px;text-align:center;color:${TEMA.yazi};
+                   display:flex;align-items:center;justify-content:center;
+                   background:linear-gradient(180deg,${TEMA.ust},${TEMA.orta});
                    box-shadow:0 2px 6px rgba(0,20,45,.3);">+</button>
          </div>
          <button id="glsYukselt" style="width:100%;margin-top:9px;padding:11px;border:none;
-                 border-radius:11px;font-weight:800;font-size:15px;font-family:inherit;
-                 background:${yeter ? "linear-gradient(180deg,#3fbf6a,#248c48)" : "rgba(255,255,255,.08)"};
-                 color:${yeter ? "#fff" : "#8ba3b5"};
-                 box-shadow:${yeter ? "0 2px 6px rgba(0,20,45,.3)" : "none"};">
+                 border-radius:12px;font-weight:800;font-size:15px;font-family:${YAZI};
+                 text-shadow:${TEMA.golge};
+                 background:${yeter
+                   ? `linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu})`
+                   : `linear-gradient(180deg,${TEMA.ust},${TEMA.alt})`};
+                 color:${yeter ? "#20140a" : TEMA.solgun};
+                 box-shadow:0 2px 6px rgba(0,20,45,.3);">
            Sv${sv + 1}'e Yükselt
          </button>`;
 
+    /* Üst satır: YALNIZ yıldızlar, ortada. Ad/parça/seviye ibaresi
+       kaldırıldı — ekranın tepesinde kahraman adı zaten yazıyor. */
     p.innerHTML = `
-      <div style="display:flex;align-items:flex-end;gap:8px;padding-bottom:8px;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:15px;font-weight:800;
-                      text-shadow:0 1px 2px rgba(0,20,45,.55);">${h.name}</div>
-          <div style="font-size:11.5px;color:#cfe6f7;
-                      text-shadow:0 1px 2px rgba(0,20,45,.55);">${r.ad} · Seviye ${sv}</div>
-        </div>
-        <div style="letter-spacing:1px;">${yildiz}</div>
-      </div>
+      <div style="display:flex;justify-content:center;align-items:center;
+                  padding-bottom:8px;letter-spacing:2px;">${yildiz}</div>
       ${alt}
     `;
 
@@ -384,8 +411,9 @@
     const kutu = document.createElement("div");
     kutu.style.cssText =
       "width:min(330px,90vw);box-sizing:border-box;color:#eaf6ff;" +
-      "background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);" +
-      "border-radius:16px;padding:15px;box-shadow:0 2px 6px rgba(0,20,45,.3);";
+      `background:linear-gradient(180deg,${TEMA.ust} 0%,${TEMA.orta} 55%,${TEMA.alt} 100%);` +
+      `border:1px solid ${TEMA.kenar};border-radius:16px;padding:15px;` +
+      `font-family:${YAZI};box-shadow:0 2px 6px rgba(0,20,45,.3);`;
     kat.appendChild(kutu);
 
     /* Dışarı dokunma kapatır — dinleyici GECİKMELİ bağlanır, yoksa
@@ -414,8 +442,8 @@
           <button class="glsSekme" data-k="${x.k}" style="flex:1;padding:8px 4px;border:none;
                   font-family:inherit;font-size:12px;font-weight:800;
                   background:${se ? "rgba(255,255,255,.16)" : "transparent"};
-                  color:${se ? "#fff" : "#a8c7e0"};
-                  border-bottom:2px solid ${se ? "#ffd257" : "transparent"};">
+                  color:${se ? TEMA.yazi : TEMA.solgun};
+                  border-bottom:2px solid ${se ? TEMA.sari : "transparent"};">
             ${x.ad}
           </button>`;
       });
@@ -431,7 +459,7 @@
                       display:flex;align-items:center;justify-content:center;
                       font-size:25px;">◆</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:15px;font-weight:800;color:#ffd257;">${h.name} · Sv${sv}</div>
+            <div style="font-size:15px;font-weight:800;color:${TEMA.sari};">${h.name} · Sv${sv}</div>
             <div style="font-size:12px;color:#cbe4ff;">
               ${r.ad} · elinde ${eldeki}
               ${sonSeviye ? "" : ` · gereken ${bedel}`}
@@ -450,14 +478,17 @@
 
         <button id="ppYukselt" style="width:100%;margin-top:11px;padding:11px;border:none;
                 border-radius:11px;font-weight:800;font-size:15px;font-family:inherit;
-                background:${yeter ? "linear-gradient(180deg,#3fbf6a,#248c48)" : "rgba(255,255,255,.10)"};
-                color:${yeter ? "#fff" : "#9fb6c9"};">
+                font-family:${YAZI};text-shadow:${TEMA.golge};
+                background:${yeter
+                  ? `linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu})`
+                  : "rgba(255,255,255,.10)"};
+                color:${yeter ? "#20140a" : TEMA.solgun};">
           ${sonSeviye ? "En yüksek seviye" : `Sv${sv + 1}'e Yükselt`}
         </button>
 
         <button id="ppMagaza" style="width:100%;margin-top:7px;padding:10px;border:none;
                 border-radius:11px;font-weight:800;font-size:13.5px;font-family:inherit;
-                background:rgba(255,255,255,.10);color:#cbe4ff;">
+                font-family:${YAZI};background:rgba(255,255,255,.10);color:${TEMA.yazi};">
           Mağazadan parça al
         </button>
       `;
@@ -535,7 +566,8 @@
   window.kahramanSeviyesi  = seviye;         /* index.html + kahramanlar.js */
   window.kahramanNadirlik  = nadirlik;
   window.kahramanParcasi   = parcaSayisi;
-  window.parcaEkle         = parcaEkleAnahtar; /* günlük giriş / mağaza / canavar */
+  window.parcaEkle         = parcaEkleAnahtar;
+  window.parcaPaketiKullan = parcaPaketiKullan; /* günlük giriş / mağaza / canavar */
   window.glsYildizTazele   = glsYildizTazele;
   window.GELISTIR_MAX_SV   = MAX_SV;
 })();

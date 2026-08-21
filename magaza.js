@@ -592,8 +592,10 @@ function buyItem(idx, count) {
       }
     });
   } else if (item.isParca) {
-    /* Parça çantaya değil, doğrudan parça havuzuna gider (gelistir.js). */
-    if (typeof window.parcaEkle === "function") window.parcaEkle(item.parcaKey, count);
+    /* Parça ÇANTAYA düşer; havuza girmesi için çantadan "Kullan"
+       demek gerekir (kaynak paketleriyle aynı akış). */
+    state.inventory[item.name] = (state.inventory[item.name] || 0) + count;
+    if (typeof renderInventory === "function") renderInventory();
   } else if (item.isKaynak) {
     /* Kaynak paketi ÇANTAYA düşer; sayaca girmesi için oyuncunun
        çantadan "Kullan" demesi gerekir (hızlandırma ürünleri gibi). */
@@ -608,7 +610,7 @@ function buyItem(idx, count) {
   const card = document.querySelector(`.shop-card2[data-idx="${idx}"]`);
   if (card) card.classList.add("bought");
   if (item.isParca) {
-    showToast(`${count}x ${item.name} eklendi!`);
+    showToast(`${count}x ${item.name} çantana eklendi!`);
   } else if (item.isKaynak) {
     showToast(`${item.icon} ${count}x ${item.name} çantana eklendi!`);
   } else {

@@ -4787,7 +4787,9 @@ function renderInventory() {
 
         return `<div class="inv-row"><span>${k}</span><span class="qty">x${qty}</span></div>`;
       }
-      const bonusText = def.isKaynak
+      const bonusText = def.isParca
+        ? "Kullanınca kahraman parçası havuzuna eklenir"
+        : def.isKaynak
         ? `Kullanınca +${fmt(def.miktar)} ${def.name.replace(/ (Sandığı|Hücresi)$/, "")} verir`
         : def.isBoost
         ? def.boostDesc
@@ -4803,13 +4805,14 @@ function renderInventory() {
         slotTag,
         bonusText,
         rightHTML: `<span class="qty">${qty}</span>
-            ${(def.isStaminaPotion || def.isKaynak) ? `<button class="inv-use-btn" data-item="${def.name}">Kullan</button>` : ""}`,
+            ${(def.isStaminaPotion || def.isKaynak || def.isParca) ? `<button class="inv-use-btn" data-item="${def.name}">Kullan</button>` : ""}`,
       });
     }).join("");
     bindAll(list, ".inv-use-btn", (ds) => {
       const ad = ds && ds.item;
       const d  = ad ? getItemDef(ad) : null;
-      if (d && d.isKaynak) kaynakPaketiKullan(ad);
+      if (d && d.isParca && typeof window.parcaPaketiKullan === "function") window.parcaPaketiKullan(ad);
+      else if (d && d.isKaynak) kaynakPaketiKullan(ad);
       else useStaminaPotion();
     });
   }
