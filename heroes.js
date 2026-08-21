@@ -804,10 +804,10 @@ ${modelTxt}`;
   }
   const refreshBuyBtn = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
-    const acik = !!document.getElementById("glsPanel");
-    buyBtn.textContent = owned
-      ? (acik ? "Geri" : "Geliştir")
-      : `Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}`;
+    /* Sahip olunan kahramanda alt düğme YOK — geliştirme paneli
+       zaten ekranın altında duruyor (gelistir.js). */
+    buyBtn.style.display = owned ? "none" : "";
+    buyBtn.textContent = owned ? "" : `Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}`;
   };
   buyBtn.onclick = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
@@ -831,7 +831,12 @@ ${modelTxt}`;
     refreshBuyBtn();
   };
   refreshBuyBtn();
-  window.glsBtnTazele = refreshBuyBtn;   /* gelistir.js panel kapanınca çağırır */
+  window.glsBtnTazele = refreshBuyBtn;
+
+  /* ── GELİŞTİRME PANELİ — ekran açılır açılmaz gelir ── */
+  if (typeof window.acGelistirme === "function") {
+    setTimeout(() => window.acGelistirme(skinId), 0);   /* Tuzak 35 */
+  }
 
   const passBtn = ov.querySelector("#hdPassive");
   if (passBtn) passBtn.onclick = () => {

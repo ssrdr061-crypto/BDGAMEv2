@@ -177,6 +177,8 @@
   let aktifSekme = "yetenek";      /* "stat" | "yetenek" | "taki" */
 
   function kutucuklar(gizle) {
+    /* Yetenek kutucukları ve üstteki yıldız şeridi panelle birlikte
+       gösterilmez — bilgileri artık panelde duruyor. */
     ["hdBoxes", "hdAbilityPanel", "hdStars"].forEach(x => {
       const e = document.getElementById(x);
       if (e) e.style.display = gizle ? "none" : "";
@@ -190,9 +192,10 @@
     if (typeof window.glsBtnTazele === "function") window.glsBtnTazele();
   }
 
-  /* Aç/kapa — açıksa kapatır */
+  /* Paneli çiz. Zaten açıksa içeriği tazeler (kahramanlar arası geçiş). */
   function ac(id) {
-    if (document.getElementById(PANEL_ID)) { kapat(); return; }
+    const eski = document.getElementById(PANEL_ID);
+    if (eski) eski.remove();
     if (typeof HERO_STATS === "undefined" || !HERO_STATS[id]) {
       toast("Kahraman verisi bulunamadı.");
       return;
@@ -205,14 +208,16 @@
 
     const p = document.createElement("div");
     p.id = PANEL_ID;
-    /* Alttaki Geliştir düğmesinin ÜSTÜNDE durur */
+    /* Ekranın ALT KENARINA yaslı — ayrı kutu değil, ekranın parçası.
+       Sahipsiz kahramanda altta "Satın Al" durduğu için panel yukarı çekilir. */
+    const sahipli = sahip(id);
     p.style.cssText =
-      "position:absolute;left:10px;right:10px;bottom:calc(4% + 58px);z-index:8;" +
+      "position:absolute;left:0;right:0;z-index:8;" +
+      "bottom:" + (sahipli ? "0" : "calc(4% + 58px)") + ";" +
       "box-sizing:border-box;color:#eaf6ff;" +
-      "background:linear-gradient(180deg,rgba(18,58,92,.94),rgba(11,32,53,.96));" +
-      "border:1px solid rgba(190,240,255,.20);border-radius:14px;" +
-      "padding:11px 12px 12px;display:flex;flex-direction:column;" +
-      "max-height:56%;box-shadow:0 2px 6px rgba(0,20,45,.3);";
+      "background:linear-gradient(180deg,rgba(11,32,53,0),rgba(9,26,44,.90) 14%,rgba(9,26,44,.96));" +
+      "padding:14px 14px 16px;display:flex;flex-direction:column;" +
+      "max-height:58%;";
     ov.appendChild(p);
 
     ciz(p, id);
@@ -323,7 +328,7 @@
              <div style="position:absolute;inset:0;display:flex;align-items:center;
                          justify-content:center;font-size:11.5px;font-weight:800;
                          color:#fff;text-shadow:0 1px 2px rgba(0,20,45,.55);">
-               ${eldeki} / ${bedel}
+               ${Math.min(eldeki, bedel)} / ${bedel}
              </div>
            </div>
            <button id="glsYukselt" style="flex:0 0 auto;padding:8px 14px;border:none;
