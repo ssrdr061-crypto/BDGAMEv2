@@ -73,11 +73,14 @@ const shopItems = [
      Mor parça üç mor kahramanın ORTAK havuzuna, turuncular
      kahramana ÖZEL havuza düşer (gelistir.js). Haftada 10'ar. */
   { name: "Mor Kahraman Parçası", price: 15000, isParca: true, parcaKey: "mor",
-    icon: "◆", parcaDesc: "HALVORSEN, STELLİN ve MİKİAN'ın seviyesini yükseltmekte kullanılır." },
+    icon: "◆", gorsel: "morparca.webp",
+    parcaDesc: "HALVORSEN, STELLİN ve MİKİAN'ın seviyesini yükseltmekte kullanılır." },
   { name: "İVANOVNA Parçası", price: 30000, isParca: true, parcaKey: "ivanovna",
-    icon: "◆", parcaDesc: "Yalnız İVANOVNA'nın seviyesini yükseltmekte kullanılır." },
+    icon: "◆", gorsel: "ivanovnaparca.webp",
+    parcaDesc: "Yalnız İVANOVNA'nın seviyesini yükseltmekte kullanılır." },
   { name: "REVOLİA Parçası", price: 30000, isParca: true, parcaKey: "revolia",
-    icon: "◆", parcaDesc: "Yalnız REVOLİA'nın seviyesini yükseltmekte kullanılır." },
+    icon: "◆", gorsel: "revoliaparca.webp",
+    parcaDesc: "Yalnız REVOLİA'nın seviyesini yükseltmekte kullanılır." },
 
   { name: "Füze", price: 200000, isMissile: true, icon: "🚀",
     missileDesc: "Kale saldırısı için 1 füze. Haritada bir düşman kalesine 🚀 ile atılır ve kaleye ağır hasar verir. Füze yiyen oyuncu 24 saat boyunca hiçbir saldırı yapamaz (yalnızca savunma ve füze). Haftalık en fazla 2 adet alınabilir." },

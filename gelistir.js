@@ -38,9 +38,20 @@
 
   /* Parça kutucuğunun rengi türe göre değişir; BAR her zaman SARI. */
   const RENK = {
-    mor: { ana: "#a855f7", koyu: "#6b21a8", ad: "Mor Parça" },
-    ssr: { ana: "#f97316", koyu: "#9a3412", ad: "Turuncu Parça" }
+    mor: { ana: "#a855f7", koyu: "#6b21a8", ad: "Mor Parça",
+           arka: "gorsel23.webp" },
+    ssr: { ana: "#f97316", koyu: "#9a3412", ad: "Turuncu Parça",
+           arka: "gorsel22.webp" }
   };
+
+  /* Parça görselleri — kahramana göre. Dosya adları KÜÇÜK HARF,
+     Türkçe karakter yok (aksi halde sunucuda sessizce bulunamaz). */
+  const PARCA_GORSEL = {
+    mor:      "morparca.webp",
+    ivanovna: "ivanovnaparca.webp",
+    revolia:  "revoliaparca.webp"
+  };
+  function parcaGorseli(id) { return PARCA_GORSEL[parcaAnahtari(id)] || ""; }
 
   /* Oyunun mavi teması (tema.js :root) — TEK YER burasıdır. */
   const TEMA = {
@@ -60,13 +71,15 @@
      Sistem canlıdaki oyunculara KAPALI. Açılması için ya adres
      çubuğunda ?gelistir=1 olmalı ya da hesap adı bu listede.
      Yayına alırken: acikMi() içini `return true;` yap. */
+  /* AÇIK — sistem herkese görünür.
+     Tekrar kapatmak istersen: `return true;` satırını silip
+     alttaki iki satırı yorumdan çıkar. */
   const IZINLI = ["moonlight"];
   function acikMi() {
-    try {
-      if (/[?&]gelistir=1/.test(location.search)) return true;
-      const u = (typeof currentUsername !== "undefined") ? currentUsername : "";
-      return IZINLI.indexOf(String(u || "").toLowerCase()) !== -1;
-    } catch (e) { return false; }
+    return true;
+    /* if (/[?&]gelistir=1/.test(location.search)) return true;
+       return IZINLI.indexOf(String((typeof currentUsername !== "undefined"
+                ? currentUsername : "") || "").toLowerCase()) !== -1; */
   }
   window.GELISTIR_ACIK = acikMi;
 
@@ -327,20 +340,12 @@
                    font-size:19px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
     }
 
-    /* Parça kutucuğu — görsel gelene kadar renkli kare */
-    const parcaKare =
-      `<div style="width:32px;height:32px;border-radius:9px;flex:0 0 auto;
-                   background:linear-gradient(180deg,${r.ana},${r.koyu});
-                   display:flex;align-items:center;justify-content:center;
-                   font-size:16px;line-height:1;">◆</div>`;
-
     const alt = sonSeviye
       ? `<div style="text-align:center;padding:10px;border-radius:11px;
               background:linear-gradient(180deg,${TEMA.ust},${TEMA.alt});
               color:${TEMA.yazi};font-weight:800;font-size:13.5px;
               font-family:${YAZI};text-shadow:${TEMA.golge};">En yüksek seviye</div>`
       : `<div style="display:flex;align-items:center;gap:9px;">
-           ${parcaKare}
            <div style="flex:1;min-width:0;height:24px;border-radius:12px;
                        background:rgba(11,28,58,.65);position:relative;overflow:hidden;">
              <div style="position:absolute;inset:0 auto 0 0;width:${oran}%;
@@ -454,10 +459,20 @@
 
       kutu.innerHTML = `
         <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:52px;height:52px;border-radius:12px;flex:0 0 auto;
-                      background:linear-gradient(180deg,${r.ana},${r.koyu});
-                      display:flex;align-items:center;justify-content:center;
-                      font-size:25px;">◆</div>
+          <div style="width:56px;height:56px;border-radius:12px;flex:0 0 auto;
+                      position:relative;overflow:hidden;
+                      background:linear-gradient(180deg,${r.ana},${r.koyu});">
+            <img src="${r.arka}" alt=""
+                 style="position:absolute;inset:0;width:100%;height:100%;
+                        object-fit:cover;"
+                 onerror="this.style.display='none'">
+            <img src="${parcaGorseli(id)}" alt=""
+                 style="position:absolute;inset:0;width:100%;height:100%;
+                        object-fit:contain;"
+                 onerror="this.replaceWith(Object.assign(document.createElement('div'),
+                          {textContent:'◆',
+                           style:'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:25px;'}))">
+          </div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:15px;font-weight:800;color:${TEMA.sari};">${h.name} · Sv${sv}</div>
             <div style="font-size:12px;color:#cbe4ff;">
