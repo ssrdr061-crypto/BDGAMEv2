@@ -447,21 +447,6 @@ const KOMUTAN_AILESI = {
 };
 const KOMUTAN_AILE_ADI = { knight: "Savunucu", soldier: "Koruyucu", robot: "Nişancı" };
 
-/*  ── ROZET SİMGESİ ──
-    Kart köşesindeki simge kahramanın "specialty" alanından DEĞİL,
-    AİLESİNDEN gelir. Tek yer burasıdır; değişecekse yalnız bu tablo
-    düzenlenir. Ailesi tanımsız bir kahraman olursa eski
-    specialtyIcon'una düşer.                                        */
-const AILE_SIMGESI = { knight: "🛡️", soldier: "❤️", robot: "⚡" };
-
-function komutanSimgesi(id) {
-  const a = KOMUTAN_AILESI[id];
-  if (a && AILE_SIMGESI[a]) return AILE_SIMGESI[a];
-  const h = HERO_STATS[id];
-  return (h && h.specialtyIcon) || "⚔️";
-}
-window.komutanSimgesi = komutanSimgesi;
-
 function komutanAilesi(id) { return KOMUTAN_AILESI[id] || null; }
 
 /* Bu aileden listede zaten seçili olan komutan (varsa) döner.
@@ -592,6 +577,7 @@ function openHeroDetail(skinId) {
     <div id="hdStars" style="position:absolute;left:50%;transform:translateX(-50%);top:${cfg.stars.posY};display:flex;gap:4px;z-index:5;"></div>
     <div id="hdBoxes" style="position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:8px;padding:14px;z-index:5;"></div>`;
   ov.style.display = "flex";
+  ov.dataset.hero = skinId;   /* gelistir.js yıldızları tazelerken okur */
 
   // Arkaplan (video veya resim)
   const bg = (typeof HERO_BG !== "undefined") ? HERO_BG[skinId] : null;
@@ -615,10 +601,14 @@ function openHeroDetail(skinId) {
 
   // Yıldızlar
   const stEl = ov.querySelector("#hdStars");
+  /* Dolu yıldız sayısı = kahramanın SEVİYESİ (gelistir.js).
+     cfg.stars.filled artık kullanılmaz — tek kaynak state.heroLevels. */
+  const _svYildiz = (typeof window.kahramanSeviyesi === "function")
+    ? window.kahramanSeviyesi(skinId) : 1;
   for (let i = 0; i < cfg.stars.max; i++) {
     const s = document.createElement("span");
     s.textContent = "★";
-    s.style.cssText = `font-size:${cfg.stars.size};color:${i < cfg.stars.filled ? cfg.stars.color : "#444"};filter:drop-shadow(0 1px 3px rgba(0,0,0,.7));`;
+    s.style.cssText = `font-size:${cfg.stars.size};color:${i < _svYildiz ? cfg.stars.color : "#444"};filter:drop-shadow(0 1px 3px rgba(0,0,0,.7));`;
     stEl.appendChild(s);
   }
 
@@ -804,13 +794,14 @@ ${modelTxt}`;
   }
   const refreshBuyBtn = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
-    buyBtn.textContent = owned ? "Geliştir" : `Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}`;
+    const _sv = (typeof window.kahramanSeviyesi === "function") ? window.kahramanSeviyesi(skinId) : 1;
+    buyBtn.textContent = owned ? `Geliştir  ·  Sv${_sv}` : `Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}`;
   };
   buyBtn.onclick = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
     if (owned) {
-      /* Geliştirme bedelleri (upgradeCosts) belirlenince burası yazılacak */
-      if (typeof showToast === "function") showToast("Geliştirme sistemi yakında!");
+      if (typeof window.acGelistirme === "function") window.acGelistirme(skinId);
+      else if (typeof showToast === "function") showToast("Geliştirme dosyası yüklenmedi.");
       return;
     }
     const price = h.price || 0;
@@ -1018,13 +1009,13 @@ const HPK_KART = {
   min-height:${HPK_YUVA.yukseklik}px;
   max-height:${HPK_YUVA.yukseklik}px;
   border-radius:${HPK_YUVA.kose}px; cursor:pointer; box-sizing:border-box;
-  background:rgba(255,255,255,.06);
-  border:1px dashed rgba(190,240,255,.35);
+  background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(8,45,80,.35));
+  border:2px dashed rgba(190,240,255,.6);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:4px; transition:transform .09s, filter .09s;
+  gap:4px; transition:transform .1s, border-color .15s, box-shadow .15s;
   -webkit-tap-highlight-color:transparent;
 }
-.hpk-slot:active{ transform:scale(.96); filter:brightness(.93); }
+.hpk-slot:active{ transform:scale(.97); }
 /* DOLU YUVA: görünümün tamamı içindeki .klist-card'a aittir.
    Yuvanın kendi zemini/çerçevesi kapatılır, yoksa kartın altından
    ikinci bir kutu görünür. */
@@ -1042,7 +1033,7 @@ const HPK_KART = {
 .hpk-slot .klist-stars{ ${HPK_KART.yildiz_bs ? `font-size:${HPK_KART.yildiz_bs}px !important;` : ""} }
 ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"}
 .hpk-plus{ font-size:38px; font-weight:900; color:rgba(235,250,255,.85); line-height:1;
-  text-shadow:0 1px 2px rgba(0,20,45,.55); }
+  text-shadow:0 2px 5px rgba(0,30,55,.55); }
 .hpk-hint{ display:none; }
 .hpk-num{ display:none; }
 .hpk-slot img.hpk-portrait, .hpk-slot .hpk-portrait{
@@ -1061,9 +1052,9 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
   background:linear-gradient(180deg,#f03434,#c00d0d); color:#fff;
   font-size:14px; font-weight:900; line-height:24px; text-align:center;
   cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent;
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:0 2px 5px rgba(120,0,0,.4), inset 0 1px 0 rgba(255,255,255,.35);
 }
-.hpk-x:active{ transform:scale(.96); filter:brightness(.93); }
+.hpk-x:active{ transform:scale(.9); }
 .hpk-empty-msg{ font-size:12px; color:var(--ink-dim); padding:6px 0; }
 
 /* ── seçim penceresi ── */
@@ -1071,9 +1062,7 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
    YUTMAZ (pointer-events:none). Savaş paneli açık ve tıklanabilir
    kalır: yanlış kahraman seçildiyse oyuncu yuvadaki ✕ düğmesine
    hemen basabilir, pencereyi kapatmasına gerek kalmaz.
-   Pencere ALTTA durur; tepesi "Yanına alacağın birlikler"
-   başlığını geçmez — tavanı açılışta hpkKonumla() ölçer.
-   Buradaki 66vh yalnız başlık ölçülemezse geçerli yedektir.
+   Pencere aşağıda durur ki üstteki yuvalar görünsün.
    Dışarı dokununca kapatma işi CSS'e değil, openHeroPickModal
    içindeki dinleyiciye aittir (zemin artık dokunuş almıyor). */
 .hpk-back{
@@ -1094,7 +1083,7 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
     radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
     radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
     linear-gradient(180deg, #1fa3ea, #0e6fc0);
-  border:1px solid rgba(190,240,255,.20);
+  border:2px solid rgba(190,240,255,.5);
   box-shadow:0 2px 6px rgba(0,20,45,.3);
   font-family:'Baloo 2',sans-serif; color:#eaf4ff;
   animation:hpkPop .18s cubic-bezier(.2,.9,.3,1.3);
@@ -1130,8 +1119,8 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
 ${HPK_KART.specGoster ? "" : ".hpk-card .klist-spec{ display:none !important; }"}
 /* Zaten yuvada olan kahraman: ince beyaz kenar, kart görünümü bozulmaz */
 .hpk-card.chosen .klist-card{
-  border:1px solid rgba(255,255,255,.9) !important;
-  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  border:2px solid rgba(255,255,255,.9) !important;
+  box-shadow:0 0 12px rgba(190,240,255,.55) !important;
 }
 .hpk-card .hpk-cap{ display:none; }
 .hpk-badge{ display:none; }
@@ -1320,40 +1309,6 @@ function hpkTazele() {
 
 let _hpkDisDokunus = null;
 
-/*  ── PENCERENİN TAVANI ──
-    Pencere ALTTA açılır (CSS'teki 9vh alt payı). Buradaki iş yalnız
-    ÜST sınırı belirlemek: pencerenin tepesi "Yanına alacağın
-    birlikler" başlığının 8px altında kalır, o yazının üstüne
-    çıkmaz — kahraman yuvaları hep görünür durur.
-
-    Ölçü CSS'e yazılamaz: başlığın ekrandaki yeri savaş paneli
-    kaydırıldıkça değişir. Her açılışta yeniden ölçülür.
-    Başlık bulunamazsa hiçbir şey yapılmaz — CSS'teki 66vh tavanı
-    geçerli kalır.                                                  */
-function hpkKonumla(back) {
-  try {
-    const modal = back && back.querySelector(".hpk-modal");
-    if (!modal) return;
-
-    const liste  = document.getElementById("troopSelectList");
-    const hedef  = (liste && liste.previousElementSibling) || liste;
-    if (!hedef) return;
-
-    const r = hedef.getBoundingClientRect();
-    if (!r.height) return;                    /* gizli kapsayıcı — çık */
-
-    /* CSS'teki alt pay: 9vh. İkisi ayrışmasın diye tek sayı burada. */
-    const altPay = window.innerHeight * 0.09;
-    const tavan  = Math.round(window.innerHeight - altPay - (r.bottom + 8));
-
-    if (tavan < 140) return;                  /* yer kalmıyorsa dokunma */
-
-    modal.style.maxHeight = tavan + "px";
-  } catch (e) {
-    console.warn("[heroes.js] Pencere tavanı ayarlanamadı:", e);
-  }
-}
-
 function openHeroPickModal(slotIndex) {
   closeHeroPickModal();
   _hpkTargetSlot = slotIndex;
@@ -1373,10 +1328,6 @@ function openHeroPickModal(slotIndex) {
   back.innerHTML = `<div class="hpk-modal"><div class="hpk-grid"></div></div>`;
   document.body.appendChild(back);
   hpkGridCiz(back, slotIndex);
-
-  /* Pencerenin tavanını başlığın altına kilitle. Boy ölçüsü
-     kilitlenmeden ÖNCE çağrılır, yoksa kilitlenen boy yanlış olur. */
-  hpkKonumla(back);
 
   /* PENCERE BOYU İLK AÇILIŞTA KİLİTLENİR.
      Kahraman seçilince liste kısalıyor; pencere alta yaslı olduğu

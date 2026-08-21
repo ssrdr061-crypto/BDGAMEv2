@@ -2600,6 +2600,7 @@ body.world-active{padding:0; overflow:hidden;}
 <script src="heroes.js"></script>
 <!-- KAHRAMAN LİSTESİ EKRANI: heroes.js'ten SONRA yüklenmeli (HERO_STATS/HERO_IMG/openHeroDetail'i kullanır). -->
 <script src="kahramanlar.js"></script>
+<script src="gelistir.js"></script>
 <!-- BİRLİK DOSYASI: her zaman "troops.js" adıyla yüklenir (heroes.js ile aynı kural). -->
 <script src="troops.js"></script>
 <!-- İSTATİSTİK KATMANI: troops.js'ten SONRA yüklenmeli (UNIT_TYPES + KADEME okur). -->
@@ -3456,10 +3457,12 @@ function abilitiesForSkins(skinList) {
     skins = skins.filter((x, i) => skins.indexOf(x) === i).slice(0, 3);
     if (!skins.length) return [];
 
-    const lv = 0; // seviye 1
     const merged = {};
 
     skins.forEach(skin => {
+      /* Seviye kahraman BAŞINA okunur (gelistir.js → state.heroLevels) */
+      const lv = ((typeof window.kahramanSeviyesi === "function")
+                  ? window.kahramanSeviyesi(skin) : 1) - 1;
       const h = HERO_STATS[skin];
       if (!h || !h.abilities) return;
       const heroName = h.name || skin;

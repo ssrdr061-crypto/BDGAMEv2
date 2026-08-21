@@ -235,14 +235,11 @@ function _klistKartAyar(id) {
 .klist-portrait.klist-noimg{
   display:flex; align-items:center; justify-content:center; font-size:32px;
 }
-/* Uzmanlık simgesi: KUTU YOK. Emoji doğrudan kartın sol üst
-   köşesinde durur; okunurluk için yalnız ince bir gölge var. */
 .klist-spec{
-  position:absolute; top:1px; left:2px; z-index:3;
-  background:none; border:0; border-radius:0;
-  display:flex; align-items:center; justify-content:center;
-  font-size:15px; line-height:1;
-  text-shadow:0 1px 2px rgba(0,20,45,.55);
+  position:absolute; top:4px; left:4px; z-index:3;
+  width:21px; height:21px; border-radius:7px;
+  background:rgba(4,16,36,.65); border:1px solid rgba(160,215,255,.45);
+  display:flex; align-items:center; justify-content:center; font-size:11px;
 }
 .klist-foot{
   position:absolute; left:0; right:0; bottom:0; z-index:3;
@@ -391,7 +388,9 @@ function _klistKartHTML(id) {
 
   let yildiz = "";
   if (KV.yildizGoster && cfg && cfg.stars) {
-    const max = cfg.stars.max || 5, dolu = sahip ? (cfg.stars.filled || 0) : 0;
+    /* Dolu yıldız = SEVİYE (gelistir.js). cfg.stars.filled kullanılmaz. */
+    const max = cfg.stars.max || 5;
+    const dolu = sahip ? _klistSeviye(id) : 0;
     let t = "";
     for (let i = 0; i < max; i++)
       t += `<span style="color:${i < dolu ? (cfg.stars.color || "#ffd700") : "rgba(255,255,255,.28)"};">★</span>`;
@@ -417,7 +416,7 @@ function _klistKartHTML(id) {
                 transform:translate(${KV.kart_dx + k.kdx}px,${KV.kart_dy + k.kdy}px);">
       ${zemin}
       ${portre}
-      <div class="klist-spec">${(typeof komutanSimgesi === "function" ? komutanSimgesi(id) : (h.specialtyIcon || "⚔️"))}</div>
+      <div class="klist-spec">${h.specialtyIcon || "⚔️"}</div>
       ${kilit}
       <div class="klist-foot">
         ${isim}
