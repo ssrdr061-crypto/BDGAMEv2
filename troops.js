@@ -26,11 +26,11 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, img: "gorsel8.webp",
+  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, img: "sovalye.webp",
              kaynak: { et: 6,  su: 2, demir: 9  } },
-  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, img: "gorsel9.webp",
+  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, img: "okcu.webp",
              kaynak: { et: 12, su: 3, demir: 12 } },
-  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "gorsel10.webp",
+  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "savasarabasi.webp",
              kaynak: { su: 5, demir: 15, enerji: 5 } },
 };
 
@@ -70,8 +70,8 @@ const KADEME = {
 };
 
 /* Kademe görselleri — burada yazmayan kademe Sv1'inkini kullanır.
-   Sv1'ler bilerek boş: Şövalye gorsel8, Savaş Arabası gorsel9,
-   Okçu gorsel10 olarak kalıyor (UNIT_TYPES içinde yazılı).
+   Sv1'ler bilerek boş: sovalye.webp, okcu.webp ve savasarabasi.webp
+   olarak UNIT_TYPES içindeki `img` alanında yazılı.
    Dosya adları küçük harf, Türkçe harf yok, gorsel8.webp ile
    aynı klasörde durmalı. */
 const KADEME_GORSEL = {
@@ -108,8 +108,8 @@ const KADEME_GORSEL = {
     ───────────────────────────────────────────── */
 const KADEME_ADI = {
   knight:  ["Şövalye", "Süvari",      "Yeniçeri", "Asker",           "Robot",        "Dev Robot"],
-  soldier: ["Savaş Arabası", "Savaş Fili", "Topçu", "Tank",          "Saldırı Helikopteri", "Süper Tank"],
-  robot:   ["Okçu",     "Arbaletçi",   "Tüfekçi",  "Havan Birliği",  "Savaş Uçağı",  "Füze Sistemi"],
+  soldier: ["Okçu",          "Savaş Fili", "Topçu", "Tank",          "Saldırı Helikopteri", "Süper Tank"],
+  robot:   ["Savaş Arabası", "Arbaletçi",  "Tüfekçi",  "Havan Birliği",  "Savaş Uçağı",  "Füze Sistemi"],
 };
 
 /* Sv1 adlarını da bu tablodan al (iki yerde ad tutulmasın) */
@@ -178,22 +178,7 @@ function aileKademeleri(aile) {
     Test aşaması için bilinçli bırakıldı. Kaynak alması istenirse
     trainUnitInstant içindeki işaretli bloğun yorumu kaldırılır.
     ───────────────────────────────────────────── */
-/*  İki tablo, iki bağlam:
-    KAYNAK_EMOJI → toast gibi DÜZ METİN yerlerde.
-    KAYNAK_IKON  → innerHTML'e basılan yerlerde (eğitim ekranının
-                   kaynak satırı). Görsel açılmazsa emojiye döner.
-    Görsel adları dugum.js'teki KAYNAK tablosuyla aynıdır.        */
-const KAYNAK_EMOJI = { et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
-const KAYNAK_GORSEL = { et: "et.webp", demir: "demir.webp", su: "su.webp", enerji: "enerji.webp" };
-const KAYNAK_IKON = (function () {
-  const out = {};
-  Object.keys(KAYNAK_GORSEL).forEach(k => {
-    out[k] = '<img class="kay-sim" src="' + KAYNAK_GORSEL[k] + '" alt="" ' +
-             'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' +
-             KAYNAK_EMOJI[k] + '\'))">';
-  });
-  return out;
-})();
+const KAYNAK_IKON = { et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
 
 /* Tek birlik için değil, İSTENEN ADET için toplam kaynak. */
 function kaynakMaliyet(unitId, count) {
@@ -373,7 +358,7 @@ function trainUnit(unitId, count) {
   const totalCost = def.cost * count;
   if (state.diamonds < totalCost || !kaynakYeterli(unitId, count)) {
     const g = kaynakMaliyet(unitId, count);
-    const liste = Object.keys(g).map(k => `${KAYNAK_EMOJI[k] || ""} ${fmt(g[k])}`).join(" · ");
+    const liste = Object.keys(g).map(k => `${KAYNAK_IKON[k] || ""} ${fmt(g[k])}`).join(" · ");
     showToast(`Yeterli kaynağın yok. ${count} ${def.name} için 💎 ${fmt(totalCost)}${liste ? " · " + liste : ""} gerekiyor.`);
     return;
   }
