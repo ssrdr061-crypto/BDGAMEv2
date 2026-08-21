@@ -168,44 +168,54 @@
     }).filter(Boolean);
   }
 
-  /* ── PENCERE ────────────────────────────────────────────────── */
-  const KAT_ID = "glsKat";
+  /* ── GÖMÜLÜ PANEL ───────────────────────────────────────────
+     Ayrı pencere YOK. Panel kahraman detay ekranının İÇİNE girer;
+     açıkken yetenek kutucukları gizlenir, yerini bu panel alır.
+     "Geliştir" düğmesi aç/kapa görevi görür. */
+
+  const PANEL_ID = "glsPanel";
   let aktifSekme = "yetenek";      /* "stat" | "yetenek" | "taki" */
 
-  function kapat() {
-    const k = document.getElementById(KAT_ID);
-    if (k) k.remove();
+  function kutucuklar(gizle) {
+    ["hdBoxes", "hdAbilityPanel", "hdStars"].forEach(x => {
+      const e = document.getElementById(x);
+      if (e) e.style.display = gizle ? "none" : "";
+    });
   }
 
+  function kapat() {
+    const p = document.getElementById(PANEL_ID);
+    if (p) p.remove();
+    kutucuklar(false);
+    if (typeof window.glsBtnTazele === "function") window.glsBtnTazele();
+  }
+
+  /* Aç/kapa — açıksa kapatır */
   function ac(id) {
+    if (document.getElementById(PANEL_ID)) { kapat(); return; }
     if (typeof HERO_STATS === "undefined" || !HERO_STATS[id]) {
       toast("Kahraman verisi bulunamadı.");
       return;
     }
-    kapat();
+    const ov = document.getElementById("heroDetailOverlay");
+    if (!ov) { toast("Kahraman ekranı açık değil."); return; }
+
     aktifSekme = "yetenek";
+    kutucuklar(true);
 
-    const kat = document.createElement("div");
-    kat.id = KAT_ID;
-    kat.style.cssText =
-      "position:fixed;inset:0;z-index:460;display:flex;" +
-      "align-items:flex-end;justify-content:center;";
-    /* Arka plan KARARMAZ — katman yalnız dışarı dokunmayı yakalar */
-    kat.addEventListener("pointerup", e => { if (e.target === kat) kapat(); });
+    const p = document.createElement("div");
+    p.id = PANEL_ID;
+    /* Alttaki Geliştir düğmesinin ÜSTÜNDE durur */
+    p.style.cssText =
+      "position:absolute;left:10px;right:10px;bottom:calc(4% + 58px);z-index:8;" +
+      "box-sizing:border-box;color:#eaf6ff;" +
+      "background:linear-gradient(180deg,rgba(18,58,92,.94),rgba(11,32,53,.96));" +
+      "border:1px solid rgba(190,240,255,.20);border-radius:14px;" +
+      "padding:11px 12px 12px;display:flex;flex-direction:column;" +
+      "max-height:56%;box-shadow:0 2px 6px rgba(0,20,45,.3);";
+    ov.appendChild(p);
 
-    const kutu = document.createElement("div");
-    kutu.id = "glsKutu";
-    kutu.style.cssText =
-      "width:100%;max-width:420px;box-sizing:border-box;" +
-      "background:linear-gradient(180deg,#123a5c,#0b2035);" +
-      "border-top:1px solid rgba(190,240,255,.20);" +
-      "border-radius:18px 18px 0 0;padding:14px 14px 18px;color:#eaf6ff;" +
-      "box-shadow:0 2px 6px rgba(0,20,45,.3);" +
-      "max-height:78vh;display:flex;flex-direction:column;";
-    kat.appendChild(kutu);
-    document.body.appendChild(kat);
-
-    ciz(kutu, id);
+    ciz(p, id);
   }
 
   /* ── SEKME İÇERİKLERİ ───────────────────────────────────────── */
@@ -219,7 +229,7 @@
       : `<span style="color:#9fb6c9;">${im}${simdi}</span>`;
     return `
       <div style="display:flex;justify-content:space-between;align-items:center;
-                  gap:8px;padding:8px 0;border-bottom:1px solid rgba(190,240,255,.10);">
+                  gap:8px;padding:7px 0;border-bottom:1px solid rgba(190,240,255,.10);">
         <div style="font-size:12.5px;color:#cfe6f7;">${ad}</div>
         <div style="font-size:12.5px;white-space:nowrap;">${sag}</div>
       </div>`;
@@ -227,7 +237,7 @@
 
   function sekmeYetenek(id) {
     const k = yetenekKiyas(id);
-    if (!k.length) return `<div style="padding:18px 0;text-align:center;color:#9fb6c9;font-size:13px;">Yetenek yok.</div>`;
+    if (!k.length) return `<div style="padding:16px 0;text-align:center;color:#9fb6c9;font-size:13px;">Yetenek yok.</div>`;
     let out = "";
     k.forEach(x => { if (x.simdi != null) out += satirHTML(x.ad + (x.ek || ""), x.simdi, x.sonra, true); });
     return out;
@@ -239,24 +249,23 @@
     const s = S() || {};
     const h = s.hero || {};
     let out = "";
-    out += satirHTML("Kahraman Saldırı",  Math.round(h.attack  || 0), null, false);
-    out += satirHTML("Kahraman Savunma",  Math.round(h.defense || 0), null, false);
-    out += satirHTML("Kahraman Can",      Math.round(h.maxHp   || 0), null, false);
-    out += `<div style="padding:12px 2px 0;font-size:11.5px;color:#7f96a8;line-height:1.5;">
-              Seviyeye bağlı stat artışı henüz bağlanmadı — bağlandığında
-              artış bu satırlarda görünür.
+    out += satirHTML("Kahraman Saldırı", Math.round(h.attack  || 0), null, false);
+    out += satirHTML("Kahraman Savunma", Math.round(h.defense || 0), null, false);
+    out += satirHTML("Kahraman Can",     Math.round(h.maxHp   || 0), null, false);
+    out += `<div style="padding:10px 2px 0;font-size:11.5px;color:#7f96a8;line-height:1.5;">
+              Seviyeye bağlı stat artışı henüz bağlanmadı.
             </div>`;
     return out;
   }
 
   function sekmeTaki() {
-    return `<div style="padding:26px 0;text-align:center;color:#7f96a8;font-size:13px;">
+    return `<div style="padding:22px 0;text-align:center;color:#7f96a8;font-size:13px;">
               Takı sistemi yakında.
             </div>`;
   }
 
-  /* İçerik YERİNDE tazelenir → kaydırma konumu korunur */
-  function ciz(kutu, id) {
+  /* İçerik YERİNDE tazelenir → kaydırma korunur */
+  function ciz(p, id) {
     const h = HERO_STATS[id];
     const n = nadirlik(id);
     const r = RENK[n];
@@ -267,10 +276,9 @@
     const yeter = !sonSeviye && eldeki >= bedel;
     const oran = (sonSeviye || !bedel) ? 100 : Math.min(100, Math.round(eldeki / bedel * 100));
 
-    /* Yıldız şeridi — seviyeyi gösterir */
     let yildiz = "";
     for (let i = 0; i < MAX_SV; i++) {
-      yildiz += `<span style="color:${i < sv ? "#ffd700" : "rgba(255,255,255,.22)"};font-size:18px;">★</span>`;
+      yildiz += `<span style="color:${i < sv ? "#ffd700" : "rgba(255,255,255,.22)"};font-size:16px;">★</span>`;
     }
 
     const sekmeler = [
@@ -282,8 +290,8 @@
     sekmeler.forEach(x => {
       const se = aktifSekme === x.k;
       sekmeBar += `
-        <button class="glsSekme" data-k="${x.k}" style="flex:1;padding:9px 4px;border:none;
-                font-family:inherit;font-size:12.5px;font-weight:800;
+        <button class="glsSekme" data-k="${x.k}" style="flex:1;padding:8px 4px;border:none;
+                font-family:inherit;font-size:12px;font-weight:800;
                 background:${se ? "rgba(45,201,252,.16)" : "transparent"};
                 color:${se ? "#7fd8ff" : "#8ba3b5"};
                 border-bottom:2px solid ${se ? "#2DC9FC" : "transparent"};">
@@ -297,70 +305,63 @@
 
     /* Parça kutucuğu — görsel gelene kadar renkli kare */
     const parcaKare =
-      `<div style="width:34px;height:34px;border-radius:9px;flex:0 0 auto;
+      `<div style="width:30px;height:30px;border-radius:8px;flex:0 0 auto;
                    background:linear-gradient(180deg,${r.ana},${r.koyu});
                    display:flex;align-items:center;justify-content:center;
-                   font-size:17px;">◆</div>`;
+                   font-size:15px;">◆</div>`;
 
-    let alt;
-    if (sonSeviye) {
-      alt = `<div style="text-align:center;padding:12px;border-radius:11px;
-                  background:rgba(255,255,255,.06);color:#9fb6c9;font-weight:800;
-                  font-size:14px;">En yüksek seviye</div>`;
-    } else {
-      alt = `
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          ${parcaKare}
-          <div style="flex:1;min-width:0;height:22px;border-radius:11px;
-                      background:rgba(0,20,45,.45);position:relative;overflow:hidden;">
-            <div style="position:absolute;inset:0 auto 0 0;width:${oran}%;
-                        background:linear-gradient(90deg,${r.koyu},${r.ana});"></div>
-            <div style="position:absolute;inset:0;display:flex;align-items:center;
-                        justify-content:center;font-size:12px;font-weight:800;
-                        color:#fff;text-shadow:0 1px 2px rgba(0,20,45,.55);">
-              ${eldeki} / ${bedel}
-            </div>
-          </div>
-        </div>
-        <button id="glsYukselt" style="width:100%;padding:12px;border:none;border-radius:11px;
-                font-weight:800;font-size:15px;font-family:inherit;
-                background:${yeter ? "linear-gradient(180deg,#3fbf6a,#248c48)" : "rgba(255,255,255,.08)"};
-                color:${yeter ? "#fff" : "#8ba3b5"};
-                box-shadow:${yeter ? "0 2px 6px rgba(0,20,45,.3)" : "none"};">
-          Sv${sv + 1}'e Yükselt
-        </button>`;
-    }
+    const alt = sonSeviye
+      ? `<div style="text-align:center;padding:9px;border-radius:10px;
+              background:rgba(255,255,255,.06);color:#9fb6c9;font-weight:800;
+              font-size:13px;">En yüksek seviye</div>`
+      : `<div style="display:flex;align-items:center;gap:9px;">
+           ${parcaKare}
+           <div style="flex:1;min-width:0;height:20px;border-radius:10px;
+                       background:rgba(0,20,45,.45);position:relative;overflow:hidden;">
+             <div style="position:absolute;inset:0 auto 0 0;width:${oran}%;
+                         background:linear-gradient(90deg,${r.koyu},${r.ana});"></div>
+             <div style="position:absolute;inset:0;display:flex;align-items:center;
+                         justify-content:center;font-size:11.5px;font-weight:800;
+                         color:#fff;text-shadow:0 1px 2px rgba(0,20,45,.55);">
+               ${eldeki} / ${bedel}
+             </div>
+           </div>
+           <button id="glsYukselt" style="flex:0 0 auto;padding:8px 14px;border:none;
+                   border-radius:10px;font-weight:800;font-size:13px;font-family:inherit;
+                   background:${yeter ? "linear-gradient(180deg,#3fbf6a,#248c48)" : "rgba(255,255,255,.08)"};
+                   color:${yeter ? "#fff" : "#8ba3b5"};">
+             Sv${sv + 1}
+           </button>
+         </div>`;
 
-    kutu.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto;">
+    p.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;flex:0 0 auto;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:16px;font-weight:800;">${h.name}</div>
-          <div style="font-size:11.5px;color:#9fb6c9;">${r.ad} · Seviye ${sv}</div>
+          <div style="font-size:14.5px;font-weight:800;">${h.name}</div>
+          <div style="font-size:11px;color:#9fb6c9;">${r.ad} · Seviye ${sv}</div>
         </div>
         <div style="letter-spacing:1px;">${yildiz}</div>
       </div>
 
-      <div style="display:flex;margin-top:11px;flex:0 0 auto;
+      <div style="display:flex;margin-top:9px;flex:0 0 auto;
                   border-bottom:1px solid rgba(190,240,255,.12);">${sekmeBar}</div>
 
       <div id="glsIcerik" style="flex:1 1 auto;overflow-y:auto;
-                                 -webkit-overflow-scrolling:touch;padding:4px 2px 10px;">
+                                 -webkit-overflow-scrolling:touch;padding:2px 2px 8px;">
         ${icerik}
       </div>
 
-      <div style="flex:0 0 auto;padding-top:10px;">${alt}</div>
+      <div style="flex:0 0 auto;padding-top:9px;">${alt}</div>
     `;
 
-    Array.prototype.forEach.call(kutu.querySelectorAll(".glsSekme"), b => {
-      b.onclick = () => { aktifSekme = b.dataset.k; ciz(kutu, id); };
+    Array.prototype.forEach.call(p.querySelectorAll(".glsSekme"), b => {
+      b.onclick = e => { e.stopPropagation(); aktifSekme = b.dataset.k; ciz(p, id); };
     });
 
-    const btn = kutu.querySelector("#glsYukselt");
-    if (btn) btn.onclick = () => {
-      if (yukselt(id)) {
-        ciz(kutu, id);                 /* yerinde tazele */
-        yenile();                      /* kart / detay ekranı */
-      }
+    const btn = p.querySelector("#glsYukselt");
+    if (btn) btn.onclick = e => {
+      e.stopPropagation();
+      if (yukselt(id)) { ciz(p, id); yenile(); }
     };
   }
 
@@ -372,10 +373,7 @@
           typeof renderKahramanListesi === "function") renderKahramanListesi();
     } catch (e) {}
     try {
-      const hd = document.getElementById("heroDetailOverlay");
-      if (hd && hd.style.display !== "none" && typeof glsYildizTazele === "function") {
-        glsYildizTazele();
-      }
+      if (typeof glsYildizTazele === "function") glsYildizTazele();
     } catch (e) {}
   }
 

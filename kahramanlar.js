@@ -416,7 +416,7 @@ function _klistKartHTML(id) {
                 transform:translate(${KV.kart_dx + k.kdx}px,${KV.kart_dy + k.kdy}px);">
       ${zemin}
       ${portre}
-      <div class="klist-spec">${h.specialtyIcon || "⚔️"}</div>
+      <div class="klist-spec">${(typeof komutanRozeti === "function") ? komutanRozeti(id) : (h.specialtyIcon || "⚔️")}</div>
       ${kilit}
       <div class="klist-foot">
         ${isim}

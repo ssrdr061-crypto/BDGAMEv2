@@ -343,7 +343,7 @@ const HERO_3D = {
       back:    { intensity: 1.2, color: "#4fd1e8" },
       hemi:    { intensity: 1.3, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ff0000", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
   },
   ates_buyucusu: {
     model: {
@@ -357,7 +357,7 @@ const HERO_3D = {
       back:    { intensity: 0.8, color: "#4fd1e8" },
       hemi:    { intensity: 0.5, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ff0000", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
   },
   celik_savasci: {
     model: {
@@ -371,7 +371,7 @@ const HERO_3D = {
       back:    { intensity: 0.8, color: "#4fd1e8" },
       hemi:    { intensity: 0.5, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ff0000", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
   },
   ivanovna: {
     model: {
@@ -385,7 +385,7 @@ const HERO_3D = {
       back:    { intensity: 0.8, color: "#4fd1e8" },
       hemi:    { intensity: 0.5, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ff0000", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
   }
 ,
 
@@ -401,7 +401,7 @@ const HERO_3D = {
       back:    { intensity: 1.0, color: "#4fd1e8" },
       hemi:    { intensity: 0.5, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ff0000", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
   }
 };
 
@@ -448,6 +448,12 @@ const KOMUTAN_AILESI = {
 const KOMUTAN_AILE_ADI = { knight: "Savunucu", soldier: "Koruyucu", robot: "Nişancı" };
 
 function komutanAilesi(id) { return KOMUTAN_AILESI[id] || null; }
+
+/* Kart üstündeki uygunluk rozeti — AİLEDEN gelir, TEK YER burasıdır.
+   Savunucu 🛡️ · Koruyucu ❤️ · Nişancı ⚔️ */
+const AILE_ROZETI = { knight: "🛡️", soldier: "❤️", robot: "⚔️" };
+function komutanRozeti(id) { return AILE_ROZETI[komutanAilesi(id)] || "⚔️"; }
+window.komutanRozeti = komutanRozeti;
 
 /* Bu aileden listede zaten seçili olan komutan (varsa) döner.
    `hariç` verilirse o kimlik sayılmaz. */
@@ -790,18 +796,25 @@ ${modelTxt}`;
     buyBtn.style.width = U.buyBtn.width;
     buyBtn.style.height = U.buyBtn.height;
     buyBtn.style.fontSize = U.buyBtn.fontSize;
-    buyBtn.style.transform = `translateX(-50%) translate(${U.buyBtn.dx || 0}px, ${U.buyBtn.dy || 0}px)`;
+    /* ORTALAMA transform ile YAPILMAZ: tema.js basma efekti transform'u
+       scale(.96) ile ezince düğme sağa kayıyordu. Ortalama artık left ile. */
+    const _gen = parseFloat(U.buyBtn.width) || 64;
+    buyBtn.style.left = ((100 - _gen) / 2) + "%";
+    buyBtn.style.transform = `translate(${U.buyBtn.dx || 0}px, ${U.buyBtn.dy || 0}px)`;
   }
   const refreshBuyBtn = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
-    const _sv = (typeof window.kahramanSeviyesi === "function") ? window.kahramanSeviyesi(skinId) : 1;
-    buyBtn.textContent = owned ? `Geliştir  ·  Sv${_sv}` : `Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}`;
+    const acik = !!document.getElementById("glsPanel");
+    buyBtn.textContent = owned
+      ? (acik ? "Geri" : "Geliştir")
+      : `Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}`;
   };
   buyBtn.onclick = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
     if (owned) {
       if (typeof window.acGelistirme === "function") window.acGelistirme(skinId);
       else if (typeof showToast === "function") showToast("Geliştirme dosyası yüklenmedi.");
+      refreshBuyBtn();
       return;
     }
     const price = h.price || 0;
@@ -818,6 +831,7 @@ ${modelTxt}`;
     refreshBuyBtn();
   };
   refreshBuyBtn();
+  window.glsBtnTazele = refreshBuyBtn;   /* gelistir.js panel kapanınca çağırır */
 
   const passBtn = ov.querySelector("#hdPassive");
   if (passBtn) passBtn.onclick = () => {
