@@ -223,16 +223,15 @@
 
     const p = document.createElement("div");
     p.id = PANEL_ID;
-    /* Ekranın ALT KENARINA yaslı — ayrı kutu değil, ekranın parçası.
-       Sahipsiz kahramanda altta "Satın Al" durduğu için panel yukarı çekilir. */
+    /* Arka plan YOK — kahraman görseli hiç örtülmez.
+       Panel yalnız düğmeleri taşır, görselin altına oturur. */
     const sahipli = sahip(id);
     p.style.cssText =
-      "position:absolute;left:0;right:0;z-index:8;" +
-      "bottom:" + (sahipli ? "0" : "calc(4% + 58px)") + ";" +
-      "box-sizing:border-box;color:#eaf6ff;" +
-      "background:linear-gradient(180deg,rgba(11,32,53,0),rgba(9,26,44,.90) 14%,rgba(9,26,44,.96));" +
-      "padding:14px 14px 16px;display:flex;flex-direction:column;" +
-      "max-height:58%;";
+      "position:absolute;left:12px;right:12px;z-index:8;" +
+      "bottom:" + (sahipli ? "3%" : "calc(4% + 58px)") + ";" +
+      "box-sizing:border-box;color:#eaf6ff;background:none;border:none;" +
+      "display:flex;flex-direction:column;";
+
     ov.appendChild(p);
 
     ciz(p, id);
@@ -250,7 +249,7 @@
     return `
       <div style="display:flex;justify-content:space-between;align-items:center;
                   gap:8px;padding:7px 0;border-bottom:1px solid rgba(190,240,255,.10);">
-        <div style="font-size:12.5px;color:#cfe6f7;">${ad}</div>
+        <div style="font-size:12.5px;color:#cbe4ff;">${ad}</div>
         <div style="font-size:12.5px;white-space:nowrap;">${sag}</div>
       </div>`;
   }
@@ -301,28 +300,6 @@
       yildiz += `<span style="color:${i < sv ? "#ffd700" : "rgba(255,255,255,.22)"};font-size:16px;">★</span>`;
     }
 
-    const sekmeler = [
-      { k: "stat",    ad: "İstatistik" },
-      { k: "yetenek", ad: "Yetenekler" },
-      { k: "taki",    ad: "Takılar"    }
-    ];
-    let sekmeBar = "";
-    sekmeler.forEach(x => {
-      const se = aktifSekme === x.k;
-      sekmeBar += `
-        <button class="glsSekme" data-k="${x.k}" style="flex:1;padding:8px 4px;border:none;
-                font-family:inherit;font-size:12px;font-weight:800;
-                background:${se ? "rgba(45,201,252,.16)" : "transparent"};
-                color:${se ? "#7fd8ff" : "#8ba3b5"};
-                border-top:2px solid ${se ? "#2DC9FC" : "transparent"};">
-          ${x.ad}
-        </button>`;
-    });
-
-    const icerik = aktifSekme === "stat" ? sekmeStat(id)
-                 : aktifSekme === "taki" ? sekmeTaki()
-                 : sekmeYetenek(id);
-
     /* Parça kutucuğu — görsel gelene kadar renkli kare */
     const parcaKare =
       `<div style="width:30px;height:30px;border-radius:8px;flex:0 0 auto;
@@ -361,28 +338,17 @@
          </button>`;
 
     p.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;flex:0 0 auto;">
+      <div style="display:flex;align-items:flex-end;gap:8px;padding-bottom:8px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:14.5px;font-weight:800;">${h.name}</div>
-          <div style="font-size:11px;color:#9fb6c9;">${r.ad} · Seviye ${sv}</div>
+          <div style="font-size:15px;font-weight:800;
+                      text-shadow:0 1px 2px rgba(0,20,45,.55);">${h.name}</div>
+          <div style="font-size:11.5px;color:#cfe6f7;
+                      text-shadow:0 1px 2px rgba(0,20,45,.55);">${r.ad} · Seviye ${sv}</div>
         </div>
         <div style="letter-spacing:1px;">${yildiz}</div>
       </div>
-
-      <div style="flex:0 0 auto;padding:10px 0 2px;">${alt}</div>
-
-      <div id="glsIcerik" style="flex:1 1 auto;overflow-y:auto;
-                                 -webkit-overflow-scrolling:touch;padding:6px 2px 4px;">
-        ${icerik}
-      </div>
-
-      <div style="display:flex;flex:0 0 auto;margin-top:6px;
-                  border-top:1px solid rgba(190,240,255,.12);">${sekmeBar}</div>
+      ${alt}
     `;
-
-    Array.prototype.forEach.call(p.querySelectorAll(".glsSekme"), b => {
-      b.onclick = e => { e.stopPropagation(); aktifSekme = b.dataset.k; ciz(p, id); };
-    });
 
     const btn = p.querySelector("#glsYukselt");
     if (btn) btn.onclick = e => {
@@ -436,6 +402,28 @@
       const yeter = !sonSeviye && eldeki >= bedel;
       const eksik = Math.max(0, bedel - eldeki);
 
+      const sekmeler = [
+        { k: "stat",    ad: "İstatistik" },
+        { k: "yetenek", ad: "Yetenekler" },
+        { k: "taki",    ad: "Takılar"    }
+      ];
+      let sekmeBar = "";
+      sekmeler.forEach(x => {
+        const se = aktifSekme === x.k;
+        sekmeBar += `
+          <button class="glsSekme" data-k="${x.k}" style="flex:1;padding:8px 4px;border:none;
+                  font-family:inherit;font-size:12px;font-weight:800;
+                  background:${se ? "rgba(255,255,255,.16)" : "transparent"};
+                  color:${se ? "#fff" : "#a8c7e0"};
+                  border-bottom:2px solid ${se ? "#ffd257" : "transparent"};">
+            ${x.ad}
+          </button>`;
+      });
+
+      const icerik = aktifSekme === "stat" ? sekmeStat(id)
+                   : aktifSekme === "taki" ? sekmeTaki()
+                   : sekmeYetenek(id);
+
       kutu.innerHTML = `
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:52px;height:52px;border-radius:12px;flex:0 0 auto;
@@ -443,22 +431,24 @@
                       display:flex;align-items:center;justify-content:center;
                       font-size:25px;">◆</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:15px;font-weight:800;color:#ffd257;">${r.ad}</div>
+            <div style="font-size:15px;font-weight:800;color:#ffd257;">${h.name} · Sv${sv}</div>
             <div style="font-size:12px;color:#cbe4ff;">
-              ${n === "ssr" ? h.name + "'ya özel" : "Tüm mor kahramanlar için"}
+              ${r.ad} · elinde ${eldeki}
+              ${sonSeviye ? "" : ` · gereken ${bedel}`}
             </div>
           </div>
         </div>
 
-        <div style="margin-top:12px;font-size:12.5px;color:#cbe4ff;line-height:1.5;">
-          Elindeki: <b style="color:#fff;">${eldeki}</b><br>
-          ${sonSeviye
-            ? "Bu kahraman en yüksek seviyede."
-            : `Sv${sv + 1} için gereken: <b style="color:#fff;">${bedel}</b>` +
-              (eksik ? `<br><span style="color:#ffb08a;">${eksik} parça eksik.</span>` : "")}
-        </div>
+        <div style="display:flex;margin-top:11px;
+                    border-bottom:1px solid rgba(190,240,255,.18);">${sekmeBar}</div>
 
-        <button id="ppYukselt" style="width:100%;margin-top:13px;padding:11px;border:none;
+        <div style="max-height:34vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+                    padding:4px 2px 6px;">${icerik}</div>
+
+        ${eksik ? `<div style="margin-top:8px;font-size:12px;color:#ffb08a;">
+                     ${eksik} parça eksik.</div>` : ""}
+
+        <button id="ppYukselt" style="width:100%;margin-top:11px;padding:11px;border:none;
                 border-radius:11px;font-weight:800;font-size:15px;font-family:inherit;
                 background:${yeter ? "linear-gradient(180deg,#3fbf6a,#248c48)" : "rgba(255,255,255,.10)"};
                 color:${yeter ? "#fff" : "#9fb6c9"};">
@@ -471,6 +461,10 @@
           Mağazadan parça al
         </button>
       `;
+
+      Array.prototype.forEach.call(kutu.querySelectorAll(".glsSekme"), b => {
+        b.onclick = e => { e.stopPropagation(); aktifSekme = b.dataset.k; ciz2(); };
+      });
 
       const y = kutu.querySelector("#ppYukselt");
       if (y) y.onclick = e => {
@@ -485,7 +479,6 @@
       if (m) m.onclick = e => {
         e.stopPropagation();
         kat.remove();
-        /* Kahraman ekranını da kapat, yoksa mağazanın üstünde kalır */
         const hd = document.getElementById("heroDetailOverlay");
         if (hd) hd.style.display = "none";
         if (typeof openOverlayPanel === "function") openOverlayPanel("shop");
