@@ -170,6 +170,7 @@
 
   /* ── PENCERE ────────────────────────────────────────────────── */
   const KAT_ID = "glsKat";
+  let aktifSekme = "yetenek";      /* "stat" | "yetenek" | "taki" */
 
   function kapat() {
     const k = document.getElementById(KAT_ID);
@@ -182,27 +183,76 @@
       return;
     }
     kapat();
+    aktifSekme = "yetenek";
 
     const kat = document.createElement("div");
     kat.id = KAT_ID;
     kat.style.cssText =
       "position:fixed;inset:0;z-index:460;display:flex;" +
-      "align-items:center;justify-content:center;padding:16px;";
+      "align-items:flex-end;justify-content:center;";
     /* Arka plan KARARMAZ — katman yalnız dışarı dokunmayı yakalar */
     kat.addEventListener("pointerup", e => { if (e.target === kat) kapat(); });
 
     const kutu = document.createElement("div");
     kutu.id = "glsKutu";
     kutu.style.cssText =
-      "width:100%;max-width:330px;box-sizing:border-box;" +
+      "width:100%;max-width:420px;box-sizing:border-box;" +
       "background:linear-gradient(180deg,#123a5c,#0b2035);" +
-      "border:1px solid rgba(190,240,255,.20);border-radius:16px;" +
-      "padding:16px;color:#eaf6ff;" +
-      "box-shadow:0 2px 6px rgba(0,20,45,.3);";
+      "border-top:1px solid rgba(190,240,255,.20);" +
+      "border-radius:18px 18px 0 0;padding:14px 14px 18px;color:#eaf6ff;" +
+      "box-shadow:0 2px 6px rgba(0,20,45,.3);" +
+      "max-height:78vh;display:flex;flex-direction:column;";
     kat.appendChild(kutu);
     document.body.appendChild(kat);
 
     ciz(kutu, id);
+  }
+
+  /* ── SEKME İÇERİKLERİ ───────────────────────────────────────── */
+
+  function satirHTML(ad, simdi, sonra, yuzde) {
+    const im = yuzde ? "%" : "";
+    const sag = (sonra != null)
+      ? `<span style="color:#9fb6c9;">${im}${simdi}</span>
+         <span style="color:#9fb6c9;margin:0 5px;">→</span>
+         <span style="color:#ffd700;font-weight:800;">${im}${sonra}</span>`
+      : `<span style="color:#9fb6c9;">${im}${simdi}</span>`;
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  gap:8px;padding:8px 0;border-bottom:1px solid rgba(190,240,255,.10);">
+        <div style="font-size:12.5px;color:#cfe6f7;">${ad}</div>
+        <div style="font-size:12.5px;white-space:nowrap;">${sag}</div>
+      </div>`;
+  }
+
+  function sekmeYetenek(id) {
+    const k = yetenekKiyas(id);
+    if (!k.length) return `<div style="padding:18px 0;text-align:center;color:#9fb6c9;font-size:13px;">Yetenek yok.</div>`;
+    let out = "";
+    k.forEach(x => { if (x.simdi != null) out += satirHTML(x.ad + (x.ek || ""), x.simdi, x.sonra, true); });
+    return out;
+  }
+
+  function sekmeStat(id) {
+    /* Kahraman statı şu an OYUNCUYA ait (state.hero), kahramana özel değil.
+       "Seviye kadar +stat" sistemi bağlanınca artış sütunu kendiliğinden dolar. */
+    const s = S() || {};
+    const h = s.hero || {};
+    let out = "";
+    out += satirHTML("Kahraman Saldırı",  Math.round(h.attack  || 0), null, false);
+    out += satirHTML("Kahraman Savunma",  Math.round(h.defense || 0), null, false);
+    out += satirHTML("Kahraman Can",      Math.round(h.maxHp   || 0), null, false);
+    out += `<div style="padding:12px 2px 0;font-size:11.5px;color:#7f96a8;line-height:1.5;">
+              Seviyeye bağlı stat artışı henüz bağlanmadı — bağlandığında
+              artış bu satırlarda görünür.
+            </div>`;
+    return out;
+  }
+
+  function sekmeTaki() {
+    return `<div style="padding:26px 0;text-align:center;color:#7f96a8;font-size:13px;">
+              Takı sistemi yakında.
+            </div>`;
   }
 
   /* İçerik YERİNDE tazelenir → kaydırma konumu korunur */
@@ -214,74 +264,96 @@
     const sonSeviye = sv >= MAX_SV;
     const bedel = maliyet(id);
     const eldeki = parcaSayisi(id);
-    const yeter = eldeki >= bedel;
+    const yeter = !sonSeviye && eldeki >= bedel;
+    const oran = (sonSeviye || !bedel) ? 100 : Math.min(100, Math.round(eldeki / bedel * 100));
 
     /* Yıldız şeridi — seviyeyi gösterir */
     let yildiz = "";
     for (let i = 0; i < MAX_SV; i++) {
-      yildiz += `<span style="color:${i < sv ? "#ffd700" : "rgba(255,255,255,.22)"};font-size:19px;">★</span>`;
+      yildiz += `<span style="color:${i < sv ? "#ffd700" : "rgba(255,255,255,.22)"};font-size:18px;">★</span>`;
     }
 
-    /* Yetenek listesi */
-    const kiyas = yetenekKiyas(id);
-    let yet = "";
-    kiyas.forEach(k => {
-      if (k.simdi == null) return;
-      const sag = (k.sonra != null)
-        ? `<span style="color:#9fb6c9;">%${k.simdi}</span>
-           <span style="color:#9fb6c9;margin:0 4px;">→</span>
-           <span style="color:#ffd700;font-weight:800;">%${k.sonra}</span>`
-        : `<span style="color:#9fb6c9;">%${k.simdi}${k.ek}</span>`;
-      yet += `
-        <div style="display:flex;justify-content:space-between;align-items:center;
-                    gap:8px;padding:7px 0;border-top:1px solid rgba(190,240,255,.10);">
-          <div style="font-size:12.5px;color:#cfe6f7;">${k.ad}</div>
-          <div style="font-size:12.5px;white-space:nowrap;">${sag}</div>
-        </div>`;
+    const sekmeler = [
+      { k: "stat",    ad: "İstatistik" },
+      { k: "yetenek", ad: "Yetenekler" },
+      { k: "taki",    ad: "Takılar"    }
+    ];
+    let sekmeBar = "";
+    sekmeler.forEach(x => {
+      const se = aktifSekme === x.k;
+      sekmeBar += `
+        <button class="glsSekme" data-k="${x.k}" style="flex:1;padding:9px 4px;border:none;
+                font-family:inherit;font-size:12.5px;font-weight:800;
+                background:${se ? "rgba(45,201,252,.16)" : "transparent"};
+                color:${se ? "#7fd8ff" : "#8ba3b5"};
+                border-bottom:2px solid ${se ? "#2DC9FC" : "transparent"};">
+          ${x.ad}
+        </button>`;
     });
+
+    const icerik = aktifSekme === "stat" ? sekmeStat(id)
+                 : aktifSekme === "taki" ? sekmeTaki()
+                 : sekmeYetenek(id);
 
     /* Parça kutucuğu — görsel gelene kadar renkli kare */
     const parcaKare =
-      `<div style="width:38px;height:38px;border-radius:9px;flex:0 0 auto;
+      `<div style="width:34px;height:34px;border-radius:9px;flex:0 0 auto;
                    background:linear-gradient(180deg,${r.ana},${r.koyu});
                    display:flex;align-items:center;justify-content:center;
-                   font-size:19px;">◆</div>`;
+                   font-size:17px;">◆</div>`;
 
-    let dugme;
+    let alt;
     if (sonSeviye) {
-      dugme = `<div style="text-align:center;padding:11px;border-radius:11px;
-                    background:rgba(255,255,255,.06);color:#9fb6c9;font-weight:800;
-                    font-size:14px;">En yüksek seviye</div>`;
+      alt = `<div style="text-align:center;padding:12px;border-radius:11px;
+                  background:rgba(255,255,255,.06);color:#9fb6c9;font-weight:800;
+                  font-size:14px;">En yüksek seviye</div>`;
     } else {
-      dugme = `
+      alt = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          ${parcaKare}
+          <div style="flex:1;min-width:0;height:22px;border-radius:11px;
+                      background:rgba(0,20,45,.45);position:relative;overflow:hidden;">
+            <div style="position:absolute;inset:0 auto 0 0;width:${oran}%;
+                        background:linear-gradient(90deg,${r.koyu},${r.ana});"></div>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;
+                        justify-content:center;font-size:12px;font-weight:800;
+                        color:#fff;text-shadow:0 1px 2px rgba(0,20,45,.55);">
+              ${eldeki} / ${bedel}
+            </div>
+          </div>
+        </div>
         <button id="glsYukselt" style="width:100%;padding:12px;border:none;border-radius:11px;
                 font-weight:800;font-size:15px;font-family:inherit;
                 background:${yeter ? "linear-gradient(180deg,#3fbf6a,#248c48)" : "rgba(255,255,255,.08)"};
                 color:${yeter ? "#fff" : "#8ba3b5"};
                 box-shadow:${yeter ? "0 2px 6px rgba(0,20,45,.3)" : "none"};">
           Sv${sv + 1}'e Yükselt
-        </button>
-        <div style="text-align:center;margin-top:7px;font-size:12px;
-                    color:${yeter ? "#9fb6c9" : "#e8735a"};">
-          ${bedel} parça gerekli · elinde ${eldeki}
-        </div>`;
+        </button>`;
     }
 
     kutu.innerHTML = `
-      <div style="display:flex;align-items:center;gap:11px;margin-bottom:4px;">
-        ${parcaKare}
+      <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:16px;font-weight:800;">${h.name}</div>
           <div style="font-size:11.5px;color:#9fb6c9;">${r.ad} · Seviye ${sv}</div>
         </div>
+        <div style="letter-spacing:1px;">${yildiz}</div>
       </div>
 
-      <div style="text-align:center;margin:8px 0 4px;letter-spacing:2px;">${yildiz}</div>
+      <div style="display:flex;margin-top:11px;flex:0 0 auto;
+                  border-bottom:1px solid rgba(190,240,255,.12);">${sekmeBar}</div>
 
-      <div style="margin-top:6px;">${yet}</div>
+      <div id="glsIcerik" style="flex:1 1 auto;overflow-y:auto;
+                                 -webkit-overflow-scrolling:touch;padding:4px 2px 10px;">
+        ${icerik}
+      </div>
 
-      <div style="margin-top:13px;">${dugme}</div>
+      <div style="flex:0 0 auto;padding-top:10px;">${alt}</div>
     `;
+
+    Array.prototype.forEach.call(kutu.querySelectorAll(".glsSekme"), b => {
+      b.onclick = () => { aktifSekme = b.dataset.k; ciz(kutu, id); };
+    });
 
     const btn = kutu.querySelector("#glsYukselt");
     if (btn) btn.onclick = () => {
