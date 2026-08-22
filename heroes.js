@@ -41,9 +41,9 @@ const HERO_UI = {
     radius: "12px",     /* Köşe yuvarlaklığı (0 = keskin köşe)                 */
     border: "1px solid rgba(255,255,255,.35)",  /* Kenarlık                    */
     bg:     "rgba(0,0,0,.35)",                  /* Kutu arkaplan rengi         */
-    box1: { dx: 0, dy: 0 },   /* 1. kutunun ek kaydırması (🎛 editörden)      */
-    box2: { dx: 0, dy: 0 },   /* 2. kutunun ek kaydırması                      */
-    box3: { dx: 0, dy: 0 }    /* 3. kutunun ek kaydırması                      */
+    box1: { dx: -5, dy: -65 },  /* 1. kutunun ek kaydırması (🎛 editörden)    */
+    box2: { dx:  5, dy: -95 },  /* 2. kutunun ek kaydırması                    */
+    box3: { dx: -5, dy:  40 }   /* 3. kutunun ek kaydırması                    */
   },
 
   /* ── SATIN AL / GELİŞTİR BUTONU ──

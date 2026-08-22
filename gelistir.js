@@ -300,40 +300,24 @@
       : `<div style="display:flex;align-items:center;justify-content:center;gap:8px;">
            <button id="glsArti" style="flex:0 0 auto;width:30px;height:30px;padding:0;
                    border:none;border-radius:9px;font-family:${YAZI};font-size:16px;
-                   font-weight:800;line-height:1;text-align:center;color:${TEMA.yazi};
+                   font-weight:800;line-height:1;text-align:center;color:#20140a;
                    display:flex;align-items:center;justify-content:center;
-                   background:linear-gradient(180deg,${TEMA.ust},${TEMA.orta});
+                   background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});
                    box-shadow:0 2px 6px rgba(0,20,45,.3);">↑</button>
            <button id="glsYukselt" style="flex:0 0 auto;padding:7px 16px;border:none;
                    border-radius:9px;font-weight:800;font-size:13px;font-family:${YAZI};
                    text-shadow:${TEMA.golge};
-                   background:${yeter
-                     ? `linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu})`
-                     : `linear-gradient(180deg,${TEMA.ust},${TEMA.alt})`};
-                   color:${yeter ? "#20140a" : TEMA.solgun};
+                   background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});
+                   color:#20140a;opacity:${yeter ? 1 : .55};
                    box-shadow:0 2px 6px rgba(0,20,45,.3);">
              Sv${sv + 1}'e Yükselt
            </button>
          </div>`;
 
-    /* Yıldızların hemen sağında: bir sonraki seviye için KALAN parça.
-       Sv5'te hiç yazmaz. */
-    const kalan = sonSeviye ? 0 : Math.max(0, bedel - eldeki);
-    const kalanHTML = kalan
-      ? `<span style="display:inline-flex;align-items:center;gap:3px;
-                 margin-left:8px;padding:2px 7px;border-radius:8px;
-                 background:rgba(11,28,58,.55);font-family:${YAZI};
-                 font-size:12.5px;font-weight:800;color:${TEMA.sari};
-                 font-variant-numeric:tabular-nums;text-shadow:${TEMA.golge};">
-           <img src="${parcaGorseli(id)}" alt="" style="width:14px;height:14px;
-                object-fit:contain;" onerror="this.style.display='none'">${kalan}
-         </span>`
-      : "";
-
     p.innerHTML = `
       <div style="display:flex;justify-content:center;align-items:center;
                   padding-bottom:6px;">
-        <span style="letter-spacing:3px;">${yildiz}</span>${kalanHTML}
+        <span style="letter-spacing:3px;">${yildiz}</span>
       </div>
       ${alt}
     `;
@@ -384,7 +368,11 @@
   background:linear-gradient(180deg,${TEMA.ust} 0%,${TEMA.orta} 55%,${TEMA.alt} 100%);
   box-shadow:0 2px 6px rgba(0,20,45,.3); }
 .glsk-satir{ display:flex; align-items:center; gap:5px; }
-.glsk-ikon{ width:30px; height:30px; margin:0 auto 7px; border-radius:8px;
+.glsk-ust{ display:flex; align-items:center; justify-content:center;
+  gap:7px; margin-bottom:7px; }
+.glsk-sayac{ font-size:13px; font-weight:800; color:${TEMA.sari};
+  font-variant-numeric:tabular-nums; text-shadow:${TEMA.golge}; }
+.glsk-ikon{ flex:0 0 30px; width:30px; height:30px; border-radius:8px;
   position:relative; overflow:hidden; border:none; }
 .glsk-ikon img{ position:absolute; inset:0; width:100%; height:100%; }
 .glsk-dg{ flex:0 0 auto; height:28px; min-width:28px; padding:0 7px;
@@ -427,6 +415,9 @@
     /* Çantada paket yoksa pencere açılmaz, doğrudan mağaza açılır. */
     if (enFazla <= 0) { magazaAc(); return; }
 
+    const bedel  = maliyet(id);
+    const eldeki = parcaSayisi(id);
+
     stilKur();
     const eski = document.getElementById(PK_ID);
     if (eski) eski.remove();
@@ -438,11 +429,14 @@
     kat.className = "glsk-kat";
     kat.innerHTML =
       '<div class="glsk-kutu">' +
-        '<div class="glsk-ikon">' +
-          '<img src="' + RENK[nadirlik(id)].arka + '" alt="" style="object-fit:cover" ' +
-               'onerror="this.style.display=\'none\'">' +
-          '<img src="' + parcaGorseli(id) + '" alt="" style="object-fit:contain" ' +
-               'onerror="this.style.display=\'none\'">' +
+        '<div class="glsk-ust">' +
+          '<div class="glsk-ikon">' +
+            '<img src="' + RENK[nadirlik(id)].arka + '" alt="" style="object-fit:cover" ' +
+                 'onerror="this.style.display=\'none\'">' +
+            '<img src="' + parcaGorseli(id) + '" alt="" style="object-fit:contain" ' +
+                 'onerror="this.style.display=\'none\'">' +
+          '</div>' +
+          '<div class="glsk-sayac">' + bedel + ' / ' + eldeki + '</div>' +
         '</div>' +
         '<div class="glsk-satir">' +
           '<button class="glsk-dg" type="button" data-d="-1">−</button>' +
