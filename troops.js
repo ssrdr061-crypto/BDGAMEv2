@@ -85,7 +85,7 @@ const KADEME_GORSEL = {
   knight6:  "devrobot.webp",             /* Dev Robot          */
 
   /* Koruyucu */
-  soldier1: "okcu.webp",                 /* Okçu               */
+  soldier1: "mizrakci.webp",             /* Mızrakçı           */
   soldier2: "savasfili.webp",            /* Savaş Fili         */
   soldier3: "topcu.webp",                /* Topçu              */
   soldier4: "tank.webp",                 /* Tank               */
@@ -93,8 +93,8 @@ const KADEME_GORSEL = {
   soldier6: "supertank.webp",            /* Süper Tank         */
 
   /* Nişancı */
-  robot1:   "savasarabasi.webp",         /* Savaş Arabası      */
-  robot2:   "arbaletci.webp",            /* Arbaletçi          */
+  robot1:   "okcu.webp",                 /* Okçu               */
+  robot2:   "savasarabasi.webp",         /* Savaş Arabası      */
   robot3:   "tufekci.webp",              /* Tüfekçi            */
   robot4:   "havanbirligi.webp",         /* Havan Birliği      */
   robot5:   "savasucagi.webp",           /* Savaş Uçağı        */
@@ -118,8 +118,8 @@ const KADEME_GORSEL = {
     ───────────────────────────────────────────── */
 const KADEME_ADI = {
   knight:  ["Şövalye", "Süvari",      "Yeniçeri", "Asker",           "Robot",        "Dev Robot"],
-  soldier: ["Okçu",          "Savaş Fili", "Topçu", "Tank",          "Saldırı Helikopteri", "Süper Tank"],
-  robot:   ["Savaş Arabası", "Arbaletçi",  "Tüfekçi",  "Havan Birliği",  "Savaş Uçağı",  "Füze Sistemi"],
+  soldier: ["Mızrakçı",      "Savaş Fili", "Topçu", "Tank",          "Saldırı Helikopteri", "Süper Tank"],
+  robot:   ["Okçu",          "Savaş Arabası",  "Tüfekçi",  "Havan Birliği",  "Savaş Uçağı",  "Füze Sistemi"],
 };
 
 /* Sv1 adlarını da bu tablodan al (iki yerde ad tutulmasın) */
