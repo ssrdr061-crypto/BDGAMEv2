@@ -1284,6 +1284,54 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     window.kahramanStatUygula(D.units, defSkins, defender.commanderLevels || null);
   }
 
+  /* ── STAT ÖZETİ (savaş raporu için) ───────────────────────────
+     Bütün bonuslar (buff + kahraman) uygulandıktan SONRA, tur
+     döngüsü BAŞLAMADAN alınır — savaş içinde stat değişiyor. */
+  function _orduStat(units, hero) {
+    let atk = 0, def = 0, hp = 0, olumPay = 0, agirlik = 0;
+    (units || []).forEach(u => {
+      const n = Math.max(0, u.count || 0);
+      atk += (u.atk || 0) * n;
+      def += (u.def || 0) * n;
+      hp  += (u.hp  || 0) * n;
+      olumPay += (u.olum || 0) * (u.atk || 0) * n;
+      agirlik += (u.atk || 0) * n;
+    });
+    return {
+      atk: Math.round(atk), def: Math.round(def), hp: Math.round(hp),
+      olum: agirlik > 0 ? Math.round(olumPay / agirlik * 100) / 100 : 0,
+      heroAtk: Math.round((hero && hero.attack)  || 0),
+      heroDef: Math.round((hero && hero.defense) || 0),
+      heroHp:  Math.round((hero && hero.maxHp)   || 0)
+    };
+  }
+  function _bonusSatir(skins, seviyeler) {
+    if (typeof window.kahramanStatSatirlari !== "function") return [];
+    const topla = {};
+    (skins || []).filter(Boolean).forEach(id => {
+      const sv = (seviyeler && seviyeler[id] != null) ? seviyeler[id] : null;
+      window.kahramanStatSatirlari(id, sv).forEach(x => {
+        topla[x.ad] = (topla[x.ad] || 0) + x.yuzde;
+      });
+    });
+    return Object.keys(topla).map(ad => ({ ad: ad, yuzde: topla[ad] }));
+  }
+  const _atkSkins = atkSkins.length ? atkSkins : [state.selectedHeroSkin];
+  const _kendiSv  = (state.heroLevels && typeof state.heroLevels === "object") ? state.heroLevels : {};
+  const _statOzet = {
+    attacker: Object.assign(_orduStat(A.units, A.hero), {
+      bonus: _bonusSatir(_atkSkins, _kendiSv),
+      seviyeler: _atkSkins.reduce((o, id) => { o[id] = Math.floor(_kendiSv[id] || 1); return o; }, {})
+    }),
+    defender: Object.assign(_orduStat(D.units, D.hero), {
+      bonus: _bonusSatir(defSkins, defender.commanderLevels),
+      seviyeler: defSkins.reduce((o, id) => {
+        const m = defender.commanderLevels || {};
+        o[id] = Math.floor(m[id] || 1); return o;
+      }, {})
+    })
+  };
+
   /* ── Karşı tarafı zayıflatan yetenekler ── */
   function weaken(src, tgt) {
     const fl = src.flow;
@@ -1515,6 +1563,7 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
       defenderAbilities: (D.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })).concat(magazaD)
     },
     win, turns: turn,
+    statlar: _statOzet,
     attacker: {
       killed: A.killed, wounded: A.wounded,
       remaining: armyTroopCount(A),
@@ -1696,6 +1745,7 @@ async function runPvpBattle() {
     enemyPlainName: enemy.name,
     myCommanders: myCommanders,
     enemyCommanders: enemyCommanders,
+    statlar: R.statlar || null,
     myLosses: { killed: myKilled, wounded: myWounded },
     myAttribution: R.attackerAttribution || null,
     enemyAttribution: R.defenderAttribution || null,
@@ -1848,6 +1898,7 @@ function sendRaidReport(enemy, R, delta) {
     atkAttrib:     R.attackerAttribution || null,
     defAttrib:     R.defenderAttribution || null,
     heroFx:        R.heroFx || null,
+    statlar:       R.statlar || null,
   }) || {};
 
   try {
@@ -1994,6 +2045,7 @@ function startRaidInbox() {
       enemyAttribution: r.atkAttrib || null,
       myAttribution:    r.defAttrib || null,
       heroFx:           r.heroFx || null,
+      statlar:          r.statlar || null,
     });
     if (typeof gunlugüKirp === "function") gunlugüKirp();
   else if (state.battleLogHistory.length > 70) state.battleLogHistory.length = 70;

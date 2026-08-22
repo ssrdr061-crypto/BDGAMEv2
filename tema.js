@@ -758,15 +758,80 @@ function heroIdOf(name) {
   return Object.keys(HERO_STATS).find(k => HERO_STATS[k] && HERO_STATS[k].name === name) || "";
 }
 
-function heroChip(name) {
+function heroChip(name, sv) {
   const img = heroImgOf(name);
   const id = heroIdOf(name);
   const inner = img ? `<img src="${img}" alt="">` : `<span class="rep-hemoji">🦸</span>`;
+  /* Arka plan kahraman kartındakiyle aynı görsel (heroes.js) */
+  let arka = "";
+  try {
+    if (typeof heroArkaPlan === "function" && id) {
+      arka = `background-image:url('${heroArkaPlan(id)}');background-size:cover;background-position:center;`;
+    }
+  } catch (e) {}
+  /* Yıldızlar: dolu = kahramanın seviyesi. Seviye gelmezse çizilmez. */
+  let yildiz = "";
+  const n = Math.max(0, Math.min(5, Math.floor(sv || 0)));
+  if (n > 0) {
+    let s = "";
+    for (let i = 0; i < 5; i++) s += `<span class="${i < n ? "rp-y-dolu" : "rp-y-bos"}">★</span>`;
+    yildiz = `<div class="rep-hstars">${s}</div>`;
+  }
   /* Ölçüler her kahraman için AYRI CSS değişkeninde — ?ayar=1 ile ayarlanır */
   return `<div class="rep-hchip">
-    <div class="rep-hpor" data-h="${id}">${inner}</div>
+    <div class="rep-hpor" data-h="${id}" style="${arka}">${inner}</div>
+    ${yildiz}
     <div class="rep-hname">${name}</div>
   </div>`;
+}
+
+/* Bir kahraman ADI için seviye — rapor içindeki seviyeler haritasından */
+function heroSvOf(name, harita) {
+  if (!harita) return 0;
+  const id = heroIdOf(name);
+  return id && harita[id] != null ? harita[id] : 0;
+}
+
+/* ── KARŞILIKLI STATLAR (rapor sayfa 1 üstü) ──────────────────
+   Birlik toplamları savaş başındaki değerlerdir: buff ve kahraman
+   bonusları uygulandıktan SONRA, tur döngüsünden ÖNCE alınır. */
+function statKarsiHTML(r) {
+  const s = r && r.statlar;
+  if (!s || !s.attacker || !s.defender) return "";
+  const f = (n) => (typeof fmt === "function") ? fmt(n) : String(n);
+  const A = s.attacker, D = s.defender;
+
+  const satir = (ad, a, d, ham) => {
+    const av = ham ? a : f(a), dv = ham ? d : f(d);
+    const ai = (a > d) ? "rp-st-ust" : (a < d ? "rp-st-alt" : "");
+    const di = (d > a) ? "rp-st-ust" : (d < a ? "rp-st-alt" : "");
+    return `<div class="rp-st-row">
+      <span class="rp-st-v ${ai}">${av}</span>
+      <span class="rp-st-k">${ad}</span>
+      <span class="rp-st-v ${di}">${dv}</span>
+    </div>`;
+  };
+
+  let out = `<div class="rp-st-box">` +
+    satir("SALDIRI",      A.atk,  D.atk) +
+    satir("SAVUNMA",      A.def,  D.def) +
+    satir("SAĞLIK",       A.hp,   D.hp) +
+    satir("ÖLDÜRÜCÜLÜK",  A.olum, D.olum, true);
+
+  /* Kahraman bonusları — kalem kalem, iki taraf yan yana */
+  const adlar = {};
+  (A.bonus || []).forEach(x => adlar[x.ad] = true);
+  (D.bonus || []).forEach(x => adlar[x.ad] = true);
+  const liste = Object.keys(adlar);
+  if (liste.length) {
+    out += `<div class="rp-st-ara">KAHRAMAN BONUSLARI</div>`;
+    liste.forEach(ad => {
+      const av = (A.bonus || []).reduce((v, x) => x.ad === ad ? x.yuzde : v, 0);
+      const dv = (D.bonus || []).reduce((v, x) => x.ad === ad ? x.yuzde : v, 0);
+      out += satir(ad, av ? "+%" + av : "—", dv ? "+%" + dv : "—", true);
+    });
+  }
+  return out + `</div>`;
 }
 
 /* savaşa sürülen birlikler — eğitim panelindeki kafa kutucuğu biçimi.
@@ -1129,6 +1194,8 @@ function openReportModal(r) {
           ${win?'🏆 SALDIRAN KAZANDI':'🛡️ SAVUNAN KAZANDI'}
         </div>
 
+        ${statKarsiHTML(r)}
+
         <div class="rp-vs">
           <div class="rp-vs-side">
             <div class="rp-castle">🏰</div>
@@ -1146,10 +1213,10 @@ function openReportModal(r) {
         ${(r.attackerCommanders&&r.attackerCommanders.length)||(r.defenderCommanders&&r.defenderCommanders.length)?`
         <div class="rp-cols rp-cols-hero">
           <div class="rp-col">
-            <div class="rp-chips">${(r.attackerCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
+            <div class="rp-chips">${(r.attackerCommanders||[]).map(n=>heroChip(n,heroSvOf(n,(r.statlar&&r.statlar.attacker||{}).seviyeler))).join("")||'<span class="rp-dash">—</span>'}</div>
           </div>
           <div class="rp-col">
-            <div class="rp-chips">${(r.defenderCommanders||[]).map(heroChip).join("")||'<span class="rp-dash">—</span>'}</div>
+            <div class="rp-chips">${(r.defenderCommanders||[]).map(n=>heroChip(n,heroSvOf(n,(r.statlar&&r.statlar.defender||{}).seviyeler))).join("")||'<span class="rp-dash">—</span>'}</div>
           </div>
         </div>`:''}
 
@@ -1229,6 +1296,8 @@ function entryToReport(entry) {
       attackerAttribution: entry.myAttribution||null,
       defenderAttribution: entry.enemyAttribution||null,
       heroFx: entry.heroFx||null,
+      statlar: entry.statlar||null,
+      rolTers: false,
     };
   }
   /* SAVUNAN gözünden: "saldıran" karşı taraftır */
@@ -1245,6 +1314,8 @@ function entryToReport(entry) {
     attackerAttribution: entry.enemyAttribution||null,
     defenderAttribution: entry.myAttribution||null,
     heroFx: entry.heroFx||null,
+    statlar: entry.statlar||null,
+    rolTers: false,
   };
 }
 
@@ -2184,14 +2255,55 @@ if (document.readyState === "loading") {
 
 /* kahraman kutuları kağıda otursun (sadece bu pencerede) */
 .rp-box .rep-hpor{
-  background:linear-gradient(180deg, color-mix(in srgb, var(--rp-kagit-alt) 70%, #6b4a22), #4a3418) !important;
+  /* DİKKAT: background kısayolunu YAZMA — kahramanın arka plan
+     görseli satır içi stille geliyor, kısayol onu da siler. */
+  background-color:#4a3418 !important;
+  background-image:linear-gradient(180deg, color-mix(in srgb, var(--rp-kagit-alt) 70%, #6b4a22), #4a3418);
   border-color:color-mix(in srgb, var(--rp-murekkep) 55%, transparent) !important;
   box-shadow:0 2px 4px rgba(70,44,14,.35);
 }
 
 /* ── kahraman isimleri kaldırıldı ── */
 .rep-hname{ display:none !important; }
-.rep-hchip{ width:auto !important; gap:0 !important; }
+/* Kutucuk YAN YANA: portre + yıldızlar. Savunan tarafta ters çevrilir,
+   böylece yıldızlar iki tarafta da içe bakar. */
+.rep-hchip{
+  width:auto !important; gap:6px !important;
+  flex-direction:row !important; align-items:center !important;
+}
+.rp-cols-hero .rp-col:last-child .rep-hchip{ flex-direction:row-reverse !important; }
+.rep-hstars{ display:flex; gap:1px; line-height:1; }
+.rep-hstars span{ font-size:11px; filter:none; }
+.rp-y-dolu{ color:#e0a41f; }
+.rp-y-bos{ color:color-mix(in srgb, var(--rp-murekkep) 30%, transparent); }
+
+/* ── KARŞILIKLI STATLAR ── */
+.rp-st-box{
+  margin:0 0 10px; padding:7px 9px; border-radius:10px;
+  background:color-mix(in srgb, var(--rp-kagit-alt) 78%, #6b4a22);
+  font-family:'Baloo 2','Nunito',sans-serif;
+}
+.rp-st-row{
+  display:flex; align-items:center; gap:6px;
+  padding:3px 0; font-size:11.5px;
+}
+.rp-st-row + .rp-st-row{ border-top:1px solid color-mix(in srgb, var(--rp-murekkep) 18%, transparent); }
+.rp-st-k{
+  flex:1 1 auto; text-align:center; font-size:9.5px; font-weight:800;
+  letter-spacing:.4px; color:color-mix(in srgb, var(--rp-murekkep) 72%, transparent);
+}
+.rp-st-v{
+  flex:0 0 33%; font-weight:800; font-variant-numeric:tabular-nums;
+  color:var(--rp-murekkep);
+}
+.rp-st-row .rp-st-v:first-child{ text-align:left; }
+.rp-st-row .rp-st-v:last-child{ text-align:right; }
+.rp-st-ust{ color:#1f7a34; }
+.rp-st-alt{ color:#a33; }
+.rp-st-ara{
+  margin:6px 0 2px; text-align:center; font-size:9.5px; font-weight:800;
+  letter-spacing:.6px; color:color-mix(in srgb, var(--rp-murekkep) 60%, transparent);
+}
 
 /* ── KAHRAMANLAR: alt alta ── */
 .rp-cols-hero{ display:flex; gap:12px; }
