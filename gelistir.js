@@ -288,23 +288,24 @@
     let yildiz = "";
     for (let i = 0; i < MAX_SV; i++) {
       yildiz += `<span style="color:${i < sv ? "#ffd257" : "rgba(255,255,255,.30)"};
-                   font-size:19px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
+                   font-size:27px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
     }
 
     const alt = sonSeviye
-      ? `<div style="text-align:center;padding:10px;border-radius:11px;
+      ? `<div style="text-align:center;padding:7px 16px;border-radius:9px;
+              width:max-content;margin:0 auto;
               background:linear-gradient(180deg,${TEMA.ust},${TEMA.alt});
-              color:${TEMA.yazi};font-weight:800;font-size:13.5px;
+              color:${TEMA.yazi};font-weight:800;font-size:13px;
               font-family:${YAZI};text-shadow:${TEMA.golge};">En yüksek seviye</div>`
-      : `<div style="display:flex;align-items:center;gap:9px;">
-           <button id="glsArti" style="flex:0 0 auto;width:38px;height:38px;padding:0;
-                   border:none;border-radius:11px;font-family:${YAZI};font-size:21px;
+      : `<div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+           <button id="glsArti" style="flex:0 0 auto;width:30px;height:30px;padding:0;
+                   border:none;border-radius:9px;font-family:${YAZI};font-size:16px;
                    font-weight:800;line-height:1;text-align:center;color:${TEMA.yazi};
                    display:flex;align-items:center;justify-content:center;
                    background:linear-gradient(180deg,${TEMA.ust},${TEMA.orta});
-                   box-shadow:0 2px 6px rgba(0,20,45,.3);">+</button>
-           <button id="glsYukselt" style="flex:1;min-width:0;padding:11px;border:none;
-                   border-radius:12px;font-weight:800;font-size:15px;font-family:${YAZI};
+                   box-shadow:0 2px 6px rgba(0,20,45,.3);">↑</button>
+           <button id="glsYukselt" style="flex:0 0 auto;padding:7px 16px;border:none;
+                   border-radius:9px;font-weight:800;font-size:13px;font-family:${YAZI};
                    text-shadow:${TEMA.golge};
                    background:${yeter
                      ? `linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu})`
@@ -319,7 +320,7 @@
        kaldırıldı — ekranın tepesinde kahraman adı zaten yazıyor. */
     p.innerHTML = `
       <div style="display:flex;justify-content:center;align-items:center;
-                  padding-bottom:8px;letter-spacing:2px;">${yildiz}</div>
+                  padding-bottom:6px;letter-spacing:3px;">${yildiz}</div>
       ${alt}
     `;
 
@@ -361,46 +362,42 @@
     st.id = "glsKullanStil";
     st.textContent = `
 .glsk-kat{ position:fixed; inset:0; z-index:9100; display:flex;
-  align-items:center; justify-content:center; padding:18px;
+  align-items:flex-end; justify-content:center; padding:0 14px;
   background:transparent; }
-.glsk-kutu{ width:min(330px,90vw); box-sizing:border-box; padding:15px;
-  border:none; border-radius:16px; color:${TEMA.yazi};
+.glsk-kutu{ width:max-content; max-width:82vw; box-sizing:border-box; padding:9px 10px;
+  border:none; border-radius:12px; color:${TEMA.yazi};
   font-family:${YAZI}; font-weight:700;
   background:linear-gradient(180deg,${TEMA.ust} 0%,${TEMA.orta} 55%,${TEMA.alt} 100%);
   box-shadow:0 2px 6px rgba(0,20,45,.3); }
-.glsk-ust{ display:flex; align-items:center; gap:11px; margin-bottom:14px; }
-.glsk-ikon{ flex:0 0 52px; width:52px; height:52px; border-radius:12px;
+.glsk-satir{ display:flex; align-items:center; gap:5px; }
+.glsk-ikon{ flex:0 0 30px; width:30px; height:30px; border-radius:8px;
   position:relative; overflow:hidden; border:none; }
 .glsk-ikon img{ position:absolute; inset:0; width:100%; height:100%; }
-.glsk-sayac{ flex:1; min-width:0; text-align:right; font-size:17px;
-  font-weight:800; color:${TEMA.sari}; text-shadow:${TEMA.golge};
-  font-variant-numeric:tabular-nums; }
-.glsk-satir{ display:flex; align-items:center; gap:7px; }
-.glsk-dg{ flex:0 0 auto; height:34px; min-width:34px; padding:0 9px;
-  border:none; border-radius:10px; font-family:${YAZI};
-  font-weight:800; font-size:15px; line-height:34px; color:${TEMA.yazi};
+.glsk-dg{ flex:0 0 auto; height:28px; min-width:28px; padding:0 7px;
+  border:none; border-radius:8px; font-family:${YAZI};
+  font-weight:800; font-size:14px; line-height:28px; color:${TEMA.yazi};
   background:rgba(255,255,255,.10); box-shadow:none;
   transition:transform .09s ease, filter .09s ease; }
-.glsk-max{ font-size:12px; color:${TEMA.sari}; }
-.glsk-sayi{ flex:0 0 auto; min-width:38px; height:34px; line-height:34px;
-  text-align:center; border-radius:10px; font-size:14px; font-weight:800;
-  background:rgba(11,28,58,.55); }
-.glsk-surgu{ flex:1; min-width:0; height:34px; margin:0; padding:0;
+.glsk-max{ font-size:11px; color:${TEMA.sari}; }
+.glsk-sayi{ flex:0 0 auto; min-width:32px; height:28px; line-height:28px;
+  text-align:center; border-radius:8px; font-size:13px; font-weight:800;
+  background:rgba(11,28,58,.55); font-variant-numeric:tabular-nums; }
+.glsk-surgu{ flex:1 1 96px; min-width:70px; height:28px; margin:0; padding:0;
   -webkit-appearance:none; appearance:none; background:transparent; }
-.glsk-surgu::-webkit-slider-runnable-track{ height:6px; border-radius:3px;
+.glsk-surgu::-webkit-slider-runnable-track{ height:5px; border-radius:3px;
   background:linear-gradient(90deg,${TEMA.sari} 0 var(--dolu,0%),
     rgba(11,28,58,.55) var(--dolu,0%) 100%); }
-.glsk-surgu::-moz-range-track{ height:6px; border-radius:3px;
+.glsk-surgu::-moz-range-track{ height:5px; border-radius:3px;
   background:linear-gradient(90deg,${TEMA.sari} 0 var(--dolu,0%),
     rgba(11,28,58,.55) var(--dolu,0%) 100%); }
 .glsk-surgu::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none;
-  width:18px; height:18px; margin-top:-6px; border:none; border-radius:50%;
+  width:15px; height:15px; margin-top:-5px; border:none; border-radius:50%;
   background:#eaf4ff; box-shadow:0 2px 6px rgba(0,20,45,.3); }
-.glsk-surgu::-moz-range-thumb{ width:18px; height:18px; border:none;
+.glsk-surgu::-moz-range-thumb{ width:15px; height:15px; border:none;
   border-radius:50%; background:#eaf4ff; box-shadow:0 2px 6px rgba(0,20,45,.3); }
-.glsk-git{ width:100%; margin-top:13px; padding:11px; border:none;
-  border-radius:12px; font-family:${YAZI}; font-weight:800; font-size:15px;
-  color:#20140a; text-shadow:none;
+.glsk-git{ flex:0 0 auto; height:28px; padding:0 14px; border:none;
+  border-radius:8px; font-family:${YAZI}; font-weight:800; font-size:12.5px;
+  line-height:28px; color:#20140a; text-shadow:none;
   background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});
   box-shadow:0 2px 6px rgba(0,20,45,.3);
   transition:transform .09s ease, filter .09s ease; }
@@ -417,9 +414,6 @@
     /* Çantada paket yoksa pencere açılmaz, doğrudan mağaza açılır. */
     if (enFazla <= 0) { magazaAc(); return; }
 
-    const bedel  = maliyet(id);
-    const eldeki = parcaSayisi(id);
-
     stilKur();
     const eski = document.getElementById(PK_ID);
     if (eski) eski.remove();
@@ -431,25 +425,34 @@
     kat.className = "glsk-kat";
     kat.innerHTML =
       '<div class="glsk-kutu">' +
-        '<div class="glsk-ust">' +
+        '<div class="glsk-satir">' +
           '<div class="glsk-ikon">' +
             '<img src="' + RENK[nadirlik(id)].arka + '" alt="" style="object-fit:cover" ' +
                  'onerror="this.style.display=\'none\'">' +
             '<img src="' + parcaGorseli(id) + '" alt="" style="object-fit:contain" ' +
                  'onerror="this.style.display=\'none\'">' +
           '</div>' +
-          '<div class="glsk-sayac">' + Math.min(eldeki, bedel) + ' / ' + bedel + '</div>' +
-        '</div>' +
-        '<div class="glsk-satir">' +
           '<button class="glsk-dg" type="button" data-d="-1">−</button>' +
           '<input class="glsk-surgu" type="range" min="1" max="' + enFazla + '" value="1">' +
           '<button class="glsk-dg" type="button" data-d="1">+</button>' +
           '<div class="glsk-sayi">1</div>' +
           '<button class="glsk-dg glsk-max" type="button">MAX</button>' +
+          '<button class="glsk-git" type="button">KULLAN</button>' +
         '</div>' +
-        '<button class="glsk-git" type="button">KULLAN</button>' +
       '</div>';
     document.body.appendChild(kat);
+
+    /* Ekranın ortasına gömülmez: panelin (yıldız + düğme satırı)
+       hemen üstüne oturur. Ölçü gizliyken 0 olabilir (Tuzak 22). */
+    try {
+      const kaide = panel || document.getElementById(PANEL_ID);
+      const k = kaide ? kaide.getBoundingClientRect() : null;
+      if (k && k.height > 0) {
+        kat.style.paddingBottom = Math.max(10, window.innerHeight - k.top + 8) + "px";
+      } else {
+        kat.style.alignItems = "center";
+      }
+    } catch (e) { kat.style.alignItems = "center"; }
 
     const surgu = kat.querySelector(".glsk-surgu");
     const sayi  = kat.querySelector(".glsk-sayi");
