@@ -543,6 +543,81 @@
     });
   }
 
+  /* ── KAHRAMAN STAT BONUSLARI ────────────────────────────────
+     Tanım: heroes.js → HERO_STATS[id].bonuses
+       { aile: "knight", artis: 5, taban: { def: 5, hp: 9 } }
+     Seviye başına her kaleme `artis` puan biner:
+       Sv1 = taban · Sv2 = taban+5 · Sv3 = taban+10 ...
+     Bonus YALNIZ kahramanın kendi ailesine işler (buff.js ile aynı
+     kural). Kalemler: atk · def · hp · olum (öldürücülük). */
+
+  const STAT_ALAN = ["atk", "def", "hp", "olum"];
+
+  /* Bir kahramanın o seviyedeki yüzdeleri. Seviye dışarıdan da
+     verilebilir — savunan oyuncunun seviyesi kendi kaydından gelir. */
+  function statBonusu(id, svDisari) {
+    if (typeof HERO_STATS === "undefined") return null;
+    const h = HERO_STATS[id];
+    const b = h && h.bonuses;
+    if (!b || !b.aile || !b.taban) return null;
+    const sv = Math.max(1, Math.min(MAX_SV,
+      Math.floor(svDisari != null ? svDisari : seviye(id)) || 1));
+    const ek = (b.artis != null ? b.artis : 5) * (sv - 1);
+    const out = { aile: b.aile, sv: sv };
+    STAT_ALAN.forEach(k => {
+      if (b.taban[k] != null) out[k] = b.taban[k] + ek;
+    });
+    return out;
+  }
+  /* Ekranda göstermek için: [{ ad, yuzde }] */
+  function statSatirlari(id, svDisari) {
+    const b = statBonusu(id, svDisari);
+    if (!b) return [];
+    const aileAdi = (typeof KOMUTAN_AILE_ADI !== "undefined" && KOMUTAN_AILE_ADI[b.aile])
+      ? KOMUTAN_AILE_ADI[b.aile]
+      : ({ knight: "Savunucu", soldier: "Koruyucu", robot: "Nişancı" })[b.aile] || "";
+    const etiket = { atk: "saldırısı", def: "savunması", hp: "sağlığı", olum: "öldürücülüğü" };
+    const out = [];
+    STAT_ALAN.forEach(k => {
+      if (b[k] != null) out.push({ ad: aileAdi + " " + etiket[k], yuzde: b[k] });
+    });
+    return out;
+  }
+
+  /* Birim listesine uygular. Savaş motorları (pvp.js · pve.js)
+     BUFF.orduyaUygula ile AYNI yerde çağırır — taban hesabından
+     önce, çekilme eşiği doğru sayıya göre kurulsun diye.
+       birimler : u.atk · u.def · u.hp (pvp) / u.hpEach (pve) · u.olum
+       kimlikler: savaşa seçili kahraman id'leri
+       seviyeler: { id: sv } — verilmezse kendi kaydından okunur   */
+  function statUygula(birimler, kimlikler, seviyeler) {
+    if (!Array.isArray(birimler) || !Array.isArray(kimlikler)) return;
+    /* Aile başına toplam yüzde — iki kahraman aynı aileden olursa toplanır */
+    const toplam = {};
+    kimlikler.filter(Boolean).forEach(id => {
+      const sv = (seviyeler && seviyeler[id] != null) ? seviyeler[id] : null;
+      const b = statBonusu(id, sv);
+      if (!b) return;
+      if (!toplam[b.aile]) toplam[b.aile] = { atk: 0, def: 0, hp: 0, olum: 0 };
+      STAT_ALAN.forEach(k => { if (b[k] != null) toplam[b.aile][k] += b[k]; });
+    });
+    if (!Object.keys(toplam).length) return;
+
+    birimler.forEach(u => {
+      /* Birim kimliğinin sonundaki kademe numarası atılır: robot3 → robot */
+      const aile = String(u.unitId || "").replace(/\d+$/, "");
+      const t = toplam[aile];
+      if (!t) return;
+      if (t.atk)  u.atk  = Math.max(1, Math.round(u.atk  * (1 + t.atk  / 100)));
+      if (t.def)  u.def  = Math.max(0, Math.round(u.def  * (1 + t.def  / 100)));
+      if (t.olum) u.olum = (u.olum || 0) * (1 + t.olum / 100);
+      if (t.hp) {
+        if (typeof u.hp     === "number") u.hp     = Math.max(1, Math.round(u.hp     * (1 + t.hp / 100)));
+        if (typeof u.hpEach === "number") u.hpEach = Math.max(1, Math.round(u.hpEach * (1 + t.hp / 100)));
+      }
+    });
+  }
+
   /* ── TEST HİLESİ — ?parca=1 ─────────────────────────────────── */
   function hile() {
     try {
@@ -567,4 +642,7 @@
   window.parcaPaketiKullan = parcaPaketiKullan; /* günlük giriş / mağaza / canavar */
   window.glsYildizTazele   = glsYildizTazele;
   window.GELISTIR_MAX_SV   = MAX_SV;
+  window.kahramanStatBonusu   = statBonusu;    /* savaş + ekran */
+  window.kahramanStatSatirlari = statSatirlari;
+  window.kahramanStatUygula   = statUygula;    /* pvp.js · pve.js */
 })();

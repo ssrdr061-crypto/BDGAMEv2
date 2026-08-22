@@ -459,6 +459,9 @@ function buildDefender(acc, fallbackName) {
     accKey: dKey,
     commanderNames: defCommanders,
     commanderSkins: defSkins,
+    /* Savunanın kahraman seviyeleri — stat bonusu buradan hesaplanır
+       (kendi kaydımızdaki seviyeler savunan için geçerli değil). */
+    commanderLevels: (st.heroLevels && typeof st.heroLevels === "object") ? st.heroLevels : {},
     /* Savunanın HAZIRLADIĞI mağaza buffları (buff.js).
        Savunan çevrimdışı olabildiği için planı saldıranın
        istemcisi çözer; yalnız "savunmada" işleyen türler girer. */
@@ -1272,6 +1275,14 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   /* Buff yüzdeleri (savunma/can/sayı) — TABAN hesabından ÖNCE.
      Sonra uygulansaydı çekilme eşiği eski sayıya göre kalırdı. */
   if (BF) BF.orduyaUygula(A.units);
+
+  /* ── KAHRAMAN STAT BONUSLARI (gelistir.js) ────────────────────
+     Seviyeye bağlı aile bonusları. buff.js ile AYNI noktada, taban
+     hesabından ÖNCE uygulanır. gelistir.js yoksa sessizce atlanır. */
+  if (typeof window.kahramanStatUygula === "function") {
+    window.kahramanStatUygula(A.units, atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
+    window.kahramanStatUygula(D.units, defSkins, defender.commanderLevels || null);
+  }
 
   /* ── Karşı tarafı zayıflatan yetenekler ── */
   function weaken(src, tgt) {

@@ -79,11 +79,13 @@ const HERO_UI = {
     Burada olmayan bir kahraman global HERO_UI değerlerini kullanır.
     ───────────────────────────────────────────── */
 const HERO_UI_BY_HERO = {
-  /* BOŞ = beş kahraman da yukarıdaki HERO_UI değerlerini kullanır,
-     yani yetenek kutuları hepsinde AYNI hizada.
-     Tek bir kahramanı ayrı ayarlamak istersen buraya ekle, örn:
-       revolia: { boxes: { box2: { dx: 80, dy: -85 } } }
-     Eski kahraman başına ayarlar bilerek kaldırıldı — hiza bozuluyordu. */
+  /* Her kahramanın görseli farklı boyda durduğu için kutuların
+     dikey hizası kahraman başına ayarlandı (🎛 editöründen alındı). */
+  buz_savascisi: { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } } },
+  celik_savasci: { boxes: { box1: { dx: -5, dy: -80 }, box2: { dx: 5, dy: -80 }, box3: { dx: -5, dy: 40 } } },
+  ates_buyucusu: { boxes: { box1: { dx: -5, dy: -85 }, box2: { dx: 5, dy: -85 }, box3: { dx: -5, dy: 40 } } },
+  ivanovna:      { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } } },
+  revolia:       { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } } }
 };
 
 
@@ -115,7 +117,7 @@ const HERO_STATS = {
     specialty: "Savunma",
     specialtyIcon: "🛡️",
     desc: "Buz zırhı ile rakiplerin saldırılarını hafifletir.",
-    bonuses: {},   /* Bonus özellikler buraya gelecek (sonra doldurulacak) */
+    bonuses: { aile: "knight", artis: 5, taban: { def: 5, hp: 9 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#4fd1e8",
     price: 280000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
@@ -153,7 +155,7 @@ const HERO_STATS = {
     specialty: "Denge",
     specialtyIcon: "⚡",
     desc: "Saldırı ve savunmayı dengeli kullanan savaşçı.",
-    bonuses: {},   /* Bonus özellikler buraya gelecek (sonra doldurulacak) */
+    bonuses: { aile: "knight", artis: 5, taban: { def: 9, hp: 6 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#e8c84f",
     price: 300000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
@@ -184,7 +186,7 @@ const HERO_STATS = {
     specialty: "Saldırı",
     specialtyIcon: "⚔️",
     desc: "Alev büyüleriyle düşmanlara büyük hasar verir.",
-    bonuses: {},   /* Bonus özellikler buraya gelecek (sonra doldurulacak) */
+    bonuses: { aile: "soldier", artis: 5, taban: { atk: 4, def: 5 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#e2585c",
     price: 350000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
@@ -215,7 +217,7 @@ const HERO_STATS = {
     specialty: "Denge",
     specialtyIcon: "⚡",
     desc: "Disiplin ve istihbaratla orduyu savaşa hazırlayan komutan.",
-    bonuses: {},   /* Bonus özellikler buraya gelecek (sonra doldurulacak) */
+    bonuses: { aile: "soldier", artis: 5, taban: { olum: 9, hp: 7, atk: 5 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#b06fe0",
     price: 650000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
@@ -264,7 +266,7 @@ const HERO_STATS = {
     color: "#4fd1e8",
     price: 400000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
-    bonuses: {},   /* Bonus özellikler buraya gelecek (sonra doldurulacak) */
+    bonuses: { aile: "robot", artis: 5, taban: { olum: 7, atk: 5, def: 3 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     abilities: [
       {
         icon: "yetenek_akim.webp",
@@ -398,9 +400,9 @@ const HERO_3D = {
 
   revolia: {
     model: {
-      position: { x: 0.04, y: -0.18, z: -0.4 },
+      position: { x: -0.02, y: 0.02, z: -0.4 },
       rotation: { x: 33, y: 0 },
-      scale: 1
+      scale: 0.78
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -927,6 +929,7 @@ ${modelTxt}`;
       gorunum(gp, detay);
 
       gorunum(statPnl, k === "stat");
+      if (k === "stat" && statPnl) statPnl.innerHTML = statIcerik();
 
       /* Kahraman görseli STAT sekmesinde sola kayar. */
       const hi = ov.querySelector("#hdHero");
@@ -934,6 +937,27 @@ ${modelTxt}`;
         hi.style.marginLeft = (k === "stat") ? "-26%" : "0";
         hi.style.transition = "margin-left .18s ease";
       }
+    }
+
+    /* STAT içeriği — kaynak gelistir.js, seviye oradan okunur. */
+    function statIcerik() {
+      const sat = (typeof window.kahramanStatSatirlari === "function")
+        ? window.kahramanStatSatirlari(skinId) : [];
+      const sv = (typeof window.kahramanSeviyesi === "function")
+        ? window.kahramanSeviyesi(skinId) : 1;
+      if (!sat.length) {
+        return `<div style="opacity:.8;">Bu kahramanın stat bonusu tanımlı değil.</div>`;
+      }
+      let out = `<div style="font-size:14px;font-weight:800;margin-bottom:7px;">Sv${sv}</div>`;
+      sat.forEach(x => {
+        out += `<div style="display:flex;justify-content:space-between;gap:8px;
+                    padding:6px 0;border-bottom:1px solid rgba(255,255,255,.22);">
+                  <span>${x.ad}</span>
+                  <span style="color:#ffd257;font-weight:800;
+                        font-variant-numeric:tabular-nums;">+%${x.yuzde}</span>
+                </div>`;
+      });
+      return out;
     }
 
     tabs.forEach(b => { b.onclick = () => sekmeSec(b.dataset.t); });

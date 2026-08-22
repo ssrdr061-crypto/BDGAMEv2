@@ -296,6 +296,19 @@
     birimler.forEach(u => gercekSayim[u.unitId] = u.count);
     if (BF) BF.orduyaUygula(birimler);
 
+    /* Kahraman stat bonusları (gelistir.js) — buff ile aynı noktada */
+    if (typeof window.kahramanStatUygula === "function") {
+      let _skins = [];
+      try {
+        if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders)) {
+          _skins = selectedCommanders.filter(Boolean);
+        } else if (typeof state !== "undefined" && state && Array.isArray(state.selectedCommanders)) {
+          _skins = state.selectedCommanders.filter(Boolean);
+        }
+      } catch (e) {}
+      window.kahramanStatUygula(birimler, _skins);
+    }
+
     const baslangicSayi = orduSayi(birimler);
     const combinedMaxHp = Math.max(1, orduCan(birimler));
 
