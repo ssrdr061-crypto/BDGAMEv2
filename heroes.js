@@ -29,18 +29,21 @@ const HERO_UI = {
   kartCerceve:    "1px solid rgba(160,215,255,.60)",   /* tema kenarı — 3B/gölge yok */
   kartTamEkran:   false,     /* true = eski tam ekran görünüm             */
 
-  /* YETENEK KUTUCUKLARI (kahramanın altındaki 2 kutu) */
+  /* YETENEK KUTUCUKLARI — kahramanın SAĞINDA ve SOLUNDA, dikey sütun.
+     Kutular ikiye bölünür: ilk yarısı SOL sütuna, kalanı SAĞ sütuna.
+     (3 yetenek → solda 2, sağda 1.) */
   boxes: {
-    bottom: "-10px",    /* Ekranın ALTINDAN yüksekliği. Artır = yukarı çıkar  */
-    gap:    "8px",      /* İki kutu arasındaki boşluk                          */
+    yan:    "8px",      /* Sütunun kart kenarına uzaklığı                      */
+    dy:     0,          /* Sütunların dikey kaydırması (🎛 "İkisi" hedefi)     */
+    gap:    "8px",      /* Aynı sütundaki kutular arası boşluk                 */
     width:  "50px",     /* Kutu genişliği                                      */
     height: "50px",     /* Kutu yüksekliği                                     */
     radius: "12px",     /* Köşe yuvarlaklığı (0 = keskin köşe)                 */
     border: "1px solid rgba(255,255,255,.35)",  /* Kenarlık                    */
     bg:     "rgba(0,0,0,.35)",                  /* Kutu arkaplan rengi         */
-    box1: { dx: -70, dy: -80 },  /* 1. kutunun ek kaydırması (🎛 editörden)   */
-    box2: { dx: 75,  dy: -85 },  /* 2. kutunun ek kaydırması (🎛 editörden)   */
-    box3: { dx: 0,   dy: -80 }   /* 3. kutu (ortadaki) ek kaydırması           */
+    box1: { dx: 0, dy: 0 },   /* 1. kutunun ek kaydırması (🎛 editörden)      */
+    box2: { dx: 0, dy: 0 },   /* 2. kutunun ek kaydırması                      */
+    box3: { dx: 0, dy: 0 }    /* 3. kutunun ek kaydırması                      */
   },
 
   /* ── SATIN AL / GELİŞTİR BUTONU ──
@@ -581,7 +584,8 @@ function openHeroDetail(skinId) {
     <button id="hdNext" style="position:absolute;top:50%;right:8px;transform:translateY(-50%);z-index:10;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:20px;">›</button>
     <div id="hdName" style="position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:5;font-size:18px;font-weight:800;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.9);">${h.name}</div>
     <div id="hdStars" style="position:absolute;left:50%;transform:translateX(-50%);top:${cfg.stars.posY};display:flex;gap:4px;z-index:5;"></div>
-    <div id="hdBoxes" style="position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:8px;padding:14px;z-index:5;"></div>`;
+    <div id="hdBoxL" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
+    <div id="hdBoxR" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>`;
   ov.style.display = "flex";
   ov.dataset.hero = skinId;   /* gelistir.js yıldızları tazelerken okur */
 
@@ -621,7 +625,7 @@ function openHeroDetail(skinId) {
   // ── YETENEK KUTUCUKLARI ──
   // Kalıcı ayarlar heroes.js → HERO_UI. Ekran üstü canlı ayar: 🎛 butonu.
   const UI_DEF = {
-    boxes: { bottom: "20px", gap: "8px", width: "90px", height: "90px", radius: "12px", border: "1px solid rgba(255,255,255,.35)", bg: "rgba(0,0,0,.35)", box1: { dx: 0, dy: 0 }, box2: { dx: 0, dy: 0 }, box3: { dx: 0, dy: 0 } },
+    boxes: { yan: "8px", dy: 0, gap: "8px", width: "50px", height: "50px", radius: "12px", border: "1px solid rgba(255,255,255,.35)", bg: "rgba(0,0,0,.35)", box1: { dx: 0, dy: 0 }, box2: { dx: 0, dy: 0 }, box3: { dx: 0, dy: 0 } },
     panel: { bottom: "125px", maxWidth: "80%", fontSize: "13px", bg: "rgba(0,0,0,.8)", border: "1px solid rgba(255,255,255,.25)", valueColor: "#ffd700", dx: 0, dy: 0 }
   };
   const SRC = (typeof HERO_UI !== "undefined") ? HERO_UI : UI_DEF;
@@ -653,7 +657,10 @@ function openHeroDetail(skinId) {
   panel.id = "hdAbilityPanel";
   ov.appendChild(panel);
 
-  const bxEl = ov.querySelector("#hdBoxes");
+  const bxL = ov.querySelector("#hdBoxL");
+  const bxR = ov.querySelector("#hdBoxR");
+  /* İlk yarısı SOLA, kalanı SAĞA. 3 yetenek → sol 2, sağ 1. */
+  const solAdet = Math.ceil(abilities.length / 2);
   const boxEls = [];
   abilities.forEach((ab, i) => {
     const box = document.createElement("div");
@@ -675,14 +682,17 @@ function openHeroDetail(skinId) {
       panel.style.display = "block";
       panel.dataset.open = String(i);
     };
-    bxEl.appendChild(box);
+    (i < solAdet ? bxL : bxR).appendChild(box);
     boxEls.push(box);
   });
 
   // Tüm stilleri U'dan uygular — editör her değişiklikte bunu çağırır
   function applyUi() {
-    bxEl.style.bottom = U.boxes.bottom;
-    bxEl.style.gap = U.boxes.gap;
+    const _ortala = `top:50%;transform:translateY(calc(-50% + ${U.boxes.dy}px));`;
+    bxL.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
+                        `gap:${U.boxes.gap};left:${U.boxes.yan};${_ortala}`;
+    bxR.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
+                        `gap:${U.boxes.gap};right:${U.boxes.yan};${_ortala}`;
     boxEls.forEach((box, i) => {
       const o = i === 0 ? U.boxes.box1 : (i === 1 && boxEls.length > 2 ? U.boxes.box3 : U.boxes.box2);
       box.style.cssText = `width:${U.boxes.width};height:${U.boxes.height};border-radius:${U.boxes.radius};border:${U.boxes.border};background:${U.boxes.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transform:translate(${o.dx}px,${o.dy}px);`;
@@ -723,7 +733,7 @@ function openHeroDetail(skinId) {
     if (uiTarget === "box1") { U.boxes.box1.dx += dx; U.boxes.box1.dy += dy; }
     else if (uiTarget === "box2") { U.boxes.box2.dx += dx; U.boxes.box2.dy += dy; }
     else if (uiTarget === "box3") { U.boxes.box3.dx += dx; U.boxes.box3.dy += dy; }
-    else if (uiTarget === "boxes") { U.boxes.bottom = (px(U.boxes.bottom) - dy) + "px"; U.boxes.box1.dx += dx; U.boxes.box2.dx += dx; }
+    else if (uiTarget === "boxes") { U.boxes.dy += dy; U.boxes.yan = Math.max(0, px(U.boxes.yan) + dx) + "px"; }
     else if (uiTarget === "panel") { U.panel.dx += dx; U.panel.dy += dy; }
     else if (uiTarget === "stars") { starDy += dy; }
     applyUi();
@@ -753,7 +763,7 @@ position: { x: ${modelAPI.off.x}, y: ${modelAPI.off.y}, z: ${modelAPI.off.z} }, 
     ov.querySelector("#uiVals").textContent =
 `── heroes.js → HERO_UI ──
 boxes:
-  bottom: "${U.boxes.bottom}", gap: "${U.boxes.gap}",
+  yan: "${U.boxes.yan}", dy: ${U.boxes.dy}, gap: "${U.boxes.gap}",
   width: "${U.boxes.width}", height: "${U.boxes.height}",
   box1: { dx: ${U.boxes.box1.dx}, dy: ${U.boxes.box1.dy} },
   box2: { dx: ${U.boxes.box2.dx}, dy: ${U.boxes.box2.dy} },

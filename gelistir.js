@@ -316,11 +316,25 @@
            </button>
          </div>`;
 
-    /* Üst satır: YALNIZ yıldızlar, ortada. Ad/parça/seviye ibaresi
-       kaldırıldı — ekranın tepesinde kahraman adı zaten yazıyor. */
+    /* Yıldızların hemen sağında: bir sonraki seviye için KALAN parça.
+       Sv5'te hiç yazmaz. */
+    const kalan = sonSeviye ? 0 : Math.max(0, bedel - eldeki);
+    const kalanHTML = kalan
+      ? `<span style="display:inline-flex;align-items:center;gap:3px;
+                 margin-left:8px;padding:2px 7px;border-radius:8px;
+                 background:rgba(11,28,58,.55);font-family:${YAZI};
+                 font-size:12.5px;font-weight:800;color:${TEMA.sari};
+                 font-variant-numeric:tabular-nums;text-shadow:${TEMA.golge};">
+           <img src="${parcaGorseli(id)}" alt="" style="width:14px;height:14px;
+                object-fit:contain;" onerror="this.style.display='none'">${kalan}
+         </span>`
+      : "";
+
     p.innerHTML = `
       <div style="display:flex;justify-content:center;align-items:center;
-                  padding-bottom:6px;letter-spacing:3px;">${yildiz}</div>
+                  padding-bottom:6px;">
+        <span style="letter-spacing:3px;">${yildiz}</span>${kalanHTML}
+      </div>
       ${alt}
     `;
 
