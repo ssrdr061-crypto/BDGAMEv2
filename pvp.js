@@ -1281,7 +1281,7 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
      hesabından ÖNCE uygulanır. gelistir.js yoksa sessizce atlanır. */
   if (typeof window.kahramanStatUygula === "function") {
     window.kahramanStatUygula(A.units, atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
-    window.kahramanStatUygula(D.units, defSkins, defender.commanderLevels || null);
+    window.kahramanStatUygula(D.units, defSkins, defender.commanderLevels || {});
   }
 
   /* ── STAT ÖZETİ (savaş raporu için) ───────────────────────────
@@ -1311,8 +1311,10 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   function _bonusSatir(skins, seviyeler) {
     if (typeof window.kahramanStatSatirlari !== "function") return [];
     const topla = {};
+    /* Harita verildiyse eksik kahraman Sv1'dir; kendi seviyemize DÜŞME. */
+    const dis = !!seviyeler;
     (skins || []).filter(Boolean).forEach(id => {
-      const sv = (seviyeler && seviyeler[id] != null) ? seviyeler[id] : null;
+      const sv = dis ? (Math.floor(seviyeler[id]) || 1) : null;
       window.kahramanStatSatirlari(id, sv).forEach(x => {
         topla[x.ad] = (topla[x.ad] || 0) + x.yuzde;
       });
@@ -1327,7 +1329,7 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
       seviyeler: _atkSkins.reduce((o, id) => { o[id] = Math.floor(_kendiSv[id] || 1); return o; }, {})
     }),
     defender: Object.assign(_orduStat(D), {
-      bonus: _bonusSatir(defSkins, defender.commanderLevels),
+      bonus: _bonusSatir(defSkins, defender.commanderLevels || {}),
       seviyeler: defSkins.reduce((o, id) => {
         const m = defender.commanderLevels || {};
         o[id] = Math.floor(m[id] || 1); return o;

@@ -594,8 +594,13 @@
     if (!Array.isArray(birimler) || !Array.isArray(kimlikler)) return;
     /* Aile başına toplam yüzde — iki kahraman aynı aileden olursa toplanır */
     const toplam = {};
+    /* DİKKAT: seviye haritası VERİLDİYSE eksik kahraman Sv1 sayılır.
+       null geçilirse kendi kaydımızdan okunur. Eskiden haritada
+       kahraman yoksa null'a düşüyordu ve KENDİ seviyemiz okunuyordu —
+       rakibin kahramanı bizim seviyemizde görünüyordu. */
+    const dis = !!seviyeler;
     kimlikler.filter(Boolean).forEach(id => {
-      const sv = (seviyeler && seviyeler[id] != null) ? seviyeler[id] : null;
+      const sv = dis ? (Math.floor(seviyeler[id]) || 1) : null;
       const b = statBonusu(id, sv);
       if (!b) return;
       if (!toplam[b.aile]) toplam[b.aile] = { atk: 0, def: 0, hp: 0, olum: 0 };
