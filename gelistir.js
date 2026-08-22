@@ -370,7 +370,7 @@
   background:linear-gradient(180deg,${TEMA.ust} 0%,${TEMA.orta} 55%,${TEMA.alt} 100%);
   box-shadow:0 2px 6px rgba(0,20,45,.3); }
 .glsk-satir{ display:flex; align-items:center; gap:5px; }
-.glsk-ikon{ flex:0 0 30px; width:30px; height:30px; border-radius:8px;
+.glsk-ikon{ width:30px; height:30px; margin:0 auto 7px; border-radius:8px;
   position:relative; overflow:hidden; border:none; }
 .glsk-ikon img{ position:absolute; inset:0; width:100%; height:100%; }
 .glsk-dg{ flex:0 0 auto; height:28px; min-width:28px; padding:0 7px;
@@ -378,7 +378,6 @@
   font-weight:800; font-size:14px; line-height:28px; color:${TEMA.yazi};
   background:rgba(255,255,255,.10); box-shadow:none;
   transition:transform .09s ease, filter .09s ease; }
-.glsk-max{ font-size:11px; color:${TEMA.sari}; }
 .glsk-sayi{ flex:0 0 auto; min-width:32px; height:28px; line-height:28px;
   text-align:center; border-radius:8px; font-size:13px; font-weight:800;
   background:rgba(11,28,58,.55); font-variant-numeric:tabular-nums; }
@@ -395,7 +394,7 @@
   background:#eaf4ff; box-shadow:0 2px 6px rgba(0,20,45,.3); }
 .glsk-surgu::-moz-range-thumb{ width:15px; height:15px; border:none;
   border-radius:50%; background:#eaf4ff; box-shadow:0 2px 6px rgba(0,20,45,.3); }
-.glsk-git{ flex:0 0 auto; height:28px; padding:0 14px; border:none;
+.glsk-git{ display:block; margin:8px auto 0; height:28px; padding:0 22px; border:none;
   border-radius:8px; font-family:${YAZI}; font-weight:800; font-size:12.5px;
   line-height:28px; color:#20140a; text-shadow:none;
   background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});
@@ -425,20 +424,19 @@
     kat.className = "glsk-kat";
     kat.innerHTML =
       '<div class="glsk-kutu">' +
+        '<div class="glsk-ikon">' +
+          '<img src="' + RENK[nadirlik(id)].arka + '" alt="" style="object-fit:cover" ' +
+               'onerror="this.style.display=\'none\'">' +
+          '<img src="' + parcaGorseli(id) + '" alt="" style="object-fit:contain" ' +
+               'onerror="this.style.display=\'none\'">' +
+        '</div>' +
         '<div class="glsk-satir">' +
-          '<div class="glsk-ikon">' +
-            '<img src="' + RENK[nadirlik(id)].arka + '" alt="" style="object-fit:cover" ' +
-                 'onerror="this.style.display=\'none\'">' +
-            '<img src="' + parcaGorseli(id) + '" alt="" style="object-fit:contain" ' +
-                 'onerror="this.style.display=\'none\'">' +
-          '</div>' +
           '<button class="glsk-dg" type="button" data-d="-1">−</button>' +
           '<input class="glsk-surgu" type="range" min="1" max="' + enFazla + '" value="1">' +
           '<button class="glsk-dg" type="button" data-d="1">+</button>' +
           '<div class="glsk-sayi">1</div>' +
-          '<button class="glsk-dg glsk-max" type="button">MAX</button>' +
-          '<button class="glsk-git" type="button">KULLAN</button>' +
         '</div>' +
+        '<button class="glsk-git" type="button">KULLAN</button>' +
       '</div>';
     document.body.appendChild(kat);
 
@@ -472,9 +470,6 @@
     Array.prototype.forEach.call(kat.querySelectorAll(".glsk-dg[data-d]"), b => {
       b.onclick = e => { e.stopPropagation(); adet += parseInt(b.dataset.d, 10); esitle(); };
     });
-    kat.querySelector(".glsk-max").onclick = e => {
-      e.stopPropagation(); adet = enFazla; esitle();
-    };
 
     git.onclick = e => {
       e.stopPropagation();
