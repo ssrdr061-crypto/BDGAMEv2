@@ -8219,7 +8219,14 @@ const TroopViewer = (function () {
          display:none KULLANILMAZ — o hâlde canvas ölçüsü sıfırlanır
          ve yıldırım sıfır boyutlu yüzeye çizilir. opacity ile gizlenir. */
       const _fx = document.getElementById("robotFx");
-      if (_fx) _fx.style.opacity = (uid === "knight" && lv === 5) ? "1" : "0";
+      if (_fx) {
+        const _ac = (uid === "knight" && lv === 5);
+        _fx.style.opacity = _ac ? "1" : "0";
+        /* Görünür olduktan SONRA ölç — o ana kadar ölçü sıfırdır */
+        if (_ac && typeof window.robotFxOlc === "function") {
+          requestAnimationFrame(() => window.robotFxOlc());
+        }
+      }
 
       /* ── ÜST: bu ailenin KADEMELERİ (Sv1 … Sv6) ── */
       let html = `<div class="uv-portraits">`;
@@ -8816,6 +8823,9 @@ function draw(){if(!r.running)return;const c=r.ctx;c.clearRect(0,0,r.W,r.H);c.gl
 function spawnLoop(){if(!r.running)return;if(r.bolts.length<2&&Math.random()<.9)spawnBolt();r.spawnT=setTimeout(spawnLoop,650+Math.random()*750);}
 function start(){r.running=true;r.bolts=[];r.raf=requestAnimationFrame(draw);spawnLoop();}
 window.addEventListener("resize",size);
+/* DIŞARIDAN ÖLÇÜM KAPISI: panel kapalıyken canvas 0x0 olur ve
+   yıldırım sıfır yüzeye çizilir. Ekran görünür olunca çağrılır. */
+window.robotFxOlc=function(){size();if(!r.running)start();};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
 </script>
