@@ -42,7 +42,7 @@ const HERO_UI = {
     border: "1px solid rgba(255,255,255,.35)",  /* Kenarlık                    */
     bg:     "rgba(0,0,0,.35)",                  /* Kutu arkaplan rengi         */
     box1: { dx: -5, dy: -65 },  /* 1. kutunun ek kaydırması (🎛 editörden)    */
-    box2: { dx:  5, dy: -95 },  /* 2. kutunun ek kaydırması                    */
+    box2: { dx:  5, dy: -65 },  /* 2. kutunun ek kaydırması                    */
     box3: { dx: -5, dy:  40 }   /* 3. kutunun ek kaydırması                    */
   },
 
@@ -61,8 +61,11 @@ const HERO_UI = {
     bottom:   "125px",  /* Ekranın ALTINDAN yüksekliği. Artır = yukarı çıkar   */
     maxWidth: "80%",    /* Maksimum genişlik                                   */
     fontSize: "12px",   /* Yazı boyutu                                         */
-    bg:       "#ffffff",                        /* Panel arkaplan rengi        */
+    genislik: "60%",    /* Panel genişliği — ekranın en fazla bu kadarı        */
+    bg:       "#e9f1fb",                        /* Panel arkaplan rengi        */
     yazi:     "#12213a",                        /* Panel yazı rengi            */
+    baslik:   "15px",                           /* Başlık yazı boyutu          */
+    satir:    "1.2",                            /* Satır aralığı               */
     border:   "none",                           /* Panel kenarlığı             */
     valueColor: "#b45309", /* Seviyeye göre değişen SAYININ rengi              */
     dx: 0, dy: 65        /* Panelin ek kaydırması (🎛 editörden gelir)         */
@@ -337,9 +340,9 @@ function getHeroBattleEffects(skinId, level) {
 const HERO_3D = {
   buz_savascisi: {
     model: {
-      position: { x: 0, y: -0.24, z: -0.4 },
+      position: { x: -0.02, y: 0.02, z: -0.4 },
       rotation: { x: 34, y: 0 },
-      scale: 0.76
+      scale: 0.78
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -347,13 +350,13 @@ const HERO_3D = {
       back:    { intensity: 1.2, color: "#4fd1e8" },
       hemi:    { intensity: 1.3, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
   },
   ates_buyucusu: {
     model: {
-      position: { x: 0, y: 0.08, z: -0.4 },
+      position: { x: -0.02, y: 0.02, z: -0.4 },
       rotation: { x: 37, y: 0 },
-      scale: 0.76
+      scale: 0.78
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -361,7 +364,7 @@ const HERO_3D = {
       back:    { intensity: 0.8, color: "#4fd1e8" },
       hemi:    { intensity: 0.5, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
   },
   celik_savasci: {
     model: {
@@ -375,13 +378,13 @@ const HERO_3D = {
       back:    { intensity: 0.8, color: "#4fd1e8" },
       hemi:    { intensity: 0.5, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
   },
   ivanovna: {
     model: {
-      position: { x: 0.04, y: -0.02, z: -0.44 },
+      position: { x: -0.02, y: 0.02, z: -0.4 },
       rotation: { x: 34, y: 0 },
-      scale: 0.74
+      scale: 0.78
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -389,15 +392,15 @@ const HERO_3D = {
       back:    { intensity: 0.8, color: "#4fd1e8" },
       hemi:    { intensity: 0.5, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
   }
 ,
 
   revolia: {
     model: {
-      position: { x: 0, y: -0.24, z: -0.4 },
+      position: { x: -0.02, y: 0.02, z: -0.4 },
       rotation: { x: 33, y: 0 },
-      scale: 0.92
+      scale: 0.78
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -405,7 +408,7 @@ const HERO_3D = {
       back:    { intensity: 1.0, color: "#4fd1e8" },
       hemi:    { intensity: 0.5, color: "#ddeeff" }
     },
-    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "8.2%" }
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
   }
 };
 
@@ -492,6 +495,7 @@ function openHeroDetail(skinId) {
   if (!h || !cfg) { showToast("Kahraman verisi bulunamadı."); return; }
 
   let ov = document.getElementById("heroDetailOverlay");
+  const zatenAcik = !!ov && getComputedStyle(ov).display !== "none";
   if (!ov) {
     ov = document.createElement("div");
     ov.id = "heroDetailOverlay";
@@ -503,7 +507,7 @@ function openHeroDetail(skinId) {
      Dört tarafı boşluklu, ortalanmış kart. İçerideki öğeler kabuğa
      göre konumlandığı için hepsi kendiliğinden uyar.
      Dev gölge, kartın dışını karartır (ayrı element gerekmez). */
-  {
+  if (!zatenAcik) {
     const U0 = HERO_UI;
     if (U0.kartTamEkran) {
       ov.style.cssText = "position:fixed;inset:0;background:#000;z-index:400;display:flex;flex-direction:column;";
@@ -520,6 +524,10 @@ function openHeroDetail(skinId) {
         "box-shadow:0 0 0 9999px rgba(5,4,10,.72);";   /* dış karartma; kart gölgesi yok */
     }
   }
+  /* Arka plan, kabuğun DIŞINDA tutulur: innerHTML silinince o da
+     silinip yeniden yükleniyordu — kahramanlar arası geçişte
+     görülen anlık boşluk buydu (Tuzak: img yeniden çözülür). */
+  let bgEski = ov.querySelector("#hdBg");
   ov.innerHTML = `
     <button id="hdClose" style="position:absolute;top:12px;right:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:18px;">✕</button>
     <button id="hdBuyBtn" style="position:absolute;left:50%;bottom:4%;transform:translateX(-50%);z-index:10;width:64%;height:46px;font-size:16px;font-weight:800;border-radius:12px;border:2px solid #d4af37;background:linear-gradient(180deg,#f0c94f,#b8860b);color:#1b1430;box-shadow:0 4px 14px rgba(0,0,0,.5);"></button>
@@ -583,22 +591,25 @@ function openHeroDetail(skinId) {
     </div>
     <button id="hdPrev" style="position:absolute;top:50%;left:8px;transform:translateY(-50%);z-index:10;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:20px;">‹</button>
     <button id="hdNext" style="position:absolute;top:50%;right:8px;transform:translateY(-50%);z-index:10;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:20px;">›</button>
-    <div id="hdName" style="position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:5;font-size:18px;font-weight:800;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.9);">${h.name}</div>
+    <div id="hdName" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:5;font-family:'Baloo 2','Nunito',sans-serif;font-size:26px;font-weight:800;letter-spacing:1.5px;color:#ffffff;-webkit-text-stroke:4px #0b1c3a;paint-order:stroke fill;text-shadow:none;white-space:nowrap;">${h.name}</div>
     <div id="hdStars" style="position:absolute;left:50%;transform:translateX(-50%);top:${cfg.stars.posY};display:flex;gap:4px;z-index:5;"></div>
     <div id="hdBoxL" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
     <div id="hdBoxR" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>`;
   ov.style.display = "flex";
   ov.dataset.hero = skinId;   /* gelistir.js yıldızları tazelerken okur */
 
-  // Arkaplan (video veya resim)
-  const bg = { data: heroArkaPlan(skinId), type: "image" };
-  if (bg) {
-    const bgEl = bg.type === "video"
-      ? Object.assign(document.createElement("video"), { src: bg.data, autoplay: true, loop: true, muted: true, playsInline: true })
-      : Object.assign(document.createElement("img"), { src: bg.data });
-    bgEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;";
-    ov.insertBefore(bgEl, ov.firstChild);
-    if (bg.type === "video") bgEl.play().catch(()=>{});
+  // Arkaplan — aynıysa hiç dokunulmaz, böylece geçişte titremez
+  {
+    const src = heroArkaPlan(skinId);
+    if (bgEski && bgEski.getAttribute("src") === src) {
+      ov.insertBefore(bgEski, ov.firstChild);
+    } else {
+      const bgEl = document.createElement("img");
+      bgEl.id = "hdBg";
+      bgEl.src = src;
+      bgEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;";
+      ov.insertBefore(bgEl, ov.firstChild);
+    }
   }
 
   // Kahramanlar arası geçiş
@@ -627,7 +638,7 @@ function openHeroDetail(skinId) {
   // Kalıcı ayarlar heroes.js → HERO_UI. Ekran üstü canlı ayar: 🎛 butonu.
   const UI_DEF = {
     boxes: { yan: "8px", dy: 0, gap: "8px", width: "50px", height: "50px", radius: "12px", border: "1px solid rgba(255,255,255,.35)", bg: "rgba(0,0,0,.35)", box1: { dx: 0, dy: 0 }, box2: { dx: 0, dy: 0 }, box3: { dx: 0, dy: 0 } },
-    panel: { bottom: "125px", maxWidth: "80%", fontSize: "12px", bg: "#ffffff", yazi: "#12213a", border: "none", valueColor: "#b45309", dx: 0, dy: 0 }
+    panel: { bottom: "125px", genislik: "60%", fontSize: "11px", baslik: "15px", satir: "1.2", bg: "#e9f1fb", yazi: "#12213a", border: "none", valueColor: "#b45309", dx: 0, dy: 0 }
   };
   const SRC = (typeof HERO_UI !== "undefined") ? HERO_UI : UI_DEF;
   // Çalışma kopyası (editör bunu değiştirir, orijinal HERO_UI bozulmaz)
@@ -684,6 +695,7 @@ function openHeroDetail(skinId) {
       try {
         const rb = box.getBoundingClientRect(), ro = ov.getBoundingClientRect();
         if (rb.height > 0) panel.dataset.ust = (rb.bottom - ro.top + 6) + "px";
+        panel.dataset.yan = (i < solAdet) ? "sol" : "sag";
       } catch (e) {}
       const lv = heroLevel - 1;
       const wrap = v => `<span style="color:${U.panel.valueColor};font-weight:800;">%${v}</span>`;
@@ -694,7 +706,7 @@ function openHeroDetail(skinId) {
         .replaceAll("{value}",  wrap(val))
         .replaceAll("{value2}", wrap(val2))
         .replaceAll("{chance}", wrap(chc));
-      panel.innerHTML = `<div style="font-weight:800;font-size:14px;margin-bottom:3px;">${ab.title || "Yetenek " + (i + 1)}</div><div>${desc || "Açıklama henüz eklenmedi."}</div>`;
+      panel.innerHTML = `<div style="font-weight:800;font-size:${U.panel.baslik};line-height:1.15;margin-bottom:2px;">${ab.title || "Yetenek " + (i + 1)}</div><div>${desc || "Açıklama henüz eklenmedi."}</div>`;
       panel.style.display = "block";
       panel.dataset.open = String(i);
       applyUi();
@@ -716,13 +728,16 @@ function openHeroDetail(skinId) {
     });
     const wasOpen = panel.style.display === "block";
     const _ust = panel.dataset.ust || "50%";
+    /* Panel, basılan kutunun bulunduğu YANA yaslanır. */
+    const _yan = panel.dataset.yan === "sag"
+      ? `right:${U.boxes.yan};` : `left:${U.boxes.yan};`;
     panel.style.cssText = `display:${wasOpen ? "block" : "none"};position:absolute;` +
-      `top:${_ust};left:10px;right:10px;` +
+      `top:${_ust};${_yan}width:${U.panel.genislik};` +
       `transform:translate(${U.panel.dx}px,${U.panel.dy}px);z-index:6;` +
-      `padding:9px 12px;border-radius:10px;background:${U.panel.bg};` +
+      `padding:7px 10px;border-radius:10px;background:${U.panel.bg};` +
       `border:${U.panel.border};color:${U.panel.yazi};` +
       `font-family:'Baloo 2','Nunito',sans-serif;font-weight:600;` +
-      `font-size:${U.panel.fontSize};line-height:1.35;text-align:center;` +
+      `font-size:${U.panel.fontSize};line-height:${U.panel.satir};text-align:center;` +
       `box-shadow:0 2px 6px rgba(0,20,45,.3);`;
     const stEl2 = ov.querySelector("#hdStars");
     stEl2.style.transform = `translateX(-50%) translateY(${starDy}px)`;

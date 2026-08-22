@@ -231,7 +231,7 @@
   function kutucuklar(gizle) {
     /* Yetenek kutucukları ve üstteki yıldız şeridi panelle birlikte
        gösterilmez — bilgileri artık panelde duruyor. */
-    ["hdBoxes", "hdAbilityPanel", "hdStars"].forEach(x => {
+    ["hdStars"].forEach(x => {
       const e = document.getElementById(x);
       if (e) e.style.display = gizle ? "none" : "";
     });
@@ -288,7 +288,7 @@
     let yildiz = "";
     for (let i = 0; i < MAX_SV; i++) {
       yildiz += `<span style="color:${i < sv ? "#ffd257" : "rgba(255,255,255,.30)"};
-                   font-size:27px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
+                   font-size:33px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
     }
 
     const alt = sonSeviye

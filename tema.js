@@ -2824,10 +2824,25 @@ st.textContent = `
 }
 #heroDetailOverlay #hdClose:active{ transform:scale(.92) !important; }
 
-/* Oklar gizlendi — silinmediler, çünkü kaydırma onların
-   tıklamasını tetikliyor (geçiş mantığı tek yerde kalsın). */
+/* Oklar GÖRÜNÜR — kaydırma da bunların tıklamasını tetikler,
+   geçiş mantığı tek yerde kalır. Düz biçim: kontur/kabartı yok. */
 #heroDetailOverlay #hdPrev,
-#heroDetailOverlay #hdNext{ display:none !important; }
+#heroDetailOverlay #hdNext{
+  display:flex !important; align-items:center !important;
+  justify-content:center !important;
+  top:50% !important; width:34px !important; height:46px !important;
+  border:none !important; border-radius:10px !important;
+  background:rgba(4,16,38,.45) !important;
+  color:#eaf4ff !important; font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-size:26px !important; font-weight:800 !important; line-height:1 !important;
+  padding:0 !important; box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+#heroDetailOverlay #hdPrev{ left:4px !important; }
+#heroDetailOverlay #hdNext{ right:4px !important; }
+#heroDetailOverlay #hdPrev:active,
+#heroDetailOverlay #hdNext:active{
+  transform:translateY(-50%) scale(.96) !important; filter:brightness(.93) !important;
+}
 `;
 
 function ekle() {
@@ -2887,15 +2902,10 @@ function kart() {
    DİKKAT: style ATTRIBUTE'una göre seçme (img[style*="..."]) burada
    çalışmaz; stil cssText ile atandığı için tarayıcı onu boşluklu
    biçimde ("object-fit: contain") saklıyor ve eşleşme tutmuyordu. */
-function esik(o) {
-  let g = 0;
-  o.querySelectorAll("img").forEach(im => {
-    if (getComputedStyle(im).objectFit !== "contain") return;
-    const w = im.getBoundingClientRect().width;
-    if (w > g) g = w;
-  });
-  return (g > 40 ? g : o.clientWidth) / 2;
-}
+/* EŞİK artık görselin yarısı DEĞİL, sabit ve küçük: 40px.
+   Eskiden kartın yarısı kadar sürüklemek gerekiyordu. */
+const ESIK = 40;
+function esik() { return ESIK; }
 
 document.addEventListener("touchstart", e => {
   izliyor = false;
@@ -2917,17 +2927,16 @@ document.addEventListener("touchend", e => {
   const t = e.changedTouches[0];
   const dx = t.clientX - x0;
   const dy = t.clientY - y0;
-  if (Math.abs(dx) < esik(o)) return;
+  if (Math.abs(dx) < esik()) return;
   if (Math.abs(dx) < Math.abs(dy) * DIKEY_PAY) return;
 
   const btn = o.querySelector(dx < 0 ? "#hdNext" : "#hdPrev");
   if (!btn) return;
 
-  /* Kısa bir sönme, geçiş sert olmasın. openHeroDetail kartın
-     style'ını baştan yazdığı için opacity kendiliğinden geri gelir. */
-  o.style.transition = "opacity .12s ease";
-  o.style.opacity = "0";
-  setTimeout(() => btn.click(), 120);
+  /* Sönme YOK. Eskiden opacity 0'a çekilip 120ms sonra geçiliyordu;
+     kart o sırada baştan kuruluyordu ve "kapanıp açılıyor" gibi
+     görünüyordu. Artık yalnız içerik değişiyor, geçiş kesintisiz. */
+  btn.click();
 }, { passive: true });
 
 document.addEventListener("touchcancel", () => { izliyor = false; }, { passive: true });
