@@ -253,7 +253,7 @@ const HERO_STATS = {
     name: "REVOLİA",
     specialty: "Elektrik",
     specialtyIcon: "🤖",
-    desc: "Elektriğin gücünü kuşanan robot komutan; rakibi zayıflatır, robotları güçlendirir.",
+    desc: "Elektriğin gücünü kuşanan komutan; rakibi zayıflatır, Nişancı birliklerini güçlendirir.",
     color: "#4fd1e8",
     price: 400000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
@@ -270,7 +270,7 @@ const HERO_STATS = {
       {
         icon: "yetenek_yukleme.webp",
         title: "Aşırı Yükleme",
-        descTemplate: "Ordudaki robot birliklerinin saldırı ve can istatistiğini {value} arttırır.",
+        descTemplate: "Ordudaki Nişancı birliklerinin saldırı ve can istatistiğini {value} arttırır.",
         valuesByLevel: [30, 34, 36, 38, 40],
         effect: { type: "robot_atk_hp_pct", troopType: "robot" }
       },
@@ -287,8 +287,8 @@ const HERO_STATS = {
     /* PASİF YETENEK — detay ekranında ✕ butonunun altında yuvarlak kutu olarak görünür */
     passive: {
       icon: "yetenek_kopya.webp",
-      title: "Robot Kopyalama",
-      desc: "Sahip olunan robotlar kopyalanarak kale savunmasında 2 katı kadar çoğalır.",
+      title: "Nişancı Kopyalama",
+      desc: "Sahip olunan Nişancı birlikleri kopyalanarak kale savunmasında 2 katı kadar çoğalır.",
       /* Sadece KALE SAVUNMASINDA: robot sayısı hesapta 2 ile çarpılır, gerçek envanter değişmez. */
       effect: { type: "defense_robot_multiplier", multiplier: 2, troopType: "robot" }
     }
