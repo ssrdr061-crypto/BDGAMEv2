@@ -8222,9 +8222,17 @@ const TroopViewer = (function () {
       if (_fx) {
         const _ac = (uid === "knight" && lv === 5);
         _fx.style.opacity = _ac ? "1" : "0";
-        /* Görünür olduktan SONRA ölç — o ana kadar ölçü sıfırdır */
-        if (_ac && typeof window.robotFxOlc === "function") {
-          requestAnimationFrame(() => window.robotFxOlc());
+        /* Yıldırım "lighter" kipiyle çizilir: açık zeminde görünmez.
+           tema.js zemini transparent yapıyor (!important), o yüzden
+           Sv5'te koyu zemin importance ile geri verilir. */
+        if (_ac) {
+          _fx.style.setProperty("background", "#050b18", "important");
+          /* Görünür olduktan SONRA ölç — o ana kadar ölçü sıfırdır */
+          if (typeof window.robotFxOlc === "function") {
+            requestAnimationFrame(() => window.robotFxOlc());
+          }
+        } else {
+          _fx.style.removeProperty("background");
         }
       }
 
