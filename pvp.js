@@ -917,6 +917,19 @@ function orderFor(srcKey) {
    Öncelikli hedefi biterse döngüde sıradaki tipe TAŞAR.
    taban: ordu bu birlik sayısına inince kırım durur (bozgun eşiği);
           artan hasar boşa gider — böylece eşik AŞILMAZ.            */
+/* Vuranın ailesi: "knight3" → knight · "hero:robot" → robot */
+function kaynakAilesi(srcKey) {
+  const t = String(srcKey).split(":")[1] || String(srcKey);
+  return AILE(t);
+}
+/* Üstünlük çemberi çarpanı (troops.js → CEMBER). Katman yoksa 1. */
+function cemberCarp(srcKey, hedefAile) {
+  try {
+    if (typeof cemberCarpani === "function") return cemberCarpani(kaynakAilesi(srcKey), hedefAile);
+  } catch (e) {}
+  return 1;
+}
+
 function damageBySource(a, srcKey, dmg, taban, src) {
   if (dmg <= 0) return;
   a.damageTaken += dmg;
@@ -934,6 +947,13 @@ function damageBySource(a, srcKey, dmg, taban, src) {
       .sort((p, q) => KADEME_NO(p.unitId) - KADEME_NO(q.unitId));
     if (!grup.length) continue;                     /* bu aile yok → sıradakine TAŞ */
 
+    /*  ── ÜSTÜNLÜK ÇEMBERİ ──
+        Hasarı çarpmak yerine birim canının MALİYETİNİ bölüyoruz:
+        çarpan 1.20 ise aynı hasarla %20 fazla birlik düşer. Matematik
+        aynı, ama hasar havuzu aileler arasında taşarken bozulmuyor —
+        havuzu çarpsaydık sıradaki aileye şişmiş hasar geçerdi. */
+    const carp = cemberCarp(srcKey, fam);
+
     let doldu = false;      /* tipte birlik var ama hasar yetmedi */
 
     for (const u of grup) {
@@ -941,8 +961,9 @@ function damageBySource(a, srcKey, dmg, taban, src) {
       if (armyTroopCount(a) <= taban) break;
       if (u.passive || u.count <= u.floor) continue;  /* çekilmiş kademe → sıradakine TAŞ */
 
-      while (u.count > u.floor && a.pendingBy[srcKey] >= u.hp && armyTroopCount(a) > taban) {
-        a.pendingBy[srcKey] -= u.hp;
+      const bedel = Math.max(1, Math.round(u.hp / carp));
+      while (u.count > u.floor && a.pendingBy[srcKey] >= bedel && armyTroopCount(a) > taban) {
+        a.pendingBy[srcKey] -= bedel;
         u.count--;
         const oldu = Math.random() < CFG.deathPct;
         if (oldu) a.killed[u.unitId]  = (a.killed[u.unitId]  || 0) + 1;

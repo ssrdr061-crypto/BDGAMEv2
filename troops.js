@@ -48,6 +48,36 @@ const UNIT_TYPES = {
     ayrı görsel çizince KADEME_GORSEL tablosunu doldur, başka
     hiçbir yeri değiştirmen gerekmez.
     ───────────────────────────────────────────── */
+/*  ─────────────────────────────────────────────
+    ÜSTÜNLÜK ÇEMBERİ  —  TEK DOĞRULUK KAYNAĞI
+    Hasar hedefe İNERKEN bu çarpanla ölçeklenir (pvp.js · pve.js).
+
+        Savunucu  →  Koruyucu'ya güçlü
+        Koruyucu  →  Nişancı'ya güçlü
+        Nişancı   →  Savunucu'ya güçlü
+
+    Kademe fark etmez, AİLE üzerinden çalışır — 18 birlik de kapsanır.
+    Sertliği değiştirmek istersen SADECE bu iki sayıyı oynat:
+        güçlü olduğu hedefe 1.20 · zayıf olduğu hedefe 0.85
+    Tabloyu bozma; çember üç yönlü olmazsa bir aile ezilir.
+    ───────────────────────────────────────────── */
+const CEMBER = {
+  knight:  { knight: 1.00, soldier: 1.20, robot:   0.85 },
+  soldier: { soldier: 1.00, robot:   1.20, knight:  0.85 },
+  robot:   { robot:   1.00, knight:  1.20, soldier: 0.85 },
+};
+
+/* Vuran aile → hedef aile çarpanı. Tanınmayan taraf varsa 1 döner
+   (canavar, kahraman ya da ileride eklenecek dördüncü aile). */
+function cemberCarpani(kaynakAile, hedefAile) {
+  const r = CEMBER[kaynakAile];
+  if (!r) return 1;
+  const v = r[hedefAile];
+  return (typeof v === "number" && v > 0) ? v : 1;
+}
+window.CEMBER = CEMBER;
+window.cemberCarpani = cemberCarpani;
+
 const KADEME_SAYISI = 6;
 
 const KADEME = {
@@ -55,11 +85,12 @@ const KADEME = {
       Birlikler yükseldikçe kendi karakterlerinde uzmanlaşır:
         Savunucu → savunma ve cana ağırlık verir (tanklaşır)
         Nişancı  → saldırı ve öldürücülüğe ağırlık verir (delicileşir)
-        Koruyucu → dört yöne dengeli, ama toplamda bir tık az (16'ya 18)
+        Koruyucu → dört yöne dengeli; toplamı diğer ikisiyle EŞİT (18).
+                   Üstünlüğü statlardan değil ÜSTÜNLÜK ÇEMBERİ'nden gelir.
       Sayıları değiştirmek yeterli, başka hiçbir yeri elleme.       */
   STAT_ARTIS: {
     knight:  { attack: 3, defense: 6, hp: 6, olum: 3 },   /* toplam 18 */
-    soldier: { attack: 4, defense: 4, hp: 4, olum: 4 },   /* toplam 16 */
+    soldier: { attack: 4, defense: 4, hp: 5, olum: 5 },   /* toplam 18 */
     robot:   { attack: 6, defense: 3, hp: 3, olum: 6 },   /* toplam 18 */
   },
 

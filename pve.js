@@ -59,6 +59,11 @@
        çarpanı kullan — pvp.js'e dokunmadan. */
     canavarAtkCarpani: 1.0,
     canavarDefCarpani: 1.0,
+
+    /* Canavarın ÜSTÜNLÜK ÇEMBERİ'ndeki ailesi (troops.js → CEMBER).
+       "robot" = Nişancı: Savunucu'ya güçlü, Koruyucu'ya zayıf.
+       Boş bırakılırsa ("") canavar çembersiz vurur. */
+    canavarAile: "robot",
   };
 
   /* Hedef önceliği — pvp.js'teki TARGET_ORDER ile AYNI olmalı.
@@ -236,27 +241,45 @@
     const sira = HEDEF_SIRASI[AILE(srcKey)] || HEDEF_SIRASI[srcKey] || ON_SAF;
     let kalan = dmg, dusenToplam = 0;
 
+    /* Üstünlük çemberi (troops.js → CEMBER). Canavarın ailesi
+       PVE.canavarAile'den gelir; "front" gibi sınıfsız kaynaklar
+       çarpansız kalır. */
+    const kaynak = (srcKey === "front" || srcKey === "enemy")
+      ? (PVE.canavarAile || "") : AILE(srcKey);
+    const carpani = (fam) => {
+      try {
+        if (typeof cemberCarpani === "function") return cemberCarpani(kaynak, fam);
+      } catch (e) {}
+      return 1;
+    };
+
     /* `sira` AİLE listesidir; bir ailenin birden çok kademesi olabilir.
        Ön safta önce ALT kademeler kırılır. */
     const hedefler = [];
     sira.forEach(fam => {
+      const c = carpani(fam);
       birimler.filter(x => AILE(x.unitId) === fam)
               .sort((p, q) => KADEME_NO(p.unitId) - KADEME_NO(q.unitId))
-              .forEach(x => hedefler.push(x));
+              .forEach(x => hedefler.push({ u: x, carp: c }));
     });
 
-    for (const u of hedefler) {
+    for (const h of hedefler) {
       if (kalan <= 0) break;
       if (orduSayi(birimler) <= taban) break;
+      const u = h && h.u;
       if (!u || u.count <= 0) continue;
 
+      /* Çember: hasarı çarpmak yerine birim canının maliyetini böl —
+         havuz sıradaki aileye şişmeden geçsin. */
+      const can = Math.max(1, Math.round(u.hpEach / (h.carp || 1)));
+
       /* Bu tipe verilebilecek en fazla hasar */
-      const tavan = u.count * u.hpEach - u.artik;
+      const tavan = u.count * can - u.artik;
       const verilen = Math.min(kalan, tavan);
       kalan -= verilen;
 
       u.artik += verilen;
-      let dusen = Math.floor(u.artik / u.hpEach);
+      let dusen = Math.floor(u.artik / can);
 
       /* Yenilgi eşiğini aşma: fazlası boşa gider */
       const yer = orduSayi(birimler) - taban;
@@ -265,7 +288,7 @@
       if (dusen > 0) {
         u.count -= dusen;
         u.dusen += dusen;
-        u.artik -= dusen * u.hpEach;
+        u.artik -= dusen * can;
         dusenToplam += dusen;
       }
     }
