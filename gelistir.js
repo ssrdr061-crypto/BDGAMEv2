@@ -227,7 +227,6 @@
      "Geliştir" düğmesi aç/kapa görevi görür. */
 
   const PANEL_ID = "glsPanel";
-  let aktifSekme = "yetenek";      /* "stat" | "yetenek" | "taki" */
 
   function kutucuklar(gizle) {
     /* Yetenek kutucukları ve üstteki yıldız şeridi panelle birlikte
@@ -257,7 +256,6 @@
     const ov = document.getElementById("heroDetailOverlay");
     if (!ov) { toast("Kahraman ekranı açık değil."); return; }
 
-    aktifSekme = "yetenek";
     kutucuklar(true);
 
     const p = document.createElement("div");
@@ -274,52 +272,6 @@
     ov.appendChild(p);
 
     ciz(p, id);
-  }
-
-  /* ── SEKME İÇERİKLERİ ───────────────────────────────────────── */
-
-  function satirHTML(ad, simdi, sonra, yuzde) {
-    const im = yuzde ? "%" : "";
-    const sag = (sonra != null)
-      ? `<span style="color:#9fb6c9;">${im}${simdi}</span>
-         <span style="color:#9fb6c9;margin:0 5px;">→</span>
-         <span style="color:#ffd700;font-weight:800;">${im}${sonra}</span>`
-      : `<span style="color:#9fb6c9;">${im}${simdi}</span>`;
-    return `
-      <div style="display:flex;justify-content:space-between;align-items:center;
-                  gap:8px;padding:7px 0;border-bottom:1px solid rgba(190,240,255,.10);">
-        <div style="font-size:12.5px;color:#cbe4ff;">${ad}</div>
-        <div style="font-size:12.5px;white-space:nowrap;">${sag}</div>
-      </div>`;
-  }
-
-  function sekmeYetenek(id) {
-    const k = yetenekKiyas(id);
-    if (!k.length) return `<div style="padding:16px 0;text-align:center;color:#9fb6c9;font-size:13px;">Yetenek yok.</div>`;
-    let out = "";
-    k.forEach(x => { if (x.simdi != null) out += satirHTML(x.ad + (x.ek || ""), x.simdi, x.sonra, true); });
-    return out;
-  }
-
-  function sekmeStat(id) {
-    /* Kahraman statı şu an OYUNCUYA ait (state.hero), kahramana özel değil.
-       "Seviye kadar +stat" sistemi bağlanınca artış sütunu kendiliğinden dolar. */
-    const s = S() || {};
-    const h = s.hero || {};
-    let out = "";
-    out += satirHTML("Kahraman Saldırı", Math.round(h.attack  || 0), null, false);
-    out += satirHTML("Kahraman Savunma", Math.round(h.defense || 0), null, false);
-    out += satirHTML("Kahraman Can",     Math.round(h.maxHp   || 0), null, false);
-    out += `<div style="padding:10px 2px 0;font-size:11.5px;color:#7f96a8;line-height:1.5;">
-              Seviyeye bağlı stat artışı henüz bağlanmadı.
-            </div>`;
-    return out;
-  }
-
-  function sekmeTaki() {
-    return `<div style="padding:22px 0;text-align:center;color:#7f96a8;font-size:13px;">
-              Takı sistemi yakında.
-            </div>`;
   }
 
   /* İçerik YERİNDE tazelenir → kaydırma korunur */
@@ -392,146 +344,173 @@
     if (arti) arti.onclick = e => { e.stopPropagation(); parcaPenceresi(id, p); };
   }
 
-  /* ── PARÇA PENCERESİ — "+" düğmesi açar ─────────────────────
-     Mağazanın satın alma penceresi düzeni: solda ikon, sağda ad,
-     altta açıklama. Kapatma yalnız dışarı dokunarak. */
-  const PP_ID = "glsParcaKat";
+  /* ── PARÇA KULLANMA PENCERESİ — "+" düğmesi açar ────────────
+     Düzen mağazanın satın alma penceresiyle aynı (ikon + ad,
+     − sürgü + sayı MAX, tek düğme) ama boyaması DÜZ: kalın
+     çerçeve, kabartı, parlaklık yok. Arka plan KARARMAZ.
+     Çantada o parçadan yoksa pencere hiç açılmaz (uyarı çıkar). */
+  const PK_ID = "glsParcaKat";
+
+  /* Parça anahtarına karşılık gelen ÇANTA eşyasının adı.
+     Tek yer burası — magaza.js'teki isParca ürünleriyle eşleşir. */
+  const PAKET_ADI = {
+    mor:      "Mor Kahraman Parçası",
+    ivanovna: "İVANOVNA Parçası",
+    revolia:  "REVOLİA Parçası"
+  };
+
+  function cantadaki(ad) {
+    const s = S();
+    try { return Math.floor((s && s.inventory && s.inventory[ad]) || 0); }
+    catch (e) { return 0; }
+  }
+
+  /* Pencerenin biçimi — bir kez enjekte edilir. Düz. */
+  function stilKur() {
+    if (document.getElementById("glsKullanStil")) return;
+    const st = document.createElement("style");
+    st.id = "glsKullanStil";
+    st.textContent = `
+.glsk-kat{ position:fixed; inset:0; z-index:9100; display:flex;
+  align-items:center; justify-content:center; padding:18px;
+  background:transparent; }
+.glsk-kutu{ width:min(330px,90vw); box-sizing:border-box; padding:15px;
+  border:none; border-radius:16px; color:${TEMA.yazi};
+  font-family:${YAZI}; font-weight:700;
+  background:linear-gradient(180deg,${TEMA.ust} 0%,${TEMA.orta} 55%,${TEMA.alt} 100%);
+  box-shadow:0 2px 6px rgba(0,20,45,.3); }
+.glsk-ust{ display:flex; align-items:center; gap:11px; margin-bottom:14px; }
+.glsk-ikon{ flex:0 0 52px; width:52px; height:52px; border-radius:12px;
+  position:relative; overflow:hidden; border:none; }
+.glsk-ikon img{ position:absolute; inset:0; width:100%; height:100%; }
+.glsk-ad{ flex:1; min-width:0; font-size:15px; font-weight:800;
+  color:${TEMA.sari}; text-shadow:${TEMA.golge}; }
+.glsk-satir{ display:flex; align-items:center; gap:7px; }
+.glsk-dg{ flex:0 0 auto; height:34px; min-width:34px; padding:0 9px;
+  border:none; border-radius:10px; font-family:${YAZI};
+  font-weight:800; font-size:15px; line-height:34px; color:${TEMA.yazi};
+  background:rgba(255,255,255,.10); box-shadow:none;
+  transition:transform .09s ease, filter .09s ease; }
+.glsk-max{ font-size:12px; color:${TEMA.sari}; }
+.glsk-sayi{ flex:0 0 auto; min-width:38px; height:34px; line-height:34px;
+  text-align:center; border-radius:10px; font-size:14px; font-weight:800;
+  background:rgba(11,28,58,.55); }
+.glsk-surgu{ flex:1; min-width:0; height:34px; margin:0; padding:0;
+  -webkit-appearance:none; appearance:none; background:transparent; }
+.glsk-surgu::-webkit-slider-runnable-track{ height:6px; border-radius:3px;
+  background:linear-gradient(90deg,${TEMA.sari} 0 var(--dolu,0%),
+    rgba(11,28,58,.55) var(--dolu,0%) 100%); }
+.glsk-surgu::-moz-range-track{ height:6px; border-radius:3px;
+  background:linear-gradient(90deg,${TEMA.sari} 0 var(--dolu,0%),
+    rgba(11,28,58,.55) var(--dolu,0%) 100%); }
+.glsk-surgu::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none;
+  width:18px; height:18px; margin-top:-6px; border:none; border-radius:50%;
+  background:#eaf4ff; box-shadow:0 2px 6px rgba(0,20,45,.3); }
+.glsk-surgu::-moz-range-thumb{ width:18px; height:18px; border:none;
+  border-radius:50%; background:#eaf4ff; box-shadow:0 2px 6px rgba(0,20,45,.3); }
+.glsk-git{ width:100%; margin-top:13px; padding:11px; border:none;
+  border-radius:12px; font-family:${YAZI}; font-weight:800; font-size:15px;
+  color:#20140a; text-shadow:none;
+  background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  transition:transform .09s ease, filter .09s ease; }
+.glsk-dg:active,.glsk-git:active{ transform:scale(.96); filter:brightness(.93); }
+`;
+    document.head.appendChild(st);
+  }
 
   function parcaPenceresi(id, panel) {
-    const eski = document.getElementById(PP_ID);
+    const anahtar = parcaAnahtari(id);
+    const paket   = PAKET_ADI[anahtar] || "";
+    const enFazla = cantadaki(paket);
+
+    /* Çantada yoksa pencere açılmaz. */
+    if (enFazla <= 0) { toast("Çantanda bu parçadan yok."); return; }
+
+    stilKur();
+    const eski = document.getElementById(PK_ID);
     if (eski) eski.remove();
 
-    const h = HERO_STATS[id];
-    const n = nadirlik(id);
-    const r = RENK[n];
+    let adet = 1;
 
     const kat = document.createElement("div");
-    kat.id = PP_ID;
-    kat.style.cssText =
-      "position:fixed;inset:0;z-index:9100;display:flex;" +
-      "align-items:center;justify-content:center;padding:18px;" +
-      "background:rgba(2,10,24,.60);";
+    kat.id = PK_ID;
+    kat.className = "glsk-kat";
+    kat.innerHTML =
+      '<div class="glsk-kutu">' +
+        '<div class="glsk-ust">' +
+          '<div class="glsk-ikon">' +
+            '<img src="' + RENK[nadirlik(id)].arka + '" alt="" style="object-fit:cover" ' +
+                 'onerror="this.style.display=\'none\'">' +
+            '<img src="' + parcaGorseli(id) + '" alt="" style="object-fit:contain" ' +
+                 'onerror="this.style.display=\'none\'">' +
+          '</div>' +
+          '<div class="glsk-ad">' + paket + '</div>' +
+        '</div>' +
+        '<div class="glsk-satir">' +
+          '<button class="glsk-dg" type="button" data-d="-1">−</button>' +
+          '<input class="glsk-surgu" type="range" min="1" max="' + enFazla + '" value="1">' +
+          '<button class="glsk-dg" type="button" data-d="1">+</button>' +
+          '<div class="glsk-sayi">1</div>' +
+          '<button class="glsk-dg glsk-max" type="button">MAX</button>' +
+        '</div>' +
+        '<button class="glsk-git" type="button">KULLAN</button>' +
+      '</div>';
     document.body.appendChild(kat);
 
-    const kutu = document.createElement("div");
-    kutu.style.cssText =
-      "width:min(330px,90vw);box-sizing:border-box;color:#eaf6ff;" +
-      `background:linear-gradient(180deg,${TEMA.ust} 0%,${TEMA.orta} 55%,${TEMA.alt} 100%);` +
-      `border:1px solid ${TEMA.kenar};border-radius:16px;padding:15px;` +
-      `font-family:${YAZI};box-shadow:0 2px 6px rgba(0,20,45,.3);`;
-    kat.appendChild(kutu);
+    const surgu = kat.querySelector(".glsk-surgu");
+    const sayi  = kat.querySelector(".glsk-sayi");
+    const git   = kat.querySelector(".glsk-git");
+
+    function esitle() {
+      adet = Math.min(enFazla, Math.max(1, adet));
+      surgu.value = adet;
+      sayi.textContent = adet;
+      const oran = enFazla > 1 ? ((adet - 1) / (enFazla - 1)) * 100 : 100;
+      surgu.style.setProperty("--dolu", oran + "%");
+    }
+
+    surgu.addEventListener("input", () => {
+      adet = parseInt(surgu.value, 10) || 1; esitle();
+    });
+    Array.prototype.forEach.call(kat.querySelectorAll(".glsk-dg[data-d]"), b => {
+      b.onclick = e => { e.stopPropagation(); adet += parseInt(b.dataset.d, 10); esitle(); };
+    });
+    kat.querySelector(".glsk-max").onclick = e => {
+      e.stopPropagation(); adet = enFazla; esitle();
+    };
+
+    git.onclick = e => {
+      e.stopPropagation();
+      kullan(paket, anahtar, adet);
+      kat.remove();
+      if (panel) ciz(panel, id);
+      yenile();
+    };
 
     /* Dışarı dokunma kapatır — dinleyici GECİKMELİ bağlanır, yoksa
        "+" düğmesinin kendi dokunuşu pencereyi anında kapatır (Tuzak 35). */
     setTimeout(() => {
-      kat.addEventListener("pointerup", e => { if (e.target === kat) kat.remove(); });
+      kat.addEventListener("pointerup", ev => { if (ev.target === kat) kat.remove(); });
     }, 0);
 
-    const ciz2 = () => {
-      const sv = seviye(id);
-      const sonSeviye = sv >= MAX_SV;
-      const bedel = maliyet(id);
-      const eldeki = parcaSayisi(id);
-      const yeter = !sonSeviye && eldeki >= bedel;
-      const eksik = Math.max(0, bedel - eldeki);
+    esitle();
+  }
 
-      const sekmeler = [
-        { k: "stat",    ad: "İstatistik" },
-        { k: "yetenek", ad: "Yetenekler" },
-        { k: "taki",    ad: "Takılar"    }
-      ];
-      let sekmeBar = "";
-      sekmeler.forEach(x => {
-        const se = aktifSekme === x.k;
-        sekmeBar += `
-          <button class="glsSekme" data-k="${x.k}" style="flex:1;padding:8px 4px;border:none;
-                  font-family:inherit;font-size:12px;font-weight:800;
-                  background:${se ? "rgba(255,255,255,.16)" : "transparent"};
-                  color:${se ? TEMA.yazi : TEMA.solgun};
-                  border-bottom:2px solid ${se ? TEMA.sari : "transparent"};">
-            ${x.ad}
-          </button>`;
-      });
+  /* Seçilen adet kadar paketi çantadan düşer, havuza ekler. */
+  function kullan(paket, anahtar, adet) {
+    const s = S(); if (!s) return;
+    const varOlan = cantadaki(paket);
+    adet = Math.max(1, Math.min(Math.floor(adet), varOlan));
+    if (adet <= 0) return;
 
-      const icerik = aktifSekme === "stat" ? sekmeStat(id)
-                   : aktifSekme === "taki" ? sekmeTaki()
-                   : sekmeYetenek(id);
+    if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
+    s.inventory[paket] = varOlan - adet;
+    if (s.inventory[paket] <= 0) delete s.inventory[paket];
 
-      kutu.innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:56px;height:56px;border-radius:12px;flex:0 0 auto;
-                      position:relative;overflow:hidden;
-                      background:linear-gradient(180deg,${r.ana},${r.koyu});">
-            <img src="${r.arka}" alt=""
-                 style="position:absolute;inset:0;width:100%;height:100%;
-                        object-fit:cover;"
-                 onerror="this.style.display='none'">
-            <img src="${parcaGorseli(id)}" alt=""
-                 style="position:absolute;inset:0;width:100%;height:100%;
-                        object-fit:contain;"
-                 onerror="this.replaceWith(Object.assign(document.createElement('div'),
-                          {textContent:'◆',
-                           style:'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:25px;'}))">
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:15px;font-weight:800;color:${TEMA.sari};">${h.name} · Sv${sv}</div>
-            <div style="font-size:12px;color:#cbe4ff;">
-              ${r.ad} · elinde ${eldeki}
-              ${sonSeviye ? "" : ` · gereken ${bedel}`}
-            </div>
-          </div>
-        </div>
-
-        <div style="display:flex;margin-top:11px;
-                    border-bottom:1px solid rgba(190,240,255,.18);">${sekmeBar}</div>
-
-        <div style="max-height:34vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
-                    padding:4px 2px 6px;">${icerik}</div>
-
-        ${eksik ? `<div style="margin-top:8px;font-size:12px;color:#ffb08a;">
-                     ${eksik} parça eksik.</div>` : ""}
-
-        <button id="ppYukselt" style="width:100%;margin-top:11px;padding:11px;border:none;
-                border-radius:11px;font-weight:800;font-size:15px;font-family:inherit;
-                font-family:${YAZI};text-shadow:${TEMA.golge};
-                background:${yeter
-                  ? `linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu})`
-                  : "rgba(255,255,255,.10)"};
-                color:${yeter ? "#20140a" : TEMA.solgun};">
-          ${sonSeviye ? "En yüksek seviye" : `Sv${sv + 1}'e Yükselt`}
-        </button>
-
-        <button id="ppMagaza" style="width:100%;margin-top:7px;padding:10px;border:none;
-                border-radius:11px;font-weight:800;font-size:13.5px;font-family:inherit;
-                font-family:${YAZI};background:rgba(255,255,255,.10);color:${TEMA.yazi};">
-          Mağazadan parça al
-        </button>
-      `;
-
-      Array.prototype.forEach.call(kutu.querySelectorAll(".glsSekme"), b => {
-        b.onclick = e => { e.stopPropagation(); aktifSekme = b.dataset.k; ciz2(); };
-      });
-
-      const y = kutu.querySelector("#ppYukselt");
-      if (y) y.onclick = e => {
-        e.stopPropagation();
-        if (yukselt(id)) {
-          ciz2();
-          if (panel) ciz(panel, id);
-          yenile();
-        }
-      };
-      const m = kutu.querySelector("#ppMagaza");
-      if (m) m.onclick = e => {
-        e.stopPropagation();
-        kat.remove();
-        const hd = document.getElementById("heroDetailOverlay");
-        if (hd) hd.style.display = "none";
-        if (typeof openOverlayPanel === "function") openOverlayPanel("shop");
-        else toast("Mağaza sekmesinden parça alabilirsin.");
-      };
-    };
-    ciz2();
+    parcaEkleAnahtar(anahtar, adet);        /* kaydet() içeride çağrılır */
+    try { if (typeof renderInventory === "function") renderInventory(); } catch (e) {}
+    toast(adet + " " + paket + " kullanıldı.");
   }
 
   /* Açık ekranları tazele — kart listesi ve kahraman detayı */
