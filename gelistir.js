@@ -265,7 +265,7 @@
     const sahipli = sahip(id);
     p.style.cssText =
       "position:absolute;left:12px;right:12px;z-index:8;" +
-      "bottom:" + (sahipli ? "3%" : "calc(4% + 58px)") + ";" +
+      "bottom:" + (sahipli ? "46px" : "104px") + ";" +
       "box-sizing:border-box;color:#eaf6ff;background:none;border:none;" +
       "display:flex;flex-direction:column;";
 

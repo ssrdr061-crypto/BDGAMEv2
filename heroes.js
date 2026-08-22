@@ -22,7 +22,7 @@ const HERO_UI = {
      Burada bir şey değiştirirsen tema.js'te aynı değeri de değiştir,
      yoksa iki menü arasındaki hiza kayar. */
   kartUst:        "60px",    /* üstten boşluk — elmas paneli açıkta kalsın */
-  kartAlt:        "70px",    /* alttan boşluk — dock'un üstünde dursun     */
+  kartAlt:        "56px",    /* alttan boşluk — dock'un üstünde dursun     */
   kartKenar:      "12px",    /* sağ/sol boşluk                            */
   kartMaxGenislik:"420px",   /* en fazla genişlik                         */
   kartRadius:     "22px",    /* köşe yuvarlaklığı (dört köşe)             */
@@ -49,7 +49,7 @@ const HERO_UI = {
   /* ── SATIN AL / GELİŞTİR BUTONU ──
      Kahraman detay ekranının altındaki buton. */
   buyBtn: {
-    bottom: "2.5%",      /* alttan uzaklık (biraz aşağı alındı, çerçeveye yapışmadan) */
+    bottom: "48px",      /* alttan uzaklık — sekme şeridinin üstünde durur */
     width: "64%",        /* buton genişliği */
     height: "46px",
     fontSize: "16px",
@@ -594,7 +594,13 @@ function openHeroDetail(skinId) {
     <div id="hdName" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:5;font-family:'Baloo 2','Nunito',sans-serif;font-size:26px;font-weight:800;letter-spacing:1.5px;color:#ffffff;-webkit-text-stroke:4px #0b1c3a;paint-order:stroke fill;text-shadow:none;white-space:nowrap;">${h.name}</div>
     <div id="hdStars" style="position:absolute;left:50%;transform:translateX(-50%);top:${cfg.stars.posY};display:flex;gap:4px;z-index:5;"></div>
     <div id="hdBoxL" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
-    <div id="hdBoxR" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>`;
+    <div id="hdBoxR" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
+    <div id="hdStatPanel" style="display:none;position:absolute;top:56px;bottom:74px;right:0;width:44%;z-index:6;box-sizing:border-box;padding:10px 11px;border:none;border-top-left-radius:12px;border-bottom-left-radius:12px;background:rgba(255,255,255,.22);color:#ffffff;font-family:'Baloo 2','Nunito',sans-serif;font-size:12px;font-weight:700;overflow-y:auto;-webkit-overflow-scrolling:touch;text-shadow:0 1px 2px rgba(0,20,45,.55);"></div>
+    <div id="hdTabs" style="position:absolute;left:0;right:0;bottom:0;z-index:9;display:flex;gap:6px;padding:7px 8px;box-sizing:border-box;background:linear-gradient(180deg,rgba(4,16,38,.0),rgba(4,16,38,.55));">
+      <button class="hd-tab" data-t="detay"   style="flex:1;">DETAY</button>
+      <button class="hd-tab" data-t="stat"    style="flex:1;">STAT</button>
+      <button class="hd-tab" data-t="ekipman" style="flex:1;">EKİPMAN</button>
+    </div>`;
   ov.style.display = "flex";
   ov.dataset.hero = skinId;   /* gelistir.js yıldızları tazelerken okur */
 
@@ -647,7 +653,7 @@ function openHeroDetail(skinId) {
   U.boxes.box1 = Object.assign({ dx: 0, dy: 0 }, (SRC.boxes || {}).box1);
   U.boxes.box2 = Object.assign({ dx: 0, dy: 0 }, (SRC.boxes || {}).box2);
   U.boxes.box3 = Object.assign({ dx: 0, dy: 0 }, (SRC.boxes || {}).box3);
-  U.buyBtn = Object.assign({ bottom: "4%", width: "64%", height: "46px", fontSize: "16px", dx: 0, dy: 0 }, SRC.buyBtn);
+  U.buyBtn = Object.assign({ bottom: "48px", width: "64%", height: "46px", fontSize: "16px", dx: 0, dy: 0 }, SRC.buyBtn);
   /* ── KAHRAMAN BAŞINA UI İNCE AYARI ──
      Global U'nun üstüne, o kahramana özel (HERO_UI_BY_HERO) değerleri biner. */
   const perHero = (typeof HERO_UI_BY_HERO !== "undefined") ? (HERO_UI_BY_HERO[skinId] || null) : null;
@@ -903,6 +909,50 @@ ${modelTxt}`;
     panel.dataset.open = "passive";
   };
 
+  /* ── SEKMELER: DETAY · STAT · EKİPMAN ───────────────────────
+     DETAY  = yetenek kutucukları + yıldız/geliştir paneli
+     STAT   = kahraman sola kayar, sağda şeffaf dikey panel açılır
+     EKİPMAN= şimdilik boş                                        */
+  {
+    const tabs    = ov.querySelectorAll(".hd-tab");
+    const statPnl = ov.querySelector("#hdStatPanel");
+
+    const gorunum = (el, ac) => { if (el) el.style.display = ac ? "" : "none"; };
+
+    function sekmeSec(k) {
+      ov.dataset.sekme = k;
+      tabs.forEach(b => {
+        const se = b.dataset.t === k;
+        b.style.cssText =
+          "flex:1;padding:7px 4px;border:none;border-radius:9px;" +
+          "font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:12px;" +
+          "box-shadow:0 2px 6px rgba(0,20,45,.3);transition:transform .09s ease,filter .09s ease;" +
+          (se ? "background:linear-gradient(180deg,#ffd257,#f0932b);color:#20140a;"
+              : "background:rgba(4,16,38,.45);color:#a8c7e0;");
+      });
+
+      const detay = (k === "detay");
+      gorunum(ov.querySelector("#hdBoxL"), detay);
+      gorunum(ov.querySelector("#hdBoxR"), detay);
+      const ap = ov.querySelector("#hdAbilityPanel");
+      if (ap && !detay) { ap.style.display = "none"; ap.dataset.open = ""; }
+      const gp = document.getElementById("glsPanel");
+      gorunum(gp, detay);
+
+      gorunum(statPnl, k === "stat");
+
+      /* Kahraman görseli STAT sekmesinde sola kayar. */
+      const hi = ov.querySelector("#hdHero");
+      if (hi) {
+        hi.style.marginLeft = (k === "stat") ? "-26%" : "0";
+        hi.style.transition = "margin-left .18s ease";
+      }
+    }
+
+    tabs.forEach(b => { b.onclick = () => sekmeSec(b.dataset.t); });
+    sekmeSec("detay");
+  }
+
   ov.querySelector("#hdClose").onclick = () => {
     ov.style.display = "none";
     cleanup();
@@ -915,6 +965,7 @@ ${modelTxt}`;
     let cw0 = vw0, ch0 = vw0 * 16 / 9;
     if (ch0 > vh0) { ch0 = vh0; cw0 = vh0 * 9 / 16; }
     const imEl = document.createElement("img");
+    imEl.id = "hdHero";
     imEl.src = heroImg;
     imEl.style.cssText = `position:absolute;left:50%;top:50%;width:${cw0}px;height:${ch0}px;object-fit:contain;z-index:1;pointer-events:none;`;
     const bgRef = ov.querySelector("video,img");
