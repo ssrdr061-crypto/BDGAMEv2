@@ -26,11 +26,11 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, img: "sovalye.webp",
+  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 6,  su: 2, demir: 9  } },
-  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, img: "okcu.webp",
+  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 12, su: 3, demir: 12 } },
-  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ img: "savasarabasi.webp",
+  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { su: 5, demir: 15, enerji: 5 } },
 };
 
@@ -69,33 +69,43 @@ const KADEME = {
   GUC_KAT:     1.8,   /* sıralamadaki güç puanı                           */
 };
 
-/* Kademe görselleri — burada yazmayan kademe Sv1'inkini kullanır.
-   Sv1'ler bilerek boş: sovalye.webp, okcu.webp ve savasarabasi.webp
-   olarak UNIT_TYPES içindeki `img` alanında yazılı.
-   Dosya adları küçük harf, Türkçe harf yok, gorsel8.webp ile
-   aynı klasörde durmalı. */
+/*  ─────────────────────────────────────────────
+    BİRLİK GÖRSELLERİ — 18 dosyanın TEK KAYNAĞI
+    Dosya adı = birlik adının sade hâli: küçük harf,
+    Türkçe harf yok (ş→s, ç→c, ı→i, ğ→g, ü→u, ö→o),
+    boşluksuz. Tablo boşsa o kademe görselsiz kalır.
+    ───────────────────────────────────────────── */
 const KADEME_GORSEL = {
   /* Savunucu */
-  knight2:  "suvari.webp",
-  knight3:  "yeniceri.webp",
-  knight4:  "asker.webp",
-  knight5:  "robot.webp",
-  knight6:  "devrobot.webp",
+  knight1:  "sovalye.webp",              /* Şövalye            */
+  knight2:  "suvari.webp",               /* Süvari             */
+  knight3:  "yeniceri.webp",             /* Yeniçeri           */
+  knight4:  "asker.webp",                /* Asker              */
+  knight5:  "robot.webp",                /* Robot              */
+  knight6:  "devrobot.webp",             /* Dev Robot          */
 
   /* Koruyucu */
-  soldier2: "savasfili.webp",
-  soldier3: "topcu.webp",
-  soldier4: "tank.webp",
-  soldier5: "saldirihelikopteri.webp",
-  soldier6: "supertank.webp",
+  soldier1: "okcu.webp",                 /* Okçu               */
+  soldier2: "savasfili.webp",            /* Savaş Fili         */
+  soldier3: "topcu.webp",                /* Topçu              */
+  soldier4: "tank.webp",                 /* Tank               */
+  soldier5: "saldirihelikopteri.webp",   /* Saldırı Helikopteri*/
+  soldier6: "supertank.webp",            /* Süper Tank         */
 
   /* Nişancı */
-  robot2:   "arbaletci.webp",
-  robot3:   "tufekci.webp",
-  robot4:   "havanbirligi.webp",
-  robot5:   "savasucagi.webp",
-  robot6:   "fuzesistemi.webp",
+  robot1:   "savasarabasi.webp",         /* Savaş Arabası      */
+  robot2:   "arbaletci.webp",            /* Arbaletçi          */
+  robot3:   "tufekci.webp",              /* Tüfekçi            */
+  robot4:   "havanbirligi.webp",         /* Havan Birliği      */
+  robot5:   "savasucagi.webp",           /* Savaş Uçağı        */
+  robot6:   "fuzesistemi.webp",          /* Füze Sistemi       */
 };
+
+/* Sv1 görselleri de aynı tablodan okunur (iki yerde tutulmasın) */
+["knight", "soldier", "robot"].forEach(tid => {
+  const g = KADEME_GORSEL[tid + "1"];
+  if (g) UNIT_TYPES[tid].img = g;
+});
 
 /*  ─────────────────────────────────────────────
     BİRLİK ADLARI — 18 ismin TEK KAYNAĞI

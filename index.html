@@ -2414,6 +2414,9 @@ body.world-active{padding:0; overflow:hidden;}
 
       <section class="unit-screen us-knight is-active" data-unit="knight">
         <div class="stage">
+          <!-- YILDIRIM: Robot artık Savunucu Sv5. Efekt bu bölümde
+               duruyor, görünürlüğü renderUnitStats içinde ayarlanır. -->
+          <div class="robot-fx" id="robotFx" style="display:none;"><div class="robot-fx-aura"></div><canvas id="robotFxCanvas"></canvas></div>
           <div class="ground-shadow"></div>
           <div class="dust"></div>
           <!-- 3D canvas (varsa gösterilir) -->
@@ -2451,8 +2454,7 @@ body.world-active{padding:0; overflow:hidden;}
 
       <section class="unit-screen us-robot" data-unit="robot">
         <div class="stage">
-          <div class="robot-fx" id="robotFx"><div class="robot-fx-aura"></div><canvas id="robotFxCanvas"></canvas></div>
-          <canvas class="unit3d-canvas" id="canvas3d_robot" style="position:absolute;inset:0;width:100%;height:100%;z-index:3;display:none;touch-action:none;"></canvas>
+            <canvas class="unit3d-canvas" id="canvas3d_robot" style="position:absolute;inset:0;width:100%;height:100%;z-index:3;display:none;touch-action:none;"></canvas>
           <img class="hero-img" id="robot2dWrap" src="savasarabasi.webp" alt="savaş arabası">
           <div class="uv-troop-count" id="uvCount_robot"></div>
         </div>
@@ -8212,6 +8214,10 @@ const TroopViewer = (function () {
         }
         scr.classList.toggle("kademe-kilit", kilit);
       }
+
+      /* Yıldırım efekti YALNIZ Robot'ta (Savunucu Sv5) görünür */
+      const _fx = document.getElementById("robotFx");
+      if (_fx) _fx.style.display = (uid === "knight" && lv === 5) ? "" : "none";
 
       /* ── ÜST: bu ailenin KADEMELERİ (Sv1 … Sv6) ── */
       let html = `<div class="uv-portraits">`;
