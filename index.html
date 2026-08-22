@@ -8225,16 +8225,8 @@ const TroopViewer = (function () {
         if (_fx) {
           const _ac = (lv === 5);
           _fx.style.opacity = _ac ? "1" : "0";
-          if (_ac) {
-            /* Yıldırım "lighter" kipiyle çizilir; açık zeminde
-               görünmez. tema.js zemini transparent yapıyor, koyu
-               zemin inline important ile geri verilir. */
-            _fx.style.setProperty("background", "#050b18", "important");
-            if (typeof window.robotFxOlc === "function") {
-              requestAnimationFrame(() => window.robotFxOlc());
-            }
-          } else {
-            _fx.style.removeProperty("background");
+          if (_ac && typeof window.robotFxOlc === "function") {
+            requestAnimationFrame(() => window.robotFxOlc());
           }
         }
       }
@@ -8836,7 +8828,7 @@ function start(){r.running=true;r.bolts=[];r.raf=requestAnimationFrame(draw);spa
 window.addEventListener("resize",size);
 /* DIŞARIDAN ÖLÇÜM KAPISI: panel kapalıyken canvas 0x0 olur ve
    yıldırım sıfır yüzeye çizilir. Ekran görünür olunca çağrılır. */
-window.robotFxOlc=function(){size();if(!r.running)start();};
+window.robotFxOlc=function(){size();if(!r.W||!r.H)return;cancelAnimationFrame(r.raf);clearTimeout(r.spawnT);r.running=false;start();};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
 </script>
