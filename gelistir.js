@@ -284,7 +284,6 @@
     const bedel = maliyet(id);
     const eldeki = parcaSayisi(id);
     const yeter = !sonSeviye && eldeki >= bedel;
-    const oran = (sonSeviye || !bedel) ? 100 : Math.min(100, Math.round(eldeki / bedel * 100));
 
     let yildiz = "";
     for (let i = 0; i < MAX_SV; i++) {
@@ -298,33 +297,23 @@
               color:${TEMA.yazi};font-weight:800;font-size:13.5px;
               font-family:${YAZI};text-shadow:${TEMA.golge};">En yüksek seviye</div>`
       : `<div style="display:flex;align-items:center;gap:9px;">
-           <div style="flex:1;min-width:0;height:24px;border-radius:12px;
-                       background:rgba(11,28,58,.65);position:relative;overflow:hidden;">
-             <div style="position:absolute;inset:0 auto 0 0;width:${oran}%;
-                         background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});"></div>
-             <div style="position:absolute;inset:0;display:flex;align-items:center;
-                         justify-content:center;font-size:12px;font-weight:800;
-                         font-family:${YAZI};color:#fff;text-shadow:${TEMA.golge};">
-               ${Math.min(eldeki, bedel)} / ${bedel}
-             </div>
-           </div>
-           <button id="glsArti" style="flex:0 0 auto;width:32px;height:32px;padding:0;
-                   border:none;border-radius:9px;font-family:${YAZI};font-size:20px;
-                   font-weight:800;line-height:32px;text-align:center;color:${TEMA.yazi};
+           <button id="glsArti" style="flex:0 0 auto;width:38px;height:38px;padding:0;
+                   border:none;border-radius:11px;font-family:${YAZI};font-size:21px;
+                   font-weight:800;line-height:1;text-align:center;color:${TEMA.yazi};
                    display:flex;align-items:center;justify-content:center;
                    background:linear-gradient(180deg,${TEMA.ust},${TEMA.orta});
                    box-shadow:0 2px 6px rgba(0,20,45,.3);">+</button>
-         </div>
-         <button id="glsYukselt" style="width:100%;margin-top:9px;padding:11px;border:none;
-                 border-radius:12px;font-weight:800;font-size:15px;font-family:${YAZI};
-                 text-shadow:${TEMA.golge};
-                 background:${yeter
-                   ? `linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu})`
-                   : `linear-gradient(180deg,${TEMA.ust},${TEMA.alt})`};
-                 color:${yeter ? "#20140a" : TEMA.solgun};
-                 box-shadow:0 2px 6px rgba(0,20,45,.3);">
-           Sv${sv + 1}'e Yükselt
-         </button>`;
+           <button id="glsYukselt" style="flex:1;min-width:0;padding:11px;border:none;
+                   border-radius:12px;font-weight:800;font-size:15px;font-family:${YAZI};
+                   text-shadow:${TEMA.golge};
+                   background:${yeter
+                     ? `linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu})`
+                     : `linear-gradient(180deg,${TEMA.ust},${TEMA.alt})`};
+                   color:${yeter ? "#20140a" : TEMA.solgun};
+                   box-shadow:0 2px 6px rgba(0,20,45,.3);">
+             Sv${sv + 1}'e Yükselt
+           </button>
+         </div>`;
 
     /* Üst satır: YALNIZ yıldızlar, ortada. Ad/parça/seviye ibaresi
        kaldırıldı — ekranın tepesinde kahraman adı zaten yazıyor. */
@@ -383,8 +372,9 @@
 .glsk-ikon{ flex:0 0 52px; width:52px; height:52px; border-radius:12px;
   position:relative; overflow:hidden; border:none; }
 .glsk-ikon img{ position:absolute; inset:0; width:100%; height:100%; }
-.glsk-ad{ flex:1; min-width:0; font-size:15px; font-weight:800;
-  color:${TEMA.sari}; text-shadow:${TEMA.golge}; }
+.glsk-sayac{ flex:1; min-width:0; text-align:right; font-size:17px;
+  font-weight:800; color:${TEMA.sari}; text-shadow:${TEMA.golge};
+  font-variant-numeric:tabular-nums; }
 .glsk-satir{ display:flex; align-items:center; gap:7px; }
 .glsk-dg{ flex:0 0 auto; height:34px; min-width:34px; padding:0 9px;
   border:none; border-radius:10px; font-family:${YAZI};
@@ -424,8 +414,11 @@
     const paket   = PAKET_ADI[anahtar] || "";
     const enFazla = cantadaki(paket);
 
-    /* Çantada yoksa pencere açılmaz. */
-    if (enFazla <= 0) { toast("Çantanda bu parçadan yok."); return; }
+    /* Çantada paket yoksa pencere açılmaz, doğrudan mağaza açılır. */
+    if (enFazla <= 0) { magazaAc(); return; }
+
+    const bedel  = maliyet(id);
+    const eldeki = parcaSayisi(id);
 
     stilKur();
     const eski = document.getElementById(PK_ID);
@@ -445,7 +438,7 @@
             '<img src="' + parcaGorseli(id) + '" alt="" style="object-fit:contain" ' +
                  'onerror="this.style.display=\'none\'">' +
           '</div>' +
-          '<div class="glsk-ad">' + paket + '</div>' +
+          '<div class="glsk-sayac">' + Math.min(eldeki, bedel) + ' / ' + bedel + '</div>' +
         '</div>' +
         '<div class="glsk-satir">' +
           '<button class="glsk-dg" type="button" data-d="-1">−</button>' +
@@ -495,6 +488,13 @@
     }, 0);
 
     esitle();
+  }
+
+  /* Kahraman ekranını kapatıp mağazayı açar. */
+  function magazaAc() {
+    const hd = document.getElementById("heroDetailOverlay");
+    if (hd) hd.style.display = "none";
+    if (typeof openOverlayPanel === "function") openOverlayPanel("shop");
   }
 
   /* Seçilen adet kadar paketi çantadan düşer, havuza ekler. */
