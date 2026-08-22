@@ -231,10 +231,7 @@
   function kutucuklar(gizle) {
     /* Yetenek kutucukları ve üstteki yıldız şeridi panelle birlikte
        gösterilmez — bilgileri artık panelde duruyor. */
-    ["hdStars"].forEach(x => {
-      const e = document.getElementById(x);
-      if (e) e.style.display = gizle ? "none" : "";
-    });
+    /* Yıldız şeridi heroes.js'ten kaldırıldı; gizlenecek bir şey yok. */
   }
 
   function kapat() {
@@ -537,7 +534,7 @@
     const hd = document.getElementById("heroDetailOverlay");
     if (!hd) return;
     const st = hd.querySelector("#hdStars");
-    if (!st) return;
+    if (!st) return;   /* şerit kaldırıldı — panel kendi yıldızını çizer */
     const id = hd.dataset.hero;
     if (!id) return;
     const sv = seviye(id);
