@@ -340,9 +340,9 @@ function getHeroBattleEffects(skinId, level) {
 const HERO_3D = {
   buz_savascisi: {
     model: {
-      position: { x: -0.02, y: 0.02, z: -0.4 },
+      position: { x: 0.04, y: -0.18, z: -0.32 },
       rotation: { x: 34, y: 0 },
-      scale: 0.78
+      scale: 0.82
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -368,9 +368,9 @@ const HERO_3D = {
   },
   celik_savasci: {
     model: {
-      position: { x: -0.02, y: 0.02, z: -0.4 },
+      position: { x: -0.02, y: 0.12, z: -0.4 },
       rotation: { x: 43, y: 0 },
-      scale: 0.78
+      scale: 0.88
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -398,9 +398,9 @@ const HERO_3D = {
 
   revolia: {
     model: {
-      position: { x: -0.02, y: 0.02, z: -0.4 },
+      position: { x: 0.04, y: -0.18, z: -0.4 },
       rotation: { x: 33, y: 0 },
-      scale: 0.78
+      scale: 1
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },

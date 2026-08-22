@@ -2830,11 +2830,11 @@ st.textContent = `
 #heroDetailOverlay #hdNext{
   display:flex !important; align-items:center !important;
   justify-content:center !important;
-  top:50% !important; width:34px !important; height:46px !important;
+  top:50% !important; width:24px !important; height:34px !important;
   border:none !important; border-radius:10px !important;
   background:rgba(4,16,38,.45) !important;
   color:#eaf4ff !important; font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-size:26px !important; font-weight:800 !important; line-height:1 !important;
+  font-size:18px !important; font-weight:800 !important; line-height:1 !important;
   padding:0 !important; box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 #heroDetailOverlay #hdPrev{ left:4px !important; }
