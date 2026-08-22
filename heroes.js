@@ -386,7 +386,7 @@ const HERO_3D = {
     model: {
       position: { x: -0.02, y: 0.02, z: -0.4 },
       rotation: { x: 34, y: 0 },
-      scale: 0.78
+      scale: 0.74
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -400,9 +400,9 @@ const HERO_3D = {
 
   revolia: {
     model: {
-      position: { x: -0.02, y: 0.02, z: -0.4 },
+      position: { x: -0.02, y: -0.16, z: -0.4 },
       rotation: { x: 33, y: 0 },
-      scale: 0.78
+      scale: 1.02
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
