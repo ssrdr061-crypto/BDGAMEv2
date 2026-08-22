@@ -310,7 +310,7 @@
                    background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});
                    color:#20140a;opacity:${yeter ? 1 : .55};
                    box-shadow:0 2px 6px rgba(0,20,45,.3);">
-             Sv${sv + 1}'e Yükselt
+             GELİŞTİR ${eldeki} / ${bedel}
            </button>
          </div>`;
 

@@ -61,9 +61,10 @@ const HERO_UI = {
     bottom:   "125px",  /* Ekranın ALTINDAN yüksekliği. Artır = yukarı çıkar   */
     maxWidth: "80%",    /* Maksimum genişlik                                   */
     fontSize: "12px",   /* Yazı boyutu                                         */
-    bg:       "rgba(0,0,0,.8)",                 /* Panel arkaplan rengi        */
-    border:   "1px solid rgba(255,255,255,.25)",/* Panel kenarlığı             */
-    valueColor: "#ffd700", /* Seviyeye göre değişen SAYININ rengi              */
+    bg:       "#ffffff",                        /* Panel arkaplan rengi        */
+    yazi:     "#12213a",                        /* Panel yazı rengi            */
+    border:   "none",                           /* Panel kenarlığı             */
+    valueColor: "#b45309", /* Seviyeye göre değişen SAYININ rengi              */
     dx: 0, dy: 65        /* Panelin ek kaydırması (🎛 editörden gelir)         */
   }
 };
@@ -590,7 +591,7 @@ function openHeroDetail(skinId) {
   ov.dataset.hero = skinId;   /* gelistir.js yıldızları tazelerken okur */
 
   // Arkaplan (video veya resim)
-  const bg = (typeof HERO_BG !== "undefined") ? HERO_BG[skinId] : null;
+  const bg = { data: heroArkaPlan(skinId), type: "image" };
   if (bg) {
     const bgEl = bg.type === "video"
       ? Object.assign(document.createElement("video"), { src: bg.data, autoplay: true, loop: true, muted: true, playsInline: true })
@@ -626,7 +627,7 @@ function openHeroDetail(skinId) {
   // Kalıcı ayarlar heroes.js → HERO_UI. Ekran üstü canlı ayar: 🎛 butonu.
   const UI_DEF = {
     boxes: { yan: "8px", dy: 0, gap: "8px", width: "50px", height: "50px", radius: "12px", border: "1px solid rgba(255,255,255,.35)", bg: "rgba(0,0,0,.35)", box1: { dx: 0, dy: 0 }, box2: { dx: 0, dy: 0 }, box3: { dx: 0, dy: 0 } },
-    panel: { bottom: "125px", maxWidth: "80%", fontSize: "13px", bg: "rgba(0,0,0,.8)", border: "1px solid rgba(255,255,255,.25)", valueColor: "#ffd700", dx: 0, dy: 0 }
+    panel: { bottom: "125px", maxWidth: "80%", fontSize: "12px", bg: "#ffffff", yazi: "#12213a", border: "none", valueColor: "#b45309", dx: 0, dy: 0 }
   };
   const SRC = (typeof HERO_UI !== "undefined") ? HERO_UI : UI_DEF;
   // Çalışma kopyası (editör bunu değiştirir, orijinal HERO_UI bozulmaz)
@@ -657,6 +658,16 @@ function openHeroDetail(skinId) {
   panel.id = "hdAbilityPanel";
   ov.appendChild(panel);
 
+  /* Boşluğa dokununca panel kapanır. Kutuya dokunmayı kesmiyoruz:
+     kutunun kendi onclick'i zaten diğerini açıyor. */
+  ov.addEventListener("pointerup", (e) => {
+    if (panel.style.display !== "block") return;
+    if (e.target.closest("#hdAbilityPanel")) return;
+    if (e.target.closest("#hdBoxL, #hdBoxR")) return;
+    panel.style.display = "none";
+    panel.dataset.open = "";
+  });
+
   const bxL = ov.querySelector("#hdBoxL");
   const bxR = ov.querySelector("#hdBoxR");
   /* İlk yarısı SOLA, kalanı SAĞA. 3 yetenek → sol 2, sağ 1. */
@@ -669,6 +680,11 @@ function openHeroDetail(skinId) {
     }
     box.onclick = () => {
       if (panel.dataset.open === String(i)) { panel.style.display = "none"; panel.dataset.open = ""; return; }
+      /* Panel, basılan kutunun hemen altına oturur. */
+      try {
+        const rb = box.getBoundingClientRect(), ro = ov.getBoundingClientRect();
+        if (rb.height > 0) panel.dataset.ust = (rb.bottom - ro.top + 6) + "px";
+      } catch (e) {}
       const lv = heroLevel - 1;
       const wrap = v => `<span style="color:${U.panel.valueColor};font-weight:800;">%${v}</span>`;
       const val  = (ab.valuesByLevel  || [])[lv] ?? "";
@@ -678,9 +694,10 @@ function openHeroDetail(skinId) {
         .replaceAll("{value}",  wrap(val))
         .replaceAll("{value2}", wrap(val2))
         .replaceAll("{chance}", wrap(chc));
-      panel.innerHTML = `<div style="font-weight:800;margin-bottom:4px;">${ab.title || "Yetenek " + (i + 1)}</div><div>${desc || "Açıklama henüz eklenmedi."}</div>`;
+      panel.innerHTML = `<div style="font-weight:800;font-size:14px;margin-bottom:3px;">${ab.title || "Yetenek " + (i + 1)}</div><div>${desc || "Açıklama henüz eklenmedi."}</div>`;
       panel.style.display = "block";
       panel.dataset.open = String(i);
+      applyUi();
     };
     (i < solAdet ? bxL : bxR).appendChild(box);
     boxEls.push(box);
@@ -698,7 +715,15 @@ function openHeroDetail(skinId) {
       box.style.cssText = `width:${U.boxes.width};height:${U.boxes.height};border-radius:${U.boxes.radius};border:${U.boxes.border};background:${U.boxes.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transform:translate(${o.dx}px,${o.dy}px);`;
     });
     const wasOpen = panel.style.display === "block";
-    panel.style.cssText = `display:${wasOpen ? "block" : "none"};position:absolute;bottom:${U.panel.bottom};left:50%;transform:translate(calc(-50% + ${U.panel.dx}px),${U.panel.dy}px);z-index:6;max-width:${U.panel.maxWidth};padding:10px 14px;border-radius:10px;background:${U.panel.bg};border:${U.panel.border};color:#fff;font-size:${U.panel.fontSize};text-align:center;`;
+    const _ust = panel.dataset.ust || "50%";
+    panel.style.cssText = `display:${wasOpen ? "block" : "none"};position:absolute;` +
+      `top:${_ust};left:10px;right:10px;` +
+      `transform:translate(${U.panel.dx}px,${U.panel.dy}px);z-index:6;` +
+      `padding:9px 12px;border-radius:10px;background:${U.panel.bg};` +
+      `border:${U.panel.border};color:${U.panel.yazi};` +
+      `font-family:'Baloo 2','Nunito',sans-serif;font-weight:600;` +
+      `font-size:${U.panel.fontSize};line-height:1.35;text-align:center;` +
+      `box-shadow:0 2px 6px rgba(0,20,45,.3);`;
     const stEl2 = ov.querySelector("#hdStars");
     stEl2.style.transform = `translateX(-50%) translateY(${starDy}px)`;
     stEl2.querySelectorAll("span").forEach(s => s.style.fontSize = starSize + "px");
@@ -1468,4 +1493,10 @@ function refreshAfterCommanderChange() {
 
 /* Kahraman varlıkları — dosya yolları (düz mod, klasörsüz) */
 const HERO_IMG = {"ates_buyucusu": "hero_ates_buyucusu.webp", "buz_savascisi": "hero_buz_savascisi.webp", "celik_savasci": "hero_celik_savasci.webp", "ivanovna": "hero_ivanovna.webp", "revolia": "hero_revolia.webp"};
-const HERO_BG = {"ates_buyucusu": {"data": "herobg_ates_buyucusu.webp", "type": "image"}, "buz_savascisi": {"data": "herobg_buz_savascisi.webp", "type": "image"}, "celik_savasci": {"data": "herobg_celik_savasci.webp", "type": "image"}, "ivanovna": {"data": "herobg_ivanovna.webp", "type": "image"}, "revolia": {"data": "herobg_revolia.webp", "type": "image"}};
+/* Arka plan artık kahramana özel DEĞİL, nadirliğe göre iki görsel.
+   Mor: HALVORSEN · STELLİN · MİKİAN — Turuncu: İVANOVNA · REVOLİA */
+const HERO_ARKA_TURUNCU = ["ivanovna", "revolia"];
+function heroArkaPlan(id) {
+  return HERO_ARKA_TURUNCU.indexOf(id) !== -1
+    ? "turuncuheroplan.webp" : "morheroplan.webp";
+}
