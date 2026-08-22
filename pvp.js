@@ -1287,22 +1287,25 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   /* ── STAT ÖZETİ (savaş raporu için) ───────────────────────────
      Bütün bonuslar (buff + kahraman) uygulandıktan SONRA, tur
      döngüsü BAŞLAMADAN alınır — savaş içinde stat değişiyor. */
-  function _orduStat(units, hero) {
-    let atk = 0, def = 0, hp = 0, olumPay = 0, agirlik = 0;
-    (units || []).forEach(u => {
+  /* Motorun KENDİ fonksiyonlarıyla ölçülür (armyAtk/armyDef) —
+     rapordaki sayı savaşta kullanılan sayının aynısı olsun diye.
+     Ayrı bir toplama yazılırsa iki yer birbirinden ayrışır. */
+  function _orduStat(ordu) {
+    let hp = 0, olumPay = 0, agirlik = 0, sayi = 0;
+    (ordu.units || []).forEach(u => {
+      if (u.passive) return;
       const n = Math.max(0, u.count || 0);
-      atk += (u.atk || 0) * n;
-      def += (u.def || 0) * n;
-      hp  += (u.hp  || 0) * n;
+      hp += (u.hp || 0) * n;
       olumPay += (u.olum || 0) * (u.atk || 0) * n;
       agirlik += (u.atk || 0) * n;
+      sayi += n;
     });
     return {
-      atk: Math.round(atk), def: Math.round(def), hp: Math.round(hp),
+      atk: Math.round(armyAtk(ordu)),
+      def: Math.round(armyDef(ordu)),
+      hp:  Math.round(hp + ((ordu.hero && ordu.hero.maxHp) || 0)),
       olum: agirlik > 0 ? Math.round(olumPay / agirlik * 100) / 100 : 0,
-      heroAtk: Math.round((hero && hero.attack)  || 0),
-      heroDef: Math.round((hero && hero.defense) || 0),
-      heroHp:  Math.round((hero && hero.maxHp)   || 0)
+      sayi: sayi
     };
   }
   function _bonusSatir(skins, seviyeler) {
@@ -1319,11 +1322,11 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   const _atkSkins = atkSkins.length ? atkSkins : [state.selectedHeroSkin];
   const _kendiSv  = (state.heroLevels && typeof state.heroLevels === "object") ? state.heroLevels : {};
   const _statOzet = {
-    attacker: Object.assign(_orduStat(A.units, A.hero), {
+    attacker: Object.assign(_orduStat(A), {
       bonus: _bonusSatir(_atkSkins, _kendiSv),
       seviyeler: _atkSkins.reduce((o, id) => { o[id] = Math.floor(_kendiSv[id] || 1); return o; }, {})
     }),
-    defender: Object.assign(_orduStat(D.units, D.hero), {
+    defender: Object.assign(_orduStat(D), {
       bonus: _bonusSatir(defSkins, defender.commanderLevels),
       seviyeler: defSkins.reduce((o, id) => {
         const m = defender.commanderLevels || {};

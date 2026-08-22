@@ -812,7 +812,8 @@ function statKarsiHTML(r) {
     </div>`;
   };
 
-  let out = `<div class="rp-st-box">` +
+  let out = `<div class="rp-st-liste">` +
+    satir("BİRLİK",       A.sayi, D.sayi) +
     satir("SALDIRI",      A.atk,  D.atk) +
     satir("SAVUNMA",      A.def,  D.def) +
     satir("SAĞLIK",       A.hp,   D.hp) +
@@ -1194,8 +1195,6 @@ function openReportModal(r) {
           ${win?'🏆 SALDIRAN KAZANDI':'🛡️ SAVUNAN KAZANDI'}
         </div>
 
-        ${statKarsiHTML(r)}
-
         <div class="rp-vs">
           <div class="rp-vs-side">
             <div class="rp-castle">🏰</div>
@@ -1209,6 +1208,8 @@ function openReportModal(r) {
             <div class="rp-role">SAVUNAN</div>
           </div>
         </div>
+
+        ${statKarsiHTML(r)}
 
         ${(r.attackerCommanders&&r.attackerCommanders.length)||(r.defenderCommanders&&r.defenderCommanders.length)?`
         <div class="rp-cols rp-cols-hero">
@@ -2278,9 +2279,8 @@ if (document.readyState === "loading") {
 .rp-y-bos{ color:color-mix(in srgb, var(--rp-murekkep) 30%, transparent); }
 
 /* ── KARŞILIKLI STATLAR ── */
-.rp-st-box{
-  margin:0 0 10px; padding:7px 9px; border-radius:10px;
-  background:color-mix(in srgb, var(--rp-kagit-alt) 78%, #6b4a22);
+.rp-st-liste{
+  margin:8px 0 4px; padding:0; background:none; border:none;
   font-family:'Baloo 2','Nunito',sans-serif;
 }
 .rp-st-row{
