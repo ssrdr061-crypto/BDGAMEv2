@@ -1238,6 +1238,11 @@ const HPK_KART = {
     ama içerideki piksel kaydırmaları kart boyuyla orantılı olur.
     --hpk-k JS'te yazılır; yazılmazsa 1 olur ve hiçbir şey değişmez. */
 .hpk-slot .klist-portre-kap{
+  /*  DİKKAT: kahramanlar.js'teki kural inset:0 yazıyor. inset dört
+      kenarı birden sabitler; kutu böyle "aşırı kısıtlanmış" olur ve
+      verilen width/height sessizce YOK SAYILIR. Sağ ve alt kenar
+      serbest bırakılmadan ölçek uygulanamıyor.                      */
+  right:auto !important; bottom:auto !important;
   width:calc(100% / var(--hpk-k, 1)) !important;
   height:calc(100% / var(--hpk-k, 1)) !important;
   transform:scale(var(--hpk-k, 1)) !important;
@@ -1452,8 +1457,8 @@ function hpkOlcumYaz() {
   }
   kutu.textContent = slot
     ? "yuva " + slot.offsetWidth + "x" + slot.offsetHeight +
-      " · k=" + (slot.style.getPropertyValue("--hpk-k") || "-") + " · SURUM-C"
-    : "yuva yok · SURUM-C";
+      " · k=" + (slot.style.getPropertyValue("--hpk-k") || "-") + " · SURUM-D"
+    : "yuva yok · SURUM-D";
 }
 
 /* ── ANA FONKSİYON: yuvaları çiz ── */
