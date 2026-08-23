@@ -1157,7 +1157,7 @@ const HPK_YUVA = {
       yanlış kırpılıyordu. Oran eşitlenince kadraj kendiliğinden
       menüdekiyle aynı oluyor.
       Sabit px'e dönmek istersen `oran` alanını "" yap.          */
-  oran: "3 / 4",
+  oran: "3 / 4.15",
   yukseklik: 119,   /* yalnız `oran` boşken kullanılır (px) */
   bosluk:      9,   /* yuvalar arası boşluk (px) */
   pay_yan:    11,   /* satırın sağ/sol iç boşluğu (px) — − düğmesi taşıyor */
@@ -1407,6 +1407,28 @@ function hpkYuvaBoyunuYaz() {
   };
   uygula();
   requestAnimationFrame(uygula);         /* ilk karede genişlik henüz 0 olabilir */
+  hpkOlcumYaz();
+}
+
+/*  GEÇİCİ TEŞHİS — adreste ?olcum=2 varsa çalışır, başka türlü
+    hiçbir şey yapmaz. Savaş yuvasının gerçek ölçüsünü ekrana
+    basar. İş bitince bu fonksiyon ve çağrısı SİLİNECEK.
+    (showToast kapalı olduğu için ham div kullanılıyor.)         */
+function hpkOlcumYaz() {
+  if (!/[?&]olcum=2/.test(location.search)) return;
+  const el = document.getElementById("heroPicker");
+  const slot = el ? el.querySelector(".hpk-slot") : null;
+  let kutu = document.getElementById("hpkOlcumKutu");
+  if (!kutu) {
+    kutu = document.createElement("div");
+    kutu.id = "hpkOlcumKutu";
+    kutu.style.cssText = "position:fixed;left:6px;bottom:96px;z-index:99999;" +
+      "background:#000;color:#0f0;font:12px monospace;padding:5px 7px;border-radius:6px;";
+    document.body.appendChild(kutu);
+  }
+  kutu.textContent = slot
+    ? "yuva " + slot.offsetWidth + "x" + slot.offsetHeight + " · SURUM-B"
+    : "yuva yok · SURUM-B";
 }
 
 /* ── ANA FONKSİYON: yuvaları çiz ── */
