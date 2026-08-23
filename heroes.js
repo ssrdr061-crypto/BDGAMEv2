@@ -171,11 +171,10 @@ const HERO_STATS = {
       {
         icon: "yetenek_yansima.webp",
         title: "Çelik Yansıması",
-        descTemplate: "Birliklerine ördüğü çelik zırhlar sayesinde düşmandan alınan her hasarın {value} kadarı rakibe geri yansır.",
-        valuesByLevel: [8, 11, 14, 17, 20],
-        /* Yansıyan hasar rakibin savunmasını DELER (savunma hesabına girmez) —
-           kendi saldırısının geri tepmesi olduğu için kalkan onu engellemez. */
-        effect: { type: "damage_reflect_pct", piercing: true }
+        descTemplate: "Birliklerine ördüğü çelik zırhlar sayesinde Savunucu birliklerinin saldırısını {value} arttırır.",
+        valuesByLevel: [3, 6, 9, 12, 16],
+        /* Yalnız `family` ailesine işler — aile adı burada, motorda değil. */
+        effect: { type: "family_atk_pct", family: "knight" }
       }
     ]
   },
@@ -195,7 +194,10 @@ const HERO_STATS = {
       {
         icon: "yetenek_atesbuyusu.webp",
         title: "Ateş Büyüsü",
-        descTemplate: "Geleneksel olarak öğrendiği tüm metotları deneyerek ateş büyüsü oluşturur ve {chance} ihtimalle rakibin savunmasını {value} yıpratır.",
+        /* {chance} yer tutucusu KULLANILMIYOR: ihtimal artık effect
+           içinde duruyor ve şablona geçmiyordu, metinde boşluk
+           bırakıyordu. Sabit olduğu için düz yazıldı. */
+        descTemplate: "Geleneksel olarak öğrendiği tüm metotları deneyerek ateş büyüsü oluşturur ve %30 ihtimalle rakibin savunmasını {value} yıpratır.",
         valuesByLevel: [10, 13, 16, 19, 22],   /* savunma yıpratma % */
         /* İhtimal her seviyede SABİT %30 — seviyeyle yükselmez.
            `effect` İÇİNDE duruyor: index.html'deki birleştirici düz

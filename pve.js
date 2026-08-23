@@ -379,6 +379,15 @@
     const canavarAtk  = () => Math.max(1, canavarAdet() * cAtkBir);
     const canavarDef  = () => canavarAdet() * cDefBir;
 
+    /* Çelik Yansıması: belirli bir AİLENİN saldırısını arttırır.
+       Aile adı yetenek tanımından okunur, burada sabit yazılmaz. */
+    if ((f = bul("family_atk_pct")) && f.v) {
+      const _fam = (f.effect && f.effect.family) || "";
+      birimler.forEach(u => {
+        if (AILE(u.unitId) === _fam) u.atk = Math.max(1, u.atk * (1 + f.v / 100));
+      });
+    }
+
     /* Yasak Büyüler: canavarda ailesi olmadığı için can azaltma
        doğrudan canavarın canına işler — ihtimalli, bir kez. */
     let instantKilled = 0;

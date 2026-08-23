@@ -798,6 +798,12 @@ function applyTroopBuffs(units, ab) {
       const rd = findBuff(ab, "defense_robot_multiplier");
       if (rd && rd.effect) u.def *= (rd.effect.multiplier || 2);
     }
+    /* Belirli bir AİLENİN saldırısı (Çelik Yansıması) — aile
+       yetenek tanımından okunur, motorda sabit yazılmaz. */
+    if ((f = findBuff(ab, "family_atk_pct")) && f.v) {
+      const fam = (f.effect && f.effect.family) || "";
+      if (AILE(u.unitId) === fam) u.atk *= (1 + f.v / 100);
+    }
     if ((f = findBuff(ab, "troop_atk_def_pct")) && f.v) {
       u.atk *= (1 + f.v / 100); u.def *= (1 + f.v / 100);
     }
