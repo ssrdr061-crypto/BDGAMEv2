@@ -61,7 +61,7 @@ const HERO_UI = {
     bottom:   "125px",  /* Ekranın ALTINDAN yüksekliği. Artır = yukarı çıkar   */
     maxWidth: "80%",    /* Maksimum genişlik                                   */
     fontSize: "12px",   /* Yazı boyutu                                         */
-    genislik: "60%",    /* Panel genişliği — ekranın en fazla bu kadarı        */
+    genislik: "74%",    /* Panel genişliği — ekranın en fazla bu kadarı        */
     bg:       "#e9f1fb",                        /* Panel arkaplan rengi        */
     yazi:     "#12213a",                        /* Panel yazı rengi            */
     baslik:   "15px",                           /* Başlık yazı boyutu          */
@@ -642,7 +642,7 @@ function openHeroDetail(skinId) {
   // Kalıcı ayarlar heroes.js → HERO_UI. Ekran üstü canlı ayar: 🎛 butonu.
   const UI_DEF = {
     boxes: { yan: "8px", dy: 0, gap: "8px", width: "50px", height: "50px", radius: "12px", border: "1px solid rgba(255,255,255,.35)", bg: "rgba(0,0,0,.35)", box1: { dx: 0, dy: 0 }, box2: { dx: 0, dy: 0 }, box3: { dx: 0, dy: 0 } },
-    panel: { bottom: "125px", genislik: "60%", fontSize: "11px", baslik: "15px", satir: "1.2", bg: "#e9f1fb", yazi: "#12213a", border: "none", valueColor: "#b45309", dx: 0, dy: 0 }
+    panel: { bottom: "125px", genislik: "74%", fontSize: "11px", baslik: "15px", satir: "1.2", bg: "#e9f1fb", yazi: "#12213a", border: "none", valueColor: "#b45309", dx: 0, dy: 0 }
   };
   const SRC = (typeof HERO_UI !== "undefined") ? HERO_UI : UI_DEF;
   // Çalışma kopyası (editör bunu değiştirir, orijinal HERO_UI bozulmaz)
@@ -695,12 +695,7 @@ function openHeroDetail(skinId) {
     }
     box.onclick = () => {
       if (panel.dataset.open === String(i)) { panel.style.display = "none"; panel.dataset.open = ""; return; }
-      /* Panel, basılan kutunun hemen altına oturur. */
-      try {
-        const rb = box.getBoundingClientRect(), ro = ov.getBoundingClientRect();
-        if (rb.height > 0) panel.dataset.ust = (rb.bottom - ro.top + 6) + "px";
-        panel.dataset.yan = (i < solAdet) ? "sol" : "sag";
-      } catch (e) {}
+
       const lv = heroLevel - 1;
       const wrap = v => `<span style="color:${U.panel.valueColor};font-weight:800;">%${v}</span>`;
       const val  = (ab.valuesByLevel  || [])[lv] ?? "";
@@ -713,7 +708,7 @@ function openHeroDetail(skinId) {
       panel.innerHTML = `<div style="font-weight:800;font-size:${U.panel.baslik};line-height:1.15;margin-bottom:2px;">${ab.title || "Yetenek " + (i + 1)}</div><div>${desc || "Açıklama henüz eklenmedi."}</div>`;
       panel.style.display = "block";
       panel.dataset.open = String(i);
-      applyUi();
+      panelKonumla(box, i >= solAdet);
     };
     (i < solAdet ? bxL : bxR).appendChild(box);
     boxEls.push(box);
@@ -896,12 +891,33 @@ ${modelTxt}`;
     setTimeout(() => window.acGelistirme(skinId), 0);   /* Tuzak 35 */
   }
 
+  /* Paneli tetikleyen kutunun hemen ALTINA oturtur. Alta sığmıyorsa
+     (alttaki kutular, sekme şeridi) kutunun ÜSTÜNE alınır — panel
+     eskiden yıldızların arkasına düşüyordu. Ölçüm panel GÖRÜNÜR
+     olduktan sonra yapılır; gizliyken yükseklik 0'dır. */
+  function panelKonumla(kutu, sag) {
+    try {
+      const rb = kutu.getBoundingClientRect(), ro = ov.getBoundingClientRect();
+      if (!rb.height) return;
+      panel.dataset.yan = sag ? "sag" : "sol";
+      panel.dataset.ust = (rb.bottom - ro.top + 6) + "px";
+      applyUi();
+      const yuk = panel.offsetHeight || 0;
+      const dip = ov.clientHeight - 74;          /* sekme şeridi payı */
+      let ust = rb.bottom - ro.top + 6;
+      if (ust + yuk > dip) ust = Math.max(6, rb.top - ro.top - yuk - 6);
+      panel.dataset.ust = ust + "px";
+      panel.style.top = ust + "px";
+    } catch (e) {}
+  }
+
   const passBtn = ov.querySelector("#hdPassive");
   if (passBtn) passBtn.onclick = () => {
     if (panel.dataset.open === "passive") { panel.style.display = "none"; panel.dataset.open = ""; return; }
-    panel.innerHTML = `<div style="font-weight:800;margin-bottom:4px;">${h.passive.title || "Pasif Yetenek"}</div><div>${h.passive.desc || ""}</div>`;
+    panel.innerHTML = `<div style="font-weight:800;font-size:${HERO_UI.panel.baslik};line-height:1.15;margin-bottom:2px;">${h.passive.title || "Pasif Yetenek"}</div><div>${h.passive.desc || ""}</div>`;
     panel.style.display = "block";
     panel.dataset.open = "passive";
+    panelKonumla(passBtn, true);
   };
 
   /* ── SEKMELER: DETAY · STAT · EKİPMAN ───────────────────────
