@@ -6157,3 +6157,125 @@ html body #troopSelectList .t-icon img.t-head{
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   SAVAŞ PANELİ — BUFF BOYU · ORDU KAYITLARI · AİLE YÜZDELERİ
+   ------------------------------------------------------------
+   1) BUFF kutucuğu SAVAŞ düğmesiyle aynı boyda. Kutucuk satır
+      kabının içinde absolute duruyordu, sabit 62px yüksekliği
+      vardı. top/bottom'a sıfır verilince yüksekliği satırın
+      kendisinden, yani düğmeden alır. Genişlik dokunulmadı.
+      İçerik ufaltıldı, yoksa alçalan kutuya sığmıyor.
+   2) Ordu kayıt yuvaları (1·2·3) ve 💾 düğmesi — troops.js.
+   3) Aile yüzdeleri şeridi — küçük kutucuklar, rakamlarla
+      aynı hizada, satırı büyütmüyor.
+   ══════════════════════════════════════════════════════════════ */
+(function savasPaneliKayitVeYuzde(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaOrduKayit";
+st.textContent = `
+/* ── 1) BUFF = SAVAŞ boyu ── */
+html body #battleArena #buffKutu{
+  top:0 !important; bottom:0 !important;
+  height:auto !important;
+  transform:none !important;
+  border-radius:11px !important;
+  padding:2px !important;
+  gap:0 !important;
+}
+html body #battleArena #buffKutu:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+}
+html body #battleArena #buffKutu .bk-ico{ font-size:15px !important; }
+html body #battleArena #buffKutu .bk-yazi{ font-size:8px !important; }
+html body #battleArena #buffKutu .bk-rozet{
+  width:17px !important; height:17px !important;
+  top:-6px !important; right:-6px !important; font-size:10px !important;
+}
+
+/* ── 2) ORDU KAYIT YUVALARI ──
+   Üç küçük kutucuk, panelin en üstünde, tek satır. */
+html body #battleArena .ok-serit{
+  display:flex !important; justify-content:center !important;
+  gap:7px !important; margin:0 0 9px !important;
+}
+html body #battleArena .ok-yuva{
+  width:30px; height:26px; padding:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:8px; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif;
+  font-weight:800; font-size:13px;
+  font-variant-numeric:tabular-nums;
+  color:#a8c7e0;
+  background-color:rgba(6,20,44,.45);
+  border:1px solid rgba(190,240,255,.20);
+  box-shadow:none;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+  transition:transform .09s, filter .09s;
+  -webkit-tap-highlight-color:transparent;
+}
+html body #battleArena .ok-yuva:active{ transform:scale(.96); filter:brightness(.93); }
+/* dolu yuva: içinde kadro var */
+html body #battleArena .ok-yuva.ok-dolu{ color:#ffd257; }
+/* seçili yuva: 💾 buraya yazar */
+html body #battleArena .ok-yuva.ok-secili{
+  border-color:#ffd257;
+  background-color:rgba(255,210,87,.14);
+  color:#ffd257;
+}
+
+/* 💾 — X düğmesinin solunda, aynı ölçüde */
+html body #battleArena #orduKayitBtn{
+  position:absolute !important;
+  top:12px !important; right:60px !important;
+  left:auto !important; bottom:auto !important; margin:0 !important;
+  z-index:50 !important;
+  width:38px !important; height:38px !important; padding:0 !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  border-radius:10px !important;
+  font-size:18px !important; line-height:1 !important;
+  background-color:rgba(6,20,44,.55) !important;
+  border:1px solid rgba(190,240,255,.35) !important;
+  box-shadow:none !important;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .09s, filter .09s !important;
+}
+html body #battleArena #orduKayitBtn:active{
+  transform:scale(.96) !important; filter:brightness(.93) !important;
+}
+
+/* ── 3) AİLE YÜZDELERİ ──
+   Başlığın hemen altında tek satır. Kutucuklar rakam kadar dar;
+   birlik satırlarındaki .t-num ile aynı yükseklikte durur ki
+   hizası kaymasın. */
+html body #battleArena .ay-serit{
+  display:flex !important; align-items:center !important;
+  justify-content:center !important;
+  gap:14px !important; margin:-2px 0 9px !important;
+}
+html body #battleArena .ay-oge{
+  display:inline-flex !important; align-items:center !important; gap:4px !important;
+}
+html body #battleArena .ay-ico{ font-size:14px; line-height:1; }
+html body #battleArena .ay-num{
+  box-sizing:content-box !important;
+  width:2.2ch; height:18px; padding:0 3px; text-align:center;
+  border-radius:6px; outline:none;
+  background-color:rgba(6,20,44,.6) !important;
+  border:1.5px solid rgba(160,215,255,.45) !important;
+  color:#fff !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:13px !important;
+  font-variant-numeric:tabular-nums !important;
+  -webkit-appearance:none; appearance:none;
+  -webkit-tap-highlight-color:transparent;
+}
+html body #battleArena .ay-num:focus{ border-color:#ffd257 !important; }
+html body #battleArena .ay-pc{
+  font-family:'Baloo 2','Nunito',sans-serif;
+  font-weight:800; font-size:12.5px; color:#ffd257;
+}
+`;
+document.head.appendChild(st);
+})();
