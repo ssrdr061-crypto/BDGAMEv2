@@ -580,10 +580,83 @@
   }
   window.addEventListener("load", () => setTimeout(hile, 1500));
 
+  /* ══════════════════════════════════════════════════════════════
+     KAHRAMAN STAT BONUSLARI
+     Tanım TEK YERDE: heroes.js → HERO_STATS[id].bonuses
+       { aile, artis, taban:{ atk, def, hp, olum } }
+     Sv1'de `taban` geçerlidir, her seviye üstüne +`artis` puan biner.
+     Bonus YALNIZ kahramanın kendi ailesine işler; aynı aileden iki
+     kahraman varsa yüzdeler TOPLANIR.
+     ══════════════════════════════════════════════════════════════ */
+  const STAT_ADI = { atk: "Saldırı", def: "Savunma", hp: "Sağlık", olum: "Öldürücülük" };
+
+  function bonusTanimi(id) {
+    try {
+      if (typeof HERO_STATS === "undefined") return null;
+      const h = HERO_STATS[id];
+      return (h && h.bonuses && h.bonuses.taban) ? h.bonuses : null;
+    } catch (e) { return null; }
+  }
+
+  /* Verilen kahramanın seviyeye göre yüzdeleri: { aile, atk, def, hp, olum } */
+  function statBonusu(id, sv) {
+    const b = bonusTanimi(id);
+    if (!b) return null;
+    const seviyeNo = Math.max(1, Math.min(MAX_SV, sv || seviye(id) || 1));
+    const ek = (seviyeNo - 1) * (b.artis || 0);
+    const out = { aile: b.aile || null };
+    Object.keys(STAT_ADI).forEach(k => {
+      const t = b.taban[k];
+      if (typeof t === "number") out[k] = t + ek;
+    });
+    return out;
+  }
+
+  /* Kahraman ekranındaki STAT sekmesi için satırlar */
+  function statSatirlari(id, sv) {
+    const s = statBonusu(id, sv);
+    if (!s) return [];
+    return Object.keys(STAT_ADI)
+      .filter(k => typeof s[k] === "number")
+      .map(k => ({ anahtar: k, ad: STAT_ADI[k], yuzde: s[k] }));
+  }
+
+  /* Savaş motoru (pvp.js / pve.js) — birim statlarına uygular.
+     `seviyeler` verilirse oradan okunur (savunanın seviyeleri savaş
+     paketiyle taşınır); verilmezse KENDİ seviyemiz kullanılır.
+     Haritada kahraman yoksa Sv1 sayılır, kendi seviyemize düşmez. */
+  function statUygula(units, skins, seviyeler) {
+    if (!Array.isArray(units) || !Array.isArray(skins)) return;
+    const toplam = {};   /* aile → { atk, def, hp, olum } */
+    skins.filter(Boolean).forEach(id => {
+      const sv = (seviyeler && typeof seviyeler === "object")
+        ? (Number(seviyeler[id]) || 1)
+        : seviye(id);
+      const s = statBonusu(id, sv);
+      if (!s || !s.aile) return;
+      const t = toplam[s.aile] || (toplam[s.aile] = { atk: 0, def: 0, hp: 0, olum: 0 });
+      Object.keys(STAT_ADI).forEach(k => { if (typeof s[k] === "number") t[k] += s[k]; });
+    });
+    if (!Object.keys(toplam).length) return;
+
+    const aileBul = (uid) => (typeof AILE === "function") ? AILE(uid) : null;
+    units.forEach(u => {
+      const t = toplam[aileBul(u.unitId)];
+      if (!t) return;
+      if (t.atk)  u.atk  = Math.max(1, Math.round(u.atk  * (1 + t.atk  / 100)));
+      if (t.def)  u.def  = Math.max(0, Math.round(u.def  * (1 + t.def  / 100)));
+      if (t.hp)   u.hp   = Math.max(1, Math.round(u.hp   * (1 + t.hp   / 100)));
+      if (t.olum) u.olum = (u.olum || 0) * (1 + t.olum / 100);
+    });
+  }
+
   /* ── DIŞA AÇILAN KAPILAR ────────────────────────────────────── */
   window.acGelistirme      = ac;             /* heroes.js Geliştir düğmesi  */
   window.kapatGelistirme   = kapat;
   window.kahramanSeviyesi  = seviye;         /* index.html + kahramanlar.js */
+  window.kahramanStatBonusu    = statBonusu;    /* pvp.js / rapor            */
+  window.kahramanStatSatirlari = statSatirlari; /* heroes.js STAT sekmesi    */
+  window.kahramanStatUygula    = statUygula;    /* pvp.js / pve.js           */
   window.kahramanNadirlik  = nadirlik;
   window.kahramanParcasi   = parcaSayisi;
   window.parcaEkle         = parcaEkleAnahtar;
