@@ -976,7 +976,13 @@ ${modelTxt}`;
         ? window.kahramanStatSatirlari(skinId) : [];
       const sv = (typeof window.kahramanSeviyesi === "function")
         ? window.kahramanSeviyesi(skinId) : 1;
-      if (!sat.length) {
+      /*  KAPASİTE — bu kahramanı sefere alınca açılan birlik yeri.
+          Diğer satırlar yüzdedir, bu DÜZ SAYIDIR; en alta konur.
+          Kaynak gelistir.js (nadirlik + seviye), burada hesap yok. */
+      const kap = (typeof window.kahramanKapasitesi === "function")
+        ? window.kahramanKapasitesi(skinId, sv) : 0;
+
+      if (!sat.length && !kap) {
         return `<div style="opacity:.8;">Bu kahramanın stat bonusu tanımlı değil.</div>`;
       }
       let out = `<div style="font-size:14px;font-weight:800;margin-bottom:7px;">Sv${sv}</div>`;
@@ -988,6 +994,14 @@ ${modelTxt}`;
                         font-variant-numeric:tabular-nums;">+%${x.yuzde}</span>
                 </div>`;
       });
+      if (kap) {
+        out += `<div style="display:flex;justify-content:space-between;gap:8px;
+                    padding:6px 0;border-bottom:1px solid rgba(255,255,255,.22);">
+                  <span>Kapasite</span>
+                  <span style="color:#ffd257;font-weight:800;
+                        font-variant-numeric:tabular-nums;">+${kap.toLocaleString("tr-TR")}</span>
+                </div>`;
+      }
       return out;
     }
 
@@ -1595,7 +1609,13 @@ function refreshAfterCommanderChange() {
   if (typeof persistCurrentState === "function") persistCurrentState();
   renderHeroPickerForBattle();
   hpkTazele();                 /* pencere açıksa listesi yenilensin */
-  if (typeof updateTroopSelectSummary === "function") updateTroopSelectSummary();
+  /*  Komutan değişince SEFER TAVANI da değişir. Kahraman çıkarıldıysa
+      tavan düşer ve seçili birlik fazla kalabilir; seçici baştan
+      çizilirse hem fazlalık kırpılır hem sürgüler yeni sınırı alır.
+      (renderTroopSelector kendi içinde renderHeroPickerForBattle
+      çağırır ama o buraya geri dönmez — döngü yok.)                 */
+  if (typeof renderTroopSelector === "function") renderTroopSelector();
+  else if (typeof updateTroopSelectSummary === "function") updateTroopSelectSummary();
   if (typeof renderEnemyPowerPreview === "function") renderEnemyPowerPreview();
 }
 

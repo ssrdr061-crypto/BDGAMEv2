@@ -608,6 +608,66 @@
     return out;
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     BİRLİK KAPASİTESİ — SEFER TAVANI
+     Oyuncu artık ordusunun tamamını tek seferde süremez. Savaşa
+     götürülebilecek birlik sayısının tavanı:
+
+         TABAN_KAPASITE + seçili kahramanların kapasiteleri
+
+     Kahraman kapasitesi nadirlik + seviyeden gelir:
+       mor  : 15.000, her seviye +8.000     → Sv1 15.000 · Sv5 47.000
+       ssr  : 20.000, her seviye +10.500    → Sv1 20.000 · Sv5 62.000
+
+     KADEME FARK ETMEZ: Sv1 şövalye de Sv6 dev robot da 1 yer kaplar.
+     (Kademeye göre yer maliyeti istenirse birimYeri() içi değişir,
+     çağıran yerlerin hiçbiri değişmez.)
+
+     Tavan YALNIZ saldırıya/sefere çıkarken geçerlidir. Savunmada
+     tavan yoktur — kalede duran ordunun tamamı savunur.
+     ══════════════════════════════════════════════════════════════ */
+  const TABAN_KAPASITE = 5000;      /* herkeste var, kahramansız da */
+
+  const KAPASITE = {
+    mor: { taban: 15000, artis:  8000 },
+    ssr: { taban: 20000, artis: 10500 }
+  };
+
+  /* Tek kahramanın açtığı kapasite. */
+  function kapasite(id, sv) {
+    const k = KAPASITE[nadirlik(id)] || KAPASITE.mor;
+    const seviyeNo = Math.max(1, Math.min(MAX_SV, sv || seviye(id) || 1));
+    return k.taban + (seviyeNo - 1) * k.artis;
+  }
+
+  /* Bir birliğin kapladığı yer. Şimdilik hepsi 1. */
+  function birimYeri(unitId) { return 1; }
+
+  /* Sefere çıkarken geçerli TOPLAM tavan.
+     `idler` verilmezse savaşa seçili komutanlar okunur. */
+  function savasKapasitesi(idler) {
+    let liste = idler;
+    if (!Array.isArray(liste)) {
+      try {
+        liste = (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
+              ? selectedCommanders : [];
+      } catch (e) { liste = []; }
+    }
+    let top = TABAN_KAPASITE;
+    liste.filter(Boolean).forEach(id => { top += kapasite(id); });
+    return top;
+  }
+
+  /* Seçilen birlik nesnesinin kapladığı toplam yer. */
+  function kullanilanYer(secim) {
+    let top = 0;
+    Object.keys(secim || {}).forEach(u => {
+      const n = secim[u] || 0;
+      if (n > 0) top += n * birimYeri(u);
+    });
+    return top;
+  }
+
   /* Kahraman ekranındaki STAT sekmesi için satırlar */
   function statSatirlari(id, sv) {
     const s = statBonusu(id, sv);
@@ -672,5 +732,10 @@
   window.parcaEkle         = parcaEkleAnahtar;
   window.parcaPaketiKullan = parcaPaketiKullan; /* günlük giriş / mağaza / canavar */
   window.glsYildizTazele   = glsYildizTazele;
+  window.kahramanKapasitesi = kapasite;      /* heroes.js STAT sekmesi   */
+  window.savasKapasitesi    = savasKapasitesi; /* troops.js birlik seçici */
+  window.kullanilanYer      = kullanilanYer;
+  window.birimYeri          = birimYeri;
+  window.TABAN_KAPASITE     = TABAN_KAPASITE;
   window.GELISTIR_MAX_SV   = MAX_SV;
 })();

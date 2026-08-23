@@ -26,11 +26,11 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 2, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
+  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 6,  su: 2, demir: 9  } },
-  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 4, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
+  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 12, su: 3, demir: 12 } },
-  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 6, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ /* görsel: KADEME_GORSEL tablosunda */
+  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { su: 5, demir: 15, enerji: 5 } },
 };
 
@@ -586,6 +586,89 @@ function tNumBoyutla(kutu) {
   kutu.style.width = n + "ch";
 }
 
+/*  ── SEFER KAPASİTESİ ─────────────────────────────────────────
+    Oyuncu ordusunun tamamını tek seferde süremez. Tavan
+    gelistir.js'ten gelir: TABAN_KAPASITE + seçili kahramanların
+    kapasiteleri. Burada hesap YOK, yalnız uygulama var.
+
+    Kademe fark etmez, her birlik 1 yer kaplar (birimYeri).
+    Tavan yalnız SEFERE ÇIKARKEN geçerlidir; savunma bu koddan
+    hiç geçmez.                                                    */
+function seferTavani() {
+  return (typeof window.savasKapasitesi === "function")
+    ? window.savasKapasitesi() : Infinity;
+}
+
+function seferYeri(secim) {
+  if (typeof window.kullanilanYer === "function") return window.kullanilanYer(secim);
+  let t = 0;
+  Object.keys(secim || {}).forEach(u => { t += (secim[u] || 0); });
+  return t;
+}
+
+/*  Bir birliğin sürgüsünde gidilebilecek EN ÇOK değer:
+    elindeki sayı ile tavandan artan yerin küçüğü. Kendi payı
+    hesaba katılır, yoksa sürgü kendi kendini kilitler.            */
+function seferSiniri(unitId) {
+  const elde = (state.troops || {})[unitId] || 0;
+  const tavan = seferTavani();
+  if (!isFinite(tavan)) return elde;
+  const bas = (typeof window.birimYeri === "function") ? window.birimYeri(unitId) : 1;
+  const kendi = (selectedTroopsForBattle[unitId] || 0) * bas;
+  const bosYer = Math.max(0, tavan - seferYeri(selectedTroopsForBattle) + kendi);
+  return Math.max(0, Math.min(elde, Math.floor(bosYer / (bas || 1))));
+}
+
+/*  Tavan düştüğünde (kahraman çıkarıldı) fazlalığı kırp.
+    Sondaki birlikten başlayarak azaltılır — oyuncunun ilk
+    seçtiği birlik korunur.                                        */
+function seferSecimiKirp() {
+  const tavan = seferTavani();
+  if (!isFinite(tavan)) return false;
+  let fazla = seferYeri(selectedTroopsForBattle) - tavan;
+  if (fazla <= 0) return false;
+  const anahtarlar = Object.keys(selectedTroopsForBattle).reverse();
+  anahtarlar.forEach(u => {
+    if (fazla <= 0) return;
+    const bas = (typeof window.birimYeri === "function") ? window.birimYeri(u) : 1;
+    const varOlan = selectedTroopsForBattle[u] || 0;
+    if (varOlan <= 0) return;
+    const dus = Math.min(varOlan, Math.ceil(fazla / (bas || 1)));
+    selectedTroopsForBattle[u] = varOlan - dus;
+    fazla -= dus * bas;
+  });
+  return true;
+}
+
+/*  Başlıktaki "0 / 55.000" sayacı. Başlık index.html'de sabit
+    yazılı olduğu için metnine dokunulmaz; yanına bir <span>
+    eklenir, sonraki tazelemelerde aynı span güncellenir.          */
+function seferSayaciTazele() {
+  const listEl = document.getElementById("troopSelectList");
+  if (!listEl) return;
+  let baslik = listEl.previousElementSibling;
+  while (baslik && !baslik.classList.contains("troop-select-title")) {
+    baslik = baslik.previousElementSibling;
+  }
+  if (!baslik) return;
+
+  let et = baslik.querySelector(".t-kapasite");
+  if (!et) {
+    et = document.createElement("span");
+    et.className = "t-kapasite";
+    et.style.cssText = "margin-left:8px;font-weight:800;color:#ffd257;" +
+                       "font-variant-numeric:tabular-nums;";
+    baslik.appendChild(et);
+  }
+  const tavan = seferTavani();
+  const kul = seferYeri(selectedTroopsForBattle);
+  et.textContent = isFinite(tavan)
+    ? kul.toLocaleString("tr-TR") + " / " + tavan.toLocaleString("tr-TR")
+    : "";
+  /* tavan dolduysa sayı kırmızıya döner — sürgünün neden durduğu belli olsun */
+  et.style.color = (isFinite(tavan) && kul >= tavan) ? "#ff6b6b" : "#ffd257";
+}
+
 function renderTroopSelector() {
   applyFinishedTraining();
   const listEl = document.getElementById("troopSelectList");
@@ -629,12 +712,19 @@ function renderTroopSelector() {
   listEl.querySelectorAll(".troop-slider").forEach(slider => {
     slider.addEventListener("input", () => {
       const unitId = slider.dataset.unit;
-      selectedTroopsForBattle[unitId] = parseInt(slider.value, 10);
+      /*  SEFER TAVANI: istenen değer kalan yeri aşarsa burada
+          kesilir. Sürgü fiziksel olarak ileri gider ama değeri
+          geri yazıldığı için oyuncu duvara toslamış gibi hisseder. */
+      let istenen = parseInt(slider.value, 10) || 0;
+      const sinir = seferSiniri(unitId);
+      if (istenen > sinir) { istenen = sinir; slider.value = istenen; }
+      selectedTroopsForBattle[unitId] = istenen;
       /* yazarken kutuyu ezme: sadece odakta değilse güncelle */
       const satir = slider.closest(".troop-select-row");
       const kutu = satir ? satir.querySelector(".t-num") : null;
       if (kutu && document.activeElement !== kutu) kutu.value = slider.value;
       if (kutu) tNumBoyutla(kutu);
+      seferSayaciTazele();
       updateTroopSelectSummary();
       renderEnemyPowerPreview();
     });
@@ -650,9 +740,10 @@ function renderTroopSelector() {
     const satir2 = kutu.closest(".troop-select-row");
     const s = satir2 ? satir2.querySelector(".troop-slider") : null;
     if (!s) return;
-    const enCok = parseInt(s.max, 10) || 0;
-
     function uygula(duzelt) {
+      /*  Sınır SABİT DEĞİL: sefer tavanı diğer birlikler seçildikçe
+          daralır, o yüzden her seferinde yeniden sorulur.          */
+      const enCok = seferSiniri(unitId);
       let v = parseInt(String(kutu.value).replace(/[^0-9]/g, ""), 10);
       if (!isFinite(v)) v = 0;
       v = Math.max(0, Math.min(enCok, v));
@@ -681,7 +772,7 @@ function renderTroopSelector() {
       const satir3 = btn.closest(".troop-select-row");
       const s = satir3 ? satir3.querySelector(".troop-slider") : null;
       if (!s) return;
-      const enCok = parseInt(s.max, 10) || 0;
+      const enCok = seferSiniri(satir3 ? satir3.dataset.unit : btn.dataset.unit);
       const yeni = Math.max(0, Math.min(enCok, (parseInt(s.value, 10) || 0) + yon * adim));
       if (yeni === parseInt(s.value, 10)) return;
       s.value = yeni;
@@ -704,6 +795,8 @@ function renderTroopSelector() {
     ["pointerup", "pointerleave", "pointercancel"].forEach(ev => btn.addEventListener(ev, bitir));
   });
 
+  seferSecimiKirp();
+  seferSayaciTazele();
   updateTroopSelectSummary();
 }
 
