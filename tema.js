@@ -6352,3 +6352,25 @@ html body #battleArena .ay-serit{ gap:12px !important; margin:0 0 6px !important
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   KAHRAMAN DETAY EKRANI — OKLAR GİZLENDİ
+   ------------------------------------------------------------
+   Sağ/sol ‹ › düğmeleri görünmüyor artık; kahramanlar arası geçiş
+   yalnız KAYDIRMA ile yapılıyor. Düğmeler SİLİNMEDİ, gizlendi:
+   kaydırma mantığı bu düğmelerin tıklamasını tetikliyor
+   (tema.js kaydırma bloğu), silinirse geçiş tümden çalışmaz.
+   Gizli düğmeye JS'ten click gönderilebilir, sorun çıkmaz.
+   ══════════════════════════════════════════════════════════════ */
+(function heroDetayOklariGizle(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaHeroOkGizle";
+st.textContent = `
+html body #heroDetailOverlay #hdPrev,
+html body #heroDetailOverlay #hdNext{
+  display:none !important;
+}
+`;
+document.head.appendChild(st);
+})();

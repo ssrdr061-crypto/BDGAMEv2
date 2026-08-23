@@ -946,7 +946,7 @@ ${modelTxt}`;
         b.style.cssText =
           "flex:1;padding:7px 4px;border:none;border-radius:9px;" +
           "font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:12px;" +
-          "box-shadow:0 2px 6px rgba(0,20,45,.3);transition:transform .09s ease,filter .09s ease;" +
+          "box-shadow:none;transition:transform .09s ease,filter .09s ease;" +
           (se ? "background:linear-gradient(180deg,#ffd257,#f0932b);color:#20140a;"
               : "background:rgba(4,16,38,.45);color:#a8c7e0;");
       });
@@ -990,7 +990,7 @@ ${modelTxt}`;
         out += `<div style="display:flex;justify-content:space-between;gap:8px;
                     padding:6px 0;border-bottom:1px solid rgba(255,255,255,.22);">
                   <span>${x.ad}</span>
-                  <span style="color:#ffd257;font-weight:800;
+                  <span style="color:#ffffff;font-weight:800;
                         font-variant-numeric:tabular-nums;">+%${x.yuzde}</span>
                 </div>`;
       });
@@ -998,7 +998,7 @@ ${modelTxt}`;
         out += `<div style="display:flex;justify-content:space-between;gap:8px;
                     padding:6px 0;border-bottom:1px solid rgba(255,255,255,.22);">
                   <span>Kapasite</span>
-                  <span style="color:#ffd257;font-weight:800;
+                  <span style="color:#ffffff;font-weight:800;
                         font-variant-numeric:tabular-nums;">+${kap.toLocaleString("tr-TR")}</span>
                 </div>`;
       }

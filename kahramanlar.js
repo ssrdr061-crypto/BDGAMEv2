@@ -159,27 +159,30 @@ function _klistKartAyar(id) {
     radial-gradient(ellipse 115% 55% at 50% -6%, rgba(130,200,255,.30), transparent 68%),
     radial-gradient(ellipse 90% 45% at 50% 106%, rgba(3,10,26,.55), transparent 74%),
     linear-gradient(180deg, var(--km-1,#3d7ccc) 0%, var(--km-2,#22488f) 52%, var(--km-3,#152e5e) 100%);
-  box-shadow:0 0 26px rgba(20,60,120,.5), inset 0 3px 0 var(--km-parlak,rgba(150,205,255,.55)),
-             inset 0 -14px 26px rgba(0,10,30,.45);
+  /* 3B kaldırıldı: dış parlama ve iç kabartı yok, düz gölge. */
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
 }
 .klist-top{
   position:relative; flex:0 0 auto;
-  display:flex; align-items:center; padding:12px 60px 10px 12px;
-  border-bottom:2px solid rgba(160,215,255,.30);
+  /* Başlık ORTADA: iki yanda eşit pay bırakılıyor, yoksa sağdaki ✕
+     yüzünden metin sola kaçar. Alt ayırma çizgisi kaldırıldı. */
+  display:flex; align-items:center; justify-content:center;
+  padding:12px 60px 10px 60px;
+  border-bottom:none;
 }
 .klist-title{
-  font-size:18px; font-weight:900; color:#fff;
-  text-shadow:0 2px 4px rgba(0,40,70,.6);
+  font-size:24px; font-weight:900; color:#fff; text-align:center;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
 /* Kapatma: oyunun her yerindeki kırmızı düğmenin aynısı (.overlay-close) */
 .klist-x{
   position:absolute; top:10px; right:12px;
   width:38px; height:38px; border-radius:10px; z-index:5;
   background:linear-gradient(180deg,#f03434,#c00d0d);
-  border:2px solid rgba(255,220,220,.9); color:#fff;
+  border:1px solid rgba(255,220,220,.75); color:#fff;
   font-size:19px; font-weight:900; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
-  box-shadow:0 4px 10px rgba(120,0,0,.4);
+  box-shadow:none;
   -webkit-tap-highlight-color:transparent;
 }
 .klist-x:active{ transform:scale(.92); }
@@ -197,12 +200,12 @@ function _klistKartAyar(id) {
      kartın tamamında kademe görseli veriyor, ikinci bir zemin gereksiz.
      Görsel yüklenemezse kart şeffaf kalır — panelin rengi görünür. */
   background:transparent;
-  box-shadow:0 4px 8px rgba(0,15,40,.45);
+  box-shadow:none;
   transition:transform .1s;
   -webkit-tap-highlight-color:transparent;
 }
 /* Çerçeve varken eski iç parlama da gelsin */
-.klist-card.cerceveli{ box-shadow:inset 0 2px 3px rgba(150,205,255,.4), 0 4px 8px rgba(0,15,40,.45); }
+.klist-card.cerceveli{ box-shadow:none; }
 .klist-card:not(.empty):active{ transform:scale(.96); }
 /* Zemin: kahramanın ALTINDA, kutucuğu tam doldurur, taşmaz */
 .klist-card .klist-zemin{
@@ -282,7 +285,7 @@ function _klistKartAyar(id) {
 .klist-card.empty{
   border-color:rgba(160,215,255,.28);
   background:linear-gradient(180deg, rgba(96,150,215,.28) 0%, rgba(24,58,112,.55) 60%, rgba(9,26,58,.75) 100%);
-  box-shadow:inset 0 2px 3px rgba(150,205,255,.22), 0 4px 8px rgba(0,15,40,.35);
+  box-shadow:none;
   cursor:default; display:flex; align-items:center; justify-content:center;
 }
 .klist-card.empty b{
@@ -292,24 +295,26 @@ function _klistKartAyar(id) {
 
 .klist-bottom{
   flex:0 0 auto; display:flex; align-items:center; gap:9px;
-  padding:9px 12px 11px; border-top:2px solid rgba(160,215,255,.30);
+  padding:9px 12px 11px; border-top:none;
   background:rgba(4,20,45,.35);
 }
 .klist-count{
   flex:1 1 0; height:44px; border-radius:12px;
-  border:2px solid rgba(160,215,255,.40); background:rgba(6,30,62,.5);
+  border:1px solid rgba(190,240,255,.20); background:rgba(6,30,62,.5);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   font-size:13px; font-weight:900; color:#eaf4ff; line-height:1.15;
 }
 .klist-count small{ font-size:9px; font-weight:700; color:#bcd6f2; }
 .klist-buy{
   flex:1 1 0; height:44px; border-radius:12px; cursor:pointer;
-  border:2px solid #d4af37; color:#1b1430;
+  border:none; color:#1b1430;
   background:linear-gradient(180deg,#f0c94f,#b8860b);
   font-family:'Baloo 2','Nunito',sans-serif; font-size:15px; font-weight:900;
-  box-shadow:0 4px 0 #6d4f06; -webkit-tap-highlight-color:transparent;
+  box-shadow:none; text-shadow:0 1px 2px rgba(0,20,45,.35);
+  transition:transform .09s, filter .09s;
+  -webkit-tap-highlight-color:transparent;
 }
-.klist-buy:active{ transform:translateY(2px); box-shadow:none; }
+.klist-buy:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none; }
 
 /* ── KAHRAMAN EKRANI PERDESİ ──
    tema.js'teki kaydırma bloğu geçişte kartı 120 ms boyunca saydamlaştırıyor (opacity 0).
