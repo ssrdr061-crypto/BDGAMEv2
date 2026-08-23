@@ -181,6 +181,41 @@ const KAYNAKLAR = [
      Küçük ama tüm birliklere ve tüm istatistiklere işler.
      Beklenen kayıt: state.kaleSv = 4
      (3. adımda bağlanacak.)                                   */
+  /* ── KAHRAMAN BONUSLARI ─────────────────────────────────
+     Savaşa seçili komutanların seviyeye bağlı stat bonusları.
+     Tanım heroes.js → HERO_STATS[id].bonuses, hesap gelistir.js →
+     window.kahramanStatBonusu. Burada İKİNCİ bir tablo tutulmaz.
+     Bonus yalnız kahramanın KENDİ ailesine işler; aynı aileden iki
+     kahraman varsa yüzdeler toplanır (savaş motoruyla aynı kural).  */
+  {
+    id: "kahraman", ad: "Kahramanlar", ikon: "🦸",
+    hesapla(unitId) {
+      const out = bosStat();
+      if (typeof window.kahramanStatBonusu !== "function") return out;
+      const hedefAile = aile(unitId);
+      /* saldırıya seçili komutanlar; hiç seçili değilse tek kahraman */
+      let ids = [];
+      try {
+        if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
+          ids = selectedCommanders.filter(Boolean);
+      } catch (e) { ids = []; }
+      const st = S();
+      if (!ids.length && st && st.selectedHeroSkin) ids = [st.selectedHeroSkin];
+      ids = ids.filter((x, i) => ids.indexOf(x) === i);
+
+      const ESLES = { saldiri: "atk", savunma: "def", can: "hp", olum: "olum" };
+      ids.forEach(id => {
+        const b = window.kahramanStatBonusu(id);      /* seviye kendi kaydından */
+        if (!b || b.aile !== hedefAile) return;
+        STATLAR.forEach(s => {
+          const v = Number(b[ESLES[s.key]]);
+          if (v) out[s.key] += v;
+        });
+      });
+      return out;
+    }
+  },
+
   {
     id: "kale", ad: "Kale Seviyesi", ikon: "🏰",
     hesapla(/* unitId */) {

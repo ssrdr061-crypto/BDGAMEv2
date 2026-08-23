@@ -817,10 +817,13 @@ function statKarsiHTML(r) {
       const n = Math.max(0, u.sayi || 0);
       if (!n) return;
       sayi += n;
-      son.atk += (u.atk || 0) * n;   tab.atk += (u.tatk || 0) * n;
-      son.def += (u.def || 0) * n;   tab.def += (u.tdef || 0) * n;
-      son.hp  += (u.hp  || 0) * n;   tab.hp  += (u.thp  || 0) * n;
-      son.olum += (u.olum || 0) * n; tab.olum += (u.tolum || 0) * n;
+      /* Ham taban kayıtta yoksa (eski raporlar) troops.js'ten okunur;
+         yoksa tab 0 kalır ve her satır "+%0" görünürdü. */
+      const d = (typeof UNIT_TYPES !== "undefined" && u.unitId) ? (UNIT_TYPES[u.unitId] || {}) : {};
+      son.atk  += (u.atk  || 0) * n;  tab.atk  += (u.tatk  || d.attack  || 0) * n;
+      son.def  += (u.def  || 0) * n;  tab.def  += (u.tdef  || d.defense || 0) * n;
+      son.hp   += (u.hp   || 0) * n;  tab.hp   += (u.thp   || d.hp      || 0) * n;
+      son.olum += (u.olum || 0) * n;  tab.olum += (u.tolum || d.olum    || 0) * n;
     });
     if (!sayi) return null;   /* o ailede hiç birlik yok → "—" */
     const oran = (k) => tab[k] > 0 ? Math.round((son[k] / tab[k] - 1) * 1000) / 10 : 0;
@@ -980,7 +983,10 @@ function unitDetailHTML(r) {
 
   const ids = ["knight", "soldier", "robot"].filter(u =>
     OLCU.some(o => o.sol(u) || o.sag(u)));
-  if (!ids.length) return `<div class="rp-note">Bu savaşta kayıt altına alınmış birlik dökümü yok.</div>`;
+  /* Döküm yoksa bile İSTATİSTİKLER bölümü yazılır — o yüzden burada
+     erken çıkılmaz, sadece blok yerine not konur. */
+  const bosNot = !ids.length
+    ? `<div class="rp-note">Bu savaşta kayıt altına alınmış birlik dökümü yok.</div>` : "";
 
   const blok = ids.map(u => {
     const satir = OLCU.map(o => `
@@ -1007,7 +1013,18 @@ function unitDetailHTML(r) {
       <span class="rp-krs-taraf${benS ? " rp-krs-ben" : ""}">${r.attackerName || "Saldıran"}</span>
       <span class="rp-krs-taraf${benS ? "" : " rp-krs-ben"}">${r.defenderName || "Savunan"}</span>
     </div>
-    ${blok}`;
+    ${bosNot}${blok}${statBolumuHTML(r)}`;
+}
+
+/* İSTATİSTİKLER bölümü — sayfa 2'nin EN ALTI (birlik dökümünden sonra).
+   Eskiden sayfa 1'in üstündeydi; oraya sığmıyor, satırlar sıkışıyordu. */
+function statBolumuHTML(r) {
+  const govde = statKarsiHTML(r);
+  if (!govde) return "";
+  return `<div class="rp-st-bolum">
+      <div class="rp-st-baslik">İSTATİSTİKLER</div>
+      ${govde}
+    </div>`;
 }
 
 /* ── SAVAŞ DETAYLARI: kahraman yetenekleri ──
@@ -1236,8 +1253,6 @@ function openReportModal(r) {
             <div class="rp-role">SAVUNAN</div>
           </div>
         </div>
-
-        ${statKarsiHTML(r)}
 
         ${(r.attackerCommanders&&r.attackerCommanders.length)||(r.defenderCommanders&&r.defenderCommanders.length)?`
         <div class="rp-cols rp-cols-hero">
@@ -2303,26 +2318,39 @@ if (document.readyState === "loading") {
 .rp-y-dolu{ color:#e0a41f; }
 .rp-y-bos{ color:color-mix(in srgb, var(--rp-murekkep) 30%, transparent); }
 
-/* ── KARŞILIKLI STATLAR ── */
+/* ── KARŞILIKLI STATLAR (sayfa 2'nin en altı) ──
+   Kural: sayılar kenara YAPIŞMAZ, ad tek satıra sıkıştırılmaz —
+   uzun ad ikinci satıra iner, satır yüksekliği kendiliğinden büyür. */
+.rp-st-bolum{ margin:16px 0 2px; }
+.rp-st-baslik{
+  font-size:11px; font-weight:800; letter-spacing:.6px;
+  color:var(--rp-murekkep-2); padding:0 4px 6px;
+  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 22%, transparent);
+  margin-bottom:4px;
+}
 .rp-st-liste{
-  margin:8px 0 4px; padding:0; background:none; border:none;
+  margin:0; padding:0; background:none; border:none;
+  border-radius:10px; overflow:hidden;
   font-family:'Baloo 2','Nunito',sans-serif;
 }
 .rp-st-row{
-  display:flex; align-items:center; gap:6px;
-  padding:5px 0; font-size:15px;
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px; font-size:13px;
+  border-bottom:1px solid color-mix(in srgb, var(--rp-murekkep) 10%, transparent);
 }
-/* Satır arası çizgiler kaldırıldı */
+/* bir koyu bir açık şerit — sayfa 2'deki döküm satırlarıyla aynı dil */
+.rp-st-row:nth-child(odd){ background:rgba(255,255,255,.14); }
+.rp-st-row:last-child{ border-bottom:0; }
 .rp-st-k{
-  flex:1 1 auto; text-align:center; font-size:13px; font-weight:800;
-  letter-spacing:.2px; color:var(--rp-murekkep);
+  flex:1 1 auto; min-width:0; text-align:center;
+  font-size:11.5px; font-weight:800; line-height:1.2;
+  letter-spacing:.2px; color:var(--rp-murekkep-2);
 }
 .rp-st-v{
-  flex:0 0 33%; font-weight:800; font-variant-numeric:tabular-nums;
-  font-size:15px; color:var(--rp-murekkep);
+  flex:0 0 27%; text-align:center;
+  font-weight:800; font-variant-numeric:tabular-nums;
+  font-size:14px; color:var(--rp-murekkep);
 }
-.rp-st-row .rp-st-v:first-child{ text-align:left; }
-.rp-st-row .rp-st-v:last-child{ text-align:right; }
 .rp-st-ust{ color:#1f7a34; }
 .rp-st-alt{ color:#a33; }
 /* ── KAHRAMANLAR: alt alta ── */
