@@ -6110,6 +6110,50 @@ html body #panel-troops .uv-portrait.kp-kilit.is-active::before{
 /*  Kahraman portresi birlik değildir — data-kad taşımaz, hiçbir
     kurala girmez. Niyet açık dursun diye yazılıyor.               */
 html body .rep-por-hero::before{ background-image:none !important; }
+
+/* ── HASTANE ve SAVAŞ PANELİ ──
+   Bu iki ekranda kutucuk kademe numarası taşımaz; birliğin
+   KİMLİĞİNİ taşır (data-unit). Kimlik biçimi index.html
+   kademeId() ile belirlenir: Sv1 = "knight" · Sv2 = "knight2".
+   Kademeyi kimlikten okuduğumuz için işaretlemeye dokunmadan
+   aynı arka planlar buraya da geliyor.                           */
+html body .hospital-face,
+html body #troopSelectList .t-icon{ position:relative !important; }
+
+html body .hospital-face[data-unit="knight"]::before,
+html body .hospital-face[data-unit="soldier"]::before,
+html body .hospital-face[data-unit="robot"]::before,
+html body #troopSelectList .t-icon[data-unit="knight"]::before,
+html body #troopSelectList .t-icon[data-unit="soldier"]::before,
+html body #troopSelectList .t-icon[data-unit="robot"]::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:url("birlik1arkaplan.webp");
+  background-size:cover; background-position:center;
+  background-repeat:no-repeat;
+  pointer-events:none; z-index:0;
+}
+
+html body .hospital-face[data-unit="knight2"]::before,
+html body .hospital-face[data-unit="soldier2"]::before,
+html body .hospital-face[data-unit="robot2"]::before,
+html body #troopSelectList .t-icon[data-unit="knight2"]::before,
+html body #troopSelectList .t-icon[data-unit="soldier2"]::before,
+html body #troopSelectList .t-icon[data-unit="robot2"]::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:url("birlik2arkaplan.webp");
+  background-size:cover; background-position:center;
+  background-repeat:no-repeat;
+  pointer-events:none; z-index:0;
+}
+
+/*  Birlik görseli arka planın üstünde kalsın.                    */
+html body .hospital-face img,
+html body .hospital-face .hosp-emoji,
+html body #troopSelectList .t-icon img.t-head{
+  position:relative !important; z-index:1 !important;
+}
 `;
 document.head.appendChild(st);
 })();
