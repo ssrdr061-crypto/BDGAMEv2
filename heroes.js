@@ -1149,7 +1149,16 @@ function heroPortraitHTML(id, cls) {
     tutturan boy 119'dur. Genişlik değişirse bu sayı da değişmeli.
     ───────────────────────────────────────────────────────────── */
 const HPK_YUVA = {
-  yukseklik: 119,   /* yuvanın SABİT boyu (px) — asıl ayar bu */
+  /*  ORAN — kahraman menüsündeki kartla aynı en/boy (3/4).
+      Yükseklik artık px olarak yazılmıyor, genişlikten türüyor.
+      Sebep: yuva kareye yakındı, kart ise dikey tasarlandı;
+      KLIST_KART'taki portre kadrajı (dy/s) kahraman menüsünün
+      oranına göre ayarlı olduğu için savaş ekranında kahramanlar
+      yanlış kırpılıyordu. Oran eşitlenince kadraj kendiliğinden
+      menüdekiyle aynı oluyor.
+      Sabit px'e dönmek istersen `oran` alanını "" yap.          */
+  oran: "3 / 4",
+  yukseklik: 119,   /* yalnız `oran` boşken kullanılır (px) */
   bosluk:      9,   /* yuvalar arası boşluk (px) */
   pay_yan:    11,   /* satırın sağ/sol iç boşluğu (px) — − düğmesi taşıyor */
   pay_ust:    11,   /* satırın üst iç boşluğu (px)     — − düğmesi taşıyor */
@@ -1188,9 +1197,10 @@ const HPK_KART = {
 .hpk-slot{
   position:relative;
   min-width:0;
-  height:${HPK_YUVA.yukseklik}px;         /* SABİT — hesaplanmaz */
-  min-height:${HPK_YUVA.yukseklik}px;
-  max-height:${HPK_YUVA.yukseklik}px;
+  ${HPK_YUVA.oran
+    ? `aspect-ratio:${HPK_YUVA.oran}; height:auto;`
+    : `height:${HPK_YUVA.yukseklik}px; min-height:${HPK_YUVA.yukseklik}px;
+       max-height:${HPK_YUVA.yukseklik}px;`}
   border-radius:${HPK_YUVA.kose}px; cursor:pointer; box-sizing:border-box;
   background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(8,45,80,.35));
   border:2px dashed rgba(190,240,255,.6);
