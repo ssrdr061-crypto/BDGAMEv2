@@ -616,8 +616,8 @@
          TABAN_KAPASITE + seçili kahramanların kapasiteleri
 
      Kahraman kapasitesi nadirlik + seviyeden gelir:
-       mor  : 15.000, her seviye +8.000     → Sv1 15.000 · Sv5 47.000
-       ssr  : 20.000, her seviye +10.500    → Sv1 20.000 · Sv5 62.000
+       mor  : 20.000, her seviye +8.000     → Sv1 20.000 · Sv5 52.000
+       ssr  : 25.000, her seviye +10.500    → Sv1 25.000 · Sv5 67.000
 
      KADEME FARK ETMEZ: Sv1 şövalye de Sv6 dev robot da 1 yer kaplar.
      (Kademeye göre yer maliyeti istenirse birimYeri() içi değişir,
@@ -629,8 +629,8 @@
   const TABAN_KAPASITE = 5000;      /* herkeste var, kahramansız da */
 
   const KAPASITE = {
-    mor: { taban: 15000, artis:  8000 },
-    ssr: { taban: 20000, artis: 10500 }
+    mor: { taban: 20000, artis:  8000 },
+    ssr: { taban: 25000, artis: 10500 }
   };
 
   /* Tek kahramanın açtığı kapasite. */
