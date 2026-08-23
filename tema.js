@@ -5524,9 +5524,12 @@ st.textContent = `
   pointer-events:none;
 }
 
-/* henüz üretilemeyen kademeler soluk durur */
-#panel-troops .uv-portrait.kp-kilit img{ filter:grayscale(1) brightness(.6); }
-#panel-troops .uv-portrait.kp-kilit.is-active img{ filter:grayscale(.55) brightness(.8); }
+/*  Kilitli kademe kutucuğunun soluklaştırması BURADAN KALDIRILDI.
+    Eskiden yalnız GÖRSEL soluklaşıyordu; kutuya arka plan gelince
+    arka plan pırıl pırıl, birlik soluk kalıyordu. Yeni yer: dosya
+    sonundaki birlikKutuArkaPlan bloğu — orada görsel ve arka plan
+    birlikte, aynı değerle soluklaşır, kademe numarası ise net
+    kalır (numara filtrenin dışında tutuldu).                      */
 
 /* ── 2) Sv2+ karartması BURADAN KALDIRILDI ──
    Eskiden karartma .stage'e, yani sahnenin tamamına, kademeye
@@ -6037,12 +6040,19 @@ document.head.appendChild(st);
      · raporun karşılıklı stat başlıkları (.rp-krs-baslik .rep-por)
 
    Sv1 mavi (birlik1arkaplan.webp) · Sv2 kırmızı (birlik2arkaplan.webp).
-   Sv3-Sv6 şimdilik arka plansız — kural yalnız 1 ve 2'yi seçer,
-   diğerlerine hiç dokunmaz.
+   Sv3-Sv6 şimdilik arka plansız — kural yalnız 1 ve 2'yi seçer.
 
-   DİKKAT (Tuzak 50): arka plan RENGİNİ yazan kurallarda `background`
-   kısayolu kullanılamaz — kısayol, buradaki görseli de siler. Bu
-   yüzden dosyadaki dört kural `background-color`'a çevrildi
+   ARKA PLAN NEDEN ::before?
+   Kutunun kendi background alanına konsaydı, kilitli kademeyi
+   soluklaştıran filtre ya arka planı atlardı (arka plan pırıl
+   pırıl, birlik soluk) ya da kutuya verilince kademe numarasını
+   da soluklaştırırdı. Ayrı katman olunca üçü bağımsız:
+     ::before → arka plan   ·   img → birlik   ·   .kp-sv → numara
+   Kilitliyken ilk ikisi AYNI değerle soluklaşır, numara net kalır.
+
+   DİKKAT (Tuzak 50): arka plan RENGİNİ yazan kurallarda background
+   kısayolu kullanılamaz — kısayol buradaki görseli de siler. Bu
+   yüzden dosyadaki dört kural background-color'a çevrildi
    (.uv-portrait · .rep-por · rp-cols-troop · rp-krs-baslik).
 
    Kademe bilgisi işaretlemeden gelir:
@@ -6054,31 +6064,52 @@ document.head.appendChild(st);
 const st = document.createElement("style");
 st.id = "temaBirlikKutuArka";
 st.textContent = `
-html body #panel-troops .uv-portrait[data-kademe="1"],
-html body .rep-por[data-kad="1"]{
-  background-image:url("birlik1arkaplan.webp") !important;
+/*  Arka plan katmanı. Kutu zaten overflow:hidden, taşma olmaz.
+    Ölçü kutuya bağlı: kutucuk büyürse arka plan onunla ölçeklenir. */
+html body #panel-troops .uv-portrait,
+html body .rep-por{ position:relative !important; }
+
+html body #panel-troops .uv-portrait[data-kademe="1"]::before,
+html body #panel-troops .uv-portrait[data-kademe="2"]::before,
+html body .rep-por[data-kad="1"]::before,
+html body .rep-por[data-kad="2"]::before{
+  content:"";
+  position:absolute; inset:0;
+  background-size:cover; background-position:center;
+  background-repeat:no-repeat;
+  pointer-events:none;
+  z-index:0;
 }
-html body #panel-troops .uv-portrait[data-kademe="2"],
-html body .rep-por[data-kad="2"]{
-  background-image:url("birlik2arkaplan.webp") !important;
+html body #panel-troops .uv-portrait[data-kademe="1"]::before,
+html body .rep-por[data-kad="1"]::before{
+  background-image:url("birlik1arkaplan.webp");
+}
+html body #panel-troops .uv-portrait[data-kademe="2"]::before,
+html body .rep-por[data-kad="2"]::before{
+  background-image:url("birlik2arkaplan.webp");
 }
 
-/*  Ortak yerleşim: görsel kutuyu tam doldurur, ortalanır, tekrar
-    etmez. Ölçü kutuya bağlıdır — kutucuk büyüyüp küçülürse arka
-    plan onunla birlikte ölçeklenir, ayrıca ayar gerekmez.        */
-html body #panel-troops .uv-portrait[data-kademe="1"],
-html body #panel-troops .uv-portrait[data-kademe="2"],
-html body .rep-por[data-kad="1"],
-html body .rep-por[data-kad="2"]{
-  background-size:cover !important;
-  background-position:center !important;
-  background-repeat:no-repeat !important;
+/*  Birlik görseli ve kademe numarası arka planın ÜSTÜNDE durur. */
+html body #panel-troops .uv-portrait img,
+html body #panel-troops .uv-portrait > span,
+html body .rep-por img{ position:relative !important; z-index:1 !important; }
+html body #panel-troops .uv-portrait .kp-sv{ z-index:2 !important; }
+
+/*  KİLİTLİ KADEME — arka plan ve birlik BİRLİKTE soluklaşır.
+    Seçili olan biraz daha okunur tutulur (eski değerler korundu).
+    Numara .kp-sv filtreye girmez, net kalır.                      */
+html body #panel-troops .uv-portrait.kp-kilit img,
+html body #panel-troops .uv-portrait.kp-kilit::before{
+  filter:grayscale(1) brightness(.6) !important;
+}
+html body #panel-troops .uv-portrait.kp-kilit.is-active img,
+html body #panel-troops .uv-portrait.kp-kilit.is-active::before{
+  filter:grayscale(.55) brightness(.8) !important;
 }
 
-/*  Kahraman portresi birlik değildir — data-kad taşımaz, bu
-    kuralların hiçbirine girmez. Yine de niyet açık dursun diye
-    yazılıyor.                                                    */
-html body .rep-por-hero{ background-image:none !important; }
+/*  Kahraman portresi birlik değildir — data-kad taşımaz, hiçbir
+    kurala girmez. Niyet açık dursun diye yazılıyor.               */
+html body .rep-por-hero::before{ background-image:none !important; }
 `;
 document.head.appendChild(st);
 })();
