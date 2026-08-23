@@ -753,14 +753,18 @@ function orduKayitYukle(i) {
     başına girer, düğme X'in (#mapBackBtn) soluna oturur. İkisi de
     bir kez kurulur, sonraki tazelemelerde yalnız içeriği yenilenir. */
 function orduKayitCiz() {
-  const kutu = document.querySelector("#battleArena .troop-select-box");
-  if (!kutu) return;
+  /*  Şerit .troop-select-box'un değil PANELİN çocuğudur.
+      İki sebeple: sol üst köşeye oturtulacak, ve kutunun içine
+      girseydi "Komutan Seç" başlığını gizleyen :first-child
+      kuralını bozar, başlık geri gelirdi.                       */
+  const panel = document.querySelector("#battleArena .battle-arena");
+  if (!panel) return;
 
-  let serit = kutu.querySelector(".ok-serit");
+  let serit = panel.querySelector(".ok-serit");
   if (!serit) {
     serit = document.createElement("div");
     serit.className = "ok-serit";
-    kutu.insertBefore(serit, kutu.firstElementChild);
+    panel.insertBefore(serit, panel.firstElementChild);
   }
 
   const k = orduKayitlari();

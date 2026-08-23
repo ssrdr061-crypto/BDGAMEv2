@@ -6279,3 +6279,73 @@ html body #battleArena .ay-pc{
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   SAVAŞ PANELİ — YER KAZANMA VE ÜST KÖŞE DÜZENİ
+   ------------------------------------------------------------
+   Sorun: panel ekranın tamamını kullanmıyordu. #battleArena'nın
+   üstünde 65px, altında 53px iç boşluk vardı; panelin kendi
+   dolgusu ve satır araları da genişti. İçerik bu yüzden erken
+   taşıyor, .troop-select-box kaydırmaya düşüyor, oyuncu her
+   defasında aşağı yukarı sürüklemek zorunda kalıyordu — oysa
+   ekranda boş yer duruyordu.
+
+   Burada o boşluklar kısaltılıyor. Kaydırma yeteneği duruyor
+   (çok uzun listelerde gerekir) ama artık normal kadroda
+   devreye girmiyor.
+
+   Ayrıca: 1·2·3 yuvaları sol üst köşeye, 💾 X'in soluna, üçü de
+   aynı ölçüde ve aynı hizada. "Komutan Seç" başlığı gizli
+   (yuvalar panelin çocuğu olduğu için eski :first-child kuralı
+   yine başlığı yakalıyor — bkz. troops.js orduKayitCiz).
+   ══════════════════════════════════════════════════════════════ */
+(function savasPaneliYerKazan(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaSavasPanelYer";
+st.textContent = `
+/* ── 1) GÖRÜNMEZ ŞERİTLER KISALDI ── */
+html body #battleArena{ padding:20px 10px 14px !important; }
+html body #battleArena .battle-arena{
+  padding:38px 12px 12px !important;
+  max-height:100% !important;
+  gap:6px !important;
+}
+/* satır araları da daraldı — üst üste binen boşluklar toplanıyordu */
+html body #battleArena #troopSelectList{ margin-top:4px !important; }
+html body #battleArena .troop-select-title{ margin-bottom:5px !important; }
+html body #battleArena #troopSelectList .troop-select-row{ margin-bottom:7px !important; }
+html body #battleArena #heroPicker{ margin:0 !important; }
+
+/* Komutan Seç başlığı kalksın */
+html body #battleArena .troop-select-box .troop-select-title:first-child{
+  display:none !important;
+}
+
+/* ── 2) SOL ÜST: 1·2·3 · SAĞ ÜST: 💾 ve X ──
+   Üçü de aynı ölçü, aynı hiza. X zaten top:0/right:6. */
+html body #battleArena .ok-serit{
+  position:absolute !important;
+  top:0 !important; left:6px !important;
+  z-index:50 !important;
+  display:flex !important; justify-content:flex-start !important;
+  gap:6px !important; margin:0 !important;
+}
+html body #battleArena .ok-yuva{
+  width:34px !important; height:34px !important;
+  border-radius:10px !important;
+  font-size:14px !important;
+}
+html body #battleArena #orduKayitBtn{
+  top:0 !important; right:48px !important;
+  width:34px !important; height:34px !important;
+  border-radius:10px !important;
+  font-size:17px !important;
+}
+
+/* ── 3) YÜZDE İŞARETİ KUTUCUĞA YAKLAŞTI ── */
+html body #battleArena .ay-oge{ gap:2px !important; }
+html body #battleArena .ay-serit{ gap:12px !important; margin:0 0 6px !important; }
+`;
+document.head.appendChild(st);
+})();
