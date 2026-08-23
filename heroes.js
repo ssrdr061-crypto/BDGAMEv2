@@ -1149,16 +1149,7 @@ function heroPortraitHTML(id, cls) {
     tutturan boy 119'dur. Genişlik değişirse bu sayı da değişmeli.
     ───────────────────────────────────────────────────────────── */
 const HPK_YUVA = {
-  /*  ORAN — kahraman menüsündeki kartla aynı en/boy (3/4).
-      Yükseklik artık px olarak yazılmıyor, genişlikten türüyor.
-      Sebep: yuva kareye yakındı, kart ise dikey tasarlandı;
-      KLIST_KART'taki portre kadrajı (dy/s) kahraman menüsünün
-      oranına göre ayarlı olduğu için savaş ekranında kahramanlar
-      yanlış kırpılıyordu. Oran eşitlenince kadraj kendiliğinden
-      menüdekiyle aynı oluyor.
-      Sabit px'e dönmek istersen `oran` alanını "" yap.          */
-  oran: "3 / 4.15",
-  yukseklik: 119,   /* yalnız `oran` boşken kullanılır (px) */
+  yukseklik: 119,   /* yuvanın SABİT boyu (px) — asıl ayar bu */
   bosluk:      9,   /* yuvalar arası boşluk (px) */
   pay_yan:    11,   /* satırın sağ/sol iç boşluğu (px) — − düğmesi taşıyor */
   pay_ust:    11,   /* satırın üst iç boşluğu (px)     — − düğmesi taşıyor */
@@ -1168,18 +1159,7 @@ const HPK_YUVA = {
 const HPK_KART = {
   sv_bs:     12,       /* "Sv. 1" yazı boyutu (px) — 0 = listedeki değer  */
   yildiz_bs: 17,       /* yıldız boyutu (px)      — 0 = listedeki değer  */
-  specGoster: true,    /* sol üstteki uzmanlık rozeti                    */
-
-  /*  REFERANS KART GENİŞLİĞİ (px) — kahraman menüsündeki kartın
-      genişliği. kahramanlar.js'teki KLIST_KART ayarları (dx/dy/s)
-      PİKSEL cinsindendir ve bu genişliğe göre kalibre edilmiştir.
-      Savaş yuvası daha darsa kaydırmalar orantısız kalır, kahraman
-      kartın içinde kayar. Aşağıdaki ölçek bunu düzeltir:
-      portre kabı 1/k oranında büyütülüp k ile küçültülür, böylece
-      içindeki bütün piksel değerleri kart boyuyla birlikte ölçeklenir.
-      Kahraman menüsünün sütun sayısı/boşlukları değişirse bu sayı
-      da güncellenmeli.                                              */
-  referans_gen: 102
+  specGoster: true     /* sol üstteki uzmanlık rozeti                    */
 };
 
 /* ── panel CSS (bir kez enjekte edilir) ── */
@@ -1208,10 +1188,11 @@ const HPK_KART = {
 .hpk-slot{
   position:relative;
   min-width:0;
-  ${HPK_YUVA.oran
-    ? `aspect-ratio:${HPK_YUVA.oran}; height:auto;`
-    : `height:${HPK_YUVA.yukseklik}px; min-height:${HPK_YUVA.yukseklik}px;
-       max-height:${HPK_YUVA.yukseklik}px;`}
+  /*  Oran, kahraman seçim penceresindeki .hpk-card ile aynı (3/4);
+      o kart da kahraman menüsündeki kartın birebir aynısıdır.
+      Sabit px yüksekliğe dönmek istersen: height/min/max = 119px. */
+  aspect-ratio:3/4; height:auto;
+  align-self:start;
   border-radius:${HPK_YUVA.kose}px; cursor:pointer; box-sizing:border-box;
   background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(8,45,80,.35));
   border:2px dashed rgba(190,240,255,.6);
@@ -1232,21 +1213,6 @@ const HPK_KART = {
   width:100% !important; height:100% !important;
   transform:none !important;          /* listedeki ızgara kaydırması burada geçersiz */
   cursor:pointer;
-}
-/*  PORTRE ÖLÇEĞİ — bkz. HPK_KART.referans_gen.
-    Kap büyütülüp geri küçültülüyor: görünen alan kartla aynı kalır
-    ama içerideki piksel kaydırmaları kart boyuyla orantılı olur.
-    --hpk-k JS'te yazılır; yazılmazsa 1 olur ve hiçbir şey değişmez. */
-.hpk-slot .klist-portre-kap{
-  /*  DİKKAT: kahramanlar.js'teki kural inset:0 yazıyor. inset dört
-      kenarı birden sabitler; kutu böyle "aşırı kısıtlanmış" olur ve
-      verilen width/height sessizce YOK SAYILIR. Sağ ve alt kenar
-      serbest bırakılmadan ölçek uygulanamıyor.                      */
-  right:auto !important; bottom:auto !important;
-  width:calc(100% / var(--hpk-k, 1)) !important;
-  height:calc(100% / var(--hpk-k, 1)) !important;
-  transform:scale(var(--hpk-k, 1)) !important;
-  transform-origin:top left !important;
 }
 .hpk-slot .klist-lv{ ${HPK_KART.sv_bs ? `font-size:${HPK_KART.sv_bs}px !important;` : ""} }
 .hpk-slot .klist-stars{ ${HPK_KART.yildiz_bs ? `font-size:${HPK_KART.yildiz_bs}px !important;` : ""} }
@@ -1402,65 +1368,6 @@ function seferdekiKomutanlar() {
   return out;
 }
 
-/*  ── YUVA YÜKSEKLİĞİ ──
-    Yuva, kahraman menüsündeki kartla aynı en/boy oranında olmalı
-    (HPK_YUVA.oran). CSS'teki aspect-ratio bunu tek başına yapmıyor:
-    yuva bir grid hücresidir ve grid hücreleri varsayılan olarak
-    satır yüksekliğine GERİLİR (align stretch), bu da aspect-ratio'yu
-    eziyor. Bu yüzden genişlik ölçülüp yükseklik doğrudan yazılıyor.
-
-    Ölçüm panel görünür olduktan sonra anlamlıdır; kapalıyken
-    genişlik 0'dır (Tuzak 22) — o durumda hiçbir şey yazılmaz,
-    panel açıldığında yeniden çizim zaten bu fonksiyonu çağırır. */
-function hpkYuvaBoyunuYaz() {
-  if (!HPK_YUVA.oran) return;
-  const parcalar = String(HPK_YUVA.oran).split("/");
-  const en  = parseFloat(parcalar[0]) || 3;
-  const boy = parseFloat(parcalar[1]) || 4;
-  if (!en || !boy) return;
-
-  const uygula = () => {
-    const el = document.getElementById("heroPicker");
-    if (!el) return;
-    el.querySelectorAll(".hpk-slot").forEach(slot => {
-      const g = slot.offsetWidth;
-      if (!g) return;                    /* gizli kapsayıcı — ölçü 0 */
-      const y = Math.round(g * boy / en);
-      slot.style.height    = y + "px";
-      slot.style.minHeight = y + "px";
-      slot.style.maxHeight = y + "px";
-      /* portre ölçeği — kart referanstan darsa kaydırmalar da küçülsün */
-      const ref = HPK_KART.referans_gen || 0;
-      if (ref > 0) slot.style.setProperty("--hpk-k", (g / ref).toFixed(4));
-    });
-  };
-  uygula();
-  requestAnimationFrame(uygula);         /* ilk karede genişlik henüz 0 olabilir */
-  hpkOlcumYaz();
-}
-
-/*  GEÇİCİ TEŞHİS — adreste ?olcum=2 varsa çalışır, başka türlü
-    hiçbir şey yapmaz. Savaş yuvasının gerçek ölçüsünü ekrana
-    basar. İş bitince bu fonksiyon ve çağrısı SİLİNECEK.
-    (showToast kapalı olduğu için ham div kullanılıyor.)         */
-function hpkOlcumYaz() {
-  if (!/[?&]olcum=2/.test(location.search)) return;
-  const el = document.getElementById("heroPicker");
-  const slot = el ? el.querySelector(".hpk-slot") : null;
-  let kutu = document.getElementById("hpkOlcumKutu");
-  if (!kutu) {
-    kutu = document.createElement("div");
-    kutu.id = "hpkOlcumKutu";
-    kutu.style.cssText = "position:fixed;left:6px;bottom:96px;z-index:99999;" +
-      "background:#000;color:#0f0;font:12px monospace;padding:5px 7px;border-radius:6px;";
-    document.body.appendChild(kutu);
-  }
-  kutu.textContent = slot
-    ? "yuva " + slot.offsetWidth + "x" + slot.offsetHeight +
-      " · k=" + (slot.style.getPropertyValue("--hpk-k") || "-") + " · SURUM-D"
-    : "yuva yok · SURUM-D";
-}
-
 /* ── ANA FONKSİYON: yuvaları çiz ── */
 function renderHeroPickerForBattle() {
   const el = document.getElementById("heroPicker");
@@ -1517,8 +1424,6 @@ function renderHeroPickerForBattle() {
       openHeroPickModal(parseInt(slot.dataset.slot, 10));
     });
   });
-
-  hpkYuvaBoyunuYaz();
   el.querySelectorAll(".hpk-x").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -1708,9 +1613,7 @@ function refreshAfterCommanderChange() {
   hpkTazele();                 /* pencere açıksa listesi yenilensin */
   /*  Komutan değişince SEFER TAVANI da değişir. Kahraman çıkarıldıysa
       tavan düşer ve seçili birlik fazla kalabilir; seçici baştan
-      çizilirse hem fazlalık kırpılır hem sürgüler yeni sınırı alır.
-      (renderTroopSelector kendi içinde renderHeroPickerForBattle
-      çağırır ama o buraya geri dönmez — döngü yok.)                 */
+      çizilirse hem fazlalık kırpılır hem sürgüler yeni sınırı alır.  */
   if (typeof renderTroopSelector === "function") renderTroopSelector();
   else if (typeof updateTroopSelectSummary === "function") updateTroopSelectSummary();
   if (typeof renderEnemyPowerPreview === "function") renderEnemyPowerPreview();
