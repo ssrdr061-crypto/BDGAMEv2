@@ -1013,11 +1013,12 @@ function unitDetailHTML(r) {
       <span class="rp-krs-taraf${benS ? " rp-krs-ben" : ""}">${r.attackerName || "Saldıran"}</span>
       <span class="rp-krs-taraf${benS ? "" : " rp-krs-ben"}">${r.defenderName || "Savunan"}</span>
     </div>
-    ${bosNot}${blok}${statBolumuHTML(r)}`;
+    ${bosNot}${blok}`;
 }
 
-/* İSTATİSTİKLER bölümü — sayfa 2'nin EN ALTI (birlik dökümünden sonra).
-   Eskiden sayfa 1'in üstündeydi; oraya sığmıyor, satırlar sıkışıyordu. */
+/* İSTATİSTİKLER bölümü — sayfa 1'in EN ALTI, HAYATTA KALANLAR
+   özetinin hemen altında. Eskiden sayfanın üstündeydi; oraya
+   sığmıyor, satırlar birbirine giriyordu. */
 function statBolumuHTML(r) {
   const govde = statKarsiHTML(r);
   if (!govde) return "";
@@ -1271,6 +1272,8 @@ function openReportModal(r) {
         </div>
 
         ${ozetHTML(r)}
+
+        ${statBolumuHTML(r)}
 
         <div class="rp-foot">
           <span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>

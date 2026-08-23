@@ -146,6 +146,30 @@ function taban(unitId) {
   return out;
 }
 
+/*  Ailenin GEÇERLİ birliği: oyuncunun sahip olduğu EN ÜST kademe.
+    Sv3 basmışsa artık ailenin statı Sv3'ünkidir; elinde kaç tane
+    olduğu değeri değiştirmez. Hiç birliği yoksa Sv1 gösterilir
+    (birlik basmadan önce de ekranın anlamlı olması için).           */
+function enIyiBirlikId(unitId) {
+  const ai = aile(unitId);
+  const st = S();
+  const t = (st && st.troops) || {};
+  let secilen = ai, enUst = 0;
+  birlikler().forEach(id => {
+    const d = UNIT_TYPES[id];
+    if (!d || d.aile !== ai) return;
+    if ((Number(t[id]) || 0) <= 0) return;
+    const k = d.kademe || 1;
+    if (k > enUst) { enUst = k; secilen = id; }
+  });
+  return secilen;
+}
+
+/* O birliğin ekranda yazacak değerleri (havuz bağlanınca üstüne biner) */
+function enIyiBirim(unitId) {
+  return birim(enIyiBirlikId(unitId));
+}
+
 /*  ─────────────────────────────────────────────
     5) KATMAN 2 — BONUS KAYNAKLARI
     Her kaynak, bir birlik için yüzde nesnesi döndürür.
@@ -181,41 +205,6 @@ const KAYNAKLAR = [
      Küçük ama tüm birliklere ve tüm istatistiklere işler.
      Beklenen kayıt: state.kaleSv = 4
      (3. adımda bağlanacak.)                                   */
-  /* ── KAHRAMAN BONUSLARI ─────────────────────────────────
-     Savaşa seçili komutanların seviyeye bağlı stat bonusları.
-     Tanım heroes.js → HERO_STATS[id].bonuses, hesap gelistir.js →
-     window.kahramanStatBonusu. Burada İKİNCİ bir tablo tutulmaz.
-     Bonus yalnız kahramanın KENDİ ailesine işler; aynı aileden iki
-     kahraman varsa yüzdeler toplanır (savaş motoruyla aynı kural).  */
-  {
-    id: "kahraman", ad: "Kahramanlar", ikon: "🦸",
-    hesapla(unitId) {
-      const out = bosStat();
-      if (typeof window.kahramanStatBonusu !== "function") return out;
-      const hedefAile = aile(unitId);
-      /* saldırıya seçili komutanlar; hiç seçili değilse tek kahraman */
-      let ids = [];
-      try {
-        if (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
-          ids = selectedCommanders.filter(Boolean);
-      } catch (e) { ids = []; }
-      const st = S();
-      if (!ids.length && st && st.selectedHeroSkin) ids = [st.selectedHeroSkin];
-      ids = ids.filter((x, i) => ids.indexOf(x) === i);
-
-      const ESLES = { saldiri: "atk", savunma: "def", can: "hp", olum: "olum" };
-      ids.forEach(id => {
-        const b = window.kahramanStatBonusu(id);      /* seviye kendi kaydından */
-        if (!b || b.aile !== hedefAile) return;
-        STATLAR.forEach(s => {
-          const v = Number(b[ESLES[s.key]]);
-          if (v) out[s.key] += v;
-        });
-      });
-      return out;
-    }
-  },
-
   {
     id: "kale", ad: "Kale Seviyesi", ikon: "🏰",
     hesapla(/* unitId */) {
@@ -326,15 +315,15 @@ function stil() {
   document.head.appendChild(el);
 }
 
-/*  Bir rolün dört satırı:  "Savunucu Saldırı ........ +%0"
-    BU EKRAN OYUNCUNUN EKRANIDIR — birliğin ham değerini değil,
-    hesapta BİRİKMİŞ BONUS YÜZDESİNİ gösterir. Ham taban değerler
-    birliğe aittir (seviye atlayınca değişir), yüzde ise oyuncunun
-    kalıcı ilerlemesidir. İki oyuncuyu karşılaştıran şey budur.
-    Ham değerler yine hesaplanır (birim/ordu) ama burada yazmaz.  */
+/*  Bir rolün dört satırı:  "Savunucu Saldırı ........ 45"
+    BU EKRAN BİRLİĞİN HAM DEĞERİNİ GÖSTERİR — yüzde değil.
+    Oyuncu bir asker bastığı an o askerin statı onun anlık statıdır;
+    aynı birlikten 1 tane de 50.000 tane de bassa değer aynıdır.
+    Daha üst kademe bir birlik bastığında satır kendiliğinden yükselir.
+    Kahraman bonusu buraya GİRMEZ (savaş anlıktır, raporda görünür).  */
 function grupHTML(unitId) {
   const rol = rolAdi(unitId);
-  const h = havuz(unitId);
+  const b = enIyiBirim(unitId);
 
   const sembol = rolSembol(unitId);
 
@@ -342,7 +331,7 @@ function grupHTML(unitId) {
       <div class="ist-satir">
         <span class="ist-sembol">${i === 0 ? sembol : ""}</span>
         <span class="ist-etiket">${rol} ${s.ad}</span>
-        <span class="ist-deger">+%${sayi(h[s.key])}</span>
+        <span class="ist-deger">${sayi(b[s.key])}</span>
       </div>`).join("");
 
   return satirlar;
@@ -453,6 +442,7 @@ return {
   SURUM: AYAR.SURUM,
   AYAR, STATLAR,
   seviye, taban, havuz, havuzDetay, birim, ordu, olumCarpani,
+  enIyiBirlikId, enIyiBirim,
   ciz,
 };
 
