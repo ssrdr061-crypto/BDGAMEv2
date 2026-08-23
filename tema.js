@@ -827,7 +827,14 @@ function statKarsiHTML(r) {
     });
     if (!sayi) return null;   /* o ailede hiç birlik yok → "—" */
     const oran = (k) => tab[k] > 0 ? Math.round((son[k] / tab[k] - 1) * 1000) / 10 : 0;
-    return { atk: oran("atk"), def: oran("def"), hp: oran("hp"), olum: oran("olum") };
+    /* DEĞER de döner: birliğin savaşta kullandığı gerçek stat (adetle
+       ağırlıklı ortalama). Yalnız yüzde yazılınca bonusu olmayan satır
+       "%0" görünüyor, birliğin o statı hiç yokmuş gibi duruyordu. */
+    const deger = (k) => Math.round((son[k] / sayi) * 10) / 10;
+    return {
+      atk: oran("atk"),  def: oran("def"),  hp: oran("hp"),  olum: oran("olum"),
+      vAtk: deger("atk"), vDef: deger("def"), vHp: deger("hp"), vOlum: deger("olum")
+    };
   };
 
   AILELER.forEach(ai => {
@@ -842,8 +849,19 @@ function statKarsiHTML(r) {
     ].forEach(st => {
       const av = a ? a[st.k] : null;
       const dv = d ? d[st.k] : null;
-      const yaz = (v) => (v === null) ? "—"
-        : (v > 0 ? "+" : "") + "%" + String(v).replace(".", ",");
+      const vk = "v" + st.k.charAt(0).toUpperCase() + st.k.slice(1);
+      const aVal = a ? a[vk] : null;
+      const dVal = d ? d[vk] : null;
+      const nk = (n) => String(n).replace(".", ",");
+      /* Bonus VARSA yüzde yazılır. Bonus YOKSA "%0" yerine birliğin
+         HAM DEĞERİ yazılır — "%0" satırı, birliğin o statı hiç
+         yokmuş gibi gösteriyordu (Savunucu Öldürücülüğü hep %0). */
+      const yaz = (v, val) => {
+        if (val === null) return "—";
+        if (v > 0) return "+%" + nk(v);
+        if (v < 0) return "%" + nk(v);
+        return "%" + nk(val);
+      };
       /* Kıyas SAYI üzerinden: metin kıyaslansaydı "+%468,6" < "+%9"
          çıkar, renkler ters olurdu (Tuzak 49). */
       const ka = (av === null || dv === null) ? "" :
@@ -851,9 +869,9 @@ function statKarsiHTML(r) {
       const kd = (av === null || dv === null) ? "" :
                  (dv > av ? "rp-st-ust" : (dv < av ? "rp-st-alt" : ""));
       out += `<div class="rp-st-row">
-        <span class="rp-st-v ${ka}">${yaz(av)}</span>
+        <span class="rp-st-v ${ka}">${yaz(av, aVal)}</span>
         <span class="rp-st-k">${st.ad}</span>
-        <span class="rp-st-v ${kd}">${yaz(dv)}</span>
+        <span class="rp-st-v ${kd}">${yaz(dv, dVal)}</span>
       </div>`;
     });
   });
