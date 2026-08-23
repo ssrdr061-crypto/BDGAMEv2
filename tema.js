@@ -782,23 +782,7 @@ function heroSvOf(name, harita) {
 function statKarsiHTML(r) {
   const s = r && r.statlar;
   if (!s || !s.attacker || !s.defender) return "";
-  const f = (n) => (typeof fmt === "function") ? fmt(n) : String(n);
   const A = s.attacker, D = s.defender;
-
-  /* a ve d HER ZAMAN sayıdır — kıyas sayı üzerinden yapılır.
-     Eskiden "+%20" gibi metin geçiliyordu ve karşılaştırma
-     alfabetik oluyordu ("+%20" < "+%9"), renkler ters çıkıyordu. */
-  const satir = (ad, a, d, bicim) => {
-    const yaz = bicim || f;
-    const av = yaz(a), dv = yaz(d);
-    const ai = (a > d) ? "rp-st-ust" : (a < d ? "rp-st-alt" : "");
-    const di = (d > a) ? "rp-st-ust" : (d < a ? "rp-st-alt" : "");
-    return `<div class="rp-st-row">
-      <span class="rp-st-v ${ai}">${av}</span>
-      <span class="rp-st-k">${ad}</span>
-      <span class="rp-st-v ${di}">${dv}</span>
-    </div>`;
-  };
 
   let out = `<div class="rp-st-liste">`;
 
@@ -811,50 +795,62 @@ function statKarsiHTML(r) {
      başında, bonuslar işlendikten SONRA ölçülüyor. Birlik canı %5 +
      kahraman %5 ise buradaki sayı %10'luk hâli taşır.
 
-     Saldırı/Savunma/Sağlık = ailedeki bütün kademelerin TOPLAMI
-     (birim değeri × adet). Öldürücülük oran olduğu için toplanmaz,
-     saldırı payına göre AĞIRLIKLI ORTALAMA alınır — toplansaydı
-     kalabalık ordu otomatik daha "öldürücü" görünürdü. */
+     Değerler YÜZDE olarak yazılır (Whiteout mantığı): birimin ham
+     tabanına göre ne kadar güçlendiği. Ordu büyüklüğü sonucu
+     etkilemez. */
   const AILELER = [
     { k: "knight",  ad: "Savunucu" },
     { k: "soldier", ad: "Koruyucu" },
     { k: "robot",   ad: "Nişancı"  }
   ];
 
-  const aileToplam = (birimler, aile) => {
-    let atk = 0, def = 0, hp = 0, olumPay = 0, agirlik = 0, sayi = 0;
+  /* Ailenin yüzdesi: SAVAŞTA kullanılan stat ÷ troops.js'teki ham taban.
+     Kademeler farklı tabana sahip olduğu için tek tek değil, adetle
+     ağırlıklandırılıp toplu oranlanır. Ordu büyüklüğü sadeleşir:
+     3 asker de 60 bin asker de aynı yüzdeyi verir. */
+  const aileYuzde = (birimler, aile) => {
+    let sayi = 0;
+    const son = { atk: 0, def: 0, hp: 0, olum: 0 };
+    const tab = { atk: 0, def: 0, hp: 0, olum: 0 };
     (birimler || []).forEach(u => {
       if (u.aile !== aile) return;
       const n = Math.max(0, u.sayi || 0);
-      atk += (u.atk || 0) * n;
-      def += (u.def || 0) * n;
-      hp  += (u.hp  || 0) * n;
-      olumPay += (u.olum || 0) * (u.atk || 0) * n;
-      agirlik += (u.atk || 0) * n;
+      if (!n) return;
       sayi += n;
+      son.atk += (u.atk || 0) * n;   tab.atk += (u.tatk || 0) * n;
+      son.def += (u.def || 0) * n;   tab.def += (u.tdef || 0) * n;
+      son.hp  += (u.hp  || 0) * n;   tab.hp  += (u.thp  || 0) * n;
+      son.olum += (u.olum || 0) * n; tab.olum += (u.tolum || 0) * n;
     });
-    return { atk, def, hp, sayi,
-             olum: agirlik > 0 ? Math.round(olumPay / agirlik * 100) / 100 : 0 };
+    if (!sayi) return null;   /* o ailede hiç birlik yok → "—" */
+    const oran = (k) => tab[k] > 0 ? Math.round((son[k] / tab[k] - 1) * 1000) / 10 : 0;
+    return { atk: oran("atk"), def: oran("def"), hp: oran("hp"), olum: oran("olum") };
   };
 
   AILELER.forEach(ai => {
-    const a = aileToplam(A.birimler, ai.k);
-    const d = aileToplam(D.birimler, ai.k);
-    if (!a.sayi && !d.sayi) return;   /* iki tarafta da yoksa yazma */
+    const a = aileYuzde(A.birimler, ai.k);
+    const d = aileYuzde(D.birimler, ai.k);
+    if (!a && !d) return;   /* iki tarafta da yoksa satır yazma */
     [
-      { k: "def",  ad: ai.ad + " savunması"    },
-      { k: "atk",  ad: ai.ad + " saldırısı"    },
-      { k: "hp",   ad: ai.ad + " sağlığı"      },
-      { k: "olum", ad: ai.ad + " öldürücülüğü" }
+      { k: "def",  ad: ai.ad + " Savunması"    },
+      { k: "atk",  ad: ai.ad + " Saldırısı"    },
+      { k: "hp",   ad: ai.ad + " Sağlığı"      },
+      { k: "olum", ad: ai.ad + " Öldürücülüğü" }
     ].forEach(st => {
-      const av = a[st.k], dv = d[st.k];
-      const yaz = (v) => (st.k === "olum") ? String(v) : f(v);
-      const aSinif = (av > dv) ? "rp-st-ust" : (av < dv ? "rp-st-alt" : "");
-      const dSinif = (dv > av) ? "rp-st-ust" : (dv < av ? "rp-st-alt" : "");
+      const av = a ? a[st.k] : null;
+      const dv = d ? d[st.k] : null;
+      const yaz = (v) => (v === null) ? "—"
+        : (v > 0 ? "+" : "") + "%" + String(v).replace(".", ",");
+      /* Kıyas SAYI üzerinden: metin kıyaslansaydı "+%468,6" < "+%9"
+         çıkar, renkler ters olurdu (Tuzak 49). */
+      const ka = (av === null || dv === null) ? "" :
+                 (av > dv ? "rp-st-ust" : (av < dv ? "rp-st-alt" : ""));
+      const kd = (av === null || dv === null) ? "" :
+                 (dv > av ? "rp-st-ust" : (dv < av ? "rp-st-alt" : ""));
       out += `<div class="rp-st-row">
-        <span class="rp-st-v ${aSinif}">${yaz(av)}</span>
+        <span class="rp-st-v ${ka}">${yaz(av)}</span>
         <span class="rp-st-k">${st.ad}</span>
-        <span class="rp-st-v ${dSinif}">${yaz(dv)}</span>
+        <span class="rp-st-v ${kd}">${yaz(dv)}</span>
       </div>`;
     });
   });
