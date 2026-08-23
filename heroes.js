@@ -196,9 +196,11 @@ const HERO_STATS = {
         icon: "yetenek_atesbuyusu.webp",
         title: "Ateş Büyüsü",
         descTemplate: "Geleneksel olarak öğrendiği tüm metotları deneyerek ateş büyüsü oluşturur ve {chance} ihtimalle rakibin savunmasını {value} yıpratır.",
-        valuesByLevel: [30, 33, 36, 41, 45],
-        chance: 75,   /* her seviyede sabit ihtimal */
-        effect: { type: "enemy_def_shred_pct" }
+        valuesByLevel: [10, 13, 16, 19, 22],   /* savunma yıpratma % */
+        /* İhtimal her seviyede SABİT %30 — seviyeyle yükselmez.
+           `effect` İÇİNDE duruyor: index.html'deki birleştirici düz
+           `chance` alanını yutuyor, effect nesnesi olduğu gibi geçiyor. */
+        effect: { type: "enemy_def_shred_pct", chance: 30 }
       },
       {
         icon: "yetenek_yasak.webp",

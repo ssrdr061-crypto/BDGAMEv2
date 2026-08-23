@@ -354,7 +354,9 @@
     let cHpBir  = cv.hpBir;
 
     const debuffs = {};
-    if ((f = bul("enemy_def_shred_pct")) && f.v) {
+    if ((f = bul("enemy_def_shred_pct")) && f.v
+        && Math.random() * 100 < (((f.effect && f.effect.chance) != null) ? f.effect.chance
+                                  : (f.chance != null ? f.chance : 100))) {
       cDefBir *= (1 - f.v / 100);
       debuffs.defShred = f.v;
     }

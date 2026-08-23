@@ -831,6 +831,13 @@ function flowOf(ab) {
     freezeTurns:   Math.round(g("enemy_freeze_turns")),
     reflectPct:    g("damage_reflect_pct"),
     defShredPct:   g("enemy_def_shred_pct"),
+    /* Savunma yıpratmanın tutma ihtimali (Ateş Büyüsü) */
+    defShredSans:  (() => {
+      const f = findBuff(ab, "enemy_def_shred_pct");
+      if (!f) return 100;
+      const c = (f.effect && f.effect.chance);
+      return (c != null) ? c : (f.chance != null ? f.chance : 100);
+    })(),
     enemyReducePct:g("enemy_hp_atk_reduce_pct"),
     instantPct:    g("enemy_instant_casualty"),
     /* Aileye can azaltma — ihtimalli. Yetenek tanımından hem yüzde
@@ -849,7 +856,7 @@ function flowOf(ab) {
     gapCapPct:     g("power_gap_cap"),
     woundedPct:    g("wounded_return_pct"),
     /* sayaçlar — rapora yazılır */
-    used: { freeze: 0, reflect: 0, instant: 0, periodic: 0, gapCap: 0, familyHp: 0 }
+    used: { freeze: 0, reflect: 0, instant: 0, periodic: 0, gapCap: 0, familyHp: 0, defShred: 0 }
   };
 }
 
@@ -1373,7 +1380,12 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   /* ── Karşı tarafı zayıflatan yetenekler ── */
   function weaken(src, tgt) {
     const fl = src.flow;
-    if (fl.defShredPct)  tgt.units.forEach(u => u.def = Math.max(0, Math.round(u.def * (1 - fl.defShredPct / 100))));
+    /* Savunma yıpratma İHTİMALLİ. Eskiden zar atılmıyordu; oyuncuya
+       %75 yazan yetenek her savaşta tutuyordu. */
+    if (fl.defShredPct && Math.random() * 100 < fl.defShredSans) {
+      tgt.units.forEach(u => u.def = Math.max(0, Math.round(u.def * (1 - fl.defShredPct / 100))));
+      fl.used.defShred = fl.defShredPct;
+    }
     if (fl.enemyReducePct) {
       tgt.units.forEach(u => {
         u.atk = Math.max(1, Math.round(u.atk * (1 - fl.enemyReducePct / 100)));
