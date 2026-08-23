@@ -265,9 +265,14 @@
     /* Arka plan YOK — kahraman görseli hiç örtülmez.
        Panel yalnız düğmeleri taşır, görselin altına oturur. */
     const sahipli = sahip(id);
+    /* Alt sekme şeridi (#hdTabs) bottom:0'da duruyor. Panel yalnız %3
+       yukarıdaydı, şerit paneli örtüyordu. Şeridin boyu ÖLÇÜLÜR —
+       sabit yazılsaydı şeridin yüksekliği değişince yine çakışırdı.
+       Ölçü 0 dönerse (henüz çizilmediyse) 46px'e düşer (Tuzak 22). */
+    const seritYuk = (document.getElementById("hdTabs") || {}).offsetHeight || 46;
     p.style.cssText =
       "position:absolute;left:12px;right:12px;z-index:8;" +
-      "bottom:" + (sahipli ? "3%" : "calc(4% + 58px)") + ";" +
+      "bottom:" + (sahipli ? `calc(3% + ${seritYuk}px)` : `calc(4% + ${seritYuk + 12}px)`) + ";" +
       "box-sizing:border-box;color:#eaf6ff;background:none;border:none;" +
       "display:flex;flex-direction:column;";
 
