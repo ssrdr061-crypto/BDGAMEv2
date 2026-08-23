@@ -801,8 +801,12 @@ function statKarsiHTML(r) {
   const f = (n) => (typeof fmt === "function") ? fmt(n) : String(n);
   const A = s.attacker, D = s.defender;
 
-  const satir = (ad, a, d, ham) => {
-    const av = ham ? a : f(a), dv = ham ? d : f(d);
+  /* a ve d HER ZAMAN sayıdır — kıyas sayı üzerinden yapılır.
+     Eskiden "+%20" gibi metin geçiliyordu ve karşılaştırma
+     alfabetik oluyordu ("+%20" < "+%9"), renkler ters çıkıyordu. */
+  const satir = (ad, a, d, bicim) => {
+    const yaz = bicim || f;
+    const av = yaz(a), dv = yaz(d);
     const ai = (a > d) ? "rp-st-ust" : (a < d ? "rp-st-alt" : "");
     const di = (d > a) ? "rp-st-ust" : (d < a ? "rp-st-alt" : "");
     return `<div class="rp-st-row">
@@ -817,7 +821,7 @@ function statKarsiHTML(r) {
     satir("SALDIRI",      A.atk,  D.atk) +
     satir("SAVUNMA",      A.def,  D.def) +
     satir("SAĞLIK",       A.hp,   D.hp) +
-    satir("ÖLDÜRÜCÜLÜK",  A.olum, D.olum, true);
+    satir("ÖLDÜRÜCÜLÜK",  A.olum, D.olum, v => String(v));
 
   /* Kahraman bonusları — kalem kalem, iki taraf yan yana */
   const adlar = {};
@@ -829,7 +833,7 @@ function statKarsiHTML(r) {
     liste.forEach(ad => {
       const av = (A.bonus || []).reduce((v, x) => x.ad === ad ? x.yuzde : v, 0);
       const dv = (D.bonus || []).reduce((v, x) => x.ad === ad ? x.yuzde : v, 0);
-      out += satir(ad, av ? "+%" + av : "—", dv ? "+%" + dv : "—", true);
+      out += satir(ad, av, dv, v => v ? "+%" + v : "—");
     });
   }
   return out + `</div>`;
@@ -996,6 +1000,7 @@ function unitDetailHTML(r) {
 const RP_AB_ANAHTAR = {
   enemy_freeze_turns: "freeze", damage_reflect_pct: "reflect",
   enemy_instant_casualty: "instant", periodic_def_reduce_pct: "periodic",
+  enemy_family_hp_reduce: "familyHp",
   power_gap_cap: "gapCap"
 };
 

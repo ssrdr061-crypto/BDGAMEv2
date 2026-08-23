@@ -203,10 +203,12 @@ const HERO_STATS = {
       {
         icon: "yetenek_yasak.webp",
         title: "Yasak Büyüler",
-        descTemplate: "Büyü kitabındaki en büyük büyüleri denemeye kalkar; düşman birliklerinin {value} kadarını hemen öldürür, {value2} kadarını hastaneye düşürür.",
-        valuesByLevel:  [6, 9, 12, 15, 19],    /* öldürülen % */
-        valuesByLevel2: [12, 13, 14, 15, 16],  /* hastaneye düşen % */
-        effect: { type: "enemy_instant_casualty" }
+        descTemplate: "Savaşın başında %20 ihtimalle tutar; tuttuğunda düşman Koruyucularının canını {value} azaltır.",
+        valuesByLevel: [7, 9, 11, 13, 15],     /* can azaltma % */
+        /* DİKKAT: ihtimal `effect` İÇİNDE. index.html'deki yetenek
+           birleştirici yalnız `chanceByLevel` okur, düz `chance`
+           alanını düşürür — effect nesnesi ise olduğu gibi geçer. */
+        effect: { type: "enemy_family_hp_reduce", family: "soldier", chance: 20 }
       }
     ]
   },

@@ -833,11 +833,23 @@ function flowOf(ab) {
     defShredPct:   g("enemy_def_shred_pct"),
     enemyReducePct:g("enemy_hp_atk_reduce_pct"),
     instantPct:    g("enemy_instant_casualty"),
+    /* Aileye can azaltma — ihtimalli. Yetenek tanımından hem yüzde
+       hem aile hem ihtimal okunur, motorda sabit yazılmaz. */
+    familyHp:      (() => {
+      const f = findBuff(ab, "enemy_family_hp_reduce");
+      if (!f || !f.v) return null;
+      return {
+        pct: f.v,
+        aile: (f.effect && f.effect.family) || "soldier",
+        sans: ((f.effect && f.effect.chance) != null ? f.effect.chance
+              : (f.chance != null ? f.chance : 100))
+      };
+    })(),
     periodicPct:   g("periodic_def_reduce_pct"),
     gapCapPct:     g("power_gap_cap"),
     woundedPct:    g("wounded_return_pct"),
     /* sayaçlar — rapora yazılır */
-    used: { freeze: 0, reflect: 0, instant: 0, periodic: 0, gapCap: 0 }
+    used: { freeze: 0, reflect: 0, instant: 0, periodic: 0, gapCap: 0, familyHp: 0 }
   };
 }
 
@@ -1368,6 +1380,18 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
         u.hp  = Math.max(1, Math.round(u.hp  * (1 - fl.enemyReducePct / 100)));
       });
     }
+    /* Belirli bir AİLENİN canını azaltır — ihtimalli, savaş başında
+       bir kez. Birlik SİLMEZ; sadece canı düşürür, kayıp savaşta
+       normal yoldan oluşur (Yasak Büyüler). */
+    if (fl.familyHp && Math.random() * 100 < fl.familyHp.sans) {
+      const oran = 1 - fl.familyHp.pct / 100;
+      tgt.units.forEach(u => {
+        if (AILE(u.unitId) !== fl.familyHp.aile) return;
+        u.hp = Math.max(1, Math.round(u.hp * oran));
+      });
+      fl.used.familyHp = fl.familyHp.pct;
+    }
+
     /* savaş başında anlık kayıp */
     if (fl.instantPct) {
       tgt.units.forEach(u => {

@@ -377,10 +377,18 @@
     const canavarAtk  = () => Math.max(1, canavarAdet() * cAtkBir);
     const canavarDef  = () => canavarAdet() * cDefBir;
 
-    /* Yasak Büyüler: canavarın %v'si anında erir */
+    /* Yasak Büyüler: canavarda ailesi olmadığı için can azaltma
+       doğrudan canavarın canına işler — ihtimalli, bir kez. */
     let instantKilled = 0;
     if ((f = bul("enemy_instant_casualty")) && f.v) {
       instantKilled = Math.round(enemyMaxHp * f.v / 100);
+    }
+    if ((f = bul("enemy_family_hp_reduce")) && f.v) {
+      const sans = ((f.effect && f.effect.chance) != null ? f.effect.chance
+                   : (f.chance != null ? f.chance : 100));
+      if (Math.random() * 100 < sans) {
+        instantKilled += Math.round(enemyMaxHp * f.v / 100);
+      }
     }
 
     /* Buz Engelleri: canavar ilk N tur donuk */
