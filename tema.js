@@ -3180,12 +3180,15 @@ st.textContent = `
    Panelin kendisi artık kaydırmıyor (yoksa X kırpılıyordu);
    kaydırma birlik listesine devredildi. */
 #battleArena .battle-arena{ overflow:visible !important; }
+/*  KIRPMA KALDIRILDI. Buradaki overflow-y:auto, kutunun YATAYDA da
+    kırpmasına yol açıyordu: kahraman kartlarının köşesindeki −
+    düğmesi kutunun dışına taşar ve sağdaki kartta kesiliyordu.
+    Kaydırma zaten gerekmiyor — panelin iç boşlukları kısaltıldıktan
+    sonra içerik ekrana sığıyor.                                    */
 #battleArena .troop-select-box{
   flex:1 1 auto !important; min-height:0 !important;
-  width:100% !important; overflow-y:auto !important;
-  scrollbar-width:none !important;
+  width:100% !important; overflow:visible !important;
 }
-#battleArena .troop-select-box::-webkit-scrollbar{ width:0 !important; display:none !important; }
 #battleArena #mapBackBtn{
   top:-15px !important; right:-13px !important;
   border-radius:12px !important;

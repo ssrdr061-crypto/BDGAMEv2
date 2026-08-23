@@ -1167,15 +1167,18 @@ const HPK_YUVA = {
       − düğmesi köşeden dışarı taşar ama kırpılmaz: tema.js
       #heroPicker / .hpk-slots / .hpk-slot için overflow:visible
       yazıyor. pay_ust bu yüzden korundu.                          */
-  bosluk:      3,   /* yuvalar arası boşluk (px) */
-  pay_yan:     0,   /* satırın sağ/sol iç boşluğu (px) */
+  bosluk:      6,   /* yuvalar arası boşluk (px) */
+  pay_yan:     4,   /* satırın sağ/sol iç boşluğu (px) — iki yan EŞİT */
   pay_ust:    11,   /* satırın üst iç boşluğu (px) — − düğmesi taşıyor */
   kose:       14    /* boş yuvanın köşe yuvarlaklığı (px) */
 };
 
 const HPK_KART = {
-  sv_bs:     12,       /* "Sv. 1" yazı boyutu (px) — 0 = listedeki değer  */
-  yildiz_bs: 17,       /* yıldız boyutu (px)      — 0 = listedeki değer  */
+  /*  0 = kahraman menüsündeki değeri kullan (KLIST_UI). Kart ölçüsü
+      menüyle eşitlendiği için yazılar da orada ne ise o olmalı;
+      burada ayrı sayı tutmak ikisini yeniden ayrıştırır.          */
+  sv_bs:      0,       /* "Sv. 1" yazı boyutu (px) — 0 = listedeki değer  */
+  yildiz_bs:  0,       /* yıldız boyutu (px)      — 0 = listedeki değer  */
   specGoster: true     /* sol üstteki uzmanlık rozeti                    */
 };
 
