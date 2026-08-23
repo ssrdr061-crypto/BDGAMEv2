@@ -1168,7 +1168,18 @@ const HPK_YUVA = {
 const HPK_KART = {
   sv_bs:     12,       /* "Sv. 1" yazı boyutu (px) — 0 = listedeki değer  */
   yildiz_bs: 17,       /* yıldız boyutu (px)      — 0 = listedeki değer  */
-  specGoster: true     /* sol üstteki uzmanlık rozeti                    */
+  specGoster: true,    /* sol üstteki uzmanlık rozeti                    */
+
+  /*  REFERANS KART GENİŞLİĞİ (px) — kahraman menüsündeki kartın
+      genişliği. kahramanlar.js'teki KLIST_KART ayarları (dx/dy/s)
+      PİKSEL cinsindendir ve bu genişliğe göre kalibre edilmiştir.
+      Savaş yuvası daha darsa kaydırmalar orantısız kalır, kahraman
+      kartın içinde kayar. Aşağıdaki ölçek bunu düzeltir:
+      portre kabı 1/k oranında büyütülüp k ile küçültülür, böylece
+      içindeki bütün piksel değerleri kart boyuyla birlikte ölçeklenir.
+      Kahraman menüsünün sütun sayısı/boşlukları değişirse bu sayı
+      da güncellenmeli.                                              */
+  referans_gen: 102
 };
 
 /* ── panel CSS (bir kez enjekte edilir) ── */
@@ -1221,6 +1232,16 @@ const HPK_KART = {
   width:100% !important; height:100% !important;
   transform:none !important;          /* listedeki ızgara kaydırması burada geçersiz */
   cursor:pointer;
+}
+/*  PORTRE ÖLÇEĞİ — bkz. HPK_KART.referans_gen.
+    Kap büyütülüp geri küçültülüyor: görünen alan kartla aynı kalır
+    ama içerideki piksel kaydırmaları kart boyuyla orantılı olur.
+    --hpk-k JS'te yazılır; yazılmazsa 1 olur ve hiçbir şey değişmez. */
+.hpk-slot .klist-portre-kap{
+  width:calc(100% / var(--hpk-k, 1)) !important;
+  height:calc(100% / var(--hpk-k, 1)) !important;
+  transform:scale(var(--hpk-k, 1)) !important;
+  transform-origin:top left !important;
 }
 .hpk-slot .klist-lv{ ${HPK_KART.sv_bs ? `font-size:${HPK_KART.sv_bs}px !important;` : ""} }
 .hpk-slot .klist-stars{ ${HPK_KART.yildiz_bs ? `font-size:${HPK_KART.yildiz_bs}px !important;` : ""} }
@@ -1403,6 +1424,9 @@ function hpkYuvaBoyunuYaz() {
       slot.style.height    = y + "px";
       slot.style.minHeight = y + "px";
       slot.style.maxHeight = y + "px";
+      /* portre ölçeği — kart referanstan darsa kaydırmalar da küçülsün */
+      const ref = HPK_KART.referans_gen || 0;
+      if (ref > 0) slot.style.setProperty("--hpk-k", (g / ref).toFixed(4));
     });
   };
   uygula();
@@ -1427,8 +1451,9 @@ function hpkOlcumYaz() {
     document.body.appendChild(kutu);
   }
   kutu.textContent = slot
-    ? "yuva " + slot.offsetWidth + "x" + slot.offsetHeight + " · SURUM-B"
-    : "yuva yok · SURUM-B";
+    ? "yuva " + slot.offsetWidth + "x" + slot.offsetHeight +
+      " · k=" + (slot.style.getPropertyValue("--hpk-k") || "-") + " · SURUM-C"
+    : "yuva yok · SURUM-C";
 }
 
 /* ── ANA FONKSİYON: yuvaları çiz ── */
