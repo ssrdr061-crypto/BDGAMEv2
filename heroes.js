@@ -1157,9 +1157,19 @@ const HPK_YUVA = {
       kart kısa kaldığı için gövde erken kesiliyordu.
       Kahraman menüsünün kart boyu değişirse bu sayı da değişmeli. */
   yukseklik: 142,
-  bosluk:      9,   /* yuvalar arası boşluk (px) */
-  pay_yan:    11,   /* satırın sağ/sol iç boşluğu (px) — − düğmesi taşıyor */
-  pay_ust:    11,   /* satırın üst iç boşluğu (px)     — − düğmesi taşıyor */
+
+  /*  BOŞLUKLAR — kart GENİŞLİĞİNİ bunlar belirler.
+      Satırın toplam genişliği sabittir; yanlardaki pay ve aradaki
+      boşluk ne kadar büyükse kart o kadar dar kalır. Eski değerler
+      (bosluk 9, pay_yan 11) kartı 91px'e düşürüyordu; kahraman
+      menüsündeki kart ise 102px. Aşağıdaki değerler kartı tam
+      102px yapar, yani ikisi birebir aynı ölçüde olur.
+      − düğmesi köşeden dışarı taşar ama kırpılmaz: tema.js
+      #heroPicker / .hpk-slots / .hpk-slot için overflow:visible
+      yazıyor. pay_ust bu yüzden korundu.                          */
+  bosluk:      3,   /* yuvalar arası boşluk (px) */
+  pay_yan:     0,   /* satırın sağ/sol iç boşluğu (px) */
+  pay_ust:    11,   /* satırın üst iç boşluğu (px) — − düğmesi taşıyor */
   kose:       14    /* boş yuvanın köşe yuvarlaklığı (px) */
 };
 
