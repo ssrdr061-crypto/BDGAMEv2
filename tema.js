@@ -889,7 +889,7 @@ function unitChips(troopsObj) {
     const im = (d && d.img) ? `<img src="${d.img}" alt="">` : "";
     const n  = (typeof fmt === "function") ? fmt(t[uid]) : String(t[uid]);
     return `<div class="rp-unit">
-      <div class="rep-por" data-i="${sira.indexOf(uid)}">${im}</div>
+      <div class="rep-por" data-i="${sira.indexOf(uid)}" data-kad="${(typeof KADEME_NO === "function" ? KADEME_NO(uid) : 1)}">${im}</div>
       <span class="rp-ucap">${n}</span>
     </div>`;
   });
@@ -1019,7 +1019,8 @@ function unitDetailHTML(r) {
     const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[u] : null;
     const im = (d && d.img) ? `<img src="${d.img}" alt="${AD[u] || u}">` : "";
     const i = ["knight", "soldier", "robot"].indexOf(u);
-    const kafa = `<div class="rep-por" data-i="${i}">${im}</div>`;
+    const kad = (typeof KADEME_NO === "function") ? KADEME_NO(u) : 1;
+    const kafa = `<div class="rep-por" data-i="${i}" data-kad="${kad}">${im}</div>`;
     return `<div class="rp-krs-blok">
         <div class="rp-krs-baslik">${kafa}<span class="rp-krs-cizgi"></span>${kafa}</div>
         ${satir}
@@ -1899,7 +1900,7 @@ if (document.readyState === "loading") {
   width:62px !important; height:62px !important; flex:none !important;
   padding:0 !important; overflow:hidden !important; cursor:pointer !important;
   border-radius:16px !important;
-  background:transparent !important;
+  background-color:transparent !important;
   border:1px solid rgba(190,240,255,.45) !important;
   box-shadow:none !important;
   transition:border-color .15s, box-shadow .15s, transform .15s;
@@ -2098,7 +2099,7 @@ if (document.readyState === "loading") {
 .rep-unit{ display:flex; flex-direction:column; align-items:center; gap:2px; }
 .rep-por{
   width:38px; height:38px; overflow:hidden; border-radius:11px;
-  background:rgba(255,255,255,.08); border:1.5px solid rgba(190,240,255,.4);
+  background-color:rgba(255,255,255,.08); border:1.5px solid rgba(190,240,255,.4);
 }
 .rep-por img{ display:block; height:auto; }
 .rep-por[data-i="0"] img{ width:var(--tp-kp-w,150%); margin:var(--tp-kp-t,-29%) 0 0 var(--tp-kp-l,-26%); }
@@ -2279,7 +2280,7 @@ if (document.readyState === "loading") {
 .rp-unit{ display:flex; flex-direction:column; align-items:center; gap:2px; }
 .rp-ucap{ font-size:11px; font-weight:800; color:var(--rp-murekkep); }
 .rp-box .rp-cols-troop .rep-por{
-  background:rgba(255,255,255,.22) !important;
+  background-color:rgba(255,255,255,.22) !important;
   border:1px solid color-mix(in srgb, var(--rp-murekkep) 45%, transparent) !important;
 }
 .rp-foot{ display:flex; justify-content:space-around; font-weight:800; font-size:13px;
@@ -3777,7 +3778,7 @@ st.textContent = `
 }
 .rp-box .rp-krs-baslik .rep-por{
   flex:0 0 auto;
-  background:rgba(255,255,255,.22) !important;
+  background-color:rgba(255,255,255,.22) !important;
   border:1px solid color-mix(in srgb, var(--rp-murekkep) 45%, transparent) !important;
 }
 .rp-krs-satir{
@@ -6023,6 +6024,61 @@ st.textContent = `
   border:none !important;
   box-shadow:none !important;
 }
+`;
+document.head.appendChild(st);
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   BİRLİK KAFA KUTUCUĞU — KADEME ARKA PLANI
+   ------------------------------------------------------------
+   Kafa kutucuğunun kullanıldığı HER YER aynı arka planı alır:
+     · birlik menüsündeki kademe seçiciler (.uv-portrait)
+     · savaş raporunda savaşa sürülen birlikler (.rep-por)
+     · raporun karşılıklı stat başlıkları (.rp-krs-baslik .rep-por)
+
+   Sv1 mavi (birlik1arkaplan.webp) · Sv2 kırmızı (birlik2arkaplan.webp).
+   Sv3-Sv6 şimdilik arka plansız — kural yalnız 1 ve 2'yi seçer,
+   diğerlerine hiç dokunmaz.
+
+   DİKKAT (Tuzak 50): arka plan RENGİNİ yazan kurallarda `background`
+   kısayolu kullanılamaz — kısayol, buradaki görseli de siler. Bu
+   yüzden dosyadaki dört kural `background-color`'a çevrildi
+   (.uv-portrait · .rep-por · rp-cols-troop · rp-krs-baslik).
+
+   Kademe bilgisi işaretlemeden gelir:
+     · .uv-portrait → data-kademe (index.html üretiyor)
+     · .rep-por     → data-kad    (unitChips ve karşılıklı başlık)
+   ══════════════════════════════════════════════════════════════ */
+(function birlikKutuArkaPlan(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaBirlikKutuArka";
+st.textContent = `
+html body #panel-troops .uv-portrait[data-kademe="1"],
+html body .rep-por[data-kad="1"]{
+  background-image:url("birlik1arkaplan.webp") !important;
+}
+html body #panel-troops .uv-portrait[data-kademe="2"],
+html body .rep-por[data-kad="2"]{
+  background-image:url("birlik2arkaplan.webp") !important;
+}
+
+/*  Ortak yerleşim: görsel kutuyu tam doldurur, ortalanır, tekrar
+    etmez. Ölçü kutuya bağlıdır — kutucuk büyüyüp küçülürse arka
+    plan onunla birlikte ölçeklenir, ayrıca ayar gerekmez.        */
+html body #panel-troops .uv-portrait[data-kademe="1"],
+html body #panel-troops .uv-portrait[data-kademe="2"],
+html body .rep-por[data-kad="1"],
+html body .rep-por[data-kad="2"]{
+  background-size:cover !important;
+  background-position:center !important;
+  background-repeat:no-repeat !important;
+}
+
+/*  Kahraman portresi birlik değildir — data-kad taşımaz, bu
+    kuralların hiçbirine girmez. Yine de niyet açık dursun diye
+    yazılıyor.                                                    */
+html body .rep-por-hero{ background-image:none !important; }
 `;
 document.head.appendChild(st);
 })();
