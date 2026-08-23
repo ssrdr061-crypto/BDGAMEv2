@@ -488,11 +488,11 @@ const CSS = `
   line-height:1.05; text-align:center;
   color:#eaffef; letter-spacing:.2px; border:none;
   background:linear-gradient(180deg,#2fbb62 0%,#1c8544 60%,#12602f 100%);
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
   transition:transform .09s, filter .09s;
 }
-#buffKutu:active{ transform:translateY(-50%) scale(.96); filter:brightness(.93); }
+#buffKutu:active{ transform:scale(.96); filter:brightness(.93); }
 #buffKutu .bk-ico{ font-size:20px; line-height:1; }
 #buffKutu .bk-yazi{ font-size:9px; }
 /* Rozet: rakam ortada dursun diye satır yüksekliğiyle değil
@@ -503,7 +503,7 @@ const CSS = `
   display:flex; align-items:center; justify-content:center;
   border-radius:10px;
   background:#ffd257; color:#153a22; font-size:11px; line-height:1;
-  border:2px solid #12602f;
+  border:1px solid #12602f;
 }
 #buffKutu.bk-hazir{ animation:bkNabiz 1.3s ease-in-out infinite; }
 @keyframes bkNabiz{ 50%{ filter:brightness(1.18); } }
@@ -520,7 +520,7 @@ const CSS = `
   width:min(340px,92vw); max-height:76vh; overflow-y:auto;
   border-radius:16px; padding:12px 12px 14px;
   background:linear-gradient(180deg,#14432a 0%,#0d2c1c 100%);
-  border:2px solid #48c07a; box-shadow:0 14px 30px rgba(0,20,8,.6);
+  border:1px solid #48c07a; box-shadow:none;
   color:#eaffef;
 }
 /* Yazı tipi ve METİN SEÇİMİ tüm alt öğelere birden verilir.
@@ -547,7 +547,7 @@ const CSS = `
   padding:7px 6px; border-radius:13px; cursor:pointer;
   background:rgba(255,255,255,.07);
   border:1px solid rgba(120,230,165,.28);
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   transition:transform .09s, filter .09s;
 }
 .bk-kutu:active{ transform:scale(.96); filter:brightness(.93); }
@@ -591,7 +591,7 @@ const CSS = `
   width:min(300px,88vw); border-radius:14px; padding:12px 13px 12px;
   background:linear-gradient(180deg,#14432a 0%,#0d2c1c 100%);
   border:1px solid rgba(120,230,165,.28);
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   color:#eaffef;
 }
 .bk-detay-kutu, .bk-detay-kutu *{
@@ -626,7 +626,7 @@ const CSS = `
   flex:0 0 auto; border:0; cursor:pointer; border-radius:9px;
   padding:7px 11px; font-family:inherit; font-weight:800; font-size:11.5px;
   color:#0d2c1c; background:linear-gradient(180deg,#8dffb9,#33c46e);
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   transition:transform .09s, filter .09s;
 }
 .bk-btn:active{ transform:scale(.96); filter:brightness(.93); }

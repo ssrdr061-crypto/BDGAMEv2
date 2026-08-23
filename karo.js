@@ -78,7 +78,7 @@
   font-family:'Baloo 2','Nunito',sans-serif;
   font-weight:800; font-size:11.5px; line-height:1.15;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   transition:transform .09s ease, filter .09s ease;
 }
 #karoCubuk button:active{ transform:scale(.96); filter:brightness(.93); }

@@ -49,26 +49,26 @@
     '#kaleiciKapat{position:absolute;left:12px;top:12px;z-index:2;' +
       'padding:8px 16px;border:none;border-radius:10px;background:#1d3f63;color:#eaf6ff;' +
       'font:600 15px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
-      'box-shadow:0 2px 6px rgba(0,20,45,.3);transition:transform .09s,filter .09s}' +
+      'box-shadow:none;transition:transform .09s,filter .09s}' +
     '#kaleiciKapat:active{transform:scale(.96);filter:brightness(.93)}' +
     '#kaleiciSurum{position:absolute;right:12px;top:16px;z-index:2;' +
       'color:rgba(255,255,255,.75);font:500 12px/1 "Baloo 2",sans-serif}' +
     '#kaleiciPanel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;' +
       'display:none;min-width:200px;padding:18px 20px;border-radius:14px;' +
       'background:#12304e;color:#eaf6ff;text-align:center;' +
-      'box-shadow:0 2px 6px rgba(0,20,45,.3)}' +
+      'box-shadow:none}' +
     '#kaleiciPanel.acik{display:block}' +
     '#kaleiciPanel h3{margin:0 0 6px;font:700 20px/1.2 "Baloo 2",sans-serif;' +
       'text-shadow:0 1px 2px rgba(0,20,45,.55)}' +
     '#kaleiciPanel p{margin:0 0 14px;font:400 14px/1.3 "Baloo 2",sans-serif;opacity:.8}' +
     '#kaleiciPanel button{padding:8px 20px;border:none;border-radius:10px;' +
       'background:#2f6ea8;color:#eaf6ff;font:600 15px/1 "Baloo 2",sans-serif;' +
-      'box-shadow:0 2px 6px rgba(0,20,45,.3);transition:transform .09s,filter .09s}' +
+      'box-shadow:none;transition:transform .09s,filter .09s}' +
     '#kaleiciPanel button:active{transform:scale(.96);filter:brightness(.93)}' +
     '#kaleiciGir{position:fixed;left:10px;bottom:108px;z-index:18;display:none;' +
       'padding:5px 10px;border:none;border-radius:9px;background:rgba(29,63,99,.9);color:#eaf6ff;' +
       'font:600 12.5px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
-      'box-shadow:0 2px 6px rgba(0,20,45,.3);transition:transform .09s,filter .09s}' +
+      'box-shadow:none;transition:transform .09s,filter .09s}' +
     '#kaleiciGir.acik{display:block}' +
     '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}';
 

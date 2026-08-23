@@ -736,7 +736,7 @@
       .msl-confirm-overlay.msl-confirm-show{background:rgba(0,0,0,.55);
         -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
       .msl-confirm-panel{background:#4DD8F0;border-radius:18px;padding:28px 24px 22px;
-        max-width:340px;width:88%;box-shadow:0 8px 40px rgba(0,0,0,.45),0 0 0 1.5px rgba(255,255,255,.15) inset;
+        max-width:340px;width:88%;box-shadow:none;
         transform:scale(.7) translateY(30px);opacity:0;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .25s ease;}
       .msl-confirm-show .msl-confirm-panel{transform:scale(1) translateY(0);opacity:1;}
       .msl-confirm-msg{color:#000;font-weight:900;font-size:15.5px;line-height:1.55;
@@ -747,11 +747,11 @@
         cursor:pointer;transition:transform .12s,box-shadow .12s;letter-spacing:.3px;}
       .msl-cbtn:active{transform:scale(.93);}
       .msl-cbtn-ok{background:#1a1a1a;color:#4DD8F0;
-        box-shadow:0 3px 12px rgba(0,0,0,.35);}
-      .msl-cbtn-ok:active{box-shadow:0 1px 4px rgba(0,0,0,.3);}
+        box-shadow:none;}
+      .msl-cbtn-ok:active{box-shadow:none;}
       .msl-cbtn-cancel{background:rgba(0,0,0,.12);color:#000;
-        box-shadow:0 2px 8px rgba(0,0,0,.15);}
-      .msl-cbtn-cancel:active{box-shadow:0 1px 3px rgba(0,0,0,.1);}
+        box-shadow:none;}
+      .msl-cbtn-cancel:active{box-shadow:none;}
     `;
     document.head.appendChild(s);
   }

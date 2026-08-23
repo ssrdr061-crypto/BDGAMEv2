@@ -261,9 +261,9 @@ const HERO_STATS = {
       icon: "yetenek_golge.webp",
       title: "Gölge Manevrası",
       desc: "Gölgede kalarak rakibin planını bozar: savaşın başında rakip kahramanların yeteneklerinden rastgele 1 tanesi iptal edilir ve o yetenek savaş boyunca hiç çalışmaz. Hem saldırırken hem savunurken işler.",
-      /* Motor: pvp.js → yetenekEngeli(). `count` kaç yeteneğin
-         iptal edileceğidir; kimlik motorda SABİT YAZILI DEĞİL, bu
-         tanım hangi kahramana konursa o kahraman engeller. */
+      /* Motor: pvp.js → yetenekEngeli(). `count` kaç yeteneğin iptal
+         edileceğidir; kimlik motorda SABİT YAZILI DEĞİL, bu tanım
+         hangi kahramana konursa o kahraman engeller. */
       effect: { type: "ability_block", count: 1 }
     }
   },
@@ -542,7 +542,7 @@ function openHeroDetail(skinId) {
   let bgEski = ov.querySelector("#hdBg");
   ov.innerHTML = `
     <button id="hdClose" style="position:absolute;top:12px;right:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:18px;">✕</button>
-    <button id="hdBuyBtn" style="position:absolute;left:50%;bottom:4%;transform:translateX(-50%);z-index:10;width:64%;height:46px;font-size:16px;font-weight:800;border-radius:12px;border:2px solid #d4af37;background:linear-gradient(180deg,#f0c94f,#b8860b);color:#1b1430;box-shadow:0 4px 14px rgba(0,0,0,.5);"></button>
+    <button id="hdBuyBtn" style="position:absolute;left:50%;bottom:4%;transform:translateX(-50%);z-index:10;width:64%;height:46px;font-size:16px;font-weight:800;border-radius:12px;border:1px solid #d4af37;background:linear-gradient(180deg,#f0c94f,#b8860b);color:#1b1430;box-shadow:none;"></button>
     ${h.passive ? `<button id="hdPassive" style="position:absolute;top:58px;right:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);color:#fff;font-size:14px;overflow:hidden;">${h.passive.icon ? `<img src="${h.passive.icon}" style="width:100%;height:100%;object-fit:cover;">` : "◈"}</button>` : ""}
     <button id="hdTune" style="position:absolute;top:12px;left:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:16px;">⚙</button>
     <button id="hdUiTune" style="position:absolute;top:12px;left:56px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #d4af37;color:#d4af37;font-size:16px;">🎛</button>
@@ -741,7 +741,7 @@ function openHeroDetail(skinId) {
       `border:${U.panel.border};color:${U.panel.yazi};` +
       `font-family:'Baloo 2','Nunito',sans-serif;font-weight:600;` +
       `font-size:${U.panel.fontSize};line-height:${U.panel.satir};text-align:center;` +
-      `box-shadow:0 2px 6px rgba(0,20,45,.3);`;
+      `box-shadow:none;`;
     /* Yıldız şeridi kaldırıldı; ayarlanacak bir şey yok. */
   }
 
@@ -941,7 +941,7 @@ ${modelTxt}`;
         b.style.cssText =
           "flex:1;padding:7px 4px;border:none;border-radius:9px;" +
           "font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:12px;" +
-          "box-shadow:0 2px 6px rgba(0,20,45,.3);transition:transform .09s ease,filter .09s ease;" +
+          "box-shadow:none;transition:transform .09s ease,filter .09s ease;" +
           (se ? "background:linear-gradient(180deg,#ffd257,#f0932b);color:#20140a;"
               : "background:rgba(4,16,38,.45);color:#a8c7e0;");
       });
@@ -1174,7 +1174,7 @@ const HPK_KART = {
   max-height:${HPK_YUVA.yukseklik}px;
   border-radius:${HPK_YUVA.kose}px; cursor:pointer; box-sizing:border-box;
   background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(8,45,80,.35));
-  border:2px dashed rgba(190,240,255,.6);
+  border:1px dashed rgba(190,240,255,.6);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:4px; transition:transform .1s, border-color .15s, box-shadow .15s;
   -webkit-tap-highlight-color:transparent;
@@ -1216,7 +1216,7 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
   background:linear-gradient(180deg,#f03434,#c00d0d); color:#fff;
   font-size:14px; font-weight:900; line-height:24px; text-align:center;
   cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent;
-  box-shadow:0 2px 5px rgba(120,0,0,.4), inset 0 1px 0 rgba(255,255,255,.35);
+  box-shadow:none;
 }
 .hpk-x:active{ transform:scale(.9); }
 .hpk-empty-msg{ font-size:12px; color:var(--ink-dim); padding:6px 0; }
@@ -1244,11 +1244,9 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
   border-radius:18px; overflow:hidden;
   /* magaza.js ile birebir aynı şablon */
   background:
-    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
-    radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
     linear-gradient(180deg, #1fa3ea, #0e6fc0);
-  border:2px solid rgba(190,240,255,.5);
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  border:1px solid rgba(190,240,255,.5);
+  box-shadow:none;
   font-family:'Baloo 2',sans-serif; color:#eaf4ff;
   animation:hpkPop .18s cubic-bezier(.2,.9,.3,1.3);
 }
@@ -1283,8 +1281,8 @@ ${HPK_KART.specGoster ? "" : ".hpk-slot .klist-spec{ display:none !important; }"
 ${HPK_KART.specGoster ? "" : ".hpk-card .klist-spec{ display:none !important; }"}
 /* Zaten yuvada olan kahraman: ince beyaz kenar, kart görünümü bozulmaz */
 .hpk-card.chosen .klist-card{
-  border:2px solid rgba(255,255,255,.9) !important;
-  box-shadow:0 0 12px rgba(190,240,255,.55) !important;
+  border:1px solid rgba(255,255,255,.9) !important;
+  box-shadow:none !important;
 }
 .hpk-card .hpk-cap{ display:none; }
 .hpk-badge{ display:none; }

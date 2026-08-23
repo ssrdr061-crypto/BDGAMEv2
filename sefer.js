@@ -1475,7 +1475,7 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   padding:3px 7px; border-radius:9px;
   background:linear-gradient(180deg, rgba(47,176,238,.5), rgba(14,111,192,.5));
   border:none;
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   font-family:'Baloo 2','Nunito',sans-serif; color:#fff; cursor:pointer;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
   -webkit-tap-highlight-color:transparent;
@@ -1517,7 +1517,7 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 }
 .sefer-onay-modal .som-x:active{ transform:scale(.96); filter:brightness(.93); }
 .sefer-onay-modal .som-card{ max-width:300px; border-radius:18px; padding:16px 14px;
-  border:1px solid rgba(190,240,255,.14); box-shadow:0 2px 6px rgba(0,20,45,.3); }
+  border:1px solid rgba(190,240,255,.14); box-shadow:none; }
 /* .overlay-card h2 display:flex — text-align burada işe yaramaz */
 .sefer-onay-modal .som-title{
   justify-content:center; font-size:20px; letter-spacing:.2px;
@@ -1535,7 +1535,7 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:13px;
   white-space:nowrap;
   color:#fff; border:none; outline:none;
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   -webkit-tap-highlight-color:transparent;
   transition:transform .09s ease, filter .09s ease;
 }
@@ -1552,12 +1552,12 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   position:relative; width:62px; height:62px; padding:0;
   border:none; outline:none; border-radius:12px; cursor:pointer;
   background:rgba(10,28,52,.55); overflow:hidden;
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   -webkit-tap-highlight-color:transparent;
   transition:transform .09s ease, filter .09s ease;
 }
 .sefer-onay-modal .som-kutu:active{ transform:scale(.96); filter:brightness(.93); }
-.sefer-onay-modal .som-kutu.secili{ box-shadow:0 0 0 2px #f5d271, 0 2px 6px rgba(0,20,45,.3); }
+.sefer-onay-modal .som-kutu.secili{ box-shadow:none; }
 /* Kullanıldı tepkisi: kısa bir kararma + küçülme, sonra normale döner. */
 .sefer-onay-modal .som-kutu.kullanildi{ animation:somKullanildi .34s ease; }
 @keyframes somKullanildi{

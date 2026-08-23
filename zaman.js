@@ -37,7 +37,7 @@ rozet.style.cssText =
   "position:fixed;top:8px;right:8px;z-index:99998;width:42px;height:42px;" +
   "display:flex;align-items:center;justify-content:center;border-radius:50%;" +
   "background:linear-gradient(180deg,#1fa3ea,#0e6fc0);color:#fff;font-size:20px;" +
-  "box-shadow:0 2px 6px rgba(0,20,45,.3);cursor:pointer;" +
+  "box-shadow:none;cursor:pointer;" +
   "-webkit-tap-highlight-color:transparent;";
 
 const panel = document.createElement("div");

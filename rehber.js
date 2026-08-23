@@ -44,16 +44,14 @@
         object-position:bottom center; margin-bottom:-2px; filter:drop-shadow(0 8px 24px rgba(0,20,45,.6));
         pointer-events:none; }
       #welcomeBack .wc-box{ position:relative; width:min(400px,94vw);
-        background:radial-gradient(ellipse 100% 50% at 50% 0%,rgba(170,240,255,.5),transparent 72%),
-          radial-gradient(ellipse 80% 40% at 50% 105%,rgba(8,45,80,.55),transparent 75%),
           linear-gradient(180deg,#1fa3ea,#0e6fc0);
-        border:3px solid rgba(190,240,255,.85); border-radius:20px; padding:16px 16px 18px;
-        box-shadow:0 0 26px rgba(120,225,255,.45),inset 0 3px 0 rgba(255,255,255,.45);
+        border:1px solid rgba(190,240,255,.85); border-radius:20px; padding:16px 16px 18px;
+        box-shadow:none;
         color:#fff; animation:wcPop .28s cubic-bezier(.34,1.56,.64,1); }
       @keyframes wcPop{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
       #welcomeBack .wc-skip{ position:absolute;top:-12px;right:10px;border:none;cursor:pointer;
         background:linear-gradient(180deg,#8894ad,#4a566e);color:#fff;font-weight:800;font-size:11px;
-        padding:5px 12px;border-radius:999px;box-shadow:0 3px 8px rgba(0,20,45,.4); }
+        padding:5px 12px;border-radius:999px;box-shadow:none; }
       #welcomeBack .wc-name{ font-weight:900;font-size:15px;color:#ffd257;margin-bottom:6px;
         text-shadow:0 2px 4px rgba(0,40,70,.6); }
       #welcomeBack .wc-text{ font-weight:800;font-size:14.5px;line-height:1.4;color:#fff;
@@ -65,10 +63,10 @@
         text-shadow:0 3px 8px rgba(0,40,70,.6);letter-spacing:.5px; }
       #welcomeBack .wc-next{ display:block;width:100%;margin-top:12px;border:none;cursor:pointer;
         border-radius:14px;padding:13px;font-family:inherit;font-weight:900;font-size:16px;color:#fff;
-        background:linear-gradient(180deg,#4fd8ff,#1fa3ea);border:2px solid rgba(190,240,255,.9);
+        background:linear-gradient(180deg,#4fd8ff,#1fa3ea);border:1px solid rgba(190,240,255,.9);
         text-shadow:0 2px 3px rgba(0,40,70,.5);
-        box-shadow:0 5px 0 #0e6fc0,inset 0 1px 0 rgba(255,255,255,.4); }
-      #welcomeBack .wc-next:active{ transform:translateY(4px);box-shadow:0 1px 0 #0e6fc0; }
+        box-shadow:none; }
+      #welcomeBack .wc-next:active{ transform:scale(.96); filter:brightness(.93);box-shadow:none; }
     `;
     document.head.appendChild(st);
   }

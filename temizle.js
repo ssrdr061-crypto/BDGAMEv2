@@ -47,7 +47,7 @@ function dugmeEkle(yazi, renk, islev) {
   b.style.cssText =
     "display:block;width:100%;margin:0 0 10px;padding:15px;border:none;border-radius:12px;" +
     "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:16px;color:#fff;cursor:pointer;" +
-    "background:" + renk + ";box-shadow:0 2px 6px rgba(0,20,45,.3);" +
+    "background:" + renk + ";box-shadow:none;" +
     "text-shadow:0 1px 2px rgba(0,20,45,.55);transition:transform .09s,filter .09s;";
   b.addEventListener("pointerdown", () => { b.style.transform = "scale(.96)"; b.style.filter = "brightness(.93)"; });
   b.addEventListener("pointerup",   () => { b.style.transform = ""; b.style.filter = ""; });
