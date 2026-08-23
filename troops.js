@@ -26,11 +26,11 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
+  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 2, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 6,  su: 2, demir: 9  } },
-  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
+  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 4, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 12, su: 3, demir: 12 } },
-  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ /* görsel: KADEME_GORSEL tablosunda */
+  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 6, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { su: 5, demir: 15, enerji: 5 } },
 };
 
