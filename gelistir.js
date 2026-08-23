@@ -265,9 +265,14 @@
     /* Arka plan YOK — kahraman görseli hiç örtülmez.
        Panel yalnız düğmeleri taşır, görselin altına oturur. */
     const sahipli = sahip(id);
+    /* Alt sekme şeridi (#hdTabs) bottom:0'da duruyor. Panel yalnız %3
+       yukarıdaydı, şerit paneli örtüyordu. Şeridin boyu ÖLÇÜLÜR —
+       sabit yazılsaydı şeridin yüksekliği değişince yine çakışırdı.
+       Ölçü 0 dönerse (henüz çizilmediyse) 46px'e düşer (Tuzak 22). */
+    const seritYuk = (document.getElementById("hdTabs") || {}).offsetHeight || 46;
     p.style.cssText =
       "position:absolute;left:12px;right:12px;z-index:8;" +
-      "bottom:" + (sahipli ? "3%" : "calc(4% + 58px)") + ";" +
+      "bottom:" + (sahipli ? `calc(3% + ${seritYuk}px)` : `calc(4% + ${seritYuk + 12}px)`) + ";" +
       "box-sizing:border-box;color:#eaf6ff;background:none;border:none;" +
       "display:flex;flex-direction:column;";
 
@@ -361,7 +366,7 @@
                    font-weight:800;line-height:32px;text-align:center;color:${TEMA.yazi};
                    display:flex;align-items:center;justify-content:center;
                    background:linear-gradient(180deg,${TEMA.ust},${TEMA.orta});
-                   box-shadow:none;">+</button>
+                   box-shadow:0 2px 6px rgba(0,20,45,.3);">+</button>
          </div>
          <button id="glsYukselt" style="width:100%;margin-top:9px;padding:11px;border:none;
                  border-radius:12px;font-weight:800;font-size:15px;font-family:${YAZI};
@@ -370,7 +375,7 @@
                    ? `linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu})`
                    : `linear-gradient(180deg,${TEMA.ust},${TEMA.alt})`};
                  color:${yeter ? "#20140a" : TEMA.solgun};
-                 box-shadow:none;">
+                 box-shadow:0 2px 6px rgba(0,20,45,.3);">
            Sv${sv + 1}'e Yükselt
          </button>`;
 
@@ -418,7 +423,7 @@
       "width:min(330px,90vw);box-sizing:border-box;color:#eaf6ff;" +
       `background:linear-gradient(180deg,${TEMA.ust} 0%,${TEMA.orta} 55%,${TEMA.alt} 100%);` +
       `border:1px solid ${TEMA.kenar};border-radius:16px;padding:15px;` +
-      `font-family:${YAZI};box-shadow:none;`;
+      `font-family:${YAZI};box-shadow:0 2px 6px rgba(0,20,45,.3);`;
     kat.appendChild(kutu);
 
     /* Dışarı dokunma kapatır — dinleyici GECİKMELİ bağlanır, yoksa
@@ -448,7 +453,7 @@
                   font-family:inherit;font-size:12px;font-weight:800;
                   background:${se ? "rgba(255,255,255,.16)" : "transparent"};
                   color:${se ? TEMA.yazi : TEMA.solgun};
-                  border-bottom:1px solid ${se ? TEMA.sari : "transparent"};">
+                  border-bottom:2px solid ${se ? TEMA.sari : "transparent"};">
             ${x.ad}
           </button>`;
       });
