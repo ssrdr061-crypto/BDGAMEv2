@@ -2173,7 +2173,7 @@ if (document.readyState === "loading") {
   --rp-kagit:#bd9660; --rp-kagit-alt:#94703f;
   --rp-murekkep:#33230f; --rp-murekkep-2:#584021;
   --rp-altin:#6d420f; --rp-muhur:#8e2418;
-  --rp-kenar:.6; --rp-burusuk:.28;
+  --rp-kenar:.6;   /* --rp-burusuk kaldırıldı: buruşuk kağıt efekti silindi */
   --rp-lif:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23f)' opacity='0.105'/%3E%3C/svg%3E");
 }
 .rp-box{
@@ -2182,14 +2182,16 @@ if (document.readyState === "loading") {
   touch-action:pan-y;
   border-radius:14px; padding:16px 15px 15px; color:var(--rp-murekkep);
   background-color:var(--rp-kagit);
+  /* Buruşuk kağıt taklidi (112° ve -67° çapraz gradyanlar) KALDIRILDI —
+     ekranın ortasında gezen açık/koyu bloklar onlardı. Geriye kağıt
+     rengi + ince lif dokusu kalıyor.
+     background-size artık 2 görsel için 2 ölçü taşıyor; eskiden 4
+     görsele 5 ölçü yazılıydı, kayan liste yüzünden zemin gradyanı
+     180px'lik karelere bölünüp tekrarlıyordu. */
   background-image:
-    linear-gradient(112deg, rgba(255,255,255,calc(var(--rp-burusuk) * .5)) 0 1px, transparent 1px 42%,
-      rgba(0,0,0,calc(var(--rp-burusuk) * .13)) 42% 43%, transparent 43%),
-    linear-gradient(-67deg, rgba(255,255,255,calc(var(--rp-burusuk) * .42)) 0 1px, transparent 1px 68%,
-      rgba(0,0,0,calc(var(--rp-burusuk) * .1)) 68% 69%, transparent 69%),
     var(--rp-lif),
     linear-gradient(168deg, color-mix(in srgb, var(--rp-kagit) 88%, #fff) 0%, var(--rp-kagit) 38%, var(--rp-kagit-alt) 100%);
-  background-size:auto,auto,auto,180px 180px,auto;
+  background-size:180px 180px, auto;
   border:1px solid color-mix(in srgb, var(--rp-kagit-alt) 76%, #3a2a14);
   box-shadow:none;
 }
