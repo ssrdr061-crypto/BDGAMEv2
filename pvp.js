@@ -782,9 +782,52 @@ function fireMissileAt(name, gx, gy, isOwn) {
    İki taraf da savaşa götürdüğü komutanların yeteneklerini kullanır.
    Yetenek verisi index.html'deki abilitiesForSkins() ile hesaplanır.
    ═══════════════════════════════════════════════════════════════ */
-function buffsOf(skinList) {
+function buffsOf(skinList, engelli) {
   if (typeof window.abilitiesForSkins !== "function") return [];
-  return window.abilitiesForSkins(skinList) || [];
+  return window.abilitiesForSkins(skinList, engelli) || [];
+}
+
+/* ── PASİF: YETENEK ENGELİ (Gölge Manevrası) ──────────────────────
+   heroes.js → HERO_STATS[id].passive.effect = { type:"ability_block", count:N }
+   Kimlik motorda SABİT DEĞİL: tanım hangi kahramanda varsa o engeller.
+   `engelleyenSkins` tarafındaki her pasif, `hedefSkins` kahramanlarının
+   yeteneklerinden rastgele N tanesini savaş boyunca kapatır.
+   Döner: { engelli:[{heroId,title}], satirlar:[rapor satırı] }        */
+function yetenekEngeli(engelleyenSkins, hedefSkins) {
+  const sonuc = { engelli: [], satirlar: [] };
+  if (typeof HERO_STATS === "undefined") return sonuc;
+
+  /* Hedefin iptal edilebilir yetenek havuzu (etkisi olan her yetenek) */
+  const havuz = [];
+  (hedefSkins || []).filter(Boolean).forEach(id => {
+    const h = HERO_STATS[id];
+    ((h && h.abilities) || []).forEach(a => {
+      if (a && a.effect && a.title) havuz.push({ heroId: id, title: a.title });
+    });
+  });
+
+  (engelleyenSkins || []).filter(Boolean).forEach(id => {
+    const h = HERO_STATS[id];
+    const p = h && h.passive && h.passive.effect;
+    if (!p || p.type !== "ability_block") return;
+    const adet = Math.max(1, p.count || 1);
+    let n = 0;
+    for (let i = 0; i < adet && havuz.length; i++) {
+      sonuc.engelli.push(havuz.splice(Math.floor(Math.random() * havuz.length), 1)[0]);
+      n++;
+    }
+    /* Rapor satırı: hangi yetenek değil, KAÇ yetenek iptal edildi.
+       Mağaza satırlarıyla aynı biçim — kendi ikonunu ve metnini taşır. */
+    sonuc.satirlar.push({
+      type: "ability_block",
+      title: h.passive.title || "Pasif Yetenek",
+      ikon: h.passive.icon || "",
+      aciklama: h.passive.desc || "",
+      tetik: n,
+      sources: [{ heroId: id, heroName: h.name || id, title: h.passive.title || "Pasif Yetenek" }]
+    });
+  });
+  return sonuc;
 }
 function findBuff(ab, t) { return (ab || []).find(a => a.type === t); }
 
@@ -1303,9 +1346,18 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   const BF = window.BUFF || null;
   if (BF) BF.savasBaslat();
 
-  let abA = buffsOf(atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
+  /* ── GÖLGE MANEVRASI (pasif) ──────────────────────────────────
+     Çift yönlü: her iki tarafın pasifi de KARŞI tarafın yeteneğini
+     kapatır. Zar savaş başında bir kez atılır, yetenekler
+     hesaplanmadan ÖNCE — sonra yapılsaydı kapatılan yetenek statlara
+     çoktan işlemiş olurdu. */
+  const atkList = atkSkins.length ? atkSkins : [state.selectedHeroSkin];
+  const engelA = yetenekEngeli(defSkins, atkList);   /* savunan → saldıranı kapatır */
+  const engelD = yetenekEngeli(atkList, defSkins);   /* saldıran → savunanı kapatır */
+
+  let abA = buffsOf(atkList, engelA.engelli);
   if (BF) abA = BF.yetenekleriBuyut(abA);          /* "Artan Aşk" gibi katlayıcılar */
-  let abD = buffsOf(defSkins);
+  let abD = buffsOf(defSkins, engelD.engelli);
   if (BF) abD = abD.concat(BF.savunmaEk(defender.hazirBuff));  /* yalnız savunmada işleyenler */
 
   const A = makeArmy(attackerTroops, attackerHero, "attacker", abA,
@@ -1627,8 +1679,10 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     heroFx: {
       attacker: A.flow.used, defender: D.flow.used,
       attackerKills: A.abilityKills, defenderKills: D.abilityKills,
-      attackerAbilities: (A.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })).concat(magazaA),
-      defenderAbilities: (D.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })).concat(magazaD)
+      /* Engel satırı, engeli YAPAN tarafa yazılır: engelD saldıranın
+         pasifidir (savunanı kapattı), engelA savunanın pasifidir. */
+      attackerAbilities: (A.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })).concat(magazaA).concat(engelD.satirlar),
+      defenderAbilities: (D.abilities || []).map(x => ({ type: x.type, title: x.title, sources: x.sources })).concat(magazaD).concat(engelA.satirlar)
     },
     win, turns: turn,
     statlar: _statOzet,

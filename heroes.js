@@ -68,7 +68,7 @@ const HERO_UI = {
     satir:    "1.2",                            /* Satır aralığı               */
     border:   "none",                           /* Panel kenarlığı             */
     valueColor: "#b45309", /* Seviyeye göre değişen SAYININ rengi              */
-    dx: 0, dy: 65        /* Panelin ek kaydırması (🎛 editörden gelir)         */
+    dx: 0, dy: -10       /* Panelin ek kaydırması (🎛 editörden gelir)         */
   }
 };
 
@@ -85,7 +85,8 @@ const HERO_UI_BY_HERO = {
   celik_savasci: { boxes: { box1: { dx: -5, dy: -80 }, box2: { dx: 5, dy: -80 }, box3: { dx: -5, dy: 40 } } },
   ates_buyucusu: { boxes: { box1: { dx: -5, dy: -85 }, box2: { dx: 5, dy: -85 }, box3: { dx: -5, dy: 40 } } },
   ivanovna:      { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } } },
-  revolia:       { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } } }
+  revolia:       { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } },
+                   panel: { dx: 0, dy: -15 } }
 };
 
 
@@ -259,8 +260,11 @@ const HERO_STATS = {
     passive: {
       icon: "yetenek_golge.webp",
       title: "Gölge Manevrası",
-      desc: "Kale roket saldırısı aldığında %40 ihtimalle kalenin yerini füze gelmeden otomatik olarak değiştirir.",
-      effect: { type: "castle_relocate_on_missile", chance: 40 }
+      desc: "Gölgede kalarak rakibin planını bozar: savaşın başında rakip kahramanların yeteneklerinden rastgele 1 tanesi iptal edilir ve o yetenek savaş boyunca hiç çalışmaz. Hem saldırırken hem savunurken işler.",
+      /* Motor: pvp.js → yetenekEngeli(). `count` kaç yeteneğin
+         iptal edileceğidir; kimlik motorda SABİT YAZILI DEĞİL, bu
+         tanım hangi kahramana konursa o kahraman engeller. */
+      effect: { type: "ability_block", count: 1 }
     }
   },
 

@@ -1044,7 +1044,10 @@ function rpYetenekGruplari(abList, used, kills) {
   const harita = new Map();
   (abList || []).forEach(m => {
     const k = RP_AB_ANAHTAR[m.type];
-    const tetik = (k && used && used[k]) ? used[k] : 0;
+    /* Pasif engel satırı (pvp.js → yetenekEngeli) kendi sayısını TAŞIR;
+       `used` sayaçlarında karşılığı yoktur. */
+    const tetik = (typeof m.tetik === "number") ? m.tetik
+                : ((k && used && used[k]) ? used[k] : 0);
     const olum = (kills && kills[m.type]) ? kills[m.type] : 0;
     (m.sources || []).forEach(s => {
       const id = s.heroId || "";
@@ -1067,7 +1070,8 @@ function rpYetenekGruplari(abList, used, kills) {
            Onlara "—" yazılınca yetenek ÇALIŞMIYOR sanılıyordu. */
         /* Mağaza buff'ı: şans zarı tuttuysa "✓ Aktif", tutmadıysa "—".
            `sayilir` tam olarak bu ayrımı yapıyor, ayrı alan gerekmez. */
-        sayilir: (m.type === "magaza_buff") ? !m.aktif : !!k
+        sayilir: (m.type === "magaza_buff") ? !m.aktif
+               : (typeof m.tetik === "number") ? true : !!k
       });
     });
   });

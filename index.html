@@ -3451,9 +3451,15 @@ function defaultState() {
 /* Verilen kahraman listesinin yeteneklerini birleştirir.
    PvP'de savunan oyuncunun komutanları için de kullanılır —
    bu yüzden liste dışarıdan verilebilir. */
-function abilitiesForSkins(skinList) {
+/* `engelli`: [{heroId, title}] — rakip pasifinin (Gölge Manevrası) kapattığı
+   yetenekler. Yetenekler BİRLEŞMEDEN ÖNCE düşürülür; birleştikten sonra
+   düşürülseydi aynı türü veren ikinci kahramanın yeteneği de iptal olurdu. */
+function abilitiesForSkins(skinList, engelli) {
   try {
     if (typeof HERO_STATS === "undefined") return [];
+    const kapali = Array.isArray(engelli) ? engelli : [];
+    const kapaliMi = (skin, title) =>
+      kapali.some(x => x && x.heroId === skin && x.title === title);
 
     let skins = (Array.isArray(skinList) ? skinList : []).filter(Boolean);
     skins = skins.filter((x, i) => skins.indexOf(x) === i).slice(0, 3);
@@ -3470,6 +3476,7 @@ function abilitiesForSkins(skinList) {
       const heroName = h.name || skin;
 
       h.abilities.filter(a => a && a.effect).forEach(a => {
+        if (kapaliMi(skin, a.title || "")) return;   /* rakip pasifi kapattı */
         const t = a.effect.type;
         const v  = (a.valuesByLevel  || [])[lv];
         const v2 = (a.valuesByLevel2 || [])[lv];
