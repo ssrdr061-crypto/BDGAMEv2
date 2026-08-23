@@ -1149,7 +1149,14 @@ function heroPortraitHTML(id, cls) {
     tutturan boy 119'dur. Genişlik değişirse bu sayı da değişmeli.
     ───────────────────────────────────────────────────────────── */
 const HPK_YUVA = {
-  yukseklik: 119,   /* yuvanın SABİT boyu (px) — asıl ayar bu */
+  /*  YUVANIN BOYU (px) — ASIL AYAR BU.
+      Kahraman menüsündeki kartla AYNI yükseklik olmalı (~142px).
+      Kahramanın kart içindeki konumu kahramanlar.js KLIST_KART'ta
+      PİKSEL cinsinden ayarlıdır; yükseklik eşit olunca dikey kadraj
+      da kendiliğinden menüdekiyle aynı olur. Eski değer 119'du,
+      kart kısa kaldığı için gövde erken kesiliyordu.
+      Kahraman menüsünün kart boyu değişirse bu sayı da değişmeli. */
+  yukseklik: 142,
   bosluk:      9,   /* yuvalar arası boşluk (px) */
   pay_yan:    11,   /* satırın sağ/sol iç boşluğu (px) — − düğmesi taşıyor */
   pay_ust:    11,   /* satırın üst iç boşluğu (px)     — − düğmesi taşıyor */
@@ -1188,10 +1195,9 @@ const HPK_KART = {
 .hpk-slot{
   position:relative;
   min-width:0;
-  /*  Oran, kahraman seçim penceresindeki .hpk-card ile aynı (3/4);
-      o kart da kahraman menüsündeki kartın birebir aynısıdır.
-      Sabit px yüksekliğe dönmek istersen: height/min/max = 119px. */
-  aspect-ratio:3/4; height:auto;
+  height:${HPK_YUVA.yukseklik}px;
+  min-height:${HPK_YUVA.yukseklik}px;
+  max-height:${HPK_YUVA.yukseklik}px;
   align-self:start;
   border-radius:${HPK_YUVA.kose}px; cursor:pointer; box-sizing:border-box;
   background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(8,45,80,.35));
