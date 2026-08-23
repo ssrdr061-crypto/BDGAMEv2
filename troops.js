@@ -48,36 +48,6 @@ const UNIT_TYPES = {
     ayrı görsel çizince KADEME_GORSEL tablosunu doldur, başka
     hiçbir yeri değiştirmen gerekmez.
     ───────────────────────────────────────────── */
-/*  ─────────────────────────────────────────────
-    ÜSTÜNLÜK ÇEMBERİ  —  TEK DOĞRULUK KAYNAĞI
-    Hasar hedefe İNERKEN bu çarpanla ölçeklenir (pvp.js · pve.js).
-
-        Savunucu  →  Koruyucu'ya güçlü
-        Koruyucu  →  Nişancı'ya güçlü
-        Nişancı   →  Savunucu'ya güçlü
-
-    Kademe fark etmez, AİLE üzerinden çalışır — 18 birlik de kapsanır.
-    Sertliği değiştirmek istersen SADECE bu iki sayıyı oynat:
-        güçlü olduğu hedefe 1.20 · zayıf olduğu hedefe 0.85
-    Tabloyu bozma; çember üç yönlü olmazsa bir aile ezilir.
-    ───────────────────────────────────────────── */
-const CEMBER = {
-  knight:  { knight: 1.00, soldier: 1.20, robot:   0.85 },
-  soldier: { soldier: 1.00, robot:   1.20, knight:  0.85 },
-  robot:   { robot:   1.00, knight:  1.20, soldier: 0.85 },
-};
-
-/* Vuran aile → hedef aile çarpanı. Tanınmayan taraf varsa 1 döner
-   (canavar, kahraman ya da ileride eklenecek dördüncü aile). */
-function cemberCarpani(kaynakAile, hedefAile) {
-  const r = CEMBER[kaynakAile];
-  if (!r) return 1;
-  const v = r[hedefAile];
-  return (typeof v === "number" && v > 0) ? v : 1;
-}
-window.CEMBER = CEMBER;
-window.cemberCarpani = cemberCarpani;
-
 const KADEME_SAYISI = 6;
 
 const KADEME = {
@@ -85,12 +55,11 @@ const KADEME = {
       Birlikler yükseldikçe kendi karakterlerinde uzmanlaşır:
         Savunucu → savunma ve cana ağırlık verir (tanklaşır)
         Nişancı  → saldırı ve öldürücülüğe ağırlık verir (delicileşir)
-        Koruyucu → dört yöne dengeli; toplamı diğer ikisiyle EŞİT (18).
-                   Üstünlüğü statlardan değil ÜSTÜNLÜK ÇEMBERİ'nden gelir.
+        Koruyucu → dört yöne dengeli, ama toplamda bir tık az (16'ya 18)
       Sayıları değiştirmek yeterli, başka hiçbir yeri elleme.       */
   STAT_ARTIS: {
     knight:  { attack: 3, defense: 6, hp: 6, olum: 3 },   /* toplam 18 */
-    soldier: { attack: 4, defense: 4, hp: 5, olum: 5 },   /* toplam 18 */
+    soldier: { attack: 4, defense: 4, hp: 4, olum: 4 },   /* toplam 16 */
     robot:   { attack: 6, defense: 3, hp: 3, olum: 6 },   /* toplam 18 */
   },
 
@@ -796,7 +765,7 @@ function buildTroopRoster(selectedTroops) {
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:12px;
   color:#dff4ff; padding:4px 16px; border-radius:16px;
   background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.06));
-  border:2px solid rgba(190,240,255,.45);
+  border:1px solid rgba(190,240,255,.45);
   text-shadow:0 1px 2px rgba(0,30,55,.5);
   backdrop-filter:blur(3px);
   transition:all .15s ease;
@@ -806,7 +775,7 @@ function buildTroopRoster(selectedTroops) {
 .tp-tab.active{
   background:linear-gradient(180deg,#ffffff,#cfeefb);
   color:#0e6fc0; border-color:#fff; text-shadow:none;
-  box-shadow:0 3px 8px rgba(0,30,60,.35);
+  box-shadow:none;
 }
 /* sonradan sembol eklemek için: <span class="tp-ico">🛡️</span> */
 .tp-tab .tp-ico{ margin-right:4px; }
@@ -841,8 +810,6 @@ function buildTroopRoster(selectedTroops) {
   display:none; flex-direction:column;
   padding:calc(52px + env(safe-area-inset-top,0)) 12px 14px;
   background:
-    radial-gradient(ellipse 100% 50% at 50% 0%, rgba(170,240,255,.5), transparent 72%),
-    radial-gradient(ellipse 80% 40% at 50% 105%, rgba(8,45,80,.55), transparent 75%),
     linear-gradient(180deg, #1fa3ea, #0e6fc0);
 }
 .tp-screen.is-active{ display:flex; }
@@ -863,11 +830,7 @@ function buildTroopRoster(selectedTroops) {
   padding:5px 9px;
   border-radius:12px;
   background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
-  box-shadow:
-    0 5px 0 #0b1c3a,
-    0 10px 16px rgba(0,20,45,.5),
-    inset 0 2px 3px rgba(150,205,255,.55),
-    inset 0 -4px 8px rgba(0,10,30,.55);
+  box-shadow:none;
   animation:tpRowIn .3s cubic-bezier(.2,1.2,.35,1) backwards;
 }
 @keyframes tpRowIn{
@@ -919,7 +882,7 @@ function buildTroopRoster(selectedTroops) {
   background:linear-gradient(180deg,#6ee07f,#2cab44);
   font-size:12px; letter-spacing:.4px;
   border-radius:9px; padding:7px 16px;
-  box-shadow:0 3px 0 #1c7d31, inset 0 1px 0 rgba(255,255,255,.5);
+  box-shadow:none;
   transition:transform .06s, box-shadow .06s, filter .1s;
   white-space:nowrap;
   text-shadow:
@@ -929,7 +892,7 @@ function buildTroopRoster(selectedTroops) {
   -webkit-tap-highlight-color:transparent;
 }
 .tp-up:hover{ filter:brightness(1.08); }
-.tp-up:active{ transform:translateY(3px); box-shadow:0 0 0 #1c7d31; }
+.tp-up:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none; }
 
 /* sahip olunmayan birlik */
 .tp-row.tp-none{ filter:saturate(.35) brightness(.8); }
@@ -942,7 +905,7 @@ function buildTroopRoster(selectedTroops) {
   width:36px; height:36px; border:none; cursor:pointer;
   border-radius:11px;
   background:linear-gradient(180deg,#ff7b6b,#e03a2c);
-  box-shadow:0 4px 0 #9c1e14, 0 6px 10px rgba(0,15,40,.45), inset 0 1px 0 rgba(255,255,255,.5);
+  box-shadow:none;
   font-family:'Baloo 2',sans-serif; font-weight:800; font-size:18px; color:#fff;
   display:flex; align-items:center; justify-content:center; line-height:1;
   text-shadow:0 2px 0 #8e1a11;
@@ -950,7 +913,7 @@ function buildTroopRoster(selectedTroops) {
   -webkit-tap-highlight-color:transparent;
 }
 .tp-close:hover{ filter:brightness(1.08); }
-.tp-close:active{ transform:translateY(4px); box-shadow:0 0 0 #9c1e14; }
+.tp-close:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none; }
 
 .tp-empty{
   text-align:center; color:#eaf4ff; padding:24px 10px;
