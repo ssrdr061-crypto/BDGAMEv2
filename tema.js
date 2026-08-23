@@ -800,57 +800,65 @@ function statKarsiHTML(r) {
     </div>`;
   };
 
-  let out = `<div class="rp-st-liste">` +
-    satir("BİRLİK",       A.sayi, D.sayi) +
-    satir("SALDIRI",      A.atk,  D.atk) +
-    satir("SAVUNMA",      A.def,  D.def) +
-    satir("SAĞLIK",       A.hp,   D.hp) +
-    satir("ÖLDÜRÜCÜLÜK",  A.olum, D.olum, v => String(v));
+  let out = `<div class="rp-st-liste">`;
 
-  /* ── BİRİM BAŞINA DÖKÜM ────────────────────────────────────────
-     Kahraman bonusları AYRI SATIR OLARAK YAZILMAZ. Bonuslar zaten
-     birimin statına işlenmiş halde geliyor (pvp.js, savaş başında
-     ölçülüyor): birlik canı %5 + kahraman %5 ise burada %10'luk
-     sonuç görünür. İki yerde göstermek aynı bonusu iki kez saymış
-     gibi okunuyordu.
-     Yalnız o savaşta bulunan birimler listelenir — 18 birimin hepsi
-     yazılsaydı tablo telefonda okunmaz olurdu. */
-  const AB = A.birimler || [], DB = D.birimler || [];
-  if (AB.length || DB.length) {
-    const kimlikler = [];
-    AB.concat(DB).forEach(x => { if (kimlikler.indexOf(x.unitId) < 0) kimlikler.push(x.unitId); });
+  /* ── AİLE BAZINDA DÖKÜM ───────────────────────────────────────
+     En baştaki toplam satırları (BİRLİK / SALDIRI / SAVUNMA /
+     ÖLDÜRÜCÜLÜK) KALDIRILDI — aynı bilgi aşağıda aile aile veriliyor,
+     iki kez yazmak raporu şişiriyordu.
 
-    const STATLAR = [
-      { k: "sayi", ad: "Adet" },
-      { k: "atk",  ad: "Saldırı" },
-      { k: "def",  ad: "Savunma" },
-      { k: "hp",   ad: "Sağlık" },
-      { k: "olum", ad: "Öldürücülük" }
-    ];
+     Kahraman bonusları AYRI SATIR DEĞİL: değerler pvp.js'te savaş
+     başında, bonuslar işlendikten SONRA ölçülüyor. Birlik canı %5 +
+     kahraman %5 ise buradaki sayı %10'luk hâli taşır.
 
-    out += `<div class="rp-st-ara">BİRLİK DÖKÜMÜ</div>`;
-    kimlikler.forEach(uid => {
-      const a = AB.find(x => x.unitId === uid) || null;
-      const d = DB.find(x => x.unitId === uid) || null;
-      const ad = (a && a.ad) || (d && d.ad) || uid;
-      out += `<div class="rp-st-birim">${ad}</div>`;
-      STATLAR.forEach(st => {
-        const av = a ? a[st.k] : 0;
-        const dv = d ? d[st.k] : 0;
-        /* Tarafta o birim hiç yoksa "—" yazılır, 0 değil */
-        const bicim = (v) => (st.k === "olum") ? String(v) : f(v);
-        const yazA = a ? bicim(av) : "—";
-        const yazD = d ? bicim(dv) : "—";
-        const ai = (av > dv) ? "rp-st-ust" : (av < dv ? "rp-st-alt" : "");
-        const di = (dv > av) ? "rp-st-ust" : (dv < av ? "rp-st-alt" : "");
-        out += `<div class="rp-st-row">
-          <span class="rp-st-v ${a ? ai : ""}">${yazA}</span>
-          <span class="rp-st-k">${st.ad}</span>
-          <span class="rp-st-v ${d ? di : ""}">${yazD}</span>
-        </div>`;
-      });
+     Saldırı/Savunma/Sağlık = ailedeki bütün kademelerin TOPLAMI
+     (birim değeri × adet). Öldürücülük oran olduğu için toplanmaz,
+     saldırı payına göre AĞIRLIKLI ORTALAMA alınır — toplansaydı
+     kalabalık ordu otomatik daha "öldürücü" görünürdü. */
+  const AILELER = [
+    { k: "knight",  ad: "Savunucu" },
+    { k: "soldier", ad: "Koruyucu" },
+    { k: "robot",   ad: "Nişancı"  }
+  ];
+
+  const aileToplam = (birimler, aile) => {
+    let atk = 0, def = 0, hp = 0, olumPay = 0, agirlik = 0, sayi = 0;
+    (birimler || []).forEach(u => {
+      if (u.aile !== aile) return;
+      const n = Math.max(0, u.sayi || 0);
+      atk += (u.atk || 0) * n;
+      def += (u.def || 0) * n;
+      hp  += (u.hp  || 0) * n;
+      olumPay += (u.olum || 0) * (u.atk || 0) * n;
+      agirlik += (u.atk || 0) * n;
+      sayi += n;
     });
-  }
+    return { atk, def, hp, sayi,
+             olum: agirlik > 0 ? Math.round(olumPay / agirlik * 100) / 100 : 0 };
+  };
+
+  AILELER.forEach(ai => {
+    const a = aileToplam(A.birimler, ai.k);
+    const d = aileToplam(D.birimler, ai.k);
+    if (!a.sayi && !d.sayi) return;   /* iki tarafta da yoksa yazma */
+    [
+      { k: "def",  ad: ai.ad + " savunması"    },
+      { k: "atk",  ad: ai.ad + " saldırısı"    },
+      { k: "hp",   ad: ai.ad + " sağlığı"      },
+      { k: "olum", ad: ai.ad + " öldürücülüğü" }
+    ].forEach(st => {
+      const av = a[st.k], dv = d[st.k];
+      const yaz = (v) => (st.k === "olum") ? String(v) : f(v);
+      const aSinif = (av > dv) ? "rp-st-ust" : (av < dv ? "rp-st-alt" : "");
+      const dSinif = (dv > av) ? "rp-st-ust" : (dv < av ? "rp-st-alt" : "");
+      out += `<div class="rp-st-row">
+        <span class="rp-st-v ${aSinif}">${yaz(av)}</span>
+        <span class="rp-st-k">${st.ad}</span>
+        <span class="rp-st-v ${dSinif}">${yaz(dv)}</span>
+      </div>`;
+    });
+  });
+
   return out + `</div>`;
 }
 
@@ -2306,35 +2314,21 @@ if (document.readyState === "loading") {
 }
 .rp-st-row{
   display:flex; align-items:center; gap:6px;
-  padding:3px 0; font-size:11.5px;
+  padding:5px 0; font-size:15px;
 }
-.rp-st-row + .rp-st-row{ border-top:1px solid color-mix(in srgb, var(--rp-murekkep) 18%, transparent); }
+/* Satır arası çizgiler kaldırıldı */
 .rp-st-k{
-  flex:1 1 auto; text-align:center; font-size:9.5px; font-weight:800;
-  letter-spacing:.4px; color:color-mix(in srgb, var(--rp-murekkep) 72%, transparent);
+  flex:1 1 auto; text-align:center; font-size:13px; font-weight:800;
+  letter-spacing:.2px; color:var(--rp-murekkep);
 }
 .rp-st-v{
   flex:0 0 33%; font-weight:800; font-variant-numeric:tabular-nums;
-  color:var(--rp-murekkep);
+  font-size:15px; color:var(--rp-murekkep);
 }
 .rp-st-row .rp-st-v:first-child{ text-align:left; }
 .rp-st-row .rp-st-v:last-child{ text-align:right; }
 .rp-st-ust{ color:#1f7a34; }
 .rp-st-alt{ color:#a33; }
-.rp-st-ara{
-  margin:6px 0 2px; text-align:center; font-size:9.5px; font-weight:800;
-  letter-spacing:.6px; color:color-mix(in srgb, var(--rp-murekkep) 60%, transparent);
-}
-/* Birlik dökümünde her birimin adı — satırların üstünde ayraç görevi
-   görür, iki tarafın aynı birimi alt alta okunur. */
-.rp-st-birim{
-  margin:8px 0 1px; text-align:center; font-size:11px; font-weight:800;
-  letter-spacing:.3px; color:var(--rp-murekkep);
-  border-top:1px solid color-mix(in srgb, var(--rp-murekkep) 30%, transparent);
-  padding-top:5px;
-}
-.rp-st-birim + .rp-st-row{ border-top:none !important; }
-
 /* ── KAHRAMANLAR: alt alta ── */
 .rp-cols-hero{ display:flex; gap:12px; }
 .rp-cols-hero .rp-col{ flex:1 1 0; min-width:0; }

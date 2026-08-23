@@ -1409,6 +1409,7 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
          bonusu ayrıca satır olarak göstermeye gerek yok. */
       birimler: (ordu.units || []).filter(u => (u.count || 0) > 0).map(u => ({
         unitId: u.unitId,
+        aile: AILE(u.unitId),
         ad: (UT()[u.unitId] && UT()[u.unitId].name) || u.unitId,
         sayi: u.count,
         atk: Math.round(u.atk || 0),
