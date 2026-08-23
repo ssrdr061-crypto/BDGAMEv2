@@ -128,7 +128,7 @@ const HERO_STATS = {
         icon: "yetenek_kutup.webp",
         title: "Kutup Dayanıklılığı",
         descTemplate: "Soğuk havalarda hayatta kalma bilgisini kullanarak birlik sağlığını {value} arttırır.",
-        valuesByLevel: [7, 13, 18, 22, 26],
+        valuesByLevel: [6, 9, 12, 15, 18],
         effect: { type: "troop_hp_pct" }
       },
       {
@@ -144,7 +144,7 @@ const HERO_STATS = {
         icon: "yetenek_zirh.webp",
         title: "Buz Zırhı",
         descTemplate: "Birliklerin vücut direncini arttırarak tüm birliğin savunmasını {value} yükseltir.",
-        valuesByLevel: [8, 12, 15, 18, 25],
+        valuesByLevel: [6, 9, 12, 15, 18],
         effect: { type: "troop_def_pct" }
       }
     ]
@@ -166,14 +166,14 @@ const HERO_STATS = {
         icon: "yetenek_durus.webp",
         title: "Çelik Duruş",
         descTemplate: "Çeliğin eşsiz sertliğiyle oluşturduğu kalkan ve kılıca dayanarak birliklerin saldırı ve savunma oranını aynı anda {value} arttırır.",
-        valuesByLevel: [15, 20, 23, 29, 32],
+        valuesByLevel: [7, 10, 13, 16, 20],
         effect: { type: "troop_atk_def_pct" }
       },
       {
         icon: "yetenek_yansima.webp",
         title: "Çelik Yansıması",
         descTemplate: "Birliklerine ördüğü çelik zırhlar sayesinde Savunucu birliklerinin saldırısını {value} arttırır.",
-        valuesByLevel: [3, 6, 9, 12, 16],
+        valuesByLevel: [4, 7, 10, 13, 16],
         /* Yalnız `family` ailesine işler — aile adı burada, motorda değil. */
         effect: { type: "family_atk_pct", family: "knight" }
       }
@@ -199,7 +199,7 @@ const HERO_STATS = {
            içinde duruyor ve şablona geçmiyordu, metinde boşluk
            bırakıyordu. Sabit olduğu için düz yazıldı. */
         descTemplate: "Geleneksel olarak öğrendiği tüm metotları deneyerek ateş büyüsü oluşturur ve %30 ihtimalle rakibin savunmasını {value} yıpratır.",
-        valuesByLevel: [10, 13, 16, 19, 22],   /* savunma yıpratma % */
+        valuesByLevel: [7, 9, 12, 15, 18],   /* savunma yıpratma % */
         /* İhtimal her seviyede SABİT %30 — seviyeyle yükselmez.
            `effect` İÇİNDE duruyor: index.html'deki birleştirici düz
            `chance` alanını yutuyor, effect nesnesi olduğu gibi geçiyor. */
@@ -234,9 +234,9 @@ const HERO_STATS = {
         icon: "yetenek_disiplin.webp",
         title: "Demir Disiplin",
         descTemplate: "Ordu içinde harika bir düzen sağlayarak birlikleri agresifleştirir; {value} saldırı, {value2} savunma ve %35 can bonusu sağlar.",
-        valuesByLevel:  [20, 35, 38, 42, 50],  /* saldırı % */
-        valuesByLevel2: [20, 35, 38, 42, 50],  /* savunma % */
-        effect: { type: "troop_atk_def_hp_pct", hpFlatPct: 35 }  /* can bonusu her seviyede sabit %35 */
+        valuesByLevel:  [8, 11, 14, 17, 21],  /* saldırı % */
+        valuesByLevel2: [8, 11, 14, 17, 21],  /* savunma % */
+        effect: { type: "troop_atk_def_hp_pct", hpFlatPct: 18 }  /* can bonusu her seviyede sabit %18 */
       },
       {
         icon: "yetenek_sevgili.webp",
@@ -282,23 +282,23 @@ const HERO_STATS = {
         icon: "yetenek_akim.webp",
         title: "Elektrik Akımı",
         descTemplate: "Düşmanlara yüklü elektrik akımı göndererek rakip birlik canını {value}, saldırısını {value2} azaltır.",
-        valuesByLevel:  [17, 18, 19, 20, 25],  /* rakip can azaltma %    */
-        valuesByLevel2: [18, 19, 20, 21, 26],  /* rakip saldırı azaltma % */
+        valuesByLevel:  [8, 10, 12, 14, 16],  /* rakip can azaltma %    */
+        valuesByLevel2: [8, 10, 12, 14, 16],  /* rakip saldırı azaltma % */
         effect: { type: "enemy_hp_atk_reduce_pct" }
       },
       {
         icon: "yetenek_yukleme.webp",
         title: "Aşırı Yükleme",
         descTemplate: "Ordudaki Nişancı birliklerinin saldırı ve can istatistiğini {value} arttırır.",
-        valuesByLevel: [30, 34, 36, 38, 40],
+        valuesByLevel: [14, 17, 20, 23, 26],
         effect: { type: "robot_atk_hp_pct", troopType: "robot" }
       },
       {
         icon: "yetenek_firtina.webp",
         title: "Yıldırım Fırtınası",
         descTemplate: "Elektriğin sınırlarını zorlar: her 2 turda bir rakibin tüm birliklerine yıldırım indirir ve o tur rakibin savunmasını {value} azaltır.",
-        /* Her seviyede sabit %30 — birikmez, sadece yıldırım turunda uygulanır, sonraki tur savunma normale döner. */
-        valuesByLevel: [30, 30, 30, 30, 30],
+        /* Her seviyede sabit %12 — birikmez, sadece yıldırım turunda uygulanır, sonraki tur savunma normale döner. */
+        valuesByLevel: [18, 18, 18, 18, 18],
         effect: { type: "periodic_def_reduce_pct", everyTurns: 2 }
       }
     ],
