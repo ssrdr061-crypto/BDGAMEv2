@@ -807,17 +807,48 @@ function statKarsiHTML(r) {
     satir("SAĞLIK",       A.hp,   D.hp) +
     satir("ÖLDÜRÜCÜLÜK",  A.olum, D.olum, v => String(v));
 
-  /* Kahraman bonusları — kalem kalem, iki taraf yan yana */
-  const adlar = {};
-  (A.bonus || []).forEach(x => adlar[x.ad] = true);
-  (D.bonus || []).forEach(x => adlar[x.ad] = true);
-  const liste = Object.keys(adlar);
-  if (liste.length) {
-    out += `<div class="rp-st-ara">KAHRAMAN BONUSLARI</div>`;
-    liste.forEach(ad => {
-      const av = (A.bonus || []).reduce((v, x) => x.ad === ad ? x.yuzde : v, 0);
-      const dv = (D.bonus || []).reduce((v, x) => x.ad === ad ? x.yuzde : v, 0);
-      out += satir(ad, av, dv, v => v ? "+%" + v : "—");
+  /* ── BİRİM BAŞINA DÖKÜM ────────────────────────────────────────
+     Kahraman bonusları AYRI SATIR OLARAK YAZILMAZ. Bonuslar zaten
+     birimin statına işlenmiş halde geliyor (pvp.js, savaş başında
+     ölçülüyor): birlik canı %5 + kahraman %5 ise burada %10'luk
+     sonuç görünür. İki yerde göstermek aynı bonusu iki kez saymış
+     gibi okunuyordu.
+     Yalnız o savaşta bulunan birimler listelenir — 18 birimin hepsi
+     yazılsaydı tablo telefonda okunmaz olurdu. */
+  const AB = A.birimler || [], DB = D.birimler || [];
+  if (AB.length || DB.length) {
+    const kimlikler = [];
+    AB.concat(DB).forEach(x => { if (kimlikler.indexOf(x.unitId) < 0) kimlikler.push(x.unitId); });
+
+    const STATLAR = [
+      { k: "sayi", ad: "Adet" },
+      { k: "atk",  ad: "Saldırı" },
+      { k: "def",  ad: "Savunma" },
+      { k: "hp",   ad: "Sağlık" },
+      { k: "olum", ad: "Öldürücülük" }
+    ];
+
+    out += `<div class="rp-st-ara">BİRLİK DÖKÜMÜ</div>`;
+    kimlikler.forEach(uid => {
+      const a = AB.find(x => x.unitId === uid) || null;
+      const d = DB.find(x => x.unitId === uid) || null;
+      const ad = (a && a.ad) || (d && d.ad) || uid;
+      out += `<div class="rp-st-birim">${ad}</div>`;
+      STATLAR.forEach(st => {
+        const av = a ? a[st.k] : 0;
+        const dv = d ? d[st.k] : 0;
+        /* Tarafta o birim hiç yoksa "—" yazılır, 0 değil */
+        const bicim = (v) => (st.k === "olum") ? String(v) : f(v);
+        const yazA = a ? bicim(av) : "—";
+        const yazD = d ? bicim(dv) : "—";
+        const ai = (av > dv) ? "rp-st-ust" : (av < dv ? "rp-st-alt" : "");
+        const di = (dv > av) ? "rp-st-ust" : (dv < av ? "rp-st-alt" : "");
+        out += `<div class="rp-st-row">
+          <span class="rp-st-v ${a ? ai : ""}">${yazA}</span>
+          <span class="rp-st-k">${st.ad}</span>
+          <span class="rp-st-v ${d ? di : ""}">${yazD}</span>
+        </div>`;
+      });
     });
   }
   return out + `</div>`;
@@ -2292,6 +2323,15 @@ if (document.readyState === "loading") {
   margin:6px 0 2px; text-align:center; font-size:9.5px; font-weight:800;
   letter-spacing:.6px; color:color-mix(in srgb, var(--rp-murekkep) 60%, transparent);
 }
+/* Birlik dökümünde her birimin adı — satırların üstünde ayraç görevi
+   görür, iki tarafın aynı birimi alt alta okunur. */
+.rp-st-birim{
+  margin:8px 0 1px; text-align:center; font-size:11px; font-weight:800;
+  letter-spacing:.3px; color:var(--rp-murekkep);
+  border-top:1px solid color-mix(in srgb, var(--rp-murekkep) 30%, transparent);
+  padding-top:5px;
+}
+.rp-st-birim + .rp-st-row{ border-top:none !important; }
 
 /* ── KAHRAMANLAR: alt alta ── */
 .rp-cols-hero{ display:flex; gap:12px; }

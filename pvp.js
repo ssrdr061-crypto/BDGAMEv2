@@ -1402,7 +1402,20 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
       def: Math.round(armyDef(ordu)),
       hp:  Math.round(hp + ((ordu.hero && ordu.hero.maxHp) || 0)),
       olum: agirlik > 0 ? Math.round(olumPay / agirlik * 100) / 100 : 0,
-      sayi: sayi
+      sayi: sayi,
+      /* BİRİM BAŞINA DÖKÜM — rapordaki tablo bunu okur.
+         Değerler kahraman bonusları ve bufflar UYGULANDIKTAN sonra
+         okunur, yani birimin savaşta kullandığı gerçek statıdır;
+         bonusu ayrıca satır olarak göstermeye gerek yok. */
+      birimler: (ordu.units || []).filter(u => (u.count || 0) > 0).map(u => ({
+        unitId: u.unitId,
+        ad: (UT()[u.unitId] && UT()[u.unitId].name) || u.unitId,
+        sayi: u.count,
+        atk: Math.round(u.atk || 0),
+        def: Math.round(u.def || 0),
+        hp:  Math.round(u.hp || 0),
+        olum: Math.round((u.olum || 0) * 100) / 100
+      }))
     };
   }
   function _bonusSatir(skins, seviyeler) {
