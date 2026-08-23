@@ -205,7 +205,7 @@ const HERO_CATEGORY = {
 .pvp-pop{
   background:linear-gradient(180deg, #1fa3ea, #0e6fc0) !important;
   border:1px solid rgba(190,240,255,.20) !important;
-  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  box-shadow:none !important;
 }
 
 .pvp-pop{
@@ -222,7 +222,7 @@ const HERO_CATEGORY = {
   position:absolute; top:-13px; left:-11px; z-index:6;
   width:46px; height:46px; border:none; cursor:pointer; border-radius:50%;
   background:linear-gradient(180deg,#ffb44d,#e0631b);
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   font-size:22px; line-height:1; display:flex; align-items:center; justify-content:center;
   transition:transform .09s, filter .09s; -webkit-tap-highlight-color:transparent;
 }
@@ -239,7 +239,7 @@ const HERO_CATEGORY = {
   position:absolute; top:-11px; right:-9px; z-index:6;
   width:38px; height:38px; border:none; cursor:pointer; border-radius:50%;
   background:linear-gradient(180deg,#5fd3ff,#1f7fd0);
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   font-size:18px; line-height:1; display:flex; align-items:center; justify-content:center;
   transition:transform .09s, filter .09s; -webkit-tap-highlight-color:transparent;
 }
@@ -292,16 +292,16 @@ const HERO_CATEGORY = {
   padding:8px 8px; font-family:'Baloo 2',sans-serif;
   font-weight:800; font-size:14px; letter-spacing:.4px; color:#fff;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
-  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  box-shadow:none;
   transition:transform .09s, filter .09s;
   -webkit-tap-highlight-color:transparent; }
 .pvp-btn:active{ transform:scale(.96); filter:brightness(.93); }
 .pvp-btn:disabled{ filter:saturate(.25) brightness(.65); cursor:not-allowed; }
 /* SALDIR = savaş panelindeki düğmenin kırmızısı (tema.js ile aynı) */
 .pvp-btn-attack{ background:linear-gradient(180deg,#ff3b3b,#c50f0f);
-  border:2px solid rgba(255,170,170,.75); }
+  border:1px solid rgba(255,170,170,.75); }
 .pvp-btn-friend{ background:linear-gradient(180deg, ${CFG.friendColor1}, ${CFG.friendColor2});
-  border:2px solid rgba(150,190,255,.45); }
+  border:1px solid rgba(150,190,255,.45); }
 
 .pvp-note{ margin-top:9px; text-align:center; font-size:10.5px; font-weight:700;
   color:#dff2ff; line-height:1.45; text-shadow:0 1px 2px rgba(0,30,55,.6); }
@@ -309,7 +309,7 @@ const HERO_CATEGORY = {
 /* savaş raporu — birlik kayıpları */
 .pvp-loss-box{ margin-top:9px;
   background:linear-gradient(180deg, rgba(34,72,143,.62), rgba(13,34,70,.75));
-  border:2px solid rgba(190,240,255,.35); border-radius:11px; padding:9px 10px; }
+  border:1px solid rgba(190,240,255,.35); border-radius:11px; padding:9px 10px; }
 .pvp-loss-title{ font-size:11px; font-weight:900; color:#a9c2e4; margin-bottom:5px; letter-spacing:.3px; }
 .pvp-loss-row{ display:flex; justify-content:space-between; font-size:12px; font-weight:700; padding:2px 0; }
 
@@ -510,7 +510,7 @@ function pvpNot(yazi) {
   d.style.cssText = "position:fixed;left:50%;bottom:22%;transform:translateX(-50%);" +
     "z-index:99999;background:rgba(10,28,52,.95);color:#fff;padding:8px 14px;" +
     "border-radius:12px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;" +
-    "box-shadow:0 2px 6px rgba(0,20,45,.3);pointer-events:none;";
+    "box-shadow:none;pointer-events:none;";
   document.body.appendChild(d);
   setTimeout(() => { try { d.remove(); } catch (e) {} }, 2200);
 }
@@ -816,8 +816,7 @@ function yetenekEngeli(engelleyenSkins, hedefSkins) {
       sonuc.engelli.push(havuz.splice(Math.floor(Math.random() * havuz.length), 1)[0]);
       n++;
     }
-    /* Rapor satırı: hangi yetenek değil, KAÇ yetenek iptal edildi.
-       Mağaza satırlarıyla aynı biçim — kendi ikonunu ve metnini taşır. */
+    /* Rapor satırı: hangi yetenek değil, KAÇ yetenek iptal edildi. */
     sonuc.satirlar.push({
       type: "ability_block",
       title: h.passive.title || "Pasif Yetenek",
@@ -2448,11 +2447,11 @@ st.textContent = `
   display:flex; align-items:center; justify-content:center;
   border-radius:10px;
   background:linear-gradient(180deg,#ff5c5c,#c00d0d);
-  border:2px solid rgba(255,225,225,.92);
+  border:1px solid rgba(255,225,225,.92);
   color:#fff; font-family:'Baloo 2','Nunito',sans-serif;
   font-weight:800; font-size:11px; line-height:1; letter-spacing:.2px;
   text-shadow:0 1px 2px rgba(90,0,0,.6);
-  box-shadow:0 2px 7px rgba(120,0,0,.55);
+  box-shadow:none;
   animation:mailBadgePulse 1.6s ease-in-out infinite;
 }
 @keyframes mailBadgePulse{

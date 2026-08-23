@@ -261,9 +261,9 @@ const HERO_STATS = {
       icon: "yetenek_golge.webp",
       title: "Gölge Manevrası",
       desc: "Gölgede kalarak rakibin planını bozar: savaşın başında rakip kahramanların yeteneklerinden rastgele 1 tanesi iptal edilir ve o yetenek savaş boyunca hiç çalışmaz. Hem saldırırken hem savunurken işler.",
-      /* Motor: pvp.js → yetenekEngeli(). `count` kaç yeteneğin
-         iptal edileceğidir; kimlik motorda SABİT YAZILI DEĞİL, bu
-         tanım hangi kahramana konursa o kahraman engeller. */
+      /* Motor: pvp.js → yetenekEngeli(). `count` kaç yeteneğin iptal
+         edileceğidir; kimlik motorda SABİT YAZILI DEĞİL, bu tanım
+         hangi kahramana konursa o kahraman engeller. */
       effect: { type: "ability_block", count: 1 }
     }
   },
