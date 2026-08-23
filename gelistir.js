@@ -342,42 +342,38 @@
     let yildiz = "";
     for (let i = 0; i < MAX_SV; i++) {
       yildiz += `<span style="color:${i < sv ? "#ffd257" : "rgba(255,255,255,.30)"};
-                   font-size:19px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
+                   font-size:30px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
     }
 
+    /* ── SARI HAP MODELİ ──────────────────────────────────────
+       Tek düğme: içinde hem "GELİŞTİR" hem parça sayacı var.
+       Ayrı ilerleme çubuğu + ayrı "Sv..'e Yükselt" düğmesi YOK —
+       ikisi tek hapta birleşti. Yanındaki turuncu ↑ parça penceresini
+       açar. Hap parça yetmese de SARI kalır; yetmiyorsa dolgu
+       oranı azalır ve basınca uyarı verir. */
     const alt = sonSeviye
-      ? `<div style="text-align:center;padding:10px;border-radius:11px;
-              background:linear-gradient(180deg,${TEMA.ust},${TEMA.alt});
-              color:${TEMA.yazi};font-weight:800;font-size:13.5px;
-              font-family:${YAZI};text-shadow:${TEMA.golge};">En yüksek seviye</div>`
+      ? `<div style="text-align:center;padding:10px;border-radius:14px;
+              background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});
+              color:#20140a;font-weight:800;font-size:13.5px;
+              font-family:${YAZI};">En yüksek seviye</div>`
       : `<div style="display:flex;align-items:center;gap:9px;">
-           <div style="flex:1;min-width:0;height:24px;border-radius:12px;
-                       background:rgba(11,28,58,.65);position:relative;overflow:hidden;">
-             <div style="position:absolute;inset:0 auto 0 0;width:${oran}%;
-                         background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});"></div>
-             <div style="position:absolute;inset:0;display:flex;align-items:center;
-                         justify-content:center;font-size:12px;font-weight:800;
-                         font-family:${YAZI};color:#fff;text-shadow:${TEMA.golge};">
-               ${Math.min(eldeki, bedel)} / ${bedel}
-             </div>
-           </div>
-           <button id="glsArti" style="flex:0 0 auto;width:32px;height:32px;padding:0;
-                   border:none;border-radius:9px;font-family:${YAZI};font-size:20px;
-                   font-weight:800;line-height:32px;text-align:center;color:${TEMA.yazi};
-                   display:flex;align-items:center;justify-content:center;
-                   background:linear-gradient(180deg,${TEMA.ust},${TEMA.orta});
-                   box-shadow:0 2px 6px rgba(0,20,45,.3);">+</button>
-         </div>
-         <button id="glsYukselt" style="width:100%;margin-top:9px;padding:11px;border:none;
-                 border-radius:12px;font-weight:800;font-size:15px;font-family:${YAZI};
-                 text-shadow:${TEMA.golge};
-                 background:${yeter
-                   ? `linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu})`
-                   : `linear-gradient(180deg,${TEMA.ust},${TEMA.alt})`};
-                 color:${yeter ? "#20140a" : TEMA.solgun};
-                 box-shadow:0 2px 6px rgba(0,20,45,.3);">
-           Sv${sv + 1}'e Yükselt
-         </button>`;
+           <button id="glsYukselt" style="flex:1;min-width:0;height:34px;padding:0;
+                   border:none;border-radius:17px;position:relative;overflow:hidden;
+                   background:rgba(60,38,10,.55);cursor:pointer;">
+             <span style="position:absolute;inset:0 auto 0 0;width:${oran}%;
+                          background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});"></span>
+             <span style="position:absolute;inset:0;display:flex;align-items:center;
+                          justify-content:center;gap:8px;font-size:13.5px;font-weight:800;
+                          font-family:${YAZI};color:#20140a;white-space:nowrap;">
+               GELİŞTİR ${Math.min(eldeki, bedel)} / ${bedel}
+             </span>
+           </button>
+           <button id="glsArti" style="flex:0 0 auto;width:34px;height:34px;padding:0;
+                   border:none;border-radius:10px;font-family:${YAZI};font-size:18px;
+                   font-weight:800;line-height:34px;text-align:center;color:#20140a;
+                   display:flex;align-items:center;justify-content:center;cursor:pointer;
+                   background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});">↑</button>
+         </div>`;
 
     /* Üst satır: YALNIZ yıldızlar, ortada. Ad/parça/seviye ibaresi
        kaldırıldı — ekranın tepesinde kahraman adı zaten yazıyor. */
