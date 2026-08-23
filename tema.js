@@ -5527,10 +5527,14 @@ st.textContent = `
 #panel-troops .uv-portrait.kp-kilit img{ filter:grayscale(1) brightness(.6); }
 #panel-troops .uv-portrait.kp-kilit.is-active img{ filter:grayscale(.55) brightness(.8); }
 
-/* ── 2) Sv2+ : sahnedeki görsel karartılır ── */
-#panel-troops .unit-screen.kademe-kilit .stage{
-  filter:grayscale(.85) brightness(.42) !important;
-}
+/* ── 2) Sv2+ karartması BURADAN KALDIRILDI ──
+   Eskiden karartma .stage'e, yani sahnenin tamamına, kademeye
+   basıldıktan SONRA sınıf eklenerek uygulanıyordu. Tarayıcı önce
+   görseli renkli boyuyor, filtre katmanını bir kare sonra kuruyordu
+   → kilitli birliğe basınca bir an renkli görünüp kararıyordu.
+   Yeni yer: dosya sonundaki kademeKatmanlari bloğu. Orada karartma
+   Sv2+ görselinin KENDİSİNE kalıcı yazılı; görsel daha ekrana
+   gelmeden karanlık duruyor, basınca yalnız görünür oluyor.        */
 
 /*  Kilitli kademede de adet çubuğu basılır ama GÖRÜNMEZ:
     yer kaplamaya devam eder, böylece kademeler arasında gezerken
@@ -5923,8 +5927,51 @@ st.id = "temaKademeKatman";
 st.textContent = `
 #panel-troops .unit-screen .stage img.kad-katman{ display:none !important; }
 #panel-troops .unit-screen .stage img.kad-katman.kad-acik{ display:block !important; }
+
+/*  KİLİTLİ KADEME KARARTMASI — KALICI, ÖNCEDEN HAZIR.
+    Sv2-Sv6 henüz üretilemiyor; karartma bu görsellerin üstünde
+    en baştan duruyor. Katman sahneye kurulduğu anda karanlık,
+    ekrana gelene kadar da öyle bekliyor. Oyuncu bastığında hiçbir
+    hesap yapılmıyor, sadece görünür oluyor — renkli hâli hiç
+    boyanmadığı için kararma diye bir olay yaşanmıyor.
+    Sv1 (data-kad-k="1") her zaman açıktır, dışarıda bırakılır.    */
+#panel-troops .unit-screen .stage img.kad-katman:not([data-kad-k="1"]){
+  filter:grayscale(.85) brightness(.42) !important;
+}
+
+/*  Zemin gölgesi ve toz görselin içinde değil, sahnenin ayrı
+    parçaları. Eski kural sahnenin tamamını karartırken bunlar da
+    kararıyordu; aynı görüntü korunsun diye ayrıca yazılıyor.
+    Bunlarda sıçrama olmaz: ikisi de zaten koyu ve soluktur.       */
+#panel-troops .unit-screen.kademe-kilit .ground-shadow,
+#panel-troops .unit-screen.kademe-kilit .dust{
+  filter:grayscale(.85) brightness(.42) !important;
+}
 `;
 document.head.appendChild(st);
+
+/*  Gizli duran görseli tarayıcı çözmez: dosya inmiştir ama resim
+    hâlâ paketli bekler, ilk gösterimde o an açılır — ilk dokunuşta
+    hissedilen takılma budur. Aşağıda 18 birliğin görseli sayfa
+    yerleştikten sonra sessizce çözülür. DOM'a hiçbir şey eklenmez,
+    tek seferliktir, oyun açılışını bekletmez.                     */
+function kademeGorselleriniCoz(){
+  if (typeof UNIT_TYPES === "undefined") return;
+  const gorulen = {};
+  Object.keys(UNIT_TYPES).forEach(function (id) {
+    const d = UNIT_TYPES[id];
+    if (!d || !d.img || gorulen[d.img]) return;
+    gorulen[d.img] = 1;
+    const im = new Image();
+    im.decoding = "async";
+    im.src = d.img;
+    if (im.decode) im.decode().catch(function(){});   /* dosya yoksa sessiz */
+  });
+}
+if (document.readyState === "complete") setTimeout(kademeGorselleriniCoz, 2500);
+else window.addEventListener("load", function () {
+  setTimeout(kademeGorselleriniCoz, 2500);
+}, { once: true });
 })();
 
 /* ══════════════════════════════════════════════════════════════
