@@ -1376,6 +1376,39 @@ function seferdekiKomutanlar() {
   return out;
 }
 
+/*  ── YUVA YÜKSEKLİĞİ ──
+    Yuva, kahraman menüsündeki kartla aynı en/boy oranında olmalı
+    (HPK_YUVA.oran). CSS'teki aspect-ratio bunu tek başına yapmıyor:
+    yuva bir grid hücresidir ve grid hücreleri varsayılan olarak
+    satır yüksekliğine GERİLİR (align stretch), bu da aspect-ratio'yu
+    eziyor. Bu yüzden genişlik ölçülüp yükseklik doğrudan yazılıyor.
+
+    Ölçüm panel görünür olduktan sonra anlamlıdır; kapalıyken
+    genişlik 0'dır (Tuzak 22) — o durumda hiçbir şey yazılmaz,
+    panel açıldığında yeniden çizim zaten bu fonksiyonu çağırır. */
+function hpkYuvaBoyunuYaz() {
+  if (!HPK_YUVA.oran) return;
+  const parcalar = String(HPK_YUVA.oran).split("/");
+  const en  = parseFloat(parcalar[0]) || 3;
+  const boy = parseFloat(parcalar[1]) || 4;
+  if (!en || !boy) return;
+
+  const uygula = () => {
+    const el = document.getElementById("heroPicker");
+    if (!el) return;
+    el.querySelectorAll(".hpk-slot").forEach(slot => {
+      const g = slot.offsetWidth;
+      if (!g) return;                    /* gizli kapsayıcı — ölçü 0 */
+      const y = Math.round(g * boy / en);
+      slot.style.height    = y + "px";
+      slot.style.minHeight = y + "px";
+      slot.style.maxHeight = y + "px";
+    });
+  };
+  uygula();
+  requestAnimationFrame(uygula);         /* ilk karede genişlik henüz 0 olabilir */
+}
+
 /* ── ANA FONKSİYON: yuvaları çiz ── */
 function renderHeroPickerForBattle() {
   const el = document.getElementById("heroPicker");
@@ -1432,6 +1465,8 @@ function renderHeroPickerForBattle() {
       openHeroPickModal(parseInt(slot.dataset.slot, 10));
     });
   });
+
+  hpkYuvaBoyunuYaz();
   el.querySelectorAll(".hpk-x").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
