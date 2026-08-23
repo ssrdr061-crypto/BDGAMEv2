@@ -670,7 +670,12 @@ function openHeroDetail(skinId) {
   let starDy = 0, starSize = parseInt(cfg.stars.size) || 44;
   let modelAPI = null; // 3D model yüklenince (aşağıda) doldurulur
 
-  const heroLevel = 1; // TODO: kahraman seviyesi sistemi kurulunca buradan okunacak
+  /* Yetenek açıklamasındaki değer kahramanın GERÇEK seviyesinden okunur.
+     Eskiden sabit 1 yazıyordu: STELLİN Sv5 olsa bile Çelik Yansıması
+     "%3" (Sv1 değeri) görünüyordu. Seviye gelistir.js'ten gelir. */
+  const heroLevel = (typeof window.kahramanSeviyesi === "function")
+    ? Math.max(1, Math.min(5, Math.floor(window.kahramanSeviyesi(skinId)) || 1))
+    : 1;
   const abilities = h.abilities || [];
 
   const panel = document.createElement("div");

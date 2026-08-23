@@ -866,9 +866,13 @@ function applyTroopBuffs(units, ab) {
       u.hp *= (1 + a.v / 100);
     });
 
-    u.atk = Math.max(1, Math.round(u.atk));
-    u.def = Math.max(0, Math.round(u.def));
-    u.hp  = Math.max(1, Math.round(u.hp));
+    /* YUVARLAMA YOK — taban değerler tek haneli (savunma 5, saldırı 2).
+       Math.round burada %15'lik yeteneği yutuyor, arkasından gelen
+       kahraman bonusunu da yanlış tabana bindiriyordu. Ondalık taşınır;
+       yuvarlama yalnızca ekrana yazarken yapılır. */
+    u.atk = Math.max(0.1, u.atk);
+    u.def = Math.max(0,   u.def);
+    u.hp  = Math.max(0.1, u.hp);
   });
 }
 
@@ -1407,16 +1411,31 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
          Değerler kahraman bonusları ve bufflar UYGULANDIKTAN sonra
          okunur, yani birimin savaşta kullandığı gerçek statıdır;
          bonusu ayrıca satır olarak göstermeye gerek yok. */
-      birimler: (ordu.units || []).filter(u => (u.count || 0) > 0).map(u => ({
-        unitId: u.unitId,
-        aile: AILE(u.unitId),
-        ad: (UT()[u.unitId] && UT()[u.unitId].name) || u.unitId,
-        sayi: u.count,
-        atk: Math.round(u.atk || 0),
-        def: Math.round(u.def || 0),
-        hp:  Math.round(u.hp || 0),
-        olum: Math.round((u.olum || 0) * 100) / 100
-      }))
+      /* BİRİM BAŞINA DÖKÜM — rapordaki yüzdeler bunu okur.
+         `atk/def/hp/olum` = savaşta kullanılan GERÇEK stat (araştırma,
+         buff, kahraman bonusu hepsi işlenmiş hâli).
+         `t*` = troops.js'teki HAM taban. Rapor ikisini oranlayıp
+         "+%kaç" üretir; böylece 3 askerle de 60 bin askerle de aynı
+         yüzde çıkar — sayı ordu büyüklüğünden bağımsızdır. */
+      birimler: (ordu.units || []).filter(u => (u.count || 0) > 0).map(u => {
+        const d = UT()[u.unitId] || {};
+        return {
+          unitId: u.unitId,
+          aile: AILE(u.unitId),
+          ad: d.name || u.unitId,
+          sayi: u.count,
+          /* Rapor yüzdeyi bunlardan hesaplıyor — burada yuvarlanırsa
+             küçük tabanlarda (saldırı 2) bonus kayboluyordu. */
+          atk: Math.round((u.atk || 0) * 100) / 100,
+          def: Math.round((u.def || 0) * 100) / 100,
+          hp:  Math.round((u.hp || 0) * 100) / 100,
+          olum: Math.round((u.olum || 0) * 100) / 100,
+          tatk: d.attack || 0,
+          tdef: d.defense || 0,
+          thp:  d.hp || 0,
+          tolum: d.olum || 0
+        };
+      })
     };
   }
   function _bonusSatir(skins, seviyeler) {

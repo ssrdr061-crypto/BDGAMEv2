@@ -635,13 +635,27 @@
     });
     if (!Object.keys(toplam).length) return;
 
-    const aileBul = (uid) => (typeof AILE === "function") ? AILE(uid) : null;
+    /* AİLE ÇÖZÜMÜ — pvp.js'teki AILE() bir IIFE'nin İÇİNDE tanımlı,
+       yani buradan görünmez. Eskiden `typeof AILE === "function"`
+       her zaman false dönüyor, aile null kalıyor ve bonusların
+       HİÇBİRİ uygulanmıyordu (öldürücülük dahil). Aile artık
+       troops.js'ten okunuyor — o global. */
+    const aileBul = (uid) => {
+      if (typeof birlikAilesi === "function") return birlikAilesi(uid);
+      if (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES[uid] && UNIT_TYPES[uid].aile)
+        return UNIT_TYPES[uid].aile;
+      return String(uid).replace(/[0-9]+$/, "") || uid;
+    };
     units.forEach(u => {
       const t = toplam[aileBul(u.unitId)];
       if (!t) return;
-      if (t.atk)  u.atk  = Math.max(1, Math.round(u.atk  * (1 + t.atk  / 100)));
-      if (t.def)  u.def  = Math.max(0, Math.round(u.def  * (1 + t.def  / 100)));
-      if (t.hp)   u.hp   = Math.max(1, Math.round(u.hp   * (1 + t.hp   / 100)));
+      /* YUVARLAMA YOK: taban değerler küçük (savunma 5, saldırı 2).
+         Math.round burada %20'lik bonusu sıfıra indiriyor, bir sonraki
+         bonusu da şişiriyordu. Ondalık taşınır, yuvarlama yalnızca
+         ekrana yazarken yapılır. */
+      if (t.atk)  u.atk  = Math.max(0.1, u.atk  * (1 + t.atk  / 100));
+      if (t.def)  u.def  = Math.max(0,   u.def  * (1 + t.def  / 100));
+      if (t.hp)   u.hp   = Math.max(0.1, u.hp   * (1 + t.hp   / 100));
       if (t.olum) u.olum = (u.olum || 0) * (1 + t.olum / 100);
     });
   }
