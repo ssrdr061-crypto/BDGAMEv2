@@ -6,13 +6,13 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-7';
+  var SURUM = 'kaleici-8';
 
   var CFG = {
     grid: 10,
     zeminPay: 8,      // bina alanının dışına çizilen dolgu karo sayısı
     tileW: 64,
-    tileH: 44,         // yüksek = daha dik bakış
+    tileH: 32,         // 2:1 izometri (yüksek sayı = daha dik bakış)
     zoom: 1.0,
     zoomMin: 0.6,
     zoomMax: 2.20,
@@ -21,8 +21,9 @@
     karoAcilis: 6.0    // açılışta kaç karo
   };
 
-  /* Bina görselinin taban genişliğine oranı — 1.00 = taban kadar geniş */
-  var GORSEL_PAY = 1.08;
+  /* Bina görselinin taban genişliğine oranı — 1.00 = taban kadar geniş.
+     Bina başına ince ayar: BINALAR içindeki 'olcek' ve 'dy' (piksel). */
+  var GORSEL_PAY = 1.00;
 
   /* ---- Binalar: konum = sol üst karo, en/boy = kapladığı karo ----
      gorsel: kök dizindeki .webp dosya adı. Dosya yoksa emojiye döner.  */
@@ -53,16 +54,55 @@
         if (!b.gorsel || GORSELLER[b.id]) return;
         var im = new Image();
         GORSELLER[b.id] = { im: im, hazir: false };
-        im.onload = function () { GORSELLER[b.id].hazir = true; kareIste(); };
+        im.onload = function () {
+          var g = GORSELLER[b.id];
+          g.kutu = saydamKenariOlc(im);
+          g.hazir = true;
+          kareIste();
+        };
         im.onerror = function () { GORSELLER[b.id].hazir = false; };
         im.src = b.gorsel;
       })(BINALAR[i]);
     }
   }
 
+  /* Şeffaf kenar boşluğunu ölçer → her bina aynı hizaya oturur.
+     Ölçülemezse (okuma engellenirse) tüm görsel kullanılır. */
+  function saydamKenariOlc(im) {
+    var w = im.naturalWidth, h = im.naturalHeight;
+    var tam = { sx: 0, sy: 0, sw: w, sh: h };
+    try {
+      var c = document.createElement('canvas');
+      var en = 256, k = en / Math.max(w, h);
+      c.width = Math.max(1, Math.round(w * k));
+      c.height = Math.max(1, Math.round(h * k));
+      var cx = c.getContext('2d');
+      cx.drawImage(im, 0, 0, c.width, c.height);
+      var d = cx.getImageData(0, 0, c.width, c.height).data;
+      var x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+      for (var y = 0; y < c.height; y++) {
+        for (var x = 0; x < c.width; x++) {
+          if (d[(y * c.width + x) * 4 + 3] > 12) {
+            if (x < x0) x0 = x;
+            if (x > x1) x1 = x;
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+          }
+        }
+      }
+      if (x1 < x0 || y1 < y0) return tam;
+      return {
+        sx: Math.max(0, Math.floor(x0 / k)),
+        sy: Math.max(0, Math.floor(y0 / k)),
+        sw: Math.min(w, Math.ceil((x1 - x0 + 1) / k)),
+        sh: Math.min(h, Math.ceil((y1 - y0 + 1) / k))
+      };
+    } catch (e) { return tam; }
+  }
+
   function binaGorseli(b) {
     var g = GORSELLER[b.id];
-    return (g && g.hazir && g.im.naturalWidth > 0) ? g.im : null;
+    return (g && g.hazir && g.im.naturalWidth > 0) ? g : null;
   }
 
   /* ---- Stil: en az sayıda kural, 3B yok ---- */
@@ -233,7 +273,9 @@
 
   function binaCiz(b) {
     var nk = taban(b);
-    dortgenCiz(nk, '#f1f5ef', 'rgba(255,255,255,.55)');
+    var g = binaGorseli(b);
+    /* Görsel varken beyaz taban çizilmez — görselin kendi zemini var. */
+    if (!g) dortgenCiz(nk, '#f1f5ef', 'rgba(255,255,255,.55)');
 
     var ortaW = { x: (nk[0].x + nk[2].x) / 2, y: (nk[0].y + nk[2].y) / 2 };
     var o = ekran(ortaW.x, ortaW.y);
@@ -241,13 +283,15 @@
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    var im = binaGorseli(b);
-    if (im) {
-      /* Görsel tabanın alt köşesine oturur; en/boy oranı korunur. */
-      var genislik = (nk[1].x - nk[3].x) * CFG.zoom * GORSEL_PAY;
-      var yukseklik = genislik * (im.naturalHeight / im.naturalWidth);
+    if (g) {
+      /* Kırpılmış içerik tabanın alt köşesine oturur; oran korunur. */
+      var k = g.kutu;
+      var genislik = (nk[1].x - nk[3].x) * CFG.zoom * GORSEL_PAY * (b.olcek || 1);
+      var yukseklik = genislik * (k.sh / k.sw);
       var altNokta = ekran(nk[2].x, nk[2].y);
-      ctx.drawImage(im, o.x - genislik / 2, altNokta.y - yukseklik, genislik, yukseklik);
+      var dy = (b.dy || 0) * CFG.zoom;
+      ctx.drawImage(g.im, k.sx, k.sy, k.sw, k.sh,
+                    o.x - genislik / 2, altNokta.y - yukseklik + dy, genislik, yukseklik);
     } else {
       var boyut = (b.en >= 3 ? 46 : b.en === 2 ? 32 : 20) * CFG.zoom;
       ctx.font = boyut + 'px "Baloo 2",sans-serif';
