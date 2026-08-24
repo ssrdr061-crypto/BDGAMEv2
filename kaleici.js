@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-6';
+  var SURUM = 'kaleici-7';
 
   var CFG = {
     grid: 10,
@@ -21,24 +21,49 @@
     karoAcilis: 6.0    // açılışta kaç karo
   };
 
-  /* ---- Binalar: konum = sol üst karo, en/boy = kapladığı karo ---- */
-  var BINALAR = [
-    { id: 'kale',      ad: 'Ana Kale',        emoji: '🏰', gx: 4, gy: 4, en: 3, boy: 3 },
-    { id: 'sovalye',   ad: 'Savunucu Kışlası', emoji: '⚔️', gx: 1, gy: 4, en: 2, boy: 2 },
-    { id: 'asker',     ad: 'Koruyucu Kışlası', emoji: '🛡️', gx: 4, gy: 1, en: 2, boy: 2 },
-    { id: 'robot',     ad: 'Nişancı Fabrikası', emoji: '🤖', gx: 7, gy: 4, en: 2, boy: 2 },
-    { id: 'arastirma', ad: 'Araştırma',       emoji: '🔬', gx: 4, gy: 7, en: 2, boy: 2 },
-    { id: 'fuze',      ad: 'Füze Merkezi',    emoji: '🚀', gx: 1, gy: 1, en: 2, boy: 2 },
-    { id: 'konuk',     ad: 'Konuk Evleri',    emoji: '🏘️', gx: 7, gy: 7, en: 2, boy: 2 },
-    { id: 'oyun',      ad: 'Oyun Merkezi',    emoji: '🎲', gx: 7, gy: 1, en: 2, boy: 2 },
+  /* Bina görselinin taban genişliğine oranı — 1.00 = taban kadar geniş */
+  var GORSEL_PAY = 1.08;
 
-    { id: 'odun',      ad: 'Odun',            emoji: '🪵', gx: 1, gy: 7, en: 1, boy: 1 },
-    { id: 'demir',     ad: 'Demir',           emoji: '⛏️', gx: 2, gy: 8, en: 1, boy: 1 },
-    { id: 'su',        ad: 'Su',              emoji: '💧', gx: 0, gy: 2, en: 1, boy: 1 },
-    { id: 'enerji',    ad: 'Enerji',          emoji: '⚡', gx: 9, gy: 2, en: 1, boy: 1 },
-    { id: 'atolye',    ad: 'Atölye',          emoji: '🔧', gx: 9, gy: 6, en: 1, boy: 1 },
-    { id: 'degirmen',  ad: 'Değirmen',        emoji: '🌾', gx: 6, gy: 9, en: 1, boy: 1 }
+  /* ---- Binalar: konum = sol üst karo, en/boy = kapladığı karo ----
+     gorsel: kök dizindeki .webp dosya adı. Dosya yoksa emojiye döner.  */
+  var BINALAR = [
+    { id: 'kale',      ad: 'Ana Kale',         emoji: '🏰', gorsel: 'anakale.webp',       gx: 4, gy: 4, en: 3, boy: 3 },
+    { id: 'sovalye',   ad: 'Savunucu Kışlası', emoji: '⚔️', gorsel: 'savunucukisla.webp', gx: 1, gy: 4, en: 2, boy: 2 },
+    { id: 'asker',     ad: 'Koruyucu Kışlası', emoji: '🛡️', gorsel: 'koruyucukisla.webp', gx: 4, gy: 1, en: 2, boy: 2 },
+    { id: 'robot',     ad: 'Nişancı Kışlası',  emoji: '🤖', gorsel: 'nisancikisla.webp',  gx: 7, gy: 4, en: 2, boy: 2 },
+    { id: 'arastirma', ad: 'Araştırma',        emoji: '🔬', gorsel: 'arastirma.webp',     gx: 4, gy: 7, en: 2, boy: 2 },
+    { id: 'fuze',      ad: 'Füze Merkezi',     emoji: '🚀', gorsel: 'fuzemerkezi.webp',   gx: 1, gy: 1, en: 2, boy: 2 },
+    { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: 7, gy: 7, en: 2, boy: 2 },
+    { id: 'oyun',      ad: 'Oyun Merkezi',     emoji: '🎲', gorsel: 'oyunmerkezi.webp',   gx: 7, gy: 1, en: 2, boy: 2 },
+    { id: 'ittifak',   ad: 'İttifak Binası',   emoji: '🤝', gorsel: 'ittifakbinasi.webp', gx: 2, gy: 6, en: 2, boy: 2 },
+
+    { id: 'odun',      ad: 'Odun',             emoji: '🪵', gorsel: 'odunuretim.webp',    gx: 1, gy: 7, en: 1, boy: 1 },
+    { id: 'demir',     ad: 'Demir',            emoji: '⛏️', gorsel: 'demiruretim.webp',   gx: 2, gy: 8, en: 1, boy: 1 },
+    { id: 'su',        ad: 'Su',               emoji: '💧', gorsel: 'suuretim.webp',      gx: 0, gy: 2, en: 1, boy: 1 },
+    { id: 'enerji',    ad: 'Enerji',           emoji: '⚡', gorsel: 'enerjiuretim.webp',  gx: 9, gy: 2, en: 1, boy: 1 },
+    { id: 'ahir',      ad: 'Ahır',             emoji: '🐄', gorsel: 'ahiruretim.webp',    gx: 6, gy: 9, en: 1, boy: 1 }
   ];
+
+  /* ---- Görsel yükleyici: dosya yoksa sessizce emojiye düşülür ---- */
+  var GORSELLER = {};
+
+  function gorselYukle() {
+    for (var i = 0; i < BINALAR.length; i++) {
+      (function (b) {
+        if (!b.gorsel || GORSELLER[b.id]) return;
+        var im = new Image();
+        GORSELLER[b.id] = { im: im, hazir: false };
+        im.onload = function () { GORSELLER[b.id].hazir = true; kareIste(); };
+        im.onerror = function () { GORSELLER[b.id].hazir = false; };
+        im.src = b.gorsel;
+      })(BINALAR[i]);
+    }
+  }
+
+  function binaGorseli(b) {
+    var g = GORSELLER[b.id];
+    return (g && g.hazir && g.im.naturalWidth > 0) ? g.im : null;
+  }
 
   /* ---- Stil: en az sayıda kural, 3B yok ---- */
   var CSS =
@@ -212,12 +237,22 @@
 
     var ortaW = { x: (nk[0].x + nk[2].x) / 2, y: (nk[0].y + nk[2].y) / 2 };
     var o = ekran(ortaW.x, ortaW.y);
-    var boyut = (b.en >= 3 ? 46 : b.en === 2 ? 32 : 20) * CFG.zoom;
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = boyut + 'px "Baloo 2",sans-serif';
-    ctx.fillText(b.emoji, o.x, o.y - boyut * 0.12);
+
+    var im = binaGorseli(b);
+    if (im) {
+      /* Görsel tabanın alt köşesine oturur; en/boy oranı korunur. */
+      var genislik = (nk[1].x - nk[3].x) * CFG.zoom * GORSEL_PAY;
+      var yukseklik = genislik * (im.naturalHeight / im.naturalWidth);
+      var altNokta = ekran(nk[2].x, nk[2].y);
+      ctx.drawImage(im, o.x - genislik / 2, altNokta.y - yukseklik, genislik, yukseklik);
+    } else {
+      var boyut = (b.en >= 3 ? 46 : b.en === 2 ? 32 : 20) * CFG.zoom;
+      ctx.font = boyut + 'px "Baloo 2",sans-serif';
+      ctx.fillText(b.emoji, o.x, o.y - boyut * 0.12);
+    }
 
     var yaziBoy = Math.max(10, 12 * CFG.zoom);
     var altY = ekran(nk[2].x, nk[2].y).y + yaziBoy * 0.9;
@@ -349,6 +384,7 @@
     girBtn.addEventListener('click', ac);
     document.body.appendChild(girBtn);
 
+    gorselYukle();
     butonuIzle();
   }
 
@@ -403,5 +439,6 @@
     kur();
   }
 
-  window.KALEICI = { SURUM: SURUM, CFG: CFG, BINALAR: BINALAR, ac: ac, kapat: kapat, ciz: ciz };
+  window.KALEICI = { SURUM: SURUM, CFG: CFG, BINALAR: BINALAR, GORSELLER: GORSELLER,
+                    ac: ac, kapat: kapat, ciz: ciz, gorselYukle: gorselYukle };
 })();
