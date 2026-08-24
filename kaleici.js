@@ -6,13 +6,13 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-8';
+  var SURUM = 'kaleici-10';
 
   var CFG = {
     grid: 10,
     zeminPay: 8,      // bina alanının dışına çizilen dolgu karo sayısı
     tileW: 64,
-    tileH: 32,         // 2:1 izometri (yüksek sayı = daha dik bakış)
+    tileH: 44,         // yüksek = daha dik bakış
     zoom: 1.0,
     zoomMin: 0.6,
     zoomMax: 2.20,
@@ -135,7 +135,31 @@
       'font:600 12.5px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
       'box-shadow:none;transition:transform .09s,filter .09s}' +
     '#kaleiciGir.acik{display:block}' +
-    '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}';
+    '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}' +
+
+    /* ---- Ayar paneli (?ayar=1) — iş bitince bu blok ve AYAR kodu silinir ---- */
+    '#kaleiciAyar{position:absolute;left:8px;right:8px;bottom:8px;z-index:5;' +
+      'padding:8px 10px;border-radius:12px;background:rgba(12,36,60,.94);color:#eaf6ff;' +
+      'font:500 12px/1.25 "Baloo 2",sans-serif;box-shadow:none}' +
+    '#kaleiciAyar.kapali .ka-govde{display:none}' +
+    '#kaleiciAyar .ka-ust{display:flex;align-items:center;gap:6px}' +
+    '#kaleiciAyar select{flex:1;min-width:0;padding:4px 6px;border:none;border-radius:8px;' +
+      'background:#1d3f63;color:#eaf6ff;font:600 12.5px/1 "Baloo 2",sans-serif}' +
+    '#kaleiciAyar .ka-kat{padding:4px 9px;border:none;border-radius:8px;background:#2f6ea8;' +
+      'color:#eaf6ff;font:700 13px/1 "Baloo 2",sans-serif}' +
+    '#kaleiciAyar .ka-satir{display:flex;align-items:center;gap:6px;margin-top:5px}' +
+    '#kaleiciAyar .ka-ad{width:56px;flex:none;opacity:.85}' +
+    '#kaleiciAyar .ka-deg{width:52px;flex:none;text-align:right;' +
+      'font-variant-numeric:tabular-nums;font-weight:700}' +
+    '#kaleiciAyar input[type=range]{flex:1;min-width:0;height:22px;accent-color:#57a7e6}' +
+    '#kaleiciAyar .ka-alt{display:flex;gap:6px;margin-top:7px}' +
+    '#kaleiciAyar .ka-alt button{flex:1;padding:6px 0;border:none;border-radius:9px;' +
+      'background:#2f6ea8;color:#eaf6ff;font:600 12.5px/1 "Baloo 2",sans-serif}' +
+    '#kaleiciAyar .ka-alt button:active{transform:scale(.96);filter:brightness(.93)}' +
+    '#kaleiciAyar textarea{width:100%;box-sizing:border-box;margin-top:6px;height:66px;' +
+      'border:none;border-radius:8px;padding:6px;background:#08203a;color:#cfe6ff;' +
+      'font:500 10.5px/1.3 monospace;display:none}' +
+    '#kaleiciAyar.metin textarea{display:block}';
 
   var katman, tuval, ctx, panel, panelAd, girBtn;
   var camX = 0, camY = 0;          // kameranın dünya koordinatı
@@ -290,8 +314,9 @@
       var yukseklik = genislik * (k.sh / k.sw);
       var altNokta = ekran(nk[2].x, nk[2].y);
       var dy = (b.dy || 0) * CFG.zoom;
+      var dx = (b.dx || 0) * CFG.zoom;
       ctx.drawImage(g.im, k.sx, k.sy, k.sw, k.sh,
-                    o.x - genislik / 2, altNokta.y - yukseklik + dy, genislik, yukseklik);
+                    o.x - genislik / 2 + dx, altNokta.y - yukseklik + dy, genislik, yukseklik);
     } else {
       var boyut = (b.en >= 3 ? 46 : b.en === 2 ? 32 : 20) * CFG.zoom;
       ctx.font = boyut + 'px "Baloo 2",sans-serif';
@@ -387,6 +412,144 @@
   }
   function panelKapat() { panel.classList.remove('acik'); }
 
+
+  /* ================= AYAR PANELİ — GEÇİCİ (?ayar=1) =================
+     İnce ayar bitince: bu blok, CSS'teki #kaleiciAyar kuralları ve
+     kur() içindeki ayarKur() çağrısı silinir. ================= */
+  var AYAR_ACIK = /[?&]ayar=1/.test(location.search);
+  var ayarKutu, ayarSecim, ayarSurgu = {}, ayarDeger = {}, ayarMetin;
+
+  var AYAR_SURGULER = [
+    { ad: 'olcek', etiket: 'Ölçek', min: 20, max: 300, adim: 1, bol: 100, vars: 1 },
+    { ad: 'dx',    etiket: 'Yatay', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 },
+    { ad: 'dy',    etiket: 'Dikey', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 }
+  ];
+
+  function ayarSeciliBina() {
+    for (var i = 0; i < BINALAR.length; i++) {
+      if (BINALAR[i].id === ayarSecim.value) return BINALAR[i];
+    }
+    return BINALAR[0];
+  }
+
+  function ayarTazele() {
+    var b = ayarSeciliBina();
+    for (var i = 0; i < AYAR_SURGULER.length; i++) {
+      var t = AYAR_SURGULER[i];
+      var v = (b[t.ad] === undefined ? t.vars : b[t.ad]);
+      ayarSurgu[t.ad].value = Math.round(v * t.bol);
+      ayarDeger[t.ad].textContent = (t.bol === 1) ? String(Math.round(v)) : v.toFixed(2);
+    }
+    ayarSurgu.pay.value = Math.round(GORSEL_PAY * 100);
+    ayarDeger.pay.textContent = GORSEL_PAY.toFixed(2);
+    ayarSurgu.egim.value = CFG.tileH;
+    ayarDeger.egim.textContent = String(CFG.tileH);
+  }
+
+  function ayarMetniUret() {
+    var s = 'GORSEL_PAY = ' + GORSEL_PAY.toFixed(2) + '  ·  tileH = ' + CFG.tileH + '\n';
+    for (var i = 0; i < BINALAR.length; i++) {
+      var b = BINALAR[i], par = [];
+      if (b.olcek !== undefined && b.olcek !== 1) par.push('olcek: ' + b.olcek.toFixed(2));
+      if (b.dx) par.push('dx: ' + Math.round(b.dx));
+      if (b.dy) par.push('dy: ' + Math.round(b.dy));
+      if (par.length) s += b.id + ' → ' + par.join(', ') + '\n';
+    }
+    return s;
+  }
+
+  function ayarSatir(t) {
+    return '<div class="ka-satir"><span class="ka-ad">' + t.etiket + '</span>' +
+      '<input type="range" id="ka-' + t.ad + '" min="' + t.min + '" max="' + t.max +
+      '" step="' + t.adim + '"><span class="ka-deg" id="kad-' + t.ad + '">-</span></div>';
+  }
+
+  function ayarKur() {
+    if (!AYAR_ACIK || document.getElementById('kaleiciAyar')) return;
+
+    var sec = '';
+    for (var i = 0; i < BINALAR.length; i++) {
+      sec += '<option value="' + BINALAR[i].id + '">' + BINALAR[i].ad + '</option>';
+    }
+
+    var satirlar = '';
+    for (var j = 0; j < AYAR_SURGULER.length; j++) satirlar += ayarSatir(AYAR_SURGULER[j]);
+
+    ayarKutu = document.createElement('div');
+    ayarKutu.id = 'kaleiciAyar';
+    ayarKutu.innerHTML =
+      '<div class="ka-ust"><select id="kaSec">' + sec + '</select>' +
+      '<button class="ka-kat" id="kaKat">▾</button></div>' +
+      '<div class="ka-govde">' + satirlar +
+      ayarSatir({ ad: 'pay', etiket: 'Genel', min: 20, max: 300, adim: 1 }) +
+      ayarSatir({ ad: 'egim', etiket: 'Eğim', min: 20, max: 64, adim: 1 }) +
+      '<div class="ka-alt"><button id="kaSifirla">Sıfırla</button>' +
+      '<button id="kaMetin">Değerleri göster</button></div>' +
+      '<textarea id="kaCikti" readonly></textarea></div>';
+    katman.appendChild(ayarKutu);
+
+    ayarSecim = document.getElementById('kaSec');
+    ayarMetin = document.getElementById('kaCikti');
+
+    var adlar = ['olcek', 'dx', 'dy', 'pay', 'egim'];
+    for (var k = 0; k < adlar.length; k++) {
+      ayarSurgu[adlar[k]] = document.getElementById('ka-' + adlar[k]);
+      ayarDeger[adlar[k]] = document.getElementById('kad-' + adlar[k]);
+    }
+
+    /* Sürgülere dokunuş sahneye sızmasın */
+    ayarKutu.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+
+    ayarSecim.addEventListener('change', ayarTazele);
+
+    for (var m = 0; m < AYAR_SURGULER.length; m++) {
+      (function (t) {
+        ayarSurgu[t.ad].addEventListener('input', function () {
+          var b = ayarSeciliBina();
+          var v = Number(this.value) / t.bol;
+          b[t.ad] = v;
+          ayarDeger[t.ad].textContent = (t.bol === 1) ? String(Math.round(v)) : v.toFixed(2);
+          kareIste();
+        });
+      })(AYAR_SURGULER[m]);
+    }
+
+    ayarSurgu.pay.addEventListener('input', function () {
+      GORSEL_PAY = Number(this.value) / 100;
+      ayarDeger.pay.textContent = GORSEL_PAY.toFixed(2);
+      kareIste();
+    });
+
+    ayarSurgu.egim.addEventListener('input', function () {
+      CFG.tileH = Number(this.value);
+      ayarDeger.egim.textContent = String(CFG.tileH);
+      kameraSinirla();
+      kareIste();
+    });
+
+    document.getElementById('kaKat').addEventListener('click', function () {
+      ayarKutu.classList.toggle('kapali');
+      this.textContent = ayarKutu.classList.contains('kapali') ? '▴' : '▾';
+    });
+
+    document.getElementById('kaSifirla').addEventListener('click', function () {
+      var b = ayarSeciliBina();
+      b.olcek = 1; b.dx = 0; b.dy = 0;
+      ayarTazele();
+      kareIste();
+    });
+
+    document.getElementById('kaMetin').addEventListener('click', function () {
+      ayarKutu.classList.toggle('metin');
+      if (ayarKutu.classList.contains('metin')) {
+        ayarMetin.value = ayarMetniUret();
+        try { navigator.clipboard && navigator.clipboard.writeText(ayarMetin.value); } catch (e) {}
+      }
+    });
+
+    ayarTazele();
+  }
+
   /* ---- Kurulum ---- */
   function kur() {
     if (document.getElementById('kaleici')) return;
@@ -429,6 +592,7 @@
     document.body.appendChild(girBtn);
 
     gorselYukle();
+    ayarKur();
     butonuIzle();
   }
 
