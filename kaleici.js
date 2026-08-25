@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-13';
+  var SURUM = 'kaleici-14';
 
   var CFG = {
     grid: 10,
@@ -402,7 +402,7 @@
 
   /* ---- Seçili binanın adı — binaların üstünde, çerçeveli ---- */
   function seciliAdCiz() {
-    if (!secili) return;
+    if (!secili) { tasiSimge.r = 0; return; }
     var b = secili, nk = taban(b);
     var g = binaGorseli(b);
     var ortaW = { x: (nk[0].x + nk[2].x) / 2, y: (nk[0].y + nk[2].y) / 2 };
@@ -430,7 +430,16 @@
     ctx.fillText(b.ad, o.x, yaziY);
 
     /* Küçük taşıma simgesi — adın hemen üstünde */
-    tasiSimgesiCiz(o.x, yaziY - boy * 1.15, boy * 0.62);
+    var sr = boy * 0.62;
+    tasiSimge.x = o.x; tasiSimge.y = yaziY - boy * 1.15; tasiSimge.r = sr;
+    tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr);
+  }
+
+  /* Dokunuş taşıma simgesinin üstünde mi (parmak payı ile) */
+  function simgedeMi(px, py) {
+    if (!secili || !tasiSimge.r) return false;
+    var pay = Math.max(tasiSimge.r * 1.6, 20);
+    return Math.abs(px - tasiSimge.x) <= pay && Math.abs(py - tasiSimge.y) <= pay;
   }
 
   /* Dört yönlü ok — "bu binayı sürükleyebilirsin" */
@@ -474,7 +483,8 @@
   var parmaklar = {}, parmakSayisi = 0, kistirma = false;
   var sonX = 0, sonY = 0, kaydi = false, basX = 0, basY = 0;
   var ilkMesafe = 0, ilkZoom = 1;
-  var tasinan = null, tasiKay = { x: 0, y: 0 };   // ayar modu: sürüklenen bina
+  var tasinan = null, tasiKay = { x: 0, y: 0 };   // sürüklenen bina
+  var tasiSimge = { x: 0, y: 0, r: 0 };            // taşıma simgesinin ekran yeri
 
   function mesafe() {
     var k = Object.keys(parmaklar);
@@ -508,13 +518,15 @@
       sonX = basX = e.clientX; sonY = basY = e.clientY;
       kaydi = false; kistirma = false;
       tasinan = null;
-      /* Zaten seçili olan binadan başlayan sürükleme = taşıma.
-         Seçili değilse önce dokunup seçmek gerekir, harita kayması bozulmaz. */
+      /* Taşıma yalnızca seçili binanın taşıma simgesinden başlar. */
       var r0 = tuval.getBoundingClientRect();
-      var hedef = binaBul(e.clientX - r0.left, e.clientY - r0.top);
-      if (hedef && (hedef === secili || AYAR_ACIK)) {
+      var px = e.clientX - r0.left, py = e.clientY - r0.top;
+      var hedef = null;
+      if (secili && simgedeMi(px, py)) hedef = secili;
+      else if (AYAR_ACIK) hedef = binaBul(px, py);
+      if (hedef) {
         tasinan = hedef;
-        var d0 = dunyaya(e.clientX - r0.left, e.clientY - r0.top);
+        var d0 = dunyaya(px, py);
         var g0 = izgara(d0.x, d0.y);
         tasiKay.x = hedef.gx - g0.gx;   // basılan karo ile sol üst arası fark
         tasiKay.y = hedef.gy - g0.gy;
@@ -582,7 +594,7 @@
       if (tasinan) {
         var tt = tasinan; tasinan = null; kistirma = false;
         if (!kaydi) binaSec(tt);   // sürüklemeden bıraktıysa sadece seçim
-        else kameraSinirla();
+        else { kameraSinirla(); yerlesimYaz(); }
         kareIste();
         return;
       }
@@ -762,6 +774,68 @@
     ayarTazele();
   }
 
+
+  /* ================= Yerleşim kaydı (Firebase) =================
+     Yalnızca gx/gy kaydedilir. Ölçek ve kaydırma tasarım verisidir,
+     kodda sabittir — oyuncuya göre değişmez. */
+  var YERLESIM_KOK = 'kaleYerlesim';
+  var yerlesimYazZaman = null, yerlesimOkundu = false;
+
+  function fbVar() {
+    return (typeof firebaseDb !== 'undefined') && !!firebaseDb;
+  }
+
+  function oyuncuAnahtari() {
+    if (typeof currentUsername !== 'string' || !currentUsername) return null;
+    if (typeof toFirebaseKey !== 'function') return null;
+    return toFirebaseKey(currentUsername.toLowerCase());
+  }
+
+  function binaBulId(id) {
+    for (var i = 0; i < BINALAR.length; i++) {
+      if (BINALAR[i].id === id) return BINALAR[i];
+    }
+    return null;
+  }
+
+  function yerlesimOku() {
+    if (yerlesimOkundu) return;
+    var k = oyuncuAnahtari();
+    if (!fbVar() || !k) return;
+    yerlesimOkundu = true;
+    try {
+      firebaseDb.ref(YERLESIM_KOK + '/' + k).get().then(function (snap) {
+        var v = snap && snap.val();
+        if (!v) return;
+        for (var id in v) {
+          if (!Object.prototype.hasOwnProperty.call(v, id)) continue;
+          var b = binaBulId(id), y = v[id];
+          if (!b || !y) continue;
+          if (typeof y.gx === 'number') b.gx = y.gx;
+          if (typeof y.gy === 'number') b.gy = y.gy;
+        }
+        kameraSinirla();
+        kareIste();
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  /* Taşıma bitince yazar; art arda taşımalarda tek yazıya toplanır */
+  function yerlesimYaz() {
+    var k = oyuncuAnahtari();
+    if (!fbVar() || !k) return;
+    if (yerlesimYazZaman) clearTimeout(yerlesimYazZaman);
+    yerlesimYazZaman = setTimeout(function () {
+      yerlesimYazZaman = null;
+      var veri = {};
+      for (var i = 0; i < BINALAR.length; i++) {
+        veri[BINALAR[i].id] = { gx: BINALAR[i].gx, gy: BINALAR[i].gy };
+      }
+      try { firebaseDb.ref(YERLESIM_KOK + '/' + k).set(veri).catch(function () {}); }
+      catch (e) {}
+    }, 600);
+  }
+
   /* ---- Kurulum ---- */
   function kur() {
     if (document.getElementById('kaleici')) return;
@@ -838,7 +912,9 @@
     kur();
     panelKapat();
     katman.classList.add('acik');
-    var o = dunya((CFG.grid - 1) / 2, (CFG.grid - 1) / 2);
+    secili = null;
+    yerlesimOku();
+    var o = sahneMerkezi();
     camX = o.x; camY = o.y;
     parmaklar = {}; parmakSayisi = 0; kistirma = false;
     olcuAyarla();
@@ -860,5 +936,6 @@
   }
 
   window.KALEICI = { SURUM: SURUM, CFG: CFG, BINALAR: BINALAR, GORSELLER: GORSELLER,
-                    ac: ac, kapat: kapat, ciz: ciz, gorselYukle: gorselYukle };
+                    ac: ac, kapat: kapat, ciz: ciz, gorselYukle: gorselYukle,
+                    yerlesimOku: yerlesimOku, yerlesimYaz: yerlesimYaz };
 })();
