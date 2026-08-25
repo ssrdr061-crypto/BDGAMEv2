@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-15';
+  var SURUM = 'kaleici-16';
 
   var CFG = {
     grid: 10,
@@ -110,6 +110,12 @@
     '#kaleici{position:fixed;inset:0;z-index:9000;display:none;' +
       'background:#7fae5c;font-family:"Baloo 2",sans-serif;touch-action:none}' +
     '#kaleici.acik{display:block}' +
+    /* Kaleiçi açıkken oyunun üst ve alt panelleri üstte kalsın */
+    'body.kaleici-acik .hud-top,body.kaleici-acik .hud-kaynak,' +
+      'body.kaleici-acik .nav-dock{z-index:9100!important}' +
+    /* Kapat düğmesi ve sürüm yazısı üst panelin altına iner */
+    'body.kaleici-acik #kaleiciKapat{top:104px}' +
+    'body.kaleici-acik #kaleiciSurum{top:108px}' +
     '#kaleiciTuval{position:absolute;left:0;top:0;width:100%;height:100%;display:block}' +
     '#kaleiciKapat{position:absolute;left:12px;top:12px;z-index:2;' +
       'padding:8px 16px;border:none;border-radius:10px;background:#1d3f63;color:#eaf6ff;' +
@@ -138,7 +144,7 @@
     '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}' +
 
     /* ---- Ayar paneli (?ayar=1) — iş bitince bu blok ve AYAR kodu silinir ---- */
-    '#kaleiciAyar{position:absolute;left:10px;right:10px;bottom:66px;z-index:5;' +
+    '#kaleiciAyar{position:absolute;left:10px;right:10px;bottom:118px;z-index:5;' +
       'padding:7px 9px;border-radius:10px;background:rgba(10,28,48,.82);' +
       '-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#dbeaf7;' +
       'font:500 11px/1.2 "Baloo 2",sans-serif;box-shadow:none}' +
@@ -361,6 +367,7 @@
   function secimCanli() { return !!secili; }
 
   function binaSec(b) {
+    if (b !== secili) tasiModu = false;
     secili = b;
     if (b && AYAR_ACIK && ayarSecim) { ayarSecim.value = b.id; ayarTazele(); }
     secimZaman = (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -402,7 +409,7 @@
 
   /* ---- Seçili binanın adı — binaların üstünde, çerçeveli ---- */
   function seciliAdCiz() {
-    if (!secili) { tasiSimge.r = 0; return; }
+    if (!secili) { tasiSimge.r = 0; tasiModu = false; return; }
     var b = secili, nk = taban(b);
     var g = binaGorseli(b);
     var ortaW = { x: (nk[0].x + nk[2].x) / 2, y: (nk[0].y + nk[2].y) / 2 };
@@ -422,17 +429,21 @@
     ctx.font = '800 ' + boy + 'px "Baloo 2",sans-serif';
     ctx.lineJoin = 'round';
     ctx.miterLimit = 2;
-    ctx.lineWidth = Math.max(3, boy * 0.28);
+    ctx.lineWidth = Math.max(2, boy * 0.17);
     ctx.strokeStyle = '#ffc61a';
     var yaziY = tepe - boy * 0.45;
     ctx.strokeText(b.ad, o.x, yaziY);
     ctx.fillStyle = '#ffffff';
     ctx.fillText(b.ad, o.x, yaziY);
 
-    /* Küçük taşıma simgesi — adın hemen üstünde */
-    var sr = boy * 0.62;
-    tasiSimge.x = o.x; tasiSimge.y = yaziY - boy * 1.15; tasiSimge.r = sr;
-    tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr);
+    /* Taşıma simgesi — görselin sol alt köşesinde. Bir dokunuşta büyür. */
+    var solW = ekran(nk[3].x, nk[3].y);        // taban sol köşesi
+    var altW = ekran(nk[2].x, nk[2].y);        // taban alt köşesi
+    var sr = boy * (tasiModu ? 0.95 : 0.55);
+    tasiSimge.x = (solW.x + altW.x) / 2;
+    tasiSimge.y = (solW.y + altW.y) / 2;
+    tasiSimge.r = sr;
+    tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr, tasiModu);
   }
 
   /* Dokunuş taşıma simgesinin üstünde mi (parmak payı ile) */
@@ -443,10 +454,15 @@
   }
 
   /* Dört yönlü ok — "bu binayı sürükleyebilirsin" */
-  function tasiSimgesiCiz(x, y, r) {
+  function tasiSimgesiCiz(x, y, r, etkin) {
     var u = r * 0.5, b = r * 0.22;
     ctx.save();
     ctx.translate(x, y);
+    /* Etkinken arkasında yuvarlak zemin */
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2);
+    ctx.fillStyle = etkin ? 'rgba(255,198,26,.92)' : 'rgba(10,28,48,.55)';
+    ctx.fill();
     ctx.beginPath();
     for (var i = 0; i < 4; i++) {
       var a = i * Math.PI / 2;
@@ -460,10 +476,10 @@
     ctx.moveTo(-b * 0.5, -b * 0.5);
     ctx.rect(-b * 0.55, -b * 0.55, b * 1.1, b * 1.1);
     ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(2, r * 0.30);
-    ctx.strokeStyle = '#ffc61a';
+    ctx.lineWidth = Math.max(1.5, r * 0.20);
+    ctx.strokeStyle = etkin ? '#7a4d00' : '#ffc61a';
     ctx.stroke();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = etkin ? '#4a2f00' : '#ffffff';
     ctx.fill();
     ctx.restore();
   }
@@ -485,6 +501,7 @@
   var ilkMesafe = 0, ilkZoom = 1;
   var tasinan = null, tasiKay = { x: 0, y: 0 };   // sürüklenen bina
   var tasiSimge = { x: 0, y: 0, r: 0 };            // taşıma simgesinin ekran yeri
+  var tasiModu = false;                            // simgeye basıldı → bina sürüklenebilir
 
   function mesafe() {
     var k = Object.keys(parmaklar);
@@ -522,7 +539,14 @@
       var r0 = tuval.getBoundingClientRect();
       var px = e.clientX - r0.left, py = e.clientY - r0.top;
       var hedef = null;
-      if (secili && simgedeMi(px, py)) hedef = secili;
+      if (secili && simgedeMi(px, py)) {
+        /* Simgeye dokunuş: taşıma modunu aç/kapa, sürükleme başlatma */
+        tasiModu = !tasiModu;
+        kaydi = true;                 // bırakınca seçim değişmesin
+        kareIste();
+        return;
+      }
+      if (secili && tasiModu && binaBul(px, py) === secili) hedef = secili;
       else if (AYAR_ACIK) hedef = binaBul(px, py);
       if (hedef) {
         tasinan = hedef;
@@ -788,7 +812,7 @@
       if (!d) {
         d = document.createElement('div');
         d.id = 'kyTeshis';
-        d.style.cssText = 'position:absolute;left:8px;top:64px;z-index:9;max-width:78%;' +
+        d.style.cssText = 'position:absolute;left:8px;top:152px;z-index:9;max-width:78%;' +
           'padding:5px 8px;border-radius:8px;background:rgba(0,0,0,.62);color:#ffe08a;' +
           'font:600 10.5px/1.35 "Baloo 2",sans-serif;white-space:pre-wrap';
         (katman || document.body).appendChild(d);
@@ -938,6 +962,7 @@
     kur();
     panelKapat();
     katman.classList.add('acik');
+    document.body.classList.add('kaleici-acik');
     secili = null;
     if (!oyuncuAnahtari()) yerlesimOkundu = false;   // adı henüz gelmediyse tekrar dene
     yerlesimOku();
@@ -953,6 +978,8 @@
 
   function kapat() {
     panelKapat();
+    secili = null; tasiModu = false;
+    document.body.classList.remove('kaleici-acik');
     if (katman) katman.classList.remove('acik');
   }
 
