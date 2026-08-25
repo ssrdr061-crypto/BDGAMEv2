@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-11';
+  var SURUM = 'kaleici-12';
 
   var CFG = {
     grid: 10,
@@ -138,34 +138,39 @@
     '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}' +
 
     /* ---- Ayar paneli (?ayar=1) — iş bitince bu blok ve AYAR kodu silinir ---- */
-    '#kaleiciAyar{position:absolute;left:8px;right:8px;bottom:8px;z-index:5;' +
-      'padding:8px 10px;border-radius:12px;background:rgba(12,36,60,.94);color:#eaf6ff;' +
-      'font:500 12px/1.25 "Baloo 2",sans-serif;box-shadow:none}' +
+    '#kaleiciAyar{position:absolute;left:10px;right:10px;bottom:66px;z-index:5;' +
+      'padding:7px 9px;border-radius:10px;background:rgba(10,28,48,.82);' +
+      '-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#dbeaf7;' +
+      'font:500 11px/1.2 "Baloo 2",sans-serif;box-shadow:none}' +
     '#kaleiciAyar.kapali .ka-govde{display:none}' +
     '#kaleiciAyar .ka-ust{display:flex;align-items:center;gap:6px}' +
-    '#kaleiciAyar select{flex:1;min-width:0;padding:4px 6px;border:none;border-radius:8px;' +
-      'background:#1d3f63;color:#eaf6ff;font:600 12.5px/1 "Baloo 2",sans-serif}' +
-    '#kaleiciAyar .ka-kat{padding:4px 9px;border:none;border-radius:8px;background:#2f6ea8;' +
-      'color:#eaf6ff;font:700 13px/1 "Baloo 2",sans-serif}' +
-    '#kaleiciAyar .ka-satir{display:flex;align-items:center;gap:6px;margin-top:5px}' +
-    '#kaleiciAyar .ka-ad{width:56px;flex:none;opacity:.85}' +
-    '#kaleiciAyar .ka-deg{width:52px;flex:none;text-align:right;' +
-      'font-variant-numeric:tabular-nums;font-weight:700}' +
-    '#kaleiciAyar input[type=range]{flex:1;min-width:0;height:22px;accent-color:#57a7e6}' +
-    '#kaleiciAyar .ka-alt{display:flex;gap:6px;margin-top:7px}' +
-    '#kaleiciAyar .ka-alt button{flex:1;padding:6px 0;border:none;border-radius:9px;' +
-      'background:#2f6ea8;color:#eaf6ff;font:600 12.5px/1 "Baloo 2",sans-serif}' +
-    '#kaleiciAyar .ka-alt button:active{transform:scale(.96);filter:brightness(.93)}' +
-    '#kaleiciAyar textarea{width:100%;box-sizing:border-box;margin-top:6px;height:66px;' +
-      'border:none;border-radius:8px;padding:6px;background:#08203a;color:#cfe6ff;' +
-      'font:500 10.5px/1.3 monospace;display:none}' +
+    '#kaleiciAyar select{flex:1;min-width:0;padding:3px 5px;border:none;border-radius:6px;' +
+      'background:rgba(255,255,255,.08);color:#dbeaf7;' +
+      'font:600 11.5px/1 "Baloo 2",sans-serif}' +
+    '#kaleiciAyar .ka-kat{padding:3px 8px;border:none;border-radius:6px;' +
+      'background:rgba(255,255,255,.10);color:#dbeaf7;font:600 11px/1 "Baloo 2",sans-serif}' +
+    '#kaleiciAyar .ka-satir{display:flex;align-items:center;gap:7px;margin-top:3px}' +
+    '#kaleiciAyar .ka-ad{width:44px;flex:none;opacity:.7;font-size:10.5px}' +
+    '#kaleiciAyar .ka-deg{width:42px;flex:none;text-align:right;opacity:.9;' +
+      'font-variant-numeric:tabular-nums;font-weight:600;font-size:10.5px}' +
+    '#kaleiciAyar input[type=range]{flex:1;min-width:0;height:16px;accent-color:#6fb6ee;' +
+      'background:transparent}' +
+    '#kaleiciAyar .ka-alt{display:flex;gap:6px;margin-top:6px}' +
+    '#kaleiciAyar .ka-alt button{flex:1;padding:4px 0;border:none;border-radius:6px;' +
+      'background:rgba(255,255,255,.10);color:#dbeaf7;' +
+      'font:600 11px/1 "Baloo 2",sans-serif}' +
+    '#kaleiciAyar .ka-alt button:active{filter:brightness(1.3)}' +
+    '#kaleiciAyar .ka-ipucu{margin-top:5px;opacity:.55;font-size:10px}' +
+    '#kaleiciAyar textarea{width:100%;box-sizing:border-box;margin-top:5px;height:60px;' +
+      'border:none;border-radius:6px;padding:5px;background:rgba(0,0,0,.35);color:#cfe6ff;' +
+      'font:500 10px/1.3 monospace;display:none}' +
     '#kaleiciAyar.metin textarea{display:block}';
 
   var katman, tuval, ctx, panel, panelAd, girBtn;
   var camX = 0, camY = 0;          // kameranın dünya koordinatı
   var secili = null;               // seçili bina
   var secimZaman = 0;              // seçim anı (yanıp sönme için)
-  var SECIM_SURE = 850;            // yanıp sönme süresi (ms)
+  var SECIM_DONGU = 1600;          // yanıp sönme periyodu (ms)
   var eb = 1;                       // aygıt piksel oranı
   var kareIstendi = false;
 
@@ -318,15 +323,11 @@
   function secimSaydamlik(b) {
     if (b !== secili) return 1;
     var t = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - secimZaman;
-    if (t < 0 || t > SECIM_SURE) return 1;
-    return 0.45 + 0.55 * Math.abs(Math.cos(t / SECIM_SURE * Math.PI * 3));
+    /* Yavaş ve hafif nefes alma — seçim sürdükçe devam eder */
+    return 0.78 + 0.22 * (0.5 + 0.5 * Math.cos(t / SECIM_DONGU * Math.PI * 2));
   }
 
-  function secimCanli() {
-    if (!secili) return false;
-    var t = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - secimZaman;
-    return t >= 0 && t <= SECIM_SURE;
-  }
+  function secimCanli() { return !!secili; }
 
   function binaSec(b) {
     secili = b;
@@ -412,6 +413,7 @@
   var parmaklar = {}, parmakSayisi = 0, kistirma = false;
   var sonX = 0, sonY = 0, kaydi = false, basX = 0, basY = 0;
   var ilkMesafe = 0, ilkZoom = 1;
+  var tasinan = null, tasiKay = { x: 0, y: 0 };   // ayar modu: sürüklenen bina
 
   function mesafe() {
     var k = Object.keys(parmaklar);
@@ -444,7 +446,21 @@
     if (parmakSayisi === 1) {
       sonX = basX = e.clientX; sonY = basY = e.clientY;
       kaydi = false; kistirma = false;
+      tasinan = null;
+      if (AYAR_ACIK) {
+        var r0 = tuval.getBoundingClientRect();
+        var hedef = binaBul(e.clientX - r0.left, e.clientY - r0.top);
+        if (hedef) {
+          tasinan = hedef;
+          var d0 = dunyaya(e.clientX - r0.left, e.clientY - r0.top);
+          var g0 = izgara(d0.x, d0.y);
+          tasiKay.x = hedef.gx - g0.gx;   // basılan karo ile sol üst arası fark
+          tasiKay.y = hedef.gy - g0.gy;
+          binaSec(hedef);
+        }
+      }
     } else if (parmakSayisi === 2) {
+      tasinan = null;
       kistirma = true;
       ilkMesafe = mesafe();
       ilkZoom = CFG.zoom;
@@ -473,9 +489,24 @@
       }
       return;
     }
+    if (Math.abs(e.clientX - basX) > 6 || Math.abs(e.clientY - basY) > 6) kaydi = true;
+
+    /* Ayar modu: bina sürükleniyorsa harita kaymaz, bina karo değiştirir */
+    if (tasinan) {
+      var rt = tuval.getBoundingClientRect();
+      var dt = dunyaya(e.clientX - rt.left, e.clientY - rt.top);
+      var gt = izgara(dt.x, dt.y);
+      var yx = gt.gx + tasiKay.x, yy = gt.gy + tasiKay.y;
+      if (yx !== tasinan.gx || yy !== tasinan.gy) {
+        tasinan.gx = yx; tasinan.gy = yy;
+        kareIste();
+      }
+      sonX = e.clientX; sonY = e.clientY;
+      return;
+    }
+
     var dx = e.clientX - sonX, dy = e.clientY - sonY;
     sonX = e.clientX; sonY = e.clientY;
-    if (Math.abs(e.clientX - basX) > 6 || Math.abs(e.clientY - basY) > 6) kaydi = true;
     camX -= dx / CFG.zoom;
     camY -= dy / CFG.zoom;
     kameraSinirla();
@@ -487,6 +518,7 @@
     delete parmaklar[e.pointerId];
     parmakSayisi = Object.keys(parmaklar).length;
     if (parmakSayisi === 0) {
+      if (tasinan) { tasinan = null; kistirma = false; return; }
       if (vardi && !kaydi && !kistirma) {
         var r = tuval.getBoundingClientRect();
         var b = binaBul(e.clientX - r.left, e.clientY - r.top);
@@ -512,9 +544,7 @@
   var AYAR_SURGULER = [
     { ad: 'olcek', etiket: 'Ölçek', min: 20, max: 300, adim: 1, bol: 100, vars: 1 },
     { ad: 'dx',    etiket: 'Yatay', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 },
-    { ad: 'dy',    etiket: 'Dikey', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 },
-    { ad: 'gx',    etiket: 'Karo X', min: -3, max: 13, adim: 1, bol: 1,   vars: 0 },
-    { ad: 'gy',    etiket: 'Karo Y', min: -3, max: 13, adim: 1, bol: 1,   vars: 0 }
+    { ad: 'dy',    etiket: 'Dikey', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 }
   ];
 
   function ayarSeciliBina() {
@@ -576,15 +606,16 @@
       '<div class="ka-govde">' + satirlar +
       ayarSatir({ ad: 'pay', etiket: 'Genel', min: 20, max: 300, adim: 1 }) +
       ayarSatir({ ad: 'egim', etiket: 'Eğim', min: 20, max: 64, adim: 1 }) +
+      '<div class="ka-ipucu">Binaya basılı tutup sürükle → karo değiştir</div>' +
       '<div class="ka-alt"><button id="kaSifirla">Sıfırla</button>' +
-      '<button id="kaMetin">Değerleri göster</button></div>' +
+      '<button id="kaMetin">Değerler</button></div>' +
       '<textarea id="kaCikti" readonly></textarea></div>';
     katman.appendChild(ayarKutu);
 
     ayarSecim = document.getElementById('kaSec');
     ayarMetin = document.getElementById('kaCikti');
 
-    var adlar = ['olcek', 'dx', 'dy', 'gx', 'gy', 'pay', 'egim'];
+    var adlar = ['olcek', 'dx', 'dy', 'pay', 'egim'];
     for (var k = 0; k < adlar.length; k++) {
       ayarSurgu[adlar[k]] = document.getElementById('ka-' + adlar[k]);
       ayarDeger[adlar[k]] = document.getElementById('kad-' + adlar[k]);
