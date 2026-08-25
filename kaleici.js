@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-10';
+  var SURUM = 'kaleici-11';
 
   var CFG = {
     grid: 10,
@@ -163,6 +163,9 @@
 
   var katman, tuval, ctx, panel, panelAd, girBtn;
   var camX = 0, camY = 0;          // kameranın dünya koordinatı
+  var secili = null;               // seçili bina
+  var secimZaman = 0;              // seçim anı (yanıp sönme için)
+  var SECIM_SURE = 850;            // yanıp sönme süresi (ms)
   var eb = 1;                       // aygıt piksel oranı
   var kareIstendi = false;
 
@@ -191,14 +194,27 @@
     if (CFG.zoom > CFG.zoomMax) CFG.zoom = CFG.zoomMax;
   }
 
+  /* Sahnenin dünya merkezi (grid'in ortası) */
+  function sahneMerkezi() {
+    var s = CFG.grid - 1;
+    return { x: 0, y: s * CFG.tileH / 2 };
+  }
+
+  /* Sınırlar zoom'a bağlı: uzaklaşınca sahne ekrana sığar ve kamera
+     merkeze kilitlenir — böylece yakınlaş/uzaklaşta köşeye zıplamaz. */
   function kameraSinirla() {
     var s = CFG.grid - 1;
-    var enX = s * CFG.tileW / 2;
-    if (camX < -enX) camX = -enX;
-    if (camX > enX) camX = enX;
-    var enY = s * CFG.tileH;
-    if (camY < 0) camY = 0;
-    if (camY > enY) camY = enY;
+    var m = sahneMerkezi();
+    var yariW = (tuval.width / eb) / (2 * CFG.zoom);
+    var yariH = (tuval.height / eb) / (2 * CFG.zoom);
+    var sahneW = s * CFG.tileW / 2 + CFG.tileW;
+    var sahneH = s * CFG.tileH / 2 + CFG.tileH * 2;
+    var sapX = Math.max(0, sahneW - yariW);
+    var sapY = Math.max(0, sahneH - yariH);
+    if (camX < m.x - sapX) camX = m.x - sapX;
+    if (camX > m.x + sapX) camX = m.x + sapX;
+    if (camY < m.y - sapY) camY = m.y - sapY;
+    if (camY > m.y + sapY) camY = m.y + sapY;
   }
 
   function kareIste() {
@@ -293,6 +309,30 @@
       return (a.gx + a.gy) - (b.gx + b.gy);
     });
     for (var i = 0; i < sirali.length; i++) binaCiz(sirali[i]);
+
+    seciliAdCiz();
+    if (secimCanli()) kareIste();   // yanıp sönme sürerken kare iste
+  }
+
+  /* Seçilen bina kısa süre yanıp söner — oyuncu neye dokunduğunu görür */
+  function secimSaydamlik(b) {
+    if (b !== secili) return 1;
+    var t = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - secimZaman;
+    if (t < 0 || t > SECIM_SURE) return 1;
+    return 0.45 + 0.55 * Math.abs(Math.cos(t / SECIM_SURE * Math.PI * 3));
+  }
+
+  function secimCanli() {
+    if (!secili) return false;
+    var t = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - secimZaman;
+    return t >= 0 && t <= SECIM_SURE;
+  }
+
+  function binaSec(b) {
+    secili = b;
+    if (b && AYAR_ACIK && ayarSecim) { ayarSecim.value = b.id; ayarTazele(); }
+    secimZaman = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    kareIste();
   }
 
   function binaCiz(b) {
@@ -315,28 +355,52 @@
       var altNokta = ekran(nk[2].x, nk[2].y);
       var dy = (b.dy || 0) * CFG.zoom;
       var dx = (b.dx || 0) * CFG.zoom;
+      var sap = secimSaydamlik(b);
+      if (sap < 1) ctx.globalAlpha = sap;
       ctx.drawImage(g.im, k.sx, k.sy, k.sw, k.sh,
                     o.x - genislik / 2 + dx, altNokta.y - yukseklik + dy, genislik, yukseklik);
+      ctx.globalAlpha = 1;
     } else {
       var boyut = (b.en >= 3 ? 46 : b.en === 2 ? 32 : 20) * CFG.zoom;
       ctx.font = boyut + 'px "Baloo 2",sans-serif';
       ctx.fillText(b.emoji, o.x, o.y - boyut * 0.12);
     }
 
-    var yaziBoy = Math.max(10, 12 * CFG.zoom);
-    var altY = ekran(nk[2].x, nk[2].y).y + yaziBoy * 0.9;
-    ctx.font = '600 ' + yaziBoy + 'px "Baloo 2",sans-serif';
-    ctx.fillStyle = 'rgba(0,20,45,.55)';
-    ctx.fillText(b.ad, o.x, altY + 1);
+  }
+
+  /* ---- Seçili binanın adı — binaların üstünde, çerçeveli ---- */
+  function seciliAdCiz() {
+    if (!secili) return;
+    var b = secili, nk = taban(b);
+    var g = binaGorseli(b);
+    var ortaW = { x: (nk[0].x + nk[2].x) / 2, y: (nk[0].y + nk[2].y) / 2 };
+    var o = ekran(ortaW.x, ortaW.y);
+
+    /* Yazı binanın tepesinin biraz üstünde durur */
+    var tepe = ekran(nk[0].x, nk[0].y).y;
+    if (g) {
+      var k = g.kutu;
+      var gen = (nk[1].x - nk[3].x) * CFG.zoom * GORSEL_PAY * (b.olcek || 1);
+      tepe = ekran(nk[2].x, nk[2].y).y - gen * (k.sh / k.sw) + (b.dy || 0) * CFG.zoom;
+    }
+
+    var boy = Math.max(15, 19 * CFG.zoom);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '800 ' + boy + 'px "Baloo 2",sans-serif';
+    ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
+    ctx.lineWidth = Math.max(3, boy * 0.28);
+    ctx.strokeStyle = '#ffc61a';
+    ctx.strokeText(b.ad, o.x, tepe - boy * 0.45);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(b.ad, o.x, altY);
+    ctx.fillText(b.ad, o.x, tepe - boy * 0.45);
   }
 
   /* ---- Dokunulan noktadaki bina ---- */
   function binaBul(sx, sy) {
-    var wx = (sx - tuval.width / (2 * eb)) / CFG.zoom + camX;
-    var wy = (sy - tuval.height / (2 * eb)) / CFG.zoom + camY;
-    var g = izgara(wx, wy);
+    var d = dunyaya(sx, sy);
+    var g = izgara(d.x, d.y);
     for (var i = 0; i < BINALAR.length; i++) {
       var b = BINALAR[i];
       if (g.gx >= b.gx && g.gx < b.gx + b.en && g.gy >= b.gy && g.gy < b.gy + b.boy) return b;
@@ -354,6 +418,23 @@
     if (k.length < 2) return 0;
     var a = parmaklar[k[0]], b = parmaklar[k[1]];
     return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  /* İki parmağın orta noktası — tuvale göre piksel */
+  function orta() {
+    var k = Object.keys(parmaklar);
+    if (k.length < 2) return null;
+    var a = parmaklar[k[0]], b = parmaklar[k[1]];
+    var r = tuval.getBoundingClientRect();
+    return { x: (a.x + b.x) / 2 - r.left, y: (a.y + b.y) / 2 - r.top };
+  }
+
+  /* Ekran pikselini dünya koordinatına çevirir */
+  function dunyaya(sx, sy) {
+    return {
+      x: (sx - tuval.width / (2 * eb)) / CFG.zoom + camX,
+      y: (sy - tuval.height / (2 * eb)) / CFG.zoom + camY
+    };
   }
 
   function bas(e) {
@@ -376,8 +457,17 @@
     if (parmakSayisi >= 2) {
       var m = mesafe();
       if (ilkMesafe > 0 && m > 0) {
+        var o = orta();
+        /* Zoom öncesi: parmakların altındaki dünya noktası */
+        var once = o ? dunyaya(o.x, o.y) : null;
         var z = ilkZoom * (m / ilkMesafe);
         CFG.zoom = Math.max(CFG.zoomMin, Math.min(CFG.zoomMax, z));
+        /* Aynı dünya noktası aynı parmak altında kalsın — kayma olmaz */
+        if (once) {
+          var sonra = dunyaya(o.x, o.y);
+          camX += once.x - sonra.x;
+          camY += once.y - sonra.y;
+        }
         kameraSinirla();
         kareIste();
       }
@@ -400,7 +490,7 @@
       if (vardi && !kaydi && !kistirma) {
         var r = tuval.getBoundingClientRect();
         var b = binaBul(e.clientX - r.left, e.clientY - r.top);
-        if (b) panelAc(b);
+        binaSec(b);   // boşluğa dokunulursa seçim kalkar
       }
       kistirma = false;
     }
@@ -422,7 +512,9 @@
   var AYAR_SURGULER = [
     { ad: 'olcek', etiket: 'Ölçek', min: 20, max: 300, adim: 1, bol: 100, vars: 1 },
     { ad: 'dx',    etiket: 'Yatay', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 },
-    { ad: 'dy',    etiket: 'Dikey', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 }
+    { ad: 'dy',    etiket: 'Dikey', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 },
+    { ad: 'gx',    etiket: 'Karo X', min: -3, max: 13, adim: 1, bol: 1,   vars: 0 },
+    { ad: 'gy',    etiket: 'Karo Y', min: -3, max: 13, adim: 1, bol: 1,   vars: 0 }
   ];
 
   function ayarSeciliBina() {
@@ -450,10 +542,11 @@
     var s = 'GORSEL_PAY = ' + GORSEL_PAY.toFixed(2) + '  ·  tileH = ' + CFG.tileH + '\n';
     for (var i = 0; i < BINALAR.length; i++) {
       var b = BINALAR[i], par = [];
+      par.push('gx: ' + b.gx + ', gy: ' + b.gy);
       if (b.olcek !== undefined && b.olcek !== 1) par.push('olcek: ' + b.olcek.toFixed(2));
       if (b.dx) par.push('dx: ' + Math.round(b.dx));
       if (b.dy) par.push('dy: ' + Math.round(b.dy));
-      if (par.length) s += b.id + ' → ' + par.join(', ') + '\n';
+      s += b.id + ' → ' + par.join(', ') + '\n';
     }
     return s;
   }
@@ -491,7 +584,7 @@
     ayarSecim = document.getElementById('kaSec');
     ayarMetin = document.getElementById('kaCikti');
 
-    var adlar = ['olcek', 'dx', 'dy', 'pay', 'egim'];
+    var adlar = ['olcek', 'dx', 'dy', 'gx', 'gy', 'pay', 'egim'];
     for (var k = 0; k < adlar.length; k++) {
       ayarSurgu[adlar[k]] = document.getElementById('ka-' + adlar[k]);
       ayarDeger[adlar[k]] = document.getElementById('kad-' + adlar[k]);
