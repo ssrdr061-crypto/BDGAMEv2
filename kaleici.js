@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-12';
+  var SURUM = 'kaleici-13';
 
   var CFG = {
     grid: 10,
@@ -28,21 +28,21 @@
   /* ---- Binalar: konum = sol üst karo, en/boy = kapladığı karo ----
      gorsel: kök dizindeki .webp dosya adı. Dosya yoksa emojiye döner.  */
   var BINALAR = [
-    { id: 'kale',      ad: 'Ana Kale',         emoji: '🏰', gorsel: 'anakale.webp',       gx: 4, gy: 4, en: 3, boy: 3 },
-    { id: 'sovalye',   ad: 'Savunucu Kışlası', emoji: '⚔️', gorsel: 'savunucukisla.webp', gx: 1, gy: 4, en: 2, boy: 2 },
-    { id: 'asker',     ad: 'Koruyucu Kışlası', emoji: '🛡️', gorsel: 'koruyucukisla.webp', gx: 4, gy: 1, en: 2, boy: 2 },
-    { id: 'robot',     ad: 'Nişancı Kışlası',  emoji: '🤖', gorsel: 'nisancikisla.webp',  gx: 7, gy: 4, en: 2, boy: 2 },
-    { id: 'arastirma', ad: 'Araştırma',        emoji: '🔬', gorsel: 'arastirma.webp',     gx: 4, gy: 7, en: 2, boy: 2 },
-    { id: 'fuze',      ad: 'Füze Merkezi',     emoji: '🚀', gorsel: 'fuzemerkezi.webp',   gx: 1, gy: 1, en: 2, boy: 2 },
-    { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: 7, gy: 7, en: 2, boy: 2 },
-    { id: 'oyun',      ad: 'Oyun Merkezi',     emoji: '🎲', gorsel: 'oyunmerkezi.webp',   gx: 7, gy: 1, en: 2, boy: 2 },
-    { id: 'ittifak',   ad: 'İttifak Binası',   emoji: '🤝', gorsel: 'ittifakbinasi.webp', gx: 2, gy: 6, en: 2, boy: 2 },
+    { id: 'kale',      ad: 'Ana Kale',         emoji: '🏰', gorsel: 'anakale.webp',       gx: 3, gy: 5, en: 3, boy: 3, olcek: 1.46 },
+    { id: 'sovalye',   ad: 'Savunucu Kışlası', emoji: '⚔️', gorsel: 'savunucukisla.webp', gx: -2, gy: 5, en: 2, boy: 2, olcek: 1.23 },
+    { id: 'asker',     ad: 'Koruyucu Kışlası', emoji: '🛡️', gorsel: 'koruyucukisla.webp', gx: -2, gy: 1, en: 2, boy: 2, olcek: 1.08 },
+    { id: 'robot',     ad: 'Nişancı Kışlası',  emoji: '🤖', gorsel: 'nisancikisla.webp',  gx: -2, gy: 9, en: 2, boy: 2, olcek: 1.13 },
+    { id: 'arastirma', ad: 'Araştırma',        emoji: '🔬', gorsel: 'arastirma.webp',     gx: 3, gy: -1, en: 2, boy: 2, olcek: 1.35 },
+    { id: 'fuze',      ad: 'Füze Merkezi',     emoji: '🚀', gorsel: 'fuzemerkezi.webp',   gx: 13, gy: 4, en: 2, boy: 2, olcek: 1.37 },
+    { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: 6, gy: -1, en: 2, boy: 2, olcek: 0.76 },
+    { id: 'oyun',      ad: 'Oyun Merkezi',     emoji: '🎲', gorsel: 'oyunmerkezi.webp',   gx: -2, gy: -3, en: 2, boy: 2, olcek: 1.77 },
+    { id: 'ittifak',   ad: 'İttifak Binası',   emoji: '🤝', gorsel: 'ittifakbinasi.webp', gx: 3, gy: 12, en: 2, boy: 2, olcek: 1.63 },
 
-    { id: 'odun',      ad: 'Odun',             emoji: '🪵', gorsel: 'odunuretim.webp',    gx: 1, gy: 7, en: 1, boy: 1 },
-    { id: 'demir',     ad: 'Demir',            emoji: '⛏️', gorsel: 'demiruretim.webp',   gx: 2, gy: 8, en: 1, boy: 1 },
-    { id: 'su',        ad: 'Su',               emoji: '💧', gorsel: 'suuretim.webp',      gx: 0, gy: 2, en: 1, boy: 1 },
-    { id: 'enerji',    ad: 'Enerji',           emoji: '⚡', gorsel: 'enerjiuretim.webp',  gx: 9, gy: 2, en: 1, boy: 1 },
-    { id: 'ahir',      ad: 'Ahır',             emoji: '🐄', gorsel: 'ahiruretim.webp',    gx: 6, gy: 9, en: 1, boy: 1 }
+    { id: 'odun',      ad: 'Odun',             emoji: '🪵', gorsel: 'odunuretim.webp',    gx: 10, gy: 8, en: 1, boy: 1, olcek: 1.32 },
+    { id: 'demir',     ad: 'Demir',            emoji: '⛏️', gorsel: 'demiruretim.webp',   gx: 10, gy: 6, en: 1, boy: 1, olcek: 1.42 },
+    { id: 'su',        ad: 'Su',               emoji: '💧', gorsel: 'suuretim.webp',      gx: 10, gy: 0, en: 1, boy: 1, olcek: 1.45 },
+    { id: 'enerji',    ad: 'Enerji',           emoji: '⚡', gorsel: 'enerjiuretim.webp',  gx: 10, gy: 2, en: 1, boy: 1, olcek: 1.45 },
+    { id: 'ahir',      ad: 'Ahır',             emoji: '🐄', gorsel: 'ahiruretim.webp',    gx: 10, gy: 4, en: 1, boy: 1, olcek: 1.51 }
   ];
 
   /* ---- Görsel yükleyici: dosya yoksa sessizce emojiye düşülür ---- */
@@ -199,21 +199,40 @@
     if (CFG.zoom > CFG.zoomMax) CFG.zoom = CFG.zoomMax;
   }
 
-  /* Sahnenin dünya merkezi (grid'in ortası) */
+  /* Binaların kapladığı ızgara aralığı — kamera sınırları buna göre kurulur */
+  function binaAlani() {
+    var a = { x0: 0, y0: 0, x1: CFG.grid - 1, y1: CFG.grid - 1 };
+    for (var i = 0; i < BINALAR.length; i++) {
+      var b = BINALAR[i];
+      if (b.gx < a.x0) a.x0 = b.gx;
+      if (b.gy < a.y0) a.y0 = b.gy;
+      if (b.gx + b.en - 1 > a.x1) a.x1 = b.gx + b.en - 1;
+      if (b.gy + b.boy - 1 > a.y1) a.y1 = b.gy + b.boy - 1;
+    }
+    return a;
+  }
+
+  /* Sahnenin dünya merkezi */
   function sahneMerkezi() {
-    var s = CFG.grid - 1;
-    return { x: 0, y: s * CFG.tileH / 2 };
+    var a = binaAlani();
+    var m1 = dunya(a.x0, a.y0), m2 = dunya(a.x1, a.y1);
+    var m3 = dunya(a.x1, a.y0), m4 = dunya(a.x0, a.y1);
+    return {
+      x: (Math.min(m1.x, m2.x, m3.x, m4.x) + Math.max(m1.x, m2.x, m3.x, m4.x)) / 2,
+      y: (Math.min(m1.y, m2.y, m3.y, m4.y) + Math.max(m1.y, m2.y, m3.y, m4.y)) / 2
+    };
   }
 
   /* Sınırlar zoom'a bağlı: uzaklaşınca sahne ekrana sığar ve kamera
      merkeze kilitlenir — böylece yakınlaş/uzaklaşta köşeye zıplamaz. */
   function kameraSinirla() {
-    var s = CFG.grid - 1;
+    var a = binaAlani();
     var m = sahneMerkezi();
     var yariW = (tuval.width / eb) / (2 * CFG.zoom);
     var yariH = (tuval.height / eb) / (2 * CFG.zoom);
-    var sahneW = s * CFG.tileW / 2 + CFG.tileW;
-    var sahneH = s * CFG.tileH / 2 + CFG.tileH * 2;
+    /* Yayılımın yarısı + gezinme payı */
+    var sahneW = (a.x1 - a.x0 + a.y1 - a.y0) * CFG.tileW / 4 + CFG.tileW * 2;
+    var sahneH = (a.x1 - a.x0 + a.y1 - a.y0) * CFG.tileH / 4 + CFG.tileH * 3;
     var sapX = Math.max(0, sahneW - yariW);
     var sapY = Math.max(0, sahneH - yariH);
     if (camX < m.x - sapX) camX = m.x - sapX;
@@ -281,11 +300,23 @@
     ctx.fillStyle = '#6f9d4f';
     ctx.fillRect(0, 0, w, h);
 
-    /* zemin — aynı renkler tek çizimde, kenar çizgisi yok (hız için) */
-    var p = CFG.zeminPay;
+    /* zemin — ekranda görünen ızgara aralığı hesaplanır, köşeler boş kalmaz */
+    var kose = [dunyaya(0, 0), dunyaya(w, 0), dunyaya(0, h), dunyaya(w, h)];
+    var gxA = 1e9, gxB = -1e9, gyA = 1e9, gyB = -1e9;
+    for (var q = 0; q < 4; q++) {
+      var kg = izgara(kose[q].x, kose[q].y);
+      if (kg.gx < gxA) gxA = kg.gx;
+      if (kg.gx > gxB) gxB = kg.gx;
+      if (kg.gy < gyA) gyA = kg.gy;
+      if (kg.gy > gyB) gyB = kg.gy;
+    }
+    gxA -= 2; gxB += 2; gyA -= 2; gyB += 2;
+    /* güvenlik: aşırı uzaklaşmada karo sayısını sınırla */
+    if ((gxB - gxA) * (gyB - gyA) > 9000) { gxB = gxA + 95; gyB = gyA + 95; }
+
     var yollar = [[], []];
-    for (var gy = -p; gy < CFG.grid + p; gy++) {
-      for (var gx = -p; gx < CFG.grid + p; gx++) {
+    for (var gy = gyA; gy <= gyB; gy++) {
+      for (var gx = gxA; gx <= gxB; gx++) {
         var m = dunya(gx, gy), e = ekran(m.x, m.y);
         if (e.x < -CFG.tileW * CFG.zoom || e.x > w + CFG.tileW * CFG.zoom) continue;
         if (e.y < -CFG.tileH * CFG.zoom || e.y > h + CFG.tileH * CFG.zoom) continue;
@@ -393,9 +424,39 @@
     ctx.miterLimit = 2;
     ctx.lineWidth = Math.max(3, boy * 0.28);
     ctx.strokeStyle = '#ffc61a';
-    ctx.strokeText(b.ad, o.x, tepe - boy * 0.45);
+    var yaziY = tepe - boy * 0.45;
+    ctx.strokeText(b.ad, o.x, yaziY);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(b.ad, o.x, tepe - boy * 0.45);
+    ctx.fillText(b.ad, o.x, yaziY);
+
+    /* Küçük taşıma simgesi — adın hemen üstünde */
+    tasiSimgesiCiz(o.x, yaziY - boy * 1.15, boy * 0.62);
+  }
+
+  /* Dört yönlü ok — "bu binayı sürükleyebilirsin" */
+  function tasiSimgesiCiz(x, y, r) {
+    var u = r * 0.5, b = r * 0.22;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.beginPath();
+    for (var i = 0; i < 4; i++) {
+      var a = i * Math.PI / 2;
+      var kx = Math.cos(a), ky = Math.sin(a);
+      var px = -Math.sin(a), py = Math.cos(a);
+      ctx.moveTo(kx * u, ky * u);                                  // uç
+      ctx.lineTo(kx * (u - b) + px * b, ky * (u - b) + py * b);    // sağ kanat
+      ctx.lineTo(kx * (u - b) - px * b, ky * (u - b) - py * b);    // sol kanat
+      ctx.closePath();
+    }
+    ctx.moveTo(-b * 0.5, -b * 0.5);
+    ctx.rect(-b * 0.55, -b * 0.55, b * 1.1, b * 1.1);
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(2, r * 0.30);
+    ctx.strokeStyle = '#ffc61a';
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.restore();
   }
 
   /* ---- Dokunulan noktadaki bina ---- */
@@ -447,17 +508,17 @@
       sonX = basX = e.clientX; sonY = basY = e.clientY;
       kaydi = false; kistirma = false;
       tasinan = null;
-      if (AYAR_ACIK) {
-        var r0 = tuval.getBoundingClientRect();
-        var hedef = binaBul(e.clientX - r0.left, e.clientY - r0.top);
-        if (hedef) {
-          tasinan = hedef;
-          var d0 = dunyaya(e.clientX - r0.left, e.clientY - r0.top);
-          var g0 = izgara(d0.x, d0.y);
-          tasiKay.x = hedef.gx - g0.gx;   // basılan karo ile sol üst arası fark
-          tasiKay.y = hedef.gy - g0.gy;
-          binaSec(hedef);
-        }
+      /* Zaten seçili olan binadan başlayan sürükleme = taşıma.
+         Seçili değilse önce dokunup seçmek gerekir, harita kayması bozulmaz. */
+      var r0 = tuval.getBoundingClientRect();
+      var hedef = binaBul(e.clientX - r0.left, e.clientY - r0.top);
+      if (hedef && (hedef === secili || AYAR_ACIK)) {
+        tasinan = hedef;
+        var d0 = dunyaya(e.clientX - r0.left, e.clientY - r0.top);
+        var g0 = izgara(d0.x, d0.y);
+        tasiKay.x = hedef.gx - g0.gx;   // basılan karo ile sol üst arası fark
+        tasiKay.y = hedef.gy - g0.gy;
+        if (AYAR_ACIK) binaSec(hedef);
       }
     } else if (parmakSayisi === 2) {
       tasinan = null;
@@ -518,7 +579,13 @@
     delete parmaklar[e.pointerId];
     parmakSayisi = Object.keys(parmaklar).length;
     if (parmakSayisi === 0) {
-      if (tasinan) { tasinan = null; kistirma = false; return; }
+      if (tasinan) {
+        var tt = tasinan; tasinan = null; kistirma = false;
+        if (!kaydi) binaSec(tt);   // sürüklemeden bıraktıysa sadece seçim
+        else kameraSinirla();
+        kareIste();
+        return;
+      }
       if (vardi && !kaydi && !kistirma) {
         var r = tuval.getBoundingClientRect();
         var b = binaBul(e.clientX - r.left, e.clientY - r.top);
@@ -608,7 +675,8 @@
       ayarSatir({ ad: 'egim', etiket: 'Eğim', min: 20, max: 64, adim: 1 }) +
       '<div class="ka-ipucu">Binaya basılı tutup sürükle → karo değiştir</div>' +
       '<div class="ka-alt"><button id="kaSifirla">Sıfırla</button>' +
-      '<button id="kaMetin">Değerler</button></div>' +
+      '<button id="kaMetin">Değerler</button>' +
+      '<button id="kaKopya">Kopyala</button></div>' +
       '<textarea id="kaCikti" readonly></textarea></div>';
     katman.appendChild(ayarKutu);
 
@@ -661,6 +729,26 @@
       b.olcek = 1; b.dx = 0; b.dy = 0;
       ayarTazele();
       kareIste();
+    });
+
+    document.getElementById('kaKopya').addEventListener('click', function () {
+      var m = ayarMetniUret();
+      ayarKutu.classList.add('metin');
+      ayarMetin.value = m;
+      var tamam = false;
+      try {
+        ayarMetin.removeAttribute('readonly');
+        ayarMetin.select();
+        ayarMetin.setSelectionRange(0, m.length);
+        tamam = document.execCommand && document.execCommand('copy');
+        ayarMetin.setAttribute('readonly', 'readonly');
+      } catch (e2) {}
+      try {
+        if (navigator.clipboard) { navigator.clipboard.writeText(m); tamam = true; }
+      } catch (e3) {}
+      this.textContent = tamam ? 'Kopyalandı' : 'Seç ve kopyala';
+      var dgm = this;
+      setTimeout(function () { dgm.textContent = 'Kopyala'; }, 1600);
     });
 
     document.getElementById('kaMetin').addEventListener('click', function () {
