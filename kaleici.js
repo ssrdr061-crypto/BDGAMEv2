@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-14';
+  var SURUM = 'kaleici-15';
 
   var CFG = {
     grid: 10,
@@ -781,6 +781,22 @@
   var YERLESIM_KOK = 'kaleYerlesim';
   var yerlesimYazZaman = null, yerlesimOkundu = false;
 
+  /* --- Teşhis şeridi (geçici) — sorun çözülünce bu ve _ky çağrıları silinir --- */
+  function _ky(mesaj) {
+    try {
+      var d = document.getElementById('kyTeshis');
+      if (!d) {
+        d = document.createElement('div');
+        d.id = 'kyTeshis';
+        d.style.cssText = 'position:absolute;left:8px;top:64px;z-index:9;max-width:78%;' +
+          'padding:5px 8px;border-radius:8px;background:rgba(0,0,0,.62);color:#ffe08a;' +
+          'font:600 10.5px/1.35 "Baloo 2",sans-serif;white-space:pre-wrap';
+        (katman || document.body).appendChild(d);
+      }
+      d.textContent = 'KY ' + mesaj;
+    } catch (e) {}
+  }
+
   function fbVar() {
     return (typeof firebaseDb !== 'undefined') && !!firebaseDb;
   }
@@ -801,29 +817,35 @@
   function yerlesimOku() {
     if (yerlesimOkundu) return;
     var k = oyuncuAnahtari();
-    if (!fbVar() || !k) return;
+    if (!fbVar()) { _ky('okuma yok: firebaseDb yok'); return; }
+    if (!k) { _ky('okuma yok: kullanıcı adı yok'); return; }
     yerlesimOkundu = true;
     try {
-      firebaseDb.ref(YERLESIM_KOK + '/' + k).get().then(function (snap) {
+      firebaseDb.ref(YERLESIM_KOK + '/' + k).once('value').then(function (snap) {
         var v = snap && snap.val();
-        if (!v) return;
+        if (!v) { _ky('okundu: kayıt yok (' + k + ')'); return; }
+        var sayi = 0;
         for (var id in v) {
           if (!Object.prototype.hasOwnProperty.call(v, id)) continue;
           var b = binaBulId(id), y = v[id];
           if (!b || !y) continue;
-          if (typeof y.gx === 'number') b.gx = y.gx;
+          if (typeof y.gx === 'number') { b.gx = y.gx; sayi++; }
           if (typeof y.gy === 'number') b.gy = y.gy;
         }
+        _ky('okundu: ' + sayi + ' bina (' + k + ')');
+        var o = sahneMerkezi();
+        camX = o.x; camY = o.y;
         kameraSinirla();
         kareIste();
-      }).catch(function () {});
-    } catch (e) {}
+      }).catch(function (h) { _ky('okuma HATA: ' + (h && h.message ? h.message : h)); });
+    } catch (e) { _ky('okuma çöktü: ' + e.message); }
   }
 
   /* Taşıma bitince yazar; art arda taşımalarda tek yazıya toplanır */
   function yerlesimYaz() {
     var k = oyuncuAnahtari();
-    if (!fbVar() || !k) return;
+    if (!fbVar()) { _ky('yazma yok: firebaseDb yok'); return; }
+    if (!k) { _ky('yazma yok: kullanıcı adı yok'); return; }
     if (yerlesimYazZaman) clearTimeout(yerlesimYazZaman);
     yerlesimYazZaman = setTimeout(function () {
       yerlesimYazZaman = null;
@@ -831,8 +853,12 @@
       for (var i = 0; i < BINALAR.length; i++) {
         veri[BINALAR[i].id] = { gx: BINALAR[i].gx, gy: BINALAR[i].gy };
       }
-      try { firebaseDb.ref(YERLESIM_KOK + '/' + k).set(veri).catch(function () {}); }
-      catch (e) {}
+      _ky('yazılıyor… (' + k + ')');
+      try {
+        firebaseDb.ref(YERLESIM_KOK + '/' + k).set(veri)
+          .then(function () { _ky('yazıldı ✓ (' + k + ')'); })
+          .catch(function (h) { _ky('yazma HATA: ' + (h && h.message ? h.message : h)); });
+      } catch (e) { _ky('yazma çöktü: ' + e.message); }
     }, 600);
   }
 
@@ -913,6 +939,7 @@
     panelKapat();
     katman.classList.add('acik');
     secili = null;
+    if (!oyuncuAnahtari()) yerlesimOkundu = false;   // adı henüz gelmediyse tekrar dene
     yerlesimOku();
     var o = sahneMerkezi();
     camX = o.x; camY = o.y;
