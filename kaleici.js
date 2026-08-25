@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-16';
+  var SURUM = 'kaleici-17';
 
   var CFG = {
     grid: 10,
@@ -110,9 +110,8 @@
     '#kaleici{position:fixed;inset:0;z-index:9000;display:none;' +
       'background:#7fae5c;font-family:"Baloo 2",sans-serif;touch-action:none}' +
     '#kaleici.acik{display:block}' +
-    /* Kaleiçi açıkken oyunun üst ve alt panelleri üstte kalsın */
-    'body.kaleici-acik .hud-top,body.kaleici-acik .hud-kaynak,' +
-      'body.kaleici-acik .nav-dock{z-index:9100!important}' +
+    /* Kaleiçi açıkken paneller bu katmana taşınır (aşağıdaki panelleriTasi) */
+    '#kaleici .hud-top,#kaleici .hud-kaynak,#kaleici .nav-dock{z-index:40}' +
     /* Kapat düğmesi ve sürüm yazısı üst panelin altına iner */
     'body.kaleici-acik #kaleiciKapat{top:104px}' +
     'body.kaleici-acik #kaleiciSurum{top:108px}' +
@@ -805,22 +804,6 @@
   var YERLESIM_KOK = 'kaleYerlesim';
   var yerlesimYazZaman = null, yerlesimOkundu = false;
 
-  /* --- Teşhis şeridi (geçici) — sorun çözülünce bu ve _ky çağrıları silinir --- */
-  function _ky(mesaj) {
-    try {
-      var d = document.getElementById('kyTeshis');
-      if (!d) {
-        d = document.createElement('div');
-        d.id = 'kyTeshis';
-        d.style.cssText = 'position:absolute;left:8px;top:152px;z-index:9;max-width:78%;' +
-          'padding:5px 8px;border-radius:8px;background:rgba(0,0,0,.62);color:#ffe08a;' +
-          'font:600 10.5px/1.35 "Baloo 2",sans-serif;white-space:pre-wrap';
-        (katman || document.body).appendChild(d);
-      }
-      d.textContent = 'KY ' + mesaj;
-    } catch (e) {}
-  }
-
   function fbVar() {
     return (typeof firebaseDb !== 'undefined') && !!firebaseDb;
   }
@@ -841,35 +824,33 @@
   function yerlesimOku() {
     if (yerlesimOkundu) return;
     var k = oyuncuAnahtari();
-    if (!fbVar()) { _ky('okuma yok: firebaseDb yok'); return; }
-    if (!k) { _ky('okuma yok: kullanıcı adı yok'); return; }
+    if (!fbVar()) return;
+    if (!k) return;
     yerlesimOkundu = true;
     try {
       firebaseDb.ref(YERLESIM_KOK + '/' + k).once('value').then(function (snap) {
         var v = snap && snap.val();
-        if (!v) { _ky('okundu: kayıt yok (' + k + ')'); return; }
-        var sayi = 0;
+        if (!v) return;
         for (var id in v) {
           if (!Object.prototype.hasOwnProperty.call(v, id)) continue;
           var b = binaBulId(id), y = v[id];
           if (!b || !y) continue;
-          if (typeof y.gx === 'number') { b.gx = y.gx; sayi++; }
+          if (typeof y.gx === 'number') b.gx = y.gx;
           if (typeof y.gy === 'number') b.gy = y.gy;
         }
-        _ky('okundu: ' + sayi + ' bina (' + k + ')');
         var o = sahneMerkezi();
         camX = o.x; camY = o.y;
         kameraSinirla();
         kareIste();
-      }).catch(function (h) { _ky('okuma HATA: ' + (h && h.message ? h.message : h)); });
-    } catch (e) { _ky('okuma çöktü: ' + e.message); }
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   /* Taşıma bitince yazar; art arda taşımalarda tek yazıya toplanır */
   function yerlesimYaz() {
     var k = oyuncuAnahtari();
-    if (!fbVar()) { _ky('yazma yok: firebaseDb yok'); return; }
-    if (!k) { _ky('yazma yok: kullanıcı adı yok'); return; }
+    if (!fbVar()) return;
+    if (!k) return;
     if (yerlesimYazZaman) clearTimeout(yerlesimYazZaman);
     yerlesimYazZaman = setTimeout(function () {
       yerlesimYazZaman = null;
@@ -877,13 +858,38 @@
       for (var i = 0; i < BINALAR.length; i++) {
         veri[BINALAR[i].id] = { gx: BINALAR[i].gx, gy: BINALAR[i].gy };
       }
-      _ky('yazılıyor… (' + k + ')');
       try {
-        firebaseDb.ref(YERLESIM_KOK + '/' + k).set(veri)
-          .then(function () { _ky('yazıldı ✓ (' + k + ')'); })
-          .catch(function (h) { _ky('yazma HATA: ' + (h && h.message ? h.message : h)); });
-      } catch (e) { _ky('yazma çöktü: ' + e.message); }
+        firebaseDb.ref(YERLESIM_KOK + '/' + k).set(veri).catch(function () {});
+      } catch (e) {}
     }, 600);
+  }
+
+  /* ---- Oyunun üst/alt panelleri ----
+     #worldScreen position:fixed olduğu için kendi yığın bağlamını açar;
+     z-index ile üste alınamazlar. Bu yüzden kaleiçi açıkken DOM'da bu
+     katmana taşınır, kapanınca tam eski yerlerine geri konur. ---- */
+  var TASINAN_PANELLER = ['.hud-top', '.hud-kaynak', '.nav-dock'];
+  var panelYerleri = [];
+
+  function panelleriTasi() {
+    if (panelYerleri.length) return;
+    for (var i = 0; i < TASINAN_PANELLER.length; i++) {
+      var el = document.querySelector(TASINAN_PANELLER[i]);
+      if (!el || !el.parentNode) continue;
+      panelYerleri.push({ el: el, ebeveyn: el.parentNode, sonraki: el.nextSibling });
+      katman.appendChild(el);
+    }
+  }
+
+  function panelleriGeriKoy() {
+    for (var i = panelYerleri.length - 1; i >= 0; i--) {
+      var y = panelYerleri[i];
+      try {
+        if (y.sonraki && y.sonraki.parentNode === y.ebeveyn) y.ebeveyn.insertBefore(y.el, y.sonraki);
+        else y.ebeveyn.appendChild(y.el);
+      } catch (e) {}
+    }
+    panelYerleri = [];
   }
 
   /* ---- Kurulum ---- */
@@ -963,6 +969,7 @@
     panelKapat();
     katman.classList.add('acik');
     document.body.classList.add('kaleici-acik');
+    panelleriTasi();
     secili = null;
     if (!oyuncuAnahtari()) yerlesimOkundu = false;   // adı henüz gelmediyse tekrar dene
     yerlesimOku();
@@ -979,6 +986,7 @@
   function kapat() {
     panelKapat();
     secili = null; tasiModu = false;
+    panelleriGeriKoy();
     document.body.classList.remove('kaleici-acik');
     if (katman) katman.classList.remove('acik');
   }
