@@ -2691,13 +2691,20 @@ st.textContent = `
    Boşluk değerleri birlik paneliyle BİREBİR aynı tutuldu
    (60px üst / 70px alt) — birini değiştirirsen diğerlerini de
    değiştir, yoksa paneller arası geçişte kart zıplar. */
-#panel-hospital,
 #panel-chest,
 #panel-shop,
 #panel-inventory{
   align-items:center !important;
   justify-content:center !important;
   padding:60px 12px 70px !important;
+}
+/* Hastane alttan 84px — ölçülerek belirlendi (26), diğer üçünden
+   bilerek ayrıldı. Kart daha uzun olduğu için 70px'te alt menüye
+   değiyordu. Diğer panellere dokunma, onlar 70'te kalacak. */
+#panel-hospital{
+  align-items:center !important;
+  justify-content:center !important;
+  padding:60px 12px 84px !important;
 }
 #panel-hospital .overlay-card,
 #panel-chest .overlay-card,
@@ -4738,11 +4745,9 @@ st.textContent = `
 #panel-hospital .hospital-queue-card{
   background:none !important; background-color:transparent !important;
   border:0 !important; box-shadow:none !important; border-radius:0 !important;
-  padding:6px 2px !important;
-  border-bottom:1px solid rgba(190,240,255,.14) !important;
+  padding:7px 9px !important;
+  border-bottom:0 !important;       /* ayraç çizgisi kaldırıldı (26) */
 }
-#panel-hospital .hospital-heal-card:last-child,
-#panel-hospital .hospital-queue-card:last-child{ border-bottom:0 !important; }
 
 /* yaralı sayısı: kırmızı, okunaklı */
 #panel-hospital .t-count{
@@ -4792,10 +4797,9 @@ st.textContent = `
 }
 #panel-hospital .hosp-queue-row{
   background:none !important; border:0 !important; box-shadow:none !important;
-  border-bottom:1px solid rgba(190,240,255,.14) !important;
-  border-radius:0 !important; padding:6px 2px !important;
+  border-bottom:0 !important;
+  border-radius:0 !important; padding:7px 9px !important;
 }
-#panel-hospital .hosp-queue-row:last-child{ border-bottom:0 !important; }
 `;
 document.head.appendChild(st);
 })();
@@ -7358,7 +7362,7 @@ html body #panel-hospital .hospital-confirm-btn{
   background:rgba(0,0,0,.6); color:#cfe6ff;
   border:1px solid rgba(190,240,255,.2); border-radius:10px;
   padding:7px; font-size:10.5px; line-height:1.35;
-  font-family:monospace; white-space:pre;
+  font-family:monospace; white-space:pre-wrap; word-break:break-word;
 }
 `;
 document.head.appendChild(st);
