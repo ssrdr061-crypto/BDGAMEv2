@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-21';
+  var SURUM = 'kaleici-22';
 
   var CFG = {
     grid: 13,
@@ -233,7 +233,9 @@
      doğan leke + geniş ışık dalgası + doygunluk. Görsel dosya yok.
      harita.js'e DOKUNULMADI; oradaki kod aynen duruyor. */
   var ZCFG = {
-    renk: [82, 192, 58],   // çimen taban rengi (harita.js zeminRenk.cimen)
+    /* Çimen biraz kısıldı: 82,192,58 gözü yoruyordu. Doygunluk da
+       1.22 → 1.10. Daha yeşil isteniyorsa ikisini birlikte arttır. */
+    renk: [72, 172, 62],
     koyu: 0.24, acik: 0.24,
     isik: 0.32,
     lekeYatay: 2.4,
@@ -241,9 +243,26 @@
        6 tane; aynı frekansla tek bir lekenin ortasında kalıyorduk ve
        zemin düz yeşil görünüyordu. Büyüt = desen sıklaşır. */
     siklik: 3.6,
-    doygunluk: 1.22,
+    doygunluk: 1.10,
     adim: 12,              // kaç dünya pikselinde bir örnek alınır
-    seed: 20260803
+    seed: 20260803,
+
+    /* ---- DENİZ ----
+       Sahne bir ADA. Merkezden uzaklık yarıçapı geçince kıyı, sonra
+       sığ su, sonra derin deniz gelir. Sınır gürültüyle kırıştırılır,
+       yoksa cetvelle çizilmiş daire olur.
+       merkez/yaricap DÜNYA pikselidir (ızgara değil). */
+    ada: {
+      mx: -240, my: 172,   // ada merkezi (dünya)
+      yaricap: 560,        // kara sınırı
+      dalga: 0.085,        // kıyının kırışma miktarı
+      kiyi: 0.045,         // kum bandı genişliği (yarıçap oranı)
+      sig: 0.10            // sığ su bandı
+    },
+    kumRenk:  [226, 208, 156],
+    sigRenk:  [104, 198, 206],
+    derinRenk:[ 24,  86, 142],
+    kopukRenk:[238, 251, 255]
   };
 
   function zHash(ix, iy) {
@@ -265,7 +284,71 @@
   function zAc(c, t)  { return [c[0] + (255 - c[0]) * t, c[1] + (255 - c[1]) * t, c[2] + (255 - c[2]) * t]; }
   function zKoy(c, t) { return [c[0] * (1 - t), c[1] * (1 - t), c[2] * (1 - t)]; }
 
-  function zeminRengi(gx, gy) {
+  /* Ada maskesi: 0 = tam kara · 1 = kara sınırı · >1 = deniz.
+     Sınır iki ayrı frekanslı gürültüyle kırıştırılır (büyük girinti +
+     küçük tırtık), böylece kıyı elle çizilmiş gibi durur. */
+  function adaOran(wx, wy) {
+    var A = ZCFG.ada;
+    var dx = wx - A.mx, dy = wy - A.my;
+    var r = Math.sqrt(dx * dx + dy * dy) / A.yaricap;
+    var aci = Math.atan2(dy, dx);
+    /* açıya göre örneklenen gürültü — kıyı boyunca sürekli, dikişsiz */
+    var kir = (zNoise(Math.cos(aci) * 2.2 + 61, Math.sin(aci) * 2.2 + 19) - 0.5) * 2
+            + (zNoise(Math.cos(aci) * 6.5 + 7,  Math.sin(aci) * 6.5 + 83) - 0.5) * 0.9;
+    return r + kir * A.dalga;
+  }
+
+  /* Deniz rengi: sığdan derine geçiş + dalga bantları + kıyı köpüğü.
+     Düz mavi dolgu değil; üç katman üst üste biner. */
+  function denizRengi(wx, wy, t) {
+    var A = ZCFG.ada;
+    var d = (t - (1 + A.kiyi)) / A.sig;           // 0 = kıyı, 1 = derin
+    var k = Math.max(0, Math.min(1, d));
+    k = zYum(k);
+    var c = zKaris(ZCFG.sigRenk, ZCFG.derinRenk, k);
+
+    /* Dalga bantları — kıyıya paralel, ince ve yumuşak */
+    var band = zNoise(wx * 0.010 + 13, wy * 0.024 + 51) * 0.6
+             + zNoise(wx * 0.030 + 71, wy * 0.070 + 29) * 0.4;
+    var dg = Math.sin((t * 46) + band * 5.5) * 0.5 + 0.5;
+    c = zKaris(c, zAc(c, 0.55), dg * 0.16 * (1 - k * 0.55));
+    c = zKaris(c, zKoy(c, 0.30), (1 - dg) * 0.12);
+
+    /* Geniş parıltı — suyun üstünde gezinen ışık */
+    var pr = zNoise(wx * 0.006 + 5, wy * 0.006 + 91);
+    c = zKaris(c, [255, 255, 255], Math.max(0, (pr - 0.58)) * 0.35);
+
+    /* Kıyı köpüğü: karaya en yakın ince şerit */
+    var kop = 1 - Math.min(1, Math.abs(t - (1 + A.kiyi * 0.85)) / (A.kiyi * 0.9));
+    if (kop > 0) {
+      var kd = zNoise(wx * 0.055 + 33, wy * 0.055 + 17);
+      c = zKaris(c, ZCFG.kopukRenk, Math.min(1, kop * (0.45 + kd * 0.55)));
+    }
+    return c;
+  }
+
+  function zeminRengi(gx, gy, wx, wy) {
+    /* ---- kara / deniz ayrımı ---- */
+    var A = ZCFG.ada;
+    var t = adaOran(wx, wy);
+    if (t > 1) {
+      var cs;
+      if (t < 1 + A.kiyi) {
+        /* kum bandı — çimenden kuma yumuşak geçiş */
+        var kt = zYum((t - 1) / A.kiyi);
+        cs = zKaris(ZCFG.renk, ZCFG.kumRenk, kt);
+        var kn = zNoise(wx * 0.045 + 23, wy * 0.045 + 67);
+        cs = zKaris(cs, zKoy(cs, 0.18), (kn - 0.5) * 0.5 + 0.25);
+      } else {
+        cs = denizRengi(wx, wy, t);
+      }
+      var dd = ZCFG.doygunluk;
+      var od = (cs[0] + cs[1] + cs[2]) / 3;
+      return [Math.max(0, Math.min(255, od + (cs[0] - od) * dd)),
+              Math.max(0, Math.min(255, od + (cs[1] - od) * dd)),
+              Math.max(0, Math.min(255, od + (cs[2] - od) * dd))];
+    }
+
     var c = [ZCFG.renk[0], ZCFG.renk[1], ZCFG.renk[2]];
     /* eu = ekranda yatay yön, ev = dikey yön. eu frekansı düşük →
        lekeler yatay uzar, zemin yere serilmiş gibi durur. */
@@ -326,7 +409,7 @@
         var wx = minX + (i + 0.5) * A;
         /* kesirli ızgara — yuvarlama yok, doku karoya bağlı değil */
         var ga = wx / yariW, gb = wy / yariH;
-        var c = zeminRengi((gb + ga) / 2, (gb - ga) / 2);
+        var c = zeminRengi((gb + ga) / 2, (gb - ga) / 2, wx, wy);
         var k = (j * LW + i) * 4;
         p[k] = c[0]; p[k + 1] = c[1]; p[k + 2] = c[2]; p[k + 3] = 255;
       }
