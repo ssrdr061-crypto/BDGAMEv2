@@ -6376,29 +6376,28 @@ document.head.appendChild(st);
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   KALE GÖLGESİ — GÖRSELİN KENDİSİNDEN ÜRETİLİR
+   KALE GÖLGESİ — TABAN ELİPSİ
    ------------------------------------------------------------
-   Denenen ve BIRAKILAN iki yol:
+   Denenen ve BIRAKILAN yollar:
 
-   1) drop-shadow → gölgeyi resmin SİLÜETİNDEN üretiyor, ama
-      kalenin dibindeki çıkıntılar da silüete dahil. Yerdeki iz
-      tırtıklı çıkıyordu.
+   1) drop-shadow → gölge resmin SİLÜETİNDEN üretiliyor, kalenin
+      dibindeki çıkıntılar da silüete dahil → yerdeki iz tırtıklı.
+   2) clip-path ile sabit dörtgen → çatının yuvarlak köşeleri
+      gölgede sivriliyor, her kale seviyesi elle ayar istiyor.
+   3) Görselin siyaha boyanmış KOPYASI (img.bdGolge), skewX+scaleY
+      ile yatırılıyordu. Doğru çalışıyordu ama YANLIŞ İŞ: ışık
+      haritaya yukarıdan vuruyor, yana uzanan silüete gerek yok.
+      Ayrıca her kale için ikinci bir <img> ve haritayı izleyen bir
+      MutationObserver demekti.
 
-   2) clip-path ile sabit dörtgen → tırtık gitti ama ölü çözüm:
-      çatının yuvarlak köşeleri gölgede sivri çıkıyor ve her kale
-      seviyesi (2., 3., 4.) için elle yeniden ayar gerekiyor.
-      Birini düzeltmek diğerini bozuyor.
+   KULLANILAN YOL: tek CSS elipsi (`.castle-avatar::after`).
+   Kalenin taban hizasında yassı bir daire — keskin kenarlı, kısa,
+   hafif. DOM'a hiçbir şey eklenmiyor, gözlemci yok, kale seviyesi
+   değişince ayar gerekmiyor.
 
-   KULLANILAN YOL: kale görselinin bir KOPYASI ekleniyor, siyaha
-   boyanıp (brightness(0)) yere yatırılıyor (scaleY ile yassıltma
-   + skewX ile eğme). Gölge artık resmin kendi şeklidir:
-     · yuvarlak köşe yuvarlak kalır
-     · yeni kale seviyesi eklenince kendiliğinden uyar
-     · tek ayar tüm kaleler için geçerli
-
-   Kopya JS ile ekleniyor çünkü CSS bir elemanı çoğaltamaz ve
-   görsel yolu kaleden kaleye değişiyor. renderBattleMap katmanı
-   baştan yazdığı için MutationObserver ile tekrar eşleniyor.
+   Ölçüler `--kg-*` değişkenlerinden gelir; `?isik=1` paneli aynı
+   değişkenleri sürer. Kutu 100×100 px (index.html ~1940), kale o
+   kutunun yaklaşık %83'ünde yere basar — `--kg-taban` odur.
    ══════════════════════════════════════════════════════════════ */
 (function kaleGolgesi(){
 "use strict";
@@ -6411,76 +6410,41 @@ html body #battleMap .map-node.castle-node .node-avatar{
   overflow:visible !important;
 }
 
-/* Gölge kopyası: gerçek görselin altında, aynı kutuda.
-   transform-origin tabanda (50% 84%) — kale yere oradan basıyor,
-   yassıltma ve eğme o noktadan olmalı ki gölge tabandan çıksın. */
-html body #battleMap .map-node.castle-node .castle-avatar img.bdGolge{
+/* Taban elipsi. left/top yüzdesi 100px'lik kutuya göredir; kendi
+   merkezine oturması ve kaymanın eklenmesi margin ile yapılır —
+   transform KULLANILMIYOR, çünkü kale düğümünün kendi transform'u
+   her karede harita.js tarafından yeniden yazılıyor. */
+html body #battleMap .map-node.castle-node .castle-avatar::after{
+  content:"";
   position:absolute;
-  left:0; top:0;
-  width:100%; height:100%;
-  object-fit:contain;
-  transform-origin:50% 84%;
-  transform:translate(-5.3px, 2.8px) skewX(-30deg) scaleY(.45);
-  filter:brightness(0) blur(3px);
-  opacity:.32;
+  left:50%;
+  top:var(--kg-taban, 83%);
+  width:var(--kg-en, 46px);
+  height:var(--kg-boy, 13px);
+  margin-left:calc(-0.5 * var(--kg-en, 46px) + var(--kg-dx, -2px));
+  margin-top:calc(-0.5 * var(--kg-boy, 13px) + var(--kg-dy, 1px));
+  border-radius:50%;
+  background:rgba(6,18,38, var(--kg-op, .22));
+  filter:blur(var(--kg-blur, 0px));
   pointer-events:none;
   z-index:0;
 }
 
-/* Gerçek görsel gölgenin üstünde. Kendi drop-shadow'u KAPALI:
+/* Gerçek görsel elipsin üstünde. Kendi drop-shadow'u KAPALI:
    silüetten üretildiği için dipteki çıkıntıları yansıtıyordu. */
-html body #battleMap .map-node.castle-node .castle-avatar img:not(.bdGolge){
+html body #battleMap .map-node.castle-node .castle-avatar img{
   position:relative;
   z-index:1;
   filter:none !important;
 }
+
+/* Eski silüet kopyası artık üretilmiyor; sayfa yenilenmeden önce
+   doğmuş olan kalıntı varsa görünmesin. */
+html body #battleMap .map-node.castle-node .castle-avatar img.bdGolge{
+  display:none !important;
+}
 `;
 document.head.appendChild(st);
-
-/* ── gölge kopyalarını eşle ──
-   Idempotent: kopya varsa ve kaynağı aynıysa dokunmaz. Bu sayede
-   kendi eklediğimiz düğüm gözlemciyi sonsuz döngüye sokmaz. */
-function esle(){
-  const mapEl = document.getElementById("battleMap");
-  if (!mapEl) return;
-  const avlar = mapEl.querySelectorAll(".map-node.castle-node .castle-avatar");
-  for (const av of avlar) {
-    const asil = av.querySelector("img:not(.bdGolge)");
-    if (!asil) continue;
-    let g = av.querySelector("img.bdGolge");
-    if (!g) {
-      g = document.createElement("img");
-      g.className = "bdGolge";
-      g.setAttribute("aria-hidden", "true");
-      g.setAttribute("draggable", "false");
-      av.insertBefore(g, av.firstChild);
-    }
-    if (g.getAttribute("src") !== asil.getAttribute("src")) {
-      g.setAttribute("src", asil.getAttribute("src") || "");
-    }
-  }
-}
-
-let bekleyen = false;
-function esleIste(){
-  if (bekleyen) return;
-  bekleyen = true;
-  requestAnimationFrame(function(){ bekleyen = false; esle(); });
-}
-
-function kur(){
-  const mapEl = document.getElementById("battleMap");
-  if (!mapEl) return setTimeout(kur, 300);
-  if (mapEl._bdGolgeBagli) return;
-  mapEl._bdGolgeBagli = true;
-  new MutationObserver(esleIste).observe(mapEl, { childList: true, subtree: true });
-  esle();
-}
-
-if (document.readyState === "loading")
-  document.addEventListener("DOMContentLoaded", kur);
-else kur();
-setTimeout(kur, 1200);
 })();
 
 /* ══════════════════════════════════════════════════════════════
@@ -6502,16 +6466,17 @@ setTimeout(kur, 1200);
 
 if (!/[?&]isik=1(&|$)/.test(location.search)) return;
 
-const ANAHTAR = "bdIsikGolge2";
+const ANAHTAR = "bdIsikGolge3";
 const VARSAYILAN = {
   isikAci: 72, isikYuk: 55, isikGuc: 20, koseKarart: 0,
   bagli: 0,
-  golgeAci: 242,     /* kayma yönü, derece */
-  golgeUzun: 6,      /* kayma miktarı, px  */
-  golgeEgim: -30,    /* skewX, derece      */
-  golgeYassi: 45,    /* scaleY, %          */
-  golgeYumusak: 3,   /* blur, px           */
-  golgeKarart: 32,   /* opacity, %         */
+  golgeAci: 242,     /* kayma yönü, derece      */
+  golgeKayma: 2,     /* kayma miktarı, px       */
+  golgeEn: 46,       /* elips genişliği, px     */
+  golgeBoy: 13,      /* elips yüksekliği, px    */
+  golgeTaban: 83,    /* kutu içindeki yer, %    */
+  golgeYumusak: 0,   /* blur, px (0 = keskin)   */
+  golgeKarart: 22,   /* karartı, %              */
 };
 
 let A = Object.assign({}, VARSAYILAN);
@@ -6541,15 +6506,18 @@ function uygula(){
     }
   } catch (e) {}
 
-  const dx = (Math.cos(rad(A.golgeAci)) * A.golgeUzun).toFixed(1);
-  const dy = (Math.sin(rad(A.golgeAci)) * A.golgeUzun).toFixed(1);
+  const dx = (Math.cos(rad(A.golgeAci)) * A.golgeKayma).toFixed(1);
+  const dy = (Math.sin(rad(A.golgeAci)) * A.golgeKayma).toFixed(1);
 
   stil.textContent =
-    "html body #battleMap .map-node.castle-node .castle-avatar img.bdGolge{" +
-      "transform:translate(" + dx + "px," + dy + "px) " +
-        "skewX(" + A.golgeEgim + "deg) scaleY(" + (A.golgeYassi / 100) + ");" +
-      "filter:brightness(0) blur(" + A.golgeYumusak + "px);" +
-      "opacity:" + (A.golgeKarart / 100).toFixed(3) + ";" +
+    "html body #battleMap .map-node.castle-node .castle-avatar::after{" +
+      "width:" + A.golgeEn + "px;" +
+      "height:" + A.golgeBoy + "px;" +
+      "top:" + A.golgeTaban + "%;" +
+      "margin-left:calc(-0.5 * " + A.golgeEn + "px + " + dx + "px);" +
+      "margin-top:calc(-0.5 * " + A.golgeBoy + "px + " + dy + "px);" +
+      "filter:blur(" + A.golgeYumusak + "px);" +
+      "background:rgba(6,18,38," + (A.golgeKarart / 100).toFixed(3) + ");" +
     "}";
 
   try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
@@ -6604,11 +6572,12 @@ const ALANLAR = [
   ["bas", "GÖLGE"],
   ["bagli",        "Işığa bağlı", 0,   1],
   ["golgeAci",     "Açı",         0, 359],
-  ["golgeUzun",    "Uzunluk",     0,  30],
-  ["golgeEgim",    "Eğim",      -70,  70],
-  ["golgeYassi",   "Yassılık",   10,  90],
-  ["golgeYumusak", "Yumuşaklık",  0,  12],
-  ["golgeKarart",  "Karartı",     0,  80],
+  ["golgeKayma",   "Kayma",       0,  14],
+  ["golgeEn",      "Genişlik",   10,  90],
+  ["golgeBoy",     "Yükseklik",   4,  40],
+  ["golgeTaban",   "Taban",      60, 100],
+  ["golgeYumusak", "Yumuşaklık",  0,   8],
+  ["golgeKarart",  "Karartı",     0,  60],
 ];
 
 const kutu = document.createElement("div");
@@ -6657,8 +6626,8 @@ function yerlestir(){
     const i = ev.target.dataset && ev.target.dataset.i;
     if (i === "deger") {
       const C = (window.HARITA && HARITA.CFG && HARITA.CFG.yansima) || {};
-      const dx = (Math.cos(rad(A.golgeAci)) * A.golgeUzun).toFixed(1);
-      const dy = (Math.sin(rad(A.golgeAci)) * A.golgeUzun).toFixed(1);
+      const dx = (Math.cos(rad(A.golgeAci)) * A.golgeKayma).toFixed(1);
+      const dy = (Math.sin(rad(A.golgeAci)) * A.golgeKayma).toFixed(1);
       cikti.style.display = cikti.style.display === "block" ? "none" : "block";
       cikti.textContent =
         "harita.js CFG.yansima\n" +
@@ -6666,11 +6635,14 @@ function yerlestir(){
         "  x: " + (C.x != null ? C.x.toFixed(3) : "?") + "\n" +
         "  y: " + (C.y != null ? C.y.toFixed(3) : "?") + "\n" +
         "  koseKarart: " + (A.koseKarart / 100).toFixed(2) + "\n\n" +
-        "tema.js img.bdGolge\n" +
-        "  transform:translate(" + dx + "px," + dy + "px)\n" +
-        "    skewX(" + A.golgeEgim + "deg) scaleY(" + (A.golgeYassi / 100) + ");\n" +
-        "  filter:brightness(0) blur(" + A.golgeYumusak + "px);\n" +
-        "  opacity:" + (A.golgeKarart / 100).toFixed(2) + ";";
+        "tema.js kaleGolgesi --kg-*\n" +
+        "  --kg-en: " + A.golgeEn + "px\n" +
+        "  --kg-boy: " + A.golgeBoy + "px\n" +
+        "  --kg-taban: " + A.golgeTaban + "%\n" +
+        "  --kg-dx: " + dx + "px\n" +
+        "  --kg-dy: " + dy + "px\n" +
+        "  --kg-blur: " + A.golgeYumusak + "px\n" +
+        "  --kg-op: " + (A.golgeKarart / 100).toFixed(2);
     }
     if (i === "sifirla") {
       A = Object.assign({}, VARSAYILAN);
