@@ -7541,57 +7541,62 @@ if (document.body) setTimeout(kur, 0);
 else document.addEventListener("DOMContentLoaded", function(){ setTimeout(kur, 0); });
 })();
 
+
 /* ═══════════════════════════════════════════════════════════════
    EĞİTİM SAHNESİ — BÜYÜK BİRLİK GÖRSELİ İNCE AYARI  (?gorsel=1)
 
-   Yalnız sahnedeki büyük görseli büyütür/küçültür ve kaydırır.
-   Menü, kutucuklar, zemin gölgesi, toz, istatistik paneli —
-   hiçbiri etkilenmez. Görsel kendi katmanında ölçeklenir.
+   18 birliğin HER BİRİ ayrı ayarlanır: 3 aile × 6 kademe,
+   her birinde Boyut · Yukarı-aşağı · Sağa-sola.
+   Menüden önce aileyi, sonra kademeyi seç.
 
-   Üç ekran AYRI ayarlanır: Savunucu · Koruyucu · Nişancı.
-   Ayar tek: o ekrandaki bütün kademeler (Sv1-Sv6) birlikte
-   ölçeklenir, çünkü altı katman aynı kabın içindedir.
+   Yalnız sahnedeki büyük görsel değişir. Zemin gölgesi, toz,
+   istatistik paneli, kutucuklar, sahne yüksekliği — hiçbiri
+   etkilenmez.
 
-   YÖNTEM
-     Savunucu / Koruyucu — kap (.knight-wrap / .soldier-wrap)
-       transform ile ölçeklenir. Bu kaplarda animasyon YOK,
-       çakışma olmaz; ortalayan translateX(-50%) korunur.
-     Nişancı — görselin kendisinde floaty animasyonu VAR ve
-       animasyon transform'u ezer. Bu yüzden orada transform
-       değil, height/top/left kullanılır.
+   YÖNTEM — neden transform değil, ölçü?
+     Koruyucu görselinde "breathe", Nişancı görselinde "floaty"
+     animasyonu VAR ve ikisi de transform kullanıyor; üstüne
+     transform yazsak animasyon onu ezerdi (Tuzak 38 mantığı).
+     Bu yüzden ölçek width/height ile, kaydırma position:relative
+     ile veriliyor — üçünde de aynı yöntem, çakışma yok.
+     Kap alttan sabit olduğu için görsel yukarı doğru büyür,
+     birlik yere basmaya devam eder.
 
-   ÇIKTI düğmesi hazır CSS verir; index.html'e işlenince bu
-   blok silinir. Yalnız ?gorsel=1 varken enjekte edilir.
+   Katmanlar data-kad-k taşır (1 = Sv1 … 6 = Sv6); kurulumu
+   index.html _kademeKatmanlari yapar.
+
+   ÇIKTI yalnız DEĞİŞTİRDİKLERİNİ yazar, KOPYALA ile panoya alınır.
+   index.html'e işlenince bu blok silinir.
+   Yalnız ?gorsel=1 varken enjekte edilir.
    ═══════════════════════════════════════════════════════════════ */
 (function birlikGorselAyar(){
 "use strict";
 if (!/[?&]gorsel=1/.test(location.search)) return;
 
-/* anahtar, ad, varsayılan, en az, en çok, adım, birim */
-const GRUP = [
- ["SAVUNUCU", [
-  ["kn-olcek","Boyut",        100,30, 240, 1, "%"],
-  ["kn-dy",   "Yukarı-aşağı",   0,-260,260, 1, "px"],
-  ["kn-dx",   "Sağa-sola",      0,-260,260, 1, "px"]
- ]],
- ["KORUYUCU", [
-  ["sl-olcek","Boyut",        100,30, 240, 1, "%"],
-  ["sl-dy",   "Yukarı-aşağı",   0,-260,260, 1, "px"],
-  ["sl-dx",   "Sağa-sola",      0,-260,260, 1, "px"]
- ]],
- ["NİŞANCI", [
-  ["rb-olcek","Boyut",        100,30, 240, 1, "%"],
-  ["rb-dy",   "Yukarı-aşağı",   0,-260,260, 1, "px"],
-  ["rb-dx",   "Sağa-sola",      0,-260,260, 1, "px"]
- ]]
+const AILE = [
+  ["kn", "SAVUNUCU", "us-knight"],
+  ["sl", "KORUYUCU", "us-soldier"],
+  ["rb", "NİŞANCI",  "us-robot"]
+];
+const SATIR = [
+  ["o",  "Boyut",        100, 30, 240, 1, "%"],
+  ["dy", "Yukarı-aşağı",   0,-300, 300, 1, "px"],
+  ["dx", "Sağa-sola",      0,-300, 300, 1, "px"]
 ];
 
+/* anahtar: kn1-o · sl3-dy · rb6-dx … */
 const TANIM = {};
-GRUP.forEach(g => g[1].forEach(t => { TANIM[t[0]] = t; }));
+AILE.forEach(function(a){
+  for (let k = 1; k <= 6; k++){
+    SATIR.forEach(function(t){
+      TANIM[a[0] + k + "-" + t[0]] = t;
+    });
+  }
+});
 
-const KAYIT = "bgAyar_v1";
+const KAYIT = "bgAyar_v2";
 let deger = {};
-GRUP.forEach(g => g[1].forEach(t => { deger[t[0]] = t[2]; }));
+Object.keys(TANIM).forEach(k => { deger[k] = TANIM[k][2]; });
 try {
   const eski = JSON.parse(localStorage.getItem(KAYIT) || "{}");
   Object.keys(eski).forEach(k => { if (k in deger) deger[k] = +eski[k]; });
@@ -7599,35 +7604,36 @@ try {
 
 function yaz(k){
   const t = TANIM[k]; if (!t) return;
-  /* ölçek yüzdesi çarpana çevrilir, diğerleri px olarak yazılır */
   const v = (t[6] === "%") ? (deger[k] / 100) : (deger[k] + "px");
   document.documentElement.style.setProperty("--bg-" + k, v);
 }
 function hepsiniYaz(){ Object.keys(deger).forEach(yaz); }
 function sakla(){ try { localStorage.setItem(KAYIT, JSON.stringify(deger)); } catch (e) {} }
 
+/* ── 18 birlik için kural üret ──
+   Savunucu/Koruyucu görseli kabın genişliğini doldurur → width.
+   Nişancı görseli boyuyla ölçülür → height.                     */
+let kural = "";
+AILE.forEach(function(a){
+  const on = a[0], sinif = a[2];
+  for (let k = 1; k <= 6; k++){
+    const p = "var(--bg-" + on + k + "-";
+    const olcu = (on === "rb")
+      ? "height:calc(min(50vh,440px) * " + p + "o)) !important;"
+      : "width:calc(100% * " + p + "o)) !important; height:auto !important;";
+    kural +=
+      'html body #panel-troops .' + sinif + ' .stage img[data-kad-k="' + k + '"]{\n' +
+      "  " + olcu + "\n" +
+      "  position:relative !important;\n" +
+      "  left:" + p + "dx) !important;\n" +
+      "  top:"  + p + "dy) !important;\n" +
+      "}\n";
+  }
+});
+
 const st = document.createElement("style");
 st.id = "bgAyarStil";
-st.textContent = `
-/*  Ölçek kabın ALT ORTASINDAN büyür — birlik yere basmaya devam
-    etsin diye. Zemin gölgesi ve toz ayrı düğümlerdir, dokunulmaz. */
-html body #panel-troops .us-knight .knight-wrap{
-  transform:translateX(-50%) translate(var(--bg-kn-dx), var(--bg-kn-dy))
-            scale(var(--bg-kn-olcek)) !important;
-  transform-origin:50% 100% !important;
-}
-html body #panel-troops .us-soldier .soldier-wrap{
-  transform:translateX(-50%) translate(var(--bg-sl-dx), var(--bg-sl-dy))
-            scale(var(--bg-sl-olcek)) !important;
-  transform-origin:50% 100% !important;
-}
-/*  Nişancıda transform floaty animasyonuna ait — ölçü ile ayarlanır. */
-html body #panel-troops .us-robot .hero-img{
-  height:calc(min(50vh,440px) * var(--bg-rb-olcek)) !important;
-  top:calc(6% + var(--bg-rb-dy)) !important;
-  left:var(--bg-rb-dx) !important;
-}
-
+st.textContent = kural + `
 /* ── ayar menüsü ── */
 #bgAyarAc{
   position:fixed; left:8px; top:112px; z-index:99998;
@@ -7646,9 +7652,9 @@ html body #panel-troops .us-robot .hero-img{
   border-top:1px solid rgba(190,240,255,.20);
 }
 #bgAyarKutu.acik{ display:block; }
-#bgAyarKutu.boy0{ max-height:24vh; }
-#bgAyarKutu.boy1{ max-height:38vh; }
-#bgAyarKutu.boy2{ max-height:58vh; }
+#bgAyarKutu.boy0{ max-height:30vh; }
+#bgAyarKutu.boy1{ max-height:44vh; }
+#bgAyarKutu.boy2{ max-height:62vh; }
 
 .bga-ust{ display:flex; align-items:center; gap:5px; margin-bottom:5px; }
 .bga-ust b{ flex:1; font-size:12px; letter-spacing:1px; }
@@ -7659,20 +7665,21 @@ html body #panel-troops .us-robot .hero-img{
 }
 .bga-ust button:active, .bga-sek button:active{ transform:scale(.96); filter:brightness(.93); }
 .bga-ust .bga-sil{ background:linear-gradient(180deg,#f03434,#c00d0d); }
+.bga-ust .bga-kop{ background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
 
 .bga-sek{
-  display:flex; gap:5px; overflow-x:auto; padding-bottom:5px;
-  margin-bottom:4px; border-bottom:1px solid rgba(190,240,255,.14);
+  display:flex; gap:5px; overflow-x:auto; padding-bottom:4px; margin-bottom:4px;
 }
+.bga-sek.kad{ border-bottom:1px solid rgba(190,240,255,.14); }
 .bga-sek::-webkit-scrollbar{ width:0; height:0; display:none; }
 .bga-sek button{ flex:0 0 auto; font-size:10.5px; padding:5px 10px; opacity:.55; }
 .bga-sek button.sec{ opacity:1; background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
 
 #bgaGovde{ overflow-y:auto; }
 #bgaGovde::-webkit-scrollbar{ width:0; height:0; display:none; }
-#bgAyarKutu.boy0 #bgaGovde{ max-height:13vh; }
-#bgAyarKutu.boy1 #bgaGovde{ max-height:27vh; }
-#bgAyarKutu.boy2 #bgaGovde{ max-height:47vh; }
+#bgAyarKutu.boy0 #bgaGovde{ max-height:14vh; }
+#bgAyarKutu.boy1 #bgaGovde{ max-height:28vh; }
+#bgAyarKutu.boy2 #bgaGovde{ max-height:46vh; }
 
 .bga-sat{ display:flex; align-items:center; gap:5px; margin:5px 0; }
 .bga-ad{ flex:0 0 28%; font-size:11.5px; font-weight:700; color:#dceaff; }
@@ -7705,17 +7712,18 @@ html body #panel-troops .us-robot .hero-img{
   font-variant-numeric:tabular-nums;
 }
 #bgAyarCikti{
-  width:100%; height:30vh; margin-top:6px; display:none;
+  width:100%; height:34vh; margin-top:6px; display:none;
   background:rgba(0,0,0,.6); color:#cfe6ff;
   border:1px solid rgba(190,240,255,.2); border-radius:10px;
   padding:7px; font-size:10.5px; line-height:1.35;
   font-family:monospace; white-space:pre-wrap; word-break:break-word;
+  -webkit-user-select:text; user-select:text;
 }
 `;
 document.head.appendChild(st);
 hepsiniYaz();
 
-let aktifGrup = 0, boy = 0;
+let aile = 0, kademe = 1, boy = 0;
 
 function kur(){
   const ac = document.createElement("button");
@@ -7726,23 +7734,33 @@ function kur(){
   kutu.id = "bgAyarKutu"; kutu.className = "boy0";
   document.body.appendChild(kutu);
 
-  let h = '<div class="bga-ust"><b>BİRLİK GÖRSELİ</b>' +
+  let h = '<div class="bga-ust"><b id="bgaBaslik">BİRLİK GÖRSELİ</b>' +
           '<button id="bgaBoy">⬍</button>' +
+          '<button class="bga-kop" id="bgaKopyala">KOPYALA</button>' +
           '<button id="bgaCiktiBtn">ÇIKTI</button>' +
           '<button class="bga-sil" id="bgaSifirla">SIFIRLA</button>' +
-          '<button id="bgaKapat">KAPAT</button></div><div class="bga-sek">';
-  GRUP.forEach(function(g, i){ h += '<button data-g="' + i + '">' + g[0] + '</button>'; });
+          '<button id="bgaKapat">KAPAT</button></div>';
+  h += '<div class="bga-sek aile">';
+  AILE.forEach(function(a, i){ h += '<button data-a="' + i + '">' + a[1] + '</button>'; });
+  h += '</div><div class="bga-sek kad">';
+  for (let k = 1; k <= 6; k++) h += '<button data-k="' + k + '">Sv' + k + '</button>';
   h += '</div><div id="bgaGovde"></div><textarea id="bgAyarCikti" readonly></textarea>';
   kutu.innerHTML = h;
 
-  const govde = kutu.querySelector("#bgaGovde");
-  const sekmeler = kutu.querySelectorAll(".bga-sek button");
+  const govde  = kutu.querySelector("#bgaGovde");
+  const aileB  = kutu.querySelectorAll(".bga-sek.aile button");
+  const kadB   = kutu.querySelectorAll(".bga-sek.kad button");
+  const baslik = kutu.querySelector("#bgaBaslik");
+  const ta     = kutu.querySelector("#bgAyarCikti");
 
-  function grupCiz(){
-    sekmeler.forEach(function(b, i){ b.classList.toggle("sec", i === aktifGrup); });
+  function ciz(){
+    aileB.forEach(function(b, i){ b.classList.toggle("sec", i === aile); });
+    kadB.forEach(function(b){ b.classList.toggle("sec", +b.dataset.k === kademe); });
+    baslik.textContent = AILE[aile][1] + " Sv" + kademe;
     let g = "";
-    GRUP[aktifGrup][1].forEach(function(t){
-      g += '<div class="bga-sat" data-k="' + t[0] + '">' +
+    SATIR.forEach(function(t){
+      const k = AILE[aile][0] + kademe + "-" + t[0];
+      g += '<div class="bga-sat" data-k="' + k + '">' +
              '<div class="bga-ad">' + t[1] + '</div>' +
              '<button class="bga-adim" data-yon="-1">−</button>' +
              '<div class="bga-sur"><div class="bga-ray"></div>' +
@@ -7755,9 +7773,13 @@ function kur(){
     govde.querySelectorAll(".bga-sat").forEach(satBagla);
   }
 
-  sekmeler.forEach(function(b){
-    b.addEventListener("pointerup", function(){ aktifGrup = +b.dataset.g; grupCiz(); });
+  aileB.forEach(function(b){
+    b.addEventListener("pointerup", function(){ aile = +b.dataset.a; ciz(); });
   });
+  kadB.forEach(function(b){
+    b.addEventListener("pointerup", function(){ kademe = +b.dataset.k; ciz(); });
+  });
+
   ac.addEventListener("pointerup", function(){ kutu.classList.toggle("acik"); });
   kutu.querySelector("#bgaKapat").addEventListener("pointerup", function(){
     kutu.classList.remove("acik");
@@ -7768,18 +7790,46 @@ function kur(){
     kutu.classList.add("boy" + boy);
   });
   kutu.querySelector("#bgaSifirla").addEventListener("pointerup", function(){
-    GRUP.forEach(g => g[1].forEach(t => { deger[t[0]] = t[2]; }));
-    hepsiniYaz(); sakla(); grupCiz();
+    Object.keys(deger).forEach(k => { deger[k] = TANIM[k][2]; });
+    hepsiniYaz(); sakla(); ciz();
   });
   kutu.querySelector("#bgaCiktiBtn").addEventListener("pointerup", function(){
-    const ta = kutu.querySelector("#bgAyarCikti");
     const acikMi = ta.style.display === "block";
     ta.style.display = acikMi ? "none" : "block";
     govde.style.display = acikMi ? "block" : "none";
     if (!acikMi){ ta.value = ciktiMetni(); ta.scrollTop = 0; }
   });
 
-  grupCiz();
+  /*  KOPYALA — panoya alır. Pano izni yoksa eski yöntemle seçip
+      kopyalar; o da olmazsa metni açık bırakır, elle seçilir.   */
+  kutu.querySelector("#bgaKopyala").addEventListener("pointerup", function(){
+    const metin = ciktiMetni();
+    const bitir = function(oldu){
+      const b = kutu.querySelector("#bgaKopyala");
+      const eskiYazi = "KOPYALA";
+      b.textContent = oldu ? "KOPYALANDI" : "SEÇ-KOPYALA";
+      setTimeout(function(){ b.textContent = eskiYazi; }, 1600);
+      if (!oldu){ ta.style.display = "block"; govde.style.display = "none"; }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(metin).then(function(){ bitir(true); })
+        .catch(function(){ eskiYol(); });
+    } else eskiYol();
+
+    function eskiYol(){
+      ta.value = metin;
+      ta.style.display = "block"; govde.style.display = "none";
+      try {
+        ta.removeAttribute("readonly");
+        ta.focus(); ta.setSelectionRange(0, metin.length);
+        const oldu = document.execCommand("copy");
+        ta.setAttribute("readonly", "readonly");
+        bitir(!!oldu);
+      } catch (e) { bitir(false); }
+    }
+  });
+
+  ciz();
 }
 
 function satBagla(sat){
@@ -7824,32 +7874,25 @@ function tazele(sat){
   sat.querySelector(".bga-deg").textContent = v + (t[6] || "");
 }
 
+/*  Yalnız DEĞİŞTİRİLENLERİ yazar — 18 birliğin hepsini dökmek
+    telefonda okunmaz uzunlukta oluyordu.                        */
 function ciktiMetni(){
-  const s = k => (deger[k] / 100);
-  const px = k => deger[k] + "px";
-  return [
-"/* index.html — EĞİTİM SAHNESİ büyük görsel */",
-"",
-".us-knight .knight-wrap{",
-"  transform:translateX(-50%) translate(" + px("kn-dx") + "," + px("kn-dy") +
-  ") scale(" + s("kn-olcek") + ");",
-"  transform-origin:50% 100%;",
-"}",
-"",
-".us-soldier .soldier-wrap{",
-"  transform:translateX(-50%) translate(" + px("sl-dx") + "," + px("sl-dy") +
-  ") scale(" + s("sl-olcek") + ");",
-"  transform-origin:50% 100%;",
-"}",
-"",
-"/* Nişancıda floaty animasyonu transform'u kullanıyor —",
-"   ölçek transform ile DEĞİL, ölçüyle verilir. */",
-".us-robot .hero-img{",
-"  height:calc(min(50vh,440px) * " + s("rb-olcek") + ");",
-"  top:calc(6% + " + px("rb-dy") + ");",
-"  left:" + px("rb-dx") + ";",
-"}"
-  ].join("\n");
+  const sat = [];
+  AILE.forEach(function(a){
+    const on = a[0], sinif = a[2];
+    for (let k = 1; k <= 6; k++){
+      const o = deger[on + k + "-o"], dy = deger[on + k + "-dy"], dx = deger[on + k + "-dx"];
+      if (o === 100 && dy === 0 && dx === 0) continue;
+      sat.push("." + sinif + ' .stage img[data-kad-k="' + k + '"]{');
+      sat.push(on === "rb"
+        ? "  height:calc(min(50vh,440px) * " + (o / 100) + ");"
+        : "  width:calc(100% * " + (o / 100) + "); height:auto;");
+      sat.push("  position:relative; left:" + dx + "px; top:" + dy + "px;");
+      sat.push("}");
+    }
+  });
+  if (!sat.length) return "/* değişiklik yok */";
+  return "/* index.html — EĞİTİM SAHNESİ büyük görsel */\n" + sat.join("\n");
 }
 
 if (document.body) setTimeout(kur, 0);
