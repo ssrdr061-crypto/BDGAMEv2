@@ -7540,3 +7540,318 @@ function ciktiMetni(){
 if (document.body) setTimeout(kur, 0);
 else document.addEventListener("DOMContentLoaded", function(){ setTimeout(kur, 0); });
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   EĞİTİM SAHNESİ — BÜYÜK BİRLİK GÖRSELİ İNCE AYARI  (?gorsel=1)
+
+   Yalnız sahnedeki büyük görseli büyütür/küçültür ve kaydırır.
+   Menü, kutucuklar, zemin gölgesi, toz, istatistik paneli —
+   hiçbiri etkilenmez. Görsel kendi katmanında ölçeklenir.
+
+   Üç ekran AYRI ayarlanır: Savunucu · Koruyucu · Nişancı.
+   Ayar tek: o ekrandaki bütün kademeler (Sv1-Sv6) birlikte
+   ölçeklenir, çünkü altı katman aynı kabın içindedir.
+
+   YÖNTEM
+     Savunucu / Koruyucu — kap (.knight-wrap / .soldier-wrap)
+       transform ile ölçeklenir. Bu kaplarda animasyon YOK,
+       çakışma olmaz; ortalayan translateX(-50%) korunur.
+     Nişancı — görselin kendisinde floaty animasyonu VAR ve
+       animasyon transform'u ezer. Bu yüzden orada transform
+       değil, height/top/left kullanılır.
+
+   ÇIKTI düğmesi hazır CSS verir; index.html'e işlenince bu
+   blok silinir. Yalnız ?gorsel=1 varken enjekte edilir.
+   ═══════════════════════════════════════════════════════════════ */
+(function birlikGorselAyar(){
+"use strict";
+if (!/[?&]gorsel=1/.test(location.search)) return;
+
+/* anahtar, ad, varsayılan, en az, en çok, adım, birim */
+const GRUP = [
+ ["SAVUNUCU", [
+  ["kn-olcek","Boyut",        100,30, 240, 1, "%"],
+  ["kn-dy",   "Yukarı-aşağı",   0,-260,260, 1, "px"],
+  ["kn-dx",   "Sağa-sola",      0,-260,260, 1, "px"]
+ ]],
+ ["KORUYUCU", [
+  ["sl-olcek","Boyut",        100,30, 240, 1, "%"],
+  ["sl-dy",   "Yukarı-aşağı",   0,-260,260, 1, "px"],
+  ["sl-dx",   "Sağa-sola",      0,-260,260, 1, "px"]
+ ]],
+ ["NİŞANCI", [
+  ["rb-olcek","Boyut",        100,30, 240, 1, "%"],
+  ["rb-dy",   "Yukarı-aşağı",   0,-260,260, 1, "px"],
+  ["rb-dx",   "Sağa-sola",      0,-260,260, 1, "px"]
+ ]]
+];
+
+const TANIM = {};
+GRUP.forEach(g => g[1].forEach(t => { TANIM[t[0]] = t; }));
+
+const KAYIT = "bgAyar_v1";
+let deger = {};
+GRUP.forEach(g => g[1].forEach(t => { deger[t[0]] = t[2]; }));
+try {
+  const eski = JSON.parse(localStorage.getItem(KAYIT) || "{}");
+  Object.keys(eski).forEach(k => { if (k in deger) deger[k] = +eski[k]; });
+} catch (e) {}
+
+function yaz(k){
+  const t = TANIM[k]; if (!t) return;
+  /* ölçek yüzdesi çarpana çevrilir, diğerleri px olarak yazılır */
+  const v = (t[6] === "%") ? (deger[k] / 100) : (deger[k] + "px");
+  document.documentElement.style.setProperty("--bg-" + k, v);
+}
+function hepsiniYaz(){ Object.keys(deger).forEach(yaz); }
+function sakla(){ try { localStorage.setItem(KAYIT, JSON.stringify(deger)); } catch (e) {} }
+
+const st = document.createElement("style");
+st.id = "bgAyarStil";
+st.textContent = `
+/*  Ölçek kabın ALT ORTASINDAN büyür — birlik yere basmaya devam
+    etsin diye. Zemin gölgesi ve toz ayrı düğümlerdir, dokunulmaz. */
+html body #panel-troops .us-knight .knight-wrap{
+  transform:translateX(-50%) translate(var(--bg-kn-dx), var(--bg-kn-dy))
+            scale(var(--bg-kn-olcek)) !important;
+  transform-origin:50% 100% !important;
+}
+html body #panel-troops .us-soldier .soldier-wrap{
+  transform:translateX(-50%) translate(var(--bg-sl-dx), var(--bg-sl-dy))
+            scale(var(--bg-sl-olcek)) !important;
+  transform-origin:50% 100% !important;
+}
+/*  Nişancıda transform floaty animasyonuna ait — ölçü ile ayarlanır. */
+html body #panel-troops .us-robot .hero-img{
+  height:calc(min(50vh,440px) * var(--bg-rb-olcek)) !important;
+  top:calc(6% + var(--bg-rb-dy)) !important;
+  left:var(--bg-rb-dx) !important;
+}
+
+/* ── ayar menüsü ── */
+#bgAyarAc{
+  position:fixed; left:8px; top:112px; z-index:99998;
+  padding:6px 10px; border-radius:11px; border:0;
+  background:linear-gradient(180deg,#3d7ccc,#152e5e); color:#fff;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:11.5px;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+}
+#bgAyarAc:active{ transform:scale(.96); filter:brightness(.93); }
+
+#bgAyarKutu{
+  position:fixed; left:0; right:0; bottom:0; z-index:99999; display:none;
+  background:rgba(4,14,34,.90); color:#fff;
+  font-family:'Baloo 2',sans-serif;
+  padding:6px 8px 10px;
+  border-top:1px solid rgba(190,240,255,.20);
+}
+#bgAyarKutu.acik{ display:block; }
+#bgAyarKutu.boy0{ max-height:24vh; }
+#bgAyarKutu.boy1{ max-height:38vh; }
+#bgAyarKutu.boy2{ max-height:58vh; }
+
+.bga-ust{ display:flex; align-items:center; gap:5px; margin-bottom:5px; }
+.bga-ust b{ flex:1; font-size:12px; letter-spacing:1px; }
+.bga-ust button, .bga-sek button{
+  border:0; border-radius:9px; color:#fff; font-family:'Baloo 2',sans-serif;
+  font-weight:800; font-size:11px; padding:6px 9px;
+  background:linear-gradient(180deg,#3d7ccc,#22488f);
+}
+.bga-ust button:active, .bga-sek button:active{ transform:scale(.96); filter:brightness(.93); }
+.bga-ust .bga-sil{ background:linear-gradient(180deg,#f03434,#c00d0d); }
+
+.bga-sek{
+  display:flex; gap:5px; overflow-x:auto; padding-bottom:5px;
+  margin-bottom:4px; border-bottom:1px solid rgba(190,240,255,.14);
+}
+.bga-sek::-webkit-scrollbar{ width:0; height:0; display:none; }
+.bga-sek button{ flex:0 0 auto; font-size:10.5px; padding:5px 10px; opacity:.55; }
+.bga-sek button.sec{ opacity:1; background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
+
+#bgaGovde{ overflow-y:auto; }
+#bgaGovde::-webkit-scrollbar{ width:0; height:0; display:none; }
+#bgAyarKutu.boy0 #bgaGovde{ max-height:13vh; }
+#bgAyarKutu.boy1 #bgaGovde{ max-height:27vh; }
+#bgAyarKutu.boy2 #bgaGovde{ max-height:47vh; }
+
+.bga-sat{ display:flex; align-items:center; gap:5px; margin:5px 0; }
+.bga-ad{ flex:0 0 28%; font-size:11.5px; font-weight:700; color:#dceaff; }
+.bga-adim{
+  flex:0 0 26px; height:26px; border:0; border-radius:8px;
+  background:rgba(61,124,204,.55); color:#fff;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:15px;
+  line-height:26px; padding:0; text-align:center;
+}
+.bga-adim:active{ transform:scale(.9); filter:brightness(.93); }
+.bga-sur{
+  flex:1 1 auto; position:relative; height:26px; min-width:40px;
+  touch-action:none; cursor:pointer; user-select:none;
+}
+.bga-ray{
+  position:absolute; left:0; right:0; top:50%; height:6px; margin-top:-3px;
+  border-radius:99px; background:rgba(3,16,38,.75);
+}
+.bga-dolgu{
+  position:absolute; left:0; top:50%; height:6px; margin-top:-3px;
+  border-radius:99px; background:linear-gradient(180deg,#6fc0ff,#1fa3ea);
+}
+.bga-top{
+  position:absolute; top:50%; width:16px; height:16px; margin:-8px 0 0 -8px;
+  border-radius:50%; background:#fff; pointer-events:none;
+}
+.bga-deg{
+  flex:0 0 50px; text-align:right;
+  font-size:12px; font-weight:800; color:#ffd257;
+  font-variant-numeric:tabular-nums;
+}
+#bgAyarCikti{
+  width:100%; height:30vh; margin-top:6px; display:none;
+  background:rgba(0,0,0,.6); color:#cfe6ff;
+  border:1px solid rgba(190,240,255,.2); border-radius:10px;
+  padding:7px; font-size:10.5px; line-height:1.35;
+  font-family:monospace; white-space:pre-wrap; word-break:break-word;
+}
+`;
+document.head.appendChild(st);
+hepsiniYaz();
+
+let aktifGrup = 0, boy = 0;
+
+function kur(){
+  const ac = document.createElement("button");
+  ac.id = "bgAyarAc"; ac.textContent = "⚙ GÖRSEL";
+  document.body.appendChild(ac);
+
+  const kutu = document.createElement("div");
+  kutu.id = "bgAyarKutu"; kutu.className = "boy0";
+  document.body.appendChild(kutu);
+
+  let h = '<div class="bga-ust"><b>BİRLİK GÖRSELİ</b>' +
+          '<button id="bgaBoy">⬍</button>' +
+          '<button id="bgaCiktiBtn">ÇIKTI</button>' +
+          '<button class="bga-sil" id="bgaSifirla">SIFIRLA</button>' +
+          '<button id="bgaKapat">KAPAT</button></div><div class="bga-sek">';
+  GRUP.forEach(function(g, i){ h += '<button data-g="' + i + '">' + g[0] + '</button>'; });
+  h += '</div><div id="bgaGovde"></div><textarea id="bgAyarCikti" readonly></textarea>';
+  kutu.innerHTML = h;
+
+  const govde = kutu.querySelector("#bgaGovde");
+  const sekmeler = kutu.querySelectorAll(".bga-sek button");
+
+  function grupCiz(){
+    sekmeler.forEach(function(b, i){ b.classList.toggle("sec", i === aktifGrup); });
+    let g = "";
+    GRUP[aktifGrup][1].forEach(function(t){
+      g += '<div class="bga-sat" data-k="' + t[0] + '">' +
+             '<div class="bga-ad">' + t[1] + '</div>' +
+             '<button class="bga-adim" data-yon="-1">−</button>' +
+             '<div class="bga-sur"><div class="bga-ray"></div>' +
+               '<div class="bga-dolgu"></div><div class="bga-top"></div></div>' +
+             '<button class="bga-adim" data-yon="1">+</button>' +
+             '<div class="bga-deg"></div>' +
+           '</div>';
+    });
+    govde.innerHTML = g;
+    govde.querySelectorAll(".bga-sat").forEach(satBagla);
+  }
+
+  sekmeler.forEach(function(b){
+    b.addEventListener("pointerup", function(){ aktifGrup = +b.dataset.g; grupCiz(); });
+  });
+  ac.addEventListener("pointerup", function(){ kutu.classList.toggle("acik"); });
+  kutu.querySelector("#bgaKapat").addEventListener("pointerup", function(){
+    kutu.classList.remove("acik");
+  });
+  kutu.querySelector("#bgaBoy").addEventListener("pointerup", function(){
+    kutu.classList.remove("boy" + boy);
+    boy = (boy + 1) % 3;
+    kutu.classList.add("boy" + boy);
+  });
+  kutu.querySelector("#bgaSifirla").addEventListener("pointerup", function(){
+    GRUP.forEach(g => g[1].forEach(t => { deger[t[0]] = t[2]; }));
+    hepsiniYaz(); sakla(); grupCiz();
+  });
+  kutu.querySelector("#bgaCiktiBtn").addEventListener("pointerup", function(){
+    const ta = kutu.querySelector("#bgAyarCikti");
+    const acikMi = ta.style.display === "block";
+    ta.style.display = acikMi ? "none" : "block";
+    govde.style.display = acikMi ? "block" : "none";
+    if (!acikMi){ ta.value = ciktiMetni(); ta.scrollTop = 0; }
+  });
+
+  grupCiz();
+}
+
+function satBagla(sat){
+  const k = sat.dataset.k, t = TANIM[k];
+  const sur = sat.querySelector(".bga-sur");
+  let suruyor = false;
+
+  function kaydet(v){
+    v = Math.round(v / t[5]) * t[5];
+    if (v < t[3]) v = t[3];
+    if (v > t[4]) v = t[4];
+    if (v === deger[k]) return;
+    deger[k] = v; yaz(k); tazele(sat);
+  }
+  function konumdan(x){
+    const r = sur.getBoundingClientRect();
+    if (!r.width) return;                       /* Tuzak 22 */
+    let p = (x - r.left) / r.width;
+    p = p < 0 ? 0 : p > 1 ? 1 : p;
+    kaydet(t[3] + p * (t[4] - t[3]));
+  }
+  sur.addEventListener("pointerdown", function(e){
+    suruyor = true; sur.setPointerCapture(e.pointerId); konumdan(e.clientX);
+  });
+  sur.addEventListener("pointermove", function(e){ if (suruyor) konumdan(e.clientX); });
+  sur.addEventListener("pointerup", function(){ suruyor = false; sakla(); });
+  sur.addEventListener("pointercancel", function(){ suruyor = false; sakla(); });
+
+  sat.querySelectorAll(".bga-adim").forEach(function(b){
+    b.addEventListener("pointerup", function(){
+      kaydet(deger[k] + (+b.dataset.yon) * t[5]); sakla();
+    });
+  });
+  tazele(sat);
+}
+
+function tazele(sat){
+  const k = sat.dataset.k, t = TANIM[k], v = deger[k];
+  const p = (v - t[3]) / (t[4] - t[3]) * 100;
+  sat.querySelector(".bga-dolgu").style.width = p + "%";
+  sat.querySelector(".bga-top").style.left = p + "%";
+  sat.querySelector(".bga-deg").textContent = v + (t[6] || "");
+}
+
+function ciktiMetni(){
+  const s = k => (deger[k] / 100);
+  const px = k => deger[k] + "px";
+  return [
+"/* index.html — EĞİTİM SAHNESİ büyük görsel */",
+"",
+".us-knight .knight-wrap{",
+"  transform:translateX(-50%) translate(" + px("kn-dx") + "," + px("kn-dy") +
+  ") scale(" + s("kn-olcek") + ");",
+"  transform-origin:50% 100%;",
+"}",
+"",
+".us-soldier .soldier-wrap{",
+"  transform:translateX(-50%) translate(" + px("sl-dx") + "," + px("sl-dy") +
+  ") scale(" + s("sl-olcek") + ");",
+"  transform-origin:50% 100%;",
+"}",
+"",
+"/* Nişancıda floaty animasyonu transform'u kullanıyor —",
+"   ölçek transform ile DEĞİL, ölçüyle verilir. */",
+".us-robot .hero-img{",
+"  height:calc(min(50vh,440px) * " + s("rb-olcek") + ");",
+"  top:calc(6% + " + px("rb-dy") + ");",
+"  left:" + px("rb-dx") + ";",
+"}"
+  ].join("\n");
+}
+
+if (document.body) setTimeout(kur, 0);
+else document.addEventListener("DOMContentLoaded", function(){ setTimeout(kur, 0); });
+})();
