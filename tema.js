@@ -6676,3 +6676,73 @@ else yerlestir();
 setTimeout(uygula, 900);
 setTimeout(uygula, 2500);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   KALE İSİM ETİKETİ — BEYAZ YAZI + SEVİYE KUTUCUĞU
+   ------------------------------------------------------------
+   `.node-label` index.html ~1878'de tanımlı, kaleye özel renkler
+   ~1949-1950'de. Burası onların ÜSTÜNE değil, DAHA ÖZGÜL bir
+   seçiciyle yazıyor (`#battleMap` + `.castle-node`), yani yalnız
+   KALE etiketini ele alıyor; kaynak/canavar ve `.loot-node`
+   etiketleri index.html'deki kuralda kalıyor.
+
+   Kaledeki isim rengi artık kendim/başkası ayrımı yapmıyor: ikisi
+   de BEYAZ. Ayrım zaten kalenin görselinde ve kutucukta.
+   index.html ~1949-1950'deki iki satır artık ölü, silinebilir.
+
+   SEVİYE KUTUCUĞU `::before` ile geliyor — DOM'a eleman eklemek
+   gerekmiyor, çünkü `renderBattleMap` etiketi her seferinde
+   baştan yazıyor ve eklenen düğüm ilk yenilemede uçardı.
+   Görsel: `seviye1.webp` (proje kökü, Türkçe harf yok).
+
+   SEVİYE VERİSİ: `state.kaleSeviye` (1-5, alan yoksa 1). Yayında
+   `castles/{key}.sv`, etikette `data-sv`. Görsel seçimi aşağıdaki
+   beş satırda; seviye ne olursa olsun kutucuk aynı ölçüde kalır.
+   ══════════════════════════════════════════════════════════════ */
+(function kaleEtiketi(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaKaleEtiket";
+st.textContent = `
+html body #battleMap .map-node.castle-node .node-label{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  font-family:'Baloo 2','Nunito',sans-serif;
+  font-weight:800;
+  font-size:11px;
+  line-height:1.3;
+  color:#ffffff;
+  background:rgba(4,10,20,.62);
+  border:none;
+  border-radius:7px;
+  /* Sol dolgu küçük: kutucuk zaten kendi boşluğunu taşıyor.
+     Simetrik dolgu yazılırsa şerit sağa kayık görünüyordu. */
+  padding:2px 8px 2px 4px;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+  white-space:nowrap;
+}
+
+/* Seviye kutucuğu. Yazının boyuna göre değil SABİT ölçü: harita
+   zoom'u düğümün tamamını ölçekliyor, kutucuk da onunla büyür. */
+html body #battleMap .map-node.castle-node .node-label::before{
+  content:"";
+  flex:0 0 auto;
+  width:15px;
+  height:15px;
+  background-size:contain;
+  background-repeat:no-repeat;
+  background-position:center;
+  /* data-sv gelmezse (eski kayıt, henüz yayınlanmamış kale) bu. */
+  background-image:url("seviye1.webp");
+}
+
+html body #battleMap .map-node.castle-node .node-label[data-sv="1"]::before{ background-image:url("seviye1.webp"); }
+html body #battleMap .map-node.castle-node .node-label[data-sv="2"]::before{ background-image:url("seviye2.webp"); }
+html body #battleMap .map-node.castle-node .node-label[data-sv="3"]::before{ background-image:url("seviye3.webp"); }
+html body #battleMap .map-node.castle-node .node-label[data-sv="4"]::before{ background-image:url("seviye4.webp"); }
+html body #battleMap .map-node.castle-node .node-label[data-sv="5"]::before{ background-image:url("seviye5.webp"); }
+`;
+document.head.appendChild(st);
+})();

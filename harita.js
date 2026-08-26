@@ -866,8 +866,34 @@
     return _dugumListe;
   }
 
-  /* Seviye rengi — 1 yeşil, 2 sarı, 3 kırmızı. */
+  /* Seviye rengi — 1 yeşil, 2 sarı, 3 kırmızı. Halkanın rengi ve
+     görsel yüklenmediğindeki yedek rozet bunu kullanır. */
   const SV_RENK = { 1: "#5fd98a", 2: "#e8c84f", 3: "#e2585c" };
+
+  /* ── SEVİYE KUTUCUĞU GÖRSELLERİ ──
+     Dosya adları: seviye1.webp … seviye5.webp (proje köküne konur).
+     Türkçe harf YOK — büyük/küçük Latin dışı ad sessizce yüklenmez.
+
+     Tembel yükleme: bir seviye ilk kez ekrana geldiğinde istenir.
+     Yüklenince cizUstIste() ile o kare yeniden çizilir; yoksa
+     eski sayı rozetine düşülür, yani görsel gelmeden de harita
+     bilgisiz kalmaz. */
+  const SV_GORSEL = {};
+  const SV_ENUST  = 5;
+
+  function svGorsel(sv) {
+    const n = Math.max(1, Math.min(SV_ENUST, (sv | 0) || 1));
+    let im = SV_GORSEL[n];
+    if (!im) {
+      im = new Image();
+      im.decoding = "async";
+      im.onload  = function () { im._hazir = true; cizUstIste(); };
+      im.onerror = function () { im._hata  = true; };
+      im.src = "seviye" + n + ".webp";
+      SV_GORSEL[n] = im;
+    }
+    return im._hazir ? im : null;
+  }
 
   /* Düğümün görseli. SPRITE'A GEÇİŞ TAM OLARAK BURADAN YAPILIR:
      bu gövdeyi drawImage(sprite, x-r, y-r, r*2, r*2) ile değiştirmek
@@ -925,21 +951,9 @@
 
       cizDugumGorseli(c, d, x, y, r);
 
-      /* Seviye rozeti — sağ altta küçük daire. */
-      if (r > 9) {
-        const bx = x + r * 0.78, by = y + r * 0.78, br = r * 0.34;
-        c.beginPath();
-        c.arc(bx, by, br, 0, Math.PI * 2);
-        c.fillStyle = "#12181f";
-        c.fill();
-        c.lineWidth = Math.max(1, br * 0.22);
-        c.strokeStyle = renk;
-        c.stroke();
-        c.fillStyle = renk;
-        c.font = "800 " + Math.round(br * 1.35) + "px " + HARITA_FONT;
-        c.textAlign = "center"; c.textBaseline = "middle";
-        c.fillText(String(d.seviye), bx, by);
-      }
+      /* SAĞ ALT SAYI ROZETİ KALDIRILDI — seviye artık ismin SOLUNDAKİ
+         kutucukta duruyor (aşağıda). İki yerde göstermek görselin
+         üstünü kapatıyordu. */
 
       /* Etiket ve isim yalnız yeterince yakınken — uzakta okunmuyor
          zaten ve metin çizimi en pahalı iş. */
@@ -947,17 +961,57 @@
         const punto = Math.max(9, Math.round(r * 0.46));
         const yaziY = y + r * 1.3;
         c.font = "800 " + punto + "px " + HARITA_FONT;
-        c.textAlign = "center"; c.textBaseline = "top";
-        /* SEVİYE YAZIDA TEKRARLANMAZ — rozet zaten gösteriyor.
-           d.etiket "Demir Kaynağı Sv.1" gelir; son ek kırpılır. */
-        yaziAnahat(c, d.ad, x, yaziY, "#e6eef6", punto);
+        c.textBaseline = "top";
+
+        /* ── SEVİYE KUTUCUĞU + İSİM, TEK ŞERİT HALİNDE ──
+           Kutucuk ile isim birlikte ortalanır: önce toplam genişlik
+           ölçülür, şerit oradan sola yaslanarak çizilir. İsmi tek
+           başına ortalayıp kutucuğu soluna koymak şeridi sağa
+           kaydırırdı — düğümün ekseninden kayan bir etiket olurdu.
+
+           SEVİYE YAZIDA TEKRARLANMAZ; d.ad zaten son eki taşımıyor. */
+        const kb   = Math.round(punto * 1.55);          /* kutucuk boyu */
+        const ara  = Math.round(punto * 0.30);          /* kutucuk–isim */
+        const gorsel = svGorsel(d.seviye);
+
+        c.textAlign = "left";
+        const isimGen = c.measureText(d.ad).width;
+        const toplam  = kb + ara + isimGen;
+        const solX    = x - toplam / 2;
+        const kutuY   = yaziY + punto / 2 - kb / 2;
+
+        if (gorsel) {
+          c.drawImage(gorsel, solX, kutuY, kb, kb);
+        } else {
+          /* YEDEK — görsel henüz yok. Aynı yerde, aynı boyda küçük
+             bir sayı rozeti; görsel gelince kendiliğinden kaybolur. */
+          const br = kb / 2;
+          c.beginPath();
+          c.arc(solX + br, kutuY + br, br, 0, Math.PI * 2);
+          c.fillStyle = "#12181f";
+          c.fill();
+          c.lineWidth = Math.max(1, br * 0.22);
+          c.strokeStyle = renk;
+          c.stroke();
+          c.fillStyle = renk;
+          c.font = "800 " + Math.round(br * 1.35) + "px " + HARITA_FONT;
+          c.textAlign = "center"; c.textBaseline = "middle";
+          c.fillText(String(d.seviye), solX + br, kutuY + br);
+          /* çizim durumunu isim için geri al */
+          c.font = "800 " + punto + "px " + HARITA_FONT;
+          c.textAlign = "left"; c.textBaseline = "top";
+        }
+
+        yaziAnahat(c, d.ad, solX + kb + ara, yaziY, "#ffffff", punto);
 
         /* İŞGAL ADI — TEK KAYNAK BURASI.
            Kendim ALTIN, başkası KIRMIZI. Sefer katmanı toplarken ad
            basmaz; iki yerden basılınca aynı yazı üst üste geliyordu.
            Ayrıca işgal kaydı buluttan HER ZAMAN gelir, karşı tarafın
-           seferi gelmese bile — bu yüzden daha güvenilir kaynak. */
+           seferi gelmese bile — bu yüzden daha güvenilir kaynak.
+           Bu satırda kutucuk yok, düğümün eksenine ortalanır. */
         if (d.isgalAd) {
+          c.textAlign = "center";
           yaziAnahat(c, d.isgalAd, x, yaziY + punto * 1.35,
                      d.benimMi ? "#e9cf7c" : "#e2585c", punto);
         }

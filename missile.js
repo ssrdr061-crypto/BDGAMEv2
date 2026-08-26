@@ -310,13 +310,13 @@
     if (targetName) {
       const node = [...mapEl.querySelectorAll(".castle-node")]
         .find(n => n.dataset.cname === targetName);
-      // Kale RESMİNİ bul: bizim eklediklerimiz (hp barı, buton) ve isim
+      // Kale RESMİNİ bul: bizim eklediğimiz buton ve isim
       // etiketi hariç, alan olarak EN BÜYÜK alt eleman kalenin görselidir.
       let imgEl = node ? node.querySelector("img") : null;
       if (node && !imgEl) {
         let best = null, bestArea = 0;
         node.querySelectorAll("*").forEach(ch => {
-          if (ch.closest(".msl-hpbar") || ch.closest(".msl-btn")) return;
+          if (ch.closest(".msl-btn")) return;
           const t = (ch.textContent || "").trim();
           if (t && t === targetName) return; // isim etiketi
           const r = ch.getBoundingClientRect();
@@ -584,18 +584,10 @@
       const hp = effectiveHp(rec);
       const pct = Math.round((hp / CASTLE_MAX_HP) * 100);
 
-      // HP barı (varsa güncelle, yoksa ekle)
-      let bar = node.querySelector(".msl-hpbar");
-      if (!bar) {
-        bar = document.createElement("div");
-        bar.className = "msl-hpbar";
-        bar.innerHTML = `<i></i>`;
-        node.appendChild(bar);
-      }
-      const fill = bar.querySelector("i");
-      fill.style.width = pct + "%";
-      fill.style.background = pct > 50 ? "#5ec46a" : pct > 20 ? "#e0b24a" : "#e05a4a";
-      bar.title = `Kale: ${hp}/${CASTLE_MAX_HP}`;
+      /* HP BARI KALDIRILDI. Kalenin altındaki yeşil çubuk isim
+         etiketiyle çakışıyordu ve haritada sürekli duran bir bilgi
+         olmasına gerek yok — kalenin canı kale kutucuğunda yazıyor.
+         pct yalnız "yıkık" eşiği için hesaplanıyor. */
 
       // Füze butonu haritada GÖSTERİLMİYOR — füzeye kale kutucuğundaki
       // 🚀 üzerinden (pvp.js → MISSILE_API) erişiliyor.
@@ -719,10 +711,6 @@
       .msl-sprite{position:absolute;
         transform:translate(-50%,-50%) rotate(var(--msl-rot,0deg)) scale(var(--msl-scale,1));
         font-size:28px;z-index:5000;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,140,40,.8));}
-      .msl-hpbar{position:absolute;left:50%;transform:translateX(-50%);bottom:-8px;
-        width:44px;height:5px;border-radius:3px;background:rgba(0,0,0,.55);
-        border:1px solid rgba(255,255,255,.25);overflow:hidden;}
-      .msl-hpbar i{display:block;height:100%;border-radius:2px;transition:width .4s;}
       .msl-btn{position:absolute;top:-14px;right:-14px;width:26px;height:26px;
         border-radius:50%;background:rgba(20,20,30,.85);border:1px solid rgba(255,120,60,.6);
         display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;z-index:5;}

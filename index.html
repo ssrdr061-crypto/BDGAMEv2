@@ -2902,6 +2902,39 @@ let _castleListenerRef = null;
 let _kaleYayinDurum = "henüz denenmedi";
 let _kaleDinleyici = "hiç çağrılmadı";
 
+/* ── KALE SEVİYESİ ──
+   Kalenin seviyesi state.kaleSeviye'de durur (1-5). Yeni hesapta ve
+   eski kayıtlarda alan yoktur; okuyan taraf 1 sayar, yani göç kodu
+   gerekmiyor — alan ilk yükseltmede doğar.
+
+   NEDEN state İÇİNDE: kalenin konumu (state.castle) zaten burada ve
+   ikisi birlikte yayınlanıyor. Ayrı bir Firebase yolu açmak, kale
+   yayınını iki yazmaya bölerdi.
+
+   Seviyeyi YÜKSELTEN henüz bir şey yok; ilerleme sistemi gelince tek
+   çağrı yeter: kaleSeviyeAyarla(n). Buradan yayın kendiliğinden
+   tazeleniyor, harita da öyle. */
+function kaleSeviyesi() {
+  try {
+    if (typeof state === "undefined" || !state) return 1;
+    const n = parseInt(state.kaleSeviye, 10);
+    return (n >= 1 && n <= 5) ? n : 1;
+  } catch (e) { return 1; }
+}
+
+window.kaleSeviyesi = kaleSeviyesi;
+
+window.kaleSeviyeAyarla = function (n) {
+  n = parseInt(n, 10);
+  if (!(n >= 1 && n <= 5)) return kaleSeviyesi();
+  if (typeof state === "undefined" || !state) return 1;
+  state.kaleSeviye = n;
+  try { if (typeof saveState === "function") saveState(); } catch (e) {}
+  try { publishCastle(); } catch (e) {}
+  try { if (typeof renderBattleMap === "function") renderBattleMap(); } catch (e) {}
+  return n;
+};
+
 /* Kendi kalemi hafif düğüme yaz */
 function publishCastle() {
   try {
@@ -2914,9 +2947,12 @@ function publishCastle() {
     if (!state || !state.castle) { _kaleYayinDurum = "ATLANDI: state.castle yok"; return; }
     const kk = KOORD.kaleKaro(state.castle);
     if (!kk) { _kaleYayinDurum = "ATLANDI: kaleKaro null (kayıt biçimi bozuk)"; return; }
-    /* { name, kx, ky, kv } — gx/gy sayılamaz olduğu için yazılmaz. */
+    /* { name, kx, ky, kv, sv } — gx/gy sayılamaz olduğu için yazılmaz.
+       sv = kale seviyesi. FIREBASE KURALI: castles/ altında yeni alan;
+       kurallar alanları tek tek sayıyorsa `sv` eklenmeden yazma
+       PERMISSION_DENIED ile döner ve kimse kaleni göremez. */
     firebaseDb.ref("castles/" + toFirebaseKey(currentUsername.toLowerCase())).set({
-      name: currentUsername, kx: kk.kx, ky: kk.ky, kv: 2
+      name: currentUsername, kx: kk.kx, ky: kk.ky, kv: 2, sv: kaleSeviyesi()
     }).then(() => {
       _kaleYayinDurum = "ok";
     }).catch(err => {
@@ -2959,7 +2995,12 @@ function migrateCastlesOnce() {
       if (!kk) return;
       const ad = acc.displayName || "Oyuncu";
       if (currentUsername && ad.toLowerCase() === currentUsername.toLowerCase()) return;
-      list.push({ name: ad, castle: KOORD.kaleKayit(kk.kx, kk.ky) });
+      const sv = parseInt(acc.state.kaleSeviye, 10);
+      list.push({
+        name: ad,
+        sv: (sv >= 1 && sv <= 5) ? sv : 1,
+        castle: KOORD.kaleKayit(kk.kx, kk.ky)
+      });
     });
     otherCastles = list;
     if (typeof renderBattleMap === "function") renderBattleMap();
@@ -3122,7 +3163,12 @@ function startListeningForCastles() {
       if (!kk) return;
       const ad = c.name || k;
       if (currentUsername && ad.toLowerCase() === currentUsername.toLowerCase()) return;
-      list.push({ name: ad, castle: KOORD.kaleKayit(kk.kx, kk.ky) });
+      const sv = parseInt(c.sv, 10);
+      list.push({
+        name: ad,
+        sv: (sv >= 1 && sv <= 5) ? sv : 1,   /* alan yoksa 1 */
+        castle: KOORD.kaleKayit(kk.kx, kk.ky)
+      });
     });
 
     if (!anahtarlar.length) { migrateCastlesOnce(); return; }
@@ -5873,12 +5919,16 @@ function buildMapGridHTML() {
   return html;
 }
 
-function castleNodeHTML(pos, isOwn, label) {
+function castleNodeHTML(pos, isOwn, label, sv) {
   const px = KOORD.olcektenYuzde(pos.gx);
   const py = KOORD.olcektenYuzde(pos.gy);
   const cls = isOwn ? "castle-own" : "castle-other";
   const safeName = String(label || "Oyuncu").replace(/["'<>&]/g, "");
   const labelText = isOwn ? "Kalen" : safeName;
+  /* Seviye kutucuğunun görselini tema.js data-sv'ye bakarak seçiyor.
+     Sayı burada kırpılır; bozuk veri gelse bile geçersiz bir dosya
+     adı istenmez. */
+  const svNo = (parseInt(sv, 10) >= 1 && parseInt(sv, 10) <= 5) ? parseInt(sv, 10) : 1;
   return `
     <div class="map-node castle-node ${cls}" data-cname="${safeName}" data-cx="${pos.gx}" data-cy="${pos.gy}" style="left:${px}%; top:${py}%;">
       <div class="node-ring">
@@ -5887,7 +5937,7 @@ function castleNodeHTML(pos, isOwn, label) {
                onerror="this.style.display='none';">
         </div>
       </div>
-      <div class="node-label">${labelText}</div>
+      <div class="node-label" data-sv="${svNo}">${labelText}</div>
     </div>`;
 }
 
@@ -5895,12 +5945,13 @@ function buildCastleNodesHTML() {
   let html = "";
 
   if (state.castle && KOORD.kaleKaro(state.castle)) {
-    html += castleNodeHTML(state.castle, true, currentUsername || "Kalen");
+    html += castleNodeHTML(state.castle, true, currentUsername || "Kalen",
+                           kaleSeviyesi());
   }
 
   otherCastles.forEach(c => {
     if (c && c.castle && KOORD.kaleKaro(c.castle)) {
-      html += castleNodeHTML(c.castle, false, c.name);
+      html += castleNodeHTML(c.castle, false, c.name, c.sv);
     }
   });
   return html;
