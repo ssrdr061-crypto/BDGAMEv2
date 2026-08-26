@@ -6395,11 +6395,14 @@ document.head.appendChild(st);
    keskin kenarlı, kısa, hafif. `--kg-yuvarlak` %50 olursa daireye,
    %0 olursa keskin köşeli dörtgene döner.
 
-   KAYMA SIFIR — BİLEREK. Işık haritaya yukarıdan vuruyor, gölge
-   yana uzanmıyor; leke kalenin tabanının ALTINDA ortalanır. Yana
-   kaydırılırsa bir kenardan taşar ve o kenar ışık alan taraf ise
-   kale "havada" görünür. Yön istenirse `?isik=1` panelinde Kayma
-   sürgüsü var, varsayılanı 0 tutmak gerekiyor. DOM'a hiçbir şey eklenmiyor, gözlemci yok, kale seviyesi
+   Buradaki sayılar `?isik=1` paneliyle ÖLÇÜLDÜ, tahmin değil:
+   90×38 px · taban %60 · köşe %27 · kayma 14 px / 237° (dx -11.7,
+   dy 7.6) · blur 0 · karartı %30. Panelin varsayılanları da aynı
+   sayılara çekildi; panel açılınca ekran değişmez.
+
+   Kayma ışığın (72°) tam tersine bakar, yani sol-alta. Gölge o
+   yönde taşar; ışık alan sağ-üst kenarda kalenin altından
+   çıkmaz. DOM'a hiçbir şey eklenmiyor, gözlemci yok, kale seviyesi
    değişince ayar gerekmiyor.
 
    Ölçüler `--kg-*` değişkenlerinden gelir; `?isik=1` paneli aynı
@@ -6425,13 +6428,13 @@ html body #battleMap .map-node.castle-node .castle-avatar::after{
   content:"";
   position:absolute;
   left:50%;
-  top:var(--kg-taban, 88%);
-  width:var(--kg-en, 36px);
-  height:var(--kg-boy, 16px);
-  margin-left:calc(-0.5 * var(--kg-en, 36px) + var(--kg-dx, 0px));
-  margin-top:calc(-0.5 * var(--kg-boy, 16px) + var(--kg-dy, 0px));
-  border-radius:var(--kg-yuvarlak, 30%);
-  background:rgba(6,18,38, var(--kg-op, .22));
+  top:var(--kg-taban, 60%);
+  width:var(--kg-en, 90px);
+  height:var(--kg-boy, 38px);
+  margin-left:calc(-0.5 * var(--kg-en, 90px) + var(--kg-dx, -11.7px));
+  margin-top:calc(-0.5 * var(--kg-boy, 38px) + var(--kg-dy, 7.6px));
+  border-radius:var(--kg-yuvarlak, 27%);
+  background:rgba(6,18,38, var(--kg-op, .30));
   filter:blur(var(--kg-blur, 0px));
   pointer-events:none;
   z-index:0;
@@ -6477,14 +6480,14 @@ const ANAHTAR = "bdIsikGolge3";
 const VARSAYILAN = {
   isikAci: 72, isikYuk: 55, isikGuc: 20, koseKarart: 0,
   bagli: 0,
-  golgeAci: 242,     /* kayma yönü, derece      */
-  golgeKayma: 0,     /* kayma miktarı, px       */
-  golgeEn: 36,       /* leke genişliği, px      */
-  golgeBoy: 16,      /* leke yüksekliği, px     */
-  golgeYuvarlak: 30, /* köşe yuvarlaklığı, %    */
-  golgeTaban: 88,    /* kutu içindeki yer, %    */
+  golgeAci: 237,     /* kayma yönü, derece      */
+  golgeKayma: 14,    /* kayma miktarı, px       */
+  golgeEn: 90,       /* leke genişliği, px      */
+  golgeBoy: 38,      /* leke yüksekliği, px     */
+  golgeYuvarlak: 27, /* köşe yuvarlaklığı, %    */
+  golgeTaban: 60,    /* kutu içindeki yer, %    */
   golgeYumusak: 0,   /* blur, px (0 = keskin)   */
-  golgeKarart: 22,   /* karartı, %              */
+  golgeKarart: 30,   /* karartı, %              */
 };
 
 let A = Object.assign({}, VARSAYILAN);
