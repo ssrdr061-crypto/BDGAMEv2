@@ -6705,10 +6705,12 @@ const st = document.createElement("style");
 st.id = "temaKaleEtiket";
 st.textContent = `
 html body #battleMap .map-node.castle-node .node-label{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:4px;
+  /* KUTUCUK AKIŞTA DEĞİL — position:relative + ::before absolute.
+     Flex çocuğu olsaydı görseli büyütmek çerçeveyi de büyütürdü;
+     ikisi ayrı ayarlanamazdı. Artık çerçevenin ölçüsü yalnız
+     yazıya ve dolgulara bağlı, görsel onun soluna asılı duruyor. */
+  position:relative;
+  display:inline-block;
   font-family:'Baloo 2','Nunito',sans-serif;
   font-weight:800;
   font-size:11px;
@@ -6717,18 +6719,21 @@ html body #battleMap .map-node.castle-node .node-label{
   background:rgba(4,10,20,.62);
   border:none;
   border-radius:7px;
-  /* Sol dolgu küçük: kutucuk zaten kendi boşluğunu taşıyor.
-     Simetrik dolgu yazılırsa şerit sağa kayık görünüyordu. */
-  padding:2px 8px 2px 4px;
+  padding:2px 8px;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
   white-space:nowrap;
 }
 
-/* Seviye kutucuğu. Yazının boyuna göre değil SABİT ölçü: harita
-   zoom'u düğümün tamamını ölçekliyor, kutucuk da onunla büyür. */
+/* Seviye görseli. Ölçü SABİT piksel: harita zoom'u düğümün
+   tamamını ölçeklediği için görsel de onunla büyür. En ve boy ayrı
+   yazılır — kare olmayan bir rozet de kullanılabilsin diye. */
 html body #battleMap .map-node.castle-node .node-label::before{
   content:"";
-  flex:0 0 auto;
+  position:absolute;
+  right:100%;                 /* çerçevenin SOLUNA asılır */
+  top:50%;
+  margin-right:4px;           /* görsel–çerçeve boşluğu   */
+  transform:translateY(-50%);
   width:15px;
   height:15px;
   background-size:contain;
@@ -6772,25 +6777,28 @@ document.head.appendChild(st);
 
 if (!/[?&]etiket=1(&|$)/.test(location.search)) return;
 
-const ANAHTAR = "bdEtiket1";
+const ANAHTAR = "bdEtiket2";
 const VARSAYILAN = {
-  /* KALE — piksel/yüzde, doğrudan CSS'e gider */
-  kPunto:   11,   /* yazı boyu, px            */
-  kKutu:    15,   /* kutucuk kenarı, px       */
-  kAra:      4,   /* kutucuk–isim, px         */
-  kDolguY:   8,   /* sağ dolgu, px            */
-  kDolguSol: 4,   /* sol dolgu, px            */
-  kDolguD:   2,   /* dikey dolgu, px          */
-  kKose:     7,   /* köşe yuvarlaklığı, px    */
-  kDy:       0,   /* etiketin dikey kayması   */
-  kKutuDy:   0,   /* kutucuğun dikey kayması  */
+  /* KALE — piksel, doğrudan CSS'e gider */
+  kPunto:   11,   /* yazı boyu, px               */
+  kDolguY:   8,   /* yatay dolgu, px             */
+  kDolguD:   2,   /* dikey dolgu, px             */
+  kKose:     7,   /* köşe yuvarlaklığı, px       */
+  kDy:       0,   /* çerçevenin dikey kayması    */
+  kGEn:     15,   /* görsel genişliği, px        */
+  kGBoy:    15,   /* görsel yüksekliği, px       */
+  kGX:       4,   /* görsel–çerçeve boşluğu, px  */
+  kGY:       0,   /* görselin dikey kayması, px  */
 
-  /* DÜĞÜM — çarpanların 100 katı (sürgü tam sayı ister) */
-  dPunto:   46,   /* r × 0.46                 */
-  dKutu:   155,   /* punto × 1.55             */
-  dAra:     30,   /* punto × 0.30             */
-  dYaziY:  130,   /* r × 1.30                 */
-  dKutuDy:   0,   /* punto × 0.00             */
+  /* DÜĞÜM — çarpanların 100 katı (sürgü tam sayı ister).
+     Hepsi r (düğüm yarıçapı) üzerinden; yazı ve görsel BİRBİRİNDEN
+     BAĞIMSIZ, biri büyüyünce diğeri kıpırdamaz. */
+  dPunto:   46,   /* yazı boyu   = r × 0.46      */
+  dYaziY:  130,   /* isim kayma  = r × 1.30      */
+  dGEn:     72,   /* görsel en   = r × 0.72      */
+  dGBoy:    72,   /* görsel boy  = r × 0.72      */
+  dGX:      14,   /* görsel–isim = r × 0.14      */
+  dGY:       0,   /* görsel dikey = r × 0.00     */
 };
 
 let A = Object.assign({}, VARSAYILAN);
@@ -6810,28 +6818,27 @@ function uygula(){
   stil.textContent =
     "html body #battleMap .map-node.castle-node .node-label{" +
       "font-size:" + A.kPunto + "px;" +
-      "gap:" + A.kAra + "px;" +
-      "padding:" + A.kDolguD + "px " + A.kDolguY + "px " +
-                   A.kDolguD + "px " + A.kDolguSol + "px;" +
+      "padding:" + A.kDolguD + "px " + A.kDolguY + "px;" +
       "border-radius:" + A.kKose + "px;" +
       "transform:translateY(" + (25 + A.kDy) + "px);" +
     "}" +
     "html body #battleMap .map-node.castle-node .node-label::before{" +
-      "width:"  + A.kKutu + "px;" +
-      "height:" + A.kKutu + "px;" +
-      "position:relative;" +
-      "top:" + A.kKutuDy + "px;" +
+      "width:"  + A.kGEn  + "px;" +
+      "height:" + A.kGBoy + "px;" +
+      "margin-right:" + A.kGX + "px;" +
+      "transform:translateY(calc(-50% + " + A.kGY + "px));" +
     "}";
 
   /* ── DÜĞÜM ── */
   try {
     const E = window.HARITA && HARITA.CFG && HARITA.CFG.etiket;
     if (E) {
-      E.punto   = A.dPunto  / 100;
-      E.kutuBoy = A.dKutu   / 100;
-      E.ara     = A.dAra    / 100;
-      E.yaziY   = A.dYaziY  / 100;
-      E.kutuDy  = A.dKutuDy / 100;
+      E.punto   = A.dPunto / 100;
+      E.yaziY   = A.dYaziY / 100;
+      E.kutuEn  = A.dGEn   / 100;
+      E.kutuBoy = A.dGBoy  / 100;
+      E.kutuDx  = A.dGX    / 100;
+      E.kutuDy  = A.dGY    / 100;
       if (HARITA.cizUstIste) HARITA.cizUstIste();
     }
   } catch (e) {}
@@ -6881,22 +6888,25 @@ pstil.textContent =
 document.head.appendChild(pstil);
 
 const ALANLAR = [
-  ["bas", "KALE ETİKETİ"],
-  ["kPunto",    "Yazı boyu",    7,  22],
-  ["kKutu",     "Kutucuk",      8,  34],
-  ["kAra",      "Kutucuk–isim", 0,  16],
-  ["kDolguSol", "Sol dolgu",    0,  16],
-  ["kDolguY",   "Sağ dolgu",    0,  16],
-  ["kDolguD",   "Dikey dolgu",  0,  12],
+  ["bas", "KALE — ÇERÇEVE"],
+  ["kPunto",    "Yazı boyu",    7,  24],
+  ["kDolguY",   "Yatay dolgu",  0,  20],
+  ["kDolguD",   "Dikey dolgu",  0,  14],
   ["kKose",     "Köşe",         0,  16],
-  ["kDy",       "Şerit kayma", -30, 40],
-  ["kKutuDy",   "Kutucuk kayma", -8, 8],
-  ["bas", "DÜĞÜM ETİKETİ (%)"],
+  ["kDy",       "Dikey kayma",-30,  40],
+  ["bas", "KALE — GÖRSEL"],
+  ["kGEn",      "Genişlik",     6,  48],
+  ["kGBoy",     "Yükseklik",    6,  48],
+  ["kGX",       "Yatay boşluk",-20, 24],
+  ["kGY",       "Dikey kayma",-20,  20],
+  ["bas", "DÜĞÜM — YAZI (%)"],
   ["dPunto",    "Yazı boyu",   25,  90],
-  ["dKutu",     "Kutucuk",     60, 300],
-  ["dAra",      "Kutucuk–isim", 0, 120],
-  ["dYaziY",    "Şerit kayma", 60, 260],
-  ["dKutuDy",   "Kutucuk kayma", -60, 60],
+  ["dYaziY",    "Dikey kayma", 60, 260],
+  ["bas", "DÜĞÜM — GÖRSEL (%)"],
+  ["dGEn",      "Genişlik",    20, 220],
+  ["dGBoy",     "Yükseklik",   20, 220],
+  ["dGX",       "Yatay boşluk",-60, 90],
+  ["dGY",       "Dikey kayma",-80,  80],
 ];
 
 const kutu = document.createElement("div");
@@ -6946,18 +6956,18 @@ function yerlestir(){
       cikti.textContent =
         "tema.js kaleEtiketi\n" +
         "  font-size: " + A.kPunto + "px\n" +
-        "  gap: " + A.kAra + "px\n" +
-        "  padding: " + A.kDolguD + "px " + A.kDolguY + "px " +
-                        A.kDolguD + "px " + A.kDolguSol + "px\n" +
+        "  padding: " + A.kDolguD + "px " + A.kDolguY + "px\n" +
         "  border-radius: " + A.kKose + "px\n" +
-        "  ::before " + A.kKutu + "x" + A.kKutu + "px, top " + A.kKutuDy + "px\n" +
-        "  kale2x2.js translateY: " + (25 + A.kDy) + "px\n\n" +
+        "  translateY: " + (25 + A.kDy) + "px\n" +
+        "  ::before " + A.kGEn + "x" + A.kGBoy + "px\n" +
+        "  margin-right: " + A.kGX + "px · dy " + A.kGY + "px\n\n" +
         "harita.js CFG.etiket\n" +
-        "  punto: "   + (A.dPunto  / 100).toFixed(2) + "\n" +
-        "  kutuBoy: " + (A.dKutu   / 100).toFixed(2) + "\n" +
-        "  ara: "     + (A.dAra    / 100).toFixed(2) + "\n" +
-        "  yaziY: "   + (A.dYaziY  / 100).toFixed(2) + "\n" +
-        "  kutuDy: "  + (A.dKutuDy / 100).toFixed(2);
+        "  punto: "   + (A.dPunto / 100).toFixed(2) + "\n" +
+        "  yaziY: "   + (A.dYaziY / 100).toFixed(2) + "\n" +
+        "  kutuEn: "  + (A.dGEn   / 100).toFixed(2) + "\n" +
+        "  kutuBoy: " + (A.dGBoy  / 100).toFixed(2) + "\n" +
+        "  kutuDx: "  + (A.dGX    / 100).toFixed(2) + "\n" +
+        "  kutuDy: "  + (A.dGY    / 100).toFixed(2);
     }
     if (i === "sifirla") {
       A = Object.assign({}, VARSAYILAN);

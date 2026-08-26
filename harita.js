@@ -215,11 +215,16 @@
 
        `?etiket=1` paneli bu kutuyu canlı sürüyor (tema.js). */
     etiket: {
-      punto:   0.46,   /* yazı boyu = r × bu                  */
-      kutuBoy: 1.55,   /* kutucuk kenarı = punto × bu         */
-      ara:     0.30,   /* kutucuk–isim boşluğu = punto × bu   */
-      yaziY:   1.30,   /* şeridin düğüme uzaklığı = r × bu    */
-      kutuDy:  0.00,   /* kutucuğun dikey ince kayması        */
+      punto:   0.46,   /* yazı boyu = r × bu                       */
+      yaziY:   1.30,   /* ismin düğüme uzaklığı = r × bu           */
+      /* GÖRSEL ÖLÇÜSÜ YAZIYA BAĞLI DEĞİL — bilerek. Punto'ya
+         bağlıyken yazıyı büyütmek kutucuğu da büyütüyordu, ikisi
+         ayrı ayarlanamıyordu. İkisi de r (düğüm yarıçapı) üzerinden
+         hesaplanır, yani birbirinden bağımsız ama zoom'la uyumlu. */
+      kutuEn:  0.72,   /* görsel genişliği = r × bu                */
+      kutuBoy: 0.72,   /* görsel yüksekliği = r × bu               */
+      kutuDx:  0.14,   /* görsel–isim yatay boşluk = r × bu        */
+      kutuDy:  0.00,   /* görselin dikey ince kayması = r × bu     */
     },
 
     /* Zemin kaç dünya pikselinde bir örneklenir. Küçültürsen daha
@@ -979,31 +984,35 @@
         c.font = "800 " + punto + "px " + HARITA_FONT;
         c.textBaseline = "top";
 
-        /* ── SEVİYE KUTUCUĞU + İSİM, TEK ŞERİT HALİNDE ──
-           Kutucuk ile isim birlikte ortalanır: önce toplam genişlik
-           ölçülür, şerit oradan sola yaslanarak çizilir. İsmi tek
-           başına ortalayıp kutucuğu soluna koymak şeridi sağa
-           kaydırırdı — düğümün ekseninden kayan bir etiket olurdu.
+        /* ── İSİM + SEVİYE GÖRSELİ ──
+           İSİM düğümün eksenine ortalanır, GÖRSEL onun soluna asılır.
+           Eskiden ikisi tek şerit sayılıp birlikte ortalanıyordu;
+           o zaman görseli büyütmek ismi sağa kaydırıyordu. Artık
+           ismin yeri görselden bağımsız — görsel ölçüsü serbestçe
+           denenebiliyor.
 
            SEVİYE YAZIDA TEKRARLANMAZ; d.ad zaten son eki taşımıyor. */
-        const kb   = Math.round(punto * E.kutuBoy);     /* kutucuk boyu */
-        const ara  = Math.round(punto * E.ara);         /* kutucuk–isim */
+        const gEn = Math.round(r * E.kutuEn);
+        const gBoy = Math.round(r * E.kutuBoy);
         const gorsel = svGorsel(d.seviye);
+
+        c.textAlign = "center";
+        yaziAnahat(c, d.ad, x, yaziY, "#ffffff", punto);
 
         c.textAlign = "left";
         const isimGen = c.measureText(d.ad).width;
-        const toplam  = kb + ara + isimGen;
-        const solX    = x - toplam / 2;
-        const kutuY   = yaziY + punto / 2 - kb / 2 + punto * E.kutuDy;
+        const gX = x - isimGen / 2 - r * E.kutuDx - gEn;
+        const gY = yaziY + punto / 2 - gBoy / 2 + r * E.kutuDy;
 
         if (gorsel) {
-          c.drawImage(gorsel, solX, kutuY, kb, kb);
+          c.drawImage(gorsel, gX, gY, gEn, gBoy);
         } else {
-          /* YEDEK — görsel henüz yok. Aynı yerde, aynı boyda küçük
+          /* YEDEK — görsel henüz yok. Aynı yerde, aynı ölçüde küçük
              bir sayı rozeti; görsel gelince kendiliğinden kaybolur. */
-          const br = kb / 2;
+          const mx = gX + gEn / 2, my = gY + gBoy / 2;
+          const br = Math.min(gEn, gBoy) / 2;
           c.beginPath();
-          c.arc(solX + br, kutuY + br, br, 0, Math.PI * 2);
+          c.arc(mx, my, br, 0, Math.PI * 2);
           c.fillStyle = "#12181f";
           c.fill();
           c.lineWidth = Math.max(1, br * 0.22);
@@ -1012,13 +1021,11 @@
           c.fillStyle = renk;
           c.font = "800 " + Math.round(br * 1.35) + "px " + HARITA_FONT;
           c.textAlign = "center"; c.textBaseline = "middle";
-          c.fillText(String(d.seviye), solX + br, kutuY + br);
-          /* çizim durumunu isim için geri al */
+          c.fillText(String(d.seviye), mx, my);
+          /* çizim durumunu geri al */
           c.font = "800 " + punto + "px " + HARITA_FONT;
-          c.textAlign = "left"; c.textBaseline = "top";
+          c.textBaseline = "top";
         }
-
-        yaziAnahat(c, d.ad, solX + kb + ara, yaziY, "#ffffff", punto);
 
         /* İŞGAL ADI — TEK KAYNAK BURASI.
            Kendim ALTIN, başkası KIRMIZI. Sefer katmanı toplarken ad
