@@ -6374,3 +6374,69 @@ html body #heroDetailOverlay #hdNext{
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   KALE TEMAS GÖLGESİ — ZEMİNE OTURTMA
+   ------------------------------------------------------------
+   SORUN: kaleler zeminin üstünde asılı duruyordu. Sebebi eksik
+   gölge değil, YANLIŞ gölgeydi: index.html'deki
+   `drop-shadow(0 3px 6px)` silüeti saran, dümdüz aşağı düşen bir
+   gölge. Göz onu "çıkartmanın altındaki gölge" diye okuyor,
+   "zemine değen cisim" diye değil.
+
+   ÇÖZÜM iki parça:
+
+   1. TEMAS GÖLGESİ (::before) — kalenin tabanının altında, YERE
+      SERİLİ yayvan bir elips. Yükseklik/genişlik oranı 1:3
+      civarında; izometrik zeminde daire böyle görünür. Cismi yere
+      bağlayan asıl şey budur.
+
+   2. YÖNLÜ DÜŞEN GÖLGE — harita.js'teki ışık yansıması sol üstte
+      (yansima.x 0.34, y 0.20). Gölge o ışığa göre SAĞ-ALTA düşer.
+      Eskisi dümdüz aşağı düşüyordu, ışıkla çelişiyordu.
+
+   NOT: index.html'e dokunulmadı. Bu blok daha SONRA yüklendiği
+   için aynı seçicide kazanır (cascade).
+   ══════════════════════════════════════════════════════════════ */
+(function kaleTemasGolgesi(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaKaleTemasGolge";
+st.textContent = `
+/* Elips mutlak konumlanacak, kutu referans olsun */
+html body #battleMap .map-node.castle-node .node-avatar{
+  position:relative !important;
+  overflow:visible !important;
+}
+
+/* 1) Yere serili temas elipsi.
+      left 53%: ışık solda olduğu için gölge hafif sağa kaçık.
+      bottom/height: kale tabanının hizası. Kale görselinin tabanı
+      100px kutunun altından ~%12 yukarıda bitiyor. */
+html body #battleMap .map-node.castle-node .node-avatar::before{
+  content:"";
+  position:absolute;
+  left:53%;
+  bottom:12%;
+  width:84%;
+  height:27%;
+  transform:translate(-50%, 50%);
+  background:radial-gradient(ellipse at 50% 50%,
+    rgba(4,10,24,.50) 0%,
+    rgba(4,10,24,.33) 36%,
+    rgba(4,10,24,.13) 60%,
+    rgba(4,10,24,0)   78%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* 2) Görselin kendi gölgesi: ışığa göre sağ-alta, daha yumuşak.
+      Eski dümdüz aşağı düşen sıkı gölgenin yerine geçer. */
+html body #battleMap .map-node.castle-node .castle-avatar img{
+  position:relative;
+  z-index:1;
+  filter:drop-shadow(5px 7px 7px rgba(4,10,24,.42)) !important;
+}
+`;
+document.head.appendChild(st);
+})();

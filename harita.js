@@ -172,6 +172,25 @@
        turkuaza çalan koyu bir ton — buz gölgesi hissi. */
     karGolgeRenk: [74, 128, 138],
 
+    /* ── IŞIK YANSIMASI ──
+       Zemin parçalarının ÜSTÜNE, EKRAN uzayında çizilen geniş bir
+       aydınlık leke + kenarlarda hafif karartı.
+
+       NEDEN EKRAN UZAYINDA: dünya uzayına konsaydı parça önbelleğini
+       geçersiz kılardı ve kaydırırken ışık zeminle birlikte kayıp
+       "leke" gibi görünürdü. Ekrana sabitlenince göz onu ışık kaynağı
+       olarak okur, arazi deseni olarak değil.
+
+       guc: 0 = kapalı. x/y: ekranın oranı (0-1), sol üst köşe 0,0.
+       koseKarart: köşelerin kararma miktarı, hacim hissi verir. */
+    yansima: {
+      guc: 0.13,
+      x: 0.34,
+      y: 0.20,
+      yaricap: 1.05,
+      koseKarart: 0.20,
+    },
+
     /* Geniş yumuşak ışık/gölge dalgası. 0 = kapalı. */
     isik: 0.32,
 
@@ -731,6 +750,32 @@
         /* +1 px: komşu parçalar arasında saç teli boşluk kalmasın */
         ctx.drawImage(par.cv, par.x, par.y, par.w + 1, par.h + 1);
         cizilen += C * C;
+      }
+    }
+
+    /* ── IŞIK YANSIMASI ──
+       Dünya dönüşümü sıfırlanıp EKRAN uzayına dönülüyor; yansıma
+       kaydırmayla birlikte kaymasın diye. */
+    const Y = CFG.yansima;
+    if (Y && Y.guc > 0) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const R = Math.max(w, h) * Y.yaricap;
+      const lx = w * Y.x, ly = h * Y.y;
+
+      const g1 = ctx.createRadialGradient(lx, ly, 0, lx, ly, R);
+      g1.addColorStop(0,    "rgba(255,252,238," + Y.guc.toFixed(3) + ")");
+      g1.addColorStop(0.42, "rgba(255,250,235," + (Y.guc * 0.42).toFixed(3) + ")");
+      g1.addColorStop(1,    "rgba(255,250,235,0)");
+      ctx.fillStyle = g1;
+      ctx.fillRect(0, 0, w, h);
+
+      if (Y.koseKarart > 0) {
+        const g2 = ctx.createRadialGradient(w / 2, h / 2, R * 0.30, w / 2, h / 2, R * 0.82);
+        g2.addColorStop(0, "rgba(0,0,0,0)");
+        g2.addColorStop(1, "rgba(4,10,24," + Y.koseKarart.toFixed(3) + ")");
+        ctx.fillStyle = g2;
+        ctx.fillRect(0, 0, w, h);
       }
     }
 
