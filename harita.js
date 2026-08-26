@@ -996,12 +996,21 @@
         const gBoy = Math.round(r * E.kutuBoy);
         const gorsel = svGorsel(d.seviye);
 
+        /* CANAVARDA İSİM YOK — yalnız seviye görseli.
+           Canavarın adı bilgi taşımıyor (görseli zaten ne olduğunu
+           söylüyor) ve haritayı kalabalıklaştırıyordu. İsim
+           basılmayınca görselin yaslanacağı bir sol kenar da yok:
+           doğrudan düğümün eksenine ortalanır. */
+        const isimVar = (d.tur !== "canavar");
+
         c.textAlign = "center";
-        yaziAnahat(c, d.ad, x, yaziY, "#ffffff", punto);
+        if (isimVar) yaziAnahat(c, d.ad, x, yaziY, "#ffffff", punto);
 
         c.textAlign = "left";
-        const isimGen = c.measureText(d.ad).width;
-        const gX = x - isimGen / 2 - r * E.kutuDx - gEn;
+        const isimGen = isimVar ? c.measureText(d.ad).width : 0;
+        const gX = isimVar
+          ? (x - isimGen / 2 - r * E.kutuDx - gEn)
+          : (x - gEn / 2);
         const gY = yaziY + punto / 2 - gBoy / 2 + r * E.kutuDy;
 
         if (gorsel) {

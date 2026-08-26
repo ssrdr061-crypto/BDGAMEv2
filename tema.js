@@ -6777,7 +6777,7 @@ document.head.appendChild(st);
 
 if (!/[?&]etiket=1(&|$)/.test(location.search)) return;
 
-const ANAHTAR = "bdEtiket2";
+const ANAHTAR = "bdEtiket3";
 const VARSAYILAN = {
   /* KALE — piksel, doğrudan CSS'e gider */
   kPunto:   11,   /* yazı boyu, px               */
@@ -6889,24 +6889,24 @@ document.head.appendChild(pstil);
 
 const ALANLAR = [
   ["bas", "KALE — ÇERÇEVE"],
-  ["kPunto",    "Yazı boyu",    7,  24],
-  ["kDolguY",   "Yatay dolgu",  0,  20],
-  ["kDolguD",   "Dikey dolgu",  0,  14],
-  ["kKose",     "Köşe",         0,  16],
-  ["kDy",       "Dikey kayma",-30,  40],
+  ["kPunto",    "Yazı boyu",     5,  40],
+  ["kDolguY",   "Yatay dolgu",   0,  40],
+  ["kDolguD",   "Dikey dolgu",   0,  30],
+  ["kKose",     "Köşe",          0,  30],
+  ["kDy",       "Dikey kayma", -80, 120],
   ["bas", "KALE — GÖRSEL"],
-  ["kGEn",      "Genişlik",     6,  48],
-  ["kGBoy",     "Yükseklik",    6,  48],
-  ["kGX",       "Yatay boşluk",-20, 24],
-  ["kGY",       "Dikey kayma",-20,  20],
+  ["kGEn",      "Genişlik",      4, 200],
+  ["kGBoy",     "Yükseklik",     4, 200],
+  ["kGX",       "Yatay boşluk",-120, 120],
+  ["kGY",       "Dikey kayma", -80,  80],
   ["bas", "DÜĞÜM — YAZI (%)"],
-  ["dPunto",    "Yazı boyu",   25,  90],
-  ["dYaziY",    "Dikey kayma", 60, 260],
+  ["dPunto",    "Yazı boyu",    10, 200],
+  ["dYaziY",    "Dikey kayma",   0, 500],
   ["bas", "DÜĞÜM — GÖRSEL (%)"],
-  ["dGEn",      "Genişlik",    20, 220],
-  ["dGBoy",     "Yükseklik",   20, 220],
-  ["dGX",       "Yatay boşluk",-60, 90],
-  ["dGY",       "Dikey kayma",-80,  80],
+  ["dGEn",      "Genişlik",     10, 600],
+  ["dGBoy",     "Yükseklik",    10, 600],
+  ["dGX",       "Yatay boşluk",-200, 300],
+  ["dGY",       "Dikey kayma",-300, 300],
 ];
 
 const kutu = document.createElement("div");
