@@ -215,17 +215,17 @@
 
        `?etiket=1` paneli bu kutuyu canlı sürüyor (tema.js). */
     etiket: {
-      punto:   0.10,   /* yazı boyu = r × bu                       */
+      punto:   0.54,   /* yazı boyu = r × bu                       */
       yaziY:   1.33,   /* ismin düğüme uzaklığı = r × bu           */
-      yaziX:   0.00,   /* ismin yatay kayması = r × bu             */
+      yaziX:  -0.02,   /* ismin yatay kayması = r × bu             */
       /* GÖRSEL ÖLÇÜSÜ YAZIYA BAĞLI DEĞİL — bilerek. Punto'ya
          bağlıyken yazıyı büyütmek kutucuğu da büyütüyordu, ikisi
          ayrı ayarlanamıyordu. İkisi de r (düğüm yarıçapı) üzerinden
          hesaplanır, yani birbirinden bağımsız ama zoom'la uyumlu. */
-      kutuEn:  2.52,   /* görsel genişliği = r × bu                */
-      kutuBoy: 1.21,   /* görsel yüksekliği = r × bu               */
-      kutuDx: -2.00,   /* görsel–isim yatay boşluk = r × bu        */
-      kutuDy: -0.32,   /* görselin dikey ince kayması = r × bu     */
+      kutuEn:  2.67,   /* görsel genişliği = r × bu                */
+      kutuBoy: 1.34,   /* görsel yüksekliği = r × bu               */
+      kutuDx: -0.69,   /* görsel–isim yatay boşluk = r × bu        */
+      kutuDy: -0.26,   /* görselin dikey ince kayması = r × bu     */
     },
 
     /* Zemin kaç dünya pikselinde bir örneklenir. Küçültürsen daha
@@ -1474,6 +1474,27 @@
        Sıra bozulursa -50% ölçeklenir ve kale karodan kayar. */
     const donusumSonu = " translate(-50%,-50%) scale(" + olcek + ")";
     const liste = dugumOnbellegi(mapEl);
+
+    /* ── ETİKET KARŞI ÖLÇEĞİ ──
+       Kale düğümü zoom ile orantılı büyüyor (yukarıdaki scale). İsim
+       etiketi de onun içinde olduğu için yakınlaşınca dev harflere
+       dönüşüyordu. Burada etiket, kendi kutusunda TERS ölçeklenerek
+       en fazla 1 katta tutulur:
+
+         yakınlaşırken (olcek > 1) → yazı sabit kalır
+         uzaklaşırken  (olcek < 1) → yazı düğümle birlikte küçülür
+
+       Kutuya değil CSS değişkenine yazılıyor: transform'un kendisi
+       CSS'te duruyor (translate + scale), buradan sadece çarpan
+       geçiliyor. Yoksa satır içi transform, konumu da ezerdi.
+
+       Değer DEĞİŞMEDİKÇE yazılmıyor — kaydırma karelerinde zoom
+       sabittir, boşuna stil yazmak yeniden boyama doğurur. */
+    const etK = olcek > 1 ? (1 / olcek) : 1;
+    if (mapEl._etK !== etK) {
+      mapEl._etK = etK;
+      mapEl.style.setProperty("--et-k", etK);
+    }
 
     for (let i = 0; i < liste.length; i++) {
       const d = liste[i];

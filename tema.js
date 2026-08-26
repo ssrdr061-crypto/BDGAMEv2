@@ -6715,9 +6715,11 @@ html body #battleMap .map-node.castle-node .node-label{
   font-weight:800;
   font-size:23px;
   line-height:1.3;
-  /* ÇERÇEVE GENİŞLİĞİ: auto = yazı kadar. Sabit px yazılırsa yazıyı
-     büyütmek çerçeveyi genişletmez, yalnız içine sığar. */
-  width:105px;
+  /* ÇERÇEVE GENİŞLİĞİ yazıya göre. Uzun ad için tavan var: 105px'i
+     aşınca isim kırpılıp üç nokta konur (aşağıdaki .nl-ad). Sabit
+     genişlik kısa isimlerde kocaman boş bir kutu bırakıyordu. */
+  width:auto;
+  max-width:105px;
   box-sizing:border-box;
   text-align:center;
   color:#ffffff;
@@ -6731,10 +6733,18 @@ html body #battleMap .map-node.castle-node .node-label{
      görsel ::before ile ve kutunun DIŞINA (right:100%) asılı. */
   overflow:visible;
   /* kale2x2.js etikete translateY(25px) yazıyor; buradaki kayma
-     ONUN YERİNE geçer, o yüzden 25 içinde toplanmış (25 - 15 = 10).
-     Ayrı yazılırsa biri diğerini eziyor ve etiket kalenin içine
-     sıçrıyordu. */
-  transform:translate(2px, 10px);
+     ONUN YERİNE geçer, o yüzden taban 61px olarak içine toplandı.
+     Ayrı yazılsaydı biri diğerini ezerdi.
+
+     KALENİN ÜSTÜNE BİNMEME: 61px, kale kutusunun (100px) alt
+     kenarının altına düşen değer. 10px'te yazı kale resminin
+     eteğine biniyordu.
+
+     scale(--et-k) düğümün kendi büyütmesini geri alır (harita.js
+     dugumleriYerlestir). transform-origin ÜST ORTA: küçülürken
+     etiket kalenin altına yapışık kalır, ortasına kaymaz. */
+  transform-origin:50% 0;
+  transform:translate(2px, 46px) scale(var(--et-k, 1));
 }
 
 /* Uzun kullanıcı adı çerçeveden taşmaz: kırpılır ve sonuna üç nokta
@@ -6802,16 +6812,16 @@ document.head.appendChild(st);
 
 if (!/[?&]etiket=1(&|$)/.test(location.search)) return;
 
-const ANAHTAR = "bdEtiket5";
+const ANAHTAR = "bdEtiket6";
 const VARSAYILAN = {
   /* KALE — piksel, doğrudan CSS'e gider */
   kPunto:   23,   /* yazı boyu, px                    */
-  kGenis:  105,   /* çerçeve genişliği, px (0 = yazı kadar) */
+  kGenis:  105,   /* çerçeve genişlik TAVANI, px      */
   kDolguY:  19,   /* yatay dolgu, px                  */
   kDolguD:   0,   /* dikey dolgu, px                  */
   kKose:    30,   /* köşe yuvarlaklığı, px            */
   kDx:       2,   /* çerçevenin yatay kayması         */
-  kDy:     -15,   /* çerçevenin dikey kayması         */
+  kDy:     -15,   /* dikey kayma (taban 61px)         */
   kGEn:     85,   /* görsel genişliği, px             */
   kGBoy:   123,   /* görsel yüksekliği, px            */
   kGX:     -43,   /* görsel–çerçeve boşluğu, px       */
@@ -6846,10 +6856,11 @@ function uygula(){
   stil.textContent =
     "html body #battleMap .map-node.castle-node .node-label{" +
       "font-size:" + A.kPunto + "px;" +
-      "width:" + (A.kGenis > 0 ? A.kGenis + "px" : "auto") + ";" +
+      "width:auto;max-width:" + A.kGenis + "px;" +
       "padding:" + A.kDolguD + "px " + A.kDolguY + "px;" +
       "border-radius:" + A.kKose + "px;" +
-      "transform:translate(" + A.kDx + "px," + (25 + A.kDy) + "px);" +
+      "transform:translate(" + A.kDx + "px," + (61 + A.kDy) + "px)" +
+        " scale(var(--et-k, 1));" +
     "}" +
     "html body #battleMap .map-node.castle-node .node-label::before{" +
       "width:"  + A.kGEn  + "px;" +
@@ -6920,7 +6931,7 @@ document.head.appendChild(pstil);
 const ALANLAR = [
   ["bas", "KALE — ÇERÇEVE"],
   ["kPunto",    "Yazı boyu",     5,  40],
-  ["kGenis",    "Genişlik",      0, 260],
+  ["kGenis",    "En çok genişlik", 20, 300],
   ["kDolguY",   "Yatay dolgu",   0,  40],
   ["kDolguD",   "Dikey dolgu",   0,  30],
   ["kKose",     "Köşe",          0,  30],
@@ -6989,10 +7000,10 @@ function yerlestir(){
       cikti.textContent =
         "tema.js kaleEtiketi\n" +
         "  font-size: " + A.kPunto + "px\n" +
-        "  width: " + (A.kGenis > 0 ? A.kGenis + "px" : "auto") + "\n" +
+        "  max-width: " + A.kGenis + "px\n" +
         "  padding: " + A.kDolguD + "px " + A.kDolguY + "px\n" +
         "  border-radius: " + A.kKose + "px\n" +
-        "  translate: " + A.kDx + "px / " + (25 + A.kDy) + "px\n" +
+        "  translate: " + A.kDx + "px / " + (61 + A.kDy) + "px\n" +
         "  ::before " + A.kGEn + "x" + A.kGBoy + "px\n" +
         "  margin-right: " + A.kGX + "px · dy " + A.kGY + "px\n\n" +
         "harita.js CFG.etiket\n" +
