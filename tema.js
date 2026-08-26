@@ -6440,3 +6440,245 @@ html body #battleMap .map-node.castle-node .castle-avatar img{
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   IŞIK & GÖLGE AYAR PANELİ  —  ?isik=1
+   ------------------------------------------------------------
+   Adres satırına ?isik=1 eklenmedikçe HİÇBİR ŞEY yapmaz; oyuncu
+   tarafında ne DOM'a eleman girer ne stil enjekte edilir.
+
+   Ne ayarlanır:
+     · Işığın ekrandaki açısı ve yüksekliği  → harita.js CFG.yansima
+     · Işık gücü, köşe karartısı             → harita.js CFG.yansima
+     · Gölge açısı, uzunluğu, genişliği,
+       yumuşaklığı, karartısı                → kale temas gölgesi CSS
+
+   Değerler localStorage'da saklanır, sayfa yenilense de durur.
+   "DEĞERLER" düğmesi son sayıları yazdırır — beğendiğini
+   tema.js/harita.js içine sabitlersin, panel gitse de kalır.
+
+   GÖLGE IŞIĞA BAĞLI: açıkken gölge açısı ışığın tam tersidir,
+   ışığı çevirince gölge kendiliğinden döner. Kapatırsan ikisini
+   ayrı ayrı oynatabilirsin.
+   ══════════════════════════════════════════════════════════════ */
+(function isikGolgeAyar(){
+"use strict";
+
+if (!/[?&]isik=1(&|$)/.test(location.search)) return;
+
+const ANAHTAR = "bdIsikGolge";
+const VARSAYILAN = {
+  isikAci: 325,      /* derece · 0 = yukarı, saat yönü */
+  isikYuk: 55,       /* 0 = ufukta, 100 = tam tepede   */
+  isikGuc: 13,       /* /100                            */
+  koseKarart: 20,    /* /100                            */
+  bagli: 1,          /* gölge ışığa bağlı mı            */
+  golgeAci: 145,     /* derece                          */
+  golgeUzun: 9,      /* px                              */
+  golgeGen: 84,      /* %                               */
+  golgeYumusak: 7,   /* px                              */
+  golgeKarart: 50,   /* /100                            */
+};
+
+let A = Object.assign({}, VARSAYILAN);
+try {
+  const k = JSON.parse(localStorage.getItem(ANAHTAR) || "null");
+  if (k) A = Object.assign(A, k);
+} catch (e) {}
+
+const rad = (d) => (d - 90) * Math.PI / 180;
+
+/* ── uygula ─────────────────────────────────────────────────── */
+const stil = document.createElement("style");
+stil.id = "temaIsikGolgeAyar";
+document.head.appendChild(stil);
+
+function uygula(){
+  if (A.bagli) A.golgeAci = (A.isikAci + 180) % 360;
+
+  /* 1) harita.js — ekran uzayındaki ışık */
+  try {
+    const C = window.HARITA && HARITA.CFG && HARITA.CFG.yansima;
+    if (C) {
+      const uzak = (1 - A.isikYuk / 100) * 0.55;
+      C.x = 0.5 + Math.cos(rad(A.isikAci)) * uzak;
+      C.y = 0.5 + Math.sin(rad(A.isikAci)) * uzak;
+      C.guc = A.isikGuc / 100;
+      C.koseKarart = A.koseKarart / 100;
+      if (HARITA.cizIste) HARITA.cizIste();
+    }
+  } catch (e) {}
+
+  /* 2) kale gölgesi — temas elipsi + düşen gölge */
+  const a  = A.golgeKarart / 100;
+  const gx = Math.cos(rad(A.golgeAci));
+  const gy = Math.sin(rad(A.golgeAci));
+  const en = A.golgeGen;
+  const boy = en / 3.1;                     /* izometrik daire ~3:1 */
+  const dx = (gx * A.golgeUzun).toFixed(1);
+  const dy = (gy * A.golgeUzun).toFixed(1);
+
+  stil.textContent =
+"html body #battleMap .map-node.castle-node .node-avatar::before{" +
+  "width:" + en + "%;" +
+  "height:" + boy.toFixed(1) + "%;" +
+  "left:" + (50 + gx * 5).toFixed(1) + "%;" +
+  "bottom:" + (12 - gy * 3).toFixed(1) + "%;" +
+  "filter:blur(" + (A.golgeYumusak * 0.35).toFixed(1) + "px);" +
+  "background:radial-gradient(ellipse at 50% 50%," +
+    "rgba(4,10,24," + a.toFixed(3) + ") 0%," +
+    "rgba(4,10,24," + (a * .66).toFixed(3) + ") 36%," +
+    "rgba(4,10,24," + (a * .26).toFixed(3) + ") 60%," +
+    "rgba(4,10,24,0) 78%);" +
+"}" +
+"html body #battleMap .map-node.castle-node .castle-avatar img{" +
+  "filter:drop-shadow(" + dx + "px " + dy + "px " +
+    A.golgeYumusak + "px rgba(4,10,24," + (a * .85).toFixed(3) + ")) !important;" +
+"}";
+
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
+}
+
+/* ── panel ──────────────────────────────────────────────────── */
+const pstil = document.createElement("style");
+pstil.textContent = `
+#bdIG{position:fixed;right:8px;top:96px;z-index:99999;
+ font-family:'Baloo 2',system-ui,sans-serif;color:#e8f1ff;
+ -webkit-tap-highlight-color:transparent;}
+#bdIG .kapak{width:34px;height:34px;border-radius:10px;border:none;
+ background:linear-gradient(180deg,#3d7ccc,#22488f);color:#ffd84d;
+ font-size:16px;line-height:34px;text-align:center;
+ box-shadow:0 2px 6px rgba(0,20,45,.3);transition:.09s;}
+#bdIG .kapak:active{transform:scale(.96);filter:brightness(.93);}
+#bdIG .govde{display:none;width:224px;margin-top:6px;padding:9px 10px 10px;
+ border-radius:12px;background:linear-gradient(180deg,#22488f,#152e5e);
+ box-shadow:0 2px 6px rgba(0,20,45,.3);}
+#bdIG.acik .govde{display:block;}
+#bdIG .bas{font-size:11px;font-weight:700;color:#9fc4f5;
+ letter-spacing:.4px;margin:7px 0 3px;}
+#bdIG .bas:first-child{margin-top:0;}
+#bdIG .sat{display:flex;align-items:center;gap:7px;margin:3px 0;}
+#bdIG .ad{font-size:11px;flex:1;white-space:nowrap;opacity:.9;}
+#bdIG .dg{font-size:11px;font-weight:700;color:#ffd84d;
+ width:30px;text-align:right;font-variant-numeric:tabular-nums;}
+#bdIG input[type=range]{-webkit-appearance:none;appearance:none;
+ flex:0 0 96px;height:16px;background:transparent;margin:0;}
+#bdIG input[type=range]::-webkit-slider-runnable-track{
+ height:3px;border-radius:2px;background:rgba(255,255,255,.22);}
+#bdIG input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;
+ width:13px;height:13px;margin-top:-5px;border-radius:50%;
+ background:#ffd84d;border:none;}
+#bdIG input[type=range]::-moz-range-track{height:3px;border-radius:2px;
+ background:rgba(255,255,255,.22);}
+#bdIG input[type=range]::-moz-range-thumb{width:13px;height:13px;
+ border:none;border-radius:50%;background:#ffd84d;}
+#bdIG .dgm{display:flex;gap:6px;margin-top:8px;}
+#bdIG .dgm button{flex:1;padding:7px 4px;border:none;border-radius:8px;
+ font:700 10px/1 'Baloo 2',system-ui,sans-serif;color:#eaf3ff;
+ background:#3d7ccc;transition:.09s;}
+#bdIG .dgm button:active{transform:scale(.96);filter:brightness(.93);}
+#bdIG .dgm .kirmizi{background:#c0392b;}
+#bdIG .cikti{display:none;margin-top:7px;padding:7px;border-radius:8px;
+ background:rgba(4,12,28,.55);font:600 10px/1.5 ui-monospace,monospace;
+ color:#cfe4ff;white-space:pre-wrap;word-break:break-all;}
+`;
+document.head.appendChild(pstil);
+
+const kutu = document.createElement("div");
+kutu.id = "bdIG";
+
+const ALANLAR = [
+  ["bas", "IŞIK"],
+  ["isikAci",     "Açı",        0, 359, 1, "°"],
+  ["isikYuk",     "Yükseklik",  0, 100, 1, ""],
+  ["isikGuc",     "Güç",        0,  40, 1, ""],
+  ["koseKarart",  "Köşe karart",0,  50, 1, ""],
+  ["bas", "GÖLGE"],
+  ["bagli",       "Işığa bağlı",0,   1, 1, ""],
+  ["golgeAci",    "Açı",        0, 359, 1, "°"],
+  ["golgeUzun",   "Uzunluk",    0,  24, 1, ""],
+  ["golgeGen",    "Genişlik",  40, 130, 1, ""],
+  ["golgeYumusak","Yumuşaklık", 0,  20, 1, ""],
+  ["golgeKarart", "Karartı",    0,  90, 1, ""],
+];
+
+let ic = '<div class="kapak">☀</div><div class="govde">';
+for (const f of ALANLAR) {
+  if (f[0] === "bas") { ic += '<div class="bas">' + f[1] + '</div>'; continue; }
+  const [k, ad, mn, mx] = f;
+  ic += '<div class="sat"><span class="ad">' + ad + '</span>' +
+        '<input type="range" data-k="' + k + '" min="' + mn + '" max="' + mx +
+        '" step="1" value="' + A[k] + '">' +
+        '<span class="dg" data-d="' + k + '">' + A[k] + '</span></div>';
+}
+ic += '<div class="dgm"><button data-i="deger">DEĞERLER</button>' +
+      '<button data-i="sifirla" class="kirmizi">SIFIRLA</button></div>' +
+      '<div class="cikti"></div></div>';
+kutu.innerHTML = ic;
+
+function yerlestir(){
+  if (document.body) document.body.appendChild(kutu);
+  else return setTimeout(yerlestir, 200);
+
+  const govde = kutu.querySelector(".govde");
+  const cikti = kutu.querySelector(".cikti");
+
+  kutu.querySelector(".kapak").addEventListener("pointerup", () => {
+    kutu.classList.toggle("acik");
+  });
+
+  kutu.addEventListener("input", (ev) => {
+    const el = ev.target;
+    const k = el.dataset && el.dataset.k;
+    if (!k) return;
+    A[k] = +el.value;
+    uygula();
+    tazele();
+  });
+
+  kutu.addEventListener("pointerup", (ev) => {
+    const i = ev.target.dataset && ev.target.dataset.i;
+    if (i === "deger") {
+      const C = (window.HARITA && HARITA.CFG && HARITA.CFG.yansima) || {};
+      cikti.style.display = cikti.style.display === "block" ? "none" : "block";
+      cikti.textContent =
+        "harita.js → CFG.yansima\n" +
+        "  guc: " + (A.isikGuc / 100).toFixed(2) + ",\n" +
+        "  x: " + (C.x != null ? C.x.toFixed(3) : "?") + ",\n" +
+        "  y: " + (C.y != null ? C.y.toFixed(3) : "?") + ",\n" +
+        "  koseKarart: " + (A.koseKarart / 100).toFixed(2) + ",\n\n" +
+        "tema.js → kale gölgesi\n" +
+        "  açı: " + A.golgeAci + "°  uzunluk: " + A.golgeUzun + "px\n" +
+        "  genişlik: " + A.golgeGen + "%  yumuşak: " + A.golgeYumusak + "px\n" +
+        "  karartı: " + (A.golgeKarart / 100).toFixed(2);
+    }
+    if (i === "sifirla") {
+      A = Object.assign({}, VARSAYILAN);
+      uygula(); tazele();
+      cikti.style.display = "none";
+    }
+  });
+
+  function tazele(){
+    for (const el of kutu.querySelectorAll("input[type=range]")) {
+      const k = el.dataset.k;
+      if (+el.value !== A[k]) el.value = A[k];
+      const d = kutu.querySelector('[data-d="' + k + '"]');
+      if (d) d.textContent = (k === "bagli") ? (A[k] ? "açık" : "—") : A[k];
+    }
+    govde.querySelector('[data-k="golgeAci"]').disabled = !!A.bagli;
+    govde.querySelector('[data-k="golgeAci"]').style.opacity = A.bagli ? .35 : 1;
+  }
+
+  tazele();
+}
+
+uygula();
+if (document.readyState === "loading")
+  document.addEventListener("DOMContentLoaded", yerlestir);
+else yerlestir();
+
+/* harita.js geç yüklenirse ışık ayarı boşa düşmesin */
+setTimeout(uygula, 900);
+setTimeout(uygula, 2500);
+})();
