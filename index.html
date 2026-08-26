@@ -1230,6 +1230,80 @@ body.world-active{padding:0; overflow:hidden;}
 .us-robot .hero-img{position:relative; z-index:3; top:6%; height:min(50vh,440px); width:auto; max-width:80vw; object-fit:contain; filter:drop-shadow(0 0 22px rgba(56,214,255,.55)) drop-shadow(0 18px 24px rgba(0,0,0,.55)); animation:floaty 4s ease-in-out infinite;}
 .us-robot .stats{z-index:5; box-shadow:none;}
 
+/* ── EĞİTİM SAHNESİ — KADEME BAŞINA GÖRSEL ÖLÇÜSÜ ────────────
+   Her kademenin görseli farklı oranda çizildiği için ölçü ve
+   kadraj birlik başına ayrı verilir. Katmanları index.html'deki
+   _kademeKatmanlari kurar, data-kad-k = kademe numarasıdır.
+
+   NEDEN transform DEĞİL: Koruyucu görselinde "breathe",
+   Nişancı görselinde "floaty" animasyonu transform kullanıyor;
+   üstüne transform yazılsa animasyon onu ezerdi. Bu yüzden
+   ölçek width/height, kaydırma position:relative ile.
+   Kap alttan sabit olduğu için görsel yukarı doğru büyür.
+
+   Yazılmayan kademeler (şu an Sv6) taban kuralda kalır.
+   Değerler ?gorsel=1 ayar menüsüyle ölçüldü.               */
+.us-knight .stage img[data-kad-k="1"]{
+  width:calc(100% * 1.4); height:auto;
+  position:relative; left:-35px; top:12px;
+}
+.us-knight .stage img[data-kad-k="2"]{
+  width:calc(100% * 1.17); height:auto;
+  position:relative; left:-7px; top:8px;
+}
+.us-knight .stage img[data-kad-k="3"]{
+  width:calc(100% * 1.47); height:auto;
+  position:relative; left:-45px; top:36px;
+}
+.us-knight .stage img[data-kad-k="4"]{
+  width:calc(100% * 1.22); height:auto;
+  position:relative; left:-21px; top:22px;
+}
+.us-knight .stage img[data-kad-k="5"]{
+  width:calc(100% * 1.23); height:auto;
+  position:relative; left:-26px; top:36px;
+}
+.us-soldier .stage img[data-kad-k="1"]{
+  width:calc(100% * 1.37); height:auto;
+  position:relative; left:-33px; top:3px;
+}
+.us-soldier .stage img[data-kad-k="2"]{
+  width:calc(100% * 1.61); height:auto;
+  position:relative; left:-45px; top:29px;
+}
+.us-soldier .stage img[data-kad-k="3"]{
+  width:calc(100% * 1.39); height:auto;
+  position:relative; left:-33px; top:65px;
+}
+.us-soldier .stage img[data-kad-k="4"]{
+  width:calc(100% * 2.35); height:auto;
+  position:relative; left:-45px; top:86px;
+}
+.us-soldier .stage img[data-kad-k="5"]{
+  width:calc(100% * 2.18); height:auto;
+  position:relative; left:-28px; top:74px;
+}
+.us-robot .stage img[data-kad-k="1"]{
+  height:calc(min(50vh,440px) * 0.85);
+  position:relative; left:98px; top:15px;
+}
+.us-robot .stage img[data-kad-k="2"]{
+  height:calc(min(50vh,440px) * 1);
+  position:relative; left:108px; top:0px;
+}
+.us-robot .stage img[data-kad-k="3"]{
+  height:calc(min(50vh,440px) * 0.64);
+  position:relative; left:65px; top:5px;
+}
+.us-robot .stage img[data-kad-k="4"]{
+  height:calc(min(50vh,440px) * 1.84);
+  position:relative; left:115px; top:7px;
+}
+.us-robot .stage img[data-kad-k="5"]{
+  height:calc(min(50vh,440px) * 2.12);
+  position:relative; left:112px; top:-19px;
+}
+
 .log-list{display:flex; flex-direction:column; gap:8px; max-height:60vh; overflow-y:auto;}
 .log-entry{
   border-radius:10px; padding:10px 12px;
