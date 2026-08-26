@@ -154,9 +154,23 @@
       lav:   [168,  62,  44],
     },
 
-    /* Parça parça koyu/açık lekelerin gücü. 0 = tek düze renk,
-       1 = çok belirgin. Lekeler biyomun KENDİ renginden türer. */
-    leke: 0.16,
+    /* Leke gücü GENEL çarpanı. 0 = tek düze renk. Bölge başına
+       ayrı ayar aşağıda (lekeAyar); bu sayı hepsini birden kısar. */
+    leke: 1.0,
+
+    /* ── BÖLGE BAŞINA LEKE KARAKTERİ ──
+       koyu = koyu parçaların gücü · acik = açık parçaların gücü
+       Lav yalnız kararır (acik düşük), çimen iki yönlü, kar koyu
+       lekelerinde turkuaza çalar. */
+    lekeAyar: {
+      kar:   { koyu: 0.30, acik: 0.06 },
+      cimen: { koyu: 0.24, acik: 0.24 },
+      lav:   { koyu: 0.34, acik: 0.03 },
+    },
+
+    /* Kar bölgesinin koyu lekelerinin rengi. Beyazın grisi yerine
+       turkuaza çalan koyu bir ton — buz gölgesi hissi. */
+    karGolgeRenk: [74, 128, 138],
 
     /* Geniş yumuşak ışık/gölge dalgası. 0 = kapalı. */
     isik: 0.32,
@@ -480,33 +494,45 @@
   function renkKoy(c, t) { return [c[0] * (1 - t), c[1] * (1 - t), c[2] * (1 - t)]; }
   function yumusat(t)    { return t * t * (3 - 2 * t); }
 
-  function zeminRengi(gx, gy) {
-    const R = CFG.zeminRenk;
-    const v = biyomDeger(gx, gy);
+  /* Biyom ağırlıkları [kar, cimen, lav] — toplamı 1.
+     Sınır bandında iki biyom karışır. Hem RENK hem LEKE AYARI aynı
+     ağırlıkla harmanlanır; yoksa sınırda leke karakteri zıplar. */
+  function biyomAgirlik(v) {
     const b = CFG.gecisBandi;
-
-    /* 1. Biyom rengi — biyomKarisim ile AYNI eşikleri kullanır,
-          böylece renk sınırı arazi sınırıyla birebir örtüşür. */
-    let c;
     if (v > CFG.esikKar - b && v < CFG.esikKar + b) {
-      c = renkKaris(R.kar, R.cimen, yumusat((v - (CFG.esikKar - b)) / (2 * b)));
-    } else if (v > CFG.esikCimen - b && v < CFG.esikCimen + b) {
-      c = renkKaris(R.cimen, R.lav, yumusat((v - (CFG.esikCimen - b)) / (2 * b)));
-    } else if (v < CFG.esikKar)   { c = R.kar;
-    } else if (v < CFG.esikCimen) { c = R.cimen;
-    } else                        { c = R.lav; }
+      const t = yumusat((v - (CFG.esikKar - b)) / (2 * b));
+      return [1 - t, t, 0];
+    }
+    if (v > CFG.esikCimen - b && v < CFG.esikCimen + b) {
+      const t = yumusat((v - (CFG.esikCimen - b)) / (2 * b));
+      return [0, 1 - t, t];
+    }
+    if (v < CFG.esikKar)   return [1, 0, 0];
+    if (v < CFG.esikCimen) return [0, 1, 0];
+    return [0, 0, 1];
+  }
+
+  function zeminRengi(gx, gy) {
+    const R = CFG.zeminRenk, A = CFG.lekeAyar;
+    const v = biyomDeger(gx, gy);
+    const w = biyomAgirlik(v);
+
+    /* 1. Biyom rengi */
+    let c = [
+      R.kar[0] * w[0] + R.cimen[0] * w[1] + R.lav[0] * w[2],
+      R.kar[1] * w[0] + R.cimen[1] * w[1] + R.lav[1] * w[2],
+      R.kar[2] * w[0] + R.cimen[2] * w[1] + R.lav[2] * w[2],
+    ];
 
     /* ── İZOMETRİK EKSENLER ──
-       u = ekranda YATAY yön (gx - gy)
-       v = ekranda DİKEY yön (gx + gy)
-       Desen bu iki eksende AYRI frekansla örneklenir; u frekansı
-       düşük olduğu için lekeler yatay uzar, zemin yere serilmiş
-       gibi durur. Izgara koordinatında örneklenirse yuvarlak
-       çıkıyor ve harita dik bir duvar gibi görünüyor. */
+       eu = ekranda YATAY yön (gx - gy) · ev = DİKEY yön (gx + gy)
+       eu frekansı düşük → lekeler yatay uzar, zemin yere serilmiş
+       gibi durur. Izgara koordinatında örneklenirse yuvarlak çıkıyor
+       ve harita dik bir duvar gibi görünüyor. */
     const eu = (gx - gy) / CFG.lekeYatay;
     const ev = (gx + gy);
 
-    /* 2. Işık — geniş dalga, iki oktav */
+    /* 2. Işık — geniş, yumuşak dalga */
     if (CFG.isik > 0) {
       const sh = smoothNoise(eu * 0.075 + 41, ev * 0.075 + 17) * 0.65
                + smoothNoise(eu * 0.022 + 5,  ev * 0.022 + 29) * 0.35;
@@ -515,16 +541,33 @@
                 : renkKaris(c, [255, 255, 255], Math.min(0.28, t * 0.50));
     }
 
-    /* 3. Leke — parça parça koyu/açık. Kısmen basamaklanıyor
-          (Math.round) ki "parça" olarak okunsun, düz gradyan olmasın. */
+    /* 3. Leke — parça parça koyu/açık, bölgeye göre karakter */
     if (CFG.leke > 0) {
-      let pk = smoothNoise(eu * 0.070 + 77, ev * 0.070 + 13) * 0.56
-             + smoothNoise(eu * 0.170 + 5,  ev * 0.170 + 91) * 0.30
-             + smoothNoise(eu * 0.420 + 31, ev * 0.420 + 53) * 0.14;
+      let pk = smoothNoise(eu * 0.070 + 77, ev * 0.070 + 13) * 0.50
+             + smoothNoise(eu * 0.175 + 5,  ev * 0.175 + 91) * 0.32
+             + smoothNoise(eu * 0.430 + 31, ev * 0.430 + 53) * 0.18;
       pk = yumusat(pk);
-      const pt = (pk - 0.5) * 2 * CFG.leke;
-      c = pt < 0 ? renkKaris(c, renkKoy(c, 0.44), -pt)
-                 : renkKaris(c, renkAc(c, 0.34),   pt);
+      /* Kısmi basamaklama: "parça" olarak okunsun, düz gradyan olmasın */
+      pk = pk * 0.68 + (Math.round(pk * 3) / 3) * 0.32;
+
+      const pt = (pk - 0.5) * 2;
+
+      if (pt < 0) {
+        const g = A.kar.koyu * w[0] + A.cimen.koyu * w[1] + A.lav.koyu * w[2];
+        /* Koyu hedef: kar turkuaza, diğerleri kendi renginin koyusuna */
+        const kk = CFG.karGolgeRenk;
+        const kc = renkKoy(R.cimen, 0.46);
+        const kl = renkKoy(R.lav,   0.52);
+        const hedef = [
+          kk[0] * w[0] + kc[0] * w[1] + kl[0] * w[2],
+          kk[1] * w[0] + kc[1] * w[1] + kl[1] * w[2],
+          kk[2] * w[0] + kc[2] * w[1] + kl[2] * w[2],
+        ];
+        c = renkKaris(c, hedef, Math.min(1, -pt * g * CFG.leke * 2.2));
+      } else {
+        const g = A.kar.acik * w[0] + A.cimen.acik * w[1] + A.lav.acik * w[2];
+        c = renkKaris(c, renkAc(c, 0.42), Math.min(1, pt * g * CFG.leke * 2.2));
+      }
     }
 
     return c;
