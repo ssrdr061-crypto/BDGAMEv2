@@ -6042,8 +6042,9 @@ document.head.appendChild(st);
      · savaş raporunda savaşa sürülen birlikler (.rep-por)
      · raporun karşılıklı stat başlıkları (.rp-krs-baslik .rep-por)
 
-   Sv1 mavi (birlik1arkaplan.webp) · Sv2 kırmızı (birlik2arkaplan.webp).
-   Sv3-Sv6 şimdilik arka plansız — kural yalnız 1 ve 2'yi seçer.
+   Sv1 (birlik1arkaplan.webp) · Sv2 (birlik2arkaplan.webp) ·
+   Sv3 (birlik3arkaplan.webp) · Sv4 (birlik4arkaplan.webp) ·
+   Sv5 (birlik5arkaplan.webp). Sv6 arka plansız — kural 1-5'i seçer.
 
    ARKA PLAN NEDEN ::before?
    Kutunun kendi background alanına konsaydı, kilitli kademeyi
@@ -6074,8 +6075,14 @@ html body .rep-por{ position:relative !important; }
 
 html body #panel-troops .uv-portrait[data-kademe="1"]::before,
 html body #panel-troops .uv-portrait[data-kademe="2"]::before,
+html body #panel-troops .uv-portrait[data-kademe="3"]::before,
+html body #panel-troops .uv-portrait[data-kademe="4"]::before,
+html body #panel-troops .uv-portrait[data-kademe="5"]::before,
 html body .rep-por[data-kad="1"]::before,
-html body .rep-por[data-kad="2"]::before{
+html body .rep-por[data-kad="2"]::before,
+html body .rep-por[data-kad="3"]::before,
+html body .rep-por[data-kad="4"]::before,
+html body .rep-por[data-kad="5"]::before{
   content:"";
   position:absolute; inset:0;
   background-size:cover; background-position:center;
@@ -6090,6 +6097,18 @@ html body .rep-por[data-kad="1"]::before{
 html body #panel-troops .uv-portrait[data-kademe="2"]::before,
 html body .rep-por[data-kad="2"]::before{
   background-image:url("birlik2arkaplan.webp");
+}
+html body #panel-troops .uv-portrait[data-kademe="3"]::before,
+html body .rep-por[data-kad="3"]::before{
+  background-image:url("birlik3arkaplan.webp");
+}
+html body #panel-troops .uv-portrait[data-kademe="4"]::before,
+html body .rep-por[data-kad="4"]::before{
+  background-image:url("birlik4arkaplan.webp");
+}
+html body #panel-troops .uv-portrait[data-kademe="5"]::before,
+html body .rep-por[data-kad="5"]::before{
+  background-image:url("birlik5arkaplan.webp");
 }
 
 /*  Birlik görseli ve kademe numarası arka planın ÜSTÜNDE durur. */
@@ -6146,6 +6165,45 @@ html body #troopSelectList .t-icon[data-unit="robot2"]::before{
   content:"";
   position:absolute; inset:0;
   background-image:url("birlik2arkaplan.webp");
+  background-size:cover; background-position:center;
+  background-repeat:no-repeat;
+  pointer-events:none; z-index:0;
+}
+html body .hospital-face[data-unit="knight3"]::before,
+html body .hospital-face[data-unit="soldier3"]::before,
+html body .hospital-face[data-unit="robot3"]::before,
+html body #troopSelectList .t-icon[data-unit="knight3"]::before,
+html body #troopSelectList .t-icon[data-unit="soldier3"]::before,
+html body #troopSelectList .t-icon[data-unit="robot3"]::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:url("birlik3arkaplan.webp");
+  background-size:cover; background-position:center;
+  background-repeat:no-repeat;
+  pointer-events:none; z-index:0;
+}
+html body .hospital-face[data-unit="knight4"]::before,
+html body .hospital-face[data-unit="soldier4"]::before,
+html body .hospital-face[data-unit="robot4"]::before,
+html body #troopSelectList .t-icon[data-unit="knight4"]::before,
+html body #troopSelectList .t-icon[data-unit="soldier4"]::before,
+html body #troopSelectList .t-icon[data-unit="robot4"]::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:url("birlik4arkaplan.webp");
+  background-size:cover; background-position:center;
+  background-repeat:no-repeat;
+  pointer-events:none; z-index:0;
+}
+html body .hospital-face[data-unit="knight5"]::before,
+html body .hospital-face[data-unit="soldier5"]::before,
+html body .hospital-face[data-unit="robot5"]::before,
+html body #troopSelectList .t-icon[data-unit="knight5"]::before,
+html body #troopSelectList .t-icon[data-unit="soldier5"]::before,
+html body #troopSelectList .t-icon[data-unit="robot5"]::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:url("birlik5arkaplan.webp");
   background-size:cover; background-position:center;
   background-repeat:no-repeat;
   pointer-events:none; z-index:0;
