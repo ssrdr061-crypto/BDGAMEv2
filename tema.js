@@ -2061,6 +2061,87 @@ if (document.readyState === "loading") {
   margin:var(--tp-rp-t,-10%) 0 0 var(--tp-rp-l,-18%) !important;
 }
 
+/* ── KADEME BAŞINA GÖRSEL ÖLÇÜSÜ ─────────────────────────────
+   Yukarıdaki üç kural AİLEYİ ölçer (.knight · .soldier ·
+   .hero-img). Ama her kademenin görseli farklı oranda çizilmiş;
+   aynı ölçüyle biri devleşiyor, biri cüce kalıyor. Bu yüzden
+   ölçü kademe başına ayrıca veriliyor.
+
+   Katmanları index.html _kademeKatmanlari kurar, data-kad-k =
+   kademe numarasıdır (1 = Sv1 … 6 = Sv6).
+
+   Buraya yazılmasının sebebi: aile kuralları !important'lı,
+   index.html'deki düz kural onları ezemiyor. Seçici daha
+   özgül (id + 3 sınıf) olduğu için sıralamadan bağımsız kazanır.
+
+   NEDEN transform DEĞİL: Koruyucu görselinde "breathe",
+   Nişancı görselinde "floaty" animasyonu transform kullanıyor;
+   üstüne transform yazılsa animasyon onu ezerdi (Tuzak 38).
+   Ölçek width/height ile, kaydırma position:relative ile.
+
+   Yazılmayan kademe (şu an Sv6) aile kuralında kalır.
+   Değerler ?gorsel=1 ayar menüsüyle ölçüldü.               */
+#panel-troops .us-knight .stage img[data-kad-k="1"]{
+  width:calc(100% * 1.4) !important; height:auto !important;
+  position:relative !important; left:-35px !important; top:12px !important;
+}
+#panel-troops .us-knight .stage img[data-kad-k="2"]{
+  width:calc(100% * 1.17) !important; height:auto !important;
+  position:relative !important; left:-7px !important; top:8px !important;
+}
+#panel-troops .us-knight .stage img[data-kad-k="3"]{
+  width:calc(100% * 1.47) !important; height:auto !important;
+  position:relative !important; left:-45px !important; top:36px !important;
+}
+#panel-troops .us-knight .stage img[data-kad-k="4"]{
+  width:calc(100% * 1.22) !important; height:auto !important;
+  position:relative !important; left:-21px !important; top:22px !important;
+}
+#panel-troops .us-knight .stage img[data-kad-k="5"]{
+  width:calc(100% * 1.23) !important; height:auto !important;
+  position:relative !important; left:-26px !important; top:36px !important;
+}
+#panel-troops .us-soldier .stage img[data-kad-k="1"]{
+  width:calc(100% * 1.37) !important; height:auto !important;
+  position:relative !important; left:-33px !important; top:3px !important;
+}
+#panel-troops .us-soldier .stage img[data-kad-k="2"]{
+  width:calc(100% * 1.61) !important; height:auto !important;
+  position:relative !important; left:-45px !important; top:29px !important;
+}
+#panel-troops .us-soldier .stage img[data-kad-k="3"]{
+  width:calc(100% * 1.39) !important; height:auto !important;
+  position:relative !important; left:-33px !important; top:65px !important;
+}
+#panel-troops .us-soldier .stage img[data-kad-k="4"]{
+  width:calc(100% * 2.35) !important; height:auto !important;
+  position:relative !important; left:-45px !important; top:86px !important;
+}
+#panel-troops .us-soldier .stage img[data-kad-k="5"]{
+  width:calc(100% * 2.18) !important; height:auto !important;
+  position:relative !important; left:-28px !important; top:74px !important;
+}
+#panel-troops .us-robot .stage img[data-kad-k="1"]{
+  height:calc(min(50vh,440px) * 0.85) !important; width:auto !important;
+  position:relative !important; left:98px !important; top:15px !important;
+}
+#panel-troops .us-robot .stage img[data-kad-k="2"]{
+  height:calc(min(50vh,440px) * 1) !important; width:auto !important;
+  position:relative !important; left:108px !important; top:0px !important;
+}
+#panel-troops .us-robot .stage img[data-kad-k="3"]{
+  height:calc(min(50vh,440px) * 0.64) !important; width:auto !important;
+  position:relative !important; left:65px !important; top:5px !important;
+}
+#panel-troops .us-robot .stage img[data-kad-k="4"]{
+  height:calc(min(50vh,440px) * 1.84) !important; width:auto !important;
+  position:relative !important; left:115px !important; top:7px !important;
+}
+#panel-troops .us-robot .stage img[data-kad-k="5"]{
+  height:calc(min(50vh,440px) * 2.12) !important; width:auto !important;
+  position:relative !important; left:112px !important; top:-19px !important;
+}
+
 /* ── canlı ayar paneli (sadece ?ayar=1 ile) — küçük, köşede ── */
 #tpTuner{
   position:fixed; right:8px; bottom:8px; z-index:9999;
