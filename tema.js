@@ -6713,19 +6713,39 @@ html body #battleMap .map-node.castle-node .node-label{
   display:inline-block;
   font-family:'Baloo 2','Nunito',sans-serif;
   font-weight:800;
-  font-size:11px;
+  font-size:23px;
   line-height:1.3;
   /* ÇERÇEVE GENİŞLİĞİ: auto = yazı kadar. Sabit px yazılırsa yazıyı
      büyütmek çerçeveyi genişletmez, yalnız içine sığar. */
-  width:auto;
+  width:105px;
   box-sizing:border-box;
   text-align:center;
   color:#ffffff;
   background:rgba(4,10,20,.62);
   border:none;
-  border-radius:7px;
-  padding:3px 11px;
+  border-radius:30px;
+  padding:0 19px;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
+  /* TAŞMA KIRPMASI İÇERİDEKİ SPAN'DE — kutunun kendisinde DEĞİL.
+     Buraya overflow:hidden yazılırsa seviye görseli de kırpılır:
+     görsel ::before ile ve kutunun DIŞINA (right:100%) asılı. */
+  overflow:visible;
+  /* kale2x2.js etikete translateY(25px) yazıyor; buradaki kayma
+     ONUN YERİNE geçer, o yüzden 25 içinde toplanmış (25 - 15 = 10).
+     Ayrı yazılırsa biri diğerini eziyor ve etiket kalenin içine
+     sıçrıyordu. */
+  transform:translate(2px, 10px);
+}
+
+/* Uzun kullanıcı adı çerçeveden taşmaz: kırpılır ve sonuna üç nokta
+   konur. index.html castleNodeHTML ismi bu span'in icine yaziyor;
+   span olmadan kırpma kutuya yazılmak zorunda kalırdı ve görseli de
+   keserdi. */
+html body #battleMap .map-node.castle-node .node-label .nl-ad{
+  display:block;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
   white-space:nowrap;
 }
 
@@ -6737,10 +6757,10 @@ html body #battleMap .map-node.castle-node .node-label::before{
   position:absolute;
   right:100%;                 /* çerçevenin SOLUNA asılır */
   top:50%;
-  margin-right:-24px;         /* görsel–çerçeve boşluğu   */
-  transform:translateY(-50%);
-  width:56px;
-  height:102px;
+  margin-right:-43px;         /* görsel–çerçeve boşluğu   */
+  transform:translateY(calc(-50% + -1px));
+  width:85px;
+  height:123px;
   background-size:contain;
   background-repeat:no-repeat;
   background-position:center;
@@ -6782,31 +6802,31 @@ document.head.appendChild(st);
 
 if (!/[?&]etiket=1(&|$)/.test(location.search)) return;
 
-const ANAHTAR = "bdEtiket4";
+const ANAHTAR = "bdEtiket5";
 const VARSAYILAN = {
   /* KALE — piksel, doğrudan CSS'e gider */
-  kPunto:   11,   /* yazı boyu, px                    */
-  kGenis:    0,   /* çerçeve genişliği, px (0 = yazı kadar) */
-  kDolguY:  11,   /* yatay dolgu, px                  */
-  kDolguD:   3,   /* dikey dolgu, px                  */
-  kKose:     7,   /* köşe yuvarlaklığı, px            */
-  kDx:       0,   /* çerçevenin yatay kayması         */
-  kDy:     -12,   /* çerçevenin dikey kayması         */
-  kGEn:     56,   /* görsel genişliği, px             */
-  kGBoy:   102,   /* görsel yüksekliği, px            */
-  kGX:     -24,   /* görsel–çerçeve boşluğu, px       */
+  kPunto:   23,   /* yazı boyu, px                    */
+  kGenis:  105,   /* çerçeve genişliği, px (0 = yazı kadar) */
+  kDolguY:  19,   /* yatay dolgu, px                  */
+  kDolguD:   0,   /* dikey dolgu, px                  */
+  kKose:    30,   /* köşe yuvarlaklığı, px            */
+  kDx:       2,   /* çerçevenin yatay kayması         */
+  kDy:     -15,   /* çerçevenin dikey kayması         */
+  kGEn:     85,   /* görsel genişliği, px             */
+  kGBoy:   123,   /* görsel yüksekliği, px            */
+  kGX:     -43,   /* görsel–çerçeve boşluğu, px       */
   kGY:      -1,   /* görselin dikey kayması, px       */
 
   /* DÜĞÜM — çarpanların 100 katı (sürgü tam sayı ister).
      Hepsi r (düğüm yarıçapı) üzerinden; yazı ve görsel BİRBİRİNDEN
      BAĞIMSIZ, biri büyüyünce diğeri kıpırdamaz. */
-  dPunto:   10,   /* yazı boyu    = r × 0.10     */
-  dYaziX:    0,   /* isim yatay   = r × 0.00     */
+  dPunto:   54,   /* yazı boyu    = r × 0.10     */
+  dYaziX:   -2,   /* isim yatay   = r × 0.00     */
   dYaziY:  133,   /* isim dikey   = r × 1.33     */
-  dGEn:    252,   /* görsel en    = r × 2.52     */
-  dGBoy:   121,   /* görsel boy   = r × 1.21     */
-  dGX:    -200,   /* görsel–isim  = r × -2.00    */
-  dGY:     -32,   /* görsel dikey = r × -0.32    */
+  dGEn:    267,   /* görsel en    = r × 2.52     */
+  dGBoy:   134,   /* görsel boy   = r × 1.21     */
+  dGX:     -69,   /* görsel–isim  = r × -2.00    */
+  dGY:     -26,   /* görsel dikey = r × -0.32    */
 };
 
 let A = Object.assign({}, VARSAYILAN);
