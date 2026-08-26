@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-20';
+  var SURUM = 'kaleici-21';
 
   var CFG = {
     grid: 13,
@@ -28,30 +28,49 @@
   /* ---- Binalar: konum = sol üst karo, en/boy = kapladığı karo ----
      gorsel: kök dizindeki .webp dosya adı. Dosya yoksa emojiye döner.  */
   var BINALAR = [
-    { id: 'kale',      ad: 'Ana Kale',         emoji: '🏰', gorsel: 'anakale.webp',       gx: -2, gy: 6,  en: 3, boy: 3, olcek: 0.92 },
-    { id: 'sovalye',   ad: 'Savunucu Kışlası', emoji: '⚔️', gorsel: 'savunucukisla.webp', gx: 2,  gy: 6,  en: 2, boy: 2, olcek: 0.80 },
-    { id: 'asker',     ad: 'Koruyucu Kışlası', emoji: '🛡️', gorsel: 'koruyucukisla.webp', gx: 2,  gy: 3,  en: 2, boy: 2, olcek: 0.80 },
-    { id: 'robot',     ad: 'Nişancı Kışlası',  emoji: '🤖', gorsel: 'nisancikisla.webp',  gx: 2,  gy: 9,  en: 2, boy: 2, olcek: 0.79 },
-    { id: 'arastirma', ad: 'Araştırma',        emoji: '🔬', gorsel: 'arastirma.webp',     gx: -4, gy: 3,  en: 2, boy: 2, olcek: 0.81 },
-    { id: 'fuze',      ad: 'Füze Merkezi',     emoji: '🚀', gorsel: 'fuzemerkezi.webp',   gx: -1, gy: 3,  en: 2, boy: 2, olcek: 0.80 },
-    { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: -6, gy: 1,  en: 2, boy: 2, olcek: 0.50 },
-    { id: 'oyun',      ad: 'Oyun Merkezi',     emoji: '🎲', gorsel: 'oyunmerkezi.webp',   gx: 5,  gy: 8,  en: 2, boy: 2, olcek: 0.81 },
-    { id: 'ittifak',   ad: 'İttifak Binası',   emoji: '🤝', gorsel: 'ittifakbinasi.webp', gx: 5,  gy: 5,  en: 2, boy: 2, olcek: 0.80 },
-    { id: 'hastane',   ad: 'Hastane',          emoji: '🏥', gorsel: 'hastanebina.webp',   gx: -7, gy: 7,  en: 2, boy: 2, olcek: 1.30 },
+    { id: 'kale',      ad: 'Ana Kale',         emoji: '🏰', gorsel: 'anakale.webp',       gx: -2, gy: 6,  en: 3, boy: 3, olcek: 0.66 },
+    { id: 'sovalye',   ad: 'Savunucu Kışlası', emoji: '⚔️', gorsel: 'savunucukisla.webp', gx: 2,  gy: 6,  en: 2, boy: 2, olcek: 0.66 },
+    { id: 'asker',     ad: 'Koruyucu Kışlası', emoji: '🛡️', gorsel: 'koruyucukisla.webp', gx: 2,  gy: 3,  en: 2, boy: 2, olcek: 0.66 },
+    { id: 'robot',     ad: 'Nişancı Kışlası',  emoji: '🤖', gorsel: 'nisancikisla.webp',  gx: 2,  gy: 9,  en: 2, boy: 2, olcek: 0.66 },
+    { id: 'arastirma', ad: 'Araştırma',        emoji: '🔬', gorsel: 'arastirma.webp',     gx: -4, gy: 3,  en: 2, boy: 2, olcek: 0.66 },
+    { id: 'fuze',      ad: 'Füze Merkezi',     emoji: '🚀', gorsel: 'fuzemerkezi.webp',   gx: -1, gy: 3,  en: 2, boy: 2, olcek: 0.66 },
+    { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: -6, gy: 1,  en: 2, boy: 2, olcek: 0.66 },
+    { id: 'oyun',      ad: 'Oyun Merkezi',     emoji: '🎲', gorsel: 'oyunmerkezi.webp',   gx: 5,  gy: 8,  en: 2, boy: 2, olcek: 0.66 },
+    { id: 'ittifak',   ad: 'İttifak Binası',   emoji: '🤝', gorsel: 'ittifakbinasi.webp', gx: 5,  gy: 5,  en: 2, boy: 2, olcek: 0.66 },
+    { id: 'hastane',   ad: 'Hastane',          emoji: '🏥', gorsel: 'hastanebina.webp',   gx: -7, gy: 7,  en: 2, boy: 2, olcek: 0.66 },
 
-    { id: 'odun',      ad: 'Odun',             emoji: '🪵', gorsel: 'odunuretim.webp',    gx: -2, gy: 11, en: 1, boy: 1, olcek: 0.79 },
-    { id: 'demir',     ad: 'Demir',            emoji: '⛏️', gorsel: 'demiruretim.webp',   gx: 0,  gy: 11, en: 1, boy: 1, olcek: 0.80 },
-    { id: 'su',        ad: 'Su',               emoji: '💧', gorsel: 'suuretim.webp',      gx: -1, gy: 13, en: 1, boy: 1, olcek: 0.80 },
-    { id: 'enerji',    ad: 'Enerji',           emoji: '⚡', gorsel: 'enerjiuretim.webp',  gx: -3, gy: 13, en: 1, boy: 1, olcek: 0.80 },
-    { id: 'ahir',      ad: 'Ahır',             emoji: '🐄', gorsel: 'ahiruretim.webp',    gx: -4, gy: 11, en: 1, boy: 1, olcek: 0.79 }
+    { id: 'odun',      ad: 'Odun',             emoji: '🪵', gorsel: 'odunuretim.webp',    gx: -2, gy: 11, en: 1, boy: 1, olcek: 0.66 },
+    { id: 'demir',     ad: 'Demir',            emoji: '⛏️', gorsel: 'demiruretim.webp',   gx: 0,  gy: 11, en: 1, boy: 1, olcek: 0.66 },
+    { id: 'su',        ad: 'Su',               emoji: '💧', gorsel: 'suuretim.webp',      gx: -1, gy: 13, en: 1, boy: 1, olcek: 0.66 },
+    { id: 'enerji',    ad: 'Enerji',           emoji: '⚡', gorsel: 'enerjiuretim.webp',  gx: -3, gy: 13, en: 1, boy: 1, olcek: 0.66 },
+    { id: 'ahir',      ad: 'Ahır',             emoji: '🐄', gorsel: 'ahiruretim.webp',    gx: -4, gy: 11, en: 1, boy: 1, olcek: 0.66 }
   ];
 
+
+  /* ---- SÜSLER: dağlar ----
+     Bina değildir: oyuncu göremez, seçemez, taşıyamaz; Firebase'e
+     yazılmaz. Yalnız ayar paneli açıkken listede görünür ve sürüklenir.
+     Görsel dosyası yoksa hiç çizilmez (emojiye düşmez). */
+  var SUSLER = [
+    { id: 'dag_a', ad: 'Dağ A', emoji: '⛰️', gorsel: 'dag1.webp', gx: -10, gy: 2,  en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_b', ad: 'Dağ B', emoji: '⛰️', gorsel: 'dag2.webp', gx: -10, gy: 9,  en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_c', ad: 'Dağ C', emoji: '⛰️', gorsel: 'dag3.webp', gx: -5,  gy: 16, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_d', ad: 'Dağ D', emoji: '⛰️', gorsel: 'dag1.webp', gx: 1,   gy: 16, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_e', ad: 'Dağ E', emoji: '⛰️', gorsel: 'dag2.webp', gx: 8,   gy: 10, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_f', ad: 'Dağ F', emoji: '⛰️', gorsel: 'dag3.webp', gx: 8,   gy: 3,  en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_g', ad: 'Dağ G', emoji: '⛰️', gorsel: 'dag1.webp', gx: 2,   gy: -3, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_h', ad: 'Dağ H', emoji: '⛰️', gorsel: 'dag2.webp', gx: -5,  gy: -3, en: 3, boy: 3, olcek: 0.66, sus: true }
+  ];
+
+  /* Çizim, dokunuş ve ayar listesi bunu okur; kayıt yalnız BINALAR'ı. */
+  function tumYapilar() { return BINALAR.concat(SUSLER); }
 
   /* ---- Görsel yükleyici: dosya yoksa sessizce emojiye düşülür ---- */
   var GORSELLER = {};
 
   function gorselYukle() {
-    for (var i = 0; i < BINALAR.length; i++) {
+    var liste = tumYapilar();
+    for (var i = 0; i < liste.length; i++) {
       (function (b) {
         if (!b.gorsel || GORSELLER[b.id]) return;
         var im = new Image();
@@ -64,7 +83,7 @@
         };
         im.onerror = function () { GORSELLER[b.id].hazir = false; };
         im.src = b.gorsel;
-      })(BINALAR[i]);
+      })(liste[i]);
     }
   }
 
@@ -105,6 +124,7 @@
   /* Ekranda görünen ad. Seviye şimdilik hep 1; seviye sistemi gelince
      yalnız bu fonksiyon değişir, bina listesindeki 'ad' alanları temiz kalır. */
   function binaAdi(b) {
+    if (b.sus) return b.ad;
     return (b.sv || 1) + '. Sv ' + b.ad;
   }
 
@@ -346,8 +366,9 @@
   /* Binaların kapladığı ızgara aralığı — kamera sınırları buna göre kurulur */
   function binaAlani() {
     var a = { x0: 0, y0: 0, x1: CFG.grid - 1, y1: CFG.grid - 1 };
-    for (var i = 0; i < BINALAR.length; i++) {
-      var b = BINALAR[i];
+    var liste = tumYapilar();
+    for (var i = 0; i < liste.length; i++) {
+      var b = liste[i];
       if (b.gx < a.x0) a.x0 = b.gx;
       if (b.gy < a.y0) a.y0 = b.gy;
       if (b.gx + b.en - 1 > a.x1) a.x1 = b.gx + b.en - 1;
@@ -451,7 +472,7 @@
     if (tasinan) siluetCiz(tasinan);
 
     /* binalar — arkadan öne */
-    var sirali = BINALAR.slice().sort(function (a, b) {
+    var sirali = tumYapilar().sort(function (a, b) {
       return (a.gx + a.gy) - (b.gx + b.gy);
     });
     for (var i = 0; i < sirali.length; i++) binaCiz(sirali[i]);
@@ -471,6 +492,7 @@
   function secimCanli() { return !!secili; }
 
   function binaSec(b) {
+    if (b !== secili) { tasiModu = false; tasiDokunus = 0; }
     secili = b;
     if (b && ayarGorunur() && ayarSecim) { ayarSecim.value = b.id; ayarTazele(); }
     secimZaman = (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -524,6 +546,8 @@
       ctx.drawImage(g.im, k.sx, k.sy, k.sw, k.sh, kut.x, kut.y, kut.w, kut.h);
       ctx.globalAlpha = 1;
     } else {
+      /* Süsün görseli yoksa hiç çizilmez — ekranda emoji dağ istemiyoruz */
+      if (b.sus) return;
       /* Görsel yoksa emoji + soluk taban (dosya eksikse bina kaybolmasın) */
       var nk = taban(b);
       dortgenCiz(nk, 'rgba(241,245,239,.55)', 'rgba(255,255,255,.55)');
@@ -536,7 +560,7 @@
 
   /* ---- Seçili binanın adı — binaların üstünde, çerçeveli ---- */
   function seciliAdCiz() {
-    if (!secili) return;
+    if (!secili) { tasiSimge.r = 0; return; }
     var b = secili;
     var kut = binaKutusu(b);
     var o = { x: kut.x + kut.w / 2 };
@@ -554,6 +578,54 @@
     ctx.strokeText(ad, o.x, yaziY);
     ctx.fillStyle = '#ffffff';
     ctx.fillText(ad, o.x, yaziY);
+
+    /* Taşıma düğmesi — tabanın SOL ALT köşesinde.
+       1. dokunuş hazırlar (sarı halka), 2. dokunuş taşımayı açar. */
+    var nk = taban(b);
+    var solW = ekran(nk[3].x, nk[3].y);
+    var altW = ekran(nk[2].x, nk[2].y);
+    var sr = boy * (tasiModu ? 0.95 : 0.62);
+    tasiSimge.x = (solW.x + altW.x) / 2;
+    tasiSimge.y = (solW.y + altW.y) / 2;
+    tasiSimge.r = sr;
+    tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr, tasiModu, tasiDokunus);
+  }
+
+  /* Dokunuş taşıma düğmesinin üstünde mi (parmak payı ile) */
+  function simgedeMi(px, py) {
+    if (!secili || !tasiSimge.r) return false;
+    var pay = Math.max(tasiSimge.r * 1.6, 22);
+    return Math.abs(px - tasiSimge.x) <= pay && Math.abs(py - tasiSimge.y) <= pay;
+  }
+
+  /* Dört yönlü ok. hazir=1 → ilk dokunuş yapıldı, bir dokunuş daha bekliyor */
+  function tasiSimgesiCiz(x, y, r, etkin, hazir) {
+    var u = r * 0.5, b = r * 0.22;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2);
+    ctx.fillStyle = etkin ? 'rgba(255,198,26,.92)'
+                  : (hazir ? 'rgba(255,198,26,.45)' : 'rgba(10,28,48,.55)');
+    ctx.fill();
+    ctx.beginPath();
+    for (var i = 0; i < 4; i++) {
+      var a = i * Math.PI / 2;
+      var kx = Math.cos(a), ky = Math.sin(a);
+      var px = -Math.sin(a), py = Math.cos(a);
+      ctx.moveTo(kx * u, ky * u);
+      ctx.lineTo(kx * (u - b) + px * b, ky * (u - b) + py * b);
+      ctx.lineTo(kx * (u - b) - px * b, ky * (u - b) - py * b);
+      ctx.closePath();
+    }
+    ctx.rect(-b * 0.55, -b * 0.55, b * 1.1, b * 1.1);
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(1.5, r * 0.20);
+    ctx.strokeStyle = etkin ? '#7a4d00' : '#ffc61a';
+    ctx.stroke();
+    ctx.fillStyle = etkin ? '#4a2f00' : '#ffffff';
+    ctx.fill();
+    ctx.restore();
   }
 
   /* ---- Dokunulan noktadaki bina ----
@@ -561,17 +633,19 @@
      yalnız taban karosuna bakılıyordu; ölçekler 1'in üstünde olduğu
      için parmak gövdeye basınca hiçbir bina bulunamıyordu. */
   function binaBul(sx, sy) {
-    var sirali = BINALAR.slice().sort(function (a, b) {
+    var kaynak = ayarGorunur() ? tumYapilar() : BINALAR;
+    var sirali = kaynak.slice().sort(function (a, b) {
       return (b.gx + b.gy) - (a.gx + a.gy);     // önden arkaya
     });
     for (var i = 0; i < sirali.length; i++) {
+      if (sirali[i].sus && !binaGorseli(sirali[i])) continue;
       var k = binaKutusu(sirali[i]);
       if (sx >= k.x && sx <= k.x + k.w && sy >= k.y && sy <= k.y + k.h) return sirali[i];
     }
     /* Görselin dışına düşen dokunuş için taban karosu yedeği */
     var d = dunyaya(sx, sy), g = izgara(d.x, d.y);
-    for (var j = 0; j < BINALAR.length; j++) {
-      var b = BINALAR[j];
+    for (var j = 0; j < kaynak.length; j++) {
+      var b = kaynak[j];
       if (g.gx >= b.gx && g.gx < b.gx + b.en && g.gy >= b.gy && g.gy < b.gy + b.boy) return b;
     }
     return null;
@@ -582,6 +656,9 @@
   var sonX = 0, sonY = 0, kaydi = false, basX = 0, basY = 0;
   var ilkMesafe = 0, ilkZoom = 1;
   var tasinan = null, tasiKay = { x: 0, y: 0 };   // sürüklenen bina
+  var tasiSimge = { x: 0, y: 0, r: 0 };            // taşıma düğmesinin ekran yeri
+  var tasiModu = false;                            // taşıma açık mı
+  var tasiDokunus = 0;                             // düğmeye kaç kez dokunuldu
 
   function mesafe() {
     var k = Object.keys(parmaklar);
@@ -618,11 +695,22 @@
       /* Taşıma yalnızca seçili binanın taşıma simgesinden başlar. */
       var r0 = tuval.getBoundingClientRect();
       var px = e.clientX - r0.left, py = e.clientY - r0.top;
-      /* İlk dokunuş binayı SEÇER. Seçili binaya ikinci kez basıp
-         sürüklemek onu taşır — ayrı bir taşıma düğmesi yok. */
+      /* Sol alttaki taşıma düğmesi: iki dokunuşta taşıma açılır,
+         açıkken bir dokunuş kapatır. */
+      if (secili && simgedeMi(px, py)) {
+        if (tasiModu) { tasiModu = false; tasiDokunus = 0; }
+        else {
+          tasiDokunus++;
+          if (tasiDokunus >= 2) { tasiModu = true; tasiDokunus = 0; }
+        }
+        kaydi = true;                 // bırakınca seçim değişmesin
+        kareIste();
+        return;
+      }
+
       var bulunan = binaBul(px, py);
       var hedef = null;
-      if (bulunan && (bulunan === secili || ayarGorunur())) hedef = bulunan;
+      if (bulunan && ((bulunan === secili && tasiModu) || ayarGorunur())) hedef = bulunan;
       if (hedef) {
         tasinan = hedef;
         var d0 = dunyaya(px, py);
@@ -740,8 +828,9 @@
   ];
 
   function ayarSeciliBina() {
-    for (var i = 0; i < BINALAR.length; i++) {
-      if (BINALAR[i].id === ayarSecim.value) return BINALAR[i];
+    var liste = tumYapilar();
+    for (var i = 0; i < liste.length; i++) {
+      if (liste[i].id === ayarSecim.value) return liste[i];
     }
     return BINALAR[0];
   }
@@ -764,8 +853,9 @@
     var aci = Math.round(Math.asin(Math.min(1, CFG.tileH / CFG.tileW)) * 180 / Math.PI);
     var s = 'GORSEL_PAY = ' + GORSEL_PAY.toFixed(2) + '  ·  tileW = ' + CFG.tileW +
             '  ·  tileH = ' + CFG.tileH + '  ·  bakış ≈ ' + aci + '°\n';
-    for (var i = 0; i < BINALAR.length; i++) {
-      var b = BINALAR[i], par = [];
+    var tum = tumYapilar();
+    for (var i = 0; i < tum.length; i++) {
+      var b = tum[i], par = [];
       par.push('gx: ' + b.gx + ', gy: ' + b.gy);
       if (b.olcek !== undefined && b.olcek !== 1) par.push('olcek: ' + b.olcek.toFixed(2));
       if (b.dx) par.push('dx: ' + Math.round(b.dx));
@@ -784,9 +874,9 @@
   function ayarKur() {
     if (document.getElementById('kaleiciAyar')) return;
 
-    var sec = '';
-    for (var i = 0; i < BINALAR.length; i++) {
-      sec += '<option value="' + BINALAR[i].id + '">' + binaAdi(BINALAR[i]) + '</option>';
+    var sec = '', liste = tumYapilar();
+    for (var i = 0; i < liste.length; i++) {
+      sec += '<option value="' + liste[i].id + '">' + binaAdi(liste[i]) + '</option>';
     }
 
     var satirlar = '';
@@ -1080,7 +1170,7 @@
 
   function kapat() {
     panelKapat();
-    secili = null; tasinan = null;
+    secili = null; tasinan = null; tasiModu = false; tasiDokunus = 0;
     panelleriGeriKoy();
     document.body.classList.remove('kaleici-acik');
     if (katman) katman.classList.remove('acik');
@@ -1094,6 +1184,7 @@
 
   window.KALEICI = { SURUM: SURUM, CFG: CFG, BINALAR: BINALAR, GORSELLER: GORSELLER,
                     ac: ac, kapat: kapat, ciz: ciz, gorselYukle: gorselYukle,
-                    ZCFG: ZCFG, binaAdi: binaAdi, binaKutusu: binaKutusu,
+                    SUSLER: SUSLER, ZCFG: ZCFG,
+                    binaAdi: binaAdi, binaKutusu: binaKutusu,
                     yerlesimOku: yerlesimOku, yerlesimYaz: yerlesimYaz };
 })();
