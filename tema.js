@@ -7038,185 +7038,73 @@ setTimeout(uygula, 2500);
 
 
 /* ═══════════════════════════════════════════════════════════════════
-   ÜST KAYNAK SÜTUNU  (kay-sutun-1)
-   Dört kaynak yan yana değil, TEK sütunda. Kapalıyken sırayla bir
-   kaynak görünür (15 sn), sütuna dokununca dördü alt alta açılır,
-   dışarı dokununca kapanır. Boşalan ortaya kale gücü yazılır.
-
-   index.html'e DOKUNULMADI: #hudKaynak'ın İÇİ yeniden kuruluyor,
-   #kayEt/#kayDemir/#kaySu/#kayEnerji id'leri korunuyor — o id'lere
-   yazan kod (index.html 4784, tema.js ustSeridiKisalt) aynen çalışır.
-   Kurallar .hud-kaynak.kay-yeni ile yazıldı: eski .hud-kaynak kuralını
-   ezmiyor, yeni bir durum ekliyor. .kaynak-oge/.kaynak-ikon artık
-   DOM'da yok, o kurallar index.html'den silinebilir.
+   ÜST KAYNAK ŞERİDİ — SİMGELER  (kay-gorsel-1)
+   Şeridin DÜZENİ eskisi gibi: dört kaynak yan yana, .kaynak-oge.
+   Değişen tek şey emoji yerine görsel basılması.
+   index.html'e dokunulmadı; yalnız .kaynak-ikon span'ının içi
+   değiştiriliyor. #kayEt/#kayDemir/#kaySu/#kayEnerji id'leri yerinde,
+   o id'lere yazan kod (index.html 4784, ustSeridiKisalt) etkilenmez.
+   Dosya yoksa emoji geri gelir (SİMGE/GÖRSEL KURALI 22).
    ═══════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
 
-  var KURULDU = false;
-  var DONGU_MS = 15000;          // her kaynak kaç ms gösterilsin
-  var sira = 0, zamanlayici = null;
-
-  var KAYNAKLAR = [
-    { k: "et",     id: "kayEt",     gorsel: "10ket.webp",  emoji: "🍖" },
-    { k: "demir",  id: "kayDemir",  gorsel: "5kdemir.webp", emoji: "⛓️" },
-    { k: "su",     id: "kaySu",     gorsel: "5ksu.webp",   emoji: "💧" },
-    { k: "enerji", id: "kayEnerji", gorsel: "enerji.webp", emoji: "⚡" }
-  ];
+  var GORSEL = {
+    kayEt:     "10ket.webp",
+    kayDemir:  "5kdemir.webp",
+    kaySu:     "5ksu.webp",
+    kayEnerji: "enerji.webp"
+  };
 
   var CSS =
-    '.hud-kaynak.kay-yeni{left:0;right:0;top:50px;transform:none;' +
-      'display:block;pointer-events:none}' +
-    '.hud-kaynak.kay-yeni .kay-sutun{position:absolute;left:10px;top:0;' +
-      'pointer-events:auto;display:flex;flex-direction:column;gap:3px;' +
-      'padding:3px 7px;border-radius:10px;background:rgba(10,14,20,.78);' +
-      'transition:transform .09s,filter .09s}' +
-    '.hud-kaynak.kay-yeni .kay-sutun:active{transform:scale(.96);filter:brightness(.93)}' +
-    '.hud-kaynak.kay-yeni .kay-satir{display:none;align-items:center;gap:5px;' +
-      'font-family:"Baloo 2",sans-serif;font-size:11.5px;font-weight:700;' +
-      'font-variant-numeric:tabular-nums;color:#dbe6f0;white-space:nowrap}' +
-    '.hud-kaynak.kay-yeni .kay-satir.etkin{display:flex}' +
-    '.hud-kaynak.kay-yeni.acik .kay-satir{display:flex}' +
-    '.hud-kaynak.kay-yeni .kay-satir img{width:15px;height:15px;object-fit:contain;' +
-      'background:none;flex:none}' +
-    '.hud-kaynak.kay-yeni .kay-satir .kay-yedek{font-size:12px}' +
-    /* Kale gücü — koyu sarıdan parlak sarıya, alttan aydınlanan gradyan.
-       background KISAYOLU yok (Tuzak 50): -image + -clip ayrı yazılı. */
-    '.hud-kaynak.kay-yeni .kay-guc{position:absolute;left:50%;top:2px;' +
-      'transform:translateX(-50%);pointer-events:none;' +
-      'font-family:"Baloo 2",sans-serif;font-size:17px;font-weight:800;' +
-      'letter-spacing:.4px;font-variant-numeric:tabular-nums;' +
-      'background-image:linear-gradient(180deg,#b8830a 0%,#e8b41c 42%,#ffe45c 78%,#fff7b0 100%);' +
-      '-webkit-background-clip:text;background-clip:text;' +
-      '-webkit-text-fill-color:transparent;color:transparent;' +
-      '-webkit-text-stroke:.6px rgba(60,38,0,.55)}';
+    '.hud-kaynak .kaynak-ikon img.kay-gorsel{width:14px;height:14px;' +
+      'object-fit:contain;background:none;display:block}';
 
   function stilBas() {
-    if (document.getElementById("kaySutunCSS")) return;
+    if (document.getElementById("kayGorselCSS")) return;
     var st = document.createElement("style");
-    st.id = "kaySutunCSS";
+    st.id = "kayGorselCSS";
     st.textContent = CSS;
     document.head.appendChild(st);
   }
 
-  function sutun() { return document.getElementById("kaySutun"); }
-  function kap()   { return document.getElementById("hudKaynak"); }
-
-  /* Sayı biçimi: 5.345.000 */
-  function sayiYaz(n) {
-    n = Math.round(Number(n) || 0);
-    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  }
-
-  /* Güç, sıralamada kullanılan hesabın aynısı (index.html
-     computePlayerPower). state const olduğu için typeof ile bakılır. */
-  function guc() {
-    try {
-      if (typeof computePlayerPower !== "function") return null;
-      if (typeof state === "undefined" || !state) return null;
-      return computePlayerPower(state);
-    } catch (e) { return null; }
-  }
-
-  function gucTazele() {
-    var el = document.getElementById("kayGuc");
-    if (!el) return;
-    var g = guc();
-    el.textContent = (g === null) ? "" : sayiYaz(g);
-  }
-
-  function satirGoster(i) {
-    var s = sutun();
-    if (!s) return;
-    sira = ((i % KAYNAKLAR.length) + KAYNAKLAR.length) % KAYNAKLAR.length;
-    var satirlar = s.querySelectorAll(".kay-satir");
-    for (var j = 0; j < satirlar.length; j++) {
-      satirlar[j].classList.toggle("etkin", j === sira);
-    }
-  }
-
-  function dongudurdur() {
-    if (zamanlayici) { clearInterval(zamanlayici); zamanlayici = null; }
-  }
-
-  function donguBaslat() {
-    dongudurdur();
-    zamanlayici = setInterval(function () {
-      var k = kap();
-      if (!k || k.classList.contains("acik")) return;
-      satirGoster(sira + 1);
-    }, DONGU_MS);
-  }
-
-  function ac() {
-    var k = kap();
-    if (!k) return;
-    k.classList.add("acik");
-  }
-
-  function kapa() {
-    var k = kap();
-    if (!k) return;
-    k.classList.remove("acik");
-    satirGoster(sira);
-  }
-
-  function kur() {
-    var k = kap();
-    if (!k || KURULDU) return;
-    if (document.getElementById("kaySutun")) return;
-
+  function uygula() {
+    var kap = document.getElementById("hudKaynak");
+    if (!kap) return;
     stilBas();
 
-    var ic = '<div class="kay-sutun" id="kaySutun">';
-    for (var i = 0; i < KAYNAKLAR.length; i++) {
-      var r = KAYNAKLAR[i];
-      /* Görsel yoksa emojiye döner (SİMGE/GÖRSEL KURALI 22) */
-      ic += '<div class="kay-satir" data-k="' + r.k + '">' +
-              '<img src="' + r.gorsel + '" alt="" ' +
-              'onerror="this.outerHTML=\'<span class=&quot;kay-yedek&quot;>' + r.emoji + '</span>\'">' +
-              '<span id="' + r.id + '">0</span>' +
-            '</div>';
+    var ogeler = kap.querySelectorAll(".kaynak-oge");
+    for (var i = 0; i < ogeler.length; i++) {
+      var oge = ogeler[i];
+      var sayi = oge.querySelector("[id^=kay]");
+      var ikon = oge.querySelector(".kaynak-ikon");
+      if (!sayi || !ikon) continue;
+      var dosya = GORSEL[sayi.id];
+      if (!dosya) continue;
+      if (ikon.querySelector("img.kay-gorsel")) continue;   // zaten basılı
+
+      var emoji = ikon.textContent;
+      var im = document.createElement("img");
+      im.className = "kay-gorsel";
+      im.alt = "";
+      /* Dosya yoksa emojiye dön — şerit boş kalmasın */
+      (function (kutu, yedek) {
+        im.onerror = function () { kutu.textContent = yedek; };
+      })(ikon, emoji);
+      im.src = dosya;
+      ikon.textContent = "";
+      ikon.appendChild(im);
     }
-    ic += '</div><div class="kay-guc" id="kayGuc"></div>';
-
-    k.innerHTML = ic;
-    k.classList.add("kay-yeni");
-
-    var s = sutun();
-    s.addEventListener("pointerup", function (e) {
-      e.stopPropagation();
-      var kk = kap();
-      if (kk && kk.classList.contains("acik")) kapa(); else ac();
-    });
-
-    /* Dışarı dokunuş kapatır — capture evresinde, başka bir düğme
-       olayı yutsa bile yakalanır (Tuzak 24). */
-    document.addEventListener("pointerdown", function (e) {
-      var kk = kap();
-      if (!kk || !kk.classList.contains("acik")) return;
-      var s2 = sutun();
-      if (s2 && s2.contains(e.target)) return;
-      kapa();
-    }, true);
-
-    KURULDU = true;
-    satirGoster(0);
-    donguBaslat();
-    gucTazele();
-    setInterval(gucTazele, 2000);
   }
 
-  /* HUD geç kuruluyor olabilir; birkaç kez denenir. */
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", kur);
+    document.addEventListener("DOMContentLoaded", uygula);
   } else {
-    kur();
+    uygula();
   }
-  setTimeout(kur, 600);
-  setTimeout(kur, 1800);
-  setTimeout(kur, 4000);
+  setTimeout(uygula, 600);
+  setTimeout(uygula, 1800);
+  setTimeout(uygula, 4000);
 
-  window.KAYSUTUN = { ac: ac, kapa: kapa, kur: kur, gucTazele: gucTazele,
-                      DONGU_MS: DONGU_MS };
+  window.KAYGORSEL = { uygula: uygula, GORSEL: GORSEL };
 })();
