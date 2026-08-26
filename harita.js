@@ -31,7 +31,7 @@
 
    KARO GÖRSELLERİ HENÜZ YOKSA
    ---------------------------
-   Sorun değil. Görsel bulunamazsa motor karoları düz renkli eşkenar
+   Zemin görseli KULLANILMIYOR. Renk matematikten üretilir.
    dörtgen olarak çizer. Performans testi için bu yeterlidir; görseller
    sonra eklenince tek satır değişmeden devreye girer.
 
@@ -144,35 +144,29 @@
        Kendi deponuza koyun. Dış URL kullanmayın: hotlink kırılır ve
        CORS canvas'ı kirletir (tainted canvas → drawImage patlar).
        Dosya bulunamazsa düz renk kullanılır, oyun çökmez. */
-    dokuDosya: {
-      kar:   "doku_kar.webp",
-      cimen: "doku_cimen.webp",
-      lav:   "doku_lav.webp",
+    /* ── ZEMİN RENKLERİ ──
+       Doku görseli YOK. Zemin, biyom değerinden hesaplanan düz renkle
+       boyanır; üstüne aynı rengin koyu/parlak parçaları bindirilir.
+       Görsel dosya olmadığı için indirme, decode ve dikiş derdi yok. */
+    zeminRenk: {
+      kar:   [224, 234, 245],
+      cimen: [ 88, 178,  66],
+      lav:   [168,  62,  44],
     },
 
-    /* Ön-render kalitesi. 2 = karo 256x128 olarak hazırlanır, 128x64
-       olarak çizilir → yakınlaştırınca net kalır. 3 yaparsan daha net
-       ama bellek üç katına çıkar. */
-    kalite: 2,
+    /* Parça parça koyu/açık lekelerin gücü. 0 = tek düze renk,
+       1 = çok belirgin. Lekeler biyomun KENDİ renginden türer. */
+    leke: 0.55,
 
-    /* ── Chunk (parça) önbelleği ──
-       Karolar tek tek çizilmez; CHUNK x CHUNK'lık parçalar BİR KEZ
-       çizilip saklanır, sonra tek drawImage ile ekrana basılır.
-       8 seçildi: 64 karo tek çağrıya iniyor, parça canvas'ı da
-       telefon belleğini zorlamayacak kadar küçük kalıyor.
+    /* Geniş yumuşak ışık/gölge dalgası. 0 = kapalı. */
+    isik: 0.55,
 
-       onbellekBoyu: bellekte tutulacak parça sayısı. Artırırsan
-       kaydırma daha akıcı ama RAM artar. */
-    CHUNK: 8,
-    onbellekBoyu: 48,
+    /* Zemin kaç dünya pikselinde bir örneklenir. Küçültürsen daha
+       ince detay ama daha yavaş pişirme. 8-16 arası mantıklı. */
+    zeminAdim: 10,
 
-    /* Her biyom için kaç farklı karo hazırlansın. Tek varyantta doku
-       her karede birebir aynı tekrar eder ve ızgara deseni göze batar.
-       4 varyant bunu büyük ölçüde kırar. */
-    varyant: 9,
-
-    /* Görsel yokken kullanılacak düz renkler (aynı zamanda mini-harita
-       rengi olarak da işe yarar) */
+    /* Eski düz-renk yedeği. Zemin artık zeminRenk'ten boyandığı için
+       KULLANILMIYOR; düğüm/kale kodu okuyor olabilir diye duruyor. */
     karoRenk: {
       kar:   "#cfe4f2",
       cimen: "#5f9e4a",
@@ -330,83 +324,9 @@
        (0,S) → sol köşe      (S,S) → alt köşe
      ═════════════════════════════════════════════════════════════════════ */
 
-  const karolar = {};   // { kar: {hazir, parcalar:[canvas,...]}, ... }
-
-  /* PAY: karo canvas'ının her yanına eklenen boşluk (dünya pikseli).
-     Maskeyi dışarı taşırıyoruz ama canvas kenarı onu keserdi; bu pay
-     taşan kısmın çizilebileceği yeri açıyor. Karo ekrana çizilirken
-     aynı pay kadar sola/yukarı kaydırılıp o kadar büyük basılıyor,
-     böylece komşularla tam opak örtüşme oluyor ve dikiş çizgisi
-     kalmıyor. */
+  /* PAY: parça canvas'ının her yanına eklenen boşluk (dünya pikseli).
+     Komşu parçalar arasında saç teli boşluk kalmasın diye. */
   const PAY = 1;
-
-  function karoUret(img, tw, th, s, kaydirX, kaydirY) {
-    const p = PAY * s;                       // ön-render ölçeğinde pay
-    const c = document.createElement("canvas");
-    c.width  = tw + 2 * p;
-    c.height = th + 2 * p;
-    const x = c.getContext("2d");
-
-    x.translate(p, p);
-
-    /* Eşkenar dörtgen maskesi, pay kadar dışarı taşkın */
-    const d = p;
-    x.beginPath();
-    x.moveTo(tw / 2,  -d);
-    x.lineTo(tw + d,   th / 2);
-    x.lineTo(tw / 2,   th + d);
-    x.lineTo(-d,       th / 2);
-    x.closePath();
-    x.clip();
-
-    /* Kaynak dokudan kare bir bölge seç (varyant için kaydırmalı) */
-    const S = Math.min(img.width, img.height);
-    const sx = Math.min(img.width  - S, Math.round(kaydirX * (img.width  - S)));
-    const sy = Math.min(img.height - S, Math.round(kaydirY * (img.height - S)));
-
-    /* Kareyi dörtgene büken matris (pay kaydırması korunuyor) */
-    x.transform(
-      tw / (2 * S),   th / (2 * S),
-     -tw / (2 * S),   th / (2 * S),
-      tw / 2,         0
-    );
-    /* Dokuyu maskeden biraz taşkın çiz ki taşan kenar boş kalmasın */
-    x.drawImage(img, sx, sy, S, S, -S * 0.03, -S * 0.03, S * 1.06, S * 1.06);
-
-    return c;
-  }
-
-  function dokularıHazirla(ad, img) {
-    const s  = CFG.kalite;
-    const tw = Math.round(CFG.tileW * s);
-    const th = Math.round(CFG.tileH * s);
-    const parcalar = [];
-
-    for (let i = 0; i < CFG.varyant; i++) {
-      /* Varyantlar dokunun farklı bölgelerinden alınır → tekrar kırılır */
-      const kx = (i % 3) * 0.45 + 0.05;
-      const ky = (Math.floor(i / 3) % 3) * 0.45 + 0.05;
-      parcalar.push(karoUret(img, tw, th, s, kx, ky));
-    }
-
-    karolar[ad] = { hazir: true, parcalar };
-    onbellegiBosalt();
-    ciz();
-  }
-
-  function karolariYukle() {
-    Object.keys(CFG.dokuDosya).forEach(ad => {
-      karolar[ad] = { hazir: false, parcalar: [] };
-
-      const img = new Image();
-      img.onload  = () => dokularıHazirla(ad, img);
-      img.onerror = () => {
-        console.warn("[harita.js] Doku yok, düz renk kullanılıyor:",
-                     CFG.dokuDosya[ad]);
-      };
-      img.src = CFG.dokuDosya[ad];
-    });
-  }
 
   /* ═════════════════════════════════════════════════════════════════════
      CANVAS KURULUMU
@@ -486,36 +406,6 @@
   let sonCizilenKaro = 0;
   let kurtarmaKilidi = false;
 
-  /* Tek karo çizer. saydamlik < 1 ise karışım katmanıdır.
-     Doku hazır değilse düz renge düşer — oyun asla boş kalmaz. */
-  function karoCiz(x2, tip, vi, x, y, tw, th, saydamlik) {
-    const kayit = karolar[tip];
-
-    if (saydamlik < 1) x2.globalAlpha = saydamlik;
-
-    if (kayit && kayit.hazir) {
-      /* Karo, PAY kadar taşkın hazırlandı: aynı kadar sola/yukarı
-         kaydırıp o kadar büyük basıyoruz. Komşularla tam opak
-         örtüşme oluyor, dikiş çizgisi kalmıyor. */
-      x2.drawImage(kayit.parcalar[vi % kayit.parcalar.length],
-                   x - PAY, y - PAY, tw + 2 * PAY, th + 2 * PAY);
-    } else {
-      /* Düz renk yedeği — burada da PAY kadar taşırıyoruz, yoksa
-         doku yüklenmediğinde karo kenarlarında çizgiler görünüyor. */
-      const d = PAY;
-      x2.fillStyle = CFG.karoRenk[tip];
-      x2.beginPath();
-      x2.moveTo(x + tw / 2, y - d);
-      x2.lineTo(x + tw + d, y + th / 2);
-      x2.lineTo(x + tw / 2, y + th + d);
-      x2.lineTo(x - d,      y + th / 2);
-      x2.closePath();
-      x2.fill();
-    }
-
-    if (saydamlik < 1) x2.globalAlpha = 1;
-  }
-
   /* ═════════════════════════════════════════════════════════════════════
      CHUNK ÖNBELLEĞİ
 
@@ -556,17 +446,85 @@
     return par;
   }
 
+  /* ── ZEMİN RENGİ ──────────────────────────────────────────────────
+     Bir dünya noktasının rengini döndürür. Doku yok; renk üç
+     katmandan doğar:
+       1. Biyom rengi   — biyomDeger'den, sınırlarda yumuşak karışım
+       2. Leke          — aynı rengin koyu/açık parçaları (orta frekans)
+       3. Işık          — geniş, yumuşak aydınlık/gölge dalgası
+     Üçü de tohumlu gürültüden gelir → her cihazda birebir aynı. */
+
+  function renkKaris(a, b, t) {
+    return [a[0] + (b[0] - a[0]) * t,
+            a[1] + (b[1] - a[1]) * t,
+            a[2] + (b[2] - a[2]) * t];
+  }
+  function renkAc(c, t)  { return [c[0] + (255 - c[0]) * t,
+                                   c[1] + (255 - c[1]) * t,
+                                   c[2] + (255 - c[2]) * t]; }
+  function renkKoy(c, t) { return [c[0] * (1 - t), c[1] * (1 - t), c[2] * (1 - t)]; }
+  function yumusat(t)    { return t * t * (3 - 2 * t); }
+
+  function zeminRengi(gx, gy) {
+    const R = CFG.zeminRenk;
+    const v = biyomDeger(gx, gy);
+    const b = CFG.gecisBandi;
+
+    /* 1. Biyom rengi — biyomKarisim ile AYNI eşikleri kullanır,
+          böylece renk sınırı arazi sınırıyla birebir örtüşür. */
+    let c;
+    if (v > CFG.esikKar - b && v < CFG.esikKar + b) {
+      c = renkKaris(R.kar, R.cimen, yumusat((v - (CFG.esikKar - b)) / (2 * b)));
+    } else if (v > CFG.esikCimen - b && v < CFG.esikCimen + b) {
+      c = renkKaris(R.cimen, R.lav, yumusat((v - (CFG.esikCimen - b)) / (2 * b)));
+    } else if (v < CFG.esikKar)   { c = R.kar;
+    } else if (v < CFG.esikCimen) { c = R.cimen;
+    } else                        { c = R.lav; }
+
+    /* 2. Işık — geniş dalga, iki oktav */
+    if (CFG.isik > 0) {
+      const sh = smoothNoise(gx * 0.16 + 41, gy * 0.16 + 17) * 0.65
+               + smoothNoise(gx * 0.045 + 5, gy * 0.045 + 29) * 0.35;
+      const t = (sh - 0.5) * 1.35 * CFG.isik * 1.8;
+      c = t < 0 ? renkKaris(c, renkKoy(c, 0.52), Math.min(0.70, -t))
+                : renkKaris(c, [255, 255, 255], Math.min(0.28, t * 0.50));
+    }
+
+    /* 3. Leke — parça parça koyu/açık. Kısmen basamaklanıyor
+          (Math.round) ki "parça" olarak okunsun, düz gradyan olmasın. */
+    if (CFG.leke > 0) {
+      let pk = smoothNoise(gx * 0.29 + 77, gy * 0.29 + 13) * 0.46
+             + smoothNoise(gx * 0.66 + 5,  gy * 0.66 + 91) * 0.32
+             + smoothNoise(gx * 1.90 + 31, gy * 1.90 + 53) * 0.22;
+      pk = yumusat(yumusat(pk));
+      pk = pk * 0.42 + (Math.round(pk * 3) / 3) * 0.58;
+      const pt = (pk - 0.5) * 2 * CFG.leke;
+      c = pt < 0 ? renkKaris(c, renkKoy(c, 0.44), -pt)
+                 : renkKaris(c, renkAc(c, 0.34),   pt);
+    }
+
+    return c;
+  }
+
+  /* ── PARÇA ÜRETİMİ ────────────────────────────────────────────────
+     Eskiden burada karo karo doku basılıyordu. Artık parçanın dünya
+     dikdörtgeni ALÇAK ÇÖZÜNÜRLÜKTE boyanıp yumuşatılarak büyütülüyor.
+
+     NEDEN alçak çözünürlük: her ekran pikseli için gürültü hesaplamak
+     telefonda pahalı. zeminAdim dünya pikselinde bir örnek alınıp
+     bilineer büyütülüyor — zaten yumuşak bir alan olduğu için fark
+     edilmiyor, maliyet ~100 kat düşüyor.
+
+     KENAR PAYI: tampon her yanda 1 hücre TAŞKIN örnekleniyor. Yoksa
+     büyütme sırasında komşu parçanın kenarıyla arasında ince çizgi
+     kalıyordu (bilineer, sınırdaki pikselin komşusunu bulamıyor). */
   function chunkUret(cx, cy, s) {
-    const C = CFG.CHUNK;
+    const C  = CFG.CHUNK;
     const tw = CFG.tileW, th = CFG.tileH;
 
     const gx0 = cx * C, gx1 = gx0 + C - 1;
     const gy0 = cy * C, gy1 = gy0 + C - 1;
 
-    /* Parçanın dünya sınırları — eşkenar dörtgen dizisinin kutusu.
-       PAY kadar genişletiliyor: kenardaki karoların taşma payı canvas
-       sınırında kesilirse parça sınırları boyunca ince çizgiler
-       (dikdörtgen desen) görünüyordu. */
     const minX = gridToWorld(gx0, gy1).x - PAY;
     const maxX = gridToWorld(gx1, gy0).x + tw + PAY;
     const minY = gridToWorld(gx0, gy0).y - PAY;
@@ -574,27 +532,61 @@
 
     const w = maxX - minX, h = maxY - minY;
 
-    const c = document.createElement("canvas");
-    c.width  = Math.ceil(w * s);
-    c.height = Math.ceil(h * s);
-    const x2 = c.getContext("2d");
+    /* ── alçak çözünürlüklü tampon ── */
+    const A  = Math.max(4, CFG.zeminAdim);
+    const LW = Math.ceil(w / A), LH = Math.ceil(h / A);
+
+    const lo   = document.createElement("canvas");
+    lo.width   = LW + 2;
+    lo.height  = LH + 2;
+    const lx   = lo.getContext("2d");
+    const veri = lx.createImageData(LW + 2, LH + 2);
+    const p    = veri.data;
+
+    for (let j = 0; j < LH + 2; j++) {
+      const wy = minY + (j - 1 + 0.5) * A;
+      for (let i = 0; i < LW + 2; i++) {
+        const wx = minX + (i - 1 + 0.5) * A;
+        const g  = worldToGrid(wx, wy);
+        const c  = zeminRengi(g.gx, g.gy);
+        const k  = (j * (LW + 2) + i) * 4;
+        p[k]     = c[0];
+        p[k + 1] = c[1];
+        p[k + 2] = c[2];
+        p[k + 3] = 255;
+      }
+    }
+    lx.putImageData(veri, 0, 0);
+
+    /* ── parça canvas'ına yumuşatarak büyüt ── */
+    const c2 = document.createElement("canvas");
+    c2.width  = Math.ceil(w * s);
+    c2.height = Math.ceil(h * s);
+    const x2  = c2.getContext("2d");
+    x2.imageSmoothingEnabled = true;
+    x2.imageSmoothingQuality = "high";
     x2.setTransform(s, 0, 0, s, 0, 0);
+    x2.drawImage(lo, 1, 1, w / A, h / A, 0, 0, w, h);
 
-    for (let gy = gy0; gy <= gy1; gy++) {
-      for (let gx = gx0; gx <= gx1; gx++) {
-        const p = gridToWorld(gx, gy);
-        const px = p.x - minX, py = p.y - minY;
-        const kr = biyomKarisim(gx, gy);
-        const vi = Math.floor(hash2(gx * 7 + 3, gy * 11 + 5) * CFG.varyant) % CFG.varyant;
-
-        karoCiz(x2, kr.alt, vi, px, py, tw, th, 1);
-        if (kr.ust && kr.k > 0.02) {
-          karoCiz(x2, kr.ust, vi, px, py, tw, th, Math.min(1, kr.k));
+    if (CFG.izgaraCizgisi) {
+      x2.strokeStyle = "rgba(255,255,255,.18)";
+      x2.lineWidth = 1 / s;
+      for (let gy = gy0; gy <= gy1; gy++) {
+        for (let gx = gx0; gx <= gx1; gx++) {
+          const q = gridToWorld(gx, gy);
+          const px = q.x - minX, py = q.y - minY;
+          x2.beginPath();
+          x2.moveTo(px + tw / 2, py);
+          x2.lineTo(px + tw, py + th / 2);
+          x2.lineTo(px + tw / 2, py + th);
+          x2.lineTo(px, py + th / 2);
+          x2.closePath();
+          x2.stroke();
         }
       }
     }
 
-    return { cv: c, x: minX, y: minY, w, h };
+    return { cv: c2, x: minX, y: minY, w, h };
   }
 
   /* Dokular sonradan yüklenince eski parçalar geçersiz kalır */
@@ -1908,7 +1900,7 @@
   function baslat() {
     if (!kurCanvas()) { setTimeout(baslat, 300); return; }
     stilEnjekte();
-    karolariYukle();
+    /* Doku yükleme kaldırıldı — zemin artık düz renkle boyanıyor. */
     bagla();
     kurArayuz();
     ataletKur();
