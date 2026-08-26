@@ -6713,13 +6713,13 @@ html body #battleMap .map-node.castle-node .node-label{
   display:inline-block;
   font-family:'Baloo 2','Nunito',sans-serif;
   font-weight:800;
-  font-size:23px;
+  font-size:17px;
   line-height:1.3;
   /* ÇERÇEVE GENİŞLİĞİ yazıya göre. Uzun ad için tavan var: 105px'i
-     aşınca isim kırpılıp üç nokta konur (aşağıdaki .nl-ad). Sabit
+     asinca isim kirpilip uc nokta konur (asagidaki .nl-ad). Sabit
      genişlik kısa isimlerde kocaman boş bir kutu bırakıyordu. */
   width:auto;
-  max-width:105px;
+  max-width:215px;
   box-sizing:border-box;
   text-align:center;
   color:#ffffff;
@@ -6744,7 +6744,7 @@ html body #battleMap .map-node.castle-node .node-label{
      dugumleriYerlestir). transform-origin ÜST ORTA: küçülürken
      etiket kalenin altına yapışık kalır, ortasına kaymaz. */
   transform-origin:50% 0;
-  transform:translate(2px, 46px) scale(var(--et-k, 1));
+  transform:translate(0px, 17px) scale(var(--et-k, 1));
 }
 
 /* Uzun kullanıcı adı çerçeveden taşmaz: kırpılır ve sonuna üç nokta
@@ -6767,9 +6767,9 @@ html body #battleMap .map-node.castle-node .node-label::before{
   position:absolute;
   right:100%;                 /* çerçevenin SOLUNA asılır */
   top:50%;
-  margin-right:-43px;         /* görsel–çerçeve boşluğu   */
+  margin-right:-34px;         /* görsel–çerçeve boşluğu   */
   transform:translateY(calc(-50% + -1px));
-  width:85px;
+  width:67px;
   height:123px;
   background-size:contain;
   background-repeat:no-repeat;
@@ -6815,16 +6815,16 @@ if (!/[?&]etiket=1(&|$)/.test(location.search)) return;
 const ANAHTAR = "bdEtiket6";
 const VARSAYILAN = {
   /* KALE — piksel, doğrudan CSS'e gider */
-  kPunto:   23,   /* yazı boyu, px                    */
-  kGenis:  105,   /* çerçeve genişlik TAVANI, px      */
+  kPunto:   17,   /* yazı boyu, px                    */
+  kGenis:  215,   /* çerçeve genişlik TAVANI, px      */
   kDolguY:  19,   /* yatay dolgu, px                  */
   kDolguD:   0,   /* dikey dolgu, px                  */
   kKose:    30,   /* köşe yuvarlaklığı, px            */
-  kDx:       2,   /* çerçevenin yatay kayması         */
-  kDy:     -15,   /* dikey kayma (taban 61px)         */
-  kGEn:     85,   /* görsel genişliği, px             */
+  kDx:       0,   /* çerçevenin yatay kayması         */
+  kDy:     -44,   /* dikey kayma (taban 61px)         */
+  kGEn:     67,   /* görsel genişliği, px             */
   kGBoy:   123,   /* görsel yüksekliği, px            */
-  kGX:     -43,   /* görsel–çerçeve boşluğu, px       */
+  kGX:     -34,   /* görsel–çerçeve boşluğu, px       */
   kGY:      -1,   /* görselin dikey kayması, px       */
 
   /* DÜĞÜM — çarpanların 100 katı (sürgü tam sayı ister).
