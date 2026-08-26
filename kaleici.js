@@ -6,13 +6,13 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-19';
+  var SURUM = 'kaleici-20';
 
   var CFG = {
     grid: 13,
     zeminPay: 8,      // bina alanının dışına çizilen dolgu karo sayısı
     tileW: 64,
-    tileH: 44,         // yüksek = daha dik bakış
+    tileH: 46,         // yüksek = daha dik bakış
     zoom: 1.0,
     zoomMin: 0.6,
     zoomMax: 2.20,
@@ -23,28 +23,29 @@
 
   /* Bina görselinin taban genişliğine oranı — 1.00 = taban kadar geniş.
      Bina başına ince ayar: BINALAR içindeki 'olcek' ve 'dy' (piksel). */
-  var GORSEL_PAY = 1.00;
+  var GORSEL_PAY = 0.90;
 
   /* ---- Binalar: konum = sol üst karo, en/boy = kapladığı karo ----
      gorsel: kök dizindeki .webp dosya adı. Dosya yoksa emojiye döner.  */
   var BINALAR = [
-    { id: 'kale',      ad: 'Ana Kale',         emoji: '🏰', gorsel: 'anakale.webp',       gx: 3, gy: 5, en: 3, boy: 3, olcek: 1.46 },
-    { id: 'sovalye',   ad: 'Savunucu Kışlası', emoji: '⚔️', gorsel: 'savunucukisla.webp', gx: -2, gy: 5, en: 2, boy: 2, olcek: 1.23 },
-    { id: 'asker',     ad: 'Koruyucu Kışlası', emoji: '🛡️', gorsel: 'koruyucukisla.webp', gx: -2, gy: 1, en: 2, boy: 2, olcek: 1.08 },
-    { id: 'robot',     ad: 'Nişancı Kışlası',  emoji: '🤖', gorsel: 'nisancikisla.webp',  gx: -2, gy: 9, en: 2, boy: 2, olcek: 1.13 },
-    { id: 'arastirma', ad: 'Araştırma',        emoji: '🔬', gorsel: 'arastirma.webp',     gx: 3, gy: -1, en: 2, boy: 2, olcek: 1.35 },
-    { id: 'fuze',      ad: 'Füze Merkezi',     emoji: '🚀', gorsel: 'fuzemerkezi.webp',   gx: 13, gy: 4, en: 2, boy: 2, olcek: 1.37 },
-    { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: 6, gy: -1, en: 2, boy: 2, olcek: 0.76 },
-    { id: 'oyun',      ad: 'Oyun Merkezi',     emoji: '🎲', gorsel: 'oyunmerkezi.webp',   gx: -2, gy: -3, en: 2, boy: 2, olcek: 1.77 },
-    { id: 'ittifak',   ad: 'İttifak Binası',   emoji: '🤝', gorsel: 'ittifakbinasi.webp', gx: 3, gy: 12, en: 2, boy: 2, olcek: 1.63 },
-    { id: 'hastane',   ad: 'Hastane',          emoji: '🏥', gorsel: 'hastanebina.webp',   gx: 6, gy: 8, en: 2, boy: 2, olcek: 1.30 },
+    { id: 'kale',      ad: 'Ana Kale',         emoji: '🏰', gorsel: 'anakale.webp',       gx: -2, gy: 6,  en: 3, boy: 3, olcek: 0.92 },
+    { id: 'sovalye',   ad: 'Savunucu Kışlası', emoji: '⚔️', gorsel: 'savunucukisla.webp', gx: 2,  gy: 6,  en: 2, boy: 2, olcek: 0.80 },
+    { id: 'asker',     ad: 'Koruyucu Kışlası', emoji: '🛡️', gorsel: 'koruyucukisla.webp', gx: 2,  gy: 3,  en: 2, boy: 2, olcek: 0.80 },
+    { id: 'robot',     ad: 'Nişancı Kışlası',  emoji: '🤖', gorsel: 'nisancikisla.webp',  gx: 2,  gy: 9,  en: 2, boy: 2, olcek: 0.79 },
+    { id: 'arastirma', ad: 'Araştırma',        emoji: '🔬', gorsel: 'arastirma.webp',     gx: -4, gy: 3,  en: 2, boy: 2, olcek: 0.81 },
+    { id: 'fuze',      ad: 'Füze Merkezi',     emoji: '🚀', gorsel: 'fuzemerkezi.webp',   gx: -1, gy: 3,  en: 2, boy: 2, olcek: 0.80 },
+    { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: -6, gy: 1,  en: 2, boy: 2, olcek: 0.50 },
+    { id: 'oyun',      ad: 'Oyun Merkezi',     emoji: '🎲', gorsel: 'oyunmerkezi.webp',   gx: 5,  gy: 8,  en: 2, boy: 2, olcek: 0.81 },
+    { id: 'ittifak',   ad: 'İttifak Binası',   emoji: '🤝', gorsel: 'ittifakbinasi.webp', gx: 5,  gy: 5,  en: 2, boy: 2, olcek: 0.80 },
+    { id: 'hastane',   ad: 'Hastane',          emoji: '🏥', gorsel: 'hastanebina.webp',   gx: -7, gy: 7,  en: 2, boy: 2, olcek: 1.30 },
 
-    { id: 'odun',      ad: 'Odun',             emoji: '🪵', gorsel: 'odunuretim.webp',    gx: 10, gy: 8, en: 1, boy: 1, olcek: 1.32 },
-    { id: 'demir',     ad: 'Demir',            emoji: '⛏️', gorsel: 'demiruretim.webp',   gx: 10, gy: 6, en: 1, boy: 1, olcek: 1.42 },
-    { id: 'su',        ad: 'Su',               emoji: '💧', gorsel: 'suuretim.webp',      gx: 10, gy: 0, en: 1, boy: 1, olcek: 1.45 },
-    { id: 'enerji',    ad: 'Enerji',           emoji: '⚡', gorsel: 'enerjiuretim.webp',  gx: 10, gy: 2, en: 1, boy: 1, olcek: 1.45 },
-    { id: 'ahir',      ad: 'Ahır',             emoji: '🐄', gorsel: 'ahiruretim.webp',    gx: 10, gy: 4, en: 1, boy: 1, olcek: 1.51 }
+    { id: 'odun',      ad: 'Odun',             emoji: '🪵', gorsel: 'odunuretim.webp',    gx: -2, gy: 11, en: 1, boy: 1, olcek: 0.79 },
+    { id: 'demir',     ad: 'Demir',            emoji: '⛏️', gorsel: 'demiruretim.webp',   gx: 0,  gy: 11, en: 1, boy: 1, olcek: 0.80 },
+    { id: 'su',        ad: 'Su',               emoji: '💧', gorsel: 'suuretim.webp',      gx: -1, gy: 13, en: 1, boy: 1, olcek: 0.80 },
+    { id: 'enerji',    ad: 'Enerji',           emoji: '⚡', gorsel: 'enerjiuretim.webp',  gx: -3, gy: 13, en: 1, boy: 1, olcek: 0.80 },
+    { id: 'ahir',      ad: 'Ahır',             emoji: '🐄', gorsel: 'ahiruretim.webp',    gx: -4, gy: 11, en: 1, boy: 1, olcek: 0.79 }
   ];
+
 
   /* ---- Görsel yükleyici: dosya yoksa sessizce emojiye düşülür ---- */
   var GORSELLER = {};
