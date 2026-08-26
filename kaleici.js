@@ -6,10 +6,10 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-17';
+  var SURUM = 'kaleici-18';
 
   var CFG = {
-    grid: 10,
+    grid: 13,
     zeminPay: 8,      // bina alanının dışına çizilen dolgu karo sayısı
     tileW: 64,
     tileH: 44,         // yüksek = daha dik bakış
@@ -37,6 +37,7 @@
     { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: 6, gy: -1, en: 2, boy: 2, olcek: 0.76 },
     { id: 'oyun',      ad: 'Oyun Merkezi',     emoji: '🎲', gorsel: 'oyunmerkezi.webp',   gx: -2, gy: -3, en: 2, boy: 2, olcek: 1.77 },
     { id: 'ittifak',   ad: 'İttifak Binası',   emoji: '🤝', gorsel: 'ittifakbinasi.webp', gx: 3, gy: 12, en: 2, boy: 2, olcek: 1.63 },
+    { id: 'hastane',   ad: 'Hastane',          emoji: '🏥', gorsel: 'hastanebina.webp',   gx: 6, gy: 8, en: 2, boy: 2, olcek: 1.30 },
 
     { id: 'odun',      ad: 'Odun',             emoji: '🪵', gorsel: 'odunuretim.webp',    gx: 10, gy: 8, en: 1, boy: 1, olcek: 1.32 },
     { id: 'demir',     ad: 'Demir',            emoji: '⛏️', gorsel: 'demiruretim.webp',   gx: 10, gy: 6, en: 1, boy: 1, olcek: 1.42 },
@@ -98,6 +99,12 @@
         sh: Math.min(h, Math.ceil((y1 - y0 + 1) / k))
       };
     } catch (e) { return tam; }
+  }
+
+  /* Ekranda görünen ad. Seviye şimdilik hep 1; seviye sistemi gelince
+     yalnız bu fonksiyon değişir, bina listesindeki 'ad' alanları temiz kalır. */
+  function binaAdi(b) {
+    return (b.sv || 1) + '. Sv ' + b.ad;
   }
 
   function binaGorseli(b) {
@@ -194,6 +201,129 @@
       x: tuval.width / (2 * eb) + (wx - camX) * CFG.zoom,
       y: tuval.height / (2 * eb) + (wy - camY) * CFG.zoom
     };
+  }
+
+  /* ================= ZEMİN DOKUSU =================
+     Eşkenar dörtgen karo ızgarası kaldırıldı. Zemin artık ana haritadaki
+     çimen algoritmasının sade kopyasıyla boyanıyor: tohumlu gürültüden
+     doğan leke + geniş ışık dalgası + doygunluk. Görsel dosya yok.
+     harita.js'e DOKUNULMADI; oradaki kod aynen duruyor. */
+  var ZCFG = {
+    renk: [82, 192, 58],   // çimen taban rengi (harita.js zeminRenk.cimen)
+    koyu: 0.24, acik: 0.24,
+    isik: 0.32,
+    lekeYatay: 2.4,
+    doygunluk: 1.22,
+    adim: 12,              // kaç dünya pikselinde bir örnek alınır
+    seed: 20260803
+  };
+
+  function zHash(ix, iy) {
+    var n = Math.sin(ix * 12.9898 + iy * 78.233 + ZCFG.seed) * 43758.5453123;
+    return n - Math.floor(n);
+  }
+  function zNoise(x, y) {
+    var ix = Math.floor(x), iy = Math.floor(y);
+    var fx = x - ix, fy = y - iy;
+    var ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    var a = zHash(ix, iy), b = zHash(ix + 1, iy);
+    var c = zHash(ix, iy + 1), d = zHash(ix + 1, iy + 1);
+    return (a * (1 - ux) + b * ux) * (1 - uy) + (c * (1 - ux) + d * ux) * uy;
+  }
+  function zYum(t) { return t * t * (3 - 2 * t); }
+  function zKaris(a, b, t) {
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  }
+  function zAc(c, t)  { return [c[0] + (255 - c[0]) * t, c[1] + (255 - c[1]) * t, c[2] + (255 - c[2]) * t]; }
+  function zKoy(c, t) { return [c[0] * (1 - t), c[1] * (1 - t), c[2] * (1 - t)]; }
+
+  function zeminRengi(gx, gy) {
+    var c = [ZCFG.renk[0], ZCFG.renk[1], ZCFG.renk[2]];
+    /* eu = ekranda yatay yön, ev = dikey yön. eu frekansı düşük →
+       lekeler yatay uzar, zemin yere serilmiş gibi durur. */
+    var eu = (gx - gy) / ZCFG.lekeYatay, ev = (gx + gy);
+
+    if (ZCFG.isik > 0) {
+      var sh = zNoise(eu * 0.075 + 41, ev * 0.075 + 17) * 0.65
+             + zNoise(eu * 0.022 + 5,  ev * 0.022 + 29) * 0.35;
+      var t = (sh - 0.5) * 1.35 * ZCFG.isik * 1.8;
+      c = t < 0 ? zKaris(c, zKoy(c, 0.52), Math.min(0.70, -t))
+                : zKaris(c, [255, 255, 255], Math.min(0.28, t * 0.50));
+    }
+
+    var pk = zNoise(eu * 0.070 + 77, ev * 0.070 + 13) * 0.50
+           + zNoise(eu * 0.175 + 5,  ev * 0.175 + 91) * 0.32
+           + zNoise(eu * 0.430 + 31, ev * 0.430 + 53) * 0.18;
+    pk = zYum(pk);
+    pk = pk * 0.68 + (Math.round(pk * 3) / 3) * 0.32;
+    var pt = (pk - 0.5) * 2;
+    if (pt < 0) c = zKaris(c, zKoy(ZCFG.renk, 0.46), Math.min(1, -pt * ZCFG.koyu * 2.2));
+    else        c = zKaris(c, zAc(c, 0.42),          Math.min(1,  pt * ZCFG.acik * 2.2));
+
+    var d2 = ZCFG.doygunluk;
+    if (d2 !== 1) {
+      var orta = (c[0] + c[1] + c[2]) / 3;
+      c = [Math.max(0, Math.min(255, orta + (c[0] - orta) * d2)),
+           Math.max(0, Math.min(255, orta + (c[1] - orta) * d2)),
+           Math.max(0, Math.min(255, orta + (c[2] - orta) * d2))];
+    }
+    return c;
+  }
+
+  /* Alçak çözünürlüklü tampon. Ekrandan geniş üretilir; kamera tamponun
+     dışına çıkana kadar yeniden hesaplanmaz — kaydırma bedava olur. */
+  var zOnbellek = null;
+
+  function zeminUret(gorW, gorH) {
+    var A = ZCFG.adim;
+    var pw = gorW * 1.6, ph = gorH * 1.6;
+    var minX = Math.floor((camX - pw / 2) / A) * A;
+    var minY = Math.floor((camY - ph / 2) / A) * A;
+    var LW = Math.ceil(pw / A) + 2, LH = Math.ceil(ph / A) + 2;
+    /* güvenlik: aşırı uzaklaşmada tampon şişmesin */
+    if (LW > 420) LW = 420;
+    if (LH > 420) LH = 420;
+
+    var cv = document.createElement('canvas');
+    cv.width = LW; cv.height = LH;
+    var cx2 = cv.getContext('2d');
+    var veri = cx2.createImageData(LW, LH);
+    var p = veri.data;
+    var yariW = CFG.tileW / 2, yariH = CFG.tileH / 2;
+
+    for (var j = 0; j < LH; j++) {
+      var wy = minY + (j + 0.5) * A;
+      for (var i = 0; i < LW; i++) {
+        var wx = minX + (i + 0.5) * A;
+        /* kesirli ızgara — yuvarlama yok, doku karoya bağlı değil */
+        var ga = wx / yariW, gb = wy / yariH;
+        var c = zeminRengi((gb + ga) / 2, (gb - ga) / 2);
+        var k = (j * LW + i) * 4;
+        p[k] = c[0]; p[k + 1] = c[1]; p[k + 2] = c[2]; p[k + 3] = 255;
+      }
+    }
+    cx2.putImageData(veri, 0, 0);
+
+    zOnbellek = { cv: cv, LW: LW, LH: LH, A: A,
+                  minX: minX, minY: minY,
+                  maxX: minX + LW * A, maxY: minY + LH * A,
+                  zoom: CFG.zoom, tileH: CFG.tileH };
+  }
+
+  function zeminCiz(w, h) {
+    var A = ZCFG.adim;
+    var gorW = w / CFG.zoom, gorH = h / CFG.zoom;
+    var ob = zOnbellek;
+    var yenile = !ob || ob.zoom !== CFG.zoom || ob.tileH !== CFG.tileH ||
+                 (camX - gorW / 2) < ob.minX + A || (camX + gorW / 2) > ob.maxX - A ||
+                 (camY - gorH / 2) < ob.minY + A || (camY + gorH / 2) > ob.maxY - A;
+    if (yenile) zeminUret(gorW, gorH);
+    ob = zOnbellek;
+    var e = ekran(ob.minX, ob.minY);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(ob.cv, 0, 0, ob.LW, ob.LH,
+                  e.x, e.y, ob.LW * ob.A * CFG.zoom, ob.LH * ob.A * CFG.zoom);
   }
 
   function zoomSinirlariniHesapla() {
@@ -305,45 +435,11 @@
     ctx.fillStyle = '#6f9d4f';
     ctx.fillRect(0, 0, w, h);
 
-    /* zemin — ekranda görünen ızgara aralığı hesaplanır, köşeler boş kalmaz */
-    var kose = [dunyaya(0, 0), dunyaya(w, 0), dunyaya(0, h), dunyaya(w, h)];
-    var gxA = 1e9, gxB = -1e9, gyA = 1e9, gyB = -1e9;
-    for (var q = 0; q < 4; q++) {
-      var kg = izgara(kose[q].x, kose[q].y);
-      if (kg.gx < gxA) gxA = kg.gx;
-      if (kg.gx > gxB) gxB = kg.gx;
-      if (kg.gy < gyA) gyA = kg.gy;
-      if (kg.gy > gyB) gyB = kg.gy;
-    }
-    gxA -= 2; gxB += 2; gyA -= 2; gyB += 2;
-    /* güvenlik: aşırı uzaklaşmada karo sayısını sınırla */
-    if ((gxB - gxA) * (gyB - gyA) > 9000) { gxB = gxA + 95; gyB = gyA + 95; }
+    /* zemin — karo ızgarası yok, dikişsiz çimen dokusu */
+    zeminCiz(w, h);
 
-    var yollar = [[], []];
-    for (var gy = gyA; gy <= gyB; gy++) {
-      for (var gx = gxA; gx <= gxB; gx++) {
-        var m = dunya(gx, gy), e = ekran(m.x, m.y);
-        if (e.x < -CFG.tileW * CFG.zoom || e.x > w + CFG.tileW * CFG.zoom) continue;
-        if (e.y < -CFG.tileH * CFG.zoom || e.y > h + CFG.tileH * CFG.zoom) continue;
-        yollar[((gx + gy) & 1)].push(e);
-      }
-    }
-    var yariW = CFG.tileW / 2 * CFG.zoom, yariH = CFG.tileH / 2 * CFG.zoom;
-    for (var t = 0; t < 2; t++) {
-      var liste = yollar[t];
-      if (!liste.length) continue;
-      ctx.beginPath();
-      for (var i = 0; i < liste.length; i++) {
-        var c = liste[i];
-        ctx.moveTo(c.x, c.y - yariH);
-        ctx.lineTo(c.x + yariW, c.y);
-        ctx.lineTo(c.x, c.y + yariH);
-        ctx.lineTo(c.x - yariW, c.y);
-        ctx.closePath();
-      }
-      ctx.fillStyle = t === 0 ? '#8cbb66' : '#84b25f';
-      ctx.fill();
-    }
+    /* taşınan binanın hedef karoları — açık beyaz silüet */
+    if (tasinan) siluetCiz(tasinan);
 
     /* binalar — arkadan öne */
     var sirali = BINALAR.slice().sort(function (a, b) {
@@ -366,61 +462,75 @@
   function secimCanli() { return !!secili; }
 
   function binaSec(b) {
-    if (b !== secili) tasiModu = false;
     secili = b;
     if (b && AYAR_ACIK && ayarSecim) { ayarSecim.value = b.id; ayarTazele(); }
     secimZaman = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     kareIste();
   }
 
-  function binaCiz(b) {
-    var nk = taban(b);
-    var g = binaGorseli(b);
-    /* Görsel varken beyaz taban çizilmez — görselin kendi zemini var. */
-    if (!g) dortgenCiz(nk, '#f1f5ef', 'rgba(255,255,255,.55)');
-
+  /* Binanın EKRANDAKİ dikdörtgeni — çizim de, dokunuş isabeti de
+     buradan okur. İki yerde ayrı hesaplanırsa parmak binayı ıskalar;
+     taşımanın hiç tutmamasının sebebi tam olarak buydu. */
+  function binaKutusu(b) {
+    var nk = taban(b), g = binaGorseli(b);
     var ortaW = { x: (nk[0].x + nk[2].x) / 2, y: (nk[0].y + nk[2].y) / 2 };
     var o = ekran(ortaW.x, ortaW.y);
+    if (!g) {
+      var p0 = ekran(nk[0].x, nk[0].y), p1 = ekran(nk[1].x, nk[1].y);
+      var p2 = ekran(nk[2].x, nk[2].y), p3 = ekran(nk[3].x, nk[3].y);
+      return { x: p3.x, y: p0.y, w: p1.x - p3.x, h: p2.y - p0.y, gorsel: false };
+    }
+    var k = g.kutu;
+    var gen = (nk[1].x - nk[3].x) * CFG.zoom * GORSEL_PAY * (b.olcek || 1);
+    var yuk = gen * (k.sh / k.sw);
+    var alt = ekran(nk[2].x, nk[2].y);
+    return {
+      x: o.x - gen / 2 + (b.dx || 0) * CFG.zoom,
+      y: alt.y - yuk + (b.dy || 0) * CFG.zoom,
+      w: gen, h: yuk, gorsel: true
+    };
+  }
+
+  /* Taşınan binanın oturacağı karolar — açık beyaz silüet */
+  function siluetCiz(b) {
+    for (var y = 0; y < b.boy; y++) {
+      for (var x = 0; x < b.en; x++) {
+        dortgenCiz(karoDortgeni(b.gx + x, b.gy + y),
+                   'rgba(255,255,255,.42)', 'rgba(255,255,255,.85)');
+      }
+    }
+  }
+
+  function binaCiz(b) {
+    var g = binaGorseli(b);
+    var kut = binaKutusu(b);
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     if (g) {
-      /* Kırpılmış içerik tabanın alt köşesine oturur; oran korunur. */
       var k = g.kutu;
-      var genislik = (nk[1].x - nk[3].x) * CFG.zoom * GORSEL_PAY * (b.olcek || 1);
-      var yukseklik = genislik * (k.sh / k.sw);
-      var altNokta = ekran(nk[2].x, nk[2].y);
-      var dy = (b.dy || 0) * CFG.zoom;
-      var dx = (b.dx || 0) * CFG.zoom;
       var sap = secimSaydamlik(b);
       if (sap < 1) ctx.globalAlpha = sap;
-      ctx.drawImage(g.im, k.sx, k.sy, k.sw, k.sh,
-                    o.x - genislik / 2 + dx, altNokta.y - yukseklik + dy, genislik, yukseklik);
+      ctx.drawImage(g.im, k.sx, k.sy, k.sw, k.sh, kut.x, kut.y, kut.w, kut.h);
       ctx.globalAlpha = 1;
     } else {
+      /* Görsel yoksa emoji + soluk taban (dosya eksikse bina kaybolmasın) */
+      var nk = taban(b);
+      dortgenCiz(nk, 'rgba(241,245,239,.55)', 'rgba(255,255,255,.55)');
+      var o = { x: kut.x + kut.w / 2, y: kut.y + kut.h / 2 };
       var boyut = (b.en >= 3 ? 46 : b.en === 2 ? 32 : 20) * CFG.zoom;
       ctx.font = boyut + 'px "Baloo 2",sans-serif';
       ctx.fillText(b.emoji, o.x, o.y - boyut * 0.12);
     }
-
   }
 
   /* ---- Seçili binanın adı — binaların üstünde, çerçeveli ---- */
   function seciliAdCiz() {
-    if (!secili) { tasiSimge.r = 0; tasiModu = false; return; }
-    var b = secili, nk = taban(b);
-    var g = binaGorseli(b);
-    var ortaW = { x: (nk[0].x + nk[2].x) / 2, y: (nk[0].y + nk[2].y) / 2 };
-    var o = ekran(ortaW.x, ortaW.y);
-
-    /* Yazı binanın tepesinin biraz üstünde durur */
-    var tepe = ekran(nk[0].x, nk[0].y).y;
-    if (g) {
-      var k = g.kutu;
-      var gen = (nk[1].x - nk[3].x) * CFG.zoom * GORSEL_PAY * (b.olcek || 1);
-      tepe = ekran(nk[2].x, nk[2].y).y - gen * (k.sh / k.sw) + (b.dy || 0) * CFG.zoom;
-    }
+    if (!secili) return;
+    var b = secili;
+    var kut = binaKutusu(b);
+    var o = { x: kut.x + kut.w / 2 };
 
     var boy = Math.max(15, 19 * CFG.zoom);
     ctx.textAlign = 'center';
@@ -430,65 +540,29 @@
     ctx.miterLimit = 2;
     ctx.lineWidth = Math.max(2, boy * 0.17);
     ctx.strokeStyle = '#ffc61a';
-    var yaziY = tepe - boy * 0.45;
-    ctx.strokeText(b.ad, o.x, yaziY);
+    var ad = binaAdi(b);
+    var yaziY = kut.y - boy * 0.45;
+    ctx.strokeText(ad, o.x, yaziY);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(b.ad, o.x, yaziY);
-
-    /* Taşıma simgesi — görselin sol alt köşesinde. Bir dokunuşta büyür. */
-    var solW = ekran(nk[3].x, nk[3].y);        // taban sol köşesi
-    var altW = ekran(nk[2].x, nk[2].y);        // taban alt köşesi
-    var sr = boy * (tasiModu ? 0.95 : 0.55);
-    tasiSimge.x = (solW.x + altW.x) / 2;
-    tasiSimge.y = (solW.y + altW.y) / 2;
-    tasiSimge.r = sr;
-    tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr, tasiModu);
+    ctx.fillText(ad, o.x, yaziY);
   }
 
-  /* Dokunuş taşıma simgesinin üstünde mi (parmak payı ile) */
-  function simgedeMi(px, py) {
-    if (!secili || !tasiSimge.r) return false;
-    var pay = Math.max(tasiSimge.r * 1.6, 20);
-    return Math.abs(px - tasiSimge.x) <= pay && Math.abs(py - tasiSimge.y) <= pay;
-  }
-
-  /* Dört yönlü ok — "bu binayı sürükleyebilirsin" */
-  function tasiSimgesiCiz(x, y, r, etkin) {
-    var u = r * 0.5, b = r * 0.22;
-    ctx.save();
-    ctx.translate(x, y);
-    /* Etkinken arkasında yuvarlak zemin */
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2);
-    ctx.fillStyle = etkin ? 'rgba(255,198,26,.92)' : 'rgba(10,28,48,.55)';
-    ctx.fill();
-    ctx.beginPath();
-    for (var i = 0; i < 4; i++) {
-      var a = i * Math.PI / 2;
-      var kx = Math.cos(a), ky = Math.sin(a);
-      var px = -Math.sin(a), py = Math.cos(a);
-      ctx.moveTo(kx * u, ky * u);                                  // uç
-      ctx.lineTo(kx * (u - b) + px * b, ky * (u - b) + py * b);    // sağ kanat
-      ctx.lineTo(kx * (u - b) - px * b, ky * (u - b) - py * b);    // sol kanat
-      ctx.closePath();
-    }
-    ctx.moveTo(-b * 0.5, -b * 0.5);
-    ctx.rect(-b * 0.55, -b * 0.55, b * 1.1, b * 1.1);
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = Math.max(1.5, r * 0.20);
-    ctx.strokeStyle = etkin ? '#7a4d00' : '#ffc61a';
-    ctx.stroke();
-    ctx.fillStyle = etkin ? '#4a2f00' : '#ffffff';
-    ctx.fill();
-    ctx.restore();
-  }
-
-  /* ---- Dokunulan noktadaki bina ---- */
+  /* ---- Dokunulan noktadaki bina ----
+     Önce GÖRSEL dikdörtgenine bakılır, öndeki bina kazanır. Eskiden
+     yalnız taban karosuna bakılıyordu; ölçekler 1'in üstünde olduğu
+     için parmak gövdeye basınca hiçbir bina bulunamıyordu. */
   function binaBul(sx, sy) {
-    var d = dunyaya(sx, sy);
-    var g = izgara(d.x, d.y);
-    for (var i = 0; i < BINALAR.length; i++) {
-      var b = BINALAR[i];
+    var sirali = BINALAR.slice().sort(function (a, b) {
+      return (b.gx + b.gy) - (a.gx + a.gy);     // önden arkaya
+    });
+    for (var i = 0; i < sirali.length; i++) {
+      var k = binaKutusu(sirali[i]);
+      if (sx >= k.x && sx <= k.x + k.w && sy >= k.y && sy <= k.y + k.h) return sirali[i];
+    }
+    /* Görselin dışına düşen dokunuş için taban karosu yedeği */
+    var d = dunyaya(sx, sy), g = izgara(d.x, d.y);
+    for (var j = 0; j < BINALAR.length; j++) {
+      var b = BINALAR[j];
       if (g.gx >= b.gx && g.gx < b.gx + b.en && g.gy >= b.gy && g.gy < b.gy + b.boy) return b;
     }
     return null;
@@ -499,8 +573,6 @@
   var sonX = 0, sonY = 0, kaydi = false, basX = 0, basY = 0;
   var ilkMesafe = 0, ilkZoom = 1;
   var tasinan = null, tasiKay = { x: 0, y: 0 };   // sürüklenen bina
-  var tasiSimge = { x: 0, y: 0, r: 0 };            // taşıma simgesinin ekran yeri
-  var tasiModu = false;                            // simgeye basıldı → bina sürüklenebilir
 
   function mesafe() {
     var k = Object.keys(parmaklar);
@@ -537,16 +609,11 @@
       /* Taşıma yalnızca seçili binanın taşıma simgesinden başlar. */
       var r0 = tuval.getBoundingClientRect();
       var px = e.clientX - r0.left, py = e.clientY - r0.top;
+      /* İlk dokunuş binayı SEÇER. Seçili binaya ikinci kez basıp
+         sürüklemek onu taşır — ayrı bir taşıma düğmesi yok. */
+      var bulunan = binaBul(px, py);
       var hedef = null;
-      if (secili && simgedeMi(px, py)) {
-        /* Simgeye dokunuş: taşıma modunu aç/kapa, sürükleme başlatma */
-        tasiModu = !tasiModu;
-        kaydi = true;                 // bırakınca seçim değişmesin
-        kareIste();
-        return;
-      }
-      if (secili && tasiModu && binaBul(px, py) === secili) hedef = secili;
-      else if (AYAR_ACIK) hedef = binaBul(px, py);
+      if (bulunan && (bulunan === secili || AYAR_ACIK)) hedef = bulunan;
       if (hedef) {
         tasinan = hedef;
         var d0 = dunyaya(px, py);
@@ -631,7 +698,7 @@
   }
 
   function panelAc(b) {
-    panelAd.textContent = b.emoji + '  ' + b.ad;
+    panelAd.textContent = b.emoji + '  ' + binaAdi(b);
     panel.classList.add('acik');
   }
   function panelKapat() { panel.classList.remove('acik'); }
@@ -694,7 +761,7 @@
 
     var sec = '';
     for (var i = 0; i < BINALAR.length; i++) {
-      sec += '<option value="' + BINALAR[i].id + '">' + BINALAR[i].ad + '</option>';
+      sec += '<option value="' + BINALAR[i].id + '">' + binaAdi(BINALAR[i]) + '</option>';
     }
 
     var satirlar = '';
@@ -985,7 +1052,7 @@
 
   function kapat() {
     panelKapat();
-    secili = null; tasiModu = false;
+    secili = null; tasinan = null;
     panelleriGeriKoy();
     document.body.classList.remove('kaleici-acik');
     if (katman) katman.classList.remove('acik');
@@ -999,5 +1066,6 @@
 
   window.KALEICI = { SURUM: SURUM, CFG: CFG, BINALAR: BINALAR, GORSELLER: GORSELLER,
                     ac: ac, kapat: kapat, ciz: ciz, gorselYukle: gorselYukle,
+                    ZCFG: ZCFG, binaAdi: binaAdi, binaKutusu: binaKutusu,
                     yerlesimOku: yerlesimOku, yerlesimYaz: yerlesimYaz };
 })();
