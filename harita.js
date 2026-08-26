@@ -150,13 +150,21 @@
        Görsel dosya olmadığı için indirme, decode ve dikiş derdi yok. */
     zeminRenk: {
       kar:   [224, 234, 245],
-      cimen: [ 88, 178,  66],
-      lav:   [168,  62,  44],
+      cimen: [ 82, 192,  58],
+      lav:   [186,  60,  36],
     },
 
     /* Leke gücü GENEL çarpanı. 0 = tek düze renk. Bölge başına
        ayrı ayar aşağıda (lekeAyar); bu sayı hepsini birden kısar. */
     leke: 1.0,
+
+    /* ── DOYGUNLUK ──
+       Işık dalgası beyaza, leke katmanı griye karıştırıyor; ikisi
+       birden zemini soluklaştırıyordu. Taban renkleri doyurulsaydı
+       lekelerin kendisi aşırı doygun çıkardı. Bu yüzden doygunluk
+       EN SONDA, bütün katmanlar bindikten sonra bir kez toplanır.
+       1 = dokunma · 1.2 civarı canlı · 1.5 üstü poster gibi. */
+    doygunluk: 1.22,
 
     /* ── BÖLGE BAŞINA LEKE KARAKTERİ ──
        koyu = koyu parçaların gücü · acik = açık parçaların gücü
@@ -587,6 +595,21 @@
         const g = A.kar.acik * w[0] + A.cimen.acik * w[1] + A.lav.acik * w[2];
         c = renkKaris(c, renkAc(c, 0.42), Math.min(1, pt * g * CFG.leke * 2.2));
       }
+    }
+
+    /* 4. Doygunluk — gri eksenden UZAKLAŞTIRMA.
+       Parlaklık (üç kanalın ortalaması) sabit kalır, yalnız kanal
+       farkları büyür. Böylece ışık ve gölge dengesi bozulmaz, renk
+       canlanır. Kırpma şart: doygunluk 1'in üstündeyken kanal
+       0-255 dışına taşabilir ve taşan kanal renk atlatır. */
+    if (CFG.doygunluk !== 1) {
+      const d = CFG.doygunluk;
+      const orta = (c[0] + c[1] + c[2]) / 3;
+      c = [
+        Math.max(0, Math.min(255, orta + (c[0] - orta) * d)),
+        Math.max(0, Math.min(255, orta + (c[1] - orta) * d)),
+        Math.max(0, Math.min(255, orta + (c[2] - orta) * d)),
+      ];
     }
 
     return c;
