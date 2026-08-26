@@ -7099,20 +7099,23 @@ setTimeout(uygula, 2500);
 
    Adres çubuğuna  ...vercel.app/?hastane=1  yazınca sol altta
    "⚙ HASTANE" düğmesi çıkar. Sürgüleri oynattıkça hastane paneli
-   ANINDA değişir. Değerler telefonda saklanır (localStorage),
-   sayfa yenilense de durur.
+   ANINDA değişir. Değerler telefonda saklanır (localStorage).
 
-   ÇIKTI düğmesi, beğendiğin değerleri hazır CSS olarak yazar;
-   o satırları asıl tanımlara işleyince bu blok SİLİNİR.
+   Çekmece ekranı kapatmasın diye:
+     · aynı anda YALNIZ BİR bölüm görünür (üstteki sekmelerden seç)
+     · ⬍ düğmesi çekmece boyunu üç kademede değiştirir
+     · üstüne dokunulmayan yer şeffaftır, panel görünür kalır
+   Her sürgünün iki yanında − / + var; tek dokunuş bir adım oynatır.
 
-   Kural gereği burası bir "ezme"dir ama yalnız ?hastane=1 varken
-   enjekte edilir — normal oyunda tek satır CSS eklenmez.
+   ÇIKTI düğmesi beğenilen değerleri hazır CSS olarak yazar;
+   asıl tanımlara işlenince bu blok SİLİNİR.
+   Yalnız ?hastane=1 varken enjekte edilir — normal oyunda yok.
    ═══════════════════════════════════════════════════════════════ */
 (function hastaneInceAyar(){
 "use strict";
 if (!/[?&]hastane=1/.test(location.search)) return;
 
-/* ── Ayarlanabilir her şey. br = birim, olcek = 100'e böl (opaklık) ── */
+/* anahtar, ad, varsayılan, en az, en çok, adım, birim, opaklık mı */
 const GRUP = [
  ["PANEL", [
   ["panel-ust",   "Üstten boşluk",     60, 0, 160, 1, "px"],
@@ -7134,22 +7137,22 @@ const GRUP = [
   ["satir-ara",    "Kutucuk-yazı arası",10,0,  36, 1, "px"],
   ["cizgi",        "Ayraç çizgisi",    14, 0, 100, 1, "", 1]
  ]],
- ["KAFA KUTUCUĞU", [
+ ["KUTUCUK", [
   ["kafa-boy",  "Kutu boyu",           52,24, 110, 1, "px"],
   ["kafa-kose", "Kutu köşesi",         14, 0,  40, 1, "px"],
   ["kafa-kenar","Kenar opaklığı",      45, 0, 100, 1, "",  1]
  ]],
- ["GÖRSEL KIRPMA — SAVUNUCU", [
+ ["KIRPMA · SAVUNUCU", [
   ["kn-en", "Genişlik",               150,60, 320, 1, "%"],
   ["kn-ust","Yukarı-aşağı",           -29,-120,60, 1, "%"],
   ["kn-sol","Sağa-sola",              -26,-160,60, 1, "%"]
  ]],
- ["GÖRSEL KIRPMA — KORUYUCU", [
+ ["KIRPMA · KORUYUCU", [
   ["sl-en", "Genişlik",               130,60, 320, 1, "%"],
   ["sl-ust","Yukarı-aşağı",           -16,-120,60, 1, "%"],
   ["sl-sol","Sağa-sola",              -21,-160,60, 1, "%"]
  ]],
- ["GÖRSEL KIRPMA — NİŞANCI", [
+ ["KIRPMA · NİŞANCI", [
   ["rb-en", "Genişlik",               140,60, 320, 1, "%"],
   ["rb-ust","Yukarı-aşağı",           -10,-120,60, 1, "%"],
   ["rb-sol","Sağa-sola",              -18,-160,60, 1, "%"]
@@ -7170,7 +7173,7 @@ const GRUP = [
   ["kutu-kose","Kutu köşesi",           7, 0,  20, 1, "px"],
   ["max-font", "/ toplam yazısı",    12.5, 8,  26,.5, "px"]
  ]],
- ["İYİLEŞTİR DÜĞMESİ", [
+ ["DÜĞME", [
   ["dug-en",     "En az genişlik",    126,70, 340, 2, "px"],
   ["dug-dolgu-y","Yükseklik dolgusu",   8, 2,  26, 1, "px"],
   ["dug-font",   "Yazı boyu",          12, 8,  26,.5, "px"],
@@ -7179,11 +7182,9 @@ const GRUP = [
  ]]
 ];
 
-/* anahtar → tanım */
 const TANIM = {};
 GRUP.forEach(g => g[1].forEach(t => { TANIM[t[0]] = t; }));
 
-/* ── Değerler ── */
 const KAYIT = "hsAyar_v1";
 let deger = {};
 GRUP.forEach(g => g[1].forEach(t => { deger[t[0]] = t[2]; }));
@@ -7200,7 +7201,6 @@ function yaz(k){
 function hepsiniYaz(){ Object.keys(deger).forEach(yaz); }
 function sakla(){ try { localStorage.setItem(KAYIT, JSON.stringify(deger)); } catch (e) {} }
 
-/* ── Hastaneyi değişkenlere bağlayan kurallar ── */
 const st = document.createElement("style");
 st.id = "hsAyarStil";
 st.textContent = `
@@ -7286,38 +7286,54 @@ html body #panel-hospital .hospital-confirm-btn{
   box-shadow:0 2px 6px rgba(0,20,45,.3);
 }
 #hsAyarAc:active{ transform:scale(.96); filter:brightness(.93); }
+
 #hsAyarKutu{
-  position:fixed; left:0; right:0; bottom:0; z-index:99999;
-  height:52vh; overflow-y:auto; display:none;
-  background:rgba(4,14,34,.97); color:#fff;
+  position:fixed; left:0; right:0; bottom:0; z-index:99999; display:none;
+  background:rgba(4,14,34,.94); color:#fff;
   font-family:'Baloo 2',sans-serif;
-  padding:8px 10px 22px;
+  padding:6px 8px 10px;
   border-top:1px solid rgba(190,240,255,.20);
 }
 #hsAyarKutu.acik{ display:block; }
-#hsAyarKutu::-webkit-scrollbar{ width:0; height:0; display:none; }
-.hsa-ust{
-  display:flex; align-items:center; gap:6px; margin-bottom:6px;
-  position:sticky; top:-8px; background:rgba(4,14,34,.97);
-  padding:6px 0 4px; z-index:2;
-}
-.hsa-ust b{ flex:1; font-size:13px; letter-spacing:1px; }
-.hsa-ust button{
+#hsAyarKutu.boy0{ max-height:26vh; }
+#hsAyarKutu.boy1{ max-height:40vh; }
+#hsAyarKutu.boy2{ max-height:62vh; }
+
+.hsa-ust{ display:flex; align-items:center; gap:5px; margin-bottom:5px; }
+.hsa-ust b{ flex:1; font-size:12px; letter-spacing:1px; }
+.hsa-ust button, .hsa-sek button{
   border:0; border-radius:9px; color:#fff; font-family:'Baloo 2',sans-serif;
   font-weight:800; font-size:11px; padding:6px 9px;
   background:linear-gradient(180deg,#3d7ccc,#22488f);
 }
-.hsa-ust button:active{ transform:scale(.96); filter:brightness(.93); }
+.hsa-ust button:active, .hsa-sek button:active{ transform:scale(.96); filter:brightness(.93); }
 .hsa-ust .hsa-sil{ background:linear-gradient(180deg,#f03434,#c00d0d); }
-.hsa-bas{
-  font-size:11px; font-weight:800; letter-spacing:1px; color:#ffd257;
-  margin:10px 0 3px; padding-top:5px;
-  border-top:1px solid rgba(190,240,255,.14);
+
+.hsa-sek{
+  display:flex; gap:5px; overflow-x:auto; padding-bottom:5px;
+  margin-bottom:4px; border-bottom:1px solid rgba(190,240,255,.14);
 }
-.hsa-sat{ display:flex; align-items:center; gap:7px; margin:4px 0; }
-.hsa-ad{ flex:0 0 34%; font-size:11.5px; font-weight:700; color:#dceaff; }
+.hsa-sek::-webkit-scrollbar{ width:0; height:0; display:none; }
+.hsa-sek button{ flex:0 0 auto; font-size:10.5px; padding:5px 9px; opacity:.55; }
+.hsa-sek button.sec{ opacity:1; background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
+
+#hsaGovde{ overflow-y:auto; max-height:44vh; }
+#hsaGovde::-webkit-scrollbar{ width:0; height:0; display:none; }
+#hsAyarKutu.boy0 #hsaGovde{ max-height:15vh; }
+#hsAyarKutu.boy1 #hsaGovde{ max-height:29vh; }
+#hsAyarKutu.boy2 #hsaGovde{ max-height:51vh; }
+
+.hsa-sat{ display:flex; align-items:center; gap:5px; margin:5px 0; }
+.hsa-ad{ flex:0 0 30%; font-size:11.5px; font-weight:700; color:#dceaff; }
+.hsa-adim{
+  flex:0 0 26px; height:26px; border:0; border-radius:8px;
+  background:rgba(61,124,204,.55); color:#fff;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:15px;
+  line-height:26px; padding:0; text-align:center;
+}
+.hsa-adim:active{ transform:scale(.9); filter:brightness(.93); }
 .hsa-sur{
-  flex:1 1 auto; position:relative; height:26px;
+  flex:1 1 auto; position:relative; height:26px; min-width:40px;
   touch-action:none; cursor:pointer; user-select:none;
 }
 .hsa-ray{
@@ -7329,93 +7345,130 @@ html body #panel-hospital .hospital-confirm-btn{
   border-radius:99px; background:linear-gradient(180deg,#6fc0ff,#1fa3ea);
 }
 .hsa-top{
-  position:absolute; top:50%; width:17px; height:17px; margin:-8.5px 0 0 -8.5px;
+  position:absolute; top:50%; width:16px; height:16px; margin:-8px 0 0 -8px;
   border-radius:50%; background:#fff; pointer-events:none;
 }
 .hsa-deg{
-  flex:0 0 50px; text-align:right;
+  flex:0 0 48px; text-align:right;
   font-size:12px; font-weight:800; color:#ffd257;
   font-variant-numeric:tabular-nums;
 }
 #hsAyarCikti{
-  width:100%; height:150px; margin-top:8px; display:none;
-  background:rgba(0,0,0,.55); color:#cfe6ff; border:1px solid rgba(190,240,255,.2);
-  border-radius:10px; padding:7px; font-size:10.5px; line-height:1.35;
+  width:100%; height:34vh; margin-top:6px; display:none;
+  background:rgba(0,0,0,.6); color:#cfe6ff;
+  border:1px solid rgba(190,240,255,.2); border-radius:10px;
+  padding:7px; font-size:10.5px; line-height:1.35;
   font-family:monospace; white-space:pre;
 }
 `;
 document.head.appendChild(st);
 hepsiniYaz();
 
-/* ── Menüyü kur ── */
+let aktifGrup = 0, boy = 1;
+
 function kur(){
   const ac = document.createElement("button");
   ac.id = "hsAyarAc"; ac.textContent = "⚙ HASTANE";
   document.body.appendChild(ac);
 
   const kutu = document.createElement("div");
-  kutu.id = "hsAyarKutu";
+  kutu.id = "hsAyarKutu"; kutu.className = "boy1";
   document.body.appendChild(kutu);
 
-  let html = '<div class="hsa-ust"><b>HASTANE İNCE AYAR</b>' +
-             '<button id="hsaCiktiBtn">ÇIKTI</button>' +
-             '<button class="hsa-sil" id="hsaSifirla">SIFIRLA</button>' +
-             '<button id="hsaKapat">KAPAT</button></div>';
-
-  GRUP.forEach(function(g){
-    html += '<div class="hsa-bas">' + g[0] + '</div>';
-    g[1].forEach(function(t){
-      html += '<div class="hsa-sat" data-k="' + t[0] + '">' +
-                '<div class="hsa-ad">' + t[1] + '</div>' +
-                '<div class="hsa-sur"><div class="hsa-ray"></div>' +
-                  '<div class="hsa-dolgu"></div><div class="hsa-top"></div></div>' +
-                '<div class="hsa-deg"></div>' +
-              '</div>';
-    });
+  let h = '<div class="hsa-ust"><b>HASTANE AYAR</b>' +
+          '<button id="hsaBoy">⬍</button>' +
+          '<button id="hsaCiktiBtn">ÇIKTI</button>' +
+          '<button class="hsa-sil" id="hsaSifirla">SIFIRLA</button>' +
+          '<button id="hsaKapat">KAPAT</button></div><div class="hsa-sek">';
+  GRUP.forEach(function(g, i){
+    h += '<button data-g="' + i + '">' + g[0] + '</button>';
   });
-  html += '<textarea id="hsAyarCikti" readonly></textarea>';
-  kutu.innerHTML = html;
+  h += '</div><div id="hsaGovde"></div><textarea id="hsAyarCikti" readonly></textarea>';
+  kutu.innerHTML = h;
+
+  const govde = kutu.querySelector("#hsaGovde");
+  const sekmeler = kutu.querySelectorAll(".hsa-sek button");
+
+  function grupCiz(){
+    sekmeler.forEach(function(b, i){ b.classList.toggle("sec", i === aktifGrup); });
+    let g = "";
+    GRUP[aktifGrup][1].forEach(function(t){
+      g += '<div class="hsa-sat" data-k="' + t[0] + '">' +
+             '<div class="hsa-ad">' + t[1] + '</div>' +
+             '<button class="hsa-adim" data-yon="-1">−</button>' +
+             '<div class="hsa-sur"><div class="hsa-ray"></div>' +
+               '<div class="hsa-dolgu"></div><div class="hsa-top"></div></div>' +
+             '<button class="hsa-adim" data-yon="1">+</button>' +
+             '<div class="hsa-deg"></div>' +
+           '</div>';
+    });
+    govde.innerHTML = g;
+    govde.querySelectorAll(".hsa-sat").forEach(satBagla);
+  }
+
+  sekmeler.forEach(function(b){
+    b.addEventListener("pointerup", function(){ aktifGrup = +b.dataset.g; grupCiz(); });
+  });
 
   ac.addEventListener("pointerup", function(){ kutu.classList.toggle("acik"); });
   kutu.querySelector("#hsaKapat").addEventListener("pointerup", function(){
     kutu.classList.remove("acik");
   });
+  kutu.querySelector("#hsaBoy").addEventListener("pointerup", function(){
+    kutu.classList.remove("boy" + boy);
+    boy = (boy + 1) % 3;
+    kutu.classList.add("boy" + boy);
+  });
   kutu.querySelector("#hsaSifirla").addEventListener("pointerup", function(){
     GRUP.forEach(g => g[1].forEach(t => { deger[t[0]] = t[2]; }));
-    hepsiniYaz(); sakla(); kutu.querySelectorAll(".hsa-sat").forEach(tazele);
+    hepsiniYaz(); sakla(); grupCiz();
   });
   kutu.querySelector("#hsaCiktiBtn").addEventListener("pointerup", function(){
     const ta = kutu.querySelector("#hsAyarCikti");
-    ta.style.display = ta.style.display === "block" ? "none" : "block";
-    if (ta.style.display === "block"){ ta.value = ciktiMetni(); ta.scrollTop = 0; }
+    const acikMi = ta.style.display === "block";
+    ta.style.display = acikMi ? "none" : "block";
+    govde.style.display = acikMi ? "block" : "none";
+    if (!acikMi){ ta.value = ciktiMetni(); ta.scrollTop = 0; }
   });
 
-  /* her satırın sürgüsü */
-  kutu.querySelectorAll(".hsa-sat").forEach(function(sat){
-    const k = sat.dataset.k, t = TANIM[k];
-    const sur = sat.querySelector(".hsa-sur");
-    let suruyor = false;
+  grupCiz();
+}
 
-    function konumdan(x){
-      const r = sur.getBoundingClientRect();
-      if (!r.width) return;                       /* Tuzak 22 */
-      let p = (x - r.left) / r.width;
-      p = p < 0 ? 0 : p > 1 ? 1 : p;
-      let v = t[3] + p * (t[4] - t[3]);
-      v = Math.round(v / t[5]) * t[5];
-      v = Math.round(v * 100) / 100;
-      if (v === deger[k]) return;
-      deger[k] = v; yaz(k); tazele(sat);
-    }
-    sur.addEventListener("pointerdown", function(e){
-      suruyor = true; sur.setPointerCapture(e.pointerId); konumdan(e.clientX);
+function satBagla(sat){
+  const k = sat.dataset.k, t = TANIM[k];
+  const sur = sat.querySelector(".hsa-sur");
+  let suruyor = false;
+
+  function kaydet(v){
+    v = Math.round(v / t[5]) * t[5];
+    v = Math.round(v * 100) / 100;
+    if (v < t[3]) v = t[3];
+    if (v > t[4]) v = t[4];
+    if (v === deger[k]) return;
+    deger[k] = v; yaz(k); tazele(sat);
+  }
+  function konumdan(x){
+    const r = sur.getBoundingClientRect();
+    if (!r.width) return;                       /* Tuzak 22 */
+    let p = (x - r.left) / r.width;
+    p = p < 0 ? 0 : p > 1 ? 1 : p;
+    kaydet(t[3] + p * (t[4] - t[3]));
+  }
+  sur.addEventListener("pointerdown", function(e){
+    suruyor = true; sur.setPointerCapture(e.pointerId); konumdan(e.clientX);
+  });
+  sur.addEventListener("pointermove", function(e){ if (suruyor) konumdan(e.clientX); });
+  sur.addEventListener("pointerup", function(){ suruyor = false; sakla(); });
+  sur.addEventListener("pointercancel", function(){ suruyor = false; sakla(); });
+
+  sat.querySelectorAll(".hsa-adim").forEach(function(b){
+    b.addEventListener("pointerup", function(){
+      kaydet(deger[k] + (+b.dataset.yon) * t[5]);
+      sakla();
     });
-    sur.addEventListener("pointermove", function(e){ if (suruyor) konumdan(e.clientX); });
-    sur.addEventListener("pointerup",   function(){ suruyor = false; sakla(); });
-    sur.addEventListener("pointercancel", function(){ suruyor = false; sakla(); });
-
-    tazele(sat);
   });
+
+  tazele(sat);
 }
 
 function tazele(sat){
@@ -7426,17 +7479,16 @@ function tazele(sat){
   sat.querySelector(".hsa-deg").textContent = v + (t[6] || "");
 }
 
-/* ── Beğenilen değerleri hazır CSS olarak ver ── */
 function ciktiMetni(){
   const d = k => deger[k] + (TANIM[k][6] || "");
   const o = k => (deger[k] / 100);
   return [
 "/* index.html — HASTANE bölümü */",
-"#panel-hospital  padding: " + d("panel-ust") + " 12px " + d("panel-alt"),
+"#panel-hospital  padding:" + d("panel-ust") + " 12px " + d("panel-alt"),
 "  (tema.js ~2700, dört panel ortak — birlikte değiştir)",
 "",
-".overlay-card    max-width:" + d("kart-en") +
-  "  border-radius:" + d("kart-kose") +
+".overlay-card  max-width:" + d("kart-en") +
+  "  radius:" + d("kart-kose") +
   "  padding:" + d("kart-dolgu-y") + " " + d("kart-dolgu-x") + " " + d("kart-dolgu-y"),
 "",
 ".overlay-card h2.hospital-title{",
