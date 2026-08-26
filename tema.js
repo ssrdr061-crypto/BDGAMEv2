@@ -6393,7 +6393,13 @@ document.head.appendChild(st);
    KULLANILAN YOL: tek CSS elipsi (`.castle-avatar::after`).
    Kalenin taban hizasında yassı, köşeleri yuvarlatılmış bir kare —
    keskin kenarlı, kısa, hafif. `--kg-yuvarlak` %50 olursa daireye,
-   %0 olursa keskin köşeli dörtgene döner. DOM'a hiçbir şey eklenmiyor, gözlemci yok, kale seviyesi
+   %0 olursa keskin köşeli dörtgene döner.
+
+   KAYMA SIFIR — BİLEREK. Işık haritaya yukarıdan vuruyor, gölge
+   yana uzanmıyor; leke kalenin tabanının ALTINDA ortalanır. Yana
+   kaydırılırsa bir kenardan taşar ve o kenar ışık alan taraf ise
+   kale "havada" görünür. Yön istenirse `?isik=1` panelinde Kayma
+   sürgüsü var, varsayılanı 0 tutmak gerekiyor. DOM'a hiçbir şey eklenmiyor, gözlemci yok, kale seviyesi
    değişince ayar gerekmiyor.
 
    Ölçüler `--kg-*` değişkenlerinden gelir; `?isik=1` paneli aynı
@@ -6419,11 +6425,11 @@ html body #battleMap .map-node.castle-node .castle-avatar::after{
   content:"";
   position:absolute;
   left:50%;
-  top:var(--kg-taban, 83%);
-  width:var(--kg-en, 46px);
-  height:var(--kg-boy, 22px);
-  margin-left:calc(-0.5 * var(--kg-en, 46px) + var(--kg-dx, -2px));
-  margin-top:calc(-0.5 * var(--kg-boy, 22px) + var(--kg-dy, 1px));
+  top:var(--kg-taban, 88%);
+  width:var(--kg-en, 36px);
+  height:var(--kg-boy, 16px);
+  margin-left:calc(-0.5 * var(--kg-en, 36px) + var(--kg-dx, 0px));
+  margin-top:calc(-0.5 * var(--kg-boy, 16px) + var(--kg-dy, 0px));
   border-radius:var(--kg-yuvarlak, 30%);
   background:rgba(6,18,38, var(--kg-op, .22));
   filter:blur(var(--kg-blur, 0px));
@@ -6472,11 +6478,11 @@ const VARSAYILAN = {
   isikAci: 72, isikYuk: 55, isikGuc: 20, koseKarart: 0,
   bagli: 0,
   golgeAci: 242,     /* kayma yönü, derece      */
-  golgeKayma: 2,     /* kayma miktarı, px       */
-  golgeEn: 46,       /* elips genişliği, px     */
-  golgeBoy: 22,      /* leke yüksekliği, px     */
+  golgeKayma: 0,     /* kayma miktarı, px       */
+  golgeEn: 36,       /* leke genişliği, px      */
+  golgeBoy: 16,      /* leke yüksekliği, px     */
   golgeYuvarlak: 30, /* köşe yuvarlaklığı, %    */
-  golgeTaban: 83,    /* kutu içindeki yer, %    */
+  golgeTaban: 88,    /* kutu içindeki yer, %    */
   golgeYumusak: 0,   /* blur, px (0 = keskin)   */
   golgeKarart: 22,   /* karartı, %              */
 };
