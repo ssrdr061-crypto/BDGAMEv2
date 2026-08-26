@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-18';
+  var SURUM = 'kaleici-19';
 
   var CFG = {
     grid: 13,
@@ -128,8 +128,10 @@
       'font:600 15px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
       'box-shadow:none;transition:transform .09s,filter .09s}' +
     '#kaleiciKapat:active{transform:scale(.96);filter:brightness(.93)}' +
-    '#kaleiciSurum{position:absolute;right:12px;top:16px;z-index:2;' +
-      'color:rgba(255,255,255,.75);font:500 12px/1 "Baloo 2",sans-serif}' +
+    '#kaleiciSurum{position:absolute;right:12px;top:16px;z-index:4;' +
+      'padding:4px 6px;color:rgba(255,255,255,.75);' +
+      'font:500 12px/1 "Baloo 2",sans-serif}' +
+    '#kaleiciSurum:active{filter:brightness(1.4)}' +
     '#kaleiciPanel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;' +
       'display:none;min-width:200px;padding:18px 20px;border-radius:14px;' +
       'background:#12304e;color:#eaf6ff;text-align:center;' +
@@ -150,10 +152,11 @@
     '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}' +
 
     /* ---- Ayar paneli (?ayar=1) — iş bitince bu blok ve AYAR kodu silinir ---- */
-    '#kaleiciAyar{position:absolute;left:10px;right:10px;bottom:118px;z-index:5;' +
+    '#kaleiciAyar{display:none;position:absolute;left:10px;right:10px;bottom:118px;z-index:5;' +
       'padding:7px 9px;border-radius:10px;background:rgba(10,28,48,.82);' +
       '-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#dbeaf7;' +
       'font:500 11px/1.2 "Baloo 2",sans-serif;box-shadow:none}' +
+    '#kaleiciAyar.acik{display:block}' +
     '#kaleiciAyar.kapali .ka-govde{display:none}' +
     '#kaleiciAyar .ka-ust{display:flex;align-items:center;gap:6px}' +
     '#kaleiciAyar select{flex:1;min-width:0;padding:3px 5px;border:none;border-radius:6px;' +
@@ -213,6 +216,10 @@
     koyu: 0.24, acik: 0.24,
     isik: 0.32,
     lekeYatay: 2.4,
+    /* Leke sıklığı. Ana haritada ekranda onlarca karo görünüyor, burada
+       6 tane; aynı frekansla tek bir lekenin ortasında kalıyorduk ve
+       zemin düz yeşil görünüyordu. Büyüt = desen sıklaşır. */
+    siklik: 3.6,
     doygunluk: 1.22,
     adim: 12,              // kaç dünya pikselinde bir örnek alınır
     seed: 20260803
@@ -241,7 +248,8 @@
     var c = [ZCFG.renk[0], ZCFG.renk[1], ZCFG.renk[2]];
     /* eu = ekranda yatay yön, ev = dikey yön. eu frekansı düşük →
        lekeler yatay uzar, zemin yere serilmiş gibi durur. */
-    var eu = (gx - gy) / ZCFG.lekeYatay, ev = (gx + gy);
+    var f = ZCFG.siklik;
+    var eu = (gx - gy) / ZCFG.lekeYatay * f, ev = (gx + gy) * f;
 
     if (ZCFG.isik > 0) {
       var sh = zNoise(eu * 0.075 + 41, ev * 0.075 + 17) * 0.65
@@ -463,7 +471,7 @@
 
   function binaSec(b) {
     secili = b;
-    if (b && AYAR_ACIK && ayarSecim) { ayarSecim.value = b.id; ayarTazele(); }
+    if (b && ayarGorunur() && ayarSecim) { ayarSecim.value = b.id; ayarTazele(); }
     secimZaman = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     kareIste();
   }
@@ -613,14 +621,14 @@
          sürüklemek onu taşır — ayrı bir taşıma düğmesi yok. */
       var bulunan = binaBul(px, py);
       var hedef = null;
-      if (bulunan && (bulunan === secili || AYAR_ACIK)) hedef = bulunan;
+      if (bulunan && (bulunan === secili || ayarGorunur())) hedef = bulunan;
       if (hedef) {
         tasinan = hedef;
         var d0 = dunyaya(px, py);
         var g0 = izgara(d0.x, d0.y);
         tasiKay.x = hedef.gx - g0.gx;   // basılan karo ile sol üst arası fark
         tasiKay.y = hedef.gy - g0.gy;
-        if (AYAR_ACIK) binaSec(hedef);
+        if (ayarGorunur()) binaSec(hedef);
       }
     } else if (parmakSayisi === 2) {
       tasinan = null;
@@ -707,11 +715,25 @@
   /* ================= AYAR PANELİ — GEÇİCİ (?ayar=1) =================
      İnce ayar bitince: bu blok, CSS'teki #kaleiciAyar kuralları ve
      kur() içindeki ayarKur() çağrısı silinir. ================= */
+  /* Panel her zaman kurulur; sürüm yazısına (sağ üst) dokunmak açar/kapar.
+     ?ayar=1 ile açılışta görünür gelir. */
   var AYAR_ACIK = /[?&]ayar=1/.test(location.search);
   var ayarKutu, ayarSecim, ayarSurgu = {}, ayarDeger = {}, ayarMetin;
 
+  /* Panel görünürken HERHANGİ bir bina sürüklenebilir; kapalıyken
+     yalnız seçili bina taşınır. */
+  function ayarGorunur() {
+    return !!(ayarKutu && ayarKutu.classList.contains('acik'));
+  }
+
+  function ayarAcKapa() {
+    if (!ayarKutu) return;
+    ayarKutu.classList.toggle('acik');
+    if (ayarGorunur() && secili && ayarSecim) { ayarSecim.value = secili.id; ayarTazele(); }
+  }
+
   var AYAR_SURGULER = [
-    { ad: 'olcek', etiket: 'Ölçek', min: 20, max: 300, adim: 1, bol: 100, vars: 1 },
+    { ad: 'olcek', etiket: 'Ölçek', min: 10, max: 300, adim: 1, bol: 100, vars: 1 },
     { ad: 'dx',    etiket: 'Yatay', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 },
     { ad: 'dy',    etiket: 'Dikey', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 }
   ];
@@ -738,7 +760,9 @@
   }
 
   function ayarMetniUret() {
-    var s = 'GORSEL_PAY = ' + GORSEL_PAY.toFixed(2) + '  ·  tileH = ' + CFG.tileH + '\n';
+    var aci = Math.round(Math.asin(Math.min(1, CFG.tileH / CFG.tileW)) * 180 / Math.PI);
+    var s = 'GORSEL_PAY = ' + GORSEL_PAY.toFixed(2) + '  ·  tileW = ' + CFG.tileW +
+            '  ·  tileH = ' + CFG.tileH + '  ·  bakış ≈ ' + aci + '°\n';
     for (var i = 0; i < BINALAR.length; i++) {
       var b = BINALAR[i], par = [];
       par.push('gx: ' + b.gx + ', gy: ' + b.gy);
@@ -757,7 +781,7 @@
   }
 
   function ayarKur() {
-    if (!AYAR_ACIK || document.getElementById('kaleiciAyar')) return;
+    if (document.getElementById('kaleiciAyar')) return;
 
     var sec = '';
     for (var i = 0; i < BINALAR.length; i++) {
@@ -775,11 +799,13 @@
       '<div class="ka-govde">' + satirlar +
       ayarSatir({ ad: 'pay', etiket: 'Genel', min: 20, max: 300, adim: 1 }) +
       ayarSatir({ ad: 'egim', etiket: 'Eğim', min: 20, max: 64, adim: 1 }) +
-      '<div class="ka-ipucu">Binaya basılı tutup sürükle → karo değiştir</div>' +
+      '<div class="ka-ipucu">Binaya dokun → seç · sürükle → karo değiştir · ' +
+      'sağ üstteki sürüm yazısı bu paneli kapatır</div>' +
       '<div class="ka-alt"><button id="kaSifirla">Sıfırla</button>' +
       '<button id="kaMetin">Değerler</button>' +
       '<button id="kaKopya">Kopyala</button></div>' +
       '<textarea id="kaCikti" readonly></textarea></div>';
+    if (AYAR_ACIK) ayarKutu.classList.add('acik');
     katman.appendChild(ayarKutu);
 
     ayarSecim = document.getElementById('kaSec');
@@ -983,6 +1009,7 @@
     panelAd = document.getElementById('kaleiciPanelAd');
 
     document.getElementById('kaleiciKapat').addEventListener('click', kapat);
+    document.getElementById('kaleiciSurum').addEventListener('click', ayarAcKapa);
     document.getElementById('kaleiciPanelKapat').addEventListener('click', panelKapat);
 
     tuval.addEventListener('pointerdown', bas);
