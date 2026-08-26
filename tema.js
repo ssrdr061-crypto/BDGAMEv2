@@ -6746,3 +6746,236 @@ html body #battleMap .map-node.castle-node .node-label[data-sv="5"]::before{ bac
 `;
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   ETİKET İNCE AYAR PANELİ  —  ?etiket=1
+   ------------------------------------------------------------
+   Adres satırına ?etiket=1 eklenmedikçe HİÇBİR ŞEY yapmaz.
+
+   İki ayrı şeyi tek panelden sürer, çünkü ikisi ekranda yan yana
+   duruyor ve göz onları birlikte kıyaslıyor:
+
+     KALE    → DOM etiketi (.node-label), CSS ile
+     DÜĞÜM   → canvas etiketi (harita.js CFG.etiket), çarpanlarla
+
+   İkisinin birimleri AYRI. Kale piksel yazar (DOM zaten düğümle
+   birlikte ölçekleniyor); düğüm çarpan yazar (canvas her karede
+   zoom'a göre yeniden hesaplıyor, piksel yazılsa uzaklaşınca şerit
+   düğümden kopardı). Panelde bu yüzden düğüm sayıları YÜZDE
+   cinsinden gösteriliyor — sürgü tam sayı olmak zorunda.
+
+   "DEĞERLER" son sayıları yazdırır; beğendiğini dosyalara
+   sabitleriz, panel gitse de kalır.
+   ══════════════════════════════════════════════════════════════ */
+(function etiketAyar(){
+"use strict";
+
+if (!/[?&]etiket=1(&|$)/.test(location.search)) return;
+
+const ANAHTAR = "bdEtiket1";
+const VARSAYILAN = {
+  /* KALE — piksel/yüzde, doğrudan CSS'e gider */
+  kPunto:   11,   /* yazı boyu, px            */
+  kKutu:    15,   /* kutucuk kenarı, px       */
+  kAra:      4,   /* kutucuk–isim, px         */
+  kDolguY:   8,   /* sağ dolgu, px            */
+  kDolguSol: 4,   /* sol dolgu, px            */
+  kDolguD:   2,   /* dikey dolgu, px          */
+  kKose:     7,   /* köşe yuvarlaklığı, px    */
+  kDy:       0,   /* etiketin dikey kayması   */
+  kKutuDy:   0,   /* kutucuğun dikey kayması  */
+
+  /* DÜĞÜM — çarpanların 100 katı (sürgü tam sayı ister) */
+  dPunto:   46,   /* r × 0.46                 */
+  dKutu:   155,   /* punto × 1.55             */
+  dAra:     30,   /* punto × 0.30             */
+  dYaziY:  130,   /* r × 1.30                 */
+  dKutuDy:   0,   /* punto × 0.00             */
+};
+
+let A = Object.assign({}, VARSAYILAN);
+try {
+  const k = JSON.parse(localStorage.getItem(ANAHTAR) || "null");
+  if (k) A = Object.assign(A, k);
+} catch (e) {}
+
+const stil = document.createElement("style");
+stil.id = "temaEtiketAyar";
+document.head.appendChild(stil);
+
+function uygula(){
+  /* ── KALE ──
+     kale2x2.js etikete translateY(25px) yazıyor; buradaki kayma
+     ONUN ÜSTÜNE eklenmeli, yoksa etiket kalenin içine sıçrar. */
+  stil.textContent =
+    "html body #battleMap .map-node.castle-node .node-label{" +
+      "font-size:" + A.kPunto + "px;" +
+      "gap:" + A.kAra + "px;" +
+      "padding:" + A.kDolguD + "px " + A.kDolguY + "px " +
+                   A.kDolguD + "px " + A.kDolguSol + "px;" +
+      "border-radius:" + A.kKose + "px;" +
+      "transform:translateY(" + (25 + A.kDy) + "px);" +
+    "}" +
+    "html body #battleMap .map-node.castle-node .node-label::before{" +
+      "width:"  + A.kKutu + "px;" +
+      "height:" + A.kKutu + "px;" +
+      "position:relative;" +
+      "top:" + A.kKutuDy + "px;" +
+    "}";
+
+  /* ── DÜĞÜM ── */
+  try {
+    const E = window.HARITA && HARITA.CFG && HARITA.CFG.etiket;
+    if (E) {
+      E.punto   = A.dPunto  / 100;
+      E.kutuBoy = A.dKutu   / 100;
+      E.ara     = A.dAra    / 100;
+      E.yaziY   = A.dYaziY  / 100;
+      E.kutuDy  = A.dKutuDy / 100;
+      if (HARITA.cizUstIste) HARITA.cizUstIste();
+    }
+  } catch (e) {}
+
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
+}
+
+const pstil = document.createElement("style");
+pstil.textContent =
+"#bdET{position:fixed;right:8px;top:140px;z-index:99999;" +
+ "font-family:'Baloo 2',system-ui,sans-serif;color:#e8f1ff;" +
+ "-webkit-tap-highlight-color:transparent;}" +
+"#bdET .kapak{width:34px;height:34px;border-radius:10px;border:none;" +
+ "background:linear-gradient(180deg,#3d7ccc,#22488f);color:#ffd84d;" +
+ "font-size:15px;line-height:34px;text-align:center;font-weight:800;" +
+ "box-shadow:0 2px 6px rgba(0,20,45,.3);transition:.09s;}" +
+"#bdET .kapak:active{transform:scale(.96);filter:brightness(.93);}" +
+"#bdET .govde{display:none;width:232px;margin-top:6px;padding:9px 10px 10px;" +
+ "border-radius:12px;background:linear-gradient(180deg,#22488f,#152e5e);" +
+ "box-shadow:0 2px 6px rgba(0,20,45,.3);" +
+ "max-height:72vh;overflow-y:auto;}" +
+"#bdET.acik .govde{display:block;}" +
+"#bdET .bas{font-size:11px;font-weight:700;color:#9fc4f5;letter-spacing:.4px;margin:7px 0 3px;}" +
+"#bdET .bas:first-child{margin-top:0;}" +
+"#bdET .sat{display:flex;align-items:center;gap:7px;margin:3px 0;}" +
+"#bdET .ad{font-size:11px;flex:1;white-space:nowrap;opacity:.9;}" +
+"#bdET .dg{font-size:11px;font-weight:700;color:#ffd84d;width:34px;" +
+ "text-align:right;font-variant-numeric:tabular-nums;}" +
+"#bdET input[type=range]{-webkit-appearance:none;appearance:none;" +
+ "flex:0 0 92px;height:16px;background:transparent;margin:0;}" +
+"#bdET input[type=range]::-webkit-slider-runnable-track{height:3px;" +
+ "border-radius:2px;background:rgba(255,255,255,.22);}" +
+"#bdET input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;" +
+ "width:13px;height:13px;margin-top:-5px;border-radius:50%;background:#ffd84d;border:none;}" +
+"#bdET input[type=range]::-moz-range-track{height:3px;border-radius:2px;" +
+ "background:rgba(255,255,255,.22);}" +
+"#bdET input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;" +
+ "border-radius:50%;background:#ffd84d;}" +
+"#bdET .dgm{display:flex;gap:6px;margin-top:8px;}" +
+"#bdET .dgm button{flex:1;padding:7px 4px;border:none;border-radius:8px;" +
+ "font:700 10px/1 'Baloo 2',system-ui,sans-serif;color:#eaf3ff;background:#3d7ccc;transition:.09s;}" +
+"#bdET .dgm button:active{transform:scale(.96);filter:brightness(.93);}" +
+"#bdET .dgm .kirmizi{background:#c0392b;}" +
+"#bdET .cikti{display:none;margin-top:7px;padding:7px;border-radius:8px;" +
+ "background:rgba(4,12,28,.55);font:600 10px/1.5 ui-monospace,monospace;" +
+ "color:#cfe4ff;white-space:pre-wrap;word-break:break-all;}";
+document.head.appendChild(pstil);
+
+const ALANLAR = [
+  ["bas", "KALE ETİKETİ"],
+  ["kPunto",    "Yazı boyu",    7,  22],
+  ["kKutu",     "Kutucuk",      8,  34],
+  ["kAra",      "Kutucuk–isim", 0,  16],
+  ["kDolguSol", "Sol dolgu",    0,  16],
+  ["kDolguY",   "Sağ dolgu",    0,  16],
+  ["kDolguD",   "Dikey dolgu",  0,  12],
+  ["kKose",     "Köşe",         0,  16],
+  ["kDy",       "Şerit kayma", -30, 40],
+  ["kKutuDy",   "Kutucuk kayma", -8, 8],
+  ["bas", "DÜĞÜM ETİKETİ (%)"],
+  ["dPunto",    "Yazı boyu",   25,  90],
+  ["dKutu",     "Kutucuk",     60, 300],
+  ["dAra",      "Kutucuk–isim", 0, 120],
+  ["dYaziY",    "Şerit kayma", 60, 260],
+  ["dKutuDy",   "Kutucuk kayma", -60, 60],
+];
+
+const kutu = document.createElement("div");
+kutu.id = "bdET";
+let ic = '<div class="kapak">Aa</div><div class="govde">';
+for (const f of ALANLAR) {
+  if (f[0] === "bas") { ic += '<div class="bas">' + f[1] + '</div>'; continue; }
+  ic += '<div class="sat"><span class="ad">' + f[1] + '</span>' +
+        '<input type="range" data-k="' + f[0] + '" min="' + f[2] + '" max="' + f[3] +
+        '" step="1" value="' + A[f[0]] + '">' +
+        '<span class="dg" data-d="' + f[0] + '">' + A[f[0]] + '</span></div>';
+}
+ic += '<div class="dgm"><button data-i="deger">DE\u011EERLER</button>' +
+      '<button data-i="sifirla" class="kirmizi">SIFIRLA</button></div>' +
+      '<div class="cikti"></div></div>';
+kutu.innerHTML = ic;
+
+function tazele(){
+  for (const el of kutu.querySelectorAll("input[type=range]")) {
+    const k = el.dataset.k;
+    if (+el.value !== A[k]) el.value = A[k];
+    const d = kutu.querySelector('[data-d="' + k + '"]');
+    if (d) d.textContent = A[k];
+  }
+}
+
+function yerlestir(){
+  if (!document.body) return setTimeout(yerlestir, 200);
+  document.body.appendChild(kutu);
+  const cikti = kutu.querySelector(".cikti");
+
+  kutu.querySelector(".kapak").addEventListener("pointerup", function(){
+    kutu.classList.toggle("acik");
+  });
+
+  kutu.addEventListener("input", function(ev){
+    const k = ev.target.dataset && ev.target.dataset.k;
+    if (!k) return;
+    A[k] = +ev.target.value;
+    uygula(); tazele();
+  });
+
+  kutu.addEventListener("pointerup", function(ev){
+    const i = ev.target.dataset && ev.target.dataset.i;
+    if (i === "deger") {
+      cikti.style.display = cikti.style.display === "block" ? "none" : "block";
+      cikti.textContent =
+        "tema.js kaleEtiketi\n" +
+        "  font-size: " + A.kPunto + "px\n" +
+        "  gap: " + A.kAra + "px\n" +
+        "  padding: " + A.kDolguD + "px " + A.kDolguY + "px " +
+                        A.kDolguD + "px " + A.kDolguSol + "px\n" +
+        "  border-radius: " + A.kKose + "px\n" +
+        "  ::before " + A.kKutu + "x" + A.kKutu + "px, top " + A.kKutuDy + "px\n" +
+        "  kale2x2.js translateY: " + (25 + A.kDy) + "px\n\n" +
+        "harita.js CFG.etiket\n" +
+        "  punto: "   + (A.dPunto  / 100).toFixed(2) + "\n" +
+        "  kutuBoy: " + (A.dKutu   / 100).toFixed(2) + "\n" +
+        "  ara: "     + (A.dAra    / 100).toFixed(2) + "\n" +
+        "  yaziY: "   + (A.dYaziY  / 100).toFixed(2) + "\n" +
+        "  kutuDy: "  + (A.dKutuDy / 100).toFixed(2);
+    }
+    if (i === "sifirla") {
+      A = Object.assign({}, VARSAYILAN);
+      uygula(); tazele();
+      cikti.style.display = "none";
+    }
+  });
+
+  tazele();
+}
+
+uygula();
+if (document.readyState === "loading")
+  document.addEventListener("DOMContentLoaded", yerlestir);
+else yerlestir();
+
+/* HARITA geç yükleniyor olabilir — düğüm tarafı ilk denemede
+   boşa düşerse birkaç saniye sonra tekrar bindirilir. */
+setTimeout(uygula, 900);
+setTimeout(uygula, 2500);
+})();

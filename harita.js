@@ -207,6 +207,21 @@
        serilmiş gibi durur. Büyütürsen daha yatık, 1 = yuvarlak. */
     lekeYatay: 2.4,
 
+    /* ── DÜĞÜM ETİKETİ İNCE AYAR ──
+       Kaynak/canavar düğümünün altındaki "kutucuk + isim" şeridi.
+       Sayılar ÇARPANDIR, piksel değil: düğüm yarıçapı (r) zoom ile
+       değiştiği için piksel yazılsaydı uzaklaşınca şerit düğümden
+       kopardı. Tek istisna kutuDy — o punto cinsinden ince kaydırma.
+
+       `?etiket=1` paneli bu kutuyu canlı sürüyor (tema.js). */
+    etiket: {
+      punto:   0.46,   /* yazı boyu = r × bu                  */
+      kutuBoy: 1.55,   /* kutucuk kenarı = punto × bu         */
+      ara:     0.30,   /* kutucuk–isim boşluğu = punto × bu   */
+      yaziY:   1.30,   /* şeridin düğüme uzaklığı = r × bu    */
+      kutuDy:  0.00,   /* kutucuğun dikey ince kayması        */
+    },
+
     /* Zemin kaç dünya pikselinde bir örneklenir. Küçültürsen daha
        ince detay ama daha yavaş pişirme. 8-16 arası mantıklı. */
     zeminAdim: 10,
@@ -958,8 +973,9 @@
       /* Etiket ve isim yalnız yeterince yakınken — uzakta okunmuyor
          zaten ve metin çizimi en pahalı iş. */
       if (r >= 13) {
-        const punto = Math.max(9, Math.round(r * 0.46));
-        const yaziY = y + r * 1.3;
+        const E = CFG.etiket;
+        const punto = Math.max(9, Math.round(r * E.punto));
+        const yaziY = y + r * E.yaziY;
         c.font = "800 " + punto + "px " + HARITA_FONT;
         c.textBaseline = "top";
 
@@ -970,15 +986,15 @@
            kaydırırdı — düğümün ekseninden kayan bir etiket olurdu.
 
            SEVİYE YAZIDA TEKRARLANMAZ; d.ad zaten son eki taşımıyor. */
-        const kb   = Math.round(punto * 1.55);          /* kutucuk boyu */
-        const ara  = Math.round(punto * 0.30);          /* kutucuk–isim */
+        const kb   = Math.round(punto * E.kutuBoy);     /* kutucuk boyu */
+        const ara  = Math.round(punto * E.ara);         /* kutucuk–isim */
         const gorsel = svGorsel(d.seviye);
 
         c.textAlign = "left";
         const isimGen = c.measureText(d.ad).width;
         const toplam  = kb + ara + isimGen;
         const solX    = x - toplam / 2;
-        const kutuY   = yaziY + punto / 2 - kb / 2;
+        const kutuY   = yaziY + punto / 2 - kb / 2 + punto * E.kutuDy;
 
         if (gorsel) {
           c.drawImage(gorsel, solX, kutuY, kb, kb);
