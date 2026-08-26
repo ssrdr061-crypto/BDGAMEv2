@@ -215,16 +215,17 @@
 
        `?etiket=1` paneli bu kutuyu canlı sürüyor (tema.js). */
     etiket: {
-      punto:   0.46,   /* yazı boyu = r × bu                       */
-      yaziY:   1.30,   /* ismin düğüme uzaklığı = r × bu           */
+      punto:   0.10,   /* yazı boyu = r × bu                       */
+      yaziY:   1.33,   /* ismin düğüme uzaklığı = r × bu           */
+      yaziX:   0.00,   /* ismin yatay kayması = r × bu             */
       /* GÖRSEL ÖLÇÜSÜ YAZIYA BAĞLI DEĞİL — bilerek. Punto'ya
          bağlıyken yazıyı büyütmek kutucuğu da büyütüyordu, ikisi
          ayrı ayarlanamıyordu. İkisi de r (düğüm yarıçapı) üzerinden
          hesaplanır, yani birbirinden bağımsız ama zoom'la uyumlu. */
-      kutuEn:  0.72,   /* görsel genişliği = r × bu                */
-      kutuBoy: 0.72,   /* görsel yüksekliği = r × bu               */
-      kutuDx:  0.14,   /* görsel–isim yatay boşluk = r × bu        */
-      kutuDy:  0.00,   /* görselin dikey ince kayması = r × bu     */
+      kutuEn:  2.52,   /* görsel genişliği = r × bu                */
+      kutuBoy: 1.21,   /* görsel yüksekliği = r × bu               */
+      kutuDx: -2.00,   /* görsel–isim yatay boşluk = r × bu        */
+      kutuDy: -0.32,   /* görselin dikey ince kayması = r × bu     */
     },
 
     /* Zemin kaç dünya pikselinde bir örneklenir. Küçültürsen daha
@@ -1003,14 +1004,18 @@
            doğrudan düğümün eksenine ortalanır. */
         const isimVar = (d.tur !== "canavar");
 
+        /* İsmin yatay kayması; görsel isme yaslı olduğu için onunla
+           birlikte kayar — ikisi bir arada durur. */
+        const isimX = x + r * E.yaziX;
+
         c.textAlign = "center";
-        if (isimVar) yaziAnahat(c, d.ad, x, yaziY, "#ffffff", punto);
+        if (isimVar) yaziAnahat(c, d.ad, isimX, yaziY, "#ffffff", punto);
 
         c.textAlign = "left";
         const isimGen = isimVar ? c.measureText(d.ad).width : 0;
         const gX = isimVar
-          ? (x - isimGen / 2 - r * E.kutuDx - gEn)
-          : (x - gEn / 2);
+          ? (isimX - isimGen / 2 - r * E.kutuDx - gEn)
+          : (isimX - gEn / 2);
         const gY = yaziY + punto / 2 - gBoy / 2 + r * E.kutuDy;
 
         if (gorsel) {

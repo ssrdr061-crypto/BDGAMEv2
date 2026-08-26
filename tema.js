@@ -6715,11 +6715,16 @@ html body #battleMap .map-node.castle-node .node-label{
   font-weight:800;
   font-size:11px;
   line-height:1.3;
+  /* ÇERÇEVE GENİŞLİĞİ: auto = yazı kadar. Sabit px yazılırsa yazıyı
+     büyütmek çerçeveyi genişletmez, yalnız içine sığar. */
+  width:auto;
+  box-sizing:border-box;
+  text-align:center;
   color:#ffffff;
   background:rgba(4,10,20,.62);
   border:none;
   border-radius:7px;
-  padding:2px 8px;
+  padding:3px 11px;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
   white-space:nowrap;
 }
@@ -6732,10 +6737,10 @@ html body #battleMap .map-node.castle-node .node-label::before{
   position:absolute;
   right:100%;                 /* çerçevenin SOLUNA asılır */
   top:50%;
-  margin-right:4px;           /* görsel–çerçeve boşluğu   */
+  margin-right:-24px;         /* görsel–çerçeve boşluğu   */
   transform:translateY(-50%);
-  width:15px;
-  height:15px;
+  width:56px;
+  height:102px;
   background-size:contain;
   background-repeat:no-repeat;
   background-position:center;
@@ -6777,28 +6782,31 @@ document.head.appendChild(st);
 
 if (!/[?&]etiket=1(&|$)/.test(location.search)) return;
 
-const ANAHTAR = "bdEtiket3";
+const ANAHTAR = "bdEtiket4";
 const VARSAYILAN = {
   /* KALE — piksel, doğrudan CSS'e gider */
-  kPunto:   11,   /* yazı boyu, px               */
-  kDolguY:   8,   /* yatay dolgu, px             */
-  kDolguD:   2,   /* dikey dolgu, px             */
-  kKose:     7,   /* köşe yuvarlaklığı, px       */
-  kDy:       0,   /* çerçevenin dikey kayması    */
-  kGEn:     15,   /* görsel genişliği, px        */
-  kGBoy:    15,   /* görsel yüksekliği, px       */
-  kGX:       4,   /* görsel–çerçeve boşluğu, px  */
-  kGY:       0,   /* görselin dikey kayması, px  */
+  kPunto:   11,   /* yazı boyu, px                    */
+  kGenis:    0,   /* çerçeve genişliği, px (0 = yazı kadar) */
+  kDolguY:  11,   /* yatay dolgu, px                  */
+  kDolguD:   3,   /* dikey dolgu, px                  */
+  kKose:     7,   /* köşe yuvarlaklığı, px            */
+  kDx:       0,   /* çerçevenin yatay kayması         */
+  kDy:     -12,   /* çerçevenin dikey kayması         */
+  kGEn:     56,   /* görsel genişliği, px             */
+  kGBoy:   102,   /* görsel yüksekliği, px            */
+  kGX:     -24,   /* görsel–çerçeve boşluğu, px       */
+  kGY:      -1,   /* görselin dikey kayması, px       */
 
   /* DÜĞÜM — çarpanların 100 katı (sürgü tam sayı ister).
      Hepsi r (düğüm yarıçapı) üzerinden; yazı ve görsel BİRBİRİNDEN
      BAĞIMSIZ, biri büyüyünce diğeri kıpırdamaz. */
-  dPunto:   46,   /* yazı boyu   = r × 0.46      */
-  dYaziY:  130,   /* isim kayma  = r × 1.30      */
-  dGEn:     72,   /* görsel en   = r × 0.72      */
-  dGBoy:    72,   /* görsel boy  = r × 0.72      */
-  dGX:      14,   /* görsel–isim = r × 0.14      */
-  dGY:       0,   /* görsel dikey = r × 0.00     */
+  dPunto:   10,   /* yazı boyu    = r × 0.10     */
+  dYaziX:    0,   /* isim yatay   = r × 0.00     */
+  dYaziY:  133,   /* isim dikey   = r × 1.33     */
+  dGEn:    252,   /* görsel en    = r × 2.52     */
+  dGBoy:   121,   /* görsel boy   = r × 1.21     */
+  dGX:    -200,   /* görsel–isim  = r × -2.00    */
+  dGY:     -32,   /* görsel dikey = r × -0.32    */
 };
 
 let A = Object.assign({}, VARSAYILAN);
@@ -6818,9 +6826,10 @@ function uygula(){
   stil.textContent =
     "html body #battleMap .map-node.castle-node .node-label{" +
       "font-size:" + A.kPunto + "px;" +
+      "width:" + (A.kGenis > 0 ? A.kGenis + "px" : "auto") + ";" +
       "padding:" + A.kDolguD + "px " + A.kDolguY + "px;" +
       "border-radius:" + A.kKose + "px;" +
-      "transform:translateY(" + (25 + A.kDy) + "px);" +
+      "transform:translate(" + A.kDx + "px," + (25 + A.kDy) + "px);" +
     "}" +
     "html body #battleMap .map-node.castle-node .node-label::before{" +
       "width:"  + A.kGEn  + "px;" +
@@ -6834,6 +6843,7 @@ function uygula(){
     const E = window.HARITA && HARITA.CFG && HARITA.CFG.etiket;
     if (E) {
       E.punto   = A.dPunto / 100;
+      E.yaziX   = A.dYaziX / 100;
       E.yaziY   = A.dYaziY / 100;
       E.kutuEn  = A.dGEn   / 100;
       E.kutuBoy = A.dGBoy  / 100;
@@ -6890,9 +6900,11 @@ document.head.appendChild(pstil);
 const ALANLAR = [
   ["bas", "KALE — ÇERÇEVE"],
   ["kPunto",    "Yazı boyu",     5,  40],
+  ["kGenis",    "Genişlik",      0, 260],
   ["kDolguY",   "Yatay dolgu",   0,  40],
   ["kDolguD",   "Dikey dolgu",   0,  30],
   ["kKose",     "Köşe",          0,  30],
+  ["kDx",       "Yatay kayma",-140, 140],
   ["kDy",       "Dikey kayma", -80, 120],
   ["bas", "KALE — GÖRSEL"],
   ["kGEn",      "Genişlik",      4, 200],
@@ -6901,6 +6913,7 @@ const ALANLAR = [
   ["kGY",       "Dikey kayma", -80,  80],
   ["bas", "DÜĞÜM — YAZI (%)"],
   ["dPunto",    "Yazı boyu",    10, 200],
+  ["dYaziX",    "Yatay kayma",-300, 300],
   ["dYaziY",    "Dikey kayma",   0, 500],
   ["bas", "DÜĞÜM — GÖRSEL (%)"],
   ["dGEn",      "Genişlik",     10, 600],
@@ -6956,13 +6969,15 @@ function yerlestir(){
       cikti.textContent =
         "tema.js kaleEtiketi\n" +
         "  font-size: " + A.kPunto + "px\n" +
+        "  width: " + (A.kGenis > 0 ? A.kGenis + "px" : "auto") + "\n" +
         "  padding: " + A.kDolguD + "px " + A.kDolguY + "px\n" +
         "  border-radius: " + A.kKose + "px\n" +
-        "  translateY: " + (25 + A.kDy) + "px\n" +
+        "  translate: " + A.kDx + "px / " + (25 + A.kDy) + "px\n" +
         "  ::before " + A.kGEn + "x" + A.kGBoy + "px\n" +
         "  margin-right: " + A.kGX + "px · dy " + A.kGY + "px\n\n" +
         "harita.js CFG.etiket\n" +
         "  punto: "   + (A.dPunto / 100).toFixed(2) + "\n" +
+        "  yaziX: "   + (A.dYaziX / 100).toFixed(2) + "\n" +
         "  yaziY: "   + (A.dYaziY / 100).toFixed(2) + "\n" +
         "  kutuEn: "  + (A.dGEn   / 100).toFixed(2) + "\n" +
         "  kutuBoy: " + (A.dGBoy  / 100).toFixed(2) + "\n" +
