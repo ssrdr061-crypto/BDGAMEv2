@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-22';
+  var SURUM = 'kaleici-23';
 
   var CFG = {
     grid: 13,
@@ -52,15 +52,24 @@
      yazılmaz. Yalnız ayar paneli açıkken listede görünür ve sürüklenir.
      Görsel dosyası yoksa hiç çizilmez (emojiye düşmez). */
   var SUSLER = [
-    { id: 'dag_a', ad: 'Dağ A', emoji: '⛰️', gorsel: 'dag1.webp', gx: -10, gy: 2,  en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_b', ad: 'Dağ B', emoji: '⛰️', gorsel: 'dag2.webp', gx: -10, gy: 9,  en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_c', ad: 'Dağ C', emoji: '⛰️', gorsel: 'dag3.webp', gx: -5,  gy: 16, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_d', ad: 'Dağ D', emoji: '⛰️', gorsel: 'dag1.webp', gx: 1,   gy: 16, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_e', ad: 'Dağ E', emoji: '⛰️', gorsel: 'dag2.webp', gx: 8,   gy: 10, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_f', ad: 'Dağ F', emoji: '⛰️', gorsel: 'dag3.webp', gx: 8,   gy: 3,  en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_g', ad: 'Dağ G', emoji: '⛰️', gorsel: 'dag1.webp', gx: 2,   gy: -3, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_h', ad: 'Dağ H', emoji: '⛰️', gorsel: 'dag2.webp', gx: -5,  gy: -3, en: 3, boy: 3, olcek: 0.66, sus: true }
+    { id: 'dag_01', ad: 'Dağ A', emoji: '⛰️', gorsel: 'dag1.webp', gx: 6, gy: -1, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_02', ad: 'Dağ B', emoji: '⛰️', gorsel: 'dag2.webp', gx: 9, gy: 3, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_03', ad: 'Dağ C', emoji: '⛰️', gorsel: 'dag3.webp', gx: 10, gy: 7, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_04', ad: 'Dağ D', emoji: '⛰️', gorsel: 'dag1.webp', gx: 9, gy: 11, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_05', ad: 'Dağ E', emoji: '⛰️', gorsel: 'dag2.webp', gx: 7, gy: 15, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_06', ad: 'Dağ F', emoji: '⛰️', gorsel: 'dag3.webp', gx: 4, gy: 17, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_07', ad: 'Dağ G', emoji: '⛰️', gorsel: 'dag1.webp', gx: 0, gy: 17, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_08', ad: 'Dağ H', emoji: '⛰️', gorsel: 'dag2.webp', gx: -5, gy: 16, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_09', ad: 'Dağ I', emoji: '⛰️', gorsel: 'dag3.webp', gx: -8, gy: 14, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_10', ad: 'Dağ J', emoji: '⛰️', gorsel: 'dag1.webp', gx: -11, gy: 10, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_11', ad: 'Dağ K', emoji: '⛰️', gorsel: 'dag2.webp', gx: -12, gy: 6, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_12', ad: 'Dağ L', emoji: '⛰️', gorsel: 'dag3.webp', gx: -11, gy: 2, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_13', ad: 'Dağ M', emoji: '⛰️', gorsel: 'dag1.webp', gx: -9, gy: -2, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_14', ad: 'Dağ N', emoji: '⛰️', gorsel: 'dag2.webp', gx: -6, gy: -4, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_15', ad: 'Dağ O', emoji: '⛰️', gorsel: 'dag3.webp', gx: -2, gy: -4, en: 3, boy: 3, olcek: 0.66, sus: true },
+    { id: 'dag_16', ad: 'Dağ P', emoji: '⛰️', gorsel: 'dag1.webp', gx: 3, gy: -3, en: 3, boy: 3, olcek: 0.66, sus: true }
   ];
+
 
   /* Çizim, dokunuş ve ayar listesi bunu okur; kayıt yalnız BINALAR'ı. */
   function tumYapilar() { return BINALAR.concat(SUSLER); }
@@ -141,18 +150,13 @@
     /* Kaleiçi açıkken paneller bu katmana taşınır (aşağıdaki panelleriTasi) */
     '#kaleici .hud-top,#kaleici .hud-kaynak,#kaleici .nav-dock{z-index:40}' +
     /* Kapat düğmesi ve sürüm yazısı üst panelin altına iner */
-    'body.kaleici-acik #kaleiciKapat{top:104px}' +
-    'body.kaleici-acik #kaleiciSurum{top:108px}' +
+    'body.kaleici-acik #kaleiciKapat{top:84px}' +
     '#kaleiciTuval{position:absolute;left:0;top:0;width:100%;height:100%;display:block}' +
-    '#kaleiciKapat{position:absolute;left:12px;top:12px;z-index:2;' +
-      'padding:8px 16px;border:none;border-radius:10px;background:#1d3f63;color:#eaf6ff;' +
-      'font:600 15px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
+    '#kaleiciKapat{position:absolute;left:10px;top:10px;z-index:2;' +
+      'padding:5px 11px;border:none;border-radius:9px;background:#1d3f63;color:#eaf6ff;' +
+      'font:600 12.5px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
       'box-shadow:none;transition:transform .09s,filter .09s}' +
     '#kaleiciKapat:active{transform:scale(.96);filter:brightness(.93)}' +
-    '#kaleiciSurum{position:absolute;right:12px;top:16px;z-index:4;' +
-      'padding:4px 6px;color:rgba(255,255,255,.75);' +
-      'font:500 12px/1 "Baloo 2",sans-serif}' +
-    '#kaleiciSurum:active{filter:brightness(1.4)}' +
     '#kaleiciPanel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;' +
       'display:none;min-width:200px;padding:18px 20px;border-radius:14px;' +
       'background:#12304e;color:#eaf6ff;text-align:center;' +
@@ -170,37 +174,8 @@
       'font:600 12.5px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
       'box-shadow:none;transition:transform .09s,filter .09s}' +
     '#kaleiciGir.acik{display:block}' +
-    '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}' +
+    '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}';
 
-    /* ---- Ayar paneli (?ayar=1) — iş bitince bu blok ve AYAR kodu silinir ---- */
-    '#kaleiciAyar{display:none;position:absolute;left:10px;right:10px;bottom:118px;z-index:5;' +
-      'padding:7px 9px;border-radius:10px;background:rgba(10,28,48,.82);' +
-      '-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#dbeaf7;' +
-      'font:500 11px/1.2 "Baloo 2",sans-serif;box-shadow:none}' +
-    '#kaleiciAyar.acik{display:block}' +
-    '#kaleiciAyar.kapali .ka-govde{display:none}' +
-    '#kaleiciAyar .ka-ust{display:flex;align-items:center;gap:6px}' +
-    '#kaleiciAyar select{flex:1;min-width:0;padding:3px 5px;border:none;border-radius:6px;' +
-      'background:rgba(255,255,255,.08);color:#dbeaf7;' +
-      'font:600 11.5px/1 "Baloo 2",sans-serif}' +
-    '#kaleiciAyar .ka-kat{padding:3px 8px;border:none;border-radius:6px;' +
-      'background:rgba(255,255,255,.10);color:#dbeaf7;font:600 11px/1 "Baloo 2",sans-serif}' +
-    '#kaleiciAyar .ka-satir{display:flex;align-items:center;gap:7px;margin-top:3px}' +
-    '#kaleiciAyar .ka-ad{width:44px;flex:none;opacity:.7;font-size:10.5px}' +
-    '#kaleiciAyar .ka-deg{width:42px;flex:none;text-align:right;opacity:.9;' +
-      'font-variant-numeric:tabular-nums;font-weight:600;font-size:10.5px}' +
-    '#kaleiciAyar input[type=range]{flex:1;min-width:0;height:16px;accent-color:#6fb6ee;' +
-      'background:transparent}' +
-    '#kaleiciAyar .ka-alt{display:flex;gap:6px;margin-top:6px}' +
-    '#kaleiciAyar .ka-alt button{flex:1;padding:4px 0;border:none;border-radius:6px;' +
-      'background:rgba(255,255,255,.10);color:#dbeaf7;' +
-      'font:600 11px/1 "Baloo 2",sans-serif}' +
-    '#kaleiciAyar .ka-alt button:active{filter:brightness(1.3)}' +
-    '#kaleiciAyar .ka-ipucu{margin-top:5px;opacity:.55;font-size:10px}' +
-    '#kaleiciAyar textarea{width:100%;box-sizing:border-box;margin-top:5px;height:60px;' +
-      'border:none;border-radius:6px;padding:5px;background:rgba(0,0,0,.35);color:#cfe6ff;' +
-      'font:500 10px/1.3 monospace;display:none}' +
-    '#kaleiciAyar.metin textarea{display:block}';
 
   var katman, tuval, ctx, panel, panelAd, girBtn;
   var camX = 0, camY = 0;          // kameranın dünya koordinatı
@@ -256,7 +231,11 @@
       mx: -240, my: 172,   // ada merkezi (dünya)
       yaricap: 560,        // kara sınırı
       dalga: 0.085,        // kıyının kırışma miktarı
-      kiyi: 0.045,         // kum bandı genişliği (yarıçap oranı)
+      kiyi: 0.052,         // kum bandı genişliği (yarıçap oranı)
+      /* Kum yalnız ÖNE bakan kıyıda. İzometride yukarı dönen kıyı
+         kameraya sırtını döner; orada kumsal görünmemeli. */
+      kumOn: 0.55,         // ön tarafta kum gücü eşiği
+      kumArka: -0.10,      // bu yönün ötesinde kum tamamen biter
       sig: 0.10            // sığ su bandı
     },
     kumRenk:  [226, 208, 156],
@@ -298,31 +277,64 @@
     return r + kir * A.dalga;
   }
 
-  /* Deniz rengi: sığdan derine geçiş + dalga bantları + kıyı köpüğü.
-     Düz mavi dolgu değil; üç katman üst üste biner. */
-  function denizRengi(wx, wy, t) {
+  /* Kum gücü — kıyının hangi yöne baktığına göre 0..1.
+     ny = +1 kıyı kameraya bakıyor (ön/alt) · -1 sırtı dönük (arka/üst). */
+  function kumGucu(wx, wy) {
     var A = ZCFG.ada;
-    var d = (t - (1 + A.kiyi)) / A.sig;           // 0 = kıyı, 1 = derin
+    var dy = (wy - A.my) / (A.yaricap * 0.80);
+    var dx = (wx - A.mx) / A.yaricap;
+    var ny = dy;
+    /* yanlarda (dx büyük, dy≈0) kum yarı yarıya kalsın */
+    ny += (1 - Math.min(1, Math.abs(dx))) * 0 + Math.abs(dx) * 0.22;
+    var g = (ny - A.kumArka) / (A.kumOn - A.kumArka);
+    g = Math.max(0, Math.min(1, g));
+    /* kıyı boyunca hafif düzensizlik — cetvelle kesilmiş gibi durmasın */
+    g *= 0.86 + zNoise(wx * 0.008 + 3, wy * 0.008 + 47) * 0.28;
+    return Math.max(0, Math.min(1, zYum(g)));
+  }
+
+  /* Deniz rengi. Beş katman: derinlik geçişi · uzun dalga hatları ·
+     ince kırışıklık · gezinen parıltı · kıyı köpüğü.
+     kw = o noktadaki kum bandı genişliği (köpük ona göre kayar). */
+  function denizRengi(wx, wy, t, kw) {
+    var A = ZCFG.ada;
+    if (kw === undefined) kw = A.kiyi;
+    var d = (t - (1 + kw)) / A.sig;               // 0 = kıyı, 1 = derin
     var k = Math.max(0, Math.min(1, d));
     k = zYum(k);
     var c = zKaris(ZCFG.sigRenk, ZCFG.derinRenk, k);
 
-    /* Dalga bantları — kıyıya paralel, ince ve yumuşak */
-    var band = zNoise(wx * 0.010 + 13, wy * 0.024 + 51) * 0.6
-             + zNoise(wx * 0.030 + 71, wy * 0.070 + 29) * 0.4;
-    var dg = Math.sin((t * 46) + band * 5.5) * 0.5 + 0.5;
-    c = zKaris(c, zAc(c, 0.55), dg * 0.16 * (1 - k * 0.55));
-    c = zKaris(c, zKoy(c, 0.30), (1 - dg) * 0.12);
+    /* 1. Uzun dalga hatları — kıyıya paralel, geniş ve yumuşak */
+    var band = zNoise(wx * 0.009 + 13, wy * 0.021 + 51) * 0.62
+             + zNoise(wx * 0.026 + 71, wy * 0.060 + 29) * 0.38;
+    var dg = Math.sin((t * 52) + band * 6.2) * 0.5 + 0.5;
+    dg = dg * dg * (3 - 2 * dg);                  // tepeleri sivrilt
+    c = zKaris(c, zAc(c, 0.62), dg * 0.17 * (1 - k * 0.5));
+    c = zKaris(c, zKoy(c, 0.34), (1 - dg) * 0.13);
 
-    /* Geniş parıltı — suyun üstünde gezinen ışık */
-    var pr = zNoise(wx * 0.006 + 5, wy * 0.006 + 91);
-    c = zKaris(c, [255, 255, 255], Math.max(0, (pr - 0.58)) * 0.35);
+    /* 2. İnce kırışıklık — yüzey dokusu, dalgaların üstüne biner */
+    var kr = zNoise(wx * 0.085 + 101, wy * 0.190 + 7) * 0.6
+           + zNoise(wx * 0.210 + 43,  wy * 0.470 + 61) * 0.4;
+    c = zKaris(c, zAc(c, 0.5), Math.max(0, kr - 0.56) * 0.42);
+    c = zKaris(c, zKoy(c, 0.22), Math.max(0, 0.44 - kr) * 0.30);
 
-    /* Kıyı köpüğü: karaya en yakın ince şerit */
-    var kop = 1 - Math.min(1, Math.abs(t - (1 + A.kiyi * 0.85)) / (A.kiyi * 0.9));
+    /* 3. Derinlerde koyu akıntı lekeleri — düz mavilik kırılır */
+    var ak = zNoise(wx * 0.013 + 211, wy * 0.030 + 137);
+    c = zKaris(c, zKoy(c, 0.28), Math.max(0, ak - 0.55) * 0.5 * k);
+
+    /* 4. Geniş parıltı — suyun üstünde gezinen ışık */
+    var pr = zNoise(wx * 0.005 + 5, wy * 0.005 + 91);
+    c = zKaris(c, [255, 255, 255], Math.max(0, (pr - 0.56)) * 0.40);
+
+    /* 5. Kıyı köpüğü — karaya en yakın şerit, dalgalarla tırtıklı */
+    var merkez = 1 + kw * 0.9 + 0.006;
+    var genis = kw * 0.85 + 0.014;
+    var kop = 1 - Math.min(1, Math.abs(t - merkez) / genis);
     if (kop > 0) {
-      var kd = zNoise(wx * 0.055 + 33, wy * 0.055 + 17);
-      c = zKaris(c, ZCFG.kopukRenk, Math.min(1, kop * (0.45 + kd * 0.55)));
+      var kd = zNoise(wx * 0.048 + 33, wy * 0.048 + 17) * 0.65
+             + zNoise(wx * 0.130 + 89, wy * 0.130 + 5) * 0.35;
+      kop = kop * kop;
+      c = zKaris(c, ZCFG.kopukRenk, Math.min(1, kop * (0.35 + kd * 0.75)));
     }
     return c;
   }
@@ -333,14 +345,21 @@
     var t = adaOran(wx, wy);
     if (t > 1) {
       var cs;
-      if (t < 1 + A.kiyi) {
+      var kg = kumGucu(wx, wy);
+      var kw = A.kiyi * kg;
+      if (kg > 0.02 && t < 1 + kw) {
         /* kum bandı — çimenden kuma yumuşak geçiş */
-        var kt = zYum((t - 1) / A.kiyi);
-        cs = zKaris(ZCFG.renk, ZCFG.kumRenk, kt);
+        var kt = zYum((t - 1) / kw);
+        cs = zKaris(ZCFG.renk, ZCFG.kumRenk, kt * kg);
         var kn = zNoise(wx * 0.045 + 23, wy * 0.045 + 67);
-        cs = zKaris(cs, zKoy(cs, 0.18), (kn - 0.5) * 0.5 + 0.25);
+        cs = zKaris(cs, zKoy(cs, 0.18), ((kn - 0.5) * 0.5 + 0.25) * kg);
       } else {
-        cs = denizRengi(wx, wy, t);
+        /* Kumsuz kıyıda çimen doğrudan suya iner: dar bir sığlık şeridi */
+        cs = denizRengi(wx, wy, t, kw);
+        if (t < 1 + kw + 0.012) {
+          var yt = zYum(Math.max(0, Math.min(1, (t - 1) / (kw + 0.012))));
+          cs = zKaris(ZCFG.renk, cs, yt);
+        }
       }
       var dd = ZCFG.doygunluk;
       var od = (cs[0] + cs[1] + cs[2]) / 3;
@@ -577,7 +596,6 @@
   function binaSec(b) {
     if (b !== secili) { tasiModu = false; tasiDokunus = 0; }
     secili = b;
-    if (b && ayarGorunur() && ayarSecim) { ayarSecim.value = b.id; ayarTazele(); }
     secimZaman = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     kareIste();
   }
@@ -716,7 +734,7 @@
      yalnız taban karosuna bakılıyordu; ölçekler 1'in üstünde olduğu
      için parmak gövdeye basınca hiçbir bina bulunamıyordu. */
   function binaBul(sx, sy) {
-    var kaynak = ayarGorunur() ? tumYapilar() : BINALAR;
+    var kaynak = BINALAR;   /* süsler seçilemez/taşınamaz */
     var sirali = kaynak.slice().sort(function (a, b) {
       return (b.gx + b.gy) - (a.gx + a.gy);     // önden arkaya
     });
@@ -793,14 +811,13 @@
 
       var bulunan = binaBul(px, py);
       var hedef = null;
-      if (bulunan && ((bulunan === secili && tasiModu) || ayarGorunur())) hedef = bulunan;
+      if (bulunan && bulunan === secili && tasiModu) hedef = bulunan;
       if (hedef) {
         tasinan = hedef;
         var d0 = dunyaya(px, py);
         var g0 = izgara(d0.x, d0.y);
         tasiKay.x = hedef.gx - g0.gx;   // basılan karo ile sol üst arası fark
         tasiKay.y = hedef.gy - g0.gy;
-        if (ayarGorunur()) binaSec(hedef);
       }
     } else if (parmakSayisi === 2) {
       tasinan = null;
@@ -882,187 +899,6 @@
     panel.classList.add('acik');
   }
   function panelKapat() { panel.classList.remove('acik'); }
-
-
-  /* ================= AYAR PANELİ — GEÇİCİ (?ayar=1) =================
-     İnce ayar bitince: bu blok, CSS'teki #kaleiciAyar kuralları ve
-     kur() içindeki ayarKur() çağrısı silinir. ================= */
-  /* Panel her zaman kurulur; sürüm yazısına (sağ üst) dokunmak açar/kapar.
-     ?ayar=1 ile açılışta görünür gelir. */
-  var AYAR_ACIK = /[?&]ayar=1/.test(location.search);
-  var ayarKutu, ayarSecim, ayarSurgu = {}, ayarDeger = {}, ayarMetin;
-
-  /* Panel görünürken HERHANGİ bir bina sürüklenebilir; kapalıyken
-     yalnız seçili bina taşınır. */
-  function ayarGorunur() {
-    return !!(ayarKutu && ayarKutu.classList.contains('acik'));
-  }
-
-  function ayarAcKapa() {
-    if (!ayarKutu) return;
-    ayarKutu.classList.toggle('acik');
-    if (ayarGorunur() && secili && ayarSecim) { ayarSecim.value = secili.id; ayarTazele(); }
-  }
-
-  var AYAR_SURGULER = [
-    { ad: 'olcek', etiket: 'Ölçek', min: 10, max: 300, adim: 1, bol: 100, vars: 1 },
-    { ad: 'dx',    etiket: 'Yatay', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 },
-    { ad: 'dy',    etiket: 'Dikey', min: -80, max: 80, adim: 1, bol: 1,   vars: 0 }
-  ];
-
-  function ayarSeciliBina() {
-    var liste = tumYapilar();
-    for (var i = 0; i < liste.length; i++) {
-      if (liste[i].id === ayarSecim.value) return liste[i];
-    }
-    return BINALAR[0];
-  }
-
-  function ayarTazele() {
-    var b = ayarSeciliBina();
-    for (var i = 0; i < AYAR_SURGULER.length; i++) {
-      var t = AYAR_SURGULER[i];
-      var v = (b[t.ad] === undefined ? t.vars : b[t.ad]);
-      ayarSurgu[t.ad].value = Math.round(v * t.bol);
-      ayarDeger[t.ad].textContent = (t.bol === 1) ? String(Math.round(v)) : v.toFixed(2);
-    }
-    ayarSurgu.pay.value = Math.round(GORSEL_PAY * 100);
-    ayarDeger.pay.textContent = GORSEL_PAY.toFixed(2);
-    ayarSurgu.egim.value = CFG.tileH;
-    ayarDeger.egim.textContent = String(CFG.tileH);
-  }
-
-  function ayarMetniUret() {
-    var aci = Math.round(Math.asin(Math.min(1, CFG.tileH / CFG.tileW)) * 180 / Math.PI);
-    var s = 'GORSEL_PAY = ' + GORSEL_PAY.toFixed(2) + '  ·  tileW = ' + CFG.tileW +
-            '  ·  tileH = ' + CFG.tileH + '  ·  bakış ≈ ' + aci + '°\n';
-    var tum = tumYapilar();
-    for (var i = 0; i < tum.length; i++) {
-      var b = tum[i], par = [];
-      par.push('gx: ' + b.gx + ', gy: ' + b.gy);
-      if (b.olcek !== undefined && b.olcek !== 1) par.push('olcek: ' + b.olcek.toFixed(2));
-      if (b.dx) par.push('dx: ' + Math.round(b.dx));
-      if (b.dy) par.push('dy: ' + Math.round(b.dy));
-      s += b.id + ' → ' + par.join(', ') + '\n';
-    }
-    return s;
-  }
-
-  function ayarSatir(t) {
-    return '<div class="ka-satir"><span class="ka-ad">' + t.etiket + '</span>' +
-      '<input type="range" id="ka-' + t.ad + '" min="' + t.min + '" max="' + t.max +
-      '" step="' + t.adim + '"><span class="ka-deg" id="kad-' + t.ad + '">-</span></div>';
-  }
-
-  function ayarKur() {
-    if (document.getElementById('kaleiciAyar')) return;
-
-    var sec = '', liste = tumYapilar();
-    for (var i = 0; i < liste.length; i++) {
-      sec += '<option value="' + liste[i].id + '">' + binaAdi(liste[i]) + '</option>';
-    }
-
-    var satirlar = '';
-    for (var j = 0; j < AYAR_SURGULER.length; j++) satirlar += ayarSatir(AYAR_SURGULER[j]);
-
-    ayarKutu = document.createElement('div');
-    ayarKutu.id = 'kaleiciAyar';
-    ayarKutu.innerHTML =
-      '<div class="ka-ust"><select id="kaSec">' + sec + '</select>' +
-      '<button class="ka-kat" id="kaKat">▾</button></div>' +
-      '<div class="ka-govde">' + satirlar +
-      ayarSatir({ ad: 'pay', etiket: 'Genel', min: 20, max: 300, adim: 1 }) +
-      ayarSatir({ ad: 'egim', etiket: 'Eğim', min: 20, max: 64, adim: 1 }) +
-      '<div class="ka-ipucu">Binaya dokun → seç · sürükle → karo değiştir · ' +
-      'sağ üstteki sürüm yazısı bu paneli kapatır</div>' +
-      '<div class="ka-alt"><button id="kaSifirla">Sıfırla</button>' +
-      '<button id="kaMetin">Değerler</button>' +
-      '<button id="kaKopya">Kopyala</button></div>' +
-      '<textarea id="kaCikti" readonly></textarea></div>';
-    if (AYAR_ACIK) ayarKutu.classList.add('acik');
-    katman.appendChild(ayarKutu);
-
-    ayarSecim = document.getElementById('kaSec');
-    ayarMetin = document.getElementById('kaCikti');
-
-    var adlar = ['olcek', 'dx', 'dy', 'pay', 'egim'];
-    for (var k = 0; k < adlar.length; k++) {
-      ayarSurgu[adlar[k]] = document.getElementById('ka-' + adlar[k]);
-      ayarDeger[adlar[k]] = document.getElementById('kad-' + adlar[k]);
-    }
-
-    /* Sürgülere dokunuş sahneye sızmasın */
-    ayarKutu.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
-
-    ayarSecim.addEventListener('change', ayarTazele);
-
-    for (var m = 0; m < AYAR_SURGULER.length; m++) {
-      (function (t) {
-        ayarSurgu[t.ad].addEventListener('input', function () {
-          var b = ayarSeciliBina();
-          var v = Number(this.value) / t.bol;
-          b[t.ad] = v;
-          ayarDeger[t.ad].textContent = (t.bol === 1) ? String(Math.round(v)) : v.toFixed(2);
-          kareIste();
-        });
-      })(AYAR_SURGULER[m]);
-    }
-
-    ayarSurgu.pay.addEventListener('input', function () {
-      GORSEL_PAY = Number(this.value) / 100;
-      ayarDeger.pay.textContent = GORSEL_PAY.toFixed(2);
-      kareIste();
-    });
-
-    ayarSurgu.egim.addEventListener('input', function () {
-      CFG.tileH = Number(this.value);
-      ayarDeger.egim.textContent = String(CFG.tileH);
-      kameraSinirla();
-      kareIste();
-    });
-
-    document.getElementById('kaKat').addEventListener('click', function () {
-      ayarKutu.classList.toggle('kapali');
-      this.textContent = ayarKutu.classList.contains('kapali') ? '▴' : '▾';
-    });
-
-    document.getElementById('kaSifirla').addEventListener('click', function () {
-      var b = ayarSeciliBina();
-      b.olcek = 1; b.dx = 0; b.dy = 0;
-      ayarTazele();
-      kareIste();
-    });
-
-    document.getElementById('kaKopya').addEventListener('click', function () {
-      var m = ayarMetniUret();
-      ayarKutu.classList.add('metin');
-      ayarMetin.value = m;
-      var tamam = false;
-      try {
-        ayarMetin.removeAttribute('readonly');
-        ayarMetin.select();
-        ayarMetin.setSelectionRange(0, m.length);
-        tamam = document.execCommand && document.execCommand('copy');
-        ayarMetin.setAttribute('readonly', 'readonly');
-      } catch (e2) {}
-      try {
-        if (navigator.clipboard) { navigator.clipboard.writeText(m); tamam = true; }
-      } catch (e3) {}
-      this.textContent = tamam ? 'Kopyalandı' : 'Seç ve kopyala';
-      var dgm = this;
-      setTimeout(function () { dgm.textContent = 'Kopyala'; }, 1600);
-    });
-
-    document.getElementById('kaMetin').addEventListener('click', function () {
-      ayarKutu.classList.toggle('metin');
-      if (ayarKutu.classList.contains('metin')) {
-        ayarMetin.value = ayarMetniUret();
-        try { navigator.clipboard && navigator.clipboard.writeText(ayarMetin.value); } catch (e) {}
-      }
-    });
-
-    ayarTazele();
-  }
 
 
   /* ================= Yerleşim kaydı (Firebase) =================
@@ -1172,7 +1008,6 @@
     katman.innerHTML =
       '<canvas id="kaleiciTuval"></canvas>' +
       '<button id="kaleiciKapat">← Haritaya dön</button>' +
-      '<div id="kaleiciSurum">' + SURUM + '</div>' +
       '<div id="kaleiciPanel"><h3 id="kaleiciPanelAd"></h3>' +
       '<p>Bu bina henüz bağlanmadı.</p><button id="kaleiciPanelKapat">Kapat</button></div>';
     document.body.appendChild(katman);
@@ -1183,7 +1018,6 @@
     panelAd = document.getElementById('kaleiciPanelAd');
 
     document.getElementById('kaleiciKapat').addEventListener('click', kapat);
-    document.getElementById('kaleiciSurum').addEventListener('click', ayarAcKapa);
     document.getElementById('kaleiciPanelKapat').addEventListener('click', panelKapat);
 
     tuval.addEventListener('pointerdown', bas);
@@ -1202,7 +1036,6 @@
     document.body.appendChild(girBtn);
 
     gorselYukle();
-    ayarKur();
     butonuIzle();
   }
 
