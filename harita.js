@@ -165,6 +165,16 @@
        ince detay ama daha yavaş pişirme. 8-16 arası mantıklı. */
     zeminAdim: 10,
 
+    /* ── Chunk (parça) önbelleği ──
+       CHUNK x CHUNK'lık bir bölge BİR KEZ boyanıp saklanır, sonra tek
+       drawImage ile ekrana basılır. 8 = 64 karoluk parça; telefon
+       belleğini zorlamayacak kadar küçük.
+
+       onbellekBoyu: bellekte tutulacak parça sayısı. Artırırsan
+       kaydırma daha akıcı ama RAM artar. */
+    CHUNK: 8,
+    onbellekBoyu: 48,
+
     /* Eski düz-renk yedeği. Zemin artık zeminRenk'ten boyandığı için
        KULLANILMIYOR; düğüm/kale kodu okuyor olabilir diye duruyor. */
     karoRenk: {
