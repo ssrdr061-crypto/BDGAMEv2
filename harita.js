@@ -156,10 +156,15 @@
 
     /* Parça parça koyu/açık lekelerin gücü. 0 = tek düze renk,
        1 = çok belirgin. Lekeler biyomun KENDİ renginden türer. */
-    leke: 0.55,
+    leke: 0.16,
 
     /* Geniş yumuşak ışık/gölge dalgası. 0 = kapalı. */
-    isik: 0.55,
+    isik: 0.32,
+
+    /* Lekeler ekranda YATAY eziliyor. İzometrik zeminde desen yuvarlak
+       olursa göz onu dik bir duvar gibi okur; yatay uzayınca yere
+       serilmiş gibi durur. Büyütürsen daha yatık, 1 = yuvarlak. */
+    lekeYatay: 2.4,
 
     /* Zemin kaç dünya pikselinde bir örneklenir. Küçültürsen daha
        ince detay ama daha yavaş pişirme. 8-16 arası mantıklı. */
@@ -491,10 +496,20 @@
     } else if (v < CFG.esikCimen) { c = R.cimen;
     } else                        { c = R.lav; }
 
+    /* ── İZOMETRİK EKSENLER ──
+       u = ekranda YATAY yön (gx - gy)
+       v = ekranda DİKEY yön (gx + gy)
+       Desen bu iki eksende AYRI frekansla örneklenir; u frekansı
+       düşük olduğu için lekeler yatay uzar, zemin yere serilmiş
+       gibi durur. Izgara koordinatında örneklenirse yuvarlak
+       çıkıyor ve harita dik bir duvar gibi görünüyor. */
+    const eu = (gx - gy) / CFG.lekeYatay;
+    const ev = (gx + gy);
+
     /* 2. Işık — geniş dalga, iki oktav */
     if (CFG.isik > 0) {
-      const sh = smoothNoise(gx * 0.16 + 41, gy * 0.16 + 17) * 0.65
-               + smoothNoise(gx * 0.045 + 5, gy * 0.045 + 29) * 0.35;
+      const sh = smoothNoise(eu * 0.075 + 41, ev * 0.075 + 17) * 0.65
+               + smoothNoise(eu * 0.022 + 5,  ev * 0.022 + 29) * 0.35;
       const t = (sh - 0.5) * 1.35 * CFG.isik * 1.8;
       c = t < 0 ? renkKaris(c, renkKoy(c, 0.52), Math.min(0.70, -t))
                 : renkKaris(c, [255, 255, 255], Math.min(0.28, t * 0.50));
@@ -503,11 +518,10 @@
     /* 3. Leke — parça parça koyu/açık. Kısmen basamaklanıyor
           (Math.round) ki "parça" olarak okunsun, düz gradyan olmasın. */
     if (CFG.leke > 0) {
-      let pk = smoothNoise(gx * 0.29 + 77, gy * 0.29 + 13) * 0.46
-             + smoothNoise(gx * 0.66 + 5,  gy * 0.66 + 91) * 0.32
-             + smoothNoise(gx * 1.90 + 31, gy * 1.90 + 53) * 0.22;
-      pk = yumusat(yumusat(pk));
-      pk = pk * 0.42 + (Math.round(pk * 3) / 3) * 0.58;
+      let pk = smoothNoise(eu * 0.070 + 77, ev * 0.070 + 13) * 0.56
+             + smoothNoise(eu * 0.170 + 5,  ev * 0.170 + 91) * 0.30
+             + smoothNoise(eu * 0.420 + 31, ev * 0.420 + 53) * 0.14;
+      pk = yumusat(pk);
       const pt = (pk - 0.5) * 2 * CFG.leke;
       c = pt < 0 ? renkKaris(c, renkKoy(c, 0.44), -pt)
                  : renkKaris(c, renkAc(c, 0.34),   pt);
