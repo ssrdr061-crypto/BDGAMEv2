@@ -7093,3 +7093,394 @@ else yerlestir();
 setTimeout(uygula, 900);
 setTimeout(uygula, 2500);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   HASTANE İNCE AYAR — GEÇİCİ ÖLÇÜM ARACI  (?hastane=1)
+
+   Adres çubuğuna  ...vercel.app/?hastane=1  yazınca sol altta
+   "⚙ HASTANE" düğmesi çıkar. Sürgüleri oynattıkça hastane paneli
+   ANINDA değişir. Değerler telefonda saklanır (localStorage),
+   sayfa yenilense de durur.
+
+   ÇIKTI düğmesi, beğendiğin değerleri hazır CSS olarak yazar;
+   o satırları asıl tanımlara işleyince bu blok SİLİNİR.
+
+   Kural gereği burası bir "ezme"dir ama yalnız ?hastane=1 varken
+   enjekte edilir — normal oyunda tek satır CSS eklenmez.
+   ═══════════════════════════════════════════════════════════════ */
+(function hastaneInceAyar(){
+"use strict";
+if (!/[?&]hastane=1/.test(location.search)) return;
+
+/* ── Ayarlanabilir her şey. br = birim, olcek = 100'e böl (opaklık) ── */
+const GRUP = [
+ ["PANEL", [
+  ["panel-ust",   "Üstten boşluk",     60, 0, 160, 1, "px"],
+  ["panel-alt",   "Alttan boşluk",     70, 0, 200, 1, "px"],
+  ["kart-en",     "Kart genişliği",   420,240, 560, 2, "px"],
+  ["kart-kose",   "Kart köşesi",       22, 0,  40, 1, "px"],
+  ["kart-dolgu-y","Kart iç dolgu ↕",   24, 0,  50, 1, "px"],
+  ["kart-dolgu-x","Kart iç dolgu ↔",   20, 0,  40, 1, "px"]
+ ]],
+ ["BAŞLIK", [
+  ["bas-font",   "Yazı boyu",          26,10,  46, 1, "px"],
+  ["bas-aralik", "Harf aralığı",        2, 0,   8,.5, "px"],
+  ["bas-ust",    "Üst boşluk",          2, 0,  40, 1, "px"],
+  ["bas-alt",    "Alt boşluk",         12, 0,  50, 1, "px"]
+ ]],
+ ["SATIR", [
+  ["satir-dolgu-y","Satır dolgusu ↕",   6, 0,  26, 1, "px"],
+  ["satir-dolgu-x","Satır dolgusu ↔",   2, 0,  26, 1, "px"],
+  ["satir-ara",    "Kutucuk-yazı arası",10,0,  36, 1, "px"],
+  ["cizgi",        "Ayraç çizgisi",    14, 0, 100, 1, "", 1]
+ ]],
+ ["KAFA KUTUCUĞU", [
+  ["kafa-boy",  "Kutu boyu",           52,24, 110, 1, "px"],
+  ["kafa-kose", "Kutu köşesi",         14, 0,  40, 1, "px"],
+  ["kafa-kenar","Kenar opaklığı",      45, 0, 100, 1, "",  1]
+ ]],
+ ["GÖRSEL KIRPMA — SAVUNUCU", [
+  ["kn-en", "Genişlik",               150,60, 320, 1, "%"],
+  ["kn-ust","Yukarı-aşağı",           -29,-120,60, 1, "%"],
+  ["kn-sol","Sağa-sola",              -26,-160,60, 1, "%"]
+ ]],
+ ["GÖRSEL KIRPMA — KORUYUCU", [
+  ["sl-en", "Genişlik",               130,60, 320, 1, "%"],
+  ["sl-ust","Yukarı-aşağı",           -16,-120,60, 1, "%"],
+  ["sl-sol","Sağa-sola",              -21,-160,60, 1, "%"]
+ ]],
+ ["GÖRSEL KIRPMA — NİŞANCI", [
+  ["rb-en", "Genişlik",               140,60, 320, 1, "%"],
+  ["rb-ust","Yukarı-aşağı",           -10,-120,60, 1, "%"],
+  ["rb-sol","Sağa-sola",              -18,-160,60, 1, "%"]
+ ]],
+ ["YAZILAR", [
+  ["sayi-font","Yaralı sayısı",        19,10,  40, 1, "px"],
+  ["ad-font",  "Birlik adı",         14.5, 8,  28,.5, "px"]
+ ]],
+ ["SÜRGÜ", [
+  ["surgu-boy","Sürgü yüksekliği",     26,12,  50, 1, "px"],
+  ["ray",      "Ray kalınlığı",         7, 2,  20, 1, "px"],
+  ["top",      "Top çapı",             19, 8,  38, 1, "px"],
+  ["surgu-sag","Sağ boşluk",            6, 0,  40, 1, "px"]
+ ]],
+ ["ADET KUTUSU", [
+  ["kutu-boy", "Kutu yüksekliği",      22,14,  44, 1, "px"],
+  ["kutu-font","Kutu yazısı",        13.5, 8,  26,.5, "px"],
+  ["kutu-kose","Kutu köşesi",           7, 0,  20, 1, "px"],
+  ["max-font", "/ toplam yazısı",    12.5, 8,  26,.5, "px"]
+ ]],
+ ["İYİLEŞTİR DÜĞMESİ", [
+  ["dug-en",     "En az genişlik",    126,70, 340, 2, "px"],
+  ["dug-dolgu-y","Yükseklik dolgusu",   8, 2,  26, 1, "px"],
+  ["dug-font",   "Yazı boyu",          12, 8,  26,.5, "px"],
+  ["dug-kose",   "Köşe",               14, 0,  30, 1, "px"],
+  ["dug-ust",    "Üst boşluk",         16, 0,  60, 1, "px"]
+ ]]
+];
+
+/* anahtar → tanım */
+const TANIM = {};
+GRUP.forEach(g => g[1].forEach(t => { TANIM[t[0]] = t; }));
+
+/* ── Değerler ── */
+const KAYIT = "hsAyar_v1";
+let deger = {};
+GRUP.forEach(g => g[1].forEach(t => { deger[t[0]] = t[2]; }));
+try {
+  const eski = JSON.parse(localStorage.getItem(KAYIT) || "{}");
+  Object.keys(eski).forEach(k => { if (k in deger) deger[k] = +eski[k]; });
+} catch (e) {}
+
+function yaz(k){
+  const t = TANIM[k]; if (!t) return;
+  const br = t[6] || "", olcek = t[7] ? 100 : 1;
+  document.documentElement.style.setProperty("--hs-" + k, (deger[k] / olcek) + br);
+}
+function hepsiniYaz(){ Object.keys(deger).forEach(yaz); }
+function sakla(){ try { localStorage.setItem(KAYIT, JSON.stringify(deger)); } catch (e) {} }
+
+/* ── Hastaneyi değişkenlere bağlayan kurallar ── */
+const st = document.createElement("style");
+st.id = "hsAyarStil";
+st.textContent = `
+html body #panel-hospital{
+  padding:var(--hs-panel-ust) 12px var(--hs-panel-alt) !important;
+}
+html body #panel-hospital .overlay-card{
+  max-width:var(--hs-kart-en) !important;
+  border-radius:var(--hs-kart-kose) !important;
+  padding:var(--hs-kart-dolgu-y) var(--hs-kart-dolgu-x) var(--hs-kart-dolgu-y) !important;
+}
+html body #panel-hospital h2.hospital-title{
+  font-size:var(--hs-bas-font) !important;
+  letter-spacing:var(--hs-bas-aralik) !important;
+  margin:var(--hs-bas-ust) 0 var(--hs-bas-alt) !important;
+}
+html body #panel-hospital .hospital-heal-card,
+html body #panel-hospital .hosp-queue-row{
+  padding:var(--hs-satir-dolgu-y) var(--hs-satir-dolgu-x) !important;
+  border-bottom-color:rgba(190,240,255,var(--hs-cizgi)) !important;
+}
+html body #panel-hospital .hospital-heal-card{ gap:var(--hs-satir-ara) !important; }
+
+html body #panel-hospital .hospital-face{
+  flex:0 0 var(--hs-kafa-boy) !important;
+  width:var(--hs-kafa-boy) !important;
+  height:var(--hs-kafa-boy) !important;
+  border-radius:var(--hs-kafa-kose) !important;
+  border-color:rgba(190,240,255,var(--hs-kafa-kenar)) !important;
+}
+html body #panel-hospital .hospital-face[data-unit^="knight"] img{
+  width:var(--hs-kn-en) !important;
+  margin:var(--hs-kn-ust) 0 0 var(--hs-kn-sol) !important;
+}
+html body #panel-hospital .hospital-face[data-unit^="soldier"] img{
+  width:var(--hs-sl-en) !important;
+  margin:var(--hs-sl-ust) 0 0 var(--hs-sl-sol) !important;
+}
+html body #panel-hospital .hospital-face[data-unit^="robot"] img{
+  width:var(--hs-rb-en) !important;
+  margin:var(--hs-rb-ust) 0 0 var(--hs-rb-sol) !important;
+}
+
+html body #panel-hospital .t-count,
+html body #panel-hospital .hosp-adet{ font-size:var(--hs-sayi-font) !important; }
+html body #panel-hospital .hospital-heal-top .t-name{ font-size:var(--hs-ad-font) !important; }
+
+html body #panel-hospital .hospital-slider{
+  height:var(--hs-surgu-boy) !important;
+  margin-right:var(--hs-surgu-sag) !important;
+}
+html body #panel-hospital .hospital-slider .sl-track{
+  height:var(--hs-ray) !important;
+  margin-top:calc(var(--hs-ray) / -2) !important;
+}
+html body #panel-hospital .hospital-slider .sl-thumb{
+  width:var(--hs-top) !important; height:var(--hs-top) !important;
+  margin:calc(var(--hs-top) / -2) 0 0 calc(var(--hs-top) / -2) !important;
+}
+
+html body #panel-hospital .hq-input{
+  height:var(--hs-kutu-boy) !important;
+  line-height:var(--hs-kutu-boy) !important;
+  font-size:var(--hs-kutu-font) !important;
+  border-radius:var(--hs-kutu-kose) !important;
+}
+html body #panel-hospital .hq-max{ font-size:var(--hs-max-font) !important; }
+
+html body #panel-hospital .hospital-confirm-btn{
+  min-width:var(--hs-dug-en) !important;
+  padding:var(--hs-dug-dolgu-y) 18px !important;
+  font-size:var(--hs-dug-font) !important;
+  border-radius:var(--hs-dug-kose) !important;
+  margin:var(--hs-dug-ust) auto 2px !important;
+}
+
+/* ── ayar menüsünün kendi görünümü ── */
+#hsAyarAc{
+  position:fixed; left:10px; bottom:96px; z-index:99998;
+  padding:7px 11px; border-radius:11px; border:0;
+  background:linear-gradient(180deg,#3d7ccc,#152e5e); color:#fff;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:12px;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+}
+#hsAyarAc:active{ transform:scale(.96); filter:brightness(.93); }
+#hsAyarKutu{
+  position:fixed; left:0; right:0; bottom:0; z-index:99999;
+  height:52vh; overflow-y:auto; display:none;
+  background:rgba(4,14,34,.97); color:#fff;
+  font-family:'Baloo 2',sans-serif;
+  padding:8px 10px 22px;
+  border-top:1px solid rgba(190,240,255,.20);
+}
+#hsAyarKutu.acik{ display:block; }
+#hsAyarKutu::-webkit-scrollbar{ width:0; height:0; display:none; }
+.hsa-ust{
+  display:flex; align-items:center; gap:6px; margin-bottom:6px;
+  position:sticky; top:-8px; background:rgba(4,14,34,.97);
+  padding:6px 0 4px; z-index:2;
+}
+.hsa-ust b{ flex:1; font-size:13px; letter-spacing:1px; }
+.hsa-ust button{
+  border:0; border-radius:9px; color:#fff; font-family:'Baloo 2',sans-serif;
+  font-weight:800; font-size:11px; padding:6px 9px;
+  background:linear-gradient(180deg,#3d7ccc,#22488f);
+}
+.hsa-ust button:active{ transform:scale(.96); filter:brightness(.93); }
+.hsa-ust .hsa-sil{ background:linear-gradient(180deg,#f03434,#c00d0d); }
+.hsa-bas{
+  font-size:11px; font-weight:800; letter-spacing:1px; color:#ffd257;
+  margin:10px 0 3px; padding-top:5px;
+  border-top:1px solid rgba(190,240,255,.14);
+}
+.hsa-sat{ display:flex; align-items:center; gap:7px; margin:4px 0; }
+.hsa-ad{ flex:0 0 34%; font-size:11.5px; font-weight:700; color:#dceaff; }
+.hsa-sur{
+  flex:1 1 auto; position:relative; height:26px;
+  touch-action:none; cursor:pointer; user-select:none;
+}
+.hsa-ray{
+  position:absolute; left:0; right:0; top:50%; height:6px; margin-top:-3px;
+  border-radius:99px; background:rgba(3,16,38,.75);
+}
+.hsa-dolgu{
+  position:absolute; left:0; top:50%; height:6px; margin-top:-3px;
+  border-radius:99px; background:linear-gradient(180deg,#6fc0ff,#1fa3ea);
+}
+.hsa-top{
+  position:absolute; top:50%; width:17px; height:17px; margin:-8.5px 0 0 -8.5px;
+  border-radius:50%; background:#fff; pointer-events:none;
+}
+.hsa-deg{
+  flex:0 0 50px; text-align:right;
+  font-size:12px; font-weight:800; color:#ffd257;
+  font-variant-numeric:tabular-nums;
+}
+#hsAyarCikti{
+  width:100%; height:150px; margin-top:8px; display:none;
+  background:rgba(0,0,0,.55); color:#cfe6ff; border:1px solid rgba(190,240,255,.2);
+  border-radius:10px; padding:7px; font-size:10.5px; line-height:1.35;
+  font-family:monospace; white-space:pre;
+}
+`;
+document.head.appendChild(st);
+hepsiniYaz();
+
+/* ── Menüyü kur ── */
+function kur(){
+  const ac = document.createElement("button");
+  ac.id = "hsAyarAc"; ac.textContent = "⚙ HASTANE";
+  document.body.appendChild(ac);
+
+  const kutu = document.createElement("div");
+  kutu.id = "hsAyarKutu";
+  document.body.appendChild(kutu);
+
+  let html = '<div class="hsa-ust"><b>HASTANE İNCE AYAR</b>' +
+             '<button id="hsaCiktiBtn">ÇIKTI</button>' +
+             '<button class="hsa-sil" id="hsaSifirla">SIFIRLA</button>' +
+             '<button id="hsaKapat">KAPAT</button></div>';
+
+  GRUP.forEach(function(g){
+    html += '<div class="hsa-bas">' + g[0] + '</div>';
+    g[1].forEach(function(t){
+      html += '<div class="hsa-sat" data-k="' + t[0] + '">' +
+                '<div class="hsa-ad">' + t[1] + '</div>' +
+                '<div class="hsa-sur"><div class="hsa-ray"></div>' +
+                  '<div class="hsa-dolgu"></div><div class="hsa-top"></div></div>' +
+                '<div class="hsa-deg"></div>' +
+              '</div>';
+    });
+  });
+  html += '<textarea id="hsAyarCikti" readonly></textarea>';
+  kutu.innerHTML = html;
+
+  ac.addEventListener("pointerup", function(){ kutu.classList.toggle("acik"); });
+  kutu.querySelector("#hsaKapat").addEventListener("pointerup", function(){
+    kutu.classList.remove("acik");
+  });
+  kutu.querySelector("#hsaSifirla").addEventListener("pointerup", function(){
+    GRUP.forEach(g => g[1].forEach(t => { deger[t[0]] = t[2]; }));
+    hepsiniYaz(); sakla(); kutu.querySelectorAll(".hsa-sat").forEach(tazele);
+  });
+  kutu.querySelector("#hsaCiktiBtn").addEventListener("pointerup", function(){
+    const ta = kutu.querySelector("#hsAyarCikti");
+    ta.style.display = ta.style.display === "block" ? "none" : "block";
+    if (ta.style.display === "block"){ ta.value = ciktiMetni(); ta.scrollTop = 0; }
+  });
+
+  /* her satırın sürgüsü */
+  kutu.querySelectorAll(".hsa-sat").forEach(function(sat){
+    const k = sat.dataset.k, t = TANIM[k];
+    const sur = sat.querySelector(".hsa-sur");
+    let suruyor = false;
+
+    function konumdan(x){
+      const r = sur.getBoundingClientRect();
+      if (!r.width) return;                       /* Tuzak 22 */
+      let p = (x - r.left) / r.width;
+      p = p < 0 ? 0 : p > 1 ? 1 : p;
+      let v = t[3] + p * (t[4] - t[3]);
+      v = Math.round(v / t[5]) * t[5];
+      v = Math.round(v * 100) / 100;
+      if (v === deger[k]) return;
+      deger[k] = v; yaz(k); tazele(sat);
+    }
+    sur.addEventListener("pointerdown", function(e){
+      suruyor = true; sur.setPointerCapture(e.pointerId); konumdan(e.clientX);
+    });
+    sur.addEventListener("pointermove", function(e){ if (suruyor) konumdan(e.clientX); });
+    sur.addEventListener("pointerup",   function(){ suruyor = false; sakla(); });
+    sur.addEventListener("pointercancel", function(){ suruyor = false; sakla(); });
+
+    tazele(sat);
+  });
+}
+
+function tazele(sat){
+  const k = sat.dataset.k, t = TANIM[k], v = deger[k];
+  const p = (v - t[3]) / (t[4] - t[3]) * 100;
+  sat.querySelector(".hsa-dolgu").style.width = p + "%";
+  sat.querySelector(".hsa-top").style.left = p + "%";
+  sat.querySelector(".hsa-deg").textContent = v + (t[6] || "");
+}
+
+/* ── Beğenilen değerleri hazır CSS olarak ver ── */
+function ciktiMetni(){
+  const d = k => deger[k] + (TANIM[k][6] || "");
+  const o = k => (deger[k] / 100);
+  return [
+"/* index.html — HASTANE bölümü */",
+"#panel-hospital  padding: " + d("panel-ust") + " 12px " + d("panel-alt"),
+"  (tema.js ~2700, dört panel ortak — birlikte değiştir)",
+"",
+".overlay-card    max-width:" + d("kart-en") +
+  "  border-radius:" + d("kart-kose") +
+  "  padding:" + d("kart-dolgu-y") + " " + d("kart-dolgu-x") + " " + d("kart-dolgu-y"),
+"",
+".overlay-card h2.hospital-title{",
+"  font-size:" + d("bas-font") + "; letter-spacing:" + d("bas-aralik") + ";",
+"  margin:" + d("bas-ust") + " 0 " + d("bas-alt") + ";",
+"}",
+".hospital-heal-card{",
+"  padding:" + d("satir-dolgu-y") + " " + d("satir-dolgu-x") + "; gap:" + d("satir-ara") + ";",
+"  border-bottom:1px solid rgba(190,240,255," + o("cizgi") + ");",
+"}",
+".hospital-face{",
+"  flex:0 0 " + d("kafa-boy") + "; width:" + d("kafa-boy") + "; height:" + d("kafa-boy") + ";",
+"  border-radius:" + d("kafa-kose") + ";",
+"  border:1px solid rgba(190,240,255," + o("kafa-kenar") + ");",
+"}",
+'.hospital-face[data-unit^="knight"] img{ width:' + d("kn-en") +
+  "; margin:" + d("kn-ust") + " 0 0 " + d("kn-sol") + "; }",
+'.hospital-face[data-unit^="soldier"] img{ width:' + d("sl-en") +
+  "; margin:" + d("sl-ust") + " 0 0 " + d("sl-sol") + "; }",
+'.hospital-face[data-unit^="robot"] img{ width:' + d("rb-en") +
+  "; margin:" + d("rb-ust") + " 0 0 " + d("rb-sol") + "; }",
+"",
+"/* tema.js ~4748 */",
+"#panel-hospital .t-count, .hosp-adet   font-size:" + d("sayi-font"),
+".hospital-heal-top .t-name             font-size:" + d("ad-font"),
+"",
+".hospital-slider{ height:" + d("surgu-boy") + "; margin-right:" + d("surgu-sag") + "; }",
+".hospital-slider .sl-track{ height:" + d("ray") +
+  "; margin-top:-" + (deger["ray"] / 2) + "px; }",
+".hospital-slider .sl-thumb{ width:" + d("top") + "; height:" + d("top") +
+  "; margin:-" + (deger["top"] / 2) + "px 0 0 -" + (deger["top"] / 2) + "px; }",
+"",
+".hospital-qty .hq-input{ height:" + d("kutu-boy") + "; line-height:" + d("kutu-boy") +
+  "; font-size:" + d("kutu-font") + "; border-radius:" + d("kutu-kose") + "; }",
+".hospital-qty .hq-max{ font-size:" + d("max-font") + "; }",
+"",
+".hospital-confirm-btn{",
+"  min-width:" + d("dug-en") + "; padding:" + d("dug-dolgu-y") + " 18px;",
+"  font-size:" + d("dug-font") + "; border-radius:" + d("dug-kose") + ";",
+"  margin:" + d("dug-ust") + " auto 2px;",
+"}"
+  ].join("\n");
+}
+
+if (document.body) setTimeout(kur, 0);
+else document.addEventListener("DOMContentLoaded", function(){ setTimeout(kur, 0); });
+})();
