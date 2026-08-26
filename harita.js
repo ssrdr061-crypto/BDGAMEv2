@@ -184,11 +184,11 @@
        guc: 0 = kapalı. x/y: ekranın oranı (0-1), sol üst köşe 0,0.
        koseKarart: köşelerin kararma miktarı, hacim hissi verir. */
     yansima: {
-      guc: 0.13,
-      x: 0.34,
-      y: 0.20,
+      guc: 0.20,
+      x: 0.735,
+      y: 0.424,
       yaricap: 1.05,
-      koseKarart: 0.20,
+      koseKarart: 0.00,
     },
 
     /* Geniş yumuşak ışık/gölge dalgası. 0 = kapalı. */
