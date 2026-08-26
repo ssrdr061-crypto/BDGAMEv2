@@ -6391,8 +6391,9 @@ document.head.appendChild(st);
       MutationObserver demekti.
 
    KULLANILAN YOL: tek CSS elipsi (`.castle-avatar::after`).
-   Kalenin taban hizasında yassı bir daire — keskin kenarlı, kısa,
-   hafif. DOM'a hiçbir şey eklenmiyor, gözlemci yok, kale seviyesi
+   Kalenin taban hizasında yassı, köşeleri yuvarlatılmış bir kare —
+   keskin kenarlı, kısa, hafif. `--kg-yuvarlak` %50 olursa daireye,
+   %0 olursa keskin köşeli dörtgene döner. DOM'a hiçbir şey eklenmiyor, gözlemci yok, kale seviyesi
    değişince ayar gerekmiyor.
 
    Ölçüler `--kg-*` değişkenlerinden gelir; `?isik=1` paneli aynı
@@ -6420,10 +6421,10 @@ html body #battleMap .map-node.castle-node .castle-avatar::after{
   left:50%;
   top:var(--kg-taban, 83%);
   width:var(--kg-en, 46px);
-  height:var(--kg-boy, 13px);
+  height:var(--kg-boy, 22px);
   margin-left:calc(-0.5 * var(--kg-en, 46px) + var(--kg-dx, -2px));
-  margin-top:calc(-0.5 * var(--kg-boy, 13px) + var(--kg-dy, 1px));
-  border-radius:50%;
+  margin-top:calc(-0.5 * var(--kg-boy, 22px) + var(--kg-dy, 1px));
+  border-radius:var(--kg-yuvarlak, 30%);
   background:rgba(6,18,38, var(--kg-op, .22));
   filter:blur(var(--kg-blur, 0px));
   pointer-events:none;
@@ -6473,7 +6474,8 @@ const VARSAYILAN = {
   golgeAci: 242,     /* kayma yönü, derece      */
   golgeKayma: 2,     /* kayma miktarı, px       */
   golgeEn: 46,       /* elips genişliği, px     */
-  golgeBoy: 13,      /* elips yüksekliği, px    */
+  golgeBoy: 22,      /* leke yüksekliği, px     */
+  golgeYuvarlak: 30, /* köşe yuvarlaklığı, %    */
   golgeTaban: 83,    /* kutu içindeki yer, %    */
   golgeYumusak: 0,   /* blur, px (0 = keskin)   */
   golgeKarart: 22,   /* karartı, %              */
@@ -6514,6 +6516,7 @@ function uygula(){
       "width:" + A.golgeEn + "px;" +
       "height:" + A.golgeBoy + "px;" +
       "top:" + A.golgeTaban + "%;" +
+      "border-radius:" + A.golgeYuvarlak + "%;" +
       "margin-left:calc(-0.5 * " + A.golgeEn + "px + " + dx + "px);" +
       "margin-top:calc(-0.5 * " + A.golgeBoy + "px + " + dy + "px);" +
       "filter:blur(" + A.golgeYumusak + "px);" +
@@ -6575,6 +6578,7 @@ const ALANLAR = [
   ["golgeKayma",   "Kayma",       0,  14],
   ["golgeEn",      "Genişlik",   10,  90],
   ["golgeBoy",     "Yükseklik",   4,  40],
+  ["golgeYuvarlak","Köşe",        0,  50],
   ["golgeTaban",   "Taban",      60, 100],
   ["golgeYumusak", "Yumuşaklık",  0,   8],
   ["golgeKarart",  "Karartı",     0,  60],
@@ -6639,6 +6643,7 @@ function yerlestir(){
         "  --kg-en: " + A.golgeEn + "px\n" +
         "  --kg-boy: " + A.golgeBoy + "px\n" +
         "  --kg-taban: " + A.golgeTaban + "%\n" +
+        "  --kg-yuvarlak: " + A.golgeYuvarlak + "%\n" +
         "  --kg-dx: " + dx + "px\n" +
         "  --kg-dy: " + dy + "px\n" +
         "  --kg-blur: " + A.golgeYumusak + "px\n" +
