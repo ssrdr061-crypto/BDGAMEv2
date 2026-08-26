@@ -7108,3 +7108,238 @@ setTimeout(uygula, 2500);
 
   window.KAYGORSEL = { uygula: uygula, GORSEL: GORSEL };
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIRALAMA PANELİ — İKİ SEKME  (rank-sekme-1)
+   #rankList'in üstüne "GÜÇ" ve "KAHRAMAN" sekmeleri eklenir.
+   GÜÇ sekmesi index.html'deki renderRankPanel()'e dokunmaz, onu
+   olduğu gibi çağırır. KAHRAMAN sekmesi accounts'tan her oyuncunun
+   EN GÜÇLÜ kahramanını bulup listeler.
+
+   Veri: acc.state.ownedHeroSkins (sahip olunan) + acc.state.heroLevels
+   (seviye, gelistir.js yazar). İkisi de queueCloudSave ile buluta
+   gidiyor — state'in tamamı yazılıyor, compactState ölü kod.
+   Güç = taban × seviye (Sv5 = 5 kat).
+   ═══════════════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+
+  /* Taban güçler index.html HERO_POWER ile birebir aynı olmalı.
+     Orada bir değer değişirse burası da değişir. */
+  var TABAN = {
+    buz_savascisi: 15000,
+    celik_savasci: 20000,
+    ates_buyucusu: 50000,
+    ivanovna:      75000,
+    revolia:       100000
+  };
+  var ADLAR = {
+    buz_savascisi: "HALVORSEN",
+    celik_savasci: "STELLİN",
+    ates_buyucusu: "MİKİAN",
+    ivanovna:      "İVANOVNA",
+    revolia:       "REVOLİA"
+  };
+  var MAX_SV = 5;
+
+  var CSS = `
+    #panel-rank .rs-sekmeler{ display:flex; gap:6px; margin:4px 2px 0; }
+    #panel-rank .rs-sekme{ flex:1; padding:7px 0; border:none; border-radius:11px;
+      background:rgba(255,255,255,.10); color:#cfe6ff;
+      font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:13.5px;
+      letter-spacing:.4px; box-shadow:none;
+      transition:transform .09s, filter .09s; }
+    #panel-rank .rs-sekme:active{ transform:scale(.96); filter:brightness(.93); }
+    #panel-rank .rs-sekme.etkin{ background:linear-gradient(180deg,#4f9fe0,#2c68ad);
+      color:#fff; text-shadow:0 1px 2px rgba(0,20,45,.55); }
+    /* Kahraman satırı: ad sol · kahraman orta · güç sağ */
+    #panel-rank .rs-kahraman{ flex:1; min-width:0; text-align:center;
+      font-weight:800; font-size:13px; color:#ffd97a;
+      text-shadow:0 1px 3px rgba(0,20,45,.6);
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #panel-rank .rs-sv{ font-weight:700; font-size:11.5px; opacity:.85; }
+    #panel-rank .rank-row .rank-name.rs-sol{ flex:1; text-align:left; }
+    #panel-rank .rank-gold .rs-kahraman,
+    #panel-rank .rank-silver .rs-kahraman,
+    #panel-rank .rank-bronze .rs-kahraman{ color:inherit; text-shadow:none; }
+  `;
+
+  function stilBas() {
+    if (document.getElementById("rankSekmeCss")) return;
+    var st = document.createElement("style");
+    st.id = "rankSekmeCss";
+    st.textContent = CSS;
+    document.head.appendChild(st);
+  }
+
+  function sayiYaz(n) {
+    n = Math.round(Number(n) || 0);
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  function kacir(t) {
+    return String(t == null ? "" : t)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  /* Bir hesabın EN GÜÇLÜ kahramanı: { id, ad, sv, guc } veya null */
+  function enGucluKahraman(st) {
+    if (!st || typeof st !== "object") return null;
+    var sahip = Array.isArray(st.ownedHeroSkins) ? st.ownedHeroSkins : [];
+    if (!sahip.length) return null;
+    var sv = (st.heroLevels && typeof st.heroLevels === "object") ? st.heroLevels : {};
+    var en = null;
+    for (var i = 0; i < sahip.length; i++) {
+      var id = sahip[i];
+      var taban = TABAN[id];
+      if (!taban) continue;
+      var s2 = Math.floor(sv[id] || 1);
+      if (s2 < 1) s2 = 1;
+      if (s2 > MAX_SV) s2 = MAX_SV;
+      var g = taban * s2;
+      if (!en || g > en.guc) en = { id: id, ad: ADLAR[id] || id, sv: s2, guc: g };
+    }
+    return en;
+  }
+
+  function satirlarHTML(liste) {
+    if (!liste.length) return '<div class="rank-empty">Kahramanı olan oyuncu yok.</div>';
+    var h = "";
+    for (var i = 0; i < liste.length; i++) {
+      var p = liste[i], sira = i + 1;
+      var cls = "rank-row";
+      if (sira === 1) cls += " rank-gold";
+      else if (sira === 2) cls += " rank-silver";
+      else if (sira === 3) cls += " rank-bronze";
+      if (p.me) cls += " rank-me";
+      var madalya = sira === 1 ? "🥇" : sira === 2 ? "🥈" : sira === 3 ? "🥉" : "";
+      h += '<div class="' + cls + '">' +
+             '<span class="rank-pos">' + (madalya || sira) + '</span>' +
+             '<span class="rank-name rs-sol">' + kacir(p.name) + '</span>' +
+             '<span class="rs-kahraman">' + kacir(p.ad) +
+               ' <span class="rs-sv">Sv' + p.sv + '</span></span>' +
+             '<span class="rank-power">' + sayiYaz(p.guc) + ' ⚔️</span>' +
+           '</div>';
+    }
+    return h;
+  }
+
+  function kahramanListesiCiz() {
+    var el = document.getElementById("rankList");
+    if (!el) return;
+    el.innerHTML = '<div class="rank-loading">Sıralama yükleniyor...</div>';
+
+    var kur = function (hesaplar) {
+      var liste = [];
+      var benim = (typeof currentUsername === "string" && currentUsername) ? currentUsername : "Sen";
+
+      /* Kendi kaydım bellekteki state'ten — bulut gecikmesi yansımasın */
+      var kendi = null;
+      try {
+        if (typeof state !== "undefined" && state) kendi = enGucluKahraman(state);
+      } catch (e) {}
+      if (kendi) liste.push({ name: benim, ad: kendi.ad, sv: kendi.sv, guc: kendi.guc, me: true });
+
+      if (hesaplar && typeof hesaplar === "object") {
+        Object.keys(hesaplar).forEach(function (k) {
+          var acc = hesaplar[k];
+          if (!acc || !acc.displayName) return;
+          if (benim && acc.displayName.toLowerCase() === benim.toLowerCase()) return;
+          var en = enGucluKahraman(acc.state);
+          if (!en) return;
+          liste.push({ name: acc.displayName, ad: en.ad, sv: en.sv, guc: en.guc, me: false });
+        });
+      }
+
+      liste.sort(function (a, b) { return b.guc - a.guc; });
+      el.innerHTML = satirlarHTML(liste);
+    };
+
+    try {
+      if (typeof firebaseReady !== "undefined" && firebaseReady &&
+          typeof firebaseDb !== "undefined" && firebaseDb) {
+        firebaseDb.ref("accounts").once("value")
+          .then(function (snap) { kur(snap.val() || {}); })
+          .catch(function () { kur(null); });
+      } else {
+        kur(null);
+      }
+    } catch (e) { kur(null); }
+  }
+
+  function sekmeSec(hangi) {
+    var kutu = document.getElementById("rsSekmeler");
+    if (!kutu) return;
+    var dgm = kutu.querySelectorAll(".rs-sekme");
+    for (var i = 0; i < dgm.length; i++) {
+      dgm[i].classList.toggle("etkin", dgm[i].dataset.sekme === hangi);
+    }
+    if (hangi === "kahraman") kahramanListesiCiz();
+    else if (typeof renderRankPanel === "function") renderRankPanel();
+  }
+
+  function sekmeleriKur() {
+    var panel = document.getElementById("panel-rank");
+    var liste = document.getElementById("rankList");
+    if (!panel || !liste) return false;
+    if (document.getElementById("rsSekmeler")) return true;
+
+    stilBas();
+
+    var kutu = document.createElement("div");
+    kutu.id = "rsSekmeler";
+    kutu.className = "rs-sekmeler";
+    kutu.innerHTML =
+      '<button class="rs-sekme etkin" data-sekme="guc">⚔️ GÜÇ</button>' +
+      '<button class="rs-sekme" data-sekme="kahraman">🦸 KAHRAMAN</button>';
+    liste.parentNode.insertBefore(kutu, liste);
+
+    kutu.addEventListener("pointerup", function (e) {
+      var d = e.target.closest ? e.target.closest(".rs-sekme") : null;
+      if (!d) return;
+      e.stopPropagation();
+      sekmeSec(d.dataset.sekme);
+    });
+    return true;
+  }
+
+  /* Panel açılınca sekmeler yerinde olsun; açılışta hep GÜÇ seçili.
+     openOverlayPanel zaten renderRankPanel'i çağırıyor, o yüzden
+     burada yalnız sekme durumunu sıfırlıyoruz. */
+  function izle() {
+    var panel = document.getElementById("panel-rank");
+    if (!panel) return;
+    var acikti = panel.classList.contains("active");
+    setInterval(function () {
+      var simdi = panel.classList.contains("active");
+      if (simdi && !acikti) {
+        sekmeleriKur();
+        var k = document.getElementById("rsSekmeler");
+        if (k) {
+          var d = k.querySelectorAll(".rs-sekme");
+          for (var i = 0; i < d.length; i++) {
+            d[i].classList.toggle("etkin", d[i].dataset.sekme === "guc");
+          }
+        }
+      }
+      acikti = simdi;
+    }, 300);
+  }
+
+  function baslat() {
+    if (!sekmeleriKur()) { setTimeout(baslat, 800); return; }
+    izle();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", baslat);
+  } else {
+    baslat();
+  }
+  setTimeout(baslat, 1500);
+
+  window.RANKSEKME = { ciz: kahramanListesiCiz, sec: sekmeSec,
+                       TABAN: TABAN, ADLAR: ADLAR };
+})();
