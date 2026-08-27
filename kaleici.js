@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-32';
+  var SURUM = 'kaleici-33';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -48,8 +48,41 @@
       var n = 0;
       setInterval(function () {
         n++;
-        nabizKutu.textContent = 'nabiz ' + n;
+        var bel = '';
+        try {
+          if (performance && performance.memory) {
+            bel = '\n' + Math.round(performance.memory.usedJSHeapSize / 1048576) + '/' +
+                  Math.round(performance.memory.jsHeapSizeLimit / 1048576) + ' MB';
+          }
+        } catch (e) {}
+        nabizKutu.style.whiteSpace = 'pre';
+        nabizKutu.textContent = 'nabiz ' + n + bel;
       }, 1000);
+
+      /* KAPATMAYI KİM ÇAĞIRIYOR? closeOverlayPanel sarılır, çağrı
+         yığınının ilk iki satırı ekrana yazılır. Panel açılır açılmaz
+         kapanıyorsa suçlu burada görünür. */
+      setTimeout(function () {
+        if (typeof window.closeOverlayPanel === 'function' && !window._kapatSarildi) {
+          window._kapatSarildi = true;
+          var asil = window.closeOverlayPanel;
+          window.closeOverlayPanel = function (el) {
+            var iz = '';
+            try { iz = (new Error().stack || '').split('\n').slice(1, 4).join(' | '); } catch (e) {}
+            TANI('KAPAT cagrildi: ' + (el && el.id) + '  <<< ' + iz);
+            return asil.apply(this, arguments);
+          };
+          TANI('closeOverlayPanel sarildi');
+        }
+        if (typeof window.openOverlayPanel === 'function' && !window._acSarildi) {
+          window._acSarildi = true;
+          var asilAc = window.openOverlayPanel;
+          window.openOverlayPanel = function (k) {
+            TANI('AC cagrildi: ' + k);
+            return asilAc.apply(this, arguments);
+          };
+        }
+      }, 1200);
 
       /* DOKUNUŞ İZİ: belge düzeyinde, capture evresinde. Buraya
          hiçbir şey düşmüyorsa dokunuşlar sayfaya hiç ulaşmıyordur. */
@@ -66,6 +99,12 @@
     taniKutu.scrollTop = taniKutu.scrollHeight;
   }
   window.KALEICI_TANI = TANI;
+  /* Kutu, sarmalayıcıların kurulabilmesi için açılışta hazırlanır */
+  if (TANI_ACIK) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { TANI('tani acik — ' + SURUM); });
+    } else { TANI('tani acik — ' + SURUM); }
+  }
 
   var CFG = {
     grid: 13,
@@ -1356,6 +1395,24 @@
     secili = null; tasinan = null; tasiModu = false; tasiDokunus = 0;
     document.body.classList.remove('kaleici-acik');
     if (katman) katman.classList.remove('acik');
+    tuvaliBosalt();
+  }
+
+  /* ── BELLEK: tuvali gerçekten bırak ──
+     display:none tuvalin belleğini BOŞALTMAZ. Tam ekran tuval
+     aygıt piksel oranıyla çarpılıyor (720×1600 @2× ≈ 18 MB), üstüne
+     tarayıcı bir de GPU kopyası tutuyor. Kaleiçi kapalıyken bu yer
+     boşuna dolu duruyordu; Eğitim ekranı 18 katmanlı görselleriyle
+     üstüne binince telefon çöküyordu.
+     Ölçüyü 1×1'e indirmek belleği anında geri verir. Yeniden
+     açılışta ac() → olcuAyarla() ölçüyü tekrar kurar. */
+  function tuvaliBosalt() {
+    if (!tuval) return;
+    try {
+      if (ctx) ctx.clearRect(0, 0, tuval.width, tuval.height);
+      tuval.width = 1;
+      tuval.height = 1;
+    } catch (e) {}
   }
 
   if (document.readyState === 'loading') {
