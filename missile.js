@@ -169,9 +169,16 @@
       const dist = Math.hypot(tx - state.castle.gx, ty - state.castle.gy);
       const flightMs = Math.max(800, dist * SECONDS_PER_CELL * 1000);
 
-      // Fırlatmayı Firebase'e yaz — animasyon HERKESİN ekranında
-      // listenLaunches() dinleyicisi tarafından oynatılır.
-      firebaseDb.ref("pvp_launches").push({
+      /* ── KENDİ FÜZEN ANINDA KALKAR ──
+         Eskiden animasyonu YALNIZ listenLaunches başlatıyordu: kayıt
+         Firebase'e gidiyor, sunucudan child_added olarak geri geliyor,
+         ancak ondan sonra roket çiziliyordu. Aradaki iki yönlü ağ
+         gecikmesi "füze kaleden çıkarken görünmüyor, sonradan beliriyor"
+         belirtisiydi. Artık kendi füzemiz yerelde hemen başlar; aynı
+         kayıt geri geldiğinde anahtarından tanınıp atlanır (yoksa iki
+         roket birden uçardı). Başka oyuncuların füzeleri eskisi gibi
+         dinleyiciden gelir. */
+      const kayit = {
         from: myKey,
         target: tKey,
         targetName: targetName,
@@ -181,9 +188,19 @@
         ty: ty + KAYIT_OFFSET_Y,
         flightMs: flightMs,
         at: Date.now(),
-      }).catch(() => {
+      };
+      const ref = firebaseDb.ref("pvp_launches").push();
+      _yerelFuzeler[ref.key] = true;
+
+      animateMissile(kayit.fx, kayit.fy, kayit.tx, kayit.ty, flightMs, () => {
+        applyDamage(tKey, targetName);
+      }, targetName, true);
+
+      ref.set(kayit).catch(() => {
         showToast("Füze fırlatılamadı (bağlantı hatası).");
       });
+      /* Kayıt tek kullanımlık: uçuş bittikten sonra atan taraf siler. */
+      setTimeout(() => { ref.remove().catch(() => {}); }, flightMs + 4000);
     });
   }
 
@@ -206,6 +223,9 @@
   }
 
   // Fırlatma olaylarını dinle: kim atarsa atsın roket herkeste uçar.
+  /* Kendi ekranımızda ZATEN oynatılmış fırlatmaların anahtarları.
+     fireMissile dolduruyor, dinleyici burayı görünce olayı atlıyor. */
+  const _yerelFuzeler = {};
   let _launchRef = null;
   function listenLaunches() {
     if (!fbReady() || _launchRef) return;
@@ -213,6 +233,9 @@
     _launchRef.on("child_added", snap => {
       const m = snap.val();
       if (!m || typeof m.at !== "number") return;
+
+      /* Kendi attığımız füze yerelde çoktan uçtu — ikinci kez çizme. */
+      if (_yerelFuzeler[snap.key]) { delete _yerelFuzeler[snap.key]; return; }
 
       const elapsed = Date.now() - m.at;
       const remaining = m.flightMs - elapsed;
@@ -350,6 +373,15 @@
      olduğu için tarayıcı yeni bir görsel sayar ve GIF baştan oynar,
      ama veri zaten bellekte olduğu için ağ isteği yok, gecikme yok. */
   let _patlamaBlob = null;
+  /* Roket görseli de açılışta bir kez indirilsin: ilk fırlatmada
+     dosya inerken roket birkaç kare boş çiziliyordu. */
+  function roketOnYukle() {
+    const src = SPRITE.rocket;
+    if (!src || src.startsWith("data:")) return;
+    const im = new Image();
+    im.src = src;
+  }
+
   function patlamaOnYukle() {
     const src = SPRITE.impact;
     if (!src || src.startsWith("data:") || _patlamaBlob) return;
@@ -711,6 +743,12 @@
       .msl-sprite{position:absolute;
         transform:translate(-50%,-50%) rotate(var(--msl-rot,0deg)) scale(var(--msl-scale,1));
         font-size:28px;z-index:5000;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,140,40,.8));}
+      /* PATLAMA HER ZAMAN ÜSTTE.
+         Patlama bir .map-node olduğu için dugumleriYerlestir ona kale
+         derinliğini (z-index 10+(gx+gy)*10) yazıyordu; hedef kalenin
+         ve komşu düğümlerin ARKASINDA kalıp görünmüyordu. Satır içi
+         stili ezmek için !important şart. */
+      .msl-boom-node{z-index:5000 !important;}
       .msl-btn{position:absolute;top:-14px;right:-14px;width:26px;height:26px;
         border-radius:50%;background:rgba(20,20,30,.85);border:1px solid rgba(255,120,60,.6);
         display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;z-index:5;}
@@ -749,6 +787,7 @@
   function boot() {
     injectStyles();
     patlamaOnYukle();
+    roketOnYukle();
     const t = setInterval(() => {
       if (typeof currentUsername !== "undefined" && currentUsername && fbReady()) {
         clearInterval(t);
