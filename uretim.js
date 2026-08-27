@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  const SURUM = "uretim-2";
+  const SURUM = "uretim-3";
 
   /* ── AYAR: DAKİKADA ÜRETİM ────────────────────────────────────
      Dengeyi buradan değiştir; başka hiçbir yerde bu sayılar yok. */
@@ -35,6 +35,21 @@
     su:     250,
     enerji: 150,
   };
+
+  /* ── BİNA SEVİYESİ ÜRETİMİ ÇARPAR ──
+     insaat.js yüklüyse hesabı o verir (Sv1 = 1.00, her seviye ×1.45).
+     Yüklü değilse çarpan 1'dir — üretim eskisi gibi çalışır,
+     dosya eksik diye kaynak durmaz. */
+  function hiz(k) {
+    const taban = HIZ[k] || 0;
+    try {
+      if (window.INSAAT && typeof window.INSAAT.uretimCarpani === "function") {
+        const c = window.INSAAT.uretimCarpani(k);
+        if (typeof c === "number" && isFinite(c) && c > 0) return taban * c;
+      }
+    } catch (e) {}
+    return taban;
+  }
 
   const IKON = { odun: "🪵", et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
   const AD   = { odun: "Odun", et: "Et", demir: "Demir", su: "Su", enerji: "Enerji" };
@@ -79,7 +94,7 @@
     let toplam = 0;
 
     Object.keys(HIZ).forEach(k => {
-      const ham = HIZ[k] * dakika + kalan[k];
+      const ham = hiz(k) * dakika + kalan[k];
       const tam = Math.floor(ham);
       kalan[k] = ham - tam;
       if (tam > 0) {
@@ -158,7 +173,8 @@
     HIZ: HIZ,
     tur: tur,
     tani: function () {
-      const r = { surum: SURUM, hiz: HIZ, hazir: durumHazir(), uretimAt: null,
+      const r = { surum: SURUM, hiz: HIZ,
+                  anlikHiz: Object.keys(HIZ).reduce((o,k)=>(o[k]=Math.round(hiz(k)),o),{}), hazir: durumHazir(), uretimAt: null,
                   bekleyenDakika: null, kaynaklar: null };
       try {
         r.uretimAt = state.uretimAt || 0;

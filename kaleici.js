@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-37';
+  var SURUM = 'kaleici-38';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -313,9 +313,23 @@
 
   /* Ekranda görünen ad. Seviye şimdilik hep 1; seviye sistemi gelince
      yalnız bu fonksiyon değişir, bina listesindeki 'ad' alanları temiz kalır. */
+  function binaSeviyesi(b) {
+    try {
+      if (window.INSAAT && typeof window.INSAAT.seviye === 'function' &&
+          window.INSAAT.gelistirilebilir(b.id)) {
+        return window.INSAAT.seviye(b.id);
+      }
+    } catch (e) {}
+    return b.sv || 1;
+  }
+
   function binaAdi(b) {
     if (b.sus) return b.ad;
-    return (b.sv || 1) + '. Sv ' + b.ad;
+    var ek = '';
+    try {
+      if (window.INSAAT && window.INSAAT.kuyrukta && window.INSAAT.kuyrukta(b.id)) ek = ' \u23F3';
+    } catch (e) {}
+    return binaSeviyesi(b) + '. Sv ' + b.ad + ek;
   }
 
   function binaGorseli(b) {
@@ -877,7 +891,7 @@
 
   /* ---- Seçili binanın adı — binaların üstünde, çerçeveli ---- */
   function seciliAdCiz() {
-    if (!secili) { tasiSimge.r = 0; egitBtn.w = 0; return; }
+    if (!secili) { tasiSimge.r = 0; egitBtn.w = 0; gelBtn.w = 0; return; }
     var b = secili;
     var kut = binaKutusu(b);
     var o = { x: kut.x + kut.w / 2 };
@@ -909,6 +923,7 @@
     tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr, tasiModu, tasiDokunus);
 
     egitDugmesiCiz(b, kut, nk, boy);
+    gelistirDugmesiCiz(b, kut, nk, boy);
   }
 
   /* ---- EĞİT düğmesi — yalnız üç kışlada, tabanın ALT köşesinde ----
@@ -944,6 +959,69 @@
     ctx.restore();
   }
 
+  /* ---- GELİŞTİR düğmesi ----
+     Geliştirilebilir her binada var. Kışlalarda EĞİT'in bir boy
+     ALTINA iner (yan yana koyunca ikisi de daralıp okunmuyordu),
+     diğer binalarda EĞİT'in yerine geçer. Taşıma simgesi sol alt
+     kenarda kalır, çakışmaz. */
+  function gelistirDugmesiCiz(b, kut, nk, boy) {
+    gelBtn.w = 0;
+    if (b.sus) return;
+    try {
+      if (!(window.INSAAT && window.INSAAT.gelistirilebilir(b.id))) return;
+    } catch (e) { return; }
+
+    var alt = ekran(nk[2].x, nk[2].y);
+    var yuk = Math.max(20, boy * 1.30);
+    var gen = Math.max(52, boy * 3.05);
+    var x = alt.x - gen / 2;
+    var y = alt.y - yuk * 0.30;
+
+    /* Kışlada EĞİT zaten burada — bir boy aşağı kay. */
+    if (KISLA_AILE[b.id]) y += yuk + Math.max(4, yuk * 0.22);
+
+    gelBtn.x = x; gelBtn.y = y; gelBtn.w = gen; gelBtn.h = yuk;
+
+    /* Sürüyorsa mavi + geri sayım, değilse yeşil + GELİŞTİR */
+    var kalan = 0;
+    try { kalan = window.INSAAT.kalanMs(b.id) || 0; } catch (e) {}
+
+    var r = yuk * 0.34;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + gen, y, x + gen, y + yuk, r);
+    ctx.arcTo(x + gen, y + yuk, x, y + yuk, r);
+    ctx.arcTo(x, y + yuk, x, y, r);
+    ctx.arcTo(x, y, x + gen, y, r);
+    ctx.closePath();
+    if (kalan > 0) ctx.fillStyle = gelBasili ? '#2a7fa8' : '#3a9ecb';
+    else           ctx.fillStyle = gelBasili ? '#35a55c' : '#3fbf6a';
+    ctx.fill();
+    ctx.fillStyle = kalan > 0 ? '#eaf6ff' : '#08331b';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 ' + Math.max(11, yuk * 0.54) + 'px "Baloo 2",sans-serif';
+    ctx.fillText(kalan > 0 ? kisaSure(kalan) : 'GELİŞTİR', x + gen / 2, y + yuk * 0.54);
+    ctx.restore();
+  }
+
+  /* Düğmeye sığan kısa süre: 2g · 5s · 12d · 45sn */
+  function kisaSure(ms) {
+    var t = Math.max(0, Math.round(ms / 1000));
+    if (t >= 86400) return Math.floor(t / 86400) + 'g';
+    if (t >= 3600)  return Math.floor(t / 3600) + 's';
+    if (t >= 60)    return Math.floor(t / 60) + 'd';
+    return t + 'sn';
+  }
+
+  function gelistirdeMi(px, py) {
+    if (!secili || !gelBtn.w) return false;
+    var pay = 8;
+    return px >= gelBtn.x - pay && px <= gelBtn.x + gelBtn.w + pay &&
+           py >= gelBtn.y - pay && py <= gelBtn.y + gelBtn.h + pay;
+  }
+
   /* Dokunuş EĞİT düğmesinin üstünde mi (parmak payı ile) */
   function egitteMi(px, py) {
     if (!secili || !egitBtn.w) return false;
@@ -969,7 +1047,7 @@
        (Donma zaten burada değildi — sebep gözcü döngüsüydü, aşağıda.) */
     TANI('EGIT basildi -> ' + aile + ' (' + SURUM + ')');
 
-    secili = null; tasiModu = false; tasiDokunus = 0; egitBtn.w = 0;
+    secili = null; tasiModu = false; tasiDokunus = 0; egitBtn.w = 0; gelBtn.w = 0;
     duraklat = true;
 
     try {
@@ -1111,6 +1189,8 @@
   var tasiSimge = { x: 0, y: 0, r: 0 };            // taşıma düğmesinin ekran yeri
   var egitBtn = { x: 0, y: 0, w: 0, h: 0 };        // EĞİT düğmesinin ekran yeri
   var egitBasili = false;                          // parmak EĞİT üstünde indi
+  var gelBtn  = { x: 0, y: 0, w: 0, h: 0 };        // GELİŞTİR düğmesinin ekran yeri
+  var gelBasili = false;                           // parmak GELİŞTİR üstünde indi
   var tasiModu = false;                            // taşıma açık mı
   var tasiDokunus = 0;                             // düğmeye kaç kez dokunuldu
 
@@ -1156,6 +1236,13 @@
       if (secili && egitteMi(px, py)) {
         egitBasili = true;
         kaydi = true;              // bırakınca seçim/kaydırma tetiklenmesin
+        kareIste();
+        return;
+      }
+
+      if (secili && gelistirdeMi(px, py)) {
+        gelBasili = true;
+        kaydi = true;
         kareIste();
         return;
       }
@@ -1214,7 +1301,7 @@
     if (Math.abs(e.clientX - basX) > 6 || Math.abs(e.clientY - basY) > 6) kaydi = true;
 
     /* EĞİT düğmesine basılıyken harita kaymaz */
-    if (egitBasili) { sonX = e.clientX; sonY = e.clientY; return; }
+    if (egitBasili || gelBasili) { sonX = e.clientX; sonY = e.clientY; return; }
 
     /* Ayar modu: bina sürükleniyorsa harita kaymaz, bina karo değiştirir */
     if (tasinan) {
@@ -1269,6 +1356,20 @@
         kareIste();
         /* Panel açılışı bu dokunuşun kalan olaylarını yutmasın */
         if (acilacak) setTimeout(function () { egitimAc(acilacak); }, 0);
+        return;
+      }
+
+      /* GELİŞTİR: parmak düğmenin üstünde kalktıysa paneli aç. */
+      if (gelBasili) {
+        gelBasili = false;
+        var rg = tuval.getBoundingClientRect();
+        var gAc = secili && gelistirdeMi(e.clientX - rg.left, e.clientY - rg.top)
+                ? secili.id : null;
+        kistirma = false;
+        kareIste();
+        if (gAc) setTimeout(function () {
+          try { if (window.INSAAT) window.INSAAT.ac(gAc); } catch (er) {}
+        }, 0);
         return;
       }
 
@@ -1497,5 +1598,6 @@
                     ac: ac, kapat: kapat, ciz: ciz, gorselYukle: gorselYukle,
                     SUSLER: SUSLER, ZCFG: ZCFG,
                     binaAdi: binaAdi, binaKutusu: binaKutusu,
+                    binaSeviyesi: binaSeviyesi,
                     yerlesimOku: yerlesimOku, yerlesimYaz: yerlesimYaz };
 })();

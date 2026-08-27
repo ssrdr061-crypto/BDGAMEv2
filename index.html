@@ -3462,6 +3462,9 @@ function defaultState() {
     /* KAYNAKLAR — arazilerden toplanır, canavarlardan düşer.
        Harcama yeri henüz yok; şimdilik yalnız birikir. */
     kaynaklar: { odun: 0, et: 0, demir: 0, su: 0, enerji: 0 },
+    /* Bina seviyeleri ve inşaat kuyruğu — tablolar insaat.js'te. */
+    binaSv: {},
+    insaat: [],
     /* Kaynak üretiminin en son işlendiği an (ms).
        0 = hiç işlenmedi; uretim.js ilk çalıştığında "şimdi" yazar,
        böylece yeni hesaba geçmişe dönük kaynak verilmez. */
@@ -4268,6 +4271,12 @@ function compactStateForExport(s) {
   /* Üretim damgası kaydedilmezse her girişte "şimdi" olur ve
      oyuncu yokken üretilen kaynak hiç verilmez. */
   if (s.uretimAt) out.uat = s.uretimAt;
+  /* Bina seviyeleri ve inşaat kuyruğu — yazılmazsa her girişte
+     seviyeler 1'e döner ve süren inşaat kaybolur. */
+  if (s.binaSv) out.bsv = s.binaSv;
+  if (s.insaat && s.insaat.length) {
+    out.ins = s.insaat.map(i => [i.id, i.hedef, i.bitis]);
+  }
   if (s.troops && (s.troops.knight || s.troops.soldier || s.troops.robot)) {
     out.tr = [s.troops.knight || 0, s.troops.soldier || 0, s.troops.robot || 0];
   }
@@ -4297,6 +4306,8 @@ function expandCompactState(c) {
   if (c.mfl) s.maxFrontierLevel = c.mfl;
   if (c.kyn) s.kaynaklar = c.kyn;
   if (c.uat) s.uretimAt = c.uat;
+  if (c.bsv) s.binaSv = c.bsv;
+  if (c.ins) s.insaat = c.ins.map(i => ({ id: i[0], hedef: i[1], bitis: i[2] }));
   if (c.tr) s.troops = { knight: c.tr[0] || 0, soldier: c.tr[1] || 0, robot: c.tr[2] || 0 };
   if (c.tq) s.trainingQueue = c.tq.map(j => ({ unitId: j[0], finishAt: j[1] }));
   return s;
@@ -5532,11 +5543,19 @@ function elmasYaz(n) {
    düğmeye her basışta sessizce TEK eşya harcıyordu; 74 dakikalık
    kuyruğu 5'er dakika kısaltmak için 15 kez basmak gerekiyordu. */
 function hizlandirmaPenceresi(unitId, tur) {
-  tur = (tur === "egitim") ? "egitim" : "hastane";
+  /* tur: "hastane" (varsayılan) · "egitim" · "insaat".
+     İnşaat dalında unitId bir BİNA kimliğidir (odun, kale, ...) ve
+     kuyruk insaat.js'te durur; alan adı finishAt değil BİTİŞ'tir,
+     o yüzden kısaltma da INSAAT.kisalt üzerinden yapılır. */
+  tur = (tur === "egitim" || tur === "insaat") ? tur : "hastane";
   const liste = sahipOlunanHizlandirmalar();
-  const def = UNIT_TYPES[unitId];
+  const def = (tur === "insaat") ? null : UNIT_TYPES[unitId];
 
   function grup() {
+    if (tur === "insaat") {
+      try { return (window.INSAAT && INSAAT.kuyruk(unitId)) || []; }
+      catch (e) { return []; }
+    }
     if (tur === "egitim") {
       return (state.trainingQueue || [])
         .filter(j => j.unitId === unitId)
@@ -5547,6 +5566,10 @@ function hizlandirmaPenceresi(unitId, tur) {
       .sort((a, b) => a.finishAt - b.finishAt);
   }
   function kalanMs() {
+    if (tur === "insaat") {
+      try { return (window.INSAAT && INSAAT.kalanMs(unitId)) || 0; }
+      catch (e) { return 0; }
+    }
     const g = grup();
     return g.length ? Math.max(0, g[g.length - 1].finishAt - Date.now()) : 0;
   }
@@ -5628,12 +5651,18 @@ function hizlandirmaPenceresi(unitId, tur) {
   const birimMs = (tur === "egitim")
     ? (def ? def.trainMinutes * 60 * 1000 : 0)
     : (def ? Math.round(def.trainMinutes * 60 * 1000 / 5) : 0);
+  /* İnşaatta tek iş var: toplam süre yükseltmenin kendi süresidir. */
+  const insToplamMs = (tur === "insaat")
+    ? (() => { try { return (window.INSAAT && INSAAT.toplamMs(unitId)) || 1; } catch (e) { return 1; } })()
+    : 1;
   /* Hastanede satırlar ARTIK GRUP: adet × birim süre.
      Eğitimde her iş hâlâ ayrı satır, orada satır sayısı doğru. */
   const toplamAdet = (tur === "egitim")
     ? grup().length
     : grup().reduce((t, p) => t + (p.adet || 0), 0);
-  const toplamMs = Math.max(1, toplamAdet * birimMs);
+  const toplamMs = (tur === "insaat")
+    ? Math.max(1, insToplamMs)
+    : Math.max(1, toplamAdet * birimMs);
 
   function tazele() {
     const kalan = kalanMs();
@@ -5769,6 +5798,12 @@ function hizlandirmaPenceresi(unitId, tur) {
      Eski kod yalnızca sıradaki tek birliği kısaltıyordu, iyileşme
      zincirli olduğu için toplam süre neredeyse hiç değişmiyordu. */
   function kisalt(ms) {
+    if (tur === "insaat") {
+      try { if (window.INSAAT) INSAAT.kisalt(unitId, ms); } catch (e) {}
+      if (typeof renderInventory === "function") renderInventory();
+      persistCurrentState();
+      return;
+    }
     grup().forEach(p => { p.finishAt = Math.max(Date.now(), p.finishAt - ms); });
     if (tur === "egitim") {
       applyFinishedTraining();
@@ -5811,9 +5846,9 @@ function hizlandirmaPenceresi(unitId, tur) {
       if (kart) kart.disabled = true;
     }
     adet = 1;
-    if (kalanMs() <= 0) { kapat(); showToast(tur === "egitim" ? "⏩ Eğitim tamamlandı!" : "⏩ Tedavi tamamlandı!"); return; }
+    if (kalanMs() <= 0) { kapat(); showToast(tur === "insaat" ? "⏩ İnşaat tamamlandı!" : (tur === "egitim" ? "⏩ Eğitim tamamlandı!" : "⏩ Tedavi tamamlandı!")); return; }
     tazele();
-    showToast(tur === "egitim" ? "⏩ Eğitim hızlandırıldı!" : "⏩ Tedavi hızlandırıldı!");
+    showToast(tur === "insaat" ? "⏩ İnşaat hızlandırıldı!" : (tur === "egitim" ? "⏩ Eğitim hızlandırıldı!" : "⏩ Tedavi hızlandırıldı!"));
   });
 
   /* HIZLI KULLAN: bitirmeye yetecek kadar hızlandırmayı büyükten
@@ -5833,7 +5868,7 @@ function hizlandirmaPenceresi(unitId, tur) {
     if (toplam <= 0) { showToast("Yeterli hızlandırman yok."); return; }
     kisalt(toplam);
     kapat();
-    showToast(tur === "egitim" ? "⏩ Eğitim hızlandırıldı!" : "⏩ Tedavi hızlandırıldı!");
+    showToast(tur === "insaat" ? "⏩ İnşaat hızlandırıldı!" : (tur === "egitim" ? "⏩ Eğitim hızlandırıldı!" : "⏩ Tedavi hızlandırıldı!"));
   });
 
   /* BİTİR: elmasla anında tamamlar */
@@ -5846,7 +5881,7 @@ function hizlandirmaPenceresi(unitId, tur) {
     state.diamonds -= maliyet;
     kisalt(kalanMs());
     kapat();
-    showToast(tur === "egitim" ? "Eğitim tamamlandı!" : "Tedavi tamamlandı!");
+    showToast(tur === "insaat" ? "İnşaat tamamlandı!" : (tur === "egitim" ? "Eğitim tamamlandı!" : "Tedavi tamamlandı!"));
   });
 
   tazele();
@@ -8629,6 +8664,7 @@ setInterval(() => {
 <script src="kale2x2.js"></script>
 <script src="temizle.js"></script>
 <script src="uretim.js"></script>
+<script src="insaat.js"></script>
 <script src="kaleici.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════
