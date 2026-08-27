@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-29';
+  var SURUM = 'kaleici-30';
 
   var CFG = {
     grid: 13,
@@ -785,19 +785,34 @@
      Panel #worldScreen içinde z-index 50, kaleiçi 30 → üste biner,
      kaleiçiyi kapatmaya gerek yok. Aile geçişi rol düğmesinin kendi
      kapısından yapılır (go()); iki seçici hep aynı kalır. */
+  /* Panelden dönünce kaleiçi geri açılsın diye kamera burada saklanır */
+  var donusKaleici = false, donusKamera = null;
+
   function egitimAc(aile) {
     /* KİLİT: panel o ailede kalsın — kaydırma ve oklar aile değiştirmez.
        index.html'deki go() ve troops.js'in onOpen'ı bu bayrağı okur.
        Panel açılmadan ÖNCE kurulmalı. */
     window.KISLA_KILIT = aile;
 
-    /* Tuvali sustur: seçim kalkar (yanıp sönme biter), çizim durur. */
+    /* ── DONMANIN KÖKÜ ──
+       Kaleiçi tam ekran, position:fixed bir canvas katmanı. Birlik
+       paneli onun ÜSTÜNE açılınca telefon iki tam ekran katmanı
+       birden taşımak zorunda kalıyor; sayfa kilitleniyordu, panelin
+       kapatma düğmesi bile cevap vermiyordu.
+       Çözüm üst üste bindirmemek: panel açılmadan önce kaleiçi
+       KAPANIR, panel kapanınca aynı kamera konumuyla geri açılır.
+       Oyuncu için tek fark yok — panelden çıkınca yine kaledededir. */
+    donusKaleici = !!(katman && katman.classList.contains('acik'));
+    if (donusKaleici) {
+      donusKamera = { x: camX, y: camY, z: CFG.zoom };
+      kapat();
+    }
+
     secili = null; tasiModu = false; tasiDokunus = 0; egitBtn.w = 0;
-    duraklat = true;
 
     try {
       if (typeof openOverlayPanel === 'function') openOverlayPanel('troops');
-    } catch (e) { window.KISLA_KILIT = null; duraklat = false; return; }
+    } catch (e) { window.KISLA_KILIT = null; donusKaleici = false; return; }
 
     var panel = document.getElementById('panel-troops');
     if (panel) panel.classList.add('kisla-kilit');
@@ -812,6 +827,19 @@
 
   /* Panel kapanınca kilit kalkar. Alt menüdeki Birlikler düğmesiyle
      açılan panel kilitsizdir; bayrak orada kalsaydı kaydırma ölürdü. */
+  /* Panel kapandı → kaleiçi aynı kamera konumuyla geri açılır. */
+  function kaleiciyeDon() {
+    if (!donusKaleici) return;
+    donusKaleici = false;
+    var k = donusKamera; donusKamera = null;
+    ac();
+    if (k) {
+      camX = k.x; camY = k.y; CFG.zoom = k.z;
+      kameraSinirla();
+      ciz();
+    }
+  }
+
   var kilitGozcu = null;
   function kilitIzle() {
     var panel = document.getElementById('panel-troops');
@@ -821,7 +849,7 @@
       window.KISLA_KILIT = null;
       panel.classList.remove('kisla-kilit');
       duraklat = false;
-      if (katman && katman.classList.contains('acik')) kareIste();
+      kaleiciyeDon();
     });
     kilitGozcu.observe(panel, { attributes: true, attributeFilter: ['class'] });
   }
@@ -1213,10 +1241,10 @@
     /* EMNİYET AĞI: panel kapandığı halde duraklama bir sebeple
        kalkmadıysa tuval sonsuza kadar ölü kalırdı. 400 ms'de bir
        kontrol edilir — gözcü kaçırsa bile kaleiçi kendine gelir. */
-    if (duraklat && !panelAcik) {
-      duraklat = false;
+    if (donusKaleici && !panelAcik) {
       window.KISLA_KILIT = null;
-      if (katman && katman.classList.contains('acik')) kareIste();
+      duraklat = false;
+      kaleiciyeDon();
     }
   }
 
