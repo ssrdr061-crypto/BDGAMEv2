@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-28';
+  var SURUM = 'kaleici-29';
 
   var CFG = {
     grid: 13,
@@ -460,7 +460,11 @@
     var A = ZCFG.adim;
     var gorW = w / CFG.zoom, gorH = h / CFG.zoom;
     var ob = zOnbellek;
-    var yenile = !ob || ob.zoom !== CFG.zoom || ob.tileH !== CFG.tileH ||
+    /* ZOOM TAMPONU BOZMAZ: tampon DÜNYA pikselinde üretiliyor (adim),
+       zoom yalnız ekrana basılırken ölçek olarak giriyor. Eskiden zoom
+       her değiştiğinde tampon baştan hesaplanıyordu — kıstırma sırasında
+       her karede binlerce gürültü örneği, ekran takılıyordu. */
+    var yenile = !ob || ob.tileH !== CFG.tileH ||
                  (camX - gorW / 2) < ob.minX + A || (camX + gorW / 2) > ob.maxX - A ||
                  (camY - gorH / 2) < ob.minY + A || (camY + gorH / 2) > ob.maxY - A;
     if (yenile) zeminUret(gorW, gorH);
@@ -838,7 +842,7 @@
         tasiKay.x = hedef.gx - g0.gx;   // basılan karo ile sol üst arası fark
         tasiKay.y = hedef.gy - g0.gy;
       }
-    } else if (parmakSayisi === 2) {
+    } else if (parmakSayisi >= 2) {
       tasinan = null;
       kistirma = true;
       ilkMesafe = mesafe();
@@ -896,6 +900,21 @@
     var vardi = !!parmaklar[e.pointerId];
     delete parmaklar[e.pointerId];
     parmakSayisi = Object.keys(parmaklar).length;
+
+    /* İKİ PARMAKTAN BİRİ KALKTI → kalan parmak kaydırmayı devralır.
+       sonX/sonY kalkan parmağın son yerinde kalırsa ilk harekette
+       aradaki bütün mesafe tek karede kameraya biniyor: "bırakınca
+       başka yere atıyor" belirtisi buydu. Referansı kalan parmağa
+       taşı, kıstırma bitene kadar da yeni zoom başlangıcı ver. */
+    if (parmakSayisi === 1) {
+      var kalanId = Object.keys(parmaklar)[0];
+      var kalan = parmaklar[kalanId];
+      sonX = kalan.x; sonY = kalan.y;
+      basX = kalan.x; basY = kalan.y;
+      kaydi = true;            // bırakınca bina seçimi tetiklenmesin
+      ilkMesafe = 0;
+    }
+
     if (parmakSayisi === 0) {
       if (tasinan) {
         var tt = tasinan; tasinan = null; kistirma = false;

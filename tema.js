@@ -7341,3 +7341,29 @@ setTimeout(uygula, 2500);
   window.RANKSEKME = { ciz: kahramanListesiCiz, sec: sekmeSec,
                        TABAN: TABAN, ADLAR: ADLAR };
 })();
+
+/* ══════════════════════════════════════════════════════════════════
+   CAN POTU KUTUCUĞU — KALDIRILDI
+   Üstteki kalp (❤️ %100) rozetine dokununca altında silik, çerçeveli
+   bir "Kullan" kutucuğu açılıyordu (#staminaPotionPopup, index.html
+   ~2247). 3B kenarlı ve okunmayan bir kutuydu, işlevi de kullanılmıyor.
+   index.html'e dokunmadan burada DOM'dan sökülüyor: kutu yoksa
+   dokunma dinleyicisi de hiçbir şey yapmadan çıkıyor.
+   Geri istenirse: bu blok silinir, başka hiçbir yer değişmemiştir.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+  function sok() {
+    var p = document.getElementById("staminaPotionPopup");
+    if (p && p.parentNode) { p.parentNode.removeChild(p); return true; }
+    return false;
+  }
+  if (!sok()) {
+    /* Kutu index.html'de statik duruyor; yine de geç yerleşmeye karşı
+       birkaç tur dene, sonra bırak (sonsuz zamanlayıcı yok). */
+    var n = 0;
+    var t = setInterval(function () {
+      if (sok() || ++n > 20) clearInterval(t);
+    }, 300);
+  }
+})();
