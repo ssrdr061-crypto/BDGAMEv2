@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-26';
+  var SURUM = 'kaleici-27';
 
   var CFG = {
     grid: 13,
@@ -628,10 +628,13 @@
     var k = g.kutu;
     var gen = (nk[1].x - nk[3].x) * CFG.zoom * GORSEL_PAY * (b.olcek || 1);
     var yuk = gen * (k.sh / k.sw);
-    var alt = ekran(nk[2].x, nk[2].y);
+    /* HİZA: görselin MERKEZİ, kapladığı karo alanının merkezine oturur.
+       Eskiden alt kenar tabanın en alt köşesine yaslanıyordu; görselin
+       kendi boyu uzadıkça bina karodan aşağı taşıyor, hepsi kaymış
+       görünüyordu. Bina başına ince ayar yine dx/dy (piksel). */
     return {
       x: o.x - gen / 2 + (b.dx || 0) * CFG.zoom,
-      y: alt.y - yuk + (b.dy || 0) * CFG.zoom,
+      y: o.y - yuk / 2 + (b.dy || 0) * CFG.zoom,
       w: gen, h: yuk, gorsel: true
     };
   }
@@ -685,8 +688,9 @@
     ctx.font = '800 ' + boy + 'px "Baloo 2",sans-serif';
     ctx.lineJoin = 'round';
     ctx.miterLimit = 2;
-    ctx.lineWidth = Math.max(2, boy * 0.17);
-    ctx.strokeStyle = '#ffc61a';
+    /* Çerçeve ince ve siyah — sarı kalın kontur görseli eziyordu */
+    ctx.lineWidth = Math.max(1.5, boy * 0.09);
+    ctx.strokeStyle = '#000000';
     var ad = binaAdi(b);
     var yaziY = kut.y - boy * 0.45;
     ctx.strokeText(ad, o.x, yaziY);
