@@ -362,27 +362,6 @@
     boom.style.top  = by;
   }
 
-  /* ---------- TANI BANDI (?fuzetani=1) ----------
-     Telefonda konsol yok. Bu bant yalnız adres satırında fuzetani=1
-     varken çizilir; kapalıyken hiçbir şey yapmaz. İş bitince blok
-     silinecek — kalıcı değil. */
-  const TANI = (function () {
-    try { return location.search.indexOf("fuzetani=1") >= 0; } catch (e) { return false; }
-  })();
-  let _taniKutu = null;
-  function tani(mesaj) {
-    if (!TANI) return;
-    if (!_taniKutu) {
-      _taniKutu = document.createElement("div");
-      _taniKutu.style.cssText =
-        "position:fixed;left:6px;right:6px;top:250px;z-index:99999;" +
-        "background:rgba(0,0,0,.85);color:#9f9;font:11px/1.35 monospace;" +
-        "padding:6px 8px;border-radius:6px;pointer-events:none;white-space:pre-wrap;";
-      document.body.appendChild(_taniKutu);
-    }
-    _taniKutu.textContent = (_taniKutu.textContent + "\n" + mesaj).split("\n").slice(-12).join("\n");
-  }
-
   /* ---------- PATLAMA GIF'İ ÖN YÜKLEME ----------
      Sorun: her patlamada src'ye "?t=" ekliyorduk. Bu, GIF'in baştan
      oynaması için gerekliydi ama sorgu farklı olduğu için tarayıcı
@@ -416,8 +395,8 @@
       fetch(ad)
         .then(r => r.ok ? r.blob() : null)
         .then(b => {
-          if (b && b.size > 0) { _patlamaBlob = b; SPRITE.impact = ad; tani("blob OK " + ad + " " + b.size + "b"); }
-          else { tani("blob YOK " + ad); dene(); }
+          if (b && b.size > 0) { _patlamaBlob = b; SPRITE.impact = ad; }
+          else dene();
         })
         .catch(dene);
     })();
@@ -494,10 +473,8 @@
      geliyor, derinlik sıralaması (zIndex) da doğru çıkıyor. */
   function patlat(tx, ty, targetName) {
     const m = document.getElementById("battleMap");
-    tani("patlat(" + tx + "," + ty + ") map=" + (m ? "var" : "YOK"));
     if (!m) return;
     const H = isoHarita();
-    tani("iso=" + (H ? "var" : "YOK") + " blob=" + (_patlamaBlob ? "var" : "YOK"));
 
     if (H) {
       const C = H.CFG || {};
@@ -532,17 +509,6 @@
          "patlama görünmüyor" bu. */
       if (typeof H.dugumOnbellegiBosalt === "function") H.dugumOnbellegiBosalt();
       H.dugumleriYerlestir();   // ilk konum
-      setTimeout(function () {
-        if (!TANI) return;
-        const r = dis.getBoundingClientRect();
-        const cs = getComputedStyle(dis);
-        const im = dis.querySelector("img");
-        tani("node bagli=" + dis.isConnected +
-             " kutu=" + Math.round(r.left) + "," + Math.round(r.top) +
-             " " + Math.round(r.width) + "x" + Math.round(r.height) +
-             "\ndisplay=" + cs.display + " z=" + cs.zIndex + " op=" + cs.opacity +
-             "\nimg=" + (im ? (im.naturalWidth + "x" + im.naturalHeight) : "YOK"));
-      }, 120);
 
       // Sadece renderBattleMap DOM'u silerse geri tak. Konumlandırma
       // artık bizim işimiz değil.
