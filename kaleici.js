@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-38';
+  var SURUM = 'kaleici-39';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -255,6 +255,14 @@
      Anahtarlar Firebase kimlikleridir, ADLARLA karıştırma. */
   var KISLA_AILE = { sovalye: 'knight', asker: 'soldier', robot: 'robot' };
 
+  /* ── ANA KALE SEVIYE GORSELLERI ──
+     Sv1 = anakale.webp (BINALAR kaydindaki asil dosya), Sv2..Sv5 asagida.
+     Bes gorsel de ONDEN yuklenir ve AYRI onbellek anahtarinda durur;
+     seviye degisince `src` DEGISTIRILMEZ, hazir duran oteki secilir
+     (Tuzak 21). Dosya yoksa bir alt seviyeye, o da yoksa emojiye duser. */
+  var KALE_SV_GORSEL = { 2: 'anakale2.webp', 3: 'anakale3.webp',
+                         4: 'anakale4.webp', 5: 'anakale5.webp' };
+
   /* ---- Görsel yükleyici: dosya yoksa sessizce emojiye düşülür ---- */
   var GORSELLER = {};
 
@@ -275,6 +283,25 @@
         im.src = b.gorsel;
       })(liste[i]);
     }
+    kaleGorselleriYukle();
+  }
+
+  /* Ana Kale'nin Sv2..Sv5 gorselleri. Anahtar 'kale@N'. */
+  function kaleGorselleriYukle() {
+    Object.keys(KALE_SV_GORSEL).forEach(function (n) {
+      var anahtar = 'kale@' + n;
+      if (GORSELLER[anahtar]) return;
+      var im = new Image();
+      GORSELLER[anahtar] = { im: im, hazir: false };
+      im.onload = function () {
+        var g = GORSELLER[anahtar];
+        g.kutu = saydamKenariOlc(im);
+        g.hazir = true;
+        kareIste();
+      };
+      im.onerror = function () { GORSELLER[anahtar].hazir = false; };
+      im.src = KALE_SV_GORSEL[n];
+    });
   }
 
   /* Şeffaf kenar boşluğunu ölçer → her bina aynı hizaya oturur.
@@ -334,6 +361,17 @@
 
   function binaGorseli(b) {
     var g = GORSELLER[b.id];
+    /* Ana Kale seviyelidir: Sv N gorseli hazirsa o, degilse asagi dogru
+       inilir, en sonda Sv1 (anakale.webp) kalir. */
+    if (b.id === 'kale') {
+      var sv = 1;
+      try { sv = parseInt(binaSeviyesi(b), 10) || 1; } catch (e) { sv = 1; }
+      if (sv > 5) sv = 5;
+      for (var n = sv; n >= 2; n--) {
+        var ust = GORSELLER['kale@' + n];
+        if (ust && ust.hazir && ust.im.naturalWidth > 0) { g = ust; break; }
+      }
+    }
     return (g && g.hazir && g.im.naturalWidth > 0) ? g : null;
   }
 

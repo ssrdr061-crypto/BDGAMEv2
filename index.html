@@ -2912,6 +2912,15 @@ let _kaleDinleyici = "hiç çağrılmadı";
    çağrı yeter: kaleSeviyeAyarla(n). Buradan yayın kendiliğinden
    tazeleniyor, harita da öyle. */
 function kaleSeviyesi() {
+  /* GERCEK seviye insaat.js'te: state.binaSv.kale (1..10).
+     Gorsel ve rozet 5'te duruyor, o yuzden 1..5'e kirpilir.
+     INSAAT yuklenmemisse eski elle-ayarli alana dusulur. */
+  try {
+    if (window.INSAAT && typeof window.INSAAT.seviye === "function") {
+      const k = parseInt(window.INSAAT.seviye("kale"), 10);
+      if (k >= 1) return Math.min(5, k);
+    }
+  } catch (e) {}
   try {
     if (typeof state === "undefined" || !state) return 1;
     const n = parseInt(state.kaleSeviye, 10);
@@ -5965,8 +5974,8 @@ function castleNodeHTML(pos, isOwn, label, sv) {
     <div class="map-node castle-node ${cls}" data-cname="${safeName}" data-cx="${pos.gx}" data-cy="${pos.gy}" style="left:${px}%; top:${py}%;">
       <div class="node-ring">
         <div class="node-avatar castle-avatar">
-          <img src="gorsel17.webp" alt="" draggable="false"
-               onerror="this.style.display='none';">
+          <img src="kale${svNo}.webp" alt="" draggable="false"
+               onerror="if(this.src.indexOf('kale1.webp')<0){this.src='kale1.webp';}else{this.onerror=null;this.style.display='none';}">
         </div>
       </div>
       <div class="node-label" data-sv="${svNo}"><span class="nl-ad">${labelText}</span></div>
@@ -6738,7 +6747,7 @@ function setupMapPanning() {
     if(moveGhost) return;
     moveGhost = document.createElement("div");
     moveGhost.id = "castleMoveGhost";
-    moveGhost.innerHTML = `<img src="gorsel17.webp" alt="" draggable="false" onerror="this.style.display='none'">`;
+    moveGhost.innerHTML = `<img src="kale${kaleSeviyesi()}.webp" alt="" draggable="false" onerror="if(this.src.indexOf('kale1.webp')<0){this.src='kale1.webp';}else{this.onerror=null;this.style.display='none';}">`;
     document.body.appendChild(moveGhost);
   }
   /* ── HEDEF ALANIN ÇERÇEVESİ ──
