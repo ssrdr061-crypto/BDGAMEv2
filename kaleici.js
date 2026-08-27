@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-33';
+  var SURUM = 'kaleici-34';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -84,15 +84,40 @@
         }
       }, 1200);
 
-      /* DOKUNUŞ İZİ: belge düzeyinde, capture evresinde. Buraya
-         hiçbir şey düşmüyorsa dokunuşlar sayfaya hiç ulaşmıyordur. */
-      document.addEventListener('pointerdown', function (ev) {
-        var t = ev.target;
-        TANI('dokunus: <' + (t.tagName || '?').toLowerCase() + '> ' +
-             (t.className && t.className.baseVal !== undefined
-               ? t.className.baseVal : (t.className || '')).toString().slice(0, 40) +
-             ' #' + (t.id || '-'));
-      }, true);
+      /* DOKUNUŞ İZİ: pencere düzeyinde, capture evresinde — belgeden
+         de önce çalışır. Dört olay birden dinleniyor; hangisinin
+         geldiğini görürsek yutan katmanı buluruz. */
+      function tarif(t) {
+        if (!t) return '(yok)';
+        var sn = (t.className && t.className.baseVal !== undefined)
+                 ? t.className.baseVal : (t.className || '');
+        return '<' + (t.tagName || '?').toLowerCase() + '>' +
+               (t.id ? ' #' + t.id : '') +
+               (sn ? ' .' + String(sn).trim().split(/\s+/).slice(0, 2).join('.') : '');
+      }
+      ['pointerdown', 'touchstart', 'mousedown', 'click'].forEach(function (tur) {
+        window.addEventListener(tur, function (ev) {
+          TANI(tur + ': ' + tarif(ev.target));
+        }, true);
+      });
+
+      /* EN ÜSTTEKİ ELEMAN: ekranın ortasında ve sağ üst köşede (✕'in
+         olduğu yerde) hit-test. Beklenmedik bir katman oturuyorsa
+         burada görünür — dokunuşu yutan odur. */
+      var ustKutu = document.createElement('div');
+      ustKutu.style.cssText =
+        'position:fixed;left:0;right:0;bottom:0;z-index:99999;' +
+        'background:rgba(0,0,0,.86);color:#FFD257;font:700 10px/1.3 monospace;' +
+        'padding:3px 6px;pointer-events:none;white-space:pre-wrap';
+      document.body.appendChild(ustKutu);
+      setInterval(function () {
+        try {
+          var w = window.innerWidth, h = window.innerHeight;
+          ustKutu.textContent =
+            'orta : ' + tarif(document.elementFromPoint(w / 2, h / 2)) + '\n' +
+            'sagust: ' + tarif(document.elementFromPoint(w - 40, h * 0.22));
+        } catch (e) { ustKutu.textContent = 'hit-test hata'; }
+      }, 700);
     }
     taniSatir++;
     taniKutu.textContent += (taniSatir + '. ' + mesaj + '\n');
