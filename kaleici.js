@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-34';
+  var SURUM = 'kaleici-35';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -124,6 +124,54 @@
     taniKutu.scrollTop = taniKutu.scrollHeight;
   }
   window.KALEICI_TANI = TANI;
+
+  /* ══════════ KARA KUTU — donma yerini bulur ══════════
+     Sayfa kilitlendiğinde ekrana yazamayız: boyama yapılamaz.
+     Bu yüzden her kritik fonksiyonun ADI çağrılmadan ÖNCE
+     localStorage'a yazılır. Oyun donunca sekmeyi kapat, ?tani=1
+     ile tekrar aç — şeridin ilk satırı en son hangi fonksiyonun
+     İÇİNDE kalındığını söyler. Sadece ?tani=1 ile çalışır. */
+  var KK = 'kaleiciKaraKutu';
+
+  function karaKutuYaz(m) {
+    try { localStorage.setItem(KK, m); } catch (e) {}
+  }
+
+  function karaKutuKur() {
+    if (!TANI_ACIK) return;
+
+    var onceki = '';
+    try { onceki = localStorage.getItem(KK) || ''; } catch (e) {}
+    if (onceki) TANI('>>> ONCEKI OTURUM SON IS: ' + onceki);
+
+    var ADLAR = ['renderTroopsPanel', 'renderTroopQueue', 'applyFinishedTraining',
+                 'renderHospitalPanel', 'renderChestUI', 'applyStaminaRegen',
+                 'renderStamina', 'renderBattleMap', 'renderInventory',
+                 'renderRankPanel', 'openOverlayPanel', 'closeOverlayPanel',
+                 'maybeResetChests', 'applyFinishedHospitalRecoveries',
+                 'hizlandirmaPenceresi', 'renderBattleLogPanel'];
+
+    ADLAR.forEach(function (ad) {
+      var f = window[ad];
+      if (typeof f !== 'function' || f.__sarildi) return;
+      var sarmal = function () {
+        karaKutuYaz('ICINDE: ' + ad + ' @' + new Date().toLocaleTimeString());
+        var r = f.apply(this, arguments);
+        karaKutuYaz('bitti: ' + ad);
+        return r;
+      };
+      sarmal.__sarildi = true;
+      try { window[ad] = sarmal; TANI(ad + ' sarildi'); } catch (e) {}
+    });
+
+    /* Saniyelik nabız da diske yazılır: ölüm ANI böyle anlaşılır */
+    setInterval(function () {
+      try {
+        var v = localStorage.getItem(KK) || '';
+        if (v.indexOf('ICINDE:') !== 0) karaKutuYaz('bos @' + new Date().toLocaleTimeString());
+      } catch (e) {}
+    }, 1000);
+  }
   /* Kutu, sarmalayıcıların kurulabilmesi için açılışta hazırlanır */
   if (TANI_ACIK) {
     if (document.readyState === 'loading') {
@@ -1358,6 +1406,7 @@
 
     gorselYukle();
     butonuIzle();
+    setTimeout(karaKutuKur, 1500);
   }
 
   /* Giriş ekranı kapalıysa VE önde açık bir panel yoksa buton görünür.
