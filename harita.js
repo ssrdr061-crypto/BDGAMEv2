@@ -177,17 +177,20 @@
        birden zemini soluklaştırıyordu. Taban renkleri doyurulsaydı
        lekelerin kendisi aşırı doygun çıkardı. Bu yüzden doygunluk
        EN SONDA, bütün katmanlar bindikten sonra bir kez toplanır.
-       1 = dokunma · 1.2 civarı canlı · 1.5 üstü poster gibi. */
-    doygunluk: 1.22,
+       1 = dokunma · 1.2 civarı canlı · 1.5 üstü poster gibi.
+       YALNIZ kar ve lav için geçerli — çimenin kendi doygunluğu
+       cimenKale.doygunluk. Yansıma kapandıktan sonra kar/lav soluk
+       kaldığı için 1.22 → 1.34. */
+    doygunluk: 1.34,
 
     /* ── BÖLGE BAŞINA LEKE KARAKTERİ ──
        koyu = koyu parçaların gücü · acik = açık parçaların gücü
        Lav yalnız kararır (acik düşük), çimen iki yönlü, kar koyu
        lekelerinde turkuaza çalar. */
     lekeAyar: {
-      kar:   { koyu: 0.30, acik: 0.06 },
+      kar:   { koyu: 0.34, acik: 0.10 },
       cimen: { koyu: 0.24, acik: 0.24 },
-      lav:   { koyu: 0.34, acik: 0.03 },
+      lav:   { koyu: 0.38, acik: 0.08 },
     },
 
     /* Kar bölgesinin koyu lekelerinin rengi. Beyazın grisi yerine
@@ -206,7 +209,10 @@
        guc: 0 = kapalı. x/y: ekranın oranı (0-1), sol üst köşe 0,0.
        koseKarart: köşelerin kararma miktarı, hacim hissi verir. */
     yansima: {
-      guc: 0.20,
+      /* 0 = KAPALI. Beyaz radial parlama zeminin üstünü soluklaştırıyordu
+         ("harita kaleiçine göre beyaz yoğun" belirtisi). Kaleiçi sahnesinde
+         böyle bir katman yok; harita da onunla eşitlendi. */
+      guc: 0.00,
       x: 0.735,
       y: 0.424,
       yaricap: 1.05,
