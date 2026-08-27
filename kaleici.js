@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-23';
+  var SURUM = 'kaleici-26';
 
   var CFG = {
     grid: 13,
@@ -149,6 +149,9 @@
     '#kaleici.acik{display:block}' +
     /* Kaleiçi açıkken paneller bu katmana taşınır (aşağıdaki panelleriTasi) */
     '#kaleici .hud-top,#kaleici .hud-kaynak,#kaleici .nav-dock{z-index:40}' +
+    /* Taşınan pencereler menü şeritlerinin de üstünde kalmalı */
+    '#kaleici .overlay-panel{z-index:60}' +
+    '#kaleici .battle-arena-overlay{z-index:60}' +
     /* Kapat düğmesi ve sürüm yazısı üst panelin altına iner */
     'body.kaleici-acik #kaleiciKapat{top:84px}' +
     '#kaleiciTuval{position:absolute;left:0;top:0;width:100%;height:100%;display:block}' +
@@ -971,16 +974,30 @@
      #worldScreen position:fixed olduğu için kendi yığın bağlamını açar;
      z-index ile üste alınamazlar. Bu yüzden kaleiçi açıkken DOM'da bu
      katmana taşınır, kapanınca tam eski yerlerine geri konur. ---- */
+  /* Menü şeritleri TEK tane. Menülerin AÇTIĞI pencereler (.overlay-panel:
+     sandık · çanta · mağaza · kahraman · birlik · günlük · hastane ·
+     sıralama) da #worldScreen'in içinde duruyor; taşınmazlarsa
+     düğmeye basılıyor, panel .active oluyor ama kaleiçi katmanının
+     ARKASINDA kalıyor — "menü açılmıyor" belirtisi buydu.
+     Hepsi normalde display:none; taşınmaları görüntüyü değiştirmez. */
   var TASINAN_PANELLER = ['.hud-top', '.hud-kaynak', '.nav-dock'];
+  var TASINAN_COKLU    = ['.overlay-panel', '.battle-arena-overlay'];
   var panelYerleri = [];
+
+  function panelYerineAl(el) {
+    if (!el || !el.parentNode || el.parentNode === katman) return;
+    panelYerleri.push({ el: el, ebeveyn: el.parentNode, sonraki: el.nextSibling });
+    katman.appendChild(el);
+  }
 
   function panelleriTasi() {
     if (panelYerleri.length) return;
     for (var i = 0; i < TASINAN_PANELLER.length; i++) {
-      var el = document.querySelector(TASINAN_PANELLER[i]);
-      if (!el || !el.parentNode) continue;
-      panelYerleri.push({ el: el, ebeveyn: el.parentNode, sonraki: el.nextSibling });
-      katman.appendChild(el);
+      panelYerineAl(document.querySelector(TASINAN_PANELLER[i]));
+    }
+    for (var j = 0; j < TASINAN_COKLU.length; j++) {
+      var liste = document.querySelectorAll(TASINAN_COKLU[j]);
+      for (var k = 0; k < liste.length; k++) panelYerineAl(liste[k]);
     }
   }
 
