@@ -1942,6 +1942,13 @@ body.world-active{padding:0; overflow:hidden;}
   border:none; box-shadow:none; background:transparent;
   border-radius:0; overflow:visible; padding:0;
 }
+/* SEVİYE BAŞINA ÖLÇÜ — her seviyenin görselindeki şeffaf boşluk farklı,
+   tek ölçü hepsine oturmuyor. Değerler ?kaleayar=1 paneliyle ölçüldü.
+   Sv1 varsayılanı yukarıdaki 100px/kaydırmasız kural.
+   Yeni seviye görseli eklendikçe buraya bir satır eklenir. */
+.map-node.castle-node[data-sv="2"] .node-avatar{
+  width:152px; height:152px; transform:translateY(22px);
+}
 .map-node.castle-node .castle-avatar img{
   width:100%; height:100%; object-fit:contain; border-radius:0; display:block;
   filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));
@@ -5971,7 +5978,7 @@ function castleNodeHTML(pos, isOwn, label, sv) {
      adı istenmez. */
   const svNo = (parseInt(sv, 10) >= 1 && parseInt(sv, 10) <= 5) ? parseInt(sv, 10) : 1;
   return `
-    <div class="map-node castle-node ${cls}" data-cname="${safeName}" data-cx="${pos.gx}" data-cy="${pos.gy}" style="left:${px}%; top:${py}%;">
+    <div class="map-node castle-node ${cls}" data-sv="${svNo}" data-cname="${safeName}" data-cx="${pos.gx}" data-cy="${pos.gy}" style="left:${px}%; top:${py}%;">
       <div class="node-ring">
         <div class="node-avatar castle-avatar">
           <img src="kale${svNo}.webp" alt="" draggable="false"

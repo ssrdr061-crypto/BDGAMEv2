@@ -7390,7 +7390,7 @@ setTimeout(uygula, 2500);
   } catch (e) { return; }
 
   /* Seviye başına { boy, dy } — boy px, dy dikey kaydırma px */
-  var AYAR = { 1:{boy:100,dy:0}, 2:{boy:100,dy:0}, 3:{boy:100,dy:0},
+  var AYAR = { 1:{boy:100,dy:0}, 2:{boy:152,dy:22}, 3:{boy:100,dy:0},
                4:{boy:100,dy:0}, 5:{boy:100,dy:0} };
   var aktif = 2;
 
