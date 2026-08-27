@@ -523,6 +523,14 @@
       dis.appendChild(ic);
 
       m.appendChild(dis);
+      /* ── ÖNBELLEK ZORLA TAZELENSİN ──
+         dugumOnbellegi listeyi ÇOCUK SAYISINA bakarak geçerli sayıyor.
+         Roket sprite'ı patlamadan hemen önce siliniyor, patlama da hemen
+         ekleniyor: sayı DEĞİŞMİYOR, önbellek geçerli kabul ediliyor ve
+         patlama listeye hiç girmiyordu. Transform yazılmayınca kutu
+         0,0'da (ekranın sol üstünde, yarısı dışarıda) kalıyordu —
+         "patlama görünmüyor" bu. */
+      if (typeof H.dugumOnbellegiBosalt === "function") H.dugumOnbellegiBosalt();
       H.dugumleriYerlestir();   // ilk konum
       setTimeout(function () {
         if (!TANI) return;
@@ -540,9 +548,17 @@
       // artık bizim işimiz değil.
       const bt = setInterval(() => {
         const mm = document.getElementById("battleMap");
-        if (mm && !dis.isConnected) { mm.appendChild(dis); H.dugumleriYerlestir(); }
+        if (mm && !dis.isConnected) {
+          mm.appendChild(dis);
+          if (typeof H.dugumOnbellegiBosalt === "function") H.dugumOnbellegiBosalt();
+          H.dugumleriYerlestir();
+        }
       }, 200);
-      setTimeout(() => { clearInterval(bt); dis.remove(); }, 5000);
+      setTimeout(() => {
+        clearInterval(bt);
+        dis.remove();
+        if (typeof H.dugumOnbellegiBosalt === "function") H.dugumOnbellegiBosalt();
+      }, 5000);
       return;
     }
 
