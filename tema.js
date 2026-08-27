@@ -7153,16 +7153,16 @@ setTimeout(uygula, 2500);
     #panel-rank .rs-sekme:active{ transform:scale(.96); filter:brightness(.93); }
     #panel-rank .rs-sekme.etkin{ background:linear-gradient(180deg,#4f9fe0,#2c68ad);
       color:#fff; text-shadow:0 1px 2px rgba(0,20,45,.55); }
-    /* Kahraman satırı: ad sol · kahraman orta · güç sağ */
+    /* Kahraman satırı: ad sol · kahraman orta · güç sağ.
+       Sıra numarası ile kullanıcı adı yaklaştırıldı, ortadaki
+       kahraman adına yer açıldı. */
+    #panel-rank .rs-satir{ gap:6px; padding:10px 9px; }
+    #panel-rank .rs-satir .rank-pos{ min-width:20px; font-size:16px; }
+    #panel-rank .rs-satir .rank-name{ flex:0 1 auto; max-width:34%; text-align:left; }
     #panel-rank .rs-kahraman{ flex:1; min-width:0; text-align:center;
-      font-weight:800; font-size:13px; color:#ffd97a;
-      text-shadow:0 1px 3px rgba(0,20,45,.6);
+      font-weight:800; font-size:13.5px; color:#000; text-shadow:none;
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    #panel-rank .rs-sv{ font-weight:700; font-size:11.5px; opacity:.85; }
-    #panel-rank .rank-row .rank-name.rs-sol{ flex:1; text-align:left; }
-    #panel-rank .rank-gold .rs-kahraman,
-    #panel-rank .rank-silver .rs-kahraman,
-    #panel-rank .rank-bronze .rs-kahraman{ color:inherit; text-shadow:none; }
+    #panel-rank .rs-satir .rank-power{ flex:none; }
   `;
 
   function stilBas() {
@@ -7209,18 +7209,16 @@ setTimeout(uygula, 2500);
     var h = "";
     for (var i = 0; i < liste.length; i++) {
       var p = liste[i], sira = i + 1;
-      var cls = "rank-row";
+      var cls = "rank-row rs-satir";
       if (sira === 1) cls += " rank-gold";
       else if (sira === 2) cls += " rank-silver";
       else if (sira === 3) cls += " rank-bronze";
       if (p.me) cls += " rank-me";
-      var madalya = sira === 1 ? "🥇" : sira === 2 ? "🥈" : sira === 3 ? "🥉" : "";
       h += '<div class="' + cls + '">' +
-             '<span class="rank-pos">' + (madalya || sira) + '</span>' +
-             '<span class="rank-name rs-sol">' + kacir(p.name) + '</span>' +
-             '<span class="rs-kahraman">' + kacir(p.ad) +
-               ' <span class="rs-sv">Sv' + p.sv + '</span></span>' +
-             '<span class="rank-power">' + sayiYaz(p.guc) + ' ⚔️</span>' +
+             '<span class="rank-pos">' + sira + '</span>' +
+             '<span class="rank-name">' + kacir(p.name) + '</span>' +
+             '<span class="rs-kahraman">' + kacir(p.ad) + '</span>' +
+             '<span class="rank-power">' + sayiYaz(p.guc) + '</span>' +
            '</div>';
     }
     return h;
@@ -7292,8 +7290,8 @@ setTimeout(uygula, 2500);
     kutu.id = "rsSekmeler";
     kutu.className = "rs-sekmeler";
     kutu.innerHTML =
-      '<button class="rs-sekme etkin" data-sekme="guc">⚔️ GÜÇ</button>' +
-      '<button class="rs-sekme" data-sekme="kahraman">🦸 KAHRAMAN</button>';
+      '<button class="rs-sekme etkin" data-sekme="guc">GÜÇ</button>' +
+      '<button class="rs-sekme" data-sekme="kahraman">KAHRAMAN</button>';
     liste.parentNode.insertBefore(kutu, liste);
 
     kutu.addEventListener("pointerup", function (e) {
