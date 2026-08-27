@@ -76,6 +76,14 @@
   /* Çizim, dokunuş ve ayar listesi bunu okur; kayıt yalnız BINALAR'ı. */
   function tumYapilar() { return BINALAR.concat(SUSLER); }
 
+  /* ── KIŞLA → BİRLİK AİLESİ ──
+     Kışlanın EĞİT düğmesi ayrı bir eğitim ekranı AÇMAZ; oyunun kendi
+     Birlikler panelini (#panel-troops) açar ve o ailenin sekmesine
+     geçer. Tek ekran, tek kaynak: stat/fiyat/kuyruk ileride değişince
+     iki yerde birden düzeltme gerekmez.
+     Anahtarlar Firebase kimlikleridir, ADLARLA karıştırma. */
+  var KISLA_AILE = { sovalye: 'knight', asker: 'soldier', robot: 'robot' };
+
   /* ---- Görsel yükleyici: dosya yoksa sessizce emojiye düşülür ---- */
   var GORSELLER = {};
 
@@ -683,7 +691,7 @@
 
   /* ---- Seçili binanın adı — binaların üstünde, çerçeveli ---- */
   function seciliAdCiz() {
-    if (!secili) { tasiSimge.r = 0; return; }
+    if (!secili) { tasiSimge.r = 0; egitBtn.w = 0; return; }
     var b = secili;
     var kut = binaKutusu(b);
     var o = { x: kut.x + kut.w / 2 };
@@ -713,6 +721,77 @@
     tasiSimge.y = (solW.y + altW.y) / 2;
     tasiSimge.r = sr;
     tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr, tasiModu, tasiDokunus);
+
+    egitDugmesiCiz(b, kut, nk, boy);
+  }
+
+  /* ---- EĞİT düğmesi — yalnız üç kışlada, tabanın ALT köşesinde ----
+     Taşıma simgesi sol alt kenarda; bu alt köşede, çakışmaz. */
+  function egitDugmesiCiz(b, kut, nk, boy) {
+    egitBtn.w = 0;
+    if (!KISLA_AILE[b.id]) return;
+
+    var alt = ekran(nk[2].x, nk[2].y);
+    var yuk = Math.max(20, boy * 1.30);
+    var gen = Math.max(52, boy * 3.05);
+    var x = alt.x - gen / 2;
+    var y = alt.y - yuk * 0.30;
+
+    egitBtn.x = x; egitBtn.y = y; egitBtn.w = gen; egitBtn.h = yuk;
+
+    var r = yuk * 0.34;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + gen, y, x + gen, y + yuk, r);
+    ctx.arcTo(x + gen, y + yuk, x, y + yuk, r);
+    ctx.arcTo(x, y + yuk, x, y, r);
+    ctx.arcTo(x, y, x + gen, y, r);
+    ctx.closePath();
+    ctx.fillStyle = egitBasili ? '#e0a800' : '#ffc61a';
+    ctx.fill();
+    ctx.fillStyle = '#3a2600';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 ' + Math.max(11, yuk * 0.60) + 'px "Baloo 2",sans-serif';
+    ctx.fillText('EĞİT', x + gen / 2, y + yuk * 0.54);
+    ctx.restore();
+  }
+
+  /* Dokunuş EĞİT düğmesinin üstünde mi (parmak payı ile) */
+  function egitteMi(px, py) {
+    if (!secili || !egitBtn.w) return false;
+    var pay = 8;
+    return px >= egitBtn.x - pay && px <= egitBtn.x + egitBtn.w + pay &&
+           py >= egitBtn.y - pay && py <= egitBtn.y + egitBtn.h + pay;
+  }
+
+  /* ---- Birlikler panelini aç ve ilgili ailenin ekranına geç ----
+     Panel #worldScreen içinde z-index 50, kaleiçi 30 → üste biner,
+     kaleiçiyi kapatmaya gerek yok. Aile geçişi rol düğmesinin kendi
+     kapısından yapılır (go()); iki seçici hep aynı kalır. */
+  function egitimAc(aile) {
+    try {
+      if (typeof openOverlayPanel === 'function') openOverlayPanel('troops');
+    } catch (e) { return; }
+    /* Panel açılışı renderTroopsPanel + TroopViewer.show() zincirini
+       kurar; rol düğmeleri o karede doğar. Bir sonraki kareyi bekle. */
+    var dene = 0;
+    (function bekle() {
+      var btn = document.querySelector('#uvRoles .uv-role[data-i="' + aileSirasi(aile) + '"]');
+      if (btn) {
+        /* bindTap 'pointerup' dinler — .click() işe yaramaz (Tuzak: safeBind) */
+        btn.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+        return;
+      }
+      if (++dene < 20) requestAnimationFrame(bekle);
+    })();
+  }
+
+  /* Rol düğmesinin data-i değeri ORDER sırasıdır (knight, soldier, robot).
+     Sıra index.html'de sabit; burada tek yerde tutuluyor. */
+  function aileSirasi(aile) {
+    return aile === 'soldier' ? 1 : (aile === 'robot' ? 2 : 0);
   }
 
   /* Dokunuş taşıma düğmesinin üstünde mi (parmak payı ile) */
@@ -781,6 +860,8 @@
   var ilkMesafe = 0, ilkZoom = 1;
   var tasinan = null, tasiKay = { x: 0, y: 0 };   // sürüklenen bina
   var tasiSimge = { x: 0, y: 0, r: 0 };            // taşıma düğmesinin ekran yeri
+  var egitBtn = { x: 0, y: 0, w: 0, h: 0 };        // EĞİT düğmesinin ekran yeri
+  var egitBasili = false;                          // parmak EĞİT üstünde indi
   var tasiModu = false;                            // taşıma açık mı
   var tasiDokunus = 0;                             // düğmeye kaç kez dokunuldu
 
@@ -821,6 +902,15 @@
       var px = e.clientX - r0.left, py = e.clientY - r0.top;
       /* Sol alttaki taşıma düğmesi: iki dokunuşta taşıma açılır,
          açıkken bir dokunuş kapatır. */
+      /* EĞİT düğmesi taşıma simgesinden ÖNCE bakılır; ikisi ayrı
+         köşede ama parmak payları kesişirse eğitim kazansın. */
+      if (secili && egitteMi(px, py)) {
+        egitBasili = true;
+        kaydi = true;              // bırakınca seçim/kaydırma tetiklenmesin
+        kareIste();
+        return;
+      }
+
       if (secili && simgedeMi(px, py)) {
         if (tasiModu) { tasiModu = false; tasiDokunus = 0; }
         else {
@@ -874,6 +964,9 @@
     }
     if (Math.abs(e.clientX - basX) > 6 || Math.abs(e.clientY - basY) > 6) kaydi = true;
 
+    /* EĞİT düğmesine basılıyken harita kaymaz */
+    if (egitBasili) { sonX = e.clientX; sonY = e.clientY; return; }
+
     /* Ayar modu: bina sürükleniyorsa harita kaymaz, bina karo değiştirir */
     if (tasinan) {
       var rt = tuval.getBoundingClientRect();
@@ -916,6 +1009,20 @@
     }
 
     if (parmakSayisi === 0) {
+      /* EĞİT: parmak DÜĞMENİN ÜSTÜNDE kalktıysa aç. Kaydırıp
+         dışarıda bırakırsa hiçbir şey olmaz. */
+      if (egitBasili) {
+        egitBasili = false;
+        var re = tuval.getBoundingClientRect();
+        var acilacak = secili && egitteMi(e.clientX - re.left, e.clientY - re.top)
+                     ? KISLA_AILE[secili.id] : null;
+        kistirma = false;
+        kareIste();
+        /* Panel açılışı bu dokunuşun kalan olaylarını yutmasın */
+        if (acilacak) setTimeout(function () { egitimAc(acilacak); }, 0);
+        return;
+      }
+
       if (tasinan) {
         var tt = tasinan; tasinan = null; kistirma = false;
         if (!kaydi) binaSec(tt);   // sürüklemeden bıraktıysa sadece seçim
