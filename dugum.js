@@ -110,7 +110,7 @@ function orduKapasitesi(birlikler, seviyeler) {
              yazıya bağlıdır (.kay-sim → 1.15em), böylece
              yerine geçtiği emojiyle aynı büyüklükte durur.     */
 const KAYNAK = {
-  odun:   { id: "odun",   ad: "Odun",   ikon: "🪵", gorsel: "odun.webp",   hiz: 6 },
+  odun:   { id: "odun",   ad: "Odun",   ikon: "🪵", gorsel: "10kodun.webp", hiz: 6 },
   et:     { id: "et",     ad: "Et",     ikon: "🍖", gorsel: "et.webp",     hiz: 7 },
   demir:  { id: "demir",  ad: "Demir",  ikon: "⛓️", gorsel: "demir.webp",  hiz: 5 },
   su:     { id: "su",     ad: "Su",     ikon: "💧", gorsel: "su.webp",     hiz: 3 },

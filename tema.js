@@ -5337,12 +5337,12 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
 
   /* Üst şeritteki dört kaynak + elmas sayacı kısaltılır.
      Çanta/panel içindeki sayılara DOKUNULMAZ. */
-  var KAYNAK_ID = ["kayEt", "kayDemir", "kaySu", "kayEnerji"];
+  var KAYNAK_ID = ["kayOdun", "kayEt", "kayDemir", "kaySu", "kayEnerji"];
   function ustSeridiKisalt() {
     var s = durum();
     if (!s) return;
     var k = s.kaynaklar || {};
-    var esle = { kayEt: "et", kayDemir: "demir", kaySu: "su", kayEnerji: "enerji" };
+    var esle = { kayOdun: "odun", kayEt: "et", kayDemir: "demir", kaySu: "su", kayEnerji: "enerji" };
     KAYNAK_ID.forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.textContent = sayiKisa(k[esle[id]] || 0);
@@ -7042,7 +7042,7 @@ setTimeout(uygula, 2500);
    Şeridin DÜZENİ eskisi gibi: beş kaynak yan yana, .kaynak-oge.
    Değişen tek şey emoji yerine görsel basılması.
    index.html'e dokunulmadı; yalnız .kaynak-ikon span'ının içi
-   değiştiriliyor. #kayEt/#kayDemir/#kaySu/#kayEnerji id'leri yerinde,
+   değiştiriliyor. #kayOdun/#kayEt/#kayDemir/#kaySu/#kayEnerji id'leri yerinde,
    o id'lere yazan kod (index.html 4784, ustSeridiKisalt) etkilenmez.
    Dosya yoksa emoji geri gelir (SİMGE/GÖRSEL KURALI 22).
    ═══════════════════════════════════════════════════════════════════ */
@@ -7050,7 +7050,7 @@ setTimeout(uygula, 2500);
   "use strict";
 
   var GORSEL = {
-    kayOdun:   "odun.webp",
+    kayOdun:   "10kodun.webp",
     kayEt:     "10ket.webp",
     kayDemir:  "5kdemir.webp",
     kaySu:     "5ksu.webp",

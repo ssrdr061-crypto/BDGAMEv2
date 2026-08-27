@@ -47,26 +47,34 @@ const shopItems = [
   /* ── KAYNAK PAKETLERİ ──
      Çantaya DÜŞMEZ; alındığı an doğrudan kaynak sayacına eklenir.
 
-     FİYAT NEREDEN ÇIKTI: kalenin dakikalık üretimi ölçü alındı
-     (et 500, demir 400, su 250, enerji 150). Bir paket kaç DAKİKALIK
-     üretime denk geliyorsa fiyatı ona göre kuruldu; dakikası ≈ 40 💎:
-       Et    10.000 → 20 dk   → 800
-       Demir  5.000 → 12,5 dk → 500
-       Su     5.000 → 20 dk   → 800
-       Enerji 1.000 → 6,7 dk  → 400  (×1,5 — en yavaş üretilen, darboğaz)
-     Dengeyi değiştirmek istersen tek yer burası. */
+     FİYAT NEREDEN ÇIKTI: kalenin dakikalık üretimi ölçü alınmıştı
+     (o zaman et 500, demir 400, su 250, enerji 150; dakikası ≈ 40 💎).
+
+     ÜRETİM %60 KISILDI (uretim.js HIZ: odun 180, et 200, demir 160,
+     su 100, enerji 60). FİYATLAR BİLEREK DEĞİŞTİRİLMEDİ — paketler
+     artık daha uzun bir üretim süresine denk geliyor, yani elmasın
+     değeri arttı. Açıklama metinlerindeki dakikalar yeni hıza göre
+     yazılıdır. Fiyat dengesini değiştirmek istersen tek yer burası:
+       Odun  10.000 → 55,6 dk → 800  (et ile aynı paket, aynı fiyat)
+       Et    10.000 → 50 dk   → 800
+       Demir  5.000 → 31,3 dk → 500
+       Su     5.000 → 50 dk   → 800
+       Enerji 1.000 → 16,7 dk → 400  (en yavaş üretilen, darboğaz) */
+  { name: "Odun Sandığı", price: 800, isKaynak: true, kaynakId: "odun", miktar: 10000,
+    icon: "🪵", gorsel: "10kodun.webp",
+    kaynakDesc: "10.000 🪵 Odun doğrudan kaynaklarına eklenir. Kalen dakikada 180 üretir; bu paket yaklaşık 56 dakikalık üretime denktir." },
   { name: "Et Sandığı", price: 800, isKaynak: true, kaynakId: "et", miktar: 10000,
     icon: "🍖", gorsel: "10ket.webp",
-    kaynakDesc: "10.000 🍖 Et doğrudan kaynaklarına eklenir. Kalen dakikada 500 üretir; bu paket 20 dakikalık üretime denktir." },
+    kaynakDesc: "10.000 🍖 Et doğrudan kaynaklarına eklenir. Kalen dakikada 200 üretir; bu paket 50 dakikalık üretime denktir." },
   { name: "Demir Sandığı", price: 500, isKaynak: true, kaynakId: "demir", miktar: 5000,
     icon: "⛓️", gorsel: "5kdemir.webp",
-    kaynakDesc: "5.000 ⛓️ Demir doğrudan kaynaklarına eklenir. Kalen dakikada 400 üretir; bu paket 12,5 dakikalık üretime denktir." },
+    kaynakDesc: "5.000 ⛓️ Demir doğrudan kaynaklarına eklenir. Kalen dakikada 160 üretir; bu paket yaklaşık 31 dakikalık üretime denktir." },
   { name: "Su Sandığı", price: 800, isKaynak: true, kaynakId: "su", miktar: 5000,
     icon: "💧", gorsel: "5ksu.webp",
-    kaynakDesc: "5.000 💧 Su doğrudan kaynaklarına eklenir. Kalen dakikada 250 üretir; bu paket 20 dakikalık üretime denktir." },
+    kaynakDesc: "5.000 💧 Su doğrudan kaynaklarına eklenir. Kalen dakikada 100 üretir; bu paket 50 dakikalık üretime denktir." },
   { name: "Enerji Hücresi", price: 400, isKaynak: true, kaynakId: "enerji", miktar: 1000,
     icon: "⚡", gorsel: "1kenerji.webp",
-    kaynakDesc: "1.000 ⚡ Enerji doğrudan kaynaklarına eklenir. Enerji en yavaş üretilen kaynaktır (dakikada 150), o yüzden birimi diğerlerinden pahalıdır." },
+    kaynakDesc: "1.000 ⚡ Enerji doğrudan kaynaklarına eklenir. Enerji en yavaş üretilen kaynaktır (dakikada 60), o yüzden birimi diğerlerinden pahalıdır." },
 
   /* ── FÜZE (kale saldırısı) ── */
   /* ── KAHRAMAN PARÇALARI ──

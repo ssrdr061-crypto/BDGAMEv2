@@ -28,12 +28,16 @@
 
   /* ── AYAR: DAKİKADA ÜRETİM ────────────────────────────────────
      Dengeyi buradan değiştir; başka hiçbir yerde bu sayılar yok. */
+  /* Taban uretim (dk). 26'daki degerler %60 kisildi:
+     odun 450>180 · et 500>200 · demir 400>160 · su 250>100 · enerji 150>60.
+     Oranlar korundu, yalniz olcek dustu. insaat.js carpani bunun
+     UZERINE biner, yani her seviyede ayni oranda dusuk. */
   const HIZ = {
-    odun:   450,
-    et:     500,
-    demir:  400,
-    su:     250,
-    enerji: 150,
+    odun:   180,
+    et:     200,
+    demir:  160,
+    su:     100,
+    enerji: 60,
   };
 
   /* ── BİNA SEVİYESİ ÜRETİMİ ÇARPAR ──
