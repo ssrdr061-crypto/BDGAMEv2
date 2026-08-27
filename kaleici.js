@@ -144,14 +144,24 @@
 
   /* ---- Stil: en az sayıda kural, 3B yok ---- */
   var CSS =
-    '#kaleici{position:fixed;inset:0;z-index:9000;display:none;' +
+    /* ── KATMAN SIRASI — KÖK ÇÖZÜM ──
+       Kaleiçi katmanı ARTIK #worldScreen'in İÇİNDE duruyor (kur()).
+       Eskiden body'de z-index 9000 ile en üstteydi; menülerin açtığı
+       her pencere (#worldScreen içindeki .overlay-panel, body'deki
+       #heroDetailOverlay/#kahramanListesi, mağaza, buff, gelistir...)
+       onun ARKASINDA kalıyordu. Panelleri tek tek taşımak yerine
+       kaleiçi aşağı indi: 30.
+         harita/çubuklar < 30 kaleiçi < 40 menü şeritleri
+         < 50 overlay-panel < 60 savaş < body katmanları
+       Böylece taşıma sistemi tamamen kalktı. */
+    '#kaleici{position:fixed;inset:0;z-index:30;display:none;' +
       'background:#7fae5c;font-family:"Baloo 2",sans-serif;touch-action:none}' +
     '#kaleici.acik{display:block}' +
-    /* Kaleiçi açıkken paneller bu katmana taşınır (aşağıdaki panelleriTasi) */
-    '#kaleici .hud-top,#kaleici .hud-kaynak,#kaleici .nav-dock{z-index:40}' +
-    /* Taşınan pencereler menü şeritlerinin de üstünde kalmalı */
-    '#kaleici .overlay-panel{z-index:60}' +
-    '#kaleici .battle-arena-overlay{z-index:60}' +
+    /* Menü şeritleri kaleiçinin üstünde kalsın (normalde 20-21) */
+    'body.kaleici-acik .hud-top,body.kaleici-acik .hud-kaynak,' +
+      'body.kaleici-acik .nav-dock{z-index:40}' +
+    /* Kaleiçi açıkken giriş düğmesi görünmesin — body'de, üste biner */
+    'body.kaleici-acik #kaleiciGir{display:none}' +
     /* Kapat düğmesi ve sürüm yazısı üst panelin altına iner */
     'body.kaleici-acik #kaleiciKapat{top:84px}' +
     '#kaleiciTuval{position:absolute;left:0;top:0;width:100%;height:100%;display:block}' +
@@ -970,48 +980,6 @@
     }, 600);
   }
 
-  /* ---- Oyunun üst/alt panelleri ----
-     #worldScreen position:fixed olduğu için kendi yığın bağlamını açar;
-     z-index ile üste alınamazlar. Bu yüzden kaleiçi açıkken DOM'da bu
-     katmana taşınır, kapanınca tam eski yerlerine geri konur. ---- */
-  /* Menü şeritleri TEK tane. Menülerin AÇTIĞI pencereler (.overlay-panel:
-     sandık · çanta · mağaza · kahraman · birlik · günlük · hastane ·
-     sıralama) da #worldScreen'in içinde duruyor; taşınmazlarsa
-     düğmeye basılıyor, panel .active oluyor ama kaleiçi katmanının
-     ARKASINDA kalıyor — "menü açılmıyor" belirtisi buydu.
-     Hepsi normalde display:none; taşınmaları görüntüyü değiştirmez. */
-  var TASINAN_PANELLER = ['.hud-top', '.hud-kaynak', '.nav-dock'];
-  var TASINAN_COKLU    = ['.overlay-panel', '.battle-arena-overlay'];
-  var panelYerleri = [];
-
-  function panelYerineAl(el) {
-    if (!el || !el.parentNode || el.parentNode === katman) return;
-    panelYerleri.push({ el: el, ebeveyn: el.parentNode, sonraki: el.nextSibling });
-    katman.appendChild(el);
-  }
-
-  function panelleriTasi() {
-    if (panelYerleri.length) return;
-    for (var i = 0; i < TASINAN_PANELLER.length; i++) {
-      panelYerineAl(document.querySelector(TASINAN_PANELLER[i]));
-    }
-    for (var j = 0; j < TASINAN_COKLU.length; j++) {
-      var liste = document.querySelectorAll(TASINAN_COKLU[j]);
-      for (var k = 0; k < liste.length; k++) panelYerineAl(liste[k]);
-    }
-  }
-
-  function panelleriGeriKoy() {
-    for (var i = panelYerleri.length - 1; i >= 0; i--) {
-      var y = panelYerleri[i];
-      try {
-        if (y.sonraki && y.sonraki.parentNode === y.ebeveyn) y.ebeveyn.insertBefore(y.el, y.sonraki);
-        else y.ebeveyn.appendChild(y.el);
-      } catch (e) {}
-    }
-    panelYerleri = [];
-  }
-
   /* ---- Kurulum ---- */
   function kur() {
     if (document.getElementById('kaleici')) return;
@@ -1027,7 +995,9 @@
       '<button id="kaleiciKapat">← Haritaya dön</button>' +
       '<div id="kaleiciPanel"><h3 id="kaleiciPanelAd"></h3>' +
       '<p>Bu bina henüz bağlanmadı.</p><button id="kaleiciPanelKapat">Kapat</button></div>';
-    document.body.appendChild(katman);
+    /* worldScreen varsa ONUN içine: katman sırası oradaki panellerle
+       aynı bağlamda hesaplansın diye (yukarıdaki CSS notu). */
+    (document.getElementById('worldScreen') || document.body).appendChild(katman);
 
     tuval = document.getElementById('kaleiciTuval');
     ctx = tuval.getContext('2d');
@@ -1087,7 +1057,6 @@
     panelKapat();
     katman.classList.add('acik');
     document.body.classList.add('kaleici-acik');
-    panelleriTasi();
     secili = null;
     if (!oyuncuAnahtari()) yerlesimOkundu = false;   // adı henüz gelmediyse tekrar dene
     yerlesimOku();
@@ -1104,7 +1073,6 @@
   function kapat() {
     panelKapat();
     secili = null; tasinan = null; tasiModu = false; tasiDokunus = 0;
-    panelleriGeriKoy();
     document.body.classList.remove('kaleici-acik');
     if (katman) katman.classList.remove('acik');
   }
