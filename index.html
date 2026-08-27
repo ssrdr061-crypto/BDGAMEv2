@@ -2234,10 +2234,11 @@ body.world-active{padding:0; overflow:hidden;}
     <div class="hud-pill user-pill hud-pill-right" id="logoutBtn">👤 <span id="currentUserLabel"></span></div>
   </div>
 
-  <!-- KAYNAK ŞERİDİ — et / demir / su / enerji.
+  <!-- KAYNAK ŞERİDİ — odun / et / demir / su / enerji.
        Sayılar dugum.js'ten değil state.kaynaklar'dan okunur;
        dugum.js yalnız ikon ve adı sağlar. -->
   <div class="hud-kaynak" id="hudKaynak">
+    <div class="kaynak-oge"><span class="kaynak-ikon">🪵</span><span id="kayOdun">0</span></div>
     <div class="kaynak-oge"><span class="kaynak-ikon">🍖</span><span id="kayEt">0</span></div>
     <div class="kaynak-oge"><span class="kaynak-ikon">⛓️</span><span id="kayDemir">0</span></div>
     <div class="kaynak-oge"><span class="kaynak-ikon">💧</span><span id="kaySu">0</span></div>
@@ -3460,7 +3461,7 @@ function defaultState() {
 
     /* KAYNAKLAR — arazilerden toplanır, canavarlardan düşer.
        Harcama yeri henüz yok; şimdilik yalnız birikir. */
-    kaynaklar: { et: 0, demir: 0, su: 0, enerji: 0 },
+    kaynaklar: { odun: 0, et: 0, demir: 0, su: 0, enerji: 0 },
     /* Kaynak üretiminin en son işlendiği an (ms).
        0 = hiç işlenmedi; uretim.js ilk çalıştığında "şimdi" yazar,
        böylece yeni hesaba geçmişe dönük kaynak verilmez. */
@@ -4140,7 +4141,7 @@ function startSessionFor(username) {
 
   /* Kaynak cüzdanı — eski kayıtlarda yok, sıfırdan açılır. */
   if (!state.kaynaklar || typeof state.kaynaklar !== "object") state.kaynaklar = {};
-  ["et", "demir", "su", "enerji"].forEach(k => {
+  ["odun", "et", "demir", "su", "enerji"].forEach(k => {
     if (typeof state.kaynaklar[k] !== "number" || !isFinite(state.kaynaklar[k])) state.kaynaklar[k] = 0;
   });
   if (state.selectedHeroSkin === undefined) state.selectedHeroSkin = null;
@@ -4776,8 +4777,8 @@ function renderDiamonds() {
 
 /* Kaynak sayaçlarını tazeler. Sayılar yalnız state'ten okunur. */
 function renderKaynaklar() {
-  if (!state.kaynaklar) state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
-  const esle = { kayEt: "et", kayDemir: "demir", kaySu: "su", kayEnerji: "enerji" };
+  if (!state.kaynaklar) state.kaynaklar = { odun: 0, et: 0, demir: 0, su: 0, enerji: 0 };
+  const esle = { kayOdun: "odun", kayEt: "et", kayDemir: "demir", kaySu: "su", kayEnerji: "enerji" };
   Object.keys(esle).forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = fmt(state.kaynaklar[esle[id]] || 0);
@@ -4876,7 +4877,7 @@ function kaynakPaketiKullan(ad) {
   if (adet <= 0) { showToast("Çantanda bu paketten yok."); return; }
 
   if (!state.kaynaklar || typeof state.kaynaklar !== "object") {
-    state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
+    state.kaynaklar = { odun: 0, et: 0, demir: 0, su: 0, enerji: 0 };
   }
   const k = def.kaynakId;
   const eski = state.kaynaklar[k];

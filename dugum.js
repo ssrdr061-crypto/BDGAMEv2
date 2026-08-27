@@ -110,6 +110,7 @@ function orduKapasitesi(birlikler, seviyeler) {
              yazıya bağlıdır (.kay-sim → 1.15em), böylece
              yerine geçtiği emojiyle aynı büyüklükte durur.     */
 const KAYNAK = {
+  odun:   { id: "odun",   ad: "Odun",   ikon: "🪵", gorsel: "odun.webp",   hiz: 6 },
   et:     { id: "et",     ad: "Et",     ikon: "🍖", gorsel: "et.webp",     hiz: 7 },
   demir:  { id: "demir",  ad: "Demir",  ikon: "⛓️", gorsel: "demir.webp",  hiz: 5 },
   su:     { id: "su",     ad: "Su",     ikon: "💧", gorsel: "su.webp",     hiz: 3 },
@@ -126,7 +127,7 @@ function kaynakSimge(id) {
          'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' + k.ikon + '\'))">';
 }
 
-const KAYNAK_IDLER = ["et", "demir", "su", "enerji"];
+const KAYNAK_IDLER = ["odun", "et", "demir", "su", "enerji"];
 
 /* ═══════════════════════════════════════════════════════════
    3) ŞABLONLAR
@@ -150,6 +151,10 @@ const ARAZILER = [
     miktar: { 1: 400,  2: 1100, 3: 2200 } },
   { id: "santral",     ad: "Enerji Santrali", ikon: "🏭", kaynak: "enerji",
     miktar: { 1: 250,  2: 700,  3: 1500 } },
+  /* Odun 25'te eklendi. Diziye SONDAN eklendi ve TUR_SIRASI'nda da
+     en sona konuldu — bkz. TUR_SIRASI notu. */
+  { id: "odun_ormani", ad: "Orman",           ikon: "🌲", kaynak: "odun",
+    miktar: { 1: 3500, 2: 8000, 3: 16000 } },
 ];
 
 /* ── CANAVARLAR ──
@@ -253,7 +258,19 @@ function uretec(tohum) {
    ═══════════════════════════════════════════════════════════ */
 const _slotlar = [];
 (function kurSlotlar() {
-  const turler = ARAZILER.map(a => a.id).concat(CANAVARLAR.map(c => c.id));
+  /* ── TUZAK: TUR SIRASI KONUMU BELIRLER ──
+     Slotlar bu sirayla yerlestirilir ve her slot kendinden ONCEKI
+     slotlarin karolarina bakarak cakismadan kacinir. Siraya ortadan
+     bir tur eklenirse ONDAN SONRAKI TUM DUGUMLER YER DEGISTIRIR.
+     Bu yuzden sira elle sabitlendi; YENI TUR HER ZAMAN SONA EKLENIR. */
+  const TUR_SIRASI = [
+    "et_arazi", "demir_maden", "baraj", "santral",
+    "goril", "ayi", "kurt", "fil",
+    "odun_ormani",
+  ];
+  const _bilinen = ARAZILER.map(a => a.id).concat(CANAVARLAR.map(c => c.id));
+  const turler = TUR_SIRASI.filter(t => _bilinen.indexOf(t) !== -1)
+                   .concat(_bilinen.filter(t => TUR_SIRASI.indexOf(t) === -1));
   turler.forEach(tid => {
     [1, 2, 3].forEach(sv => {
       const adet = SLOT_ADEDI[sv];

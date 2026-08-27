@@ -7039,7 +7039,7 @@ setTimeout(uygula, 2500);
 
 /* ═══════════════════════════════════════════════════════════════════
    ÜST KAYNAK ŞERİDİ — SİMGELER  (kay-gorsel-1)
-   Şeridin DÜZENİ eskisi gibi: dört kaynak yan yana, .kaynak-oge.
+   Şeridin DÜZENİ eskisi gibi: beş kaynak yan yana, .kaynak-oge.
    Değişen tek şey emoji yerine görsel basılması.
    index.html'e dokunulmadı; yalnız .kaynak-ikon span'ının içi
    değiştiriliyor. #kayEt/#kayDemir/#kaySu/#kayEnerji id'leri yerinde,
@@ -7050,6 +7050,7 @@ setTimeout(uygula, 2500);
   "use strict";
 
   var GORSEL = {
+    kayOdun:   "odun.webp",
     kayEt:     "10ket.webp",
     kayDemir:  "5kdemir.webp",
     kaySu:     "5ksu.webp",

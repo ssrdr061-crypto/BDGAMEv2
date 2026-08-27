@@ -24,26 +24,27 @@
 (function () {
   "use strict";
 
-  const SURUM = "uretim-1";
+  const SURUM = "uretim-2";
 
   /* ── AYAR: DAKİKADA ÜRETİM ────────────────────────────────────
      Dengeyi buradan değiştir; başka hiçbir yerde bu sayılar yok. */
   const HIZ = {
+    odun:   450,
     et:     500,
     demir:  400,
     su:     250,
     enerji: 150,
   };
 
-  const IKON = { et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
-  const AD   = { et: "Et", demir: "Demir", su: "Su", enerji: "Enerji" };
+  const IKON = { odun: "🪵", et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
+  const AD   = { odun: "Odun", et: "Et", demir: "Demir", su: "Su", enerji: "Enerji" };
 
   const TUR_MS      = 10 * 1000;        /* ne sıklıkla işlensin */
   const KAYIT_MS    = 60 * 1000;        /* ne sıklıkla kaydedilsin */
   const BILDIR_MS   = 60 * 1000;        /* bu süreden uzun yokluk bildirilir */
 
   /* Küsurat — kayda girmez, oturum boyunca bellekte durur. */
-  const kalan = { et: 0, demir: 0, su: 0, enerji: 0 };
+  const kalan = { odun: 0, et: 0, demir: 0, su: 0, enerji: 0 };
 
   let _sonKayit = 0;
   let _ilkTurYapildi = false;
@@ -61,7 +62,7 @@
      eklendiği (bildirim için). */
   function isle(simdi) {
     if (!state.kaynaklar || typeof state.kaynaklar !== "object") {
-      state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
+      state.kaynaklar = { odun: 0, et: 0, demir: 0, su: 0, enerji: 0 };
     }
 
     /* İlk kez: geçmişe dönük üretim YOK, damga şimdiden başlar. */
