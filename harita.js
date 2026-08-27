@@ -154,6 +154,20 @@
       lav:   [186,  60,  36],
     },
 
+    /* ── ÇİMEN = KALEİÇİ DOKUSU ──
+       Çimen bölgesi artık kaleici.js'teki ZCFG ayarlarıyla boyanır:
+       daha kısık yeşil, daha düşük doygunluk, daha SIK leke deseni.
+       Kar ve lav bu ayardan hiç etkilenmez — karışım biyom
+       ağırlığıyla (w[1]) yapılır, sınır bandında yumuşak geçer.
+       kaleici.js'e DOKUNULMADI. */
+    cimenKale: {
+      renk: [72, 172, 62],
+      koyu: 0.24, acik: 0.24,
+      isik: 0.32,
+      siklik: 3.6,        // 1 = eski harita deseni · 3.6 = kaleiçi
+      doygunluk: 1.10,
+    },
+
     /* Leke gücü GENEL çarpanı. 0 = tek düze renk. Bölge başına
        ayrı ayar aşağıda (lekeAyar); bu sayı hepsini birden kısar. */
     leke: 1.0,
@@ -560,10 +574,52 @@
     return [0, 0, 1];
   }
 
+  /* ── KALEİÇİ ÇİMENİ ──
+     kaleici.js'teki kara zemin hesabının birebir aynısı, harita'nın
+     kendi gürültü fonksiyonuyla (smoothNoise) — dikiş ve önbellek
+     uyumu bozulmasın diye. Yalnız çimen için çağrılır. */
+  function cimenKaleRengi(gx, gy) {
+    const Z = CFG.cimenKale;
+    let c = [Z.renk[0], Z.renk[1], Z.renk[2]];
+
+    const f  = Z.siklik;
+    const eu = (gx - gy) / CFG.lekeYatay * f;
+    const ev = (gx + gy) * f;
+
+    if (Z.isik > 0) {
+      const sh = smoothNoise(eu * 0.075 + 41, ev * 0.075 + 17) * 0.65
+               + smoothNoise(eu * 0.022 + 5,  ev * 0.022 + 29) * 0.35;
+      const t = (sh - 0.5) * 1.35 * Z.isik * 1.8;
+      c = t < 0 ? renkKaris(c, renkKoy(c, 0.52), Math.min(0.70, -t))
+                : renkKaris(c, [255, 255, 255], Math.min(0.28, t * 0.50));
+    }
+
+    let pk = smoothNoise(eu * 0.070 + 77, ev * 0.070 + 13) * 0.50
+           + smoothNoise(eu * 0.175 + 5,  ev * 0.175 + 91) * 0.32
+           + smoothNoise(eu * 0.430 + 31, ev * 0.430 + 53) * 0.18;
+    pk = yumusat(pk);
+    pk = pk * 0.68 + (Math.round(pk * 3) / 3) * 0.32;
+    const pt = (pk - 0.5) * 2;
+    if (pt < 0) c = renkKaris(c, renkKoy(Z.renk, 0.46), Math.min(1, -pt * Z.koyu * 2.2));
+    else        c = renkKaris(c, renkAc(c, 0.42),       Math.min(1,  pt * Z.acik * 2.2));
+
+    const d = Z.doygunluk;
+    if (d !== 1) {
+      const orta = (c[0] + c[1] + c[2]) / 3;
+      c = [Math.max(0, Math.min(255, orta + (c[0] - orta) * d)),
+           Math.max(0, Math.min(255, orta + (c[1] - orta) * d)),
+           Math.max(0, Math.min(255, orta + (c[2] - orta) * d))];
+    }
+    return c;
+  }
+
   function zeminRengi(gx, gy) {
     const R = CFG.zeminRenk, A = CFG.lekeAyar;
     const v = biyomDeger(gx, gy);
     const w = biyomAgirlik(v);
+
+    /* Saf çimen: kar/lav hesabına hiç girme */
+    if (w[1] >= 0.999) return cimenKaleRengi(gx, gy);
 
     /* 1. Biyom rengi */
     let c = [
@@ -632,6 +688,10 @@
         Math.max(0, Math.min(255, orta + (c[2] - orta) * d)),
       ];
     }
+
+    /* Sınır bandı: çimen payı kadar kaleiçi çimeni karıştır.
+       w[1] = 0 ise saf kar/lav, 1 ise yukarıda zaten dönmüştük. */
+    if (w[1] > 0.001) c = renkKaris(c, cimenKaleRengi(gx, gy), w[1]);
 
     return c;
   }
