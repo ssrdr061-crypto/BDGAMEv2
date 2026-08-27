@@ -200,7 +200,10 @@
     '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}' +
     /* Kışladan girilen birlik paneli tek ailede kilitli — oklar anlamsız */
     '#panel-troops.kisla-kilit #uvPrev,#panel-troops.kisla-kilit #uvNext,' +
-      '#panel-troops.kisla-kilit #uvDots{display:none}';
+      '#panel-troops.kisla-kilit #uvDots{display:none}' +
+    /* Kışladan girilen ekranda üstteki Birlikler/İstatistik sekmeleri
+       görünmez — o kapılar alttaki Birlikler tuşunda duruyor. */
+    '#panel-troops.kisla-kilit .tp-tabs{display:none}';
 
 
   var katman, tuval, ctx, panel, panelAd, girBtn;
@@ -538,7 +541,16 @@
     if (camY > m.y + sapY) camY = m.y + sapY;
   }
 
+  /* ── ÇİZİM DURAKLATMA — DONMANIN KÖKÜ ──
+     Seçili bina varken ciz() her karede kendini yeniden çağırır
+     (yanıp sönme). Üstte birlik paneli açılınca bu döngü DURMUYORDU:
+     izometrik tuval + panelin kendi çizimi aynı anda dönüyor, telefon
+     boğuluyor ve ekran kilitlenmiş gibi oluyordu. Panel açıkken tuval
+     tamamen durur; panel kapanınca tek kare çizilir. */
+  var duraklat = false;
+
   function kareIste() {
+    if (duraklat) return;
     if (kareIstendi) return;
     kareIstendi = true;
     requestAnimationFrame(function () { kareIstendi = false; ciz(); });
@@ -775,11 +787,17 @@
      kapısından yapılır (go()); iki seçici hep aynı kalır. */
   function egitimAc(aile) {
     /* KİLİT: panel o ailede kalsın — kaydırma ve oklar aile değiştirmez.
-       index.html'deki go() bu bayrağı okur. */
+       index.html'deki go() ve troops.js'in onOpen'ı bu bayrağı okur.
+       Panel açılmadan ÖNCE kurulmalı. */
     window.KISLA_KILIT = aile;
+
+    /* Tuvali sustur: seçim kalkar (yanıp sönme biter), çizim durur. */
+    secili = null; tasiModu = false; tasiDokunus = 0; egitBtn.w = 0;
+    duraklat = true;
+
     try {
       if (typeof openOverlayPanel === 'function') openOverlayPanel('troops');
-    } catch (e) { window.KISLA_KILIT = null; return; }
+    } catch (e) { window.KISLA_KILIT = null; duraklat = false; return; }
 
     var panel = document.getElementById('panel-troops');
     if (panel) panel.classList.add('kisla-kilit');
@@ -802,6 +820,8 @@
       if (panel.classList.contains('active')) return;
       window.KISLA_KILIT = null;
       panel.classList.remove('kisla-kilit');
+      duraklat = false;
+      if (katman && katman.classList.contains('acik')) kareIste();
     });
     kilitGozcu.observe(panel, { attributes: true, attributeFilter: ['class'] });
   }
@@ -1189,6 +1209,15 @@
     }
 
     if (girBtn) girBtn.classList.toggle('acik', oyunda && !panelAcik);
+
+    /* EMNİYET AĞI: panel kapandığı halde duraklama bir sebeple
+       kalkmadıysa tuval sonsuza kadar ölü kalırdı. 400 ms'de bir
+       kontrol edilir — gözcü kaçırsa bile kaleiçi kendine gelir. */
+    if (duraklat && !panelAcik) {
+      duraklat = false;
+      window.KISLA_KILIT = null;
+      if (katman && katman.classList.contains('acik')) kareIste();
+    }
   }
 
   function butonuIzle() {
@@ -1198,6 +1227,7 @@
 
   function ac() {
     kur();
+    duraklat = false;
     panelKapat();
     katman.classList.add('acik');
     document.body.classList.add('kaleici-acik');
@@ -1215,6 +1245,7 @@
   }
 
   function kapat() {
+    duraklat = false;
     panelKapat();
     secili = null; tasinan = null; tasiModu = false; tasiDokunus = 0;
     document.body.classList.remove('kaleici-acik');

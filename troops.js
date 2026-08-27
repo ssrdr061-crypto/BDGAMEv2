@@ -1060,7 +1060,11 @@ const TroopTabs = (function () {
     }
   }
 
-  function onOpen()  { build(); show("train"); }
+  /* Panel nereden açıldıysa oraya düşer:
+       kaleiçindeki kışladan  → Eğitim ekranı (window.KISLA_KILIT dolu)
+       alttaki Birlikler tuşu → doğrudan Birlikler listesi
+     Eğitim'in sekme DÜĞMESİ yok; ekrana yalnız kışladan giriliyor. */
+  function onOpen()  { build(); show(window.KISLA_KILIT ? "train" : "units"); }
   function onClose() { clearInterval(tickTimer); }
 
   return { onOpen, onClose, show, render };
