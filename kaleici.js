@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-35';
+  var SURUM = 'kaleici-36';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -1033,13 +1033,30 @@
   function kilitIzle() {
     var panel = document.getElementById('panel-troops');
     if (!panel || kilitGozcu) return;
+    /* ── DONMANIN KÖKÜ (kaleici-36'da düzeltildi) ──
+       Bu gözcü panelin sınıfını izliyor. Callback'in İÇİNDE sınıf
+       silmek yeni bir nitelik değişimi doğurur ve gözcüyü yeniden
+       uyandırır: classList.remove, sınıf zaten yok olsa bile niteliği
+       baştan yazar. Kapatınca sonsuz döngü oluşuyor, ana iş parçacığı
+       kilitleniyordu — ✕'e basar basmaz oyun donuyordu.
+       Çözüm: yapılacak iş kalmadıysa sınıfa DOKUNMADAN çık. */
     kilitGozcu = new MutationObserver(function () {
       if (panel.classList.contains('active')) return;
+
+      var isVar = !!window.KISLA_KILIT ||
+                  panel.classList.contains('kisla-kilit') ||
+                  donusKaleici;
+      if (!isVar) return;                 // döngüyü kıran satır
+
       window.KISLA_KILIT = null;
-      panel.classList.remove('kisla-kilit');
+      if (panel.classList.contains('kisla-kilit')) {
+        panel.classList.remove('kisla-kilit');
+      }
       duraklat = false;
       TANI('panel kapandi -> kaleiciye donuluyor');
-      kaleiciyeDon();
+      /* Gözcü mikro görev sırasında çalışır; kaleiçiyi açmak ağır bir
+         iştir, sıradan çıkıp normal göreve bırakılır. */
+      setTimeout(kaleiciyeDon, 0);
     });
     kilitGozcu.observe(panel, { attributes: true, attributeFilter: ['class'] });
   }
