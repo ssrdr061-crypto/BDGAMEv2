@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-31';
+  var SURUM = 'kaleici-32';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -35,6 +35,31 @@
       window.addEventListener('unhandledrejection', function (ev) {
         TANI('!! SOZ HATASI: ' + (ev.reason && (ev.reason.message || ev.reason)));
       });
+
+      /* NABIZ: sayfa yaşıyorsa saniyede bir saat ilerler. Durursa
+         sayfa gerçekten kilitlenmiştir (JS bloklanmış / bellek).
+         İlerliyor ama dokunuş yazılmıyorsa sorun dokunuşta. */
+      var nabizKutu = document.createElement('div');
+      nabizKutu.style.cssText =
+        'position:fixed;right:4px;bottom:96px;z-index:99999;' +
+        'background:rgba(0,0,0,.86);color:#7CFC7C;font:700 11px/1.3 monospace;' +
+        'padding:3px 6px;pointer-events:none';
+      document.body.appendChild(nabizKutu);
+      var n = 0;
+      setInterval(function () {
+        n++;
+        nabizKutu.textContent = 'nabiz ' + n;
+      }, 1000);
+
+      /* DOKUNUŞ İZİ: belge düzeyinde, capture evresinde. Buraya
+         hiçbir şey düşmüyorsa dokunuşlar sayfaya hiç ulaşmıyordur. */
+      document.addEventListener('pointerdown', function (ev) {
+        var t = ev.target;
+        TANI('dokunus: <' + (t.tagName || '?').toLowerCase() + '> ' +
+             (t.className && t.className.baseVal !== undefined
+               ? t.className.baseVal : (t.className || '')).toString().slice(0, 40) +
+             ' #' + (t.id || '-'));
+      }, true);
     }
     taniSatir++;
     taniKutu.textContent += (taniSatir + '. ' + mesaj + '\n');
