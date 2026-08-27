@@ -6,7 +6,41 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-30';
+  var SURUM = 'kaleici-31';
+
+  /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
+     Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
+     şerit koyar; egitimAc'ın her adımını ve YAKALANMAMIŞ HATALARI
+     oraya yazar. İş bitince bu bloğu ve TANI(...) çağrılarını sil. */
+  var TANI_ACIK = (typeof location !== 'undefined' &&
+                   location.search.indexOf('tani=1') >= 0);
+  var taniKutu = null, taniSatir = 0;
+
+  function TANI(mesaj) {
+    if (!TANI_ACIK) return;
+    if (!taniKutu) {
+      taniKutu = document.createElement('div');
+      taniKutu.id = 'kaleiciTani';
+      taniKutu.style.cssText =
+        'position:fixed;left:0;right:0;top:0;z-index:99999;max-height:42vh;' +
+        'overflow:auto;background:rgba(0,0,0,.86);color:#7CFC7C;' +
+        'font:600 11px/1.35 monospace;padding:6px 8px;white-space:pre-wrap;' +
+        'pointer-events:auto';
+      taniKutu.addEventListener('click', function () { taniKutu.textContent = ''; });
+      document.body.appendChild(taniKutu);
+      window.addEventListener('error', function (ev) {
+        TANI('!! HATA: ' + (ev.message || '') + ' @ ' +
+             (ev.filename || '').split('/').pop() + ':' + (ev.lineno || ''));
+      });
+      window.addEventListener('unhandledrejection', function (ev) {
+        TANI('!! SOZ HATASI: ' + (ev.reason && (ev.reason.message || ev.reason)));
+      });
+    }
+    taniSatir++;
+    taniKutu.textContent += (taniSatir + '. ' + mesaj + '\n');
+    taniKutu.scrollTop = taniKutu.scrollHeight;
+  }
+  window.KALEICI_TANI = TANI;
 
   var CFG = {
     grid: 13,
@@ -802,27 +836,45 @@
        Çözüm üst üste bindirmemek: panel açılmadan önce kaleiçi
        KAPANIR, panel kapanınca aynı kamera konumuyla geri açılır.
        Oyuncu için tek fark yok — panelden çıkınca yine kaledededir. */
+    TANI('EGIT basildi -> ' + aile + ' (' + SURUM + ')');
+
     donusKaleici = !!(katman && katman.classList.contains('acik'));
     if (donusKaleici) {
       donusKamera = { x: camX, y: camY, z: CFG.zoom };
       kapat();
+      TANI('kaleici kapatildi');
     }
 
     secili = null; tasiModu = false; tasiDokunus = 0; egitBtn.w = 0;
 
     try {
-      if (typeof openOverlayPanel === 'function') openOverlayPanel('troops');
-    } catch (e) { window.KISLA_KILIT = null; donusKaleici = false; return; }
+      if (typeof openOverlayPanel === 'function') {
+        openOverlayPanel('troops');
+        TANI('openOverlayPanel bitti');
+      } else {
+        TANI('!! openOverlayPanel YOK');
+      }
+    } catch (e) {
+      TANI('!! openOverlayPanel PATLADI: ' + (e && e.message));
+      window.KISLA_KILIT = null; donusKaleici = false; return;
+    }
 
     var panel = document.getElementById('panel-troops');
     if (panel) panel.classList.add('kisla-kilit');
+    TANI('panel active=' + (panel && panel.classList.contains('active')));
 
     /* Panel açılışı TroopViewer.show() zincirini kurar; aileAc kilitten
        bağımsız tek kapıdır, aynı karede çağrılabilir. */
     if (window.TroopViewer && typeof window.TroopViewer.aileAc === 'function') {
-      window.TroopViewer.aileAc(aile);
+      try {
+        window.TroopViewer.aileAc(aile);
+        TANI('aileAc bitti');
+      } catch (e) { TANI('!! aileAc PATLADI: ' + (e && e.message)); }
+    } else {
+      TANI('!! TroopViewer.aileAc YOK (index.html eski mi?)');
     }
     kilitIzle();
+    TANI('egitimAc tamam');
   }
 
   /* Panel kapanınca kilit kalkar. Alt menüdeki Birlikler düğmesiyle
@@ -849,6 +901,7 @@
       window.KISLA_KILIT = null;
       panel.classList.remove('kisla-kilit');
       duraklat = false;
+      TANI('panel kapandi -> kaleiciye donuluyor');
       kaleiciyeDon();
     });
     kilitGozcu.observe(panel, { attributes: true, attributeFilter: ['class'] });
