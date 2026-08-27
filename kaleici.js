@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-27';
+  var SURUM = 'kaleici-28';
 
   var CFG = {
     grid: 13,
@@ -28,13 +28,15 @@
   /* ---- Binalar: konum = sol üst karo, en/boy = kapladığı karo ----
      gorsel: kök dizindeki .webp dosya adı. Dosya yoksa emojiye döner.  */
   var BINALAR = [
-    { id: 'kale',      ad: 'Ana Kale',         emoji: '🏰', gorsel: 'anakale.webp',       gx: -2, gy: 6,  en: 3, boy: 3, olcek: 0.66 },
+    /* 2x2 · görsel boyu 3x3'teki gibi kalsın diye olcek 0.66 → 0.99
+       (genişlik karo sayısıyla çarpılıyor: 2 x 0.99 = 3 x 0.66) */
+    { id: 'kale',      ad: 'Ana Kale',         emoji: '🏰', gorsel: 'anakale.webp',       gx: -2, gy: 6,  en: 2, boy: 2, olcek: 0.99 },
     { id: 'sovalye',   ad: 'Savunucu Kışlası', emoji: '⚔️', gorsel: 'savunucukisla.webp', gx: 2,  gy: 6,  en: 2, boy: 2, olcek: 0.66 },
     { id: 'asker',     ad: 'Koruyucu Kışlası', emoji: '🛡️', gorsel: 'koruyucukisla.webp', gx: 2,  gy: 3,  en: 2, boy: 2, olcek: 0.66 },
     { id: 'robot',     ad: 'Nişancı Kışlası',  emoji: '🤖', gorsel: 'nisancikisla.webp',  gx: 2,  gy: 9,  en: 2, boy: 2, olcek: 0.66 },
     { id: 'arastirma', ad: 'Araştırma',        emoji: '🔬', gorsel: 'arastirma.webp',     gx: -4, gy: 3,  en: 2, boy: 2, olcek: 0.66 },
     { id: 'fuze',      ad: 'Füze Merkezi',     emoji: '🚀', gorsel: 'fuzemerkezi.webp',   gx: -1, gy: 3,  en: 2, boy: 2, olcek: 0.66 },
-    { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: -6, gy: 1,  en: 2, boy: 2, olcek: 0.66 },
+    { id: 'konuk',     ad: 'Konuk Evleri',     emoji: '🏘️', gorsel: 'konukevleri.webp',   gx: -6, gy: 1,  en: 2, boy: 2, olcek: 0.60 },
     { id: 'oyun',      ad: 'Oyun Merkezi',     emoji: '🎲', gorsel: 'oyunmerkezi.webp',   gx: 5,  gy: 8,  en: 2, boy: 2, olcek: 0.66 },
     { id: 'ittifak',   ad: 'İttifak Binası',   emoji: '🤝', gorsel: 'ittifakbinasi.webp', gx: 5,  gy: 5,  en: 2, boy: 2, olcek: 0.66 },
     { id: 'hastane',   ad: 'Hastane',          emoji: '🏥', gorsel: 'hastanebina.webp',   gx: -7, gy: 7,  en: 2, boy: 2, olcek: 0.66 },
