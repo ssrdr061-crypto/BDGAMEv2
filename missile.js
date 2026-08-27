@@ -362,6 +362,27 @@
     boom.style.top  = by;
   }
 
+  /* ---------- TANI BANDI (?fuzetani=1) ----------
+     Telefonda konsol yok. Bu bant yalnız adres satırında fuzetani=1
+     varken çizilir; kapalıyken hiçbir şey yapmaz. İş bitince blok
+     silinecek — kalıcı değil. */
+  const TANI = (function () {
+    try { return location.search.indexOf("fuzetani=1") >= 0; } catch (e) { return false; }
+  })();
+  let _taniKutu = null;
+  function tani(mesaj) {
+    if (!TANI) return;
+    if (!_taniKutu) {
+      _taniKutu = document.createElement("div");
+      _taniKutu.style.cssText =
+        "position:fixed;left:6px;right:6px;top:250px;z-index:99999;" +
+        "background:rgba(0,0,0,.85);color:#9f9;font:11px/1.35 monospace;" +
+        "padding:6px 8px;border-radius:6px;pointer-events:none;white-space:pre-wrap;";
+      document.body.appendChild(_taniKutu);
+    }
+    _taniKutu.textContent = (_taniKutu.textContent + "\n" + mesaj).split("\n").slice(-12).join("\n");
+  }
+
   /* ---------- PATLAMA GIF'İ ÖN YÜKLEME ----------
      Sorun: her patlamada src'ye "?t=" ekliyorduk. Bu, GIF'in baştan
      oynaması için gerekliydi ama sorgu farklı olduğu için tarayıcı
@@ -385,10 +406,21 @@
   function patlamaOnYukle() {
     const src = SPRITE.impact;
     if (!src || src.startsWith("data:") || _patlamaBlob) return;
-    fetch(src)
-      .then(r => r.ok ? r.blob() : null)
-      .then(b => { if (b) _patlamaBlob = b; })
-      .catch(() => {}); // başarısızsa eski yola düşer, sadece gecikmeli olur
+    /* Dosya adı adayları sırayla denenir; ilk bulunan SPRITE.impact
+       olarak sabitlenir, sonraki patlamalar doğrudan onu kullanır. */
+    const adaylar = [src, "fuze_Fuze-patlama.gif", "fuze_fuze-patlama.gif"];
+    let i = 0;
+    (function dene() {
+      if (i >= adaylar.length) return;
+      const ad = adaylar[i++];
+      fetch(ad)
+        .then(r => r.ok ? r.blob() : null)
+        .then(b => {
+          if (b && b.size > 0) { _patlamaBlob = b; SPRITE.impact = ad; tani("blob OK " + ad + " " + b.size + "b"); }
+          else { tani("blob YOK " + ad); dene(); }
+        })
+        .catch(dene);
+    })();
   }
 
   /* Patlama görselini üretir. olcek: dış kutuya uygulanacak scale —
@@ -411,12 +443,37 @@
     }
     const sz = (SPRITE.impactSize || SPRITE.size) / olcek;
     img.style.cssText = "width:" + sz + "px;height:" + sz + "px;object-fit:contain;display:block;";
+    /* YEDEK ZİNCİRİ.
+       Eski kod önce img.remove() yapıp SONRA img.parentNode'a emoji
+       eklemeye çalışıyordu — remove() ebeveyni kopardığı için
+       parentNode null'dı ve ekrana HİÇBİR ŞEY gelmiyordu. Patlamanın
+       tamamen kaybolmasının sebebi buydu: dosya bulunamayınca yedek de
+       çizilmiyordu.
+       Ayrıca dosya adı denemesi: Vercel'de büyük/küçük harf ayrımı var,
+       roket dosyası "Fuze" büyük F ile duruyor. Sırayla denenir. */
+    const adaylar = [
+      SPRITE.impact,
+      "fuze_Fuze-patlama.gif",
+      "fuze_fuze-patlama.gif",
+      "fuzepatlama.gif"
+    ];
+    let sira = 0;
     img.onerror = () => {
+      const ebeveyn = img.parentNode;
+      sira++;
+      while (sira < adaylar.length && (!adaylar[sira] || adaylar[sira] === img.dataset.son)) sira++;
+      if (sira < adaylar.length) {
+        img.dataset.son = adaylar[sira];
+        img.src = adaylar[sira] + "?t=" + Date.now();
+        return;
+      }
       img.remove();
-      const d = document.createElement("div");
-      d.textContent = "💥";
-      d.style.cssText = "font-size:" + (64 / olcek) + "px;line-height:1;";
-      img.parentNode && img.parentNode.appendChild(d);
+      if (ebeveyn) {
+        const d = document.createElement("div");
+        d.textContent = "💥";
+        d.style.cssText = "font-size:" + (64 / olcek) + "px;line-height:1;";
+        ebeveyn.appendChild(d);
+      }
     };
     return img;
   }
@@ -437,8 +494,10 @@
      geliyor, derinlik sıralaması (zIndex) da doğru çıkıyor. */
   function patlat(tx, ty, targetName) {
     const m = document.getElementById("battleMap");
+    tani("patlat(" + tx + "," + ty + ") map=" + (m ? "var" : "YOK"));
     if (!m) return;
     const H = isoHarita();
+    tani("iso=" + (H ? "var" : "YOK") + " blob=" + (_patlamaBlob ? "var" : "YOK"));
 
     if (H) {
       const C = H.CFG || {};
@@ -465,6 +524,17 @@
 
       m.appendChild(dis);
       H.dugumleriYerlestir();   // ilk konum
+      setTimeout(function () {
+        if (!TANI) return;
+        const r = dis.getBoundingClientRect();
+        const cs = getComputedStyle(dis);
+        const im = dis.querySelector("img");
+        tani("node bagli=" + dis.isConnected +
+             " kutu=" + Math.round(r.left) + "," + Math.round(r.top) +
+             " " + Math.round(r.width) + "x" + Math.round(r.height) +
+             "\ndisplay=" + cs.display + " z=" + cs.zIndex + " op=" + cs.opacity +
+             "\nimg=" + (im ? (im.naturalWidth + "x" + im.naturalHeight) : "YOK"));
+      }, 120);
 
       // Sadece renderBattleMap DOM'u silerse geri tak. Konumlandırma
       // artık bizim işimiz değil.
