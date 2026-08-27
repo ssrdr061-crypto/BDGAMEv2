@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-1";
+  var SURUM = "insaat-2";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -333,6 +333,31 @@
     catch (e) { return String(n || 0); }
   }
 
+  /* Kutucuklar dar — 9.360.000 sigmaz. Ust seritteki bicimin aynisi:
+     1.000 alti tam sayi, sonrasi K ve M, ondalik virgullu. */
+  function kisaSayi(n) {
+    n = Number(n) || 0;
+    var i = n < 0 ? "-" : "";
+    n = Math.abs(n);
+    if (n >= 1e6) return i + (n / 1e6).toFixed(1).replace(".", ",").replace(",0", "") + "M";
+    if (n >= 1e3) return i + (n / 1e3).toFixed(1).replace(".", ",").replace(",0", "") + "K";
+    return i + String(Math.round(n));
+  }
+
+  /* Bir kaynak binasinin verdigi DAKIKALIK uretim. Taban uretim.js'te
+     (URETIM.HIZ), her seviye URETIM_ARTIS kadar carpilir. URETIM
+     yuklenmemisse 0 doner ve satir hic yazilmaz. */
+  function dkUretim(binaId, sv) {
+    var kay = URETTIGI[binaId];
+    if (!kay) return 0;
+    var taban = 0;
+    try {
+      if (window.URETIM && window.URETIM.HIZ) taban = window.URETIM.HIZ[kay] || 0;
+    } catch (e) {}
+    if (!taban) return 0;
+    return Math.round(taban * Math.pow(URETIM_ARTIS, Math.max(0, sv - 1)));
+  }
+
   function sureYaz(ms) {
     var t = Math.max(0, Math.round(ms / 1000));
     var g = Math.floor(t / 86400);
@@ -371,34 +396,51 @@
      PANEL
      ═══════════════════════════════════════════════════════════ */
 
+  /* ── ALT SAYFA ──
+     Panel ARTIK ekranin ortasinda degil. Alttan yukari kayarak acilir ve
+     nav-dock'un HEMEN USTUNDE durur; harita gorunur kalir, karartma yok.
+     `bottom` degeri acilista OLCULUP px olarak yazilir — dock gizlenince
+     degisken sifira dustugu icin degiskene guvenilmiyor.
+     3B yok: cerceve yok, gradient yok, tek yumusak golge. */
   var CSS =
-    '#insaatModal{position:fixed;inset:0;z-index:9600;display:flex;' +
-      'align-items:center;justify-content:center;background:rgba(4,14,28,.62);' +
-      'font-family:"Baloo 2","Nunito",sans-serif;}' +
-    '#insaatModal .ins-kart{width:min(88vw,360px);max-height:82vh;overflow-y:auto;' +
-      'background:linear-gradient(180deg,#123049,#0d2438);border:1px solid rgba(190,240,255,.20);' +
-      'border-radius:14px;padding:16px 14px 14px;position:relative;' +
-      'box-shadow:0 2px 6px rgba(0,20,45,.3);color:#eaf6ff;}' +
-    '#insaatModal .ins-kapat{position:absolute;top:8px;right:10px;width:28px;height:28px;' +
+    '#insaatModal{position:fixed;left:0;right:0;z-index:39;' +
+      'font-family:"Baloo 2","Nunito",sans-serif;pointer-events:none;}' +
+    '#insaatModal .ins-kart{pointer-events:auto;' +
+      'max-height:62vh;overflow-y:auto;overflow-x:hidden;' +
+      'background:#0d2438;border:none;' +
+      'border-radius:16px 16px 0 0;padding:14px 14px 12px;position:relative;' +
+      'box-shadow:0 2px 6px rgba(0,20,45,.3);color:#eaf6ff;' +
+      'transform:translateY(102%);transition:transform .22s cubic-bezier(.2,.9,.3,1);}' +
+    '#insaatModal.acik .ins-kart{transform:translateY(0);}' +
+    '#insaatModal .ins-kapat{position:absolute;top:10px;right:12px;width:28px;height:28px;' +
       'border:none;border-radius:8px;background:rgba(255,255,255,.10);color:#eaf6ff;' +
       'font-size:15px;line-height:1;cursor:pointer;}' +
-    '#insaatModal .ins-bas{font-size:17px;font-weight:800;margin:0 26px 2px 0;' +
+    '#insaatModal .ins-bas{font-size:17px;font-weight:800;margin:0 32px 2px 0;' +
       'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
     '#insaatModal .ins-sv{font-size:13px;font-weight:700;color:#9fd6ef;margin-bottom:10px;' +
       'font-variant-numeric:tabular-nums;}' +
-    '#insaatModal .ins-satir{display:flex;align-items:center;gap:8px;padding:5px 8px;' +
-      'border-radius:8px;background:rgba(255,255,255,.05);margin-bottom:5px;font-size:14px;' +
+
+    /* ── GEREKSINIM KUTUCUKLARI ──
+       Eski yatay satir (simge · ad · miktar) kalkti. Artik yan yana
+       kutucuk: ustte gorsel + ad, altta kisaltilmis miktar. */
+    '#insaatModal .ins-kutular{display:flex;gap:8px;margin-bottom:10px;}' +
+    '#insaatModal .ins-kutu{flex:1 1 0;min-width:0;border:none;border-radius:10px;' +
+      'background:rgba(255,255,255,.06);padding:8px 6px 7px;text-align:center;}' +
+    '#insaatModal .ins-kutu .ins-ust{display:flex;align-items:center;justify-content:center;' +
+      'gap:5px;font-size:12.5px;font-weight:700;color:#cfe6f5;white-space:nowrap;' +
+      'overflow:hidden;text-overflow:ellipsis;}' +
+    '#insaatModal .ins-kutu .ins-mik{margin-top:4px;font-size:17px;font-weight:800;' +
+      'color:#eaf6ff;font-variant-numeric:tabular-nums;}' +
+    '#insaatModal .ins-kutu.eksik .ins-mik{color:#ff8b8f;}' +
+
+    '#insaatModal .ins-sure{margin:2px 0 4px;font-size:14px;font-weight:700;color:#ffd76a;' +
       'font-variant-numeric:tabular-nums;}' +
-    '#insaatModal .ins-satir .ins-ad{flex:1 1 auto;color:#cfe6f5;}' +
-    '#insaatModal .ins-satir .ins-mik{font-weight:800;}' +
-    '#insaatModal .ins-satir.eksik .ins-mik{color:#ff8b8f;}' +
-    '#insaatModal .ins-sure{margin:9px 0 4px;font-size:14px;font-weight:700;color:#ffd76a;' +
+    '#insaatModal .ins-not{font-size:12.5px;line-height:1.45;color:#ffb3b6;margin:6px 0 2px;}' +
+    '#insaatModal .ins-bilgi{font-size:12.5px;line-height:1.45;color:#9fd6ef;margin:6px 0 2px;' +
       'font-variant-numeric:tabular-nums;}' +
-    '#insaatModal .ins-not{font-size:12.5px;line-height:1.45;color:#ffb3b6;margin:8px 0 2px;}' +
-    '#insaatModal .ins-bilgi{font-size:12.5px;line-height:1.45;color:#9fd6ef;margin:8px 0 2px;}' +
     '#insaatModal .ins-dugmeler{display:flex;gap:8px;margin-top:12px;}' +
-    '#insaatModal .ins-btn{flex:1 1 0;border:none;border-radius:10px;padding:11px 8px;' +
-      'font-family:inherit;font-size:14.5px;font-weight:800;cursor:pointer;' +
+    '#insaatModal .ins-btn{flex:1 1 0;border:none;border-radius:10px;padding:12px 8px;' +
+      'font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;' +
       'text-shadow:0 1px 2px rgba(0,20,45,.35);' +
       'transition:transform .09s ease,filter .09s ease;}' +
     '#insaatModal .ins-btn:active{transform:scale(.96);filter:brightness(.93);}' +
@@ -407,7 +449,9 @@
     '#insaatModal .ins-yesil{background:#3fbf6a;color:#08331b;}' +
     '#insaatModal .ins-sari{background:#ffc61a;color:#3a2600;}' +
     '#insaatModal .ins-geri{font-size:26px;font-weight:800;color:#ffd76a;text-align:center;' +
-      'margin:14px 0 4px;font-variant-numeric:tabular-nums;}';
+      'margin:10px 0 4px;font-variant-numeric:tabular-nums;}' +
+    '#insaatModal .ins-kutu img.kay-sim{width:15px;height:15px;object-fit:contain;' +
+      'vertical-align:-2px;}';
 
   function stilBas() {
     if (document.getElementById("insaatCSS")) return;
@@ -419,9 +463,27 @@
 
   var _sayac = null;
 
+  /* position:fixed oldugu icin offsetParent null doner (Tuzak 31);
+     olcu offsetHeight'tan alinir. Dock gizliyse 0 gelir ve panel
+     ekranin dibine oturur — sabit bir sayi yazmak yanlis olurdu. */
+  function dockYuksekligi() {
+    try {
+      var d = document.querySelector(".nav-dock");
+      if (d && d.offsetHeight > 0) return d.offsetHeight;
+    } catch (e) {}
+    return 0;
+  }
+
   function kapat() {
     var m = document.getElementById("insaatModal");
-    if (m) m.remove();
+    if (m) {
+      m.classList.remove("acik");
+      /* Kayarak kapansin; kaldirma gecise birakilir. Kart yoksa
+         (eski surumden kalma dugum) hemen silinir. */
+      var k = m.querySelector(".ins-kart");
+      if (k) setTimeout(function () { if (m.parentNode) m.remove(); }, 240);
+      else m.remove();
+    }
     if (_sayac) { clearInterval(_sayac); _sayac = null; }
   }
 
@@ -438,17 +500,28 @@
     kok.innerHTML = '<div class="ins-kart"><button class="ins-kapat" type="button">✕</button>' +
                     '<div class="ins-govde"></div></div>';
 
-    /* Hayalet tıklama koruması — düğme pointerup ile tetikleniyor,
-       parmak kalkınca aynı noktaya bir click daha geliyor. */
-    kok.style.pointerEvents = "none";
-    setTimeout(function () { kok.style.pointerEvents = ""; }, 350);
+    /* Panel nav-dock'un USTUNDE dursun. Dock gizliyse olcu 0 gelir
+       (Tuzak 15) — o zaman ekranin dibine oturur. position:fixed
+       oldugu icin offsetParent null'dir, offsetHeight kullaniliyor. */
+    kok.style.bottom = dockYuksekligi() + "px";
 
     document.body.appendChild(kok);
 
     kok.querySelector(".ins-kapat").addEventListener("click", kapat);
-    kok.addEventListener("click", function (e) { if (e.target === kok) kapat(); });
 
     ciz(id);
+
+    /* Kayarak acilis: sinif bir sonraki karede eklenir, yoksa
+       tarayici baslangic durumunu hic gormeden son hale atlar. */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { kok.classList.add("acik"); });
+    });
+
+    /* Hayalet tiklama korumasi — dugme pointerup ile tetikleniyor,
+       parmak kalkinca ayni noktaya bir click daha geliyor (Tuzak 29). */
+    var kart = kok.querySelector(".ins-kart");
+    kart.style.pointerEvents = "none";
+    setTimeout(function () { kart.style.pointerEvents = ""; }, 350);
 
     _sayac = setInterval(function () {
       if (!document.body.contains(kok)) { clearInterval(_sayac); _sayac = null; return; }
@@ -499,23 +572,29 @@
     if (!b) { govde.innerHTML = h; return; }
 
     var cuzdan = state.kaynaklar || {};
+    var kutular = "";
     Object.keys(b.kaynaklar).forEach(function (k) {
       var gerek = b.kaynaklar[k];
       if (!gerek) return;
       var yeter = (cuzdan[k] || 0) >= gerek;
-      h += '<div class="ins-satir' + (yeter ? "" : " eksik") + '">' +
-             simge(k) +
-             '<span class="ins-ad">' + K_ADI[k] + '</span>' +
-             '<span class="ins-mik">' + sayi(gerek) + '</span>' +
-           '</div>';
+      kutular += '<div class="ins-kutu' + (yeter ? "" : " eksik") + '">' +
+                   '<div class="ins-ust">' + simge(k) +
+                     '<span>' + K_ADI[k] + '</span></div>' +
+                   '<div class="ins-mik">' + kisaSayi(gerek) + '</div>' +
+                 '</div>';
     });
+    if (kutular) h += '<div class="ins-kutular">' + kutular + '</div>';
 
     h += '<div class="ins-sure">⏱ ' + dkYaz(b.dk) + '</div>';
 
-    /* Üretim kazancı — yalnız kaynak binalarında */
-    if (URETTIGI[id]) {
-      var art = Math.round((URETIM_ARTIS - 1) * 100);
-      h += '<div class="ins-bilgi">Üretim +%' + art + '</div>';
+    /* Uretim — yalniz kaynak binalarinda. Yuzde degil GERCEK sayi:
+       simdiki dakikalik uretim ve yukseltmenin getirecegi artis.
+       Kisla/Arastirma/Ana Kale kaynak uretmez, satir hic yazilmaz. */
+    var simdiki = dkUretim(id, sv);
+    if (simdiki > 0) {
+      var artis = dkUretim(id, hedef) - simdiki;
+      h += '<div class="ins-bilgi">Üretim ' + sayi(simdiki) + '/dk · +' +
+           sayi(artis) + '/dk</div>';
     }
 
     /* Ana Kale kapısı — hangi bina eksik, açıkça yaz */

@@ -7368,3 +7368,132 @@ setTimeout(uygula, 2500);
     }, 300);
   }
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   KALE GÖRSELİ İNCE AYAR — GEÇİCİ  (?kaleayar=1)
+   Haritadaki kale görselinin ölçüsü index.html'de SABİT 100×100 px
+   (.map-node.castle-node .node-avatar). Her seviyenin görselindeki
+   şeffaf boşluk farklı olduğu için tek ölçü hepsine oturmuyor.
+
+   Bu blok seviye seviye ölçü ve dikey kaydırma denemeye yarar.
+   Değerler beğenilince index.html'e kalıcı yazılır ve BU BLOK SİLİNİR.
+   (tema.js sonundaki olcumBlogu ile aynı mantık.)
+
+   Ölçü node-avatar'a satır içi yazılır; düğümler yeniden çizildiğinde
+   silineceği için saniyede bir yeniden uygulanır.
+   ═══════════════════════════════════════════════════════════════════ */
+(function () {
+  "use strict";
+  try {
+    if (location.search.indexOf("kaleayar=1") < 0) return;
+  } catch (e) { return; }
+
+  /* Seviye başına { boy, dy } — boy px, dy dikey kaydırma px */
+  var AYAR = { 1:{boy:100,dy:0}, 2:{boy:100,dy:0}, 3:{boy:100,dy:0},
+               4:{boy:100,dy:0}, 5:{boy:100,dy:0} };
+  var aktif = 2;
+
+  function svOku(node) {
+    var e = node.querySelector(".node-label");
+    var n = e ? parseInt(e.getAttribute("data-sv"), 10) : 1;
+    return (n >= 1 && n <= 5) ? n : 1;
+  }
+
+  /* Satır içi yazılıyor: CSS enjeksiyon sırasına güvenmek gerekmiyor
+     ve düğüm yeniden çizilince kendiliğinden temizleniyor. */
+  function uygula() {
+    var liste = document.querySelectorAll("#battleMap .map-node.castle-node");
+    for (var i = 0; i < liste.length; i++) {
+      var sv = svOku(liste[i]);
+      var a = AYAR[sv];
+      var av = liste[i].querySelector(".node-avatar");
+      if (!av || !a) continue;
+      av.style.width  = a.boy + "px";
+      av.style.height = a.boy + "px";
+      av.style.transform = "translateY(" + a.dy + "px)";
+    }
+  }
+
+  var PCSS =
+    "#kaleAyar{position:fixed;left:8px;bottom:120px;z-index:9999;width:224px;" +
+      "background:#0d2438;color:#eaf6ff;border:none;border-radius:12px;" +
+      "padding:10px 11px 11px;font:600 12.5px/1.35 'Baloo 2',sans-serif;" +
+      "box-shadow:0 2px 6px rgba(0,20,45,.3);font-variant-numeric:tabular-nums}" +
+    "#kaleAyar .ka-sv{display:flex;gap:4px;margin-bottom:8px}" +
+    "#kaleAyar .ka-sv button{flex:1 1 0;border:none;border-radius:7px;padding:5px 0;" +
+      "background:rgba(255,255,255,.10);color:#eaf6ff;font:inherit;cursor:pointer}" +
+    "#kaleAyar .ka-sv button.on{background:#3fbf6a;color:#08331b}" +
+    "#kaleAyar label{display:block;margin:7px 0 2px;color:#9fd6ef}" +
+    "#kaleAyar input[type=range]{width:100%;margin:0}" +
+    "#kaleAyar .ka-ozet{margin-top:9px;padding:6px 7px;border-radius:8px;" +
+      "background:rgba(255,255,255,.06);font-size:11.5px;line-height:1.5;" +
+      "white-space:pre;color:#cfe6f5}" +
+    "#kaleAyar .ka-kapat{position:absolute;top:7px;right:8px;border:none;" +
+      "background:none;color:#9fd6ef;font-size:14px;cursor:pointer;padding:0}";
+
+  function ozetYaz() {
+    var t = "";
+    for (var n = 1; n <= 5; n++) t += "Sv" + n + ": " + AYAR[n].boy + "px  dy " + AYAR[n].dy + "\n";
+    var e = document.getElementById("kaOzet");
+    if (e) e.textContent = t.replace(/\n$/, "");
+  }
+
+  function tazele() {
+    document.getElementById("kaBoy").value  = AYAR[aktif].boy;
+    document.getElementById("kaDy").value   = AYAR[aktif].dy;
+    document.getElementById("kaBoyD").textContent = AYAR[aktif].boy + "px";
+    document.getElementById("kaDyD").textContent  = AYAR[aktif].dy + "px";
+    var b = document.querySelectorAll("#kaleAyar .ka-sv button");
+    for (var i = 0; i < b.length; i++) b[i].className = (i + 1 === aktif) ? "on" : "";
+    uygula(); ozetYaz();
+  }
+
+  function kur() {
+    if (document.getElementById("kaleAyar")) return;
+    var st = document.createElement("style");
+    st.textContent = PCSS;
+    document.head.appendChild(st);
+
+    var p = document.createElement("div");
+    p.id = "kaleAyar";
+    p.innerHTML =
+      '<button class="ka-kapat" type="button">✕</button>' +
+      '<div class="ka-sv">' +
+        '<button type="button" data-sv="1">1</button>' +
+        '<button type="button" data-sv="2">2</button>' +
+        '<button type="button" data-sv="3">3</button>' +
+        '<button type="button" data-sv="4">4</button>' +
+        '<button type="button" data-sv="5">5</button>' +
+      '</div>' +
+      '<label>Boyut <span id="kaBoyD"></span></label>' +
+      '<input type="range" id="kaBoy" min="60" max="240" step="2">' +
+      '<label>Dikey kaydırma <span id="kaDyD"></span></label>' +
+      '<input type="range" id="kaDy" min="-50" max="50" step="1">' +
+      '<div class="ka-ozet" id="kaOzet"></div>';
+    document.body.appendChild(p);
+
+    p.querySelector(".ka-kapat").addEventListener("click", function () { p.remove(); });
+    p.querySelectorAll(".ka-sv button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        aktif = parseInt(b.getAttribute("data-sv"), 10); tazele();
+      });
+    });
+    p.querySelector("#kaBoy").addEventListener("input", function () {
+      AYAR[aktif].boy = parseInt(this.value, 10); tazele();
+    });
+    p.querySelector("#kaDy").addEventListener("input", function () {
+      AYAR[aktif].dy = parseInt(this.value, 10); tazele();
+    });
+
+    tazele();
+    /* Düğümler yeniden çizilince satır içi ölçü silinir → geri koy. */
+    setInterval(uygula, 900);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { setTimeout(kur, 1200); });
+  } else {
+    setTimeout(kur, 1200);
+  }
+})();
