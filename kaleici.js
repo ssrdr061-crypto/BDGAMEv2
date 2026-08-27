@@ -197,7 +197,10 @@
       'font:600 12.5px/1 "Baloo 2",sans-serif;text-shadow:0 1px 2px rgba(0,20,45,.55);' +
       'box-shadow:none;transition:transform .09s,filter .09s}' +
     '#kaleiciGir.acik{display:block}' +
-    '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}';
+    '#kaleiciGir:active{transform:scale(.96);filter:brightness(.93)}' +
+    /* Kışladan girilen birlik paneli tek ailede kilitli — oklar anlamsız */
+    '#panel-troops.kisla-kilit #uvPrev,#panel-troops.kisla-kilit #uvNext,' +
+      '#panel-troops.kisla-kilit #uvDots{display:none}';
 
 
   var katman, tuval, ctx, panel, panelAd, girBtn;
@@ -771,27 +774,36 @@
      kaleiçiyi kapatmaya gerek yok. Aile geçişi rol düğmesinin kendi
      kapısından yapılır (go()); iki seçici hep aynı kalır. */
   function egitimAc(aile) {
+    /* KİLİT: panel o ailede kalsın — kaydırma ve oklar aile değiştirmez.
+       index.html'deki go() bu bayrağı okur. */
+    window.KISLA_KILIT = aile;
     try {
       if (typeof openOverlayPanel === 'function') openOverlayPanel('troops');
-    } catch (e) { return; }
-    /* Panel açılışı renderTroopsPanel + TroopViewer.show() zincirini
-       kurar; rol düğmeleri o karede doğar. Bir sonraki kareyi bekle. */
-    var dene = 0;
-    (function bekle() {
-      var btn = document.querySelector('#uvRoles .uv-role[data-i="' + aileSirasi(aile) + '"]');
-      if (btn) {
-        /* bindTap 'pointerup' dinler — .click() işe yaramaz (Tuzak: safeBind) */
-        btn.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
-        return;
-      }
-      if (++dene < 20) requestAnimationFrame(bekle);
-    })();
+    } catch (e) { window.KISLA_KILIT = null; return; }
+
+    var panel = document.getElementById('panel-troops');
+    if (panel) panel.classList.add('kisla-kilit');
+
+    /* Panel açılışı TroopViewer.show() zincirini kurar; aileAc kilitten
+       bağımsız tek kapıdır, aynı karede çağrılabilir. */
+    if (window.TroopViewer && typeof window.TroopViewer.aileAc === 'function') {
+      window.TroopViewer.aileAc(aile);
+    }
+    kilitIzle();
   }
 
-  /* Rol düğmesinin data-i değeri ORDER sırasıdır (knight, soldier, robot).
-     Sıra index.html'de sabit; burada tek yerde tutuluyor. */
-  function aileSirasi(aile) {
-    return aile === 'soldier' ? 1 : (aile === 'robot' ? 2 : 0);
+  /* Panel kapanınca kilit kalkar. Alt menüdeki Birlikler düğmesiyle
+     açılan panel kilitsizdir; bayrak orada kalsaydı kaydırma ölürdü. */
+  var kilitGozcu = null;
+  function kilitIzle() {
+    var panel = document.getElementById('panel-troops');
+    if (!panel || kilitGozcu) return;
+    kilitGozcu = new MutationObserver(function () {
+      if (panel.classList.contains('active')) return;
+      window.KISLA_KILIT = null;
+      panel.classList.remove('kisla-kilit');
+    });
+    kilitGozcu.observe(panel, { attributes: true, attributeFilter: ['class'] });
   }
 
   /* Dokunuş taşıma düğmesinin üstünde mi (parmak payı ile) */

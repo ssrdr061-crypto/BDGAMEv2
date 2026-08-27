@@ -1270,17 +1270,17 @@ body.world-active{padding:0; overflow:hidden;}
    yazıp flex'i ortalıyoruz. */
 .overlay-card h2.hospital-title{
   font-family:'Baloo 2',sans-serif; font-weight:800;
-  font-size:32px; letter-spacing:0px; text-transform:uppercase;
+  font-size:26px; letter-spacing:2px; text-transform:uppercase;
   color:#fff;
   display:flex; justify-content:center; align-items:center;
-  margin:6px 0 0; padding:0;            /* ✕ mutlak konumlu, akışı bozmaz */
+  margin:2px 0 12px; padding:0;            /* ✕ mutlak konumlu, akışı bozmaz */
   width:100%;
   text-shadow:0 3px 0 rgba(0,10,30,.55);
 }
 
 .hospital-heal-card{
   position:relative;
-  display:flex; align-items:center; gap:17px;
+  display:flex; align-items:center; gap:10px;
   padding:5px 10px; margin-bottom:8px;
   border-radius:13px;
   background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
@@ -1293,11 +1293,11 @@ body.world-active{padding:0; overflow:hidden;}
    değişkenlerden okunuyor; ayar panelinden orayı oynattığında
    hastane de aynı kadrajı alır. */
 .hospital-face{
-  position:relative; flex:0 0 48px;
-  width:48px; height:48px;
-  border-radius:11px; overflow:hidden;
+  position:relative; flex:0 0 52px;
+  width:52px; height:52px;
+  border-radius:14px; overflow:hidden;
   background:transparent;
-  border:1px solid rgba(190,240,255,.67);
+  border:1px solid rgba(190,240,255,.45);
 }
 .hospital-face img{
   width:200%; height:auto; display:block;
@@ -2399,10 +2399,6 @@ body.world-active{padding:0; overflow:hidden;}
       </div>
       <button class="uv-arrow uv-prev" id="uvPrev" aria-label="Önceki">‹</button>
       <button class="uv-arrow uv-next" id="uvNext" aria-label="Sonraki">›</button>
-
-      <!-- ROL SEÇİCİ (Savunma / Güç / Nişan) — içeriği troops.js'teki
-           UNIT_ROLES'tan TroopViewer.buildRoles() doldurur -->
-      <div class="uv-roles" id="uvRoles"></div>
 
       <section class="unit-screen us-knight is-active" data-unit="knight">
         <div class="stage">
@@ -8481,10 +8477,23 @@ const TroopViewer = (function () {
 
   const unitTrainQty = {};
 
+  /* KIŞLA KİLİDİ: kaleiçindeki kışladan girildiyse ekran o ailede
+     kilitlenir — kaydırma ve oklar aile değiştirmez. Kilidi aşan tek
+     kapı aileAc(); kilidi kaleici.js kurar ve panel kapanınca siler. */
   function go(n) {
+    if (window.KISLA_KILIT) return;
     const len = ORDER.length;
     idx = ((n % len) + len) % len;
     apply();
+  }
+
+  /* Doğrudan aileye geç (kilitten bağımsız). u = "knight"|"soldier"|"robot" */
+  function aileAc(u) {
+    init();
+    const i = ORDER.indexOf(u);
+    if (i < 0) return;
+    idx = i;
+    requestAnimationFrame(() => { apply(true); });
   }
 
   function show() {
@@ -8517,7 +8526,7 @@ const TroopViewer = (function () {
 
   window.addEventListener("resize", () => { });
 
-  return { init, show, hide, next: () => go(idx + 1), prev: () => go(idx - 1) };
+  return { init, show, hide, aileAc, next: () => go(idx + 1), prev: () => go(idx - 1) };
 })();
 
 setupNav();
