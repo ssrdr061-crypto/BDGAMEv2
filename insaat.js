@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-5";
+  var SURUM = "insaat-6";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -503,102 +503,114 @@
      `bottom` degeri acilista OLCULUP px olarak yazilir — dock gizlenince
      degisken sifira dustugu icin degiskene guvenilmiyor.
      3B yok: cerceve yok, gradient yok, tek yumusak golge. */
+  /* Tema ELLE taklit edilmiyor: renkler index.html'deki .overlay-card,
+     .overlay-close ve .hsm-* kurallarindan alindi. Oyunun her yerinde
+     ayni kart mavisi, ayni kirmizi capraz, ayni altin dugme. */
   var CSS =
-    /* Tam ekran karartma; kart ORTADA. z-index 45 — kaleici acikken
-       nav-dock 40'a cikiyor, altinda kalmasin diye. */
     '.ins-modal{position:fixed;inset:0;z-index:45;' +
-      'display:flex;align-items:center;justify-content:center;padding:16px;' +
-      'background:rgba(0,20,45,.55);opacity:0;transition:opacity .18s ease;' +
+      'display:flex;align-items:center;justify-content:center;padding:18px;' +
+      'background:rgba(2,10,26,.72);opacity:0;transition:opacity .18s ease;' +
       'font-family:"Baloo 2","Nunito",sans-serif;pointer-events:none;}' +
     '.ins-modal.acik{opacity:1;}' +
 
-    '.ins-modal .ins-kart{pointer-events:auto;width:100%;max-width:400px;' +
-      'max-height:84vh;display:flex;flex-direction:column;overflow:hidden;' +
+    '.ins-modal .ins-kart{pointer-events:auto;position:relative;' +
+      'width:100%;max-width:340px;max-height:86vh;' +
+      'display:flex;flex-direction:column;overflow:hidden;' +
       'background:linear-gradient(180deg,#1fa3ea,#0e6fc0);' +
-      'border:1px solid rgba(190,240,255,.85);border-radius:16px;' +
-      'box-shadow:0 2px 6px rgba(0,20,45,.3);color:#eaf7ff;' +
+      'border:1px solid rgba(190,240,255,.85);border-radius:22px;' +
+      'box-shadow:none;color:#fff;' +
       'transform:scale(.94);opacity:0;' +
       'transition:transform .2s cubic-bezier(.2,.9,.3,1),opacity .2s ease;}' +
     '.ins-modal.acik .ins-kart{transform:scale(1);opacity:1;}' +
 
-    /* ── BASLIK SERIDI ── */
-    '.ins-modal .ins-baslik{position:relative;flex:0 0 auto;padding:11px 44px 10px;' +
-      'background:rgba(0,20,45,.28);border-bottom:1px solid rgba(190,240,255,.18);}' +
-    '.ins-modal .ins-bas{font-size:17px;font-weight:800;text-align:center;' +
-      'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
-    '.ins-modal .ins-kapat{position:absolute;top:8px;right:10px;width:28px;height:28px;' +
-      'border:none;border-radius:8px;background:#e03b47;color:#ffffff;' +
-      'font-size:15px;line-height:1;cursor:pointer;font-family:inherit;}' +
+    /* Baslik: seritsiz. .overlay-card h2 ile ayni olcu ve golge. */
+    '.ins-modal .ins-baslik{position:relative;flex:0 0 auto;padding:15px 52px 8px 16px;}' +
+    '.ins-modal .ins-bas{font-size:19px;font-weight:900;' +
+      'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
+    '.ins-modal .ins-kapat{position:absolute;top:12px;right:12px;' +
+      'width:34px;height:34px;border-radius:10px;' +
+      'background:linear-gradient(180deg,#f03434,#c00d0d);' +
+      'border:1px solid rgba(255,220,220,.9);color:#fff;' +
+      'font-size:17px;font-weight:900;cursor:pointer;font-family:inherit;' +
+      'display:flex;align-items:center;justify-content:center;}' +
+    '.ins-modal .ins-kapat:active{transform:scale(.92);}' +
 
-    /* Kaydirma GOVDEDE. Tuzak 26: overflow yatayda da kirpar, bu yuzden
-       govde icinde tasan sus yok. */
     '.ins-modal .ins-govde{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;' +
-      'padding:12px 12px 12px;}' +
+      'padding:2px 16px 16px;}' +
 
-    /* ── SEVIYE ROZETLERI ── */
+    /* ── SEVIYE ROZETLERI ── kart olcusu .hsm-card-item ile ayni aile */
     '.ins-modal .ins-rozetler{display:flex;align-items:center;justify-content:center;' +
-      'gap:12px;margin:2px 0 8px;}' +
-    '.ins-modal .ins-roz{width:46px;height:46px;border-radius:12px;' +
+      'gap:10px;margin:2px 0 8px;}' +
+    '.ins-modal .ins-roz{width:40px;height:40px;border-radius:13px;' +
       'display:flex;align-items:center;justify-content:center;' +
-      'font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;' +
-      'background:rgba(0,20,45,.30);color:#cfeaff;' +
-      'border:1px solid rgba(190,240,255,.20);' +
-      'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
-    '.ins-modal .ins-roz.hedef{background:#3fbf6a;color:#ffffff;border-color:rgba(255,255,255,.35);}' +
-    '.ins-modal .ins-ok{font-size:18px;font-weight:800;color:#5ef08c;}' +
+      'font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;' +
+      'background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);' +
+      'border:1px solid rgba(190,240,255,.35);color:#dff2ff;' +
+      'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
+    '.ins-modal .ins-roz.hedef{background:linear-gradient(180deg,#5ce07a,#22a34a);' +
+      'border-color:rgba(255,255,255,.45);color:#fff;}' +
+    '.ins-modal .ins-ok{font-size:16px;font-weight:900;color:#dff2ff;}' +
 
-    '.ins-modal .ins-cubuk{height:9px;border-radius:6px;overflow:hidden;' +
-      'background:rgba(0,20,45,.30);margin:0 0 12px;}' +
-    '.ins-modal .ins-cubuk i{display:block;height:100%;background:#3fbf6a;border-radius:6px;}' +
+    '.ins-modal .ins-cubuk{height:8px;border-radius:9px;overflow:hidden;' +
+      'background:rgba(3,16,38,.55);margin:0 0 10px;}' +
+    '.ins-modal .ins-cubuk i{display:block;height:100%;' +
+      'background:linear-gradient(180deg,#5ce07a,#22a34a);border-radius:9px;}' +
 
-    /* ── BOLUM BASLIGI ── */
-    '.ins-modal .ins-bolum{font-size:13.5px;font-weight:800;text-align:center;' +
-      'padding:6px 8px;border-radius:10px;margin:10px 0 6px;' +
-      'background:rgba(0,20,45,.24);color:#cfeaff;' +
-      'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
+    '.ins-modal .ins-bolum{font-size:13px;font-weight:800;letter-spacing:.6px;' +
+      'text-align:center;color:#dff2ff;margin:12px 0 6px;}' +
 
-    /* ── SATIR (bonus ve gereksinim ortak) ── */
+    /* ── SATIR ── */
     '.ins-modal .ins-satir{display:flex;align-items:center;gap:8px;' +
-      'padding:7px 8px;border-radius:10px;margin-bottom:4px;' +
-      'background:rgba(0,20,45,.16);}' +
-    '.ins-modal .ins-satir .ins-sol{flex:1 1 auto;min-width:0;font-size:13.5px;' +
-      'font-weight:700;color:#cfeaff;}' +
-    '.ins-modal .ins-satir .ins-sag{flex:0 0 auto;font-size:14px;font-weight:800;' +
-      'color:#ffffff;font-variant-numeric:tabular-nums;}' +
-    '.ins-modal .ins-satir .ins-sag b{color:#5ef08c;font-weight:800;}' +
-    '.ins-modal .ins-satir .ins-mik{flex:1 1 auto;font-size:14.5px;font-weight:800;' +
-      'color:#ffffff;font-variant-numeric:tabular-nums;' +
-      'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
-    '.ins-modal .ins-satir.eksik .ins-mik{color:#ff6b6b;}' +
-    '.ins-modal .ins-satir .ins-tik{flex:0 0 auto;font-size:15px;font-weight:800;' +
-      'color:#5ef08c;}' +
-    '.ins-modal .ins-satir.eksik .ins-tik{color:#ff6b6b;}' +
-    '.ins-modal .ins-satir .ins-ust{flex:0 0 30px;height:30px;line-height:30px;' +
-      'font-size:22px;text-align:center;}' +
-    '.ins-modal img.ins-sim{width:28px;height:28px;object-fit:contain;' +
-      'vertical-align:-7px;display:inline-block;}' +
+      'padding:5px 9px;border-radius:11px;margin-bottom:4px;' +
+      'background:rgba(3,16,38,.30);' +
+      'border:1px solid rgba(190,240,255,.14);}' +
+    '.ins-modal .ins-satir .ins-sol{flex:1 1 auto;min-width:0;font-size:13px;' +
+      'font-weight:800;color:#dff2ff;}' +
+    '.ins-modal .ins-satir .ins-sag{flex:0 0 auto;font-size:13.5px;font-weight:900;' +
+      'color:#fff;font-variant-numeric:tabular-nums;}' +
+    '.ins-modal .ins-satir .ins-sag b{color:#5ce07a;font-weight:900;}' +
+    '.ins-modal .ins-satir .ins-mik{flex:1 1 auto;font-size:13.5px;font-weight:900;' +
+      'color:#fff;font-variant-numeric:tabular-nums;' +
+      'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
+    '.ins-modal .ins-satir.eksik .ins-mik{color:#ff8b8f;}' +
+    '.ins-modal .ins-satir .ins-tik{flex:0 0 auto;font-size:14px;font-weight:900;' +
+      'color:#5ce07a;}' +
+    '.ins-modal .ins-satir.eksik .ins-tik{color:#ff8b8f;}' +
+    '.ins-modal .ins-satir .ins-ust{flex:0 0 26px;height:26px;line-height:26px;' +
+      'font-size:19px;text-align:center;}' +
+    '.ins-modal img.ins-sim{width:24px;height:24px;object-fit:contain;' +
+      'vertical-align:-6px;display:inline-block;}' +
 
-    '.ins-modal .ins-not{font-size:12.5px;line-height:1.45;color:#ffd0d2;margin:6px 0 2px;' +
+    '.ins-modal .ins-not{font-size:12px;line-height:1.4;color:#ffd0d2;margin:6px 0 2px;' +
       'text-align:center;}' +
-    '.ins-modal .ins-bilgi{font-size:12.5px;line-height:1.45;color:#cfeaff;margin:6px 0 2px;' +
+    '.ins-modal .ins-bilgi{font-size:12px;line-height:1.4;color:#dff2ff;margin:6px 0 2px;' +
       'text-align:center;font-variant-numeric:tabular-nums;}' +
 
-    /* ── DUGMELER ── */
-    '.ins-modal .ins-dugmeler{display:flex;gap:8px;margin-top:12px;}' +
+    /* ── DUGMELER ── olcu .hsm-btn ile ayni: 9px/6px dolgu, iki satir */
+    '.ins-modal .ins-dugmeler{display:flex;gap:9px;margin-top:12px;}' +
     '.ins-modal .ins-btn{flex:1 1 0;min-width:0;border:none;border-radius:12px;' +
-      'padding:9px 6px;font-family:inherit;font-size:15px;font-weight:800;' +
-      'cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;' +
-      'text-shadow:0 1px 2px rgba(0,20,45,.35);' +
-      'transition:transform .09s ease,filter .09s ease;}' +
-    '.ins-modal .ins-btn small{font-size:12px;font-weight:700;opacity:.92;' +
+      'padding:9px 6px;font-family:inherit;font-size:15px;font-weight:900;' +
+      'letter-spacing:.7px;color:#fff;cursor:pointer;' +
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;' +
+      'box-shadow:none;transition:transform .09s ease,filter .09s ease;}' +
+    '.ins-modal .ins-btn small{font-size:13px;font-weight:900;' +
       'font-variant-numeric:tabular-nums;}' +
     '.ins-modal .ins-btn:active{transform:scale(.96);filter:brightness(.93);}' +
     '.ins-modal .ins-btn[disabled]{opacity:.45;cursor:default;}' +
     '.ins-modal .ins-btn[disabled]:active{transform:none;filter:none;}' +
-    '.ins-modal .ins-yesil{background:#3fbf6a;color:#ffffff;}' +
-    '.ins-modal .ins-sari{background:#ffd257;color:#3a2600;text-shadow:none;}' +
-    '.ins-modal .ins-geri{font-size:26px;font-weight:800;color:#ffd257;text-align:center;' +
-      'margin:6px 0 4px;font-variant-numeric:tabular-nums;}';
+
+    /* Altin = bitirme (.hsm-finish), mavi = ikincil (.hsm-use), yesil = onay */
+    '.ins-modal .ins-altin{background:linear-gradient(180deg,#ffd257,#e0a12c);' +
+      'text-shadow:0 2px 0 rgba(120,70,0,.55);}' +
+    '.ins-modal .ins-altin small{text-shadow:0 2px 0 rgba(120,70,0,.55);}' +
+    '.ins-modal .ins-mavi{background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);' +
+      'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
+    '.ins-modal .ins-yesil{background:linear-gradient(180deg,#5ce07a,#22a34a);' +
+      'text-shadow:0 2px 0 rgba(0,60,20,.5);}' +
+
+    '.ins-modal .ins-geri{font-size:24px;font-weight:900;color:#ffd257;text-align:center;' +
+      'margin:4px 0 2px;font-variant-numeric:tabular-nums;' +
+      'text-shadow:0 2px 4px rgba(0,40,70,.6);}';
 
   function stilBas() {
     if (document.getElementById("insaatCSS")) return;
@@ -740,10 +752,11 @@
       h += '<div class="ins-geri">' + sureYaz(kalanMs(id)) + '</div>';
       var bm = Math.max(1, Math.ceil(kalanMs(id) / 60000)) * BITIR_DK_ELMAS;
       h += '<div class="ins-dugmeler">' +
-             '<button class="ins-btn ins-sari" data-is="hizlandir">⏩ HIZLANDIR</button>' +
-             '<button class="ins-btn ins-yesil" data-is="bitirSuren"' +
+             '<button class="ins-btn ins-altin" data-is="bitirSuren"' +
                (elmasVar() >= bm ? "" : " disabled") + '>BİTİR' +
                '<small>💎 ' + sayi(bm) + '</small></button>' +
+             '<button class="ins-btn ins-mavi" data-is="hizlandir">HIZLANDIR' +
+               '<small>⏩ hızlandırıcı</small></button>' +
            '</div>';
       govde.innerHTML = h;
       bagla(govde, id);
@@ -816,7 +829,7 @@
     }
 
     h += '<div class="ins-dugmeler">' +
-           '<button class="ins-btn ins-sari" data-is="bitir"' +
+           '<button class="ins-btn ins-altin" data-is="bitir"' +
              (bitirOlur ? "" : " disabled") + '>BİTİR' +
              '<small>💎 ' + (m ? sayi(m.elmas) : "-") + "</small></button>" +
            '<button class="ins-btn ins-yesil" data-is="basla"' +
