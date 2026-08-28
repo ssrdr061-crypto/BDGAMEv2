@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-39';
+  var SURUM = 'kaleici-40';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -824,7 +824,8 @@
     if (b !== secili) { tasiModu = false; tasiDokunus = 0; }
     secili = b;
     secimZaman = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-    if (b) binayaOdakla(b);
+    /* Seçimde kamera OYNAMAZ. Odaklama yalnız GELİŞTİR'e basınca olur;
+       binaya her dokunuşta ekranın kayması oyuncuyu yerinden ediyordu. */
     kareIste();
   }
 
@@ -834,8 +835,9 @@
      altında kalır ve dokunduğun şey görünmez olur. */
   var odakRaf = null;
 
-  function binayaOdakla(b) {
-    if (!b || !tuval || !katman || !katman.classList.contains('acik')) return;
+  function binayaOdakla(b, bitince) {
+    var bit = function () { if (typeof bitince === 'function') bitince(); };
+    if (!b || !tuval || !katman || !katman.classList.contains('acik')) { bit(); return; }
     var nk = taban(b);
     var hx = (nk[1].x + nk[3].x) / 2;
     var hy = (nk[0].y + nk[2].y) / 2;
@@ -844,7 +846,7 @@
     var kaydir = ((tuval.height / eb) * 0.16) / CFG.zoom;
     var bx = camX, by = camY;
     var hedefX = hx, hedefY = hy + kaydir;
-    if (Math.abs(hedefX - bx) < 1 && Math.abs(hedefY - by) < 1) return;
+    if (Math.abs(hedefX - bx) < 1 && Math.abs(hedefY - by) < 1) { bit(); return; }
 
     if (odakRaf) { cancelAnimationFrame(odakRaf); odakRaf = null; }
     var simdi = function () {
@@ -859,7 +861,8 @@
       camY = by + (hedefY - by) * e;
       kameraSinirla();
       ciz();
-      odakRaf = (t < 1 && !duraklat) ? requestAnimationFrame(adim) : null;
+      if (t < 1 && !duraklat) { odakRaf = requestAnimationFrame(adim); }
+      else { odakRaf = null; bit(); }
     }
     odakRaf = requestAnimationFrame(adim);
   }
@@ -1404,17 +1407,23 @@
                 ? secili.id : null;
         kistirma = false;
         kareIste();
+        var gHedef = secili;
         if (gAc) setTimeout(function () {
-          /* İNŞAAT paneli açıkken tuval DÖNMEYE DEVAM EDİYORDU.
-             ciz() seçili bina varken her karede kendini yeniden
-             çağırıyor (yanıp sönme); EĞİT'te duraklat=true ile
-             durduruluyordu, GELİŞTİR'de durdurulmuyordu. Tam ekran
-             zemin boyaması panelin altında 60 fps dönünce telefon
-             boğuluyor. Panel kapanınca butonuGuncelle emniyet ağı
-             (400 ms) duraklatmayı kendiliğinden kaldırır. */
-          if (odakRaf) { cancelAnimationFrame(odakRaf); odakRaf = null; }
-          duraklat = true;
-          try { if (window.INSAAT) window.INSAAT.ac(gAc); } catch (er) {}
+          /* Odaklama BURADA yapılır — seçimde değil. Kamera binaya
+             oturduktan SONRA panel açılır, yoksa panel açıkken kayan
+             kamera görünmez bir işe 60 fps harcar. */
+          binayaOdakla(gHedef, function () {
+            /* İNŞAAT paneli açıkken tuval DÖNMEYE DEVAM EDİYORDU.
+               ciz() seçili bina varken her karede kendini yeniden
+               çağırıyor (yanıp sönme); EĞİT'te duraklat=true ile
+               durduruluyordu, GELİŞTİR'de durdurulmuyordu. Tam ekran
+               zemin boyaması panelin altında 60 fps dönünce telefon
+               boğuluyor. Panel kapanınca butonuGuncelle emniyet ağı
+               (400 ms) duraklatmayı kendiliğinden kaldırır. */
+            if (odakRaf) { cancelAnimationFrame(odakRaf); odakRaf = null; }
+            duraklat = true;
+            try { if (window.INSAAT) window.INSAAT.ac(gAc); } catch (er) {}
+          });
         }, 0);
         return;
       }
