@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-50';
+  var SURUM = 'kaleici-51';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -262,6 +262,7 @@
   var GORSELLER = {};
 
   function gorselYukle() {
+    ikonYukle();
     var liste = tumYapilar();
     for (var i = 0; i < liste.length; i++) {
       (function (b) {
@@ -278,6 +279,46 @@
         im.src = b.gorsel;
       })(liste[i]);
     }
+  }
+
+  /* ── DÜĞME İKONLARI ──
+     Bina görselleriyle AYNI önbelleğe konmaz: GORSELLER anahtarı
+     bina kimliğidir, buraya karışırsa binaBul/binaGorseli bunları da
+     bina sanır. Ayrı tablo, ayrı anahtar (Tuzak 21).
+     Dosya açılmazsa ilgili düğme ESKİ çizimine döner — yazılı kutu
+     ya da elle çizilen taşıma oku. Oyun ikon dosyasına bağlı değil. */
+  var IKON_DOSYA = {
+    gelistir: 'gelistirikon.webp',
+    egit:     'egitikon.webp',
+    tasi:     'tasiikon.webp',
+  };
+  var IKONLAR = {};
+
+  function ikonYukle() {
+    Object.keys(IKON_DOSYA).forEach(function (k) {
+      if (IKONLAR[k]) return;
+      var im = new Image();
+      IKONLAR[k] = { im: im, hazir: false };
+      im.onload  = function () { IKONLAR[k].hazir = true; kareIste(); };
+      im.onerror = function () { IKONLAR[k].hazir = false; };
+      im.src = IKON_DOSYA[k];
+    });
+  }
+
+  function ikon(k) {
+    var g = IKONLAR[k];
+    return (g && g.hazir && g.im.naturalWidth > 0) ? g.im : null;
+  }
+
+  /* İkonu kare olarak, merkezine göre çizer. Basılıyken hafifçe
+     küçülür ve koyulaşır — oyunun her yerindeki basma tepkisiyle
+     aynı (scale .96 + brightness .93). */
+  function ikonCiz(im, mx, my, olcu, basili) {
+    var o = basili ? olcu * 0.96 : olcu;
+    ctx.save();
+    if (basili) ctx.globalAlpha = 0.86;
+    ctx.drawImage(im, mx - o / 2, my - o / 2, o, o);
+    ctx.restore();
   }
 
   /* Şeffaf kenar boşluğunu ölçer → her bina aynı hizaya oturur.
@@ -1013,8 +1054,7 @@
     tasiSimge.r = sr;
     tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr, tasiModu, tasiDokunus);
 
-    egitDugmesiCiz(b, kut, nk, boy);
-    gelistirDugmesiCiz(b, kut, nk, boy);
+    dugmeleriCiz(b, nk, boy);
   }
 
   /* ---- EĞİT düğmesi — yalnız üç kışlada, tabanın ALT köşesinde ----
@@ -1027,16 +1067,111 @@
     return null;
   }
 
-  function egitDugmesiCiz(b, kut, nk, boy) {
+  /* Bina geliştirilebilir mi — iki yerde soruluyordu, tek yere alındı. */
+  function gelistirOlurMu(b) {
+    if (b.sus) return false;
+    try { return !!(window.INSAAT && window.INSAAT.gelistirilebilir(b.id)); }
+    catch (e) { return false; }
+  }
+
+  /* ═══ SEÇİLİ BİNANIN DÜĞMELERİ ═══
+     İkon dosyaları varsa düğmeler binanın alt köşesinde YAN YANA
+     duran kare ikonlardır (EĞİT solda, GELİŞTİR sağda; tek düğme
+     varsa ortada). Dosya açılmazsa o düğme eski yazılı kutusuna
+     döner ve kutular ALT ALTA dizilir — yan yana koyunca ikisi de
+     daralıp okunmuyordu, o karar duruyor.
+
+     Hastanenin alt düğmesinin ikonu yok: o hep kutu, GELİŞTİR ikonu
+     kutunun altına iner. İki mod bu yüzden aynı anda olabilir,
+     sıralama tek yerden yürüyor. */
+  function dugmeleriCiz(b, nk, boy) {
+    egitBtn.w = 0; gelBtn.w = 0;
+
+    var alt = ekran(nk[2].x, nk[2].y);
+    var yuk = Math.max(20, boy * 1.30);
+    var ust = alt.y - yuk * 0.30;
+    var ara = Math.max(4, yuk * 0.22);
+
+    var kisla   = !!KISLA_AILE[b.id];
+    var altYazi = altDugmeYazisi(b.id);
+    var imEgit  = (kisla && altYazi) ? ikon('egit') : null;
+    var gelOlur = gelistirOlurMu(b);
+    var imGel   = gelOlur ? ikon('gelistir') : null;
+
+    /* ── KUTU MODUNDA KALANLAR ── (üstte, eski sırayla) */
+    if (altYazi && !imEgit) {
+      egitDugmesiCiz(b, alt, ust, yuk, boy);
+      ust += yuk + ara;
+    }
+    if (gelOlur && !imGel) {
+      gelistirDugmesiCiz(b, alt, ust, yuk, boy);
+      ust += yuk + ara;
+    }
+
+    /* ── İKON SIRASI ──
+       Ölçü binanın adıyla aynı ölçekten (boy) türetiliyor; zoom
+       değişince ikonlar da yazıyla birlikte büyüyüp küçülüyor.
+       1,45 kat: taşıma simgesinden (0,62 yarıçap → 1,24 çap) belirgin
+       biçimde büyük ama binayı örtmüyor. */
+    var sira = [];
+    if (imEgit) sira.push({ im: imEgit, kutu: egitBtn, basili: egitBasili });
+    if (imGel)  sira.push({ im: imGel,  kutu: gelBtn,  basili: gelBasili });
+    if (!sira.length) return;
+
+    var olcu = Math.max(28, boy * 1.45);
+    var bosluk = olcu * 0.22;
+    var toplam = sira.length * olcu + (sira.length - 1) * bosluk;
+    var solX = alt.x - toplam / 2;
+    var merkezY = ust + olcu * 0.42;
+
+    for (var i = 0; i < sira.length; i++) {
+      var mx = solX + i * (olcu + bosluk) + olcu / 2;
+      ikonCiz(sira[i].im, mx, merkezY, olcu, sira[i].basili);
+      /* Dokunuş alanı ikonun kendisi; parmak payı dokunma
+         denetiminde ayrıca ekleniyor. */
+      sira[i].kutu.x = mx - olcu / 2;
+      sira[i].kutu.y = merkezY - olcu / 2;
+      sira[i].kutu.w = olcu;
+      sira[i].kutu.h = olcu;
+    }
+
+    /* İnşaat sürüyorsa geri sayım ikonun ALTINA yazılır. Kutulu
+       yolda yazı kutunun yerine geçiyordu; ikonlu yolda ikon
+       duruyor, yazı ona eşlik ediyor. */
+    if (imGel) {
+      var kalan = 0;
+      try { kalan = window.INSAAT.kalanMs(b.id) || 0; } catch (e) {}
+      if (kalan > 0) {
+        var yzi = tamSure(kalan);
+        var pnt = Math.max(10, olcu * 0.34);
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '700 ' + pnt + 'px "Baloo 2",sans-serif';
+        ctx.lineJoin = 'round';
+        ctx.miterLimit = 2;
+        ctx.lineWidth = Math.max(1.2, pnt * 0.13);
+        ctx.strokeStyle = 'rgba(0,0,0,.85)';
+        var yy = merkezY + olcu * 0.62;
+        ctx.strokeText(yzi, gelBtn.x + gelBtn.w / 2, yy);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(yzi, gelBtn.x + gelBtn.w / 2, yy);
+        ctx.restore();
+      }
+    }
+  }
+
+  /* Yazılı sarı kutu — İKON DOSYASI AÇILMADIĞINDA kullanılan yol.
+     Hastanenin alt düğmesinin ikonu yok, o hep buradan çizilir.
+     Konum artık dışarıdan geliyor (dugmeleriCiz sıralar). */
+  function egitDugmesiCiz(b, alt, ustY, yuk, boy) {
     egitBtn.w = 0;
     var yzi = altDugmeYazisi(b.id);
     if (!yzi) return;
 
-    var alt = ekran(nk[2].x, nk[2].y);
-    var yuk = Math.max(20, boy * 1.30);
     var gen = Math.max(52, boy * 3.05);
     var x = alt.x - gen / 2;
-    var y = alt.y - yuk * 0.30;
+    var y = ustY;
 
     egitBtn.x = x; egitBtn.y = y; egitBtn.w = gen; egitBtn.h = yuk;
 
@@ -1071,21 +1206,14 @@
      ALTINA iner (yan yana koyunca ikisi de daralıp okunmuyordu),
      diğer binalarda EĞİT'in yerine geçer. Taşıma simgesi sol alt
      kenarda kalır, çakışmaz. */
-  function gelistirDugmesiCiz(b, kut, nk, boy) {
+  /* Yeşil GELİŞTİR kutusu — ikon dosyası açılmadığındaki yol. */
+  function gelistirDugmesiCiz(b, alt, ustY, yuk, boy) {
     gelBtn.w = 0;
-    if (b.sus) return;
-    try {
-      if (!(window.INSAAT && window.INSAAT.gelistirilebilir(b.id))) return;
-    } catch (e) { return; }
+    if (!gelistirOlurMu(b)) return;
 
-    var alt = ekran(nk[2].x, nk[2].y);
-    var yuk = Math.max(20, boy * 1.30);
     var gen = Math.max(52, boy * 3.05);
     var x = alt.x - gen / 2;
-    var y = alt.y - yuk * 0.30;
-
-    /* Alt düğme zaten burada — bir boy aşağı kay. */
-    if (altDugmeYazisi(b.id)) y += yuk + Math.max(4, yuk * 0.22);
+    var y = ustY;
 
     gelBtn.x = x; gelBtn.y = y; gelBtn.w = gen; gelBtn.h = yuk;
 
@@ -1274,6 +1402,23 @@
 
   /* Dört yönlü ok. hazir=1 → ilk dokunuş yapıldı, bir dokunuş daha bekliyor */
   function tasiSimgesiCiz(x, y, r, etkin, hazir) {
+    /* İKON VARSA onu çiz. Taşıma üç durumlu olduğu için (kapalı /
+       bir kez dokunulmuş / açık) ikonun ALTINA aynı renk halka
+       konuyor — durumu ikonun kendisi taşımıyor, halka taşıyor.
+       Dosya açılmazsa aşağıdaki elle çizim devreye girer. */
+    var im = ikon('tasi');
+    if (im) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, r * 0.92, 0, Math.PI * 2);
+      ctx.fillStyle = etkin ? 'rgba(255,198,26,.92)'
+                    : (hazir ? 'rgba(255,198,26,.45)' : 'rgba(10,28,48,.55)');
+      ctx.fill();
+      ctx.restore();
+      ikonCiz(im, x, y, r * 1.42, etkin);
+      return;
+    }
+
     var u = r * 0.5, b = r * 0.22;
     ctx.save();
     ctx.translate(x, y);
