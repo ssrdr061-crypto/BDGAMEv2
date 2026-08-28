@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-49';
+  var SURUM = 'kaleici-50';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -1019,9 +1019,18 @@
 
   /* ---- EĞİT düğmesi — yalnız üç kışlada, tabanın ALT köşesinde ----
      Taşıma simgesi sol alt kenarda; bu alt köşede, çakışmaz. */
+  /* Alt düğmesi olan binalar: üç kışla (EĞİT) ve Hastane (HASTANE).
+     Tek yerde; GELİŞTİR'in bir boy aşağı kayma kararı da buna bakar. */
+  function altDugmeYazisi(id) {
+    if (KISLA_AILE[id]) return 'EĞİT';
+    if (id === 'hastane') return 'HASTANE';
+    return null;
+  }
+
   function egitDugmesiCiz(b, kut, nk, boy) {
     egitBtn.w = 0;
-    if (!KISLA_AILE[b.id]) return;
+    var yzi = altDugmeYazisi(b.id);
+    if (!yzi) return;
 
     var alt = ekran(nk[2].x, nk[2].y);
     var yuk = Math.max(20, boy * 1.30);
@@ -1045,8 +1054,15 @@
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '800 ' + Math.max(11, yuk * 0.60) + 'px "Baloo 2",sans-serif';
-    ctx.fillText('EĞİT', x + gen / 2, y + yuk * 0.54);
+    /* "HASTANE" 4 harf yerine 7; sabit punto taşırıyordu. Ölçüp
+       sığdırılıyor, tahmin edilmiyor. */
+    var pn = Math.max(11, yuk * 0.60);
+    ctx.font = '800 ' + pn + 'px "Baloo 2",sans-serif';
+    while (pn > 8 && ctx.measureText(yzi).width > gen * 0.86) {
+      pn -= 0.5;
+      ctx.font = '800 ' + pn + 'px "Baloo 2",sans-serif';
+    }
+    ctx.fillText(yzi, x + gen / 2, y + yuk * 0.54);
     ctx.restore();
   }
 
@@ -1068,8 +1084,8 @@
     var x = alt.x - gen / 2;
     var y = alt.y - yuk * 0.30;
 
-    /* Kışlada EĞİT zaten burada — bir boy aşağı kay. */
-    if (KISLA_AILE[b.id]) y += yuk + Math.max(4, yuk * 0.22);
+    /* Alt düğme zaten burada — bir boy aşağı kay. */
+    if (altDugmeYazisi(b.id)) y += yuk + Math.max(4, yuk * 0.22);
 
     gelBtn.x = x; gelBtn.y = y; gelBtn.w = gen; gelBtn.h = yuk;
 
@@ -1478,12 +1494,21 @@
       if (egitBasili) {
         egitBasili = false;
         var re = tuval.getBoundingClientRect();
-        var acilacak = secili && egitteMi(e.clientX - re.left, e.clientY - re.top)
-                     ? KISLA_AILE[secili.id] : null;
+        var ustunde = secili && egitteMi(e.clientX - re.left, e.clientY - re.top);
+        var acilacak = ustunde ? KISLA_AILE[secili.id] : null;
+        var hastaneAc = ustunde && secili.id === 'hastane';
         kistirma = false;
         kareIste();
         /* Panel açılışı bu dokunuşun kalan olaylarını yutmasın */
         if (acilacak) setTimeout(function () { egitimAc(acilacak); }, 0);
+        else if (hastaneAc) setTimeout(function () {
+          /* Hastane ekranı zaten var (index.html #panel-hospital);
+             alt çubuktaki düğmeyle AYNI kapıdan açılır, ikinci bir
+             ekran yazılmadı. */
+          try {
+            if (typeof openOverlayPanel === 'function') openOverlayPanel('hospital');
+          } catch (er) {}
+        }, 0);
         return;
       }
 

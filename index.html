@@ -601,6 +601,18 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .overlay-card .desc{color:#dff2ff; font-size:13px; margin:0 0 20px;}
 
+/* ── SIRALAMA SEKMELERİ ── renkler .hsm-card-item / .overlay-close ailesinden */
+.rank-sekme{display:flex; gap:8px; margin:0 0 12px;}
+.rank-sk{
+  flex:1 1 0; min-width:0; border:none; border-radius:11px; cursor:pointer;
+  padding:7px 6px; font-family:'Baloo 2','Nunito',sans-serif;
+  font-size:13.5px; font-weight:900; letter-spacing:.4px; color:#dff2ff;
+  background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);
+  transition:transform .09s ease, filter .09s ease;
+}
+.rank-sk.is-active{background:linear-gradient(180deg,#5ce07a,#22a34a); color:#fff;}
+.rank-sk:active{transform:scale(.96); filter:brightness(.93);}
+
 @media (min-width:640px){
   .overlay-panel{align-items:center;}
   .overlay-card{border-radius:20px; border-top:1px solid var(--line);}
@@ -2487,7 +2499,11 @@ body.world-active{padding:0; overflow:hidden;}
   <div class="overlay-panel" id="panel-rank">
     <div class="overlay-card">
       <button class="overlay-close" data-close>✕</button>
-      <h2>🏆 Güç Sıralaması</h2>
+      <h2 id="rankBaslik">🏆 Güç Sıralaması</h2>
+      <div class="rank-sekme">
+        <button class="rank-sk is-active" data-rank="guc" type="button">Güç</button>
+        <button class="rank-sk" data-rank="kale" type="button">Kale Seviyesi</button>
+      </div>
       <div class="rank-list" id="rankList"></div>
     </div>
   </div>
@@ -7638,6 +7654,19 @@ function computePlayerPower(st) {
   return p;
 }
 
+/* Sıralama kipi: "guc" veya "kale". Sekmeler bunu değiştirir. */
+let rankKip = "guc";
+
+/* Bir hesabın Ana Kale seviyesi. GERÇEK seviye insaat.js'te tutulur
+   (state.binaSv.kale); bulut kaydında kısaltılmış anahtar bsv'dir
+   (bkz. serialize/deserialize). İkisine de bakılır, yoksa 1. */
+function kaleSeviyesiAl(st) {
+  if (!st || typeof st !== "object") return 1;
+  const b = st.binaSv || st.bsv;
+  const v = b && b.kale;
+  return (typeof v === "number" && isFinite(v) && v >= 1) ? Math.floor(v) : 1;
+}
+
 function _rankRowsHTML(players) {
   if (!players.length) return '<div class="rank-empty">Sıralama boş.</div>';
   return players.map((p, i) => {
@@ -7648,12 +7677,31 @@ function _rankRowsHTML(players) {
     else if (pos === 3) cls += " rank-bronze";
     if (p.me) cls += " rank-me";
     const medal = pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : "";
+    const deger = (rankKip === "kale")
+      ? ('Sv' + p.kale + ' 🏰')
+      : (fmt(p.power) + ' ⚔️');
     return '<div class="' + cls + '">' +
       '<span class="rank-pos">' + (medal || pos) + '</span>' +
       '<span class="rank-name">' + chatEscape(p.name) + '</span>' +
-      '<span class="rank-power">' + fmt(p.power) + ' ⚔️</span>' +
+      '<span class="rank-power">' + deger + '</span>' +
       '</div>';
   }).join("");
+}
+
+/* Sekmeler bir kez bağlanır; panel her açılışta yeniden çizilse de
+   dinleyici çoğalmasın. */
+function rankSekmeBagla() {
+  const kutu = document.querySelector("#panel-rank .rank-sekme");
+  if (!kutu || kutu._bagli) return;
+  kutu._bagli = true;
+  kutu.addEventListener("click", (e) => {
+    const b = e.target.closest(".rank-sk");
+    if (!b) return;
+    rankKip = b.dataset.rank || "guc";
+    kutu.querySelectorAll(".rank-sk").forEach(x =>
+      x.classList.toggle("is-active", x === b));
+    renderRankPanel();
+  });
 }
 
 function renderRankPanel() {
@@ -7664,16 +7712,24 @@ function renderRankPanel() {
   const build = (accountsObj) => {
     const players = [];
     const myName = currentUsername || "Sen";
-    players.push({ name: myName, power: computePlayerPower(state), me: true });
+    players.push({ name: myName, power: computePlayerPower(state),
+                   kale: kaleSeviyesiAl(state), me: true });
     if (accountsObj && typeof accountsObj === "object") {
       Object.keys(accountsObj).forEach(k => {
         const acc = accountsObj[k];
         if (!acc || !acc.displayName) return;
         if (myName && acc.displayName.toLowerCase() === myName.toLowerCase()) return; // kendini iki kez ekleme
-        players.push({ name: acc.displayName, power: computePlayerPower(acc.state), me: false });
+        players.push({ name: acc.displayName, power: computePlayerPower(acc.state),
+                       kale: kaleSeviyesiAl(acc.state), me: false });
       });
     }
-    players.sort((a, b) => b.power - a.power);
+    /* Kale kipinde eşitlik çok olur (herkes Sv3); ikinci ölçüt güç,
+       yoksa sıra her açılışta rastgele değişmiş gibi görünür. */
+    if (rankKip === "kale") players.sort((a, b) => (b.kale - a.kale) || (b.power - a.power));
+    else                    players.sort((a, b) => b.power - a.power);
+
+    const bas = document.getElementById("rankBaslik");
+    if (bas) bas.textContent = (rankKip === "kale") ? "🏰 Kale Seviyesi" : "🏆 Güç Sıralaması";
     listEl.innerHTML = _rankRowsHTML(players);
   };
 
@@ -7730,7 +7786,7 @@ function openOverlayPanel(panelKey) {
     }
   }
   if (panelKey === "hospital") renderHospitalPanel();
-  if (panelKey === "rank") renderRankPanel();
+  if (panelKey === "rank") { rankSekmeBagla(); renderRankPanel(); }
 }
 function closeOverlayPanel(panelEl) {
   panelEl.classList.remove("active");

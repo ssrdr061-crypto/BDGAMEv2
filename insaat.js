@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-12";
+  var SURUM = "insaat-13";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -39,6 +39,10 @@
     su:        "kaynak", enerji: "kaynak",
     sovalye:   "kisla",  asker:  "kisla",  robot: "kisla",
     arastirma: "kisla",
+    /* Tesisler: kışla maliyet tablosunu kullanır ama kışla değildir —
+       EĞİT düğmesi çıkmaz, muafiyet döngüsüne girmez, Ana Kale
+       kapısında KENDİ eşik takvimleri vardır (KALE_ESIK). */
+    ittifak:   "tesis",  hastane: "tesis",
   };
 
   /* Hangi bina hangi kaynağı üretir. Ahır et üretir — bina adı
@@ -118,6 +122,7 @@
     kale: "Ana Kale", odun: "Odun", ahir: "Ahır", demir: "Demir",
     su: "Su", enerji: "Enerji", arastirma: "Araştırma",
     sovalye: "Savunucu Kışlası", asker: "Koruyucu Kışlası", robot: "Nişancı Kışlası",
+    ittifak: "İttifak Binası", hastane: "Hastane",
   };
   var K_EMOJI = { odun: "🪵", et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
 
@@ -136,6 +141,31 @@
      cevirir. Kur uretim hiziyla TERS orantili: enerji dakikada 150,
      et 500 uretiliyor — esit saysaydik enerjiyle bitirmek bedavaya
      gelirdi. Sayilar: 1 elmas kac kaynak eder. */
+  /* ── ANA KALE EŞİK TAKVİMİ ──
+     Ana Kale bu seviyelerdeyken ilgili tesisin bir kademe daha
+     yükselmiş olması gerekir. Gereken tesis seviyesi = listede
+     kalenin MEVCUT seviyesinden (hedef-1) küçük eşit kaç sayı varsa.
+
+     ── NEDEN hedef DEĞİL de hedef-1 ──
+     Tesisler de Ana Kale'yi geçemiyor. "Kale Sv2 için İttifak Sv2"
+     deseydik, İttifak kale Sv1'i geçemediği için Sv2'ye çıkamaz,
+     çıkamadığı için kale de Sv2 olamazdı — daha ilk adımda kilit.
+     Bir kaydırma zinciri açıyor; Sv1→Sv10 simülasyonu 108 adımda
+     kilitlenmeden tamamlanıyor.
+     Kışlalar ve Araştırma bu tabloya girmez; onlar hep hedef-1. */
+  var KALE_ESIK = {
+    ittifak: [1, 2, 3, 5, 7, 9],
+    hastane: [1, 2, 3, 4, 6, 8],
+  };
+
+  function tesisGereken(id, kaleHedef) {
+    var L = KALE_ESIK[id];
+    if (!L) return 1;
+    var n = 0;
+    for (var i = 0; i < L.length; i++) if (L[i] <= kaleHedef - 1) n++;
+    return Math.max(1, n);
+  }
+
   var ELMAS_KUR = { et: 600, odun: 500, demir: 450, su: 300, enerji: 200 };
 
   /* Bina gorseli TEK YERDE: kaleici.js -> BINALAR[].gorsel.
@@ -217,6 +247,8 @@
       return { kaynaklar: k, dk: s.dk };
     }
 
+    /* kisla ve tesis ayni tabloyu kullanir; ayirmak icin ikinci bir
+       tablo yazmak, dengeyi iki yerden ayarlamak demek olurdu. */
     var tab = (t === "kale") ? T_KALE : T_KISLA;
     var r = tab[hedef];
     if (!r) return null;
@@ -251,7 +283,10 @@
     var liste = [];
     Object.keys(TIP).forEach(function (id) {
       if (id === "kale") return;
-      var gerek = (id === muaf) ? (hedef - 2) : (hedef - 1);
+      var gerek;
+      if (KALE_ESIK[id])      gerek = tesisGereken(id, hedef);
+      else if (id === muaf)   gerek = hedef - 2;
+      else                    gerek = hedef - 1;
       if (gerek < 1) gerek = 1;
       liste.push({ id: id, gerek: gerek, tamam: seviye(id) >= gerek });
     });
