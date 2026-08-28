@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-13";
+  var SURUM = "insaat-14";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -108,6 +108,51 @@
 
   /* Her seviyede üretim bu kadar katlanır (Sv1 = 1.00) */
   var URETIM_ARTIS = 1.45;
+
+  /* ── BİNA GÜCÜ ──
+     Her binanın seviyesi kale gücüne puan katar. Taban Sv1 değeri,
+     çarpan tablosu seviyeye göre. İkisi de TEK YERDE burada;
+     index.html -> computePlayerPower bunu INSAAT.toplamGuc() ile okur,
+     dosya yüklenmemişse 0 döner ve güç eski haliyle çalışmaya devam eder.
+
+     Ölçek: hepsi Sv1 = 49.000 · hepsi Sv10 = 4.900.000.
+     Kıyas: Revolia 100.000, Sv1 Nişancı 10. */
+  var GUC_TABAN = {
+    kale: 10000,
+    sovalye: 5000, asker: 5000, robot: 5000, arastirma: 5000,
+    ittifak: 5000, hastane: 4000,
+    odun: 2000, ahir: 2000, demir: 2000, su: 2000, enerji: 2000,
+  };
+  /* Dizi indeksi SEVİYEDİR: [1]=Sv1. Artış ~1,6-2 kat. Daha dik bir
+     eğri (×2,7) Sv10'da 20 milyona çıkardı, orduyu anlamsız kılardı. */
+  var GUC_KAT = [0, 1, 2, 3.5, 6, 10, 16, 25, 40, 64, 100];
+
+  /* Tek binanın verdiği güç. */
+  function binaGucu(id, sv) {
+    var t = GUC_TABAN[id];
+    if (!t) return 0;
+    var n = Math.max(1, Math.min(TAVAN, Math.floor(sv || 1)));
+    return Math.round(t * GUC_KAT[n]);
+  }
+
+  /* Bir hesabın TÜM binalarından gelen güç. Kendi durumumuz için
+     argümansız çağrılır; sıralamada başka oyuncunun kaydı geçilir.
+     Bulut kaydında anahtar kısaltılmıştır (bsv), ikisine de bakılır. */
+  function toplamGuc(st) {
+    var kaynak;
+    if (st && typeof st === "object") {
+      kaynak = st.binaSv || st.bsv;
+    } else if (hazir()) {
+      kurDurum();
+      kaynak = state.binaSv;
+    }
+    var g = 0;
+    Object.keys(GUC_TABAN).forEach(function (id) {
+      var sv = (kaynak && kaynak[id]) || 1;
+      g += binaGucu(id, sv);
+    });
+    return g;
+  }
 
   /* ── KIŞLA MUAFİYETİ — SABİT ÜÇLÜ DÖNGÜ ──
      Ana Kale'yi Sv N'ye çıkarmak için diğerleri Sv N-1 olmalı.
@@ -682,7 +727,38 @@
     '.ins-modal .ins-yesil{background:linear-gradient(180deg,#5ce07a,#22a34a);}' +
 
     '.ins-modal .ins-geri{font-size:21px;font-weight:900;color:#ffd257;text-align:center;' +
-      'margin:2px 0 0;font-variant-numeric:tabular-nums;}';
+      'margin:2px 0 0;font-variant-numeric:tabular-nums;}' +
+
+    /* ── GEREKENLER KUTUSU ──
+       Liste uzunsa panel bir ekrana sığmıyordu. Yalnız BU kutu kayar,
+       panelin geri kalanı (rozetler, bonus, düğmeler) yerinde durur.
+       Yükseklik TAM 7 SATIR: satır 23px + 2px ara = 25px, 7x25 = 175px.
+       Satır yüksekliği burada SABİTLENİR, yoksa sekizinci satır yarım
+       görünür ve "7 tane" kuralı bozulur.
+       Tuzak 26: overflow-y YATAYDA da kırpar — kaydırma çubuğunun
+       genişliği kadar sağdan pay bırakıldı, GİT düğmesi kesilmiyor. */
+    '.ins-modal .ins-gerek{max-height:175px;overflow-y:auto;overflow-x:hidden;' +
+      'padding-right:6px;}' +
+    '.ins-modal .ins-gerek .ins-satir{height:23px;box-sizing:border-box;' +
+      'margin-bottom:2px;}' +
+    /* Çubuk: düz renk. Gölge, kabartı, yuvarlak kapak yok. Yiv listenin
+       kendi boyu kadar, ayrı bir uzunluk verilmez. */
+    '.ins-modal .ins-gerek::-webkit-scrollbar{width:5px;}' +
+    '.ins-modal .ins-gerek::-webkit-scrollbar-track{background:rgba(3,16,38,.45);' +
+      'border-radius:3px;}' +
+    '.ins-modal .ins-gerek::-webkit-scrollbar-thumb{background:#bef0ff;' +
+      'border-radius:3px;}' +
+    '.ins-modal .ins-gerek{scrollbar-width:thin;' +
+      'scrollbar-color:#bef0ff rgba(3,16,38,.45);}' +
+
+    /* GİT: eksik satırın sağında, ✖ yerine. Aynı ölçüde durması için
+       yüksekliği ✖ ile eşit (17px), satır boyunu büyütmez. */
+    '.ins-modal .ins-git{flex:0 0 auto;height:17px;line-height:17px;padding:0 7px;' +
+      'border:none;border-radius:6px;font-family:inherit;font-size:10.5px;' +
+      'font-weight:900;letter-spacing:.3px;color:#fff;cursor:pointer;' +
+      'background:#e05a5f;box-shadow:none;' +
+      'transition:transform .09s ease,filter .09s ease;}' +
+    '.ins-modal .ins-git:active{transform:scale(.96);filter:brightness(.93);}';
 
   function stilBas() {
     if (document.getElementById("insaatCSS")) return;
@@ -844,12 +920,18 @@
        seviyesi henuz hicbir sayiya bagli degil; uydurma satir yazmak
        yerine bolum hic acilmaz. */
     var simdiki = dkUretim(id, sv);
+    h += '<div class="ins-bolum">Yükseltme Bonusu</div>';
     if (simdiki > 0) {
       var artis = dkUretim(id, hedef) - simdiki;
-      h += '<div class="ins-bolum">Yükseltme Bonusu</div>';
       h += satir("Üretim / dk", sayi(simdiki) + " <b>+" + sayi(artis) + "</b>");
       h += satir("Saatlik üretim", sayi(simdiki * 60) +
                  " <b>+" + sayi(artis * 60) + "</b>");
+    }
+    /* Kale gücü her binada var — kışla, tesis ve Ana Kale'de bu bölüm
+       eskiden bomboş açılmıyordu, artık tek satırla da olsa doluyor. */
+    var g0 = binaGucu(id, sv), g1 = binaGucu(id, hedef);
+    if (g1 > g0) {
+      h += satir("Kale gücü", sayi(g0) + " <b>+" + sayi(g1 - g0) + "</b>");
     }
 
     /* ── GEREKENLER ── */
@@ -859,14 +941,18 @@
        Metin aciklama YOK — her sart kendi satirinda, gorseli ve
        ✔/✖ isaretiyle. Muaf kislanin Sv N-1 istemesi zaten satirda
        gorunuyor, ayrica cumleyle anlatmaya gerek kalmiyor. */
+    h += '<div class="ins-gerek">';
+
     if (id === "kale") {
       kaleKapisiListe(hedef).forEach(function (g) {
-        h += kapiSatiri(binaSimgesi(g.id), ADLAR[g.id] + " Sv" + g.gerek, g.tamam);
+        h += kapiSatiri(binaSimgesi(g.id), ADLAR[g.id] + " Sv" + g.gerek,
+                        g.tamam, g.tamam ? null : ("bina:" + g.id));
       });
     } else {
       var kt = kaleTavani(id, hedef);
       h += kapiSatiri(binaSimgesi("kale"),
-                      ADLAR.kale + " Sv" + hedef, !kt);
+                      ADLAR.kale + " Sv" + hedef, !kt,
+                      kt ? "bina:kale" : null);
     }
 
     var cuzdan = state.kaynaklar || {};
@@ -878,9 +964,13 @@
       h += '<div class="ins-satir' + (yeter ? "" : " eksik") + '">' +
              '<span class="ins-ust">' + simge(k) + "</span>" +
              '<span class="ins-mik">' + kisaSayi(var_) + " / " + kisaSayi(gerek) + "</span>" +
-             '<span class="ins-tik">' + (yeter ? TIK : CARPI) + "</span>" +
+             (yeter
+               ? '<span class="ins-tik">' + TIK + "</span>"
+               : '<button class="ins-git" data-git="kaynak:' + k + '">GİT</button>') +
            "</div>";
     });
+
+    h += "</div>";
 
     /* ── DÜĞMELER ── */
     var d = denetle(id, hedef);
@@ -924,15 +1014,83 @@
            "</div>";
   }
 
-  function kapiSatiri(ikon, metin, tamam) {
+  /* git: null ise ✔/✖ basılır, doluysa ✖ yerine GİT düğmesi çıkar. */
+  function kapiSatiri(ikon, metin, tamam, git) {
     return '<div class="ins-satir' + (tamam ? "" : " eksik") + '">' +
              '<span class="ins-ust">' + ikon + "</span>" +
              '<span class="ins-mik ins-yapi">' + metin + "</span>" +
-             '<span class="ins-tik">' + (tamam ? TIK : CARPI) + "</span>" +
+             (git
+               ? '<button class="ins-git" data-git="' + git + '">GİT</button>'
+               : '<span class="ins-tik">' + (tamam ? TIK : CARPI) + "</span>") +
            "</div>";
   }
 
+  /* ═══════════════════════════════════════════════════════════
+     GİT — eksik olan neyse oyuncuyu oraya götürür
+     ═══════════════════════════════════════════════════════════ */
+
+  /* Kaynak paketi ÇANTADA duruyor mu (mağazadan alınca oraya düşer,
+     canlı kaynağa girmez; oyuncunun "Kullan" demesi gerekir).
+     shopItems magaza.js'te tanımlı; yüklenmemişse false döner. */
+  function cantadaPaketVar(kaynakId) {
+    try {
+      if (typeof shopItems === "undefined" || !shopItems) return false;
+      var env = (state && state.inventory) || {};
+      for (var i = 0; i < shopItems.length; i++) {
+        var it = shopItems[i];
+        if (it.isKaynak && it.kaynakId === kaynakId && (env[it.name] || 0) > 0) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function gitYap(hedef) {
+    if (!hedef) return;
+    var p = hedef.split(":");
+    var tur = p[0], deger = p[1];
+
+    if (tur === "bina") {
+      /* Kamera o binaya oturur ve onun paneli açılır. Odaklama
+         kaleici.js'in işi; panel kapatmayı da o üstlenir. */
+      try {
+        if (window.KALEICI && typeof window.KALEICI.gotur === "function") {
+          if (window.KALEICI.gotur(deger)) return;
+        }
+      } catch (e) {}
+      /* kaleici.js eski sürümse en azından panel değişsin */
+      ac(deger);
+      return;
+    }
+
+    if (tur === "kaynak") {
+      kapat();
+      try {
+        if (cantadaPaketVar(deger)) {
+          if (typeof renderInventory === "function") renderInventory();
+          if (typeof openOverlayPanel === "function") openOverlayPanel("inventory");
+          return;
+        }
+        /* Mağaza "Kaynaklar" sekmesi açık gelsin. activeShopCategory
+           index.html'de let ile tanımlı; ada doğrudan erişilir. */
+        try { activeShopCategory = "kaynak"; } catch (e2) {}
+        if (typeof renderShopTabs === "function") renderShopTabs();
+        if (typeof renderShop === "function") renderShop();
+        if (typeof openOverlayPanel === "function") openOverlayPanel("shop");
+      } catch (e3) {}
+    }
+  }
+
   function bagla(govde, id) {
+    var gitler = govde.querySelectorAll("[data-git]");
+    for (var i = 0; i < gitler.length; i++) {
+      (function (dg) {
+        dg.addEventListener("click", function (e) {
+          e.stopPropagation();
+          gitYap(dg.getAttribute("data-git"));
+        });
+      })(gitler[i]);
+    }
+
     var b1 = govde.querySelector('[data-is="basla"]');
     if (b1) b1.addEventListener("click", function () {
       var r = baslat(id);
@@ -1020,6 +1178,12 @@
     kalanMs: kalanMs,
     bitenleriIsle: bitenleriIsle,
     uretimCarpani: uretimCarpani,
+
+    /* index.html -> computePlayerPower bunu okur. */
+    binaGucu: binaGucu,
+    toplamGuc: toplamGuc,
+    GUC_TABAN: GUC_TABAN,
+
     gelistirilebilir: function (id) { return !!TIP[id]; },
     kurDurum: kurDurum,
 

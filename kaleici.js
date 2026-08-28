@@ -1557,6 +1557,27 @@
     }
   }
 
+  /* ── GİT ──
+     İnşaat panelindeki eksik yapı satırından çağrılır: kamera o
+     binaya oturur, sonra o binanın paneli açılır. GELİŞTİR'e basınca
+     yapılan iş ile AYNI akış; ikinci bir odaklama yolu yazılmadı.
+     Döner: true = götürüldü. */
+  function gotur(id) {
+    var b = binaBulId(id);
+    if (!b) return false;
+    if (!katman || !katman.classList.contains('acik')) return false;
+    try { if (window.INSAAT) window.INSAAT.kapat(); } catch (e) {}
+    binaSec(b);
+    setTimeout(function () {
+      binayaOdakla(b, function () {
+        if (odakRaf) { cancelAnimationFrame(odakRaf); odakRaf = null; }
+        duraklat = true;
+        try { if (window.INSAAT) window.INSAAT.ac(id); } catch (er) {}
+      });
+    }, 0);
+    return true;
+  }
+
   function panelAc(b) {
     panelAd.textContent = b.emoji + '  ' + binaAdi(b);
     panel.classList.add('acik');
@@ -1972,6 +1993,6 @@
                     ac: ac, kapat: kapat, ciz: ciz, gorselYukle: gorselYukle,
                     SUSLER: SUSLER, ZCFG: ZCFG,
                     binaAdi: binaAdi, binaKutusu: binaKutusu,
-                    binaSeviyesi: binaSeviyesi,
+                    binaSeviyesi: binaSeviyesi, gotur: gotur,
                     yerlesimOku: yerlesimOku, yerlesimYaz: yerlesimYaz };
 })();

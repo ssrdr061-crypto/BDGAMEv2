@@ -7651,6 +7651,13 @@ function computePlayerPower(st) {
   Object.keys(TROOP_POWER).forEach(k => { p += (t[k] || 0) * TROOP_POWER[k]; });
   const owned = Array.isArray(st.ownedHeroSkins) ? st.ownedHeroSkins : [];
   owned.forEach(id => { p += (HERO_POWER[id] || 0); });
+  /* Bina gücü: seviye başına puan, tek yer insaat.js -> GUC_TABAN.
+     Dosya yüklenmemişse 0 eklenir, güç eski haliyle çalışır. */
+  try {
+    if (window.INSAAT && typeof window.INSAAT.toplamGuc === "function") {
+      p += window.INSAAT.toplamGuc(st) || 0;
+    }
+  } catch (e) {}
   return p;
 }
 
