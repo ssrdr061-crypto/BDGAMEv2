@@ -2210,73 +2210,77 @@
 
   /* ═══════════════════════════════════════════════════════════
      İKON İNCE AYAR PANELİ — GEÇİCİ  (?ikonayar=1)
-     Adres çubuğuna ?ikonayar=1 eklenince açılır. Değerler canlı
-     uygulanır, ekranda okunur. Beğenilen sayılar yukarıdaki IK
-     nesnesine KALICI yazılır ve bu blok silinir.
-     Konsol yok: her şey ekrana basılır.
+     Adres çubuğuna ?ikonayar=1 eklenince sağ kenarda küçük bir
+     ⚙ düğmesi çıkar. Düğme paneli AÇIP KAPATIR — ayarladığın
+     ikonların üstünü kapamasın diye.
+     Beğenilen sayılar yukarıdaki IK nesnesine kalıcı yazılır ve
+     bu blok silinir. Konsol yok: her şey ekrana basılır.
      ═══════════════════════════════════════════════════════════ */
   (function ikonAyarPaneli() {
     if (location.search.indexOf('ikonayar=1') < 0) return;
 
-    /* ad · adım · en az · en çok · ondalık basamak */
+    /* anahtar · kısa ad · adım · en az · en çok · ondalık */
     var ALANLAR = [
-      { k: 'olcek',     ad: 'İkon ölçüsü',   adim: 0.05, az: 0.6,  cok: 4,   ond: 2 },
-      { k: 'tabanPx',   ad: 'En küçük px',   adim: 2,    az: 16,   cok: 90,  ond: 0 },
-      { k: 'bosluk',    ad: 'İkon arası',    adim: 0.02, az: 0,    cok: 1,   ond: 2 },
-      { k: 'satirY',    ad: 'Sıra aşağı',    adim: 0.05, az: -1.5, cok: 2.5, ond: 2 },
-      { k: 'tasiOlcek', ad: 'Taşı ölçüsü',   adim: 0.05, az: 0.4,  cok: 2.5, ond: 2 },
-      { k: 'tasiX',     ad: 'Taşı sağa',     adim: 0.05, az: -3,   cok: 3,   ond: 2 },
-      { k: 'tasiY',     ad: 'Taşı aşağı',    adim: 0.05, az: -3,   cok: 3,   ond: 2 },
-      { k: 'izgaraPay', ad: 'Izgara payı',   adim: 1,    az: 0,    cok: 8,   ond: 0 },
+      { k: 'olcek',     ad: 'ölçü',     adim: 0.05, az: 0.6,  cok: 4,   ond: 2 },
+      { k: 'tabanPx',   ad: 'en az px', adim: 2,    az: 16,   cok: 90,  ond: 0 },
+      { k: 'bosluk',    ad: 'ara',      adim: 0.02, az: 0,    cok: 1,   ond: 2 },
+      { k: 'satirY',    ad: 'sıra ↓',   adim: 0.05, az: -1.5, cok: 2.5, ond: 2 },
+      { k: 'tasiOlcek', ad: 'taşı ölçü',adim: 0.05, az: 0.4,  cok: 2.5, ond: 2 },
+      { k: 'tasiX',     ad: 'taşı →',   adim: 0.05, az: -3,   cok: 3,   ond: 2 },
+      { k: 'tasiY',     ad: 'taşı ↓',   adim: 0.05, az: -3,   cok: 3,   ond: 2 },
+      { k: 'izgaraPay', ad: 'ızgara',   adim: 1,    az: 0,    cok: 8,   ond: 0 },
     ];
 
+    var acik = false;
+
+    /* ── Açma düğmesi: küçük, sağ kenarda, hep üstte ── */
+    var anahtar = document.createElement('button');
+    anahtar.textContent = '⚙';
+    anahtar.style.cssText =
+      'position:fixed;right:8px;top:38%;z-index:100000;' +
+      'width:34px;height:34px;border:none;border-radius:11px;' +
+      'background:rgba(13,36,56,.88);color:#dff2ff;font-size:17px;' +
+      'box-shadow:0 2px 6px rgba(0,20,45,.3);padding:0;';
+
+    /* ── Panel: dar kart, sağ kenara yaslı ── */
     var kok = document.createElement('div');
-    kok.id = 'ikonAyarPanel';
     kok.style.cssText =
-      'position:fixed;left:6px;right:6px;bottom:6px;z-index:99999;' +
-      'background:#0d2438;border-radius:14px;padding:8px 10px 10px;' +
+      'position:fixed;right:8px;top:calc(38% + 40px);z-index:100000;' +
+      'width:172px;display:none;' +
+      'background:rgba(13,36,56,.94);border-radius:12px;padding:6px 7px 7px;' +
       'box-shadow:0 2px 6px rgba(0,20,45,.3);' +
-      'font-family:"Baloo 2",sans-serif;color:#dff2ff;font-size:13px;' +
-      'max-height:52vh;overflow-y:auto;';
+      'font-family:"Baloo 2",sans-serif;color:#dff2ff;' +
+      'max-height:46vh;overflow-y:auto;';
 
-    var bas = document.createElement('div');
-    bas.style.cssText = 'font-weight:900;font-size:14px;margin-bottom:6px;' +
-                        'display:flex;align-items:center;gap:8px;';
-    bas.innerHTML = '<span style="flex:1">İKON İNCE AYAR</span>';
-    kok.appendChild(bas);
-
-    var kapatBtn = document.createElement('button');
-    kapatBtn.textContent = '✕';
-    kapatBtn.style.cssText = 'border:none;border-radius:9px;padding:3px 9px;' +
-      'background:#c0392b;color:#fff;font-weight:900;font-size:13px;';
-    kapatBtn.addEventListener('pointerup', function () { kok.remove(); });
-    bas.appendChild(kapatBtn);
-
-    var degerEl = {};
+    anahtar.addEventListener('pointerup', function () {
+      acik = !acik;
+      kok.style.display = acik ? 'block' : 'none';
+      anahtar.style.background = acik ? 'rgba(63,191,106,.92)' : 'rgba(13,36,56,.88)';
+    });
 
     ALANLAR.forEach(function (a) {
       var sat = document.createElement('div');
-      sat.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
+      sat.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:3px;';
 
       var ad = document.createElement('span');
       ad.textContent = a.ad;
-      ad.style.cssText = 'flex:1 1 auto;font-weight:800;';
+      ad.style.cssText = 'flex:1 1 auto;font-size:10.5px;font-weight:800;' +
+                         'white-space:nowrap;overflow:hidden;';
       sat.appendChild(ad);
 
       var dg = document.createElement('span');
-      dg.style.cssText = 'flex:0 0 58px;text-align:right;font-weight:900;' +
-                         'font-variant-numeric:tabular-nums;color:#fff;';
-      degerEl[a.k] = dg;
-
+      dg.style.cssText = 'flex:0 0 38px;text-align:right;font-size:11px;' +
+                         'font-weight:900;color:#fff;font-variant-numeric:tabular-nums;';
       function yazDeger() { dg.textContent = IK[a.k].toFixed(a.ond); }
 
       function dugme(yazi, yon) {
         var b = document.createElement('button');
         b.textContent = yazi;
-        b.style.cssText = 'flex:0 0 34px;border:none;border-radius:9px;' +
-          'padding:5px 0;background:#3d7ccc;color:#fff;font-weight:900;' +
-          'font-size:16px;';
-        b.addEventListener('pointerup', function () {
+        b.style.cssText = 'flex:0 0 24px;height:24px;border:none;border-radius:8px;' +
+          'padding:0;background:#3d7ccc;color:#fff;font-weight:900;font-size:14px;' +
+          'line-height:1;';
+        b.addEventListener('pointerup', function (e) {
+          e.stopPropagation();
           var v = IK[a.k] + yon * a.adim;
           v = Math.max(a.az, Math.min(a.cok, v));
           /* Kayan nokta artığı temizlenir: 0.6000000000000001 olmasın. */
@@ -2287,7 +2291,7 @@
         return b;
       }
 
-      sat.appendChild(dugme('−', -1));
+      sat.appendChild(dugme('\u2212', -1));
       sat.appendChild(dg);
       sat.appendChild(dugme('+', +1));
       kok.appendChild(sat);
@@ -2297,28 +2301,29 @@
     /* Değerleri okunur biçimde ekrana döker — telefonda kopyalamak
        için. Konsol yok, o yüzden metin ekranda kalır. */
     var dok = document.createElement('div');
-    dok.style.cssText = 'margin-top:6px;padding:6px;border-radius:9px;' +
-      'background:rgba(3,16,38,.55);font-size:11.5px;line-height:1.5;' +
+    dok.style.cssText = 'margin-top:4px;padding:5px;border-radius:8px;' +
+      'background:rgba(3,16,38,.55);font-size:10px;line-height:1.45;' +
       'white-space:pre-wrap;word-break:break-all;';
     kok.appendChild(dok);
 
     var dokBtn = document.createElement('button');
-    dokBtn.textContent = 'DEĞERLERİ YAZ';
-    dokBtn.style.cssText = 'width:100%;margin-top:6px;border:none;' +
-      'border-radius:11px;padding:8px 0;background:#3fbf6a;color:#fff;' +
-      'font-family:"Baloo 2",sans-serif;font-weight:900;font-size:13px;';
+    dokBtn.textContent = 'YAZ';
+    dokBtn.style.cssText = 'width:100%;margin-top:4px;border:none;' +
+      'border-radius:9px;padding:6px 0;background:#3fbf6a;color:#fff;' +
+      'font-family:"Baloo 2",sans-serif;font-weight:900;font-size:11.5px;';
     dokBtn.addEventListener('pointerup', function () {
-      var m = 'var IK = {\n';
+      var m = '';
       ALANLAR.forEach(function (a) {
-        m += '    ' + a.k + ': ' + IK[a.k].toFixed(a.ond) + ',\n';
+        m += a.k + ': ' + IK[a.k].toFixed(a.ond) + '\n';
       });
-      dok.textContent = m + '  };';
+      dok.textContent = m;
     });
     kok.appendChild(dokBtn);
 
     function ekle() {
-      if (document.body) document.body.appendChild(kok);
-      else setTimeout(ekle, 100);
+      if (!document.body) { setTimeout(ekle, 100); return; }
+      document.body.appendChild(anahtar);
+      document.body.appendChild(kok);
     }
     ekle();
   })();
