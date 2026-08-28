@@ -50,6 +50,48 @@ const UNIT_TYPES = {
     ───────────────────────────────────────────── */
 const KADEME_SAYISI = 6;
 
+/*  ── KADEME AÇILIŞI — TEK DOĞRULUK KAYNAĞI ──
+    Bir kademenin eğitilebilmesi için o ailenin KIŞLASI kaç
+    seviyede olmalı. Dizinin sırası kademedir: 1. kademe Sv1'de,
+    2. kademe Sv3'te, ... 6. kademe Sv10'da açılır.
+    Kışla seviyesi insaat.js'te (state.binaSv); burada ikinci bir
+    seviye kaydı TUTULMAZ.                                        */
+const KADEME_ACILIS = [1, 3, 5, 7, 9, 10];
+
+/*  Aile → kışla binası. kaleici.js KISLA_AILE'nin tersi;
+    kimlikler Firebase anahtarı olduğu için asla değişmez.        */
+const AILE_KISLA = { knight: "sovalye", soldier: "asker", robot: "robot" };
+
+/*  Bu kademe için gereken kışla seviyesi */
+function kademeKislaSv(kademe) {
+  return KADEME_ACILIS[(kademe || 1) - 1] || 99;
+}
+
+/*  Ailenin kışlasının şu anki seviyesi. insaat.js yoksa 1 döner —
+    oyun kilitlenmez, yalnız üst kademeler kapalı kalır.          */
+function kislaSeviyesi(aile) {
+  try {
+    const b = AILE_KISLA[aile];
+    if (b && window.INSAAT && typeof window.INSAAT.seviye === "function") {
+      return window.INSAAT.seviye(b) || 1;
+    }
+  } catch (e) {}
+  return 1;
+}
+
+function kademeAcikMi(aile, kademe) {
+  return kislaSeviyesi(aile) >= kademeKislaSv(kademe);
+}
+
+/*  Kilit yazısı için kışlanın adı — insaat.js ADLAR'dan okunur. */
+function kislaAdi(aile) {
+  try {
+    const b = AILE_KISLA[aile];
+    if (b && window.INSAAT && window.INSAAT.ADLAR) return window.INSAAT.ADLAR[b];
+  } catch (e) {}
+  return "Kışla";
+}
+
 const KADEME = {
   /*  Her kademede eklenen sabit sayı — AİLEYE GÖRE FARKLI.
       Birlikler yükseldikçe kendi karakterlerinde uzmanlaşır:
@@ -1012,7 +1054,9 @@ const TroopTabs = (function () {
     /* 18 birlik var ama hepsini listelemek anlamsız: sahip olunanlar
        ve her ailenin Sv1'i görünür, boş kademeler gizlenir. */
     const defs = Object.values(UNIT_TYPES).filter(def =>
-      (def.kademe || 1) === 1 || ((state.troops && state.troops[def.id]) || 0) > 0);
+      (def.kademe || 1) === 1 ||
+      kademeAcikMi(def.aile, def.kademe || 1) ||
+      ((state.troops && state.troops[def.id]) || 0) > 0);
     if (!defs.length) { list.innerHTML = `<div class="tp-empty">Tanımlı birlik yok.</div>`; return; }
 
     list.innerHTML = defs.map((def, i) => {

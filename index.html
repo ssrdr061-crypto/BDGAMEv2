@@ -8294,7 +8294,7 @@ const TroopViewer = (function () {
       const kid   = kademeId(uid, lv);
       const def   = UNIT_TYPES[kid];
       if (!def) return;
-      const kilit = lv > 1;          /* Sv2+ şimdilik üretilemez */
+      const kilit = !kademeAcikMi(uid, lv);   /* açılış tablosu: troops.js KADEME_ACILIS */
 
       const count = (state && state.troops && state.troops[kid]) || 0;
       /* Birlik sayısını stage içindeki elemente yaz */
@@ -8344,7 +8344,7 @@ const TroopViewer = (function () {
         const d = UNIT_TYPES[kademeId(uid, k)];
         if (!d) continue;
         const src = d.img || "";
-        html += `<button class="uv-portrait${k === lv ? " is-active" : ""}${k > 1 ? " kp-kilit" : ""}` +
+        html += `<button class="uv-portrait${k === lv ? " is-active" : ""}${kademeAcikMi(uid, k) ? "" : " kp-kilit"}` +
                 `" data-unit="${uid}" data-kademe="${k}" aria-label="${k}.Sv ${d.name}">` +
                 (src ? `<img src="${src}" alt="">` : `<span>${d.icon || "?"}</span>`) +
                 `<span class="kp-sv">${k}</span></button>`;
@@ -8396,8 +8396,8 @@ const TroopViewer = (function () {
           </div>`;
         html += `<div class="unit-train-bar">
             <div class="utb-kilit">
-              <span class="utb-top">🔒 ${lv}. Seviye</span>
-              <span class="utb-sub">üretim yakında</span>
+              <span class="utb-top">🔒 ${kislaAdi(uid)} Sv${kademeKislaSv(lv)}</span>
+              <span class="utb-sub">gerekli</span>
             </div>
           </div>`;
       } else if (isTraining) {
