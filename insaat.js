@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-6";
+  var SURUM = "insaat-7";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -524,17 +524,9 @@
     '.ins-modal.acik .ins-kart{transform:scale(1);opacity:1;}' +
 
     /* Baslik: seritsiz. .overlay-card h2 ile ayni olcu ve golge. */
-    '.ins-modal .ins-baslik{position:relative;flex:0 0 auto;padding:15px 52px 8px 16px;}' +
-    '.ins-modal .ins-bas{font-size:19px;font-weight:900;' +
+    '.ins-modal .ins-baslik{position:relative;flex:0 0 auto;padding:15px 16px 8px;}' +
+    '.ins-modal .ins-bas{font-size:19px;font-weight:900;text-align:center;' +
       'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
-    '.ins-modal .ins-kapat{position:absolute;top:12px;right:12px;' +
-      'width:34px;height:34px;border-radius:10px;' +
-      'background:linear-gradient(180deg,#f03434,#c00d0d);' +
-      'border:1px solid rgba(255,220,220,.9);color:#fff;' +
-      'font-size:17px;font-weight:900;cursor:pointer;font-family:inherit;' +
-      'display:flex;align-items:center;justify-content:center;}' +
-    '.ins-modal .ins-kapat:active{transform:scale(.92);}' +
-
     '.ins-modal .ins-govde{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;' +
       'padding:2px 16px 16px;}' +
 
@@ -681,7 +673,6 @@
     kok.innerHTML = '<div class="ins-kart">' +
                       '<div class="ins-baslik">' +
                         '<div class="ins-bas"></div>' +
-                        '<button class="ins-kapat" type="button">✕</button>' +
                       '</div>' +
                       '<div class="ins-govde"></div>' +
                     '</div>';
@@ -689,15 +680,8 @@
     document.body.appendChild(kok);
     _kok = kok;
 
-    kok.querySelector(".ins-kapat").addEventListener("click", function () {
-      /* Panel kaleici tuvalindeki GELISTIR dugmesinin tam ustune
-         aciliyor; o dokunustan arta kalan hayalet tik ✕'e denk
-         gelebiliyor (Tuzak 29). Ilk 400 ms kapatma calismaz. */
-      if (Date.now() - acilis < 400) return;
-      kapat();
-    });
-
-    /* Karartmaya dokunmak kapatir. Karta dokunmak kapatmaz —
+    /* KAPATMA DUGMESI YOK — panel disina dokunmak kapatir.
+       Karartmaya dokunmak kapatir. Karta dokunmak kapatmaz —
        e.target kok'un KENDISI ise bosluga basilmis demektir. */
     kok.addEventListener("click", function (e) {
       if (e.target !== kok) return;
@@ -755,8 +739,7 @@
              '<button class="ins-btn ins-altin" data-is="bitirSuren"' +
                (elmasVar() >= bm ? "" : " disabled") + '>BİTİR' +
                '<small>💎 ' + sayi(bm) + '</small></button>' +
-             '<button class="ins-btn ins-mavi" data-is="hizlandir">HIZLANDIR' +
-               '<small>⏩ hızlandırıcı</small></button>' +
+             '<button class="ins-btn ins-mavi" data-is="hizlandir">HIZLANDIR</button>' +
            '</div>';
       govde.innerHTML = h;
       bagla(govde, id);

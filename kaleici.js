@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-40';
+  var SURUM = 'kaleici-41';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -1026,8 +1026,39 @@
     var kalan = 0;
     try { kalan = window.INSAAT.kalanMs(b.id) || 0; } catch (e) {}
 
-    var r = yuk * 0.34;
     ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    /* ── İNŞAAT SÜRÜYOR: KUTU YOK ──
+       Kutucuk süreyi kısaltmaya zorluyordu ("21d"). Kutu kalkınca
+       genişlik derdi biter, tam süre yazılabilir. Okunurluk arka
+       plandan değil, yazının kendi ince siyah konturundan gelir.
+       Dokunuş alanı (gelBtn) DEĞİŞMEDİ — kutu görsel, kutu değil. */
+    if (kalan > 0) {
+      var yzi = tamSure(kalan);
+      var pnt = Math.max(11, yuk * 0.52);
+      ctx.font = '500 ' + pnt + 'px "Baloo 2",sans-serif';
+      /* Yazı taşarsa küçült. Sınır kutunun 1.6 katı: kutu artık
+         çizilmediği için biraz taşması sorun değil. */
+      var sinir = gen * 1.6;
+      while (pnt > 9 && ctx.measureText(yzi).width > sinir) {
+        pnt -= 0.5;
+        ctx.font = '500 ' + pnt + 'px "Baloo 2",sans-serif';
+      }
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
+      ctx.lineWidth = Math.max(1.2, pnt * 0.13);
+      ctx.strokeStyle = 'rgba(0,0,0,.85)';
+      ctx.strokeText(yzi, x + gen / 2, y + yuk * 0.54);
+      ctx.fillStyle = gelBasili ? '#cfe6f5' : '#ffffff';
+      ctx.fillText(yzi, x + gen / 2, y + yuk * 0.54);
+      ctx.restore();
+      return;
+    }
+
+    /* ── GELİŞTİR: yeşil kutu duruyor ── */
+    var r = yuk * 0.34;
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + gen, y, x + gen, y + yuk, r);
@@ -1035,24 +1066,27 @@
     ctx.arcTo(x, y + yuk, x, y, r);
     ctx.arcTo(x, y, x + gen, y, r);
     ctx.closePath();
-    if (kalan > 0) ctx.fillStyle = gelBasili ? '#2a7fa8' : '#3a9ecb';
-    else           ctx.fillStyle = gelBasili ? '#35a55c' : '#3fbf6a';
+    ctx.fillStyle = gelBasili ? '#35a55c' : '#3fbf6a';
     ctx.fill();
-    ctx.fillStyle = kalan > 0 ? '#eaf6ff' : '#08331b';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
     ctx.font = '800 ' + Math.max(11, yuk * 0.54) + 'px "Baloo 2",sans-serif';
-    ctx.fillText(kalan > 0 ? kisaSure(kalan) : 'GELİŞTİR', x + gen / 2, y + yuk * 0.54);
+    ctx.fillText('GELİŞTİR', x + gen / 2, y + yuk * 0.54);
     ctx.restore();
   }
 
-  /* Düğmeye sığan kısa süre: 2g · 5s · 12d · 45sn */
-  function kisaSure(ms) {
+  /* Tam süre: en büyük iki birim yazılır, saniye hep görünür ki
+     sayacın işlediği belli olsun.
+     2g 5s · 1s 45dk 23sn · 45dk 13sn · 13sn */
+  function tamSure(ms) {
     var t = Math.max(0, Math.round(ms / 1000));
-    if (t >= 86400) return Math.floor(t / 86400) + 'g';
-    if (t >= 3600)  return Math.floor(t / 3600) + 's';
-    if (t >= 60)    return Math.floor(t / 60) + 'd';
-    return t + 'sn';
+    var g  = Math.floor(t / 86400);
+    var sa = Math.floor((t % 86400) / 3600);
+    var dk = Math.floor((t % 3600) / 60);
+    var sn = t % 60;
+    if (g  > 0) return g + 'g ' + sa + 's ' + dk + 'dk';
+    if (sa > 0) return sa + 's ' + dk + 'dk ' + sn + 'sn';
+    if (dk > 0) return dk + 'dk ' + sn + 'sn';
+    return sn + 'sn';
   }
 
   function gelistirdeMi(px, py) {
