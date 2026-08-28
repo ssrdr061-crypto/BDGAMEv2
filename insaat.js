@@ -25,27 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-4t";
-
-  /* ── EKRAN TANISI ──
-     Konsol yok; her sey ekrana yazilir. Panel acilmazsa sebebi
-     burada gorunur. Is bitince bu blok ve TANI cagrilari silinecek. */
-  function TANI(msg, renk) {
-    try {
-      var k = document.getElementById("insTani");
-      if (!k) {
-        k = document.createElement("div");
-        k.id = "insTani";
-        k.style.cssText = "position:fixed;left:0;right:0;top:0;z-index:2147483647;" +
-          "max-height:45vh;overflow:auto;padding:6px 8px;font:12px/1.35 monospace;" +
-          "color:#fff;background:rgba(120,0,0,.92);white-space:pre-wrap;";
-        k.addEventListener("click", function () { k.innerHTML = ""; });
-        document.body.appendChild(k);
-      }
-      k.style.background = renk || "rgba(120,0,0,.92)";
-      k.innerHTML += String(msg) + "<br>";
-    } catch (e) {}
-  }
+  var SURUM = "insaat-5";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -666,18 +646,8 @@
   }
 
   function ac(id) {
-    try { return acIc(id); }
-    catch (e) {
-      TANI("!! INSAAT.ac PATLADI: " + (e && e.message));
-      TANI(String((e && e.stack) || "").split("\n").slice(0, 3).join("\n"));
-      return;
-    }
-  }
-
-  function acIc(id) {
-    TANI("ac(" + id + ") — " + SURUM, "rgba(0,60,120,.92)");
-    if (!TIP[id]) { TANI("!! TIP yok: " + id); return; }
-    if (!kurDurum()) { TANI("!! kurDurum false (state yok)"); return; }
+    if (!TIP[id]) return;
+    if (!kurDurum()) return;
     bitenleriIsle();
     stilBas();
 
@@ -690,6 +660,11 @@
     var acilis = Date.now();
     var kok = document.createElement("div");
     kok.id = "insaatModal";
+    /* SINIF ZORUNLU. Butun CSS ".ins-modal" ile yazili; id yalniz
+       kaleici.js'in emniyet agi paneli bulabilsin diye duruyor
+       (butonuGuncelle -> "#insaatModal"). Sinif dusunce element
+       stilsiz kalir: position static, tam boy blok, gorunmez. */
+    kok.className = "ins-modal";
     kok.dataset.bina = id;
     kok.innerHTML = '<div class="ins-kart">' +
                       '<div class="ins-baslik">' +
@@ -726,28 +701,6 @@
       requestAnimationFrame(function () { kok.classList.add("acik"); });
     });
 
-    /* 600 ms sonra panelin GERCEK durumunu ekrana yaz */
-    setTimeout(function () {
-      try {
-        var st = getComputedStyle(kok);
-        var r  = kok.getBoundingClientRect();
-        var kt = kok.querySelector(".ins-kart");
-        var rs = kt ? kt.getBoundingClientRect() : null;
-        var css = document.getElementById("insaatCSS");
-        TANI(
-          "DOM:" + (kok.parentNode ? "var" : "YOK") +
-          " · sinif:" + kok.className +
-          " · CSS:" + (css ? "var(" + (css.textContent || "").length + ")" : "YOK") +
-          "\nopacity:" + st.opacity + " display:" + st.display +
-          " z:" + st.zIndex + " pos:" + st.position +
-          "\nmodal WxH:" + Math.round(r.width) + "x" + Math.round(r.height) +
-          " top:" + Math.round(r.top) +
-          "\nkart WxH:" + (rs ? Math.round(rs.width) + "x" + Math.round(rs.height) : "KART YOK") +
-          "\ngovde uzunluk:" + ((kok.querySelector(".ins-govde") || {}).innerHTML || "").length,
-          "rgba(0,60,120,.92)"
-        );
-      } catch (e) { TANI("!! rapor patladi: " + (e && e.message)); }
-    }, 600);
 
     /* Hayalet tiklama korumasi — dugme pointerup ile tetikleniyor,
        parmak kalkinca ayni noktaya bir click daha geliyor (Tuzak 29). */
@@ -767,16 +720,8 @@
 
   /* Panel içeriğini YERİNDE tazeler — kaydırma korunur. */
   function ciz(id) {
-    try { return cizIc(id); }
-    catch (e) {
-      TANI("!! ciz PATLADI: " + (e && e.message));
-      TANI(String((e && e.stack) || "").split("\n").slice(0, 3).join("\n"));
-    }
-  }
-
-  function cizIc(id) {
     var kok = _kok;
-    if (!kok) { TANI("!! ciz: _kok yok"); return; }
+    if (!kok) return;
     var govde = kok.querySelector(".ins-govde");
     if (!govde) return;
     var basEl = kok.querySelector(".ins-bas");
