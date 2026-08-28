@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-11";
+  var SURUM = "insaat-12";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -106,8 +106,9 @@
   var URETIM_ARTIS = 1.45;
 
   /* ── KIŞLA MUAFİYETİ — SABİT ÜÇLÜ DÖNGÜ ──
-     Ana Kale'yi Sv N'ye çıkarırken bu kışla Sv N-1 kalabilir.
-     Diğer ikisi Sv N olmak ZORUNDA. Araştırma dahil değil.  */
+     Ana Kale'yi Sv N'ye çıkarmak için diğerleri Sv N-1 olmalı.
+     Bu kışla bir kademe daha geride, Sv N-2 kalabilir.
+     Araştırma dahil değil, oyuncu seçmez, döngü sabittir. */
   var MUAF_SIRA = ["robot", "sovalye", "asker"];   /* Nişancı → Savunucu → Koruyucu */
   function muafKisla(hedefSv) {
     return MUAF_SIRA[(hedefSv - 2) % MUAF_SIRA.length];
@@ -250,7 +251,7 @@
     var liste = [];
     Object.keys(TIP).forEach(function (id) {
       if (id === "kale") return;
-      var gerek = (id === muaf) ? (hedef - 1) : hedef;
+      var gerek = (id === muaf) ? (hedef - 2) : (hedef - 1);
       if (gerek < 1) gerek = 1;
       liste.push({ id: id, gerek: gerek, tamam: seviye(id) >= gerek });
     });
@@ -258,31 +259,30 @@
   }
 
   function kaleKapisi(hedef) {
-    var muaf = muafKisla(hedef);
     var eksik = [];
-
-    Object.keys(TIP).forEach(function (id) {
-      if (id === "kale") return;
-      var gerek = (id === muaf) ? (hedef - 1) : hedef;
-      if (gerek < 1) gerek = 1;
-      if (seviye(id) < gerek) eksik.push(ADLAR[id] + " Sv" + gerek);
+    kaleKapisiListe(hedef).forEach(function (g) {
+      if (!g.tamam) eksik.push(ADLAR[g.id] + " Sv" + g.gerek);
     });
-
     if (!eksik.length) return null;
     return "Önce şunlar gerekli: " + eksik.join(" · ");
   }
 
-  /* Diğer binalar Ana Kale'yi EN FAZLA BİR SEVİYE geçebilir.
-     ── TUZAK: BU +1 OLMAZSA OYUN KİLİTLENİR ──
-     Kale kapısı "hepsi Sv N olsun" der. Tavan da "kaleyi geçemez"
-     deseydi, kale Sv1 iken hiçbir bina Sv2'ye çıkamaz, hiçbiri
-     çıkmadığı için kale de Sv2 olamazdı. Binalar önce bir seviye
-     öne geçer, kale sonra onları yakalar — istenen sıra budur. */
+  /* ── HİYERARŞİ: HİÇBİR BİNA ANA KALE'Yİ GEÇEMEZ ──
+     Bina tavanı = Ana Kale'nin seviyesi. Ana Kale Sv N için de
+     diğerleri Sv N-1 ister (kaleKapisiListe).
+
+     KİLİTLENME NEDEN OLMUYOR — bu ikisi birbirini kilitlermiş gibi
+     durur, kilitlemez:
+       Kale Sv1, herkes Sv1 → kale Sv2 için gereken Sv1, sağlanmış.
+       Kale Sv2 → binalar artık Sv2'ye çıkabilir.
+       Hepsi Sv2 → kale Sv3 olur. Ve böyle sürer.
+     Kilit ancak kale kapısı Sv N isteseydi olurdu (eski hata);
+     Sv N-1 istediği için zincir her adımda kendini açıyor. */
   function kaleTavani(id, hedef) {
     if (id === "kale") return null;
-    if (hedef <= seviye("kale") + 1) return null;
+    if (hedef <= seviye("kale")) return null;
     return "Ana Kale Sv" + seviye("kale") + ". Önce Ana Kale'yi Sv" +
-           (hedef - 1) + " yap.";
+           hedef + " yap.";
   }
 
   /* Kaynak yeterli mi → eksik kaynakların listesi (boşsa yeterli) */
@@ -831,7 +831,7 @@
     } else {
       var kt = kaleTavani(id, hedef);
       h += kapiSatiri(binaSimgesi("kale"),
-                      ADLAR.kale + " Sv" + Math.max(1, hedef - 1), !kt);
+                      ADLAR.kale + " Sv" + hedef, !kt);
     }
 
     var cuzdan = state.kaynaklar || {};
