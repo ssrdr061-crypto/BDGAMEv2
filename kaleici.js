@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-43';
+  var SURUM = 'kaleici-44';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -1708,16 +1708,17 @@
 
   /* ═══════════════════════════════════════════════════════════
      DAĞ AYAR PANELİ — GEÇİCİ  (?dagayar=1)
-     Süslerin konumu, ölçeği, dikey kayması ve dönme açısı ekrandan
-     ayarlanır. Değerler dialanınca YAZDIR'a basılır, çıkan satırlar
-     SUSLER dizisine yapıştırılır ve bu blok silinir.
-     Kalıcı kod değil — parametre yoksa hiçbir şey yapmaz.
+     Süslerin konumu, ölçeği, dikey kayması ve dönme açısı sürgüyle
+     ayarlanır; seçilen dağa kamera kendiliğinden gider. Değerler
+     dialanınca YAZDIR'a basılır, çıkan satırlar SUSLER dizisine
+     yapıştırılır ve bu blok silinir. Kalıcı kod değil.
      ═══════════════════════════════════════════════════════════ */
   (function dagAyarPaneli() {
     if (!/[?&]dagayar=1/.test(location.search || '')) return;
 
-    var sec = 0;                     /* seçili süsün SUSLER içindeki sırası */
+    var sec = 0;
     var kok = null, ustBilgi = null, cikti = null;
+    var satirlar = [];
 
     function s() { return SUSLER[sec]; }
 
@@ -1728,20 +1729,23 @@
       st.textContent =
         '#dagAyar{position:fixed;left:0;right:0;bottom:0;z-index:99998;' +
           'background:rgba(3,16,38,.94);color:#eaf7ff;padding:6px 8px 8px;' +
-          'font:12px/1.3 "Baloo 2",monospace;max-height:52vh;overflow:auto;}' +
-        '#dagAyar.kapali{transform:translateY(calc(100% - 26px));}' +
-        '#dagAyar .da-bas{display:flex;align-items:center;gap:6px;margin-bottom:4px;}' +
-        '#dagAyar .da-bas b{flex:1 1 auto;font-size:13px;}' +
-        '#dagAyar .da-sat{display:flex;align-items:center;gap:4px;margin:2px 0;}' +
-        '#dagAyar .da-sat span.et{flex:0 0 62px;opacity:.85;}' +
-        '#dagAyar .da-sat span.dg{flex:0 0 62px;text-align:right;' +
+          'font:12px/1.3 "Baloo 2",monospace;max-height:58vh;overflow:auto;' +
+          'transition:transform .18s ease;}' +
+        '#dagAyar.kapali{transform:translateY(calc(100% - 30px));}' +
+        '#dagAyar .da-bas{display:flex;align-items:center;gap:6px;margin-bottom:5px;}' +
+        '#dagAyar .da-bas b{flex:1 1 auto;font-size:13px;text-align:center;}' +
+        '#dagAyar .da-sat{display:flex;align-items:center;gap:5px;margin:3px 0;}' +
+        '#dagAyar .da-sat .et{flex:0 0 52px;opacity:.85;}' +
+        '#dagAyar .da-sat .dg{flex:0 0 54px;text-align:right;' +
           'font-variant-numeric:tabular-nums;font-weight:800;}' +
+        '#dagAyar input[type=range]{flex:1 1 auto;min-width:0;height:26px;' +
+          'accent-color:#3fbf6a;background:transparent;}' +
         '#dagAyar button{border:none;border-radius:7px;background:#22488f;color:#fff;' +
-          'font:800 13px "Baloo 2",sans-serif;padding:5px 9px;cursor:pointer;}' +
+          'font:800 13px "Baloo 2",sans-serif;padding:4px 8px;cursor:pointer;}' +
         '#dagAyar button:active{filter:brightness(.9);}' +
         '#dagAyar button.ana{background:#3fbf6a;}' +
         '#dagAyar button.kir{background:#c00d0d;}' +
-        '#dagAyar textarea{width:100%;height:110px;margin-top:6px;font:11px monospace;' +
+        '#dagAyar textarea{width:100%;height:104px;margin-top:6px;font:11px monospace;' +
           'background:#08182f;color:#cfeaff;border:1px solid #2a5a94;border-radius:6px;}';
       document.head.appendChild(st);
     }
@@ -1754,21 +1758,46 @@
       return b;
     }
 
-    /* Bir alan için: etiket · − · değer · + */
-    function satir(etiket, oku, yaz, adim, bicim) {
+    /* Sürgülü satır: etiket · − · sürgü · + · değer
+       Sürgü ADIM sayısıyla çalışır (tamsayı), gerçek değere adim ile
+       çevrilir — 0.02'lik ölçek adımı input[type=range] ile ancak
+       böyle sağlıklı yürüyor. */
+    function satir(etiket, oku, yaz, enAz, enCok, adim, bicim) {
       var d = document.createElement('div');
       d.className = 'da-sat';
+
       var e = document.createElement('span'); e.className = 'et'; e.textContent = etiket;
       var v = document.createElement('span'); v.className = 'dg';
+      var r = document.createElement('input');
+      r.type = 'range';
+      r.min = 0;
+      r.max = Math.round((enCok - enAz) / adim);
+      r.step = 1;
+
+      function uygula(n) {
+        yaz(enAz + n * adim);
+        v.textContent = bicim ? bicim(oku()) : oku();
+        zOnbellek = null;
+        kareIste();
+      }
+      r.addEventListener('input', function () { uygula(parseInt(r.value, 10) || 0); });
+
       d.appendChild(e);
       d.appendChild(dugme('−', function () { yaz(oku() - adim); }));
-      d.appendChild(v);
+      d.appendChild(r);
       d.appendChild(dugme('+', function () { yaz(oku() + adim); }));
-      d._tazele = function () { v.textContent = bicim ? bicim(oku()) : oku(); };
+      d.appendChild(v);
+
+      d._tazele = function () {
+        var deg = oku();
+        var n = Math.round((deg - enAz) / adim);
+        if (n < 0) n = 0;
+        if (n > +r.max) n = +r.max;
+        r.value = n;
+        v.textContent = bicim ? bicim(deg) : deg;
+      };
       return d;
     }
-
-    var satirlar = [];
 
     function kur() {
       stil();
@@ -1777,37 +1806,52 @@
 
       var bas = document.createElement('div');
       bas.className = 'da-bas';
-      var ad = document.createElement('b');
-      ustBilgi = ad;
-      bas.appendChild(dugme('◀', function () { sec = (sec - 1 + SUSLER.length) % SUSLER.length; }));
-      bas.appendChild(ad);
-      bas.appendChild(dugme('▶', function () { sec = (sec + 1) % SUSLER.length; }));
+      ustBilgi = document.createElement('b');
+      bas.appendChild(dugme('◀', function () { sec = (sec - 1 + SUSLER.length) % SUSLER.length; odakla(); }));
+      bas.appendChild(ustBilgi);
+      bas.appendChild(dugme('▶', function () { sec = (sec + 1) % SUSLER.length; odakla(); }));
+      bas.appendChild(dugme('◎', odakla));
       bas.appendChild(dugme('▾', function () { kok.classList.toggle('kapali'); }));
       kok.appendChild(bas);
 
+      /* Dağ seçici de sürgü: 16 dağ arasında hızlı gezinme */
+      var dsat = document.createElement('div');
+      dsat.className = 'da-sat';
+      var det = document.createElement('span'); det.className = 'et'; det.textContent = 'dağ';
+      var dr = document.createElement('input');
+      dr.type = 'range'; dr.min = 0; dr.max = SUSLER.length - 1; dr.step = 1; dr.value = 0;
+      dr.addEventListener('input', function () {
+        sec = parseInt(dr.value, 10) || 0;
+        odakla();
+        tazele();
+      });
+      dsat.appendChild(det);
+      dsat.appendChild(dr);
+      kok.appendChild(dsat);
+      kok._dagSurgu = dr;
+
       satirlar = [
-        satir('gx', function () { return s().gx; },
-              function (v) { s().gx = Math.round(v); }, 1),
-        satir('gy', function () { return s().gy; },
-              function (v) { s().gy = Math.round(v); }, 1),
-        satir('ölçek', function () { return s().olcek || 1; },
-              function (v) { s().olcek = Math.max(0.05, Math.round(v * 100) / 100); }, 0.02,
-              function (v) { return v.toFixed(2); }),
-        satir('dy px', function () { return s().dy || 0; },
-              function (v) { s().dy = Math.round(v); }, 2),
-        satir('dönme°', function () { return s().dondur || 0; },
-              function (v) { s().dondur = Math.round(v); }, 5),
-        satir('kara R', function () { return ZCFG.ada.yaricap; },
-              function (v) { ZCFG.ada.yaricap = Math.max(50, Math.round(v)); zOnbellek = null; }, 10),
+        satir('gx',      function () { return s().gx; },
+              function (v) { s().gx = Math.round(v); }, -24, 24, 1),
+        satir('gy',      function () { return s().gy; },
+              function (v) { s().gy = Math.round(v); }, -24, 24, 1),
+        satir('ölçek',   function () { return s().olcek || 1; },
+              function (v) { s().olcek = Math.max(0.05, Math.round(v * 100) / 100); },
+              0.10, 3.00, 0.02, function (v) { return v.toFixed(2); }),
+        satir('dy px',   function () { return s().dy || 0; },
+              function (v) { s().dy = Math.round(v); }, -200, 200, 2),
+        satir('dönme°',  function () { return s().dondur || 0; },
+              function (v) { s().dondur = Math.round(v); }, -180, 180, 5),
+        satir('kara R',  function () { return ZCFG.ada.yaricap; },
+              function (v) { ZCFG.ada.yaricap = Math.max(50, Math.round(v)); },
+              100, 900, 10),
       ];
       satirlar.forEach(function (d) { kok.appendChild(d); });
 
       var alt = document.createElement('div');
       alt.className = 'da-sat';
       alt.appendChild(dugme('YAZDIR', yazdir, 'ana'));
-      alt.appendChild(dugme('SIFIRLA', function () {
-        s().dondur = 0; s().dy = 0;
-      }, 'kir'));
+      alt.appendChild(dugme('SIFIRLA', function () { s().dondur = 0; s().dy = 0; }, 'kir'));
       kok.appendChild(alt);
 
       cikti = document.createElement('textarea');
@@ -1818,7 +1862,12 @@
       tazele();
     }
 
-    /* SUSLER satırlarını dosyaya yapıştırılacak biçimde yazar */
+    /* Seçilen dağ ekrana gelsin. Kaleiçi kapalıysa hiçbir şey yapmaz;
+       binayaOdakla zaten katmanın açık olup olmadığına bakıyor. */
+    function odakla() {
+      try { binayaOdakla(s()); } catch (e) {}
+    }
+
     function yazdir() {
       var sat = SUSLER.map(function (b) {
         return "    { id: '" + b.id + "', ad: '" + b.ad + "', emoji: '" + b.emoji +
@@ -1835,10 +1884,10 @@
 
     function tazele() {
       if (!kok) return;
-      var b = s();
-      ustBilgi.textContent = (sec + 1) + '/' + SUSLER.length + '  ' + b.id;
+      ustBilgi.textContent = (sec + 1) + '/' + SUSLER.length + '  ' + s().id;
+      if (kok._dagSurgu) kok._dagSurgu.value = sec;
       satirlar.forEach(function (d) { d._tazele(); });
-      zOnbellek = null;          /* kara sınırı değişmiş olabilir */
+      zOnbellek = null;
       kareIste();
     }
 
