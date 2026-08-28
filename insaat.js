@@ -130,6 +130,14 @@
   };
   var K_ADI   = { odun: "Odun", et: "Et", demir: "Demir", su: "Su", enerji: "Enerji" };
 
+  /* ── KAYNAK → ELMAS KURU ──
+     BITIR dugmesi SUREYI satin alir; kaynak eksikse eksigi de elmasa
+     cevirir. Kur uretim hiziyla TERS orantili: enerji dakikada 150,
+     et 500 uretiliyor — esit saysaydik enerjiyle bitirmek bedavaya
+     gelirdi. Sayilar: 1 elmas kac kaynak eder. */
+  var ELMAS_KUR = { et: 600, odun: 500, demir: 450, su: 300, enerji: 200 };
+  var BITIR_DK_ELMAS = 20;   /* index.html BITIR_ELMAS_DK ile ayni */
+
   /* ═══════════════════════════════════════════════════════════
      DURUM
      ═══════════════════════════════════════════════════════════ */
@@ -241,7 +249,10 @@
   }
 
   /* Tam denetim. Döner: { olur:bool, sebep:"" } */
-  function denetle(id, hedef) {
+  /* Kaynak DISINDAKI butun kapilar. BITIR kaynak eksigini elmasla
+     kapatabildigi icin kaynak denetimi ayri tutuldu; kapi kurallari
+     (sira, kale tavani, kale kapisi) elmasla asilamaz. */
+  function kapiDenetle(id, hedef) {
     if (!kurDurum())            return { olur: false, sebep: "Oyun verisi hazır değil." };
     if (!TIP[id])               return { olur: false, sebep: "Bu bina geliştirilemez." };
     if (hedef > TAVAN)          return { olur: false, sebep: "En yüksek seviyede." };
@@ -259,13 +270,95 @@
 
     var b = bedel(id, hedef);
     if (!b) return { olur: false, sebep: "Tablo bulunamadı." };
+    return { olur: true, sebep: "" };
+  }
 
+  function denetle(id, hedef) {
+    var d = kapiDenetle(id, hedef);
+    if (!d.olur) return d;
+
+    var b = bedel(id, hedef);
     var eks = eksikKaynaklar(b.kaynaklar);
     if (eks.length) {
       return { olur: false, sebep: "Yetersiz: " +
                eks.map(function (k) { return K_ADI[k]; }).join(", ") };
     }
     return { olur: true, sebep: "" };
+  }
+
+  /* ── BITIR MALIYETI ──
+     Doner: { elmas, sure, kaynak, eksik:{k:adet} }
+     sure  = gereken dakika x BITIR_DK_ELMAS
+     kaynak= eksik her kaynagin kendi kuruyla elmas karsiligi */
+  function bitirMaliyeti(id, hedef) {
+    var b = bedel(id, hedef);
+    if (!b) return null;
+    var cuzdan = (state && state.kaynaklar) || {};
+    var sureE = Math.max(1, Math.ceil(b.dk)) * BITIR_DK_ELMAS;
+    var kaynakE = 0, eksik = {};
+    Object.keys(b.kaynaklar).forEach(function (k) {
+      var acik = b.kaynaklar[k] - (cuzdan[k] || 0);
+      if (acik > 0) {
+        eksik[k] = acik;
+        kaynakE += Math.ceil(acik / (ELMAS_KUR[k] || 500));
+      }
+    });
+    return { elmas: sureE + kaynakE, sure: sureE, kaynak: kaynakE, eksik: eksik };
+  }
+
+  function elmasVar() {
+    try { return (state && state.diamonds) || 0; } catch (e) { return 0; }
+  }
+
+  /* Baslamamis yukseltmeyi ANINDA bitirir. Elindeki kaynak duser,
+     acigi elmas kapatir, ustune sure elmasi alinir. Kuyruga hic
+     girmez — bu yuzden SIRA_SAYI dolu olsa bile calisir mi? Hayir:
+     kapiDenetle sira kontrolunu de yapiyor, kural bozulmasin diye
+     bilerek oyle birakildi. */
+  function bitirHemen(id) {
+    if (!kurDurum()) return { ok: false, sebep: "Hazır değil." };
+    bitenleriIsle();
+
+    var hedef = seviye(id) + 1;
+    var d = kapiDenetle(id, hedef);
+    if (!d.olur) return { ok: false, sebep: d.sebep };
+
+    var m = bitirMaliyeti(id, hedef);
+    if (!m) return { ok: false, sebep: "Tablo bulunamadı." };
+    if (elmasVar() < m.elmas) {
+      return { ok: false, sebep: "Yeterli elmasın yok. Gereken: 💎 " + sayi(m.elmas) };
+    }
+
+    var b = bedel(id, hedef);
+    Object.keys(b.kaynaklar).forEach(function (k) {
+      var d2 = Math.min(state.kaynaklar[k] || 0, b.kaynaklar[k]);
+      state.kaynaklar[k] = (state.kaynaklar[k] || 0) - d2;
+      if (state.kaynaklar[k] < 0) state.kaynaklar[k] = 0;
+    });
+    state.diamonds = elmasVar() - m.elmas;
+    state.binaSv[id] = Math.min(TAVAN, hedef);
+
+    yaz();
+    tazele();
+    return { ok: true, sebep: "" };
+  }
+
+  /* Suren insaati elmasla aninda bitirir — yalniz KALAN sure odenir,
+     kaynak zaten baslarken dusmustu. */
+  function bitirSuren(id) {
+    var i = kuyrukta(id);
+    if (!i) return { ok: false, sebep: "İnşaat yok." };
+    var kalan = kalanMs(id);
+    var maliyet = Math.max(1, Math.ceil(kalan / 60000)) * BITIR_DK_ELMAS;
+    if (elmasVar() < maliyet) {
+      return { ok: false, sebep: "Yeterli elmasın yok. Gereken: 💎 " + sayi(maliyet) };
+    }
+    state.diamonds = elmasVar() - maliyet;
+    i.bitis = Date.now() - 1;
+    bitenleriIsle();
+    yaz();
+    tazele();
+    return { ok: true, sebep: "" };
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -411,64 +504,101 @@
      degisken sifira dustugu icin degiskene guvenilmiyor.
      3B yok: cerceve yok, gradient yok, tek yumusak golge. */
   var CSS =
-    '.ins-modal{position:fixed;left:0;right:0;z-index:39;' +
+    /* Tam ekran karartma; kart ORTADA. z-index 45 — kaleici acikken
+       nav-dock 40'a cikiyor, altinda kalmasin diye. */
+    '.ins-modal{position:fixed;inset:0;z-index:45;' +
+      'display:flex;align-items:center;justify-content:center;padding:16px;' +
+      'background:rgba(0,20,45,.55);opacity:0;transition:opacity .18s ease;' +
       'font-family:"Baloo 2","Nunito",sans-serif;pointer-events:none;}' +
+    '.ins-modal.acik{opacity:1;}' +
 
-    /* Zemin ve cerceve MENU PANELIYLE ayni (tema.js .overlay-card):
-       linear-gradient(#1fa3ea,#0e6fc0) + 1px rgba(190,240,255,.85).
-       Eski #0d2438 koyu zemin buradan silindi — ezme degil, degisim. */
-    '.ins-modal .ins-kart{pointer-events:auto;' +
-      'max-height:62vh;overflow-y:auto;overflow-x:hidden;' +
+    '.ins-modal .ins-kart{pointer-events:auto;width:100%;max-width:400px;' +
+      'max-height:84vh;display:flex;flex-direction:column;overflow:hidden;' +
       'background:linear-gradient(180deg,#1fa3ea,#0e6fc0);' +
-      'border:1px solid rgba(190,240,255,.85);border-bottom:none;' +
-      'border-radius:16px 16px 0 0;padding:14px 12px 12px;position:relative;' +
+      'border:1px solid rgba(190,240,255,.85);border-radius:16px;' +
       'box-shadow:0 2px 6px rgba(0,20,45,.3);color:#eaf7ff;' +
-      'transform:translateY(102%);transition:transform .22s cubic-bezier(.2,.9,.3,1);}' +
-    '.ins-modal.acik .ins-kart{transform:translateY(0);}' +
-    '.ins-modal .ins-kapat{position:absolute;top:10px;right:12px;width:28px;height:28px;' +
-      'border:none;border-radius:8px;background:#e03b47;color:#ffffff;' +
-      'font-size:15px;line-height:1;cursor:pointer;}' +
+      'transform:scale(.94);opacity:0;' +
+      'transition:transform .2s cubic-bezier(.2,.9,.3,1),opacity .2s ease;}' +
+    '.ins-modal.acik .ins-kart{transform:scale(1);opacity:1;}' +
 
-    /* Basliklar ORTALI — kapatma dugmesi mutlak konumlu, ortalamayi bozmaz */
+    /* ── BASLIK SERIDI ── */
+    '.ins-modal .ins-baslik{position:relative;flex:0 0 auto;padding:11px 44px 10px;' +
+      'background:rgba(0,20,45,.28);border-bottom:1px solid rgba(190,240,255,.18);}' +
     '.ins-modal .ins-bas{font-size:17px;font-weight:800;text-align:center;' +
-      'margin:0 34px 2px;text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
-    '.ins-modal .ins-sv{font-size:15px;font-weight:800;color:#cfeaff;' +
-      'text-align:center;margin-bottom:10px;font-variant-numeric:tabular-nums;' +
       'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
-    '.ins-modal .ins-sv .ins-hedef{color:#5ef08c;font-weight:800;}' +
+    '.ins-modal .ins-kapat{position:absolute;top:8px;right:10px;width:28px;height:28px;' +
+      'border:none;border-radius:8px;background:#e03b47;color:#ffffff;' +
+      'font-size:15px;line-height:1;cursor:pointer;font-family:inherit;}' +
 
-    /* ── GEREKSINIM KUTUCUKLARI ──
-       Simge / ad / miktar UST ALTA. Yan yana yazilinca "Demir" ve
-       "Enerji" bes kutuda telefona sigmiyor, ucu kirpiliyordu. */
-    '.ins-modal .ins-kutular{display:flex;gap:6px;margin-bottom:10px;}' +
-    '.ins-modal .ins-kutu{flex:1 1 0;min-width:0;padding:2px 0 0;text-align:center;' +
-      'background:none;border:none;}' +
-    '.ins-modal .ins-kutu .ins-ust{height:30px;line-height:30px;font-size:24px;}' +
-    '.ins-modal .ins-kutu .ins-mik{margin-top:3px;font-size:15px;font-weight:800;' +
+    /* Kaydirma GOVDEDE. Tuzak 26: overflow yatayda da kirpar, bu yuzden
+       govde icinde tasan sus yok. */
+    '.ins-modal .ins-govde{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;' +
+      'padding:12px 12px 12px;}' +
+
+    /* ── SEVIYE ROZETLERI ── */
+    '.ins-modal .ins-rozetler{display:flex;align-items:center;justify-content:center;' +
+      'gap:12px;margin:2px 0 8px;}' +
+    '.ins-modal .ins-roz{width:46px;height:46px;border-radius:12px;' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;' +
+      'background:rgba(0,20,45,.30);color:#cfeaff;' +
+      'border:1px solid rgba(190,240,255,.20);' +
+      'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
+    '.ins-modal .ins-roz.hedef{background:#3fbf6a;color:#ffffff;border-color:rgba(255,255,255,.35);}' +
+    '.ins-modal .ins-ok{font-size:18px;font-weight:800;color:#5ef08c;}' +
+
+    '.ins-modal .ins-cubuk{height:9px;border-radius:6px;overflow:hidden;' +
+      'background:rgba(0,20,45,.30);margin:0 0 12px;}' +
+    '.ins-modal .ins-cubuk i{display:block;height:100%;background:#3fbf6a;border-radius:6px;}' +
+
+    /* ── BOLUM BASLIGI ── */
+    '.ins-modal .ins-bolum{font-size:13.5px;font-weight:800;text-align:center;' +
+      'padding:6px 8px;border-radius:10px;margin:10px 0 6px;' +
+      'background:rgba(0,20,45,.24);color:#cfeaff;' +
+      'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
+
+    /* ── SATIR (bonus ve gereksinim ortak) ── */
+    '.ins-modal .ins-satir{display:flex;align-items:center;gap:8px;' +
+      'padding:7px 8px;border-radius:10px;margin-bottom:4px;' +
+      'background:rgba(0,20,45,.16);}' +
+    '.ins-modal .ins-satir .ins-sol{flex:1 1 auto;min-width:0;font-size:13.5px;' +
+      'font-weight:700;color:#cfeaff;}' +
+    '.ins-modal .ins-satir .ins-sag{flex:0 0 auto;font-size:14px;font-weight:800;' +
+      'color:#ffffff;font-variant-numeric:tabular-nums;}' +
+    '.ins-modal .ins-satir .ins-sag b{color:#5ef08c;font-weight:800;}' +
+    '.ins-modal .ins-satir .ins-mik{flex:1 1 auto;font-size:14.5px;font-weight:800;' +
       'color:#ffffff;font-variant-numeric:tabular-nums;' +
       'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
-    '.ins-modal .ins-kutu.eksik .ins-mik{color:#ff6b6b;}' +
+    '.ins-modal .ins-satir.eksik .ins-mik{color:#ff6b6b;}' +
+    '.ins-modal .ins-satir .ins-tik{flex:0 0 auto;font-size:15px;font-weight:800;' +
+      'color:#5ef08c;}' +
+    '.ins-modal .ins-satir.eksik .ins-tik{color:#ff6b6b;}' +
+    '.ins-modal .ins-satir .ins-ust{flex:0 0 30px;height:30px;line-height:30px;' +
+      'font-size:22px;text-align:center;}' +
     '.ins-modal img.ins-sim{width:28px;height:28px;object-fit:contain;' +
-      'vertical-align:-6px;display:inline-block;}' +
+      'vertical-align:-7px;display:inline-block;}' +
 
-    '.ins-modal .ins-sure{margin:2px 0 4px;font-size:14px;font-weight:700;color:#ffd257;' +
-      'text-align:center;font-variant-numeric:tabular-nums;}' +
     '.ins-modal .ins-not{font-size:12.5px;line-height:1.45;color:#ffd0d2;margin:6px 0 2px;' +
       'text-align:center;}' +
     '.ins-modal .ins-bilgi{font-size:12.5px;line-height:1.45;color:#cfeaff;margin:6px 0 2px;' +
       'text-align:center;font-variant-numeric:tabular-nums;}' +
+
+    /* ── DUGMELER ── */
     '.ins-modal .ins-dugmeler{display:flex;gap:8px;margin-top:12px;}' +
-    '.ins-modal .ins-btn{flex:1 1 0;border:none;border-radius:12px;padding:12px 8px;' +
-      'font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;' +
+    '.ins-modal .ins-btn{flex:1 1 0;min-width:0;border:none;border-radius:12px;' +
+      'padding:9px 6px;font-family:inherit;font-size:15px;font-weight:800;' +
+      'cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;' +
       'text-shadow:0 1px 2px rgba(0,20,45,.35);' +
       'transition:transform .09s ease,filter .09s ease;}' +
+    '.ins-modal .ins-btn small{font-size:12px;font-weight:700;opacity:.92;' +
+      'font-variant-numeric:tabular-nums;}' +
     '.ins-modal .ins-btn:active{transform:scale(.96);filter:brightness(.93);}' +
     '.ins-modal .ins-btn[disabled]{opacity:.45;cursor:default;}' +
     '.ins-modal .ins-btn[disabled]:active{transform:none;filter:none;}' +
     '.ins-modal .ins-yesil{background:#3fbf6a;color:#ffffff;}' +
-    '.ins-modal .ins-sari{background:#ffd257;color:#3a2600;}' +
+    '.ins-modal .ins-sari{background:#ffd257;color:#3a2600;text-shadow:none;}' +
     '.ins-modal .ins-geri{font-size:26px;font-weight:800;color:#ffd257;text-align:center;' +
-      'margin:10px 0 4px;font-variant-numeric:tabular-nums;}';
+      'margin:6px 0 4px;font-variant-numeric:tabular-nums;}';
 
   function stilBas() {
     if (document.getElementById("insaatCSS")) return;
@@ -530,19 +660,14 @@
     var acilis = Date.now();
     var kok = document.createElement("div");
     kok.id = "insaatModal";
-    /* KOK SEBEP: kapat() id'yi siliyor, CSS ise id'ye baglıydı — stil
-       aninda dusuyor ve 240 ms boyunca odun gorseli dogal boyutunda
-       tam ekran basiliyordu. Stil artik SINIFA bagli, id sadece
-       eski surumlerin kalintisini bulmak icin duruyor. */
-    kok.className = "ins-modal";
     kok.dataset.bina = id;
-    kok.innerHTML = '<div class="ins-kart"><button class="ins-kapat" type="button">✕</button>' +
-                    '<div class="ins-govde"></div></div>';
-
-    /* Panel nav-dock'un USTUNDE dursun. Dock gizliyse olcu 0 gelir
-       (Tuzak 15) — o zaman ekranin dibine oturur. position:fixed
-       oldugu icin offsetParent null'dir, offsetHeight kullaniliyor. */
-    kok.style.bottom = dockYuksekligi() + "px";
+    kok.innerHTML = '<div class="ins-kart">' +
+                      '<div class="ins-baslik">' +
+                        '<div class="ins-bas"></div>' +
+                        '<button class="ins-kapat" type="button">✕</button>' +
+                      '</div>' +
+                      '<div class="ins-govde"></div>' +
+                    '</div>';
 
     document.body.appendChild(kok);
     _kok = kok;
@@ -551,6 +676,14 @@
       /* Panel kaleici tuvalindeki GELISTIR dugmesinin tam ustune
          aciliyor; o dokunustan arta kalan hayalet tik ✕'e denk
          gelebiliyor (Tuzak 29). Ilk 400 ms kapatma calismaz. */
+      if (Date.now() - acilis < 400) return;
+      kapat();
+    });
+
+    /* Karartmaya dokunmak kapatir. Karta dokunmak kapatmaz —
+       e.target kok'un KENDISI ise bosluga basilmis demektir. */
+    kok.addEventListener("click", function (e) {
+      if (e.target !== kok) return;
       if (Date.now() - acilis < 400) return;
       kapat();
     });
@@ -565,9 +698,8 @@
 
     /* Hayalet tiklama korumasi — dugme pointerup ile tetikleniyor,
        parmak kalkinca ayni noktaya bir click daha geliyor (Tuzak 29). */
-    var kart = kok.querySelector(".ins-kart");
-    kart.style.pointerEvents = "none";
-    setTimeout(function () { kart.style.pointerEvents = ""; }, 400);
+    kok.style.pointerEvents = "none";
+    setTimeout(function () { kok.style.pointerEvents = ""; }, 400);
 
     _sayac = setInterval(function () {
       if (_kok !== kok || !kok.parentNode) { clearInterval(_sayac); _sayac = null; return; }
@@ -586,20 +718,26 @@
     if (!kok) return;
     var govde = kok.querySelector(".ins-govde");
     if (!govde) return;
+    var basEl = kok.querySelector(".ins-bas");
+    if (basEl) basEl.textContent = ADLAR[id] || id;
 
     var sv = seviye(id);
     var hedef = sv + 1;
-    var ad = ADLAR[id] || id;
-    var h = '<div class="ins-bas">' + ad + '</div>';
+    var h = "";
 
     /* ── İNŞAAT SÜRÜYOR ── */
     var isi = kuyrukta(id);
     if (isi) {
-      h += '<div class="ins-sv">Sv' + sv + ' → <span class="ins-hedef">Sv' +
-           isi.hedef + '</span> · inşaatta</div>';
+      var toplamMs = Math.max(1, (bedel(id, isi.hedef) || { dk: 1 }).dk * 60000);
+      var gecen = Math.max(0, Math.min(1, 1 - kalanMs(id) / toplamMs));
+      h += rozetler(sv, isi.hedef, gecen * 100);
       h += '<div class="ins-geri">' + sureYaz(kalanMs(id)) + '</div>';
+      var bm = Math.max(1, Math.ceil(kalanMs(id) / 60000)) * BITIR_DK_ELMAS;
       h += '<div class="ins-dugmeler">' +
              '<button class="ins-btn ins-sari" data-is="hizlandir">⏩ HIZLANDIR</button>' +
+             '<button class="ins-btn ins-yesil" data-is="bitirSuren"' +
+               (elmasVar() >= bm ? "" : " disabled") + '>BİTİR' +
+               '<small>💎 ' + sayi(bm) + '</small></button>' +
            '</div>';
       govde.innerHTML = h;
       bagla(govde, id);
@@ -608,72 +746,126 @@
 
     /* ── TAVAN ── */
     if (sv >= TAVAN) {
-      h += '<div class="ins-sv">Sv' + TAVAN + ' — en yüksek seviye</div>';
+      h += rozetler(sv, sv, 100);
+      h += '<div class="ins-bilgi">Sv' + TAVAN + " — en yüksek seviye</div>";
       govde.innerHTML = h;
       return;
     }
 
-    h += '<div class="ins-sv">Sv' + sv + ' → <span class="ins-hedef">Sv' +
-         hedef + '</span></div>';
+    h += rozetler(sv, hedef, (sv / TAVAN) * 100);
 
     var b = bedel(id, hedef);
     if (!b) { govde.innerHTML = h; return; }
 
-    var cuzdan = state.kaynaklar || {};
-    var kutular = "";
-    Object.keys(b.kaynaklar).forEach(function (k) {
-      var gerek = b.kaynaklar[k];
-      if (!gerek) return;
-      var yeter = (cuzdan[k] || 0) >= gerek;
-      kutular += '<div class="ins-kutu' + (yeter ? "" : " eksik") + '">' +
-                   '<div class="ins-ust">' + simge(k) + '</div>' +
-                   '<div class="ins-mik">' + kisaSayi(gerek) + '</div>' +
-                 '</div>';
-    });
-    if (kutular) h += '<div class="ins-kutular">' + kutular + '</div>';
-
-    h += '<div class="ins-sure">⏱ ' + dkYaz(b.dk) + '</div>';
-
-    /* Uretim — yalniz kaynak binalarinda. Yuzde degil GERCEK sayi:
-       simdiki dakikalik uretim ve yukseltmenin getirecegi artis.
-       Kisla/Arastirma/Ana Kale kaynak uretmez, satir hic yazilmaz. */
+    /* ── YÜKSELTME BONUSU ──
+       Yalniz OLCULEBILEN bonus yazilir. Kisla / Arastirma / Ana Kale'nin
+       seviyesi henuz hicbir sayiya bagli degil; uydurma satir yazmak
+       yerine bolum hic acilmaz. */
     var simdiki = dkUretim(id, sv);
     if (simdiki > 0) {
       var artis = dkUretim(id, hedef) - simdiki;
-      h += '<div class="ins-bilgi">Üretim ' + sayi(simdiki) + '/dk · +' +
-           sayi(artis) + '/dk</div>';
+      h += '<div class="ins-bolum">Yükseltme Bonusu</div>';
+      h += satir("Üretim / dk", sayi(simdiki) + " <b>+" + sayi(artis) + "</b>");
+      h += satir("Saatlik üretim", sayi(simdiki * 60) +
+                 " <b>+" + sayi(artis * 60) + "</b>");
     }
 
-    /* Ana Kale kapısı — hangi bina eksik, açıkça yaz */
+    /* ── GEREKENLER ── */
+    h += '<div class="ins-bolum">Gerekenler</div>';
+
+    /* Bina kapilari once: kaynak bulsan da bunlar asilmaz. */
     if (id === "kale") {
       var kk = kaleKapisi(hedef);
       var muaf = muafKisla(hedef);
-      h += '<div class="ins-bilgi">Bu seviyede ' + ADLAR[muaf] +
-           ' Sv' + (hedef - 1) + ' kalabilir.</div>';
-      if (kk) h += '<div class="ins-not">' + kk + '</div>';
+      h += kapiSatiri("🏰", ADLAR[muaf] + " Sv" + (hedef - 1) + " kalabilir", !kk);
+      if (kk) h += '<div class="ins-not">' + kk + "</div>";
     } else {
       var kt = kaleTavani(id, hedef);
-      if (kt) h += '<div class="ins-not">' + kt + '</div>';
+      h += kapiSatiri("🏰", "Ana Kale Sv" + Math.max(1, hedef - 1), !kt);
+      if (kt) h += '<div class="ins-not">' + kt + "</div>";
     }
 
+    var cuzdan = state.kaynaklar || {};
+    Object.keys(b.kaynaklar).forEach(function (k) {
+      var gerek = b.kaynaklar[k];
+      if (!gerek) return;
+      var var_ = cuzdan[k] || 0;
+      var yeter = var_ >= gerek;
+      h += '<div class="ins-satir' + (yeter ? "" : " eksik") + '">' +
+             '<span class="ins-ust">' + simge(k) + "</span>" +
+             '<span class="ins-mik">' + kisaSayi(var_) + " / " + kisaSayi(gerek) + "</span>" +
+             '<span class="ins-tik">' + (yeter ? "✔" : "✖") + "</span>" +
+           "</div>";
+    });
+
+    /* ── DÜĞMELER ── */
     var d = denetle(id, hedef);
-    if (!d.olur && d.sebep && d.sebep.indexOf("Önce") !== 0 && d.sebep.indexOf("Ana Kale") !== 0) {
-      h += '<div class="ins-not">' + d.sebep + '</div>';
+    var kd = kapiDenetle(id, hedef);
+    var m = bitirMaliyeti(id, hedef);
+    var bitirOlur = kd.olur && m && elmasVar() >= m.elmas;
+
+    if (!d.olur && d.sebep && d.sebep.indexOf("Yetersiz") !== 0 &&
+        d.sebep.indexOf("Önce") !== 0 && d.sebep.indexOf("Ana Kale") !== 0) {
+      h += '<div class="ins-not">' + d.sebep + "</div>";
     }
 
     h += '<div class="ins-dugmeler">' +
-           '<button class="ins-btn ins-yesil" data-is="basla"' + (d.olur ? "" : " disabled") + '>' +
-             'GELİŞTİR</button>' +
-         '</div>';
+           '<button class="ins-btn ins-sari" data-is="bitir"' +
+             (bitirOlur ? "" : " disabled") + '>BİTİR' +
+             '<small>💎 ' + (m ? sayi(m.elmas) : "-") + "</small></button>" +
+           '<button class="ins-btn ins-yesil" data-is="basla"' +
+             (d.olur ? "" : " disabled") + ">GELİŞTİR" +
+             "<small>⏱ " + dkYaz(b.dk) + "</small></button>" +
+         "</div>";
 
     govde.innerHTML = h;
     bagla(govde, id);
+  }
+
+  /* İki rozet + ok + ilerleme çubuğu. yuzde 0-100. */
+  function rozetler(sv, hedef, yuzde) {
+    var y = Math.max(0, Math.min(100, yuzde || 0));
+    return '<div class="ins-rozetler">' +
+             '<span class="ins-roz">' + sv + "</span>" +
+             '<span class="ins-ok">➜</span>' +
+             '<span class="ins-roz hedef">' + hedef + "</span>" +
+           "</div>" +
+           '<div class="ins-cubuk"><i style="width:' + y.toFixed(1) + '%"></i></div>';
+  }
+
+  function satir(sol, sag) {
+    return '<div class="ins-satir">' +
+             '<span class="ins-sol">' + sol + "</span>" +
+             '<span class="ins-sag">' + sag + "</span>" +
+           "</div>";
+  }
+
+  function kapiSatiri(ikon, metin, tamam) {
+    return '<div class="ins-satir' + (tamam ? "" : " eksik") + '">' +
+             '<span class="ins-ust">' + ikon + "</span>" +
+             '<span class="ins-mik" style="font-size:13px">' + metin + "</span>" +
+             '<span class="ins-tik">' + (tamam ? "✔" : "✖") + "</span>" +
+           "</div>";
   }
 
   function bagla(govde, id) {
     var b1 = govde.querySelector('[data-is="basla"]');
     if (b1) b1.addEventListener("click", function () {
       var r = baslat(id);
+      if (!r.ok) { uyar(r.sebep); return; }
+      ciz(id);
+    });
+
+    var b3 = govde.querySelector('[data-is="bitir"]');
+    if (b3) b3.addEventListener("click", function () {
+      var r = bitirHemen(id);
+      if (!r.ok) { uyar(r.sebep); return; }
+      ciz(id);
+    });
+
+    var b4 = govde.querySelector('[data-is="bitirSuren"]');
+    if (b4) b4.addEventListener("click", function () {
+      var r = bitirSuren(id);
       if (!r.ok) { uyar(r.sebep); return; }
       ciz(id);
     });
@@ -737,6 +929,9 @@
     bedel: bedel,
     denetle: denetle,
     baslat: baslat,
+    bitirMaliyeti: bitirMaliyeti,
+    bitirHemen: bitirHemen,
+    bitirSuren: bitirSuren,
     kuyrukta: kuyrukta,
     kalanMs: kalanMs,
     bitenleriIsle: bitenleriIsle,
