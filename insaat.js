@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-10";
+  var SURUM = "insaat-11";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -588,9 +588,9 @@
       'display:flex;align-items:center;justify-content:center;' +
       'font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;' +
       'background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);' +
-      'border:1px solid rgba(190,240,255,.35);color:#dff2ff;}' +
+      'border:none;color:#dff2ff;}' +
     '.ins-modal .ins-roz.hedef{background:linear-gradient(180deg,#5ce07a,#22a34a);' +
-      'border-color:rgba(255,255,255,.45);color:#fff;}' +
+      'color:#fff;}' +
     '.ins-modal .ins-ok{font-size:16px;font-weight:900;color:#dff2ff;}' +
 
     '.ins-modal .ins-cubuk{height:6px;border-radius:9px;overflow:hidden;' +
@@ -629,13 +629,13 @@
       'text-align:center;font-variant-numeric:tabular-nums;}' +
 
     /* ── DUGMELER ── olcu .hsm-btn ile ayni: 9px/6px dolgu, iki satir */
-    '.ins-modal .ins-dugmeler{display:flex;gap:9px;margin-top:10px;}' +
-    '.ins-modal .ins-btn{flex:1 1 0;min-width:0;border:none;border-radius:12px;' +
-      'padding:9px 6px;font-family:inherit;font-size:15px;font-weight:900;' +
-      'letter-spacing:.6px;color:#fff;cursor:pointer;' +
+    '.ins-modal .ins-dugmeler{display:flex;gap:7px;margin-top:9px;}' +
+    '.ins-modal .ins-btn{flex:1 1 0;min-width:0;border:none;border-radius:10px;' +
+      'padding:5px 6px;font-family:inherit;font-size:14px;font-weight:900;' +
+      'letter-spacing:.4px;line-height:1.2;color:#fff;cursor:pointer;' +
       'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;' +
       'box-shadow:none;transition:transform .09s ease,filter .09s ease;}' +
-    '.ins-modal .ins-btn small{font-size:13px;font-weight:900;' +
+    '.ins-modal .ins-btn small{font-size:12px;font-weight:900;line-height:1.15;' +
       'font-variant-numeric:tabular-nums;}' +
     '.ins-modal .ins-btn:active{transform:scale(.96);filter:brightness(.93);}' +
     '.ins-modal .ins-btn[disabled]{opacity:.45;cursor:default;}' +
@@ -646,7 +646,7 @@
     '.ins-modal .ins-mavi{background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);}' +
     '.ins-modal .ins-yesil{background:linear-gradient(180deg,#5ce07a,#22a34a);}' +
 
-    '.ins-modal .ins-geri{font-size:24px;font-weight:900;color:#ffd257;text-align:center;' +
+    '.ins-modal .ins-geri{font-size:21px;font-weight:900;color:#ffd257;text-align:center;' +
       'margin:2px 0 0;font-variant-numeric:tabular-nums;}';
 
   function stilBas() {
