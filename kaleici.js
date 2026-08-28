@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-52';
+  var SURUM = 'kaleici-53';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -310,11 +310,30 @@
     return (g && g.hazir && g.im.naturalWidth > 0) ? g.im : null;
   }
 
+  /* ═══ İKON İNCE AYARI ═══
+     Düğme ikonlarının ölçü ve konumları TEK YERDE. Değerleri
+     ?ikonayar=1 paneliyle canlı deneyip, beğenilen sayıları buraya
+     kalıcı yazıyoruz; panel iş bitince silinir (tanı paneli kuralı).
+
+     Ölçüler ORANDIR, piksel değil: hepsi bina adının yazı ölçeğine
+     (boy) ya da ikon ölçüsüne bağlı, böylece zoom değişince düzen
+     bozulmaz. */
+  var IK = {
+    olcek:     1.90,   /* ikon ölçüsü = boy × bu */
+    tabanPx:   40,     /* uzaklaşınca inilecek en küçük piksel */
+    bosluk:    0.16,   /* sıradaki ikonlar arası = ölçü × bu */
+    satirY:    0.60,   /* sıranın taban köşesinden aşağı kayması */
+    tasiOlcek: 1.00,   /* taşıma ikonu = ölçü × bu */
+    tasiX:     0.00,   /* taşıma ikonu yatay kayma (ölçü katı) */
+    tasiY:     0.00,   /* taşıma ikonu dikey kayma (ölçü katı) */
+    izgaraPay: 2,      /* taşırken çevrede kaç karo ızgara görünsün */
+  };
+
   /* ÜÇ DÜĞMENİN DE ÖLÇÜSÜ — tek yer.
      Bina adının yazı ölçeğinden (boy) türer, zoom'la birlikte
      büyür. 1,9 kat: 19px yazıda ~36px, açılış zoom'unda (1,6) ~55px.
      Taban 40 → uzaklaştırınca da parmakla basılabilir kalır. */
-  function ikonOlcusu(boy) { return Math.max(40, boy * 1.9); }
+  function ikonOlcusu(boy) { return Math.max(IK.tabanPx, boy * IK.olcek); }
 
   /* İkonu kare olarak, merkezine göre çizer.
      SOLUKLUK YOK: eskiden basılıyken globalAlpha düşüyordu ve
@@ -998,14 +1017,14 @@
      Taşıma açıkken binanın çevresindeki karolar soluk beyaz konturla
      çizilir; oyuncu binayı nereye bırakacağını görür. Yalnız çevre:
      bütün zemini çizmek hem gereksiz hem ağır (141×141 karo).
-     PAY karo cinsinden yarıçaptır.
+     Pay karo cinsinden yarıçaptır (IK.izgaraPay); 4 fazla geliyordu,
+     ekranın yarısı ızgaraya dönüyordu.
      Binanın KENDİ karoları buraya girmez — onları siluetCiz zaten
      dolu beyazla çiziyor, üstüne kontur binerse kalınlaşıyordu. */
-  var IZGARA_PAY = 4;
-
   function izgaraCiz(b) {
-    var x0 = b.gx - IZGARA_PAY, x1 = b.gx + b.en  + IZGARA_PAY;
-    var y0 = b.gy - IZGARA_PAY, y1 = b.gy + b.boy + IZGARA_PAY;
+    var pay = IK.izgaraPay;
+    var x0 = b.gx - pay, x1 = b.gx + b.en  + pay;
+    var y0 = b.gy - pay, y1 = b.gy + b.boy + pay;
     for (var gy = y0; gy < y1; gy++) {
       for (var gx = x0; gx < x1; gx++) {
         if (gx < 0 || gy < 0 || gx >= CFG.grid || gy >= CFG.grid) continue;
@@ -1085,9 +1104,10 @@
     /* Taşıma simgesi de sıradaki ikonlarla AYNI ölçüde. Eskiden
        boy*0.62 yarıçapla çiziliyordu ve diğerlerinin yanında küçük
        kalıyordu. r yarıçap olduğu için ölçünün yarısı veriliyor. */
-    var sr = ikonOlcusu(boy) / 2 * (tasiModu ? 1.10 : 1);
-    tasiSimge.x = (solW.x + altW.x) / 2;
-    tasiSimge.y = (solW.y + altW.y) / 2;
+    var tOlcu = ikonOlcusu(boy) * IK.tasiOlcek;
+    var sr = tOlcu / 2 * (tasiModu ? 1.10 : 1);
+    tasiSimge.x = (solW.x + altW.x) / 2 + tOlcu * IK.tasiX;
+    tasiSimge.y = (solW.y + altW.y) / 2 + tOlcu * IK.tasiY;
     tasiSimge.r = sr;
     tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr, tasiModu, tasiDokunus);
 
@@ -1159,10 +1179,10 @@
        Ölçü üç düğmede de aynı (ikonOlcusu), böylece taşıma simgesiyle
        yan yana geldiğinde biri büyük biri küçük durmuyor. */
     var olcu = ikonOlcusu(boy);
-    var bosluk = olcu * 0.16;
+    var bosluk = olcu * IK.bosluk;
     var toplam = sira.length * olcu + (sira.length - 1) * bosluk;
     var solX = Math.round(alt.x - toplam / 2);
-    var merkezY = Math.round(ust + olcu * 0.60);
+    var merkezY = Math.round(ust + olcu * IK.satirY);
 
     for (var i = 0; i < sira.length; i++) {
       var mx = solX + i * (olcu + bosluk) + olcu / 2;
@@ -2183,8 +2203,123 @@
 
   window.KALEICI = { SURUM: SURUM, CFG: CFG, BINALAR: BINALAR, GORSELLER: GORSELLER,
                     ac: ac, kapat: kapat, ciz: ciz, gorselYukle: gorselYukle,
-                    SUSLER: SUSLER, ZCFG: ZCFG,
+                    SUSLER: SUSLER, ZCFG: ZCFG, IK: IK,
                     binaAdi: binaAdi, binaKutusu: binaKutusu,
                     binaSeviyesi: binaSeviyesi, gotur: gotur,
                     yerlesimOku: yerlesimOku, yerlesimYaz: yerlesimYaz };
+
+  /* ═══════════════════════════════════════════════════════════
+     İKON İNCE AYAR PANELİ — GEÇİCİ  (?ikonayar=1)
+     Adres çubuğuna ?ikonayar=1 eklenince açılır. Değerler canlı
+     uygulanır, ekranda okunur. Beğenilen sayılar yukarıdaki IK
+     nesnesine KALICI yazılır ve bu blok silinir.
+     Konsol yok: her şey ekrana basılır.
+     ═══════════════════════════════════════════════════════════ */
+  (function ikonAyarPaneli() {
+    if (location.search.indexOf('ikonayar=1') < 0) return;
+
+    /* ad · adım · en az · en çok · ondalık basamak */
+    var ALANLAR = [
+      { k: 'olcek',     ad: 'İkon ölçüsü',   adim: 0.05, az: 0.6,  cok: 4,   ond: 2 },
+      { k: 'tabanPx',   ad: 'En küçük px',   adim: 2,    az: 16,   cok: 90,  ond: 0 },
+      { k: 'bosluk',    ad: 'İkon arası',    adim: 0.02, az: 0,    cok: 1,   ond: 2 },
+      { k: 'satirY',    ad: 'Sıra aşağı',    adim: 0.05, az: -1.5, cok: 2.5, ond: 2 },
+      { k: 'tasiOlcek', ad: 'Taşı ölçüsü',   adim: 0.05, az: 0.4,  cok: 2.5, ond: 2 },
+      { k: 'tasiX',     ad: 'Taşı sağa',     adim: 0.05, az: -3,   cok: 3,   ond: 2 },
+      { k: 'tasiY',     ad: 'Taşı aşağı',    adim: 0.05, az: -3,   cok: 3,   ond: 2 },
+      { k: 'izgaraPay', ad: 'Izgara payı',   adim: 1,    az: 0,    cok: 8,   ond: 0 },
+    ];
+
+    var kok = document.createElement('div');
+    kok.id = 'ikonAyarPanel';
+    kok.style.cssText =
+      'position:fixed;left:6px;right:6px;bottom:6px;z-index:99999;' +
+      'background:#0d2438;border-radius:14px;padding:8px 10px 10px;' +
+      'box-shadow:0 2px 6px rgba(0,20,45,.3);' +
+      'font-family:"Baloo 2",sans-serif;color:#dff2ff;font-size:13px;' +
+      'max-height:52vh;overflow-y:auto;';
+
+    var bas = document.createElement('div');
+    bas.style.cssText = 'font-weight:900;font-size:14px;margin-bottom:6px;' +
+                        'display:flex;align-items:center;gap:8px;';
+    bas.innerHTML = '<span style="flex:1">İKON İNCE AYAR</span>';
+    kok.appendChild(bas);
+
+    var kapatBtn = document.createElement('button');
+    kapatBtn.textContent = '✕';
+    kapatBtn.style.cssText = 'border:none;border-radius:9px;padding:3px 9px;' +
+      'background:#c0392b;color:#fff;font-weight:900;font-size:13px;';
+    kapatBtn.addEventListener('pointerup', function () { kok.remove(); });
+    bas.appendChild(kapatBtn);
+
+    var degerEl = {};
+
+    ALANLAR.forEach(function (a) {
+      var sat = document.createElement('div');
+      sat.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
+
+      var ad = document.createElement('span');
+      ad.textContent = a.ad;
+      ad.style.cssText = 'flex:1 1 auto;font-weight:800;';
+      sat.appendChild(ad);
+
+      var dg = document.createElement('span');
+      dg.style.cssText = 'flex:0 0 58px;text-align:right;font-weight:900;' +
+                         'font-variant-numeric:tabular-nums;color:#fff;';
+      degerEl[a.k] = dg;
+
+      function yazDeger() { dg.textContent = IK[a.k].toFixed(a.ond); }
+
+      function dugme(yazi, yon) {
+        var b = document.createElement('button');
+        b.textContent = yazi;
+        b.style.cssText = 'flex:0 0 34px;border:none;border-radius:9px;' +
+          'padding:5px 0;background:#3d7ccc;color:#fff;font-weight:900;' +
+          'font-size:16px;';
+        b.addEventListener('pointerup', function () {
+          var v = IK[a.k] + yon * a.adim;
+          v = Math.max(a.az, Math.min(a.cok, v));
+          /* Kayan nokta artığı temizlenir: 0.6000000000000001 olmasın. */
+          IK[a.k] = Math.round(v * 1000) / 1000;
+          yazDeger();
+          kareIste();
+        });
+        return b;
+      }
+
+      sat.appendChild(dugme('−', -1));
+      sat.appendChild(dg);
+      sat.appendChild(dugme('+', +1));
+      kok.appendChild(sat);
+      yazDeger();
+    });
+
+    /* Değerleri okunur biçimde ekrana döker — telefonda kopyalamak
+       için. Konsol yok, o yüzden metin ekranda kalır. */
+    var dok = document.createElement('div');
+    dok.style.cssText = 'margin-top:6px;padding:6px;border-radius:9px;' +
+      'background:rgba(3,16,38,.55);font-size:11.5px;line-height:1.5;' +
+      'white-space:pre-wrap;word-break:break-all;';
+    kok.appendChild(dok);
+
+    var dokBtn = document.createElement('button');
+    dokBtn.textContent = 'DEĞERLERİ YAZ';
+    dokBtn.style.cssText = 'width:100%;margin-top:6px;border:none;' +
+      'border-radius:11px;padding:8px 0;background:#3fbf6a;color:#fff;' +
+      'font-family:"Baloo 2",sans-serif;font-weight:900;font-size:13px;';
+    dokBtn.addEventListener('pointerup', function () {
+      var m = 'var IK = {\n';
+      ALANLAR.forEach(function (a) {
+        m += '    ' + a.k + ': ' + IK[a.k].toFixed(a.ond) + ',\n';
+      });
+      dok.textContent = m + '  };';
+    });
+    kok.appendChild(dokBtn);
+
+    function ekle() {
+      if (document.body) document.body.appendChild(kok);
+      else setTimeout(ekle, 100);
+    }
+    ekle();
+  })();
 })();
