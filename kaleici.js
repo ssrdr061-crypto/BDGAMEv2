@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-48';
+  var SURUM = 'kaleici-49';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -450,14 +450,22 @@
          de değiştiği için bu sayı artık dağ halkasına göre elle
          ayarlanmış değerdir, hesapla türetilmez. */
       yaricap: 570,        // kara sınırı  (?dagayar=1 ile dialandı)
-      /* ── KAMERANIN GEZİNME KUTUSU ──
-         Ada merkezine göre, DÜNYA pikselinde. Daire yerine kutu, çünkü
-         yönler eşit değil: yukarıda deniz istenmiyor (dağların üstü
-         görünsün yeter), aşağıda deniz İSTENİYOR — oraya deniz işleri
-         gelecek. Dağ kutusu merkeze göre sol 496 · sağ 464 · üst 431 ·
-         alt 396 (ölçüldü); paylar buna göre seçildi.
-         ?dagayar=1 panelinden dialanabilir. */
-      gez: { sol: 430, sag: 400, ust: 330, alt: 620 },
+      /* ── GEZİNME SINIRI ──
+         DİKKAT — İKİ FARKLI ÖLÇÜ, karıştırılırsa hep fazla açılır:
+
+         sol/sag/ust = GÖRÜNTÜNÜN KENARI bu noktayı geçemez.
+           Kameranın kendisi değil. Kamera sınırı buradan her karede
+           yarım ekran çıkarılarak bulunur, böylece zoom değişse de
+           kenar aynı yerde durur. Önceki sürümde bunlar kamera
+           sınırıydı ve ekran yarım ekran daha ötesini gösteriyordu.
+           Değerler dağ kutusundan: sol 496 · sağ 464 · üst 431.
+
+         alt = KAMERANIN inebileceği en dip nokta (kenar değil).
+           Aşağıda deniz görünmesi İSTENİYOR, oraya deniz işleri
+           gelecek; o yüzden bu yön bilerek serbest bırakıldı.
+
+         Hepsi ada merkezine göre, dünya pikselinde. ?dagayar=1. */
+      gez: { sol: 500, sag: 470, ust: 435, alt: 620 },
       dalga: 0.085,        // kıyının kırışma miktarı
       kiyi: 0.052,         // kum bandı genişliği (yarıçap oranı)
       /* Kum yalnız ÖNE bakan kıyıda. İzometride yukarı dönen kıyı
@@ -740,10 +748,20 @@
      HİÇBİR GÖRSEL KAYDIRILMADI; yalnız kameranın gezinme alanı daraldı. */
   function kameraSinirla() {
     var A = ZCFG.ada, g = A.gez;
-    if (camX < A.mx - g.sol) camX = A.mx - g.sol;
-    if (camX > A.mx + g.sag) camX = A.mx + g.sag;
-    if (camY < A.my - g.ust) camY = A.my - g.ust;
-    if (camY > A.my + g.alt) camY = A.my + g.alt;
+    var yariW = (tuval.width  / eb) / (2 * CFG.zoom);
+    var yariH = (tuval.height / eb) / (2 * CFG.zoom);
+
+    /* Kenar sınırı → kamera sınırı: yarım ekran içeri çekilir.
+       Ekran o yönde sınırdan genişse pay 0 olur ve kamera o eksende
+       merkeze kilitlenir; kenara kayıp deniz göstermekten iyidir. */
+    var sol = Math.max(0, g.sol - yariW);
+    var sag = Math.max(0, g.sag - yariW);
+    var ust = Math.max(0, g.ust - yariH);
+
+    if (camX < A.mx - sol)   camX = A.mx - sol;
+    if (camX > A.mx + sag)   camX = A.mx + sag;
+    if (camY < A.my - ust)   camY = A.my - ust;
+    if (camY > A.my + g.alt) camY = A.my + g.alt;   /* alt: kamera sınırı */
   }
 
   /* ── ÇİZİM DURAKLATMA — DONMANIN KÖKÜ ──
@@ -1762,16 +1780,16 @@
         oku: function () { return ZCFG.ada.yaricap; },
         yaz: function (v) { ZCFG.ada.yaricap = Math.max(50, Math.round(v)); } },
       /* Kameranın gezinme kutusu — hangi yönde ne kadar açılabilsin */
-      { ad: 'K↑',  az: 0, cok: 1200, adim: 10,
+      { ad: 'Kn↑',  az: 0, cok: 1200, adim: 10,
         oku: function () { return ZCFG.ada.gez.ust; },
         yaz: function (v) { ZCFG.ada.gez.ust = Math.max(0, Math.round(v)); kameraSinirla(); } },
-      { ad: 'K↓',  az: 0, cok: 1200, adim: 10,
+      { ad: 'Km↓',  az: 0, cok: 1200, adim: 10,
         oku: function () { return ZCFG.ada.gez.alt; },
         yaz: function (v) { ZCFG.ada.gez.alt = Math.max(0, Math.round(v)); kameraSinirla(); } },
-      { ad: 'K←',  az: 0, cok: 1200, adim: 10,
+      { ad: 'Kn←',  az: 0, cok: 1200, adim: 10,
         oku: function () { return ZCFG.ada.gez.sol; },
         yaz: function (v) { ZCFG.ada.gez.sol = Math.max(0, Math.round(v)); kameraSinirla(); } },
-      { ad: 'K→',  az: 0, cok: 1200, adim: 10,
+      { ad: 'Kn→',  az: 0, cok: 1200, adim: 10,
         oku: function () { return ZCFG.ada.gez.sag; },
         yaz: function (v) { ZCFG.ada.gez.sag = Math.max(0, Math.round(v)); kameraSinirla(); } }
     ];
