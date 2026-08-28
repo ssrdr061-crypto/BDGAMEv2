@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-9";
+  var SURUM = "insaat-10";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -566,7 +566,7 @@
     '.ins-modal.acik{opacity:1;pointer-events:auto;}' +
 
     '.ins-modal .ins-kart{pointer-events:auto;position:relative;' +
-      'width:100%;max-width:340px;max-height:86vh;' +
+      'width:100%;max-width:318px;max-height:86vh;' +
       'display:flex;flex-direction:column;overflow:hidden;' +
       'background:linear-gradient(180deg,#1fa3ea,#0e6fc0);' +
       'border:1px solid rgba(190,240,255,.85);border-radius:22px;' +
@@ -584,7 +584,7 @@
     /* ── SEVIYE ROZETLERI ── kart olcusu .hsm-card-item ile ayni aile */
     '.ins-modal .ins-rozetler{display:flex;align-items:center;justify-content:center;' +
       'gap:10px;margin:0 0 6px;}' +
-    '.ins-modal .ins-roz{width:40px;height:40px;border-radius:13px;' +
+    '.ins-modal .ins-roz{width:36px;height:36px;border-radius:11px;' +
       'display:flex;align-items:center;justify-content:center;' +
       'font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;' +
       'background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);' +
@@ -593,35 +593,35 @@
       'border-color:rgba(255,255,255,.45);color:#fff;}' +
     '.ins-modal .ins-ok{font-size:16px;font-weight:900;color:#dff2ff;}' +
 
-    '.ins-modal .ins-cubuk{height:8px;border-radius:9px;overflow:hidden;' +
+    '.ins-modal .ins-cubuk{height:6px;border-radius:9px;overflow:hidden;' +
       'background:rgba(3,16,38,.55);margin:0 0 6px;}' +
     '.ins-modal .ins-cubuk i{display:block;height:100%;' +
       'background:linear-gradient(180deg,#5ce07a,#22a34a);border-radius:9px;}' +
 
     '.ins-modal .ins-bolum{font-size:13px;font-weight:800;letter-spacing:.6px;' +
-      'text-align:center;color:#dff2ff;margin:9px 0 4px;}' +
+      'text-align:center;color:#dff2ff;margin:7px 0 3px;}' +
 
     /* ── SATIR ── */
-    '.ins-modal .ins-satir{display:flex;align-items:center;gap:7px;' +
-      'padding:3px 8px;border-radius:9px;margin-bottom:3px;' +
+    '.ins-modal .ins-satir{display:flex;align-items:center;gap:6px;' +
+      'padding:1px 7px;border-radius:8px;margin-bottom:2px;' +
       'background:rgba(3,16,38,.30);' +
       'border:1px solid rgba(190,240,255,.14);}' +
-    '.ins-modal .ins-satir .ins-sol{flex:1 1 auto;min-width:0;font-size:13px;' +
+    '.ins-modal .ins-satir .ins-sol{flex:1 1 auto;min-width:0;font-size:12.5px;' +
       'font-weight:800;color:#dff2ff;}' +
-    '.ins-modal .ins-satir .ins-sag{flex:0 0 auto;font-size:13.5px;font-weight:900;' +
+    '.ins-modal .ins-satir .ins-sag{flex:0 0 auto;font-size:13px;font-weight:900;' +
       'color:#fff;font-variant-numeric:tabular-nums;}' +
     '.ins-modal .ins-satir .ins-sag b{color:#5ce07a;font-weight:900;}' +
-    '.ins-modal .ins-satir .ins-mik{flex:1 1 auto;font-size:13px;font-weight:900;' +
-      'color:#fff;font-variant-numeric:tabular-nums;}' +
+    '.ins-modal .ins-satir .ins-mik{flex:1 1 auto;font-size:12.5px;line-height:1.5;' +
+      'font-weight:900;color:#fff;font-variant-numeric:tabular-nums;}' +
     '.ins-modal .ins-satir.eksik .ins-mik{color:#ff8b8f;}' +
-    '.ins-modal .ins-satir .ins-mik.ins-yapi{font-size:12.5px;font-weight:800;}' +
-    '.ins-modal .ins-satir .ins-tik{flex:0 0 auto;font-size:14px;font-weight:900;' +
+    '.ins-modal .ins-satir .ins-mik.ins-yapi{font-size:12px;font-weight:800;}' +
+    '.ins-modal .ins-satir .ins-tik{flex:0 0 auto;font-size:13px;font-weight:900;' +
       'color:#5ce07a;}' +
     '.ins-modal .ins-satir.eksik .ins-tik{color:#ff8b8f;}' +
-    '.ins-modal .ins-satir .ins-ust{flex:0 0 20px;height:20px;line-height:20px;' +
-      'font-size:16px;text-align:center;}' +
-    '.ins-modal img.ins-sim{width:20px;height:20px;object-fit:contain;' +
-      'vertical-align:-5px;display:inline-block;}' +
+    '.ins-modal .ins-satir .ins-ust{flex:0 0 17px;height:17px;line-height:17px;' +
+      'font-size:14px;text-align:center;}' +
+    '.ins-modal img.ins-sim{width:17px;height:17px;object-fit:contain;' +
+      'vertical-align:-4px;display:inline-block;}' +
 
     '.ins-modal .ins-not{font-size:12px;line-height:1.35;color:#ffd0d2;margin:5px 0 1px;' +
       'text-align:center;}' +
