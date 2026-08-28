@@ -5998,7 +5998,7 @@ function castleNodeHTML(pos, isOwn, label, sv) {
       <div class="node-ring">
         <div class="node-avatar castle-avatar">
           <img src="kale${svNo}.webp" alt="" draggable="false"
-               onerror="if(this.src.indexOf('kale1.webp')<0){this.src='kale1.webp';}else{this.onerror=null;this.style.display='none';}">
+               onerror="var n=parseInt((this.src.match(/kale(\d+)/)||[0,1])[1],10)||1;if(n>1){this.src='kale'+(n-1)+'.webp';}else{this.onerror=null;this.style.display='none';}">
         </div>
       </div>
       <div class="node-label" data-sv="${svNo}"><span class="nl-ad">${labelText}</span></div>
@@ -6779,7 +6779,7 @@ function setupMapPanning() {
     if(moveGhost) return;
     moveGhost = document.createElement("div");
     moveGhost.id = "castleMoveGhost";
-    moveGhost.innerHTML = `<img src="kale${kaleSeviyesi()}.webp" alt="" draggable="false" onerror="if(this.src.indexOf('kale1.webp')<0){this.src='kale1.webp';}else{this.onerror=null;this.style.display='none';}">`;
+    moveGhost.innerHTML = `<img src="kale${kaleSeviyesi()}.webp" alt="" draggable="false" onerror="var n=parseInt((this.src.match(/kale(\d+)/)||[0,1])[1],10)||1;if(n>1){this.src='kale'+(n-1)+'.webp';}else{this.onerror=null;this.style.display='none';}">`;
     document.body.appendChild(moveGhost);
   }
   /* ── HEDEF ALANIN ÇERÇEVESİ ──
@@ -7651,8 +7651,8 @@ function computePlayerPower(st) {
   Object.keys(TROOP_POWER).forEach(k => { p += (t[k] || 0) * TROOP_POWER[k]; });
   const owned = Array.isArray(st.ownedHeroSkins) ? st.ownedHeroSkins : [];
   owned.forEach(id => { p += (HERO_POWER[id] || 0); });
-  /* Bina gücü: seviye başına puan, tek yer insaat.js -> GUC_TABAN.
-     Dosya yüklenmemişse 0 eklenir, güç eski haliyle çalışır. */
+  /* Bina gucu: seviye basina puan, tek yer insaat.js -> GUC_TABAN.
+     Dosya yuklenmemisse 0 eklenir, guc eski haliyle calisir. */
   try {
     if (window.INSAAT && typeof window.INSAAT.toplamGuc === "function") {
       p += window.INSAAT.toplamGuc(st) || 0;
