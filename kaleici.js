@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-54';
+  var SURUM = 'kaleici-55';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -319,18 +319,23 @@
      (boy) ya da ikon ölçüsüne bağlı, böylece zoom değişince düzen
      bozulmaz. */
   var IK = {
-    tabanPx:   40,   /* uzaklaşınca inilecek en küçük piksel */
-    izgaraPay:  2,   /* taşırken çevrede kaç karo ızgara görünsün */
+    tabanPx:   16,   /* uzaklaşınca inilecek en küçük piksel */
+    izgaraPay:  1,   /* taşırken çevrede kaç karo ızgara görünsün */
 
     /* Her ikon KENDİ ölçüsü ve KENDİ kayması ile duruyor —
        otomatik sıralama yok. x/y ikon ölçüsünün katıdır, artı
-       değerler sağa ve aşağı iter.
-       Çıpa: eğit/geliştir tabanın ALT köşesi, taşı ise SOL ve ALT
-       köşenin ortası (eski yeri). */
-    egit:     { olcek: 1.90, x: -0.58, y: 0.60 },
-    gelistir: { olcek: 1.90, x:  0.58, y: 0.60 },
-    tasi:     { olcek: 1.90, x:  0.00, y: 0.00 },
+       değerler sağa ve aşağı iter. Çıpa: tabanın ALT köşesi
+       (taşı ikonunda SOL ve ALT köşenin ortası).
+       Bu sayılar ?ikonayar=1 paneliyle ölçüldü, tahmin değil. */
+    gelistir: { olcek: 3.50, x:  0.78, y: -0.05 },
+    egit:     { olcek: 3.50, x:  0.02, y:  0.25 },
+    tasi:     { olcek: 3.50, x: -0.20, y:  0.15 },
+
+    /* Taşıma onayı: ✔ ve ✕ daireleri. x ikisinin ARASINDAKİ
+       açıklıktır, merkez tabanın alt köşesidir. */
+    onay:     { olcek: 2.20, x:  0.62, y:  0.55 },
   };
+
 
 
   /* ÜÇ DÜĞMENİN DE ÖLÇÜSÜ — tek yer.
@@ -935,7 +940,13 @@
   function secimCanli() { return !!secili; }
 
   function binaSec(b) {
-    if (b !== secili) { tasiModu = false; tasiDokunus = 0; }
+    /* Onaylanmadan başka yere dokunulursa taşıma İPTAL sayılır —
+       yarım kalmış bir taşıma sessizce kaydedilmez. */
+    if (b !== secili) {
+      if (tasiModu) tasimayiGeriAl();
+      tasiModu = false; tasiDokunus = 0;
+      onayBasili = false; iptalBasili = false;
+    }
     secili = b;
     secimZaman = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     /* Seçimde kamera OYNAMAZ. Odaklama yalnız GELİŞTİR'e basınca olur;
@@ -1080,7 +1091,11 @@
 
   /* ---- Seçili binanın adı — binaların üstünde, çerçeveli ---- */
   function seciliAdCiz() {
-    if (!secili) { tasiSimge.r = 0; egitBtn.w = 0; gelBtn.w = 0; return; }
+    if (!secili) {
+      tasiSimge.r = 0; egitBtn.w = 0; gelBtn.w = 0;
+      onayBtn.r = 0; iptalBtn.r = 0;
+      return;
+    }
     var b = secili;
     var kut = binaKutusu(b);
     var o = { x: kut.x + kut.w / 2 };
@@ -1100,20 +1115,27 @@
     ctx.fillStyle = '#ffffff';
     ctx.fillText(ad, o.x, yaziY);
 
-    /* Taşıma düğmesi — tabanın SOL ALT köşesinde.
-       1. dokunuş hazırlar (sarı halka), 2. dokunuş taşımayı açar. */
     var nk = taban(b);
     var solW = ekran(nk[3].x, nk[3].y);
     var altW = ekran(nk[2].x, nk[2].y);
-    /* Taşıma simgesi de sıradaki ikonlarla AYNI ölçüde. Eskiden
-       boy*0.62 yarıçapla çiziliyordu ve diğerlerinin yanında küçük
-       kalıyordu. r yarıçap olduğu için ölçünün yarısı veriliyor. */
+
+    /* ── TAŞIMA MODU: DİĞER DÜĞMELER YOK ──
+       Mod açıkken ekranda yalnız ✔ ve ✕ durur. Eğit/Geliştir/Taşı
+       ikonları hem sürüklemenin önüne geçiyor hem de "şimdi ne
+       yapacağım" sorusunu bulanıklaştırıyordu. */
+    if (tasiModu) {
+      tasiSimge.r = 0; egitBtn.w = 0; gelBtn.w = 0;
+      onayDugmeleriCiz(b, nk, boy);
+      return;
+    }
+    onayBtn.r = 0; iptalBtn.r = 0;
+
+    /* Taşıma düğmesi — tabanın SOL ALT köşesinde. */
     var tOlcu = Math.max(IK.tabanPx, boy * IK.tasi.olcek);
-    var sr = tOlcu / 2 * (tasiModu ? 1.10 : 1);
     tasiSimge.x = (solW.x + altW.x) / 2 + tOlcu * IK.tasi.x;
     tasiSimge.y = (solW.y + altW.y) / 2 + tOlcu * IK.tasi.y;
-    tasiSimge.r = sr;
-    tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr, tasiModu, tasiDokunus);
+    tasiSimge.r = tOlcu / 2;
+    tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, tasiSimge.r, false, 0);
 
     dugmeleriCiz(b, nk, boy);
   }
@@ -1126,6 +1148,46 @@
     if (KISLA_AILE[id]) return 'EĞİT';
     if (id === 'hastane') return 'HASTANE';
     return null;
+  }
+
+  /* ── ✔ / ✕ ONAY DÜĞMELERİ ──
+     Taşıma modunda tabanın alt köşesinde, ortadan iki yana açılmış
+     iki daire. Görsel dosya kullanılmaz: iki işaret de yazı tipiyle
+     çiziliyor, yeni dosya beklemeye gerek yok.
+     Android ✔/✖ karakterlerini RENKLİ EMOJİ olarak çizer ve ctx
+     rengi tutmaz; \uFE0E metin glifini zorlar (insaat.js'te de aynı
+     sorun vardı, aynı çözüm). */
+  var TIK_G   = '\u2713\uFE0E';
+  var CARPI_G = '\u2715\uFE0E';
+
+  function daireDugme(x, y, r, dolgu, isaret, basili) {
+    var rr = basili ? r * 0.96 : r;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, rr, 0, Math.PI * 2);
+    ctx.fillStyle = dolgu;
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 ' + (rr * 1.15) + 'px "Baloo 2",sans-serif';
+    ctx.fillText(isaret, x, y + rr * 0.06);
+    ctx.restore();
+  }
+
+  function onayDugmeleriCiz(b, nk, boy) {
+    var alt = ekran(nk[2].x, nk[2].y);
+    var a = IK.onay;
+    var olcu = Math.max(IK.tabanPx, boy * a.olcek);
+    var r = olcu / 2;
+    var my = Math.round(alt.y + olcu * a.y);
+    var ax = olcu * a.x;
+
+    onayBtn.x  = Math.round(alt.x - ax); onayBtn.y  = my; onayBtn.r  = r;
+    iptalBtn.x = Math.round(alt.x + ax); iptalBtn.y = my; iptalBtn.r = r;
+
+    daireDugme(onayBtn.x,  my, r, '#3fbf6a', TIK_G,   onayBasili);
+    daireDugme(iptalBtn.x, my, r, '#c0392b', CARPI_G, iptalBasili);
   }
 
   /* Bina geliştirilebilir mi — iki yerde soruluyordu, tek yere alındı. */
@@ -1451,6 +1513,20 @@
     kilitGozcu.observe(panel, { attributes: true, attributeFilter: ['class'] });
   }
 
+  /* Dairesel düğmeye dokunuldu mu (parmak payı ile) */
+  function daireDeMi(d, px, py) {
+    if (!d.r) return false;
+    var pay = Math.max(d.r * 1.25, 22);
+    return Math.hypot(px - d.x, py - d.y) <= pay;
+  }
+
+  /* Onaylanmamış taşımayı eski karosuna döndürür. */
+  function tasimayiGeriAl() {
+    if (secili && tasiBasla) { secili.gx = tasiBasla.gx; secili.gy = tasiBasla.gy; }
+    tasiBasla = null;
+    tasinan = null;
+  }
+
   /* Dokunuş taşıma düğmesinin üstünde mi (parmak payı ile) */
   function simgedeMi(px, py) {
     if (!secili || !tasiSimge.r) return false;
@@ -1466,19 +1542,13 @@
        Dosya açılmazsa aşağıdaki elle çizim devreye girer. */
     var im = ikon('tasi');
     if (im) {
-      /* KOYU HALKA KALDIRILDI — ikonun altındaki lacivert daire
-         görseli soluk gösteriyordu. Taşıma AÇIKKEN ikonun arkasına
-         sarı bir parıltı konur, kapalıyken hiçbir şey konmaz:
-         durum ikonun kendi netliğini bozmadan okunuyor. */
-      if (etkin) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(x, y, r * 1.05, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,198,26,.55)';
-        ctx.fill();
-        ctx.restore();
-      }
-      ikonCiz(im, x, y, r * 2, etkin);
+      /* ARKA PLAN YOK. Önce koyu daire, sonra sarı parıltı vardı;
+         ikisi de ikonu kabalaştırıyordu. Taşıma durumu artık
+         parıltıyla değil, EKRANIN KENDİSİYLE belli oluyor: mod
+         açılınca diğer düğmeler kaybolup ✔/✕ çıkıyor.
+         hazir/etkin bayrakları yalnız aşağıdaki yedek çizimde
+         (ikon dosyası yoksa) kullanılıyor. */
+      ikonCiz(im, x, y, r * 2, false);
       return;
     }
 
@@ -1545,6 +1615,12 @@
   var gelBasili = false;                           // parmak GELİŞTİR üstünde indi
   var tasiModu = false;                            // taşıma açık mı
   var tasiDokunus = 0;                             // düğmeye kaç kez dokunuldu
+  var onayBtn  = { x: 0, y: 0, r: 0 };             // ✔ düğmesinin ekran yeri
+  var iptalBtn = { x: 0, y: 0, r: 0 };             // ✕ düğmesinin ekran yeri
+  var onayBasili = false, iptalBasili = false;
+  /* Taşımaya BAŞLARKENKİ karo. ✕ buraya geri döndürür; kayıt
+     yalnız ✔ ile yazılır, sürükleyip bırakmak tek başına yazmaz. */
+  var tasiBasla = null;
 
   function mesafe() {
     var k = Object.keys(parmaklar);
@@ -1599,14 +1675,21 @@
         return;
       }
 
+      /* ✔ / ✕ — taşıma modunda diğer her şeyin ÖNÜNDE denetlenir. */
+      if (secili && tasiModu && daireDeMi(onayBtn, px, py)) {
+        onayBasili = true; kaydi = true; kareIste(); return;
+      }
+      if (secili && tasiModu && daireDeMi(iptalBtn, px, py)) {
+        iptalBasili = true; kaydi = true; kareIste(); return;
+      }
+
       if (secili && simgedeMi(px, py)) {
-        /* TEK DOKUNUŞ. Eskiden iki dokunuş isteniyordu (yanlışlıkla
-           bina kaydırmayı önlemek için); ikonlu düğme yeterince
-           belirgin olduğu için ara adım kaldırıldı. tasiDokunus
-           artık kullanılmıyor ama sıfırlamaları duruyor — başka
-           yerlerden de sıfırlanıyor, sessiz kalıntı bırakmamak için. */
-        tasiModu = !tasiModu;
+        /* TEK DOKUNUŞ taşıma modunu açar. Kapatma artık buradan
+           değil, ✕ düğmesinden yapılıyor (mod açıkken bu ikon
+           çizilmiyor bile). */
+        tasiModu = true;
         tasiDokunus = 0;
+        tasiBasla = { gx: secili.gx, gy: secili.gy };
         kaydi = true;                 // bırakınca seçim değişmesin
         kareIste();
         return;
@@ -1655,7 +1738,9 @@
     if (Math.abs(e.clientX - basX) > 6 || Math.abs(e.clientY - basY) > 6) kaydi = true;
 
     /* EĞİT düğmesine basılıyken harita kaymaz */
-    if (egitBasili || gelBasili) { sonX = e.clientX; sonY = e.clientY; return; }
+    if (egitBasili || gelBasili || onayBasili || iptalBasili) {
+      sonX = e.clientX; sonY = e.clientY; return;
+    }
 
     /* Ayar modu: bina sürükleniyorsa harita kaymaz, bina karo değiştirir */
     if (tasinan) {
@@ -1751,10 +1836,35 @@
         return;
       }
 
+      /* ✔ ONAY — yeni yer kaydedilir, mod kapanır. */
+      if (onayBasili) {
+        onayBasili = false;
+        var ro = tuval.getBoundingClientRect();
+        var onayda = secili && daireDeMi(onayBtn, e.clientX - ro.left, e.clientY - ro.top);
+        if (onayda) { tasiModu = false; tasiBasla = null; kameraSinirla(); yerlesimYaz(); }
+        kistirma = false;
+        kareIste();
+        return;
+      }
+
+      /* ✕ İPTAL — bina eski karosuna döner, kayıt YAZILMAZ. */
+      if (iptalBasili) {
+        iptalBasili = false;
+        var ri = tuval.getBoundingClientRect();
+        var iptalde = secili && daireDeMi(iptalBtn, e.clientX - ri.left, e.clientY - ri.top);
+        if (iptalde) { tasimayiGeriAl(); tasiModu = false; }
+        kistirma = false;
+        kareIste();
+        return;
+      }
+
       if (tasinan) {
         var tt = tasinan; tasinan = null; kistirma = false;
-        if (!kaydi) binaSec(tt);   // sürüklemeden bıraktıysa sadece seçim
-        else { kameraSinirla(); yerlesimYaz(); }
+        /* KAYIT BURADA YAZILMAZ. Bırakmak taşımayı bitirmiyor;
+           oyuncu ✔ diyene kadar bina yeni yerinde "denemede"
+           duruyor, ✕ ile eski karosuna dönebiliyor. */
+        if (!kaydi) binaSec(tt);
+        else kameraSinirla();
         kareIste();
         return;
       }
@@ -2217,9 +2327,10 @@
     if (location.search.indexOf('ikonayar=1') < 0) return;
 
     var IKONLAR_AD = [
-      { k: 'gelistir', ad: 'GELİŞTİR' },
+      { k: 'gelistir', ad: 'GELİŞ' },
       { k: 'egit',     ad: 'EĞİT' },
       { k: 'tasi',     ad: 'TAŞI' },
+      { k: 'onay',     ad: '✔/✕' },
     ];
     var secik = 'gelistir';
 
