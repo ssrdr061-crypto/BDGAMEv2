@@ -309,8 +309,23 @@ function stil() {
 .ist-etiket{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 
 /* sağdaki rakam — sağ kenardan içeri alındı, sabit genişlikte
-   hizalı duruyor. Daha sola almak için margin-right'ı büyüt. */
-.ist-deger{ flex:0 0 auto; min-width:52px; text-align:right; margin-right:26px; }
+   hizalı duruyor. Daha sola almak için margin-right'ı büyüt.
+
+   ROZET: rakam artık düz yazı değil, yeşil kutu içinde ve başında
+   "+" var. "+" burada YÜZDE DEĞİL, artı yönde katkı demek — sayı
+   birliğin ham statıdır. Rakamlar sayaç gibi değiştiği için
+   tabular-nums; yoksa kutu genişliği her çizimde oynuyor.
+   3B yok: kalın alt kenar / inset kabartı / kontur yok, tek
+   yumuşak gölge (görünüm kuralı). */
+.ist-deger{
+  flex:0 0 auto; min-width:52px; text-align:center; margin-right:26px;
+  padding:2px 9px; border-radius:10px;
+  background:linear-gradient(180deg,#5ce07a,#22a34a);
+  color:#ffffff; font-weight:900; font-size:15px;
+  font-variant-numeric:tabular-nums;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
 `;
   document.head.appendChild(el);
 }
@@ -331,7 +346,7 @@ function grupHTML(unitId) {
       <div class="ist-satir">
         <span class="ist-sembol">${i === 0 ? sembol : ""}</span>
         <span class="ist-etiket">${rol} ${s.ad}</span>
-        <span class="ist-deger">${sayi(b[s.key])}</span>
+        <span class="ist-deger">+${sayi(b[s.key])}</span>
       </div>`).join("");
 
   return satirlar;
