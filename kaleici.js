@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-41';
+  var SURUM = 'kaleici-42';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -991,7 +991,7 @@
     ctx.closePath();
     ctx.fillStyle = egitBasili ? '#e0a800' : '#ffc61a';
     ctx.fill();
-    ctx.fillStyle = '#3a2600';
+    ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = '800 ' + Math.max(11, yuk * 0.60) + 'px "Baloo 2",sans-serif';
@@ -1036,12 +1036,12 @@
        plandan değil, yazının kendi ince siyah konturundan gelir.
        Dokunuş alanı (gelBtn) DEĞİŞMEDİ — kutu görsel, kutu değil. */
     if (kalan > 0) {
-      var yzi = tamSure(kalan);
+      var yzi = 'İnşaat için: ' + tamSure(kalan);
       var pnt = Math.max(11, yuk * 0.52);
       ctx.font = '500 ' + pnt + 'px "Baloo 2",sans-serif';
       /* Yazı taşarsa küçült. Sınır kutunun 1.6 katı: kutu artık
          çizilmediği için biraz taşması sorun değil. */
-      var sinir = gen * 1.6;
+      var sinir = gen * 2.4;
       while (pnt > 9 && ctx.measureText(yzi).width > sinir) {
         pnt -= 0.5;
         ctx.font = '500 ' + pnt + 'px "Baloo 2",sans-serif';
@@ -1050,9 +1050,12 @@
       ctx.miterLimit = 2;
       ctx.lineWidth = Math.max(1.2, pnt * 0.13);
       ctx.strokeStyle = 'rgba(0,0,0,.85)';
-      ctx.strokeText(yzi, x + gen / 2, y + yuk * 0.54);
+      /* Kutu cizilmedigi icin yazi kutunun ORTASINA degil, ust
+         ucuna yakin oturur — EĞİT'e bir tik yaklasir. */
+      var yy = y + yuk * 0.32;
+      ctx.strokeText(yzi, x + gen / 2, yy);
       ctx.fillStyle = gelBasili ? '#cfe6f5' : '#ffffff';
-      ctx.fillText(yzi, x + gen / 2, y + yuk * 0.54);
+      ctx.fillText(yzi, x + gen / 2, yy);
       ctx.restore();
       return;
     }

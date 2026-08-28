@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-7";
+  var SURUM = "insaat-8";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -91,15 +91,15 @@
   /* Ana Kale — kışlanın yaklaşık 1,33 katı */
   var T_KALE = [
     null, null,
-    { odun:    15600, demir:    15600, et:    10400, su:     7800, enerji:    2600, dk:   12 },
-    { odun:    39000, demir:    39000, et:    26000, su:    19500, enerji:    6500, dk:   27 },
-    { odun:    96000, demir:    96000, et:    64000, su:    48000, enerji:   16000, dk:   66 },
-    { odun:   240000, demir:   240000, et:   160000, su:   120000, enerji:   40000, dk:  135 },
-    { odun:   600000, demir:   600000, et:   400000, su:   300000, enerji:  100000, dk:  300 },
-    { odun:  1500000, demir:  1500000, et:  1000000, su:   750000, enerji:  250000, dk:  660 },
-    { odun:  3720000, demir:  3720000, et:  2480000, su:  1860000, enerji:  620000, dk: 1620 },
-    { odun:  9360000, demir:  9360000, et:  6240000, su:  4680000, enerji: 1560000, dk: 3600 },
-    { odun: 23400000, demir: 23400000, et: 15600000, su: 11700000, enerji: 3900000, dk: 8460 },
+    { odun: 21840, demir: 21840, et: 14560, su: 10920, enerji: 3640, dk:   12 },
+    { odun: 54600, demir: 54600, et: 36400, su: 27300, enerji: 9100, dk:   27 },
+    { odun: 134400, demir: 134400, et: 89600, su: 67200, enerji: 22400, dk:   66 },
+    { odun: 336000, demir: 336000, et: 224000, su: 168000, enerji: 56000, dk:  135 },
+    { odun: 840000, demir: 840000, et: 560000, su: 420000, enerji: 140000, dk:  300 },
+    { odun: 2100000, demir: 2100000, et: 1400000, su: 1050000, enerji: 350000, dk:  660 },
+    { odun: 5208000, demir: 5208000, et: 3472000, su: 2604000, enerji: 868000, dk: 1620 },
+    { odun: 13104000, demir: 13104000, et: 8736000, su: 6552000, enerji: 2184000, dk: 3600 },
+    { odun: 32760000, demir: 32760000, et: 21840000, su: 16380000, enerji: 5460000, dk: 8460 },
   ];
 
   /* Her seviyede üretim bu kadar katlanır (Sv1 = 1.00) */
@@ -136,6 +136,34 @@
      et 500 uretiliyor — esit saysaydik enerjiyle bitirmek bedavaya
      gelirdi. Sayilar: 1 elmas kac kaynak eder. */
   var ELMAS_KUR = { et: 600, odun: 500, demir: 450, su: 300, enerji: 200 };
+
+  /* Bina gorseli TEK YERDE: kaleici.js -> BINALAR[].gorsel.
+     Burada ikinci bir tablo tutulsaydi bir gorsel degisince iki
+     yer duzeltmek gerekirdi. kaleici.js bu dosyadan SONRA yuklenir,
+     o yuzden calisma aninda okunur, yukleme aninda degil. */
+  function binaGorseli(id) {
+    try {
+      var L = window.KALEICI && window.KALEICI.BINALAR;
+      if (!L) return null;
+      for (var i = 0; i < L.length; i++) if (L[i].id === id) return L[i].gorsel;
+    } catch (e) {}
+    return null;
+  }
+
+  var BINA_EMOJI = {
+    kale: "🏰", odun: "🪵", ahir: "🐄", demir: "⛏️", su: "💧", enerji: "⚡",
+    arastirma: "🔬", sovalye: "⚔️", asker: "🛡️", robot: "🏹",
+  };
+
+  /* Bina simgesi — kaynak simgeleriyle AYNI olcude (.ins-sim). */
+  function binaSimgesi(id) {
+    var d = binaGorseli(id);
+    var e = BINA_EMOJI[id] || "🏠";
+    if (!d) return e;
+    return '<img class="ins-sim" src="' + d + '" alt="" ' +
+           'onerror="this.onerror=null;this.replaceWith(' +
+           "document.createTextNode('" + e + "'))\">";
+  }
   var BITIR_DK_ELMAS = 20;   /* index.html BITIR_ELMAS_DK ile ayni */
 
   /* ═══════════════════════════════════════════════════════════
@@ -209,6 +237,20 @@
 
   /* Ana Kale kapısı: diğer binalar hedef seviyeye yetişmiş mi.
      Döner: null (geçti) veya engel metni. */
+  /* Ana Kale kapisinin SATIR SATIR hali — panel bunu cizer.
+     kaleKapisi() ile AYNI kuraldan uretilir, ikinci bir kural yok. */
+  function kaleKapisiListe(hedef) {
+    var muaf = muafKisla(hedef);
+    var liste = [];
+    Object.keys(TIP).forEach(function (id) {
+      if (id === "kale") return;
+      var gerek = (id === muaf) ? (hedef - 1) : hedef;
+      if (gerek < 1) gerek = 1;
+      liste.push({ id: id, gerek: gerek, tamam: seviye(id) >= gerek });
+    });
+    return liste;
+  }
+
   function kaleKapisi(hedef) {
     var muaf = muafKisla(hedef);
     var eksik = [];
@@ -565,6 +607,7 @@
       'color:#fff;font-variant-numeric:tabular-nums;' +
       'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
     '.ins-modal .ins-satir.eksik .ins-mik{color:#ff8b8f;}' +
+    '.ins-modal .ins-satir .ins-mik.ins-yapi{font-size:12.5px;font-weight:800;}' +
     '.ins-modal .ins-satir .ins-tik{flex:0 0 auto;font-size:14px;font-weight:900;' +
       'color:#5ce07a;}' +
     '.ins-modal .ins-satir.eksik .ins-tik{color:#ff8b8f;}' +
@@ -775,16 +818,18 @@
     /* ── GEREKENLER ── */
     h += '<div class="ins-bolum">Gerekenler</div>';
 
-    /* Bina kapilari once: kaynak bulsan da bunlar asilmaz. */
+    /* Bina kapilari once: kaynak bulsan da bunlar asilmaz.
+       Metin aciklama YOK — her sart kendi satirinda, gorseli ve
+       ✔/✖ isaretiyle. Muaf kislanin Sv N-1 istemesi zaten satirda
+       gorunuyor, ayrica cumleyle anlatmaya gerek kalmiyor. */
     if (id === "kale") {
-      var kk = kaleKapisi(hedef);
-      var muaf = muafKisla(hedef);
-      h += kapiSatiri("🏰", ADLAR[muaf] + " Sv" + (hedef - 1) + " kalabilir", !kk);
-      if (kk) h += '<div class="ins-not">' + kk + "</div>";
+      kaleKapisiListe(hedef).forEach(function (g) {
+        h += kapiSatiri(binaSimgesi(g.id), ADLAR[g.id] + " Sv" + g.gerek, g.tamam);
+      });
     } else {
       var kt = kaleTavani(id, hedef);
-      h += kapiSatiri("🏰", "Ana Kale Sv" + Math.max(1, hedef - 1), !kt);
-      if (kt) h += '<div class="ins-not">' + kt + "</div>";
+      h += kapiSatiri(binaSimgesi("kale"),
+                      ADLAR.kale + " Sv" + Math.max(1, hedef - 1), !kt);
     }
 
     var cuzdan = state.kaynaklar || {};
@@ -845,7 +890,7 @@
   function kapiSatiri(ikon, metin, tamam) {
     return '<div class="ins-satir' + (tamam ? "" : " eksik") + '">' +
              '<span class="ins-ust">' + ikon + "</span>" +
-             '<span class="ins-mik" style="font-size:13px">' + metin + "</span>" +
+             '<span class="ins-mik ins-yapi">' + metin + "</span>" +
              '<span class="ins-tik">' + (tamam ? "✔" : "✖") + "</span>" +
            "</div>";
   }
