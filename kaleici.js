@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-53';
+  var SURUM = 'kaleici-54';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -319,35 +319,39 @@
      (boy) ya da ikon ölçüsüne bağlı, böylece zoom değişince düzen
      bozulmaz. */
   var IK = {
-    olcek:     1.90,   /* ikon ölçüsü = boy × bu */
-    tabanPx:   40,     /* uzaklaşınca inilecek en küçük piksel */
-    bosluk:    0.16,   /* sıradaki ikonlar arası = ölçü × bu */
-    satirY:    0.60,   /* sıranın taban köşesinden aşağı kayması */
-    tasiOlcek: 1.00,   /* taşıma ikonu = ölçü × bu */
-    tasiX:     0.00,   /* taşıma ikonu yatay kayma (ölçü katı) */
-    tasiY:     0.00,   /* taşıma ikonu dikey kayma (ölçü katı) */
-    izgaraPay: 2,      /* taşırken çevrede kaç karo ızgara görünsün */
+    tabanPx:   40,   /* uzaklaşınca inilecek en küçük piksel */
+    izgaraPay:  2,   /* taşırken çevrede kaç karo ızgara görünsün */
+
+    /* Her ikon KENDİ ölçüsü ve KENDİ kayması ile duruyor —
+       otomatik sıralama yok. x/y ikon ölçüsünün katıdır, artı
+       değerler sağa ve aşağı iter.
+       Çıpa: eğit/geliştir tabanın ALT köşesi, taşı ise SOL ve ALT
+       köşenin ortası (eski yeri). */
+    egit:     { olcek: 1.90, x: -0.58, y: 0.60 },
+    gelistir: { olcek: 1.90, x:  0.58, y: 0.60 },
+    tasi:     { olcek: 1.90, x:  0.00, y: 0.00 },
   };
+
 
   /* ÜÇ DÜĞMENİN DE ÖLÇÜSÜ — tek yer.
      Bina adının yazı ölçeğinden (boy) türer, zoom'la birlikte
      büyür. 1,9 kat: 19px yazıda ~36px, açılış zoom'unda (1,6) ~55px.
      Taban 40 → uzaklaştırınca da parmakla basılabilir kalır. */
-  function ikonOlcusu(boy) { return Math.max(IK.tabanPx, boy * IK.olcek); }
-
-  /* İkonu kare olarak, merkezine göre çizer.
-     SOLUKLUK YOK: eskiden basılıyken globalAlpha düşüyordu ve
-     ikonlar sönük görünüyordu. Basma tepkisi artık yalnız ölçüden
-     geliyor (scale .96), renk hiç değişmiyor. Altına yumuşak gölge
-     konur ki çimenin üstünde yüzer gibi dursun. */
+  /* İkonu merkezine göre çizer.
+     EN-BOY ORANI KORUNUR: eskiden kare çiziliyordu (olcu × olcu),
+     görsel kare değilse eziliyor ve "ince uzun" görünüyordu. Artık
+     uzun kenar `olcu` kadar, kısa kenar oranla hesaplanıyor.
+     GÖLGE YOK: shadowBlur ikonun kenarına koyu bir hâle koyuyor,
+     küçük ölçüde renkleri boğup cansız gösteriyordu.
+     SOLUKLUK YOK: basılıyken globalAlpha düşürülmüyor, tepki
+     yalnız ölçüden geliyor (scale .96). Renkler dosyadaki gibi. */
   function ikonCiz(im, mx, my, olcu, basili) {
     var o = basili ? olcu * 0.96 : olcu;
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,20,45,.45)';
-    ctx.shadowBlur = Math.max(3, o * 0.12);
-    ctx.shadowOffsetY = Math.max(1, o * 0.05);
-    ctx.drawImage(im, mx - o / 2, my - o / 2, o, o);
-    ctx.restore();
+    var w = im.naturalWidth || 1, h = im.naturalHeight || 1;
+    var k = o / Math.max(w, h);
+    var cw = w * k, ch = h * k;
+    ctx.drawImage(im, mx - cw / 2, my - ch / 2, cw, ch);
+    return { w: cw, h: ch };
   }
 
   /* Şeffaf kenar boşluğunu ölçer → her bina aynı hizaya oturur.
@@ -1104,10 +1108,10 @@
     /* Taşıma simgesi de sıradaki ikonlarla AYNI ölçüde. Eskiden
        boy*0.62 yarıçapla çiziliyordu ve diğerlerinin yanında küçük
        kalıyordu. r yarıçap olduğu için ölçünün yarısı veriliyor. */
-    var tOlcu = ikonOlcusu(boy) * IK.tasiOlcek;
+    var tOlcu = Math.max(IK.tabanPx, boy * IK.tasi.olcek);
     var sr = tOlcu / 2 * (tasiModu ? 1.10 : 1);
-    tasiSimge.x = (solW.x + altW.x) / 2 + tOlcu * IK.tasiX;
-    tasiSimge.y = (solW.y + altW.y) / 2 + tOlcu * IK.tasiY;
+    tasiSimge.x = (solW.x + altW.x) / 2 + tOlcu * IK.tasi.x;
+    tasiSimge.y = (solW.y + altW.y) / 2 + tOlcu * IK.tasi.y;
     tasiSimge.r = sr;
     tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, sr, tasiModu, tasiDokunus);
 
@@ -1165,34 +1169,28 @@
       ust += yuk + ara;
     }
 
-    /* ── İKON SIRASI ──
-       Ölçü binanın adıyla aynı ölçekten (boy) türetiliyor; zoom
-       değişince ikonlar da yazıyla birlikte büyüyüp küçülüyor.
-       1,45 kat: taşıma simgesinden (0,62 yarıçap → 1,24 çap) belirgin
-       biçimde büyük ama binayı örtmüyor. */
-    var sira = [];
-    if (imEgit) sira.push({ im: imEgit, kutu: egitBtn, basili: egitBasili });
-    if (imGel)  sira.push({ im: imGel,  kutu: gelBtn,  basili: gelBasili });
-    if (!sira.length) return;
+    /* ── İKONLAR: HER BİRİ BAĞIMSIZ ──
+       Otomatik sıralama KALDIRILDI. Sıralama ölçü değişince
+       ikonları birbirine itiyor, istenen yere koymak imkânsız
+       oluyordu. Artık her ikon kendi çıpasından (tabanın alt
+       köşesi) kendi x/y kaymasıyla yerleşiyor. */
+    var cizilecek = [];
+    if (imEgit) cizilecek.push({ im: imEgit, a: IK.egit,     kutu: egitBtn, basili: egitBasili });
+    if (imGel)  cizilecek.push({ im: imGel,  a: IK.gelistir, kutu: gelBtn,  basili: gelBasili });
+    if (!cizilecek.length) return;
 
-    /* HİZA: sıra binanın taban köşesinin TAM ALTINA, ortalanmış.
-       Ölçü üç düğmede de aynı (ikonOlcusu), böylece taşıma simgesiyle
-       yan yana geldiğinde biri büyük biri küçük durmuyor. */
-    var olcu = ikonOlcusu(boy);
-    var bosluk = olcu * IK.bosluk;
-    var toplam = sira.length * olcu + (sira.length - 1) * bosluk;
-    var solX = Math.round(alt.x - toplam / 2);
-    var merkezY = Math.round(ust + olcu * IK.satirY);
-
-    for (var i = 0; i < sira.length; i++) {
-      var mx = solX + i * (olcu + bosluk) + olcu / 2;
-      ikonCiz(sira[i].im, mx, merkezY, olcu, sira[i].basili);
-      /* Dokunuş alanı ikonun kendisi; parmak payı dokunma
-         denetiminde ayrıca ekleniyor. */
-      sira[i].kutu.x = mx - olcu / 2;
-      sira[i].kutu.y = merkezY - olcu / 2;
-      sira[i].kutu.w = olcu;
-      sira[i].kutu.h = olcu;
+    for (var i = 0; i < cizilecek.length; i++) {
+      var c = cizilecek[i];
+      var olcu = Math.max(IK.tabanPx, boy * c.a.olcek);
+      var mx = Math.round(alt.x + olcu * c.a.x);
+      var my = Math.round(ust + olcu * c.a.y);
+      var oz = ikonCiz(c.im, mx, my, olcu, c.basili);
+      /* Dokunuş alanı ÇİZİLEN ölçüdür — en-boy oranı korunduğu için
+         kare olmayabilir. Parmak payı dokunma denetiminde ekleniyor. */
+      c.kutu.x = mx - oz.w / 2;
+      c.kutu.y = my - oz.h / 2;
+      c.kutu.w = oz.w;
+      c.kutu.h = oz.h;
     }
 
     /* İnşaat sürüyorsa geri sayım ikonun ALTINA yazılır. Kutulu
@@ -1203,7 +1201,7 @@
       try { kalan = window.INSAAT.kalanMs(b.id) || 0; } catch (e) {}
       if (kalan > 0) {
         var yzi = tamSure(kalan);
-        var pnt = Math.max(10, olcu * 0.34);
+        var pnt = Math.max(10, gelBtn.h * 0.34);
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1212,7 +1210,7 @@
         ctx.miterLimit = 2;
         ctx.lineWidth = Math.max(1.2, pnt * 0.13);
         ctx.strokeStyle = 'rgba(0,0,0,.85)';
-        var yy = merkezY + olcu * 0.62;
+        var yy = gelBtn.y + gelBtn.h + pnt * 0.75;
         ctx.strokeText(yzi, gelBtn.x + gelBtn.w / 2, yy);
         ctx.fillStyle = '#ffffff';
         ctx.fillText(yzi, gelBtn.x + gelBtn.w / 2, yy);
@@ -2210,82 +2208,98 @@
 
   /* ═══════════════════════════════════════════════════════════
      İKON İNCE AYAR PANELİ — GEÇİCİ  (?ikonayar=1)
-     Adres çubuğuna ?ikonayar=1 eklenince sağ kenarda küçük bir
-     ⚙ düğmesi çıkar. Düğme paneli AÇIP KAPATIR — ayarladığın
-     ikonların üstünü kapamasın diye.
-     Beğenilen sayılar yukarıdaki IK nesnesine kalıcı yazılır ve
-     bu blok silinir. Konsol yok: her şey ekrana basılır.
+     Sağ kenardaki ⚙ paneli açıp kapatır. Üstteki üç sekmeden bir
+     ikon seçilir, altındaki üç satır YALNIZ o ikonu ayarlar:
+     ölçü · sağa · aşağı. En altta ortak iki değer.
+     Beğenilen sayılar IK nesnesine kalıcı yazılır, blok silinir.
      ═══════════════════════════════════════════════════════════ */
   (function ikonAyarPaneli() {
     if (location.search.indexOf('ikonayar=1') < 0) return;
 
-    /* anahtar · kısa ad · adım · en az · en çok · ondalık */
+    var IKONLAR_AD = [
+      { k: 'gelistir', ad: 'GELİŞTİR' },
+      { k: 'egit',     ad: 'EĞİT' },
+      { k: 'tasi',     ad: 'TAŞI' },
+    ];
+    var secik = 'gelistir';
+
     var ALANLAR = [
-      { k: 'olcek',     ad: 'ölçü',     adim: 0.05, az: 0.6,  cok: 4,   ond: 2 },
-      { k: 'tabanPx',   ad: 'en az px', adim: 2,    az: 16,   cok: 90,  ond: 0 },
-      { k: 'bosluk',    ad: 'ara',      adim: 0.02, az: 0,    cok: 1,   ond: 2 },
-      { k: 'satirY',    ad: 'sıra ↓',   adim: 0.05, az: -1.5, cok: 2.5, ond: 2 },
-      { k: 'tasiOlcek', ad: 'taşı ölçü',adim: 0.05, az: 0.4,  cok: 2.5, ond: 2 },
-      { k: 'tasiX',     ad: 'taşı →',   adim: 0.05, az: -3,   cok: 3,   ond: 2 },
-      { k: 'tasiY',     ad: 'taşı ↓',   adim: 0.05, az: -3,   cok: 3,   ond: 2 },
-      { k: 'izgaraPay', ad: 'ızgara',   adim: 1,    az: 0,    cok: 8,   ond: 0 },
+      { alan: 'olcek', ad: 'ölçü',  adim: 0.05, az: 0.5, cok: 5, ond: 2 },
+      { alan: 'x',     ad: 'sağa',  adim: 0.05, az: -4,  cok: 4, ond: 2 },
+      { alan: 'y',     ad: 'aşağı', adim: 0.05, az: -4,  cok: 4, ond: 2 },
+    ];
+    var ORTAK = [
+      { k: 'tabanPx',   ad: 'en az px', adim: 2, az: 16, cok: 120, ond: 0 },
+      { k: 'izgaraPay', ad: 'ızgara',   adim: 1, az: 0,  cok: 8,   ond: 0 },
     ];
 
-    var acik = false;
+    function stil(b, ek) {
+      b.style.cssText = 'border:none;border-radius:8px;padding:0;' +
+        'font-family:"Baloo 2",sans-serif;font-weight:900;color:#fff;' + ek;
+    }
 
-    /* ── Açma düğmesi: küçük, sağ kenarda, hep üstte ── */
     var anahtar = document.createElement('button');
     anahtar.textContent = '⚙';
-    anahtar.style.cssText =
-      'position:fixed;right:8px;top:38%;z-index:100000;' +
-      'width:34px;height:34px;border:none;border-radius:11px;' +
-      'background:rgba(13,36,56,.88);color:#dff2ff;font-size:17px;' +
-      'box-shadow:0 2px 6px rgba(0,20,45,.3);padding:0;';
+    stil(anahtar, 'position:fixed;right:8px;top:38%;z-index:100000;' +
+      'width:34px;height:34px;border-radius:11px;font-size:17px;' +
+      'background:rgba(13,36,56,.88);color:#dff2ff;' +
+      'box-shadow:0 2px 6px rgba(0,20,45,.3);');
 
-    /* ── Panel: dar kart, sağ kenara yaslı ── */
     var kok = document.createElement('div');
     kok.style.cssText =
       'position:fixed;right:8px;top:calc(38% + 40px);z-index:100000;' +
-      'width:172px;display:none;' +
-      'background:rgba(13,36,56,.94);border-radius:12px;padding:6px 7px 7px;' +
+      'width:178px;display:none;' +
+      'background:rgba(13,36,56,.94);border-radius:12px;padding:6px;' +
       'box-shadow:0 2px 6px rgba(0,20,45,.3);' +
-      'font-family:"Baloo 2",sans-serif;color:#dff2ff;' +
-      'max-height:46vh;overflow-y:auto;';
+      'font-family:"Baloo 2",sans-serif;color:#dff2ff;';
 
     anahtar.addEventListener('pointerup', function () {
-      acik = !acik;
-      kok.style.display = acik ? 'block' : 'none';
-      anahtar.style.background = acik ? 'rgba(63,191,106,.92)' : 'rgba(13,36,56,.88)';
+      var a = kok.style.display === 'none';
+      kok.style.display = a ? 'block' : 'none';
+      anahtar.style.background = a ? 'rgba(63,191,106,.92)' : 'rgba(13,36,56,.88)';
     });
 
-    ALANLAR.forEach(function (a) {
+    /* ── Sekmeler ── */
+    var sekmeKutu = document.createElement('div');
+    sekmeKutu.style.cssText = 'display:flex;gap:3px;margin-bottom:5px;';
+    var sekmeler = {};
+    IKONLAR_AD.forEach(function (o) {
+      var b = document.createElement('button');
+      b.textContent = o.ad;
+      stil(b, 'flex:1 1 0;min-width:0;height:24px;font-size:9.5px;');
+      b.addEventListener('pointerup', function () { secik = o.k; tazele(); });
+      sekmeler[o.k] = b;
+      sekmeKutu.appendChild(b);
+    });
+    kok.appendChild(sekmeKutu);
+
+    var degerler = {};
+
+    function satir(ad, oku, yaz, a) {
       var sat = document.createElement('div');
       sat.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:3px;';
 
-      var ad = document.createElement('span');
-      ad.textContent = a.ad;
-      ad.style.cssText = 'flex:1 1 auto;font-size:10.5px;font-weight:800;' +
-                         'white-space:nowrap;overflow:hidden;';
-      sat.appendChild(ad);
+      var etiket = document.createElement('span');
+      etiket.textContent = ad;
+      etiket.style.cssText = 'flex:1 1 auto;font-size:10.5px;font-weight:800;';
+      sat.appendChild(etiket);
 
       var dg = document.createElement('span');
-      dg.style.cssText = 'flex:0 0 38px;text-align:right;font-size:11px;' +
-                         'font-weight:900;color:#fff;font-variant-numeric:tabular-nums;';
-      function yazDeger() { dg.textContent = IK[a.k].toFixed(a.ond); }
+      dg.style.cssText = 'flex:0 0 40px;text-align:right;font-size:11.5px;' +
+        'font-weight:900;color:#fff;font-variant-numeric:tabular-nums;';
 
       function dugme(yazi, yon) {
         var b = document.createElement('button');
         b.textContent = yazi;
-        b.style.cssText = 'flex:0 0 24px;height:24px;border:none;border-radius:8px;' +
-          'padding:0;background:#3d7ccc;color:#fff;font-weight:900;font-size:14px;' +
-          'line-height:1;';
+        stil(b, 'flex:0 0 26px;height:26px;background:#3d7ccc;' +
+                'font-size:15px;line-height:1;');
         b.addEventListener('pointerup', function (e) {
           e.stopPropagation();
-          var v = IK[a.k] + yon * a.adim;
+          var v = oku() + yon * a.adim;
           v = Math.max(a.az, Math.min(a.cok, v));
-          /* Kayan nokta artığı temizlenir: 0.6000000000000001 olmasın. */
-          IK[a.k] = Math.round(v * 1000) / 1000;
-          yazDeger();
+          /* Kayan nokta artığı: 0.6000000000000001 olmasın. */
+          yaz(Math.round(v * 1000) / 1000);
+          tazele();
           kareIste();
         });
         return b;
@@ -2294,36 +2308,64 @@
       sat.appendChild(dugme('\u2212', -1));
       sat.appendChild(dg);
       sat.appendChild(dugme('+', +1));
-      kok.appendChild(sat);
-      yazDeger();
+      return { el: sat, yaz: function () { dg.textContent = oku().toFixed(a.ond); } };
+    }
+
+    ALANLAR.forEach(function (a) {
+      var r = satir(a.ad,
+        function () { return IK[secik][a.alan]; },
+        function (v) { IK[secik][a.alan] = v; }, a);
+      degerler[a.alan] = r;
+      kok.appendChild(r.el);
     });
 
-    /* Değerleri okunur biçimde ekrana döker — telefonda kopyalamak
-       için. Konsol yok, o yüzden metin ekranda kalır. */
+    var ayrac = document.createElement('div');
+    ayrac.style.cssText = 'height:1px;background:rgba(190,240,255,.20);margin:5px 0;';
+    kok.appendChild(ayrac);
+
+    ORTAK.forEach(function (a) {
+      var r = satir(a.ad,
+        function () { return IK[a.k]; },
+        function (v) { IK[a.k] = v; }, a);
+      degerler[a.k] = r;
+      kok.appendChild(r.el);
+    });
+
+    /* Değerleri ekrana döker — konsol yok, metin ekranda kalır. */
     var dok = document.createElement('div');
-    dok.style.cssText = 'margin-top:4px;padding:5px;border-radius:8px;' +
-      'background:rgba(3,16,38,.55);font-size:10px;line-height:1.45;' +
-      'white-space:pre-wrap;word-break:break-all;';
+    dok.style.cssText = 'margin-top:5px;padding:5px;border-radius:8px;' +
+      'background:rgba(3,16,38,.55);font-size:10px;line-height:1.5;' +
+      'white-space:pre-wrap;';
     kok.appendChild(dok);
 
     var dokBtn = document.createElement('button');
     dokBtn.textContent = 'YAZ';
-    dokBtn.style.cssText = 'width:100%;margin-top:4px;border:none;' +
-      'border-radius:9px;padding:6px 0;background:#3fbf6a;color:#fff;' +
-      'font-family:"Baloo 2",sans-serif;font-weight:900;font-size:11.5px;';
+    stil(dokBtn, 'width:100%;margin-top:5px;height:28px;background:#3fbf6a;' +
+                 'border-radius:9px;font-size:11.5px;');
     dokBtn.addEventListener('pointerup', function () {
-      var m = '';
-      ALANLAR.forEach(function (a) {
-        m += a.k + ': ' + IK[a.k].toFixed(a.ond) + '\n';
+      var m = 'tabanPx: ' + IK.tabanPx + '\nizgaraPay: ' + IK.izgaraPay + '\n';
+      IKONLAR_AD.forEach(function (o) {
+        var a = IK[o.k];
+        m += o.k + ': olcek ' + a.olcek.toFixed(2) +
+             ' · x ' + a.x.toFixed(2) + ' · y ' + a.y.toFixed(2) + '\n';
       });
       dok.textContent = m;
     });
     kok.appendChild(dokBtn);
 
+    function tazele() {
+      IKONLAR_AD.forEach(function (o) {
+        sekmeler[o.k].style.background =
+          (o.k === secik) ? '#3fbf6a' : 'rgba(255,255,255,.12)';
+      });
+      Object.keys(degerler).forEach(function (k) { degerler[k].yaz(); });
+    }
+
     function ekle() {
       if (!document.body) { setTimeout(ekle, 100); return; }
       document.body.appendChild(anahtar);
       document.body.appendChild(kok);
+      tazele();
     }
     ekle();
   })();
