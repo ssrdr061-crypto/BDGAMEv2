@@ -5998,7 +5998,7 @@ function castleNodeHTML(pos, isOwn, label, sv) {
       <div class="node-ring">
         <div class="node-avatar castle-avatar">
           <img src="kale${svNo}.webp" alt="" draggable="false"
-               onerror="var n=parseInt((this.src.match(/kale(\d+)/)||[0,1])[1],10)||1;if(n>1){this.src='kale'+(n-1)+'.webp';}else{this.onerror=null;this.style.display='none';}">
+               onerror="var i=this.src.lastIndexOf('kale');var n=i<0?1:(parseInt(this.src.substring(i+4),10)||1);if(n>1){this.src='kale'+(n-1)+'.webp';}else{this.onerror=null;this.style.display='none';}">
         </div>
       </div>
       <div class="node-label" data-sv="${svNo}"><span class="nl-ad">${labelText}</span></div>
@@ -6779,7 +6779,7 @@ function setupMapPanning() {
     if(moveGhost) return;
     moveGhost = document.createElement("div");
     moveGhost.id = "castleMoveGhost";
-    moveGhost.innerHTML = `<img src="kale${kaleSeviyesi()}.webp" alt="" draggable="false" onerror="var n=parseInt((this.src.match(/kale(\d+)/)||[0,1])[1],10)||1;if(n>1){this.src='kale'+(n-1)+'.webp';}else{this.onerror=null;this.style.display='none';}">`;
+    moveGhost.innerHTML = `<img src="kale${kaleSeviyesi()}.webp" alt="" draggable="false" onerror="var i=this.src.lastIndexOf('kale');var n=i<0?1:(parseInt(this.src.substring(i+4),10)||1);if(n>1){this.src='kale'+(n-1)+'.webp';}else{this.onerror=null;this.style.display='none';}">`;
     document.body.appendChild(moveGhost);
   }
   /* ── HEDEF ALANIN ÇERÇEVESİ ──
