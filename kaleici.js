@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-46';
+  var SURUM = 'kaleici-47';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -450,6 +450,10 @@
          de değiştiği için bu sayı artık dağ halkasına göre elle
          ayarlanmış değerdir, hesapla türetilmez. */
       yaricap: 570,        // kara sınırı  (?dagayar=1 ile dialandı)
+      /* Kıyı gürültüyle kırıştırılıyor; en içeri giren nokta yaklaşık
+         yarıçapın %87'sinde. Kamera bu daireden dışarı ÇIKAMAZ, deniz
+         hiç görünmez. Tek yerde: ikinci bir güvenlik payı yok. */
+      guven: 0.86,
       dalga: 0.085,        // kıyının kırışma miktarı
       kiyi: 0.052,         // kum bandı genişliği (yarıçap oranı)
       /* Kum yalnız ÖNE bakan kıyıda. İzometride yukarı dönen kıyı
@@ -683,8 +687,20 @@
 
   function zoomSinirlariniHesapla() {
     var w = tuval.width / eb;
+    var h = tuval.height / eb;
     CFG.zoomMin = w / (CFG.karoUzak * CFG.tileW);
     CFG.zoomMax = w / (CFG.karoYakin * CFG.tileW);
+
+    /* DENİZ GÖRÜNMESİN: en uzak zoom'da bile ekranın köşegeni güvenli
+       kara dairesine sığmalı. karoUzak buna izin veriyorsa dokunulmaz;
+       vermiyorsa uzaklaşma burada kesilir. Ekran boyu aygıta göre
+       değiştiği için sabit sayı yazılamaz, her ölçümde hesaplanır. */
+    var A = ZCFG.ada;
+    var guvR = A.yaricap * (A.guven || 0.86);
+    var enAz = Math.sqrt(w * w + h * h) / (2 * guvR);
+    if (enAz > CFG.zoomMin) CFG.zoomMin = enAz;
+    if (CFG.zoomMin > CFG.zoomMax) CFG.zoomMin = CFG.zoomMax;
+
     if (CFG.zoom < CFG.zoomMin) CFG.zoom = CFG.zoomMin;
     if (CFG.zoom > CFG.zoomMax) CFG.zoom = CFG.zoomMax;
   }
@@ -716,20 +732,36 @@
 
   /* Sınırlar zoom'a bağlı: uzaklaşınca sahne ekrana sığar ve kamera
      merkeze kilitlenir — böylece yakınlaş/uzaklaşta köşeye zıplamaz. */
+  /* Ekranın köşeden köşeye YARI uzunluğu, dünya pikselinde.
+     Dikdörtgen ekranın adanın içinde kalması için bakılacak ölçü
+     budur; yalnız genişliğe bakmak köşelerde denizi açıkta bırakır. */
+  function gorusYariCap() {
+    var w = (tuval.width  / eb) / CFG.zoom;
+    var h = (tuval.height / eb) / CFG.zoom;
+    return Math.sqrt(w * w + h * h) / 2;
+  }
+
+  /* ── KAMERA SINIRI: ADANIN İÇİ ──
+     Eski sınır binaların yayılımına bakıyordu; dağlar kıyıya taşınınca
+     kutu büyüdü ve kamera denize açılabilir hale geldi. Artık sınır
+     ZEMİNİN kendisine bağlı: kameranın ada merkezine uzaklığı, güvenli
+     kara yarıçapından ekranın yarı köşegeni çıkarılarak bulunur.
+     Görüş adaya sığmıyorsa kamera merkeze kilitlenir — kenara kayıp
+     bir yanda deniz göstermektense ortada durması yeğdir.
+     HİÇBİR GÖRSEL KAYDIRILMADI; yalnız kameranın gezinme alanı daraldı. */
   function kameraSinirla() {
-    var a = binaAlani();
-    var m = sahneMerkezi();
-    var yariW = (tuval.width / eb) / (2 * CFG.zoom);
-    var yariH = (tuval.height / eb) / (2 * CFG.zoom);
-    /* Yayılımın yarısı + gezinme payı */
-    var sahneW = (a.x1 - a.x0 + a.y1 - a.y0) * CFG.tileW / 4 + CFG.tileW * 2;
-    var sahneH = (a.x1 - a.x0 + a.y1 - a.y0) * CFG.tileH / 4 + CFG.tileH * 3;
-    var sapX = Math.max(0, sahneW - yariW);
-    var sapY = Math.max(0, sahneH - yariH);
-    if (camX < m.x - sapX) camX = m.x - sapX;
-    if (camX > m.x + sapX) camX = m.x + sapX;
-    if (camY < m.y - sapY) camY = m.y - sapY;
-    if (camY > m.y + sapY) camY = m.y + sapY;
+    var A = ZCFG.ada;
+    var guvR = A.yaricap * (A.guven || 0.86);
+    var pay = Math.max(0, guvR - gorusYariCap());
+
+    var dx = camX - A.mx, dy = camY - A.my;
+    var u = Math.sqrt(dx * dx + dy * dy);
+    if (u > pay) {
+      if (u < 0.0001) { camX = A.mx; camY = A.my; return; }
+      var k = pay / u;
+      camX = A.mx + dx * k;
+      camY = A.my + dy * k;
+    }
   }
 
   /* ── ÇİZİM DURAKLATMA — DONMANIN KÖKÜ ──
