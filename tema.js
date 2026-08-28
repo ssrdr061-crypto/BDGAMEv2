@@ -7444,9 +7444,12 @@ setTimeout(uygula, 2500);
     if (location.search.indexOf("kaleayar=1") < 0) return;
   } catch (e) { return; }
 
-  /* Seviye başına { boy, dy } — boy px, dy dikey kaydırma px */
-  var AYAR = { 1:{boy:100,dy:0}, 2:{boy:152,dy:22}, 3:{boy:100,dy:0},
-               4:{boy:100,dy:0}, 5:{boy:100,dy:0} };
+  /* Seviye başına { boy, dy, dx } — boy px, dy/dx kaydırma px.
+     Başlangıç değerleri index.html'deki KALICI kurallarla birebir
+     aynı olmak zorunda; ayrışırsa panel açılır açılmaz kale
+     zıplıyor ve neyi ayarladığın belli olmuyor. */
+  var AYAR = { 1:{boy:100,dy:0,dx:0}, 2:{boy:152,dy:22,dx:0}, 3:{boy:100,dy:0,dx:0},
+               4:{boy:100,dy:0,dx:0}, 5:{boy:100,dy:0,dx:0} };
   var aktif = 2;
 
   function svOku(node) {
@@ -7466,7 +7469,7 @@ setTimeout(uygula, 2500);
       if (!av || !a) continue;
       av.style.width  = a.boy + "px";
       av.style.height = a.boy + "px";
-      av.style.transform = "translateY(" + a.dy + "px)";
+      av.style.transform = "translate(" + (a.dx || 0) + "px," + a.dy + "px)";
     }
   }
 
@@ -7489,7 +7492,10 @@ setTimeout(uygula, 2500);
 
   function ozetYaz() {
     var t = "";
-    for (var n = 1; n <= 5; n++) t += "Sv" + n + ": " + AYAR[n].boy + "px  dy " + AYAR[n].dy + "\n";
+    for (var n = 1; n <= 5; n++) {
+      t += "Sv" + n + ": " + AYAR[n].boy + "px  dy " + AYAR[n].dy +
+           "  dx " + (AYAR[n].dx || 0) + "\n";
+    }
     var e = document.getElementById("kaOzet");
     if (e) e.textContent = t.replace(/\n$/, "");
   }
@@ -7497,8 +7503,10 @@ setTimeout(uygula, 2500);
   function tazele() {
     document.getElementById("kaBoy").value  = AYAR[aktif].boy;
     document.getElementById("kaDy").value   = AYAR[aktif].dy;
+    document.getElementById("kaDx").value   = AYAR[aktif].dx || 0;
     document.getElementById("kaBoyD").textContent = AYAR[aktif].boy + "px";
     document.getElementById("kaDyD").textContent  = AYAR[aktif].dy + "px";
+    document.getElementById("kaDxD").textContent  = (AYAR[aktif].dx || 0) + "px";
     var b = document.querySelectorAll("#kaleAyar .ka-sv button");
     for (var i = 0; i < b.length; i++) b[i].className = (i + 1 === aktif) ? "on" : "";
     uygula(); ozetYaz();
@@ -7522,9 +7530,15 @@ setTimeout(uygula, 2500);
         '<button type="button" data-sv="5">5</button>' +
       '</div>' +
       '<label>Boyut <span id="kaBoyD"></span></label>' +
-      '<input type="range" id="kaBoy" min="60" max="240" step="2">' +
+      /* Üst sınır 240'tan 380'e çıkarıldı: Sv2 görselinde şeffaf pay
+         çok olduğu için 152px bile küçük kalıyordu, sürgü tavana
+         dayanıyordu. Dikey kaydırma da ±50'den ±120'ye açıldı —
+         görsel büyüdükçe oturtmak için daha çok yol gerekiyor. */
+      '<input type="range" id="kaBoy" min="60" max="380" step="2">' +
       '<label>Dikey kaydırma <span id="kaDyD"></span></label>' +
-      '<input type="range" id="kaDy" min="-50" max="50" step="1">' +
+      '<input type="range" id="kaDy" min="-120" max="120" step="1">' +
+      '<label>Yatay kaydırma <span id="kaDxD"></span></label>' +
+      '<input type="range" id="kaDx" min="-120" max="120" step="1">' +
       '<div class="ka-ozet" id="kaOzet"></div>';
     document.body.appendChild(p);
 
@@ -7539,6 +7553,9 @@ setTimeout(uygula, 2500);
     });
     p.querySelector("#kaDy").addEventListener("input", function () {
       AYAR[aktif].dy = parseInt(this.value, 10); tazele();
+    });
+    p.querySelector("#kaDx").addEventListener("input", function () {
+      AYAR[aktif].dx = parseInt(this.value, 10); tazele();
     });
 
     tazele();
