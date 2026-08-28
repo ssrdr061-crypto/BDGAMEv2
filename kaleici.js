@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-51';
+  var SURUM = 'kaleici-52';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -310,13 +310,23 @@
     return (g && g.hazir && g.im.naturalWidth > 0) ? g.im : null;
   }
 
-  /* İkonu kare olarak, merkezine göre çizer. Basılıyken hafifçe
-     küçülür ve koyulaşır — oyunun her yerindeki basma tepkisiyle
-     aynı (scale .96 + brightness .93). */
+  /* ÜÇ DÜĞMENİN DE ÖLÇÜSÜ — tek yer.
+     Bina adının yazı ölçeğinden (boy) türer, zoom'la birlikte
+     büyür. 1,9 kat: 19px yazıda ~36px, açılış zoom'unda (1,6) ~55px.
+     Taban 40 → uzaklaştırınca da parmakla basılabilir kalır. */
+  function ikonOlcusu(boy) { return Math.max(40, boy * 1.9); }
+
+  /* İkonu kare olarak, merkezine göre çizer.
+     SOLUKLUK YOK: eskiden basılıyken globalAlpha düşüyordu ve
+     ikonlar sönük görünüyordu. Basma tepkisi artık yalnız ölçüden
+     geliyor (scale .96), renk hiç değişmiyor. Altına yumuşak gölge
+     konur ki çimenin üstünde yüzer gibi dursun. */
   function ikonCiz(im, mx, my, olcu, basili) {
     var o = basili ? olcu * 0.96 : olcu;
     ctx.save();
-    if (basili) ctx.globalAlpha = 0.86;
+    ctx.shadowColor = 'rgba(0,20,45,.45)';
+    ctx.shadowBlur = Math.max(3, o * 0.12);
+    ctx.shadowOffsetY = Math.max(1, o * 0.05);
     ctx.drawImage(im, mx - o / 2, my - o / 2, o, o);
     ctx.restore();
   }
@@ -876,7 +886,9 @@
     /* zemin — karo ızgarası yok, dikişsiz çimen dokusu */
     zeminCiz(w, h);
 
-    /* taşınan binanın hedef karoları — açık beyaz silüet */
+    /* Taşıma açıkken çevre ızgarası, sürüklerken hedef silüeti.
+       Izgara ÖNCE çizilir ki silüet onun üstünde kalsın. */
+    if (tasiModu && secili) izgaraCiz(tasinan || secili);
     if (tasinan) siluetCiz(tasinan);
 
     /* binalar — arkadan öne */
@@ -982,6 +994,28 @@
     }
   }
 
+  /* ── YAKIN ÇEVRE IZGARASI ──
+     Taşıma açıkken binanın çevresindeki karolar soluk beyaz konturla
+     çizilir; oyuncu binayı nereye bırakacağını görür. Yalnız çevre:
+     bütün zemini çizmek hem gereksiz hem ağır (141×141 karo).
+     PAY karo cinsinden yarıçaptır.
+     Binanın KENDİ karoları buraya girmez — onları siluetCiz zaten
+     dolu beyazla çiziyor, üstüne kontur binerse kalınlaşıyordu. */
+  var IZGARA_PAY = 4;
+
+  function izgaraCiz(b) {
+    var x0 = b.gx - IZGARA_PAY, x1 = b.gx + b.en  + IZGARA_PAY;
+    var y0 = b.gy - IZGARA_PAY, y1 = b.gy + b.boy + IZGARA_PAY;
+    for (var gy = y0; gy < y1; gy++) {
+      for (var gx = x0; gx < x1; gx++) {
+        if (gx < 0 || gy < 0 || gx >= CFG.grid || gy >= CFG.grid) continue;
+        if (gx >= b.gx && gx < b.gx + b.en &&
+            gy >= b.gy && gy < b.gy + b.boy) continue;
+        dortgenCiz(karoDortgeni(gx, gy), null, 'rgba(255,255,255,.30)');
+      }
+    }
+  }
+
   function binaCiz(b) {
     var g = binaGorseli(b);
     var kut = binaKutusu(b);
@@ -1048,7 +1082,10 @@
     var nk = taban(b);
     var solW = ekran(nk[3].x, nk[3].y);
     var altW = ekran(nk[2].x, nk[2].y);
-    var sr = boy * (tasiModu ? 0.95 : 0.62);
+    /* Taşıma simgesi de sıradaki ikonlarla AYNI ölçüde. Eskiden
+       boy*0.62 yarıçapla çiziliyordu ve diğerlerinin yanında küçük
+       kalıyordu. r yarıçap olduğu için ölçünün yarısı veriliyor. */
+    var sr = ikonOlcusu(boy) / 2 * (tasiModu ? 1.10 : 1);
     tasiSimge.x = (solW.x + altW.x) / 2;
     tasiSimge.y = (solW.y + altW.y) / 2;
     tasiSimge.r = sr;
@@ -1118,11 +1155,14 @@
     if (imGel)  sira.push({ im: imGel,  kutu: gelBtn,  basili: gelBasili });
     if (!sira.length) return;
 
-    var olcu = Math.max(28, boy * 1.45);
-    var bosluk = olcu * 0.22;
+    /* HİZA: sıra binanın taban köşesinin TAM ALTINA, ortalanmış.
+       Ölçü üç düğmede de aynı (ikonOlcusu), böylece taşıma simgesiyle
+       yan yana geldiğinde biri büyük biri küçük durmuyor. */
+    var olcu = ikonOlcusu(boy);
+    var bosluk = olcu * 0.16;
     var toplam = sira.length * olcu + (sira.length - 1) * bosluk;
-    var solX = alt.x - toplam / 2;
-    var merkezY = ust + olcu * 0.42;
+    var solX = Math.round(alt.x - toplam / 2);
+    var merkezY = Math.round(ust + olcu * 0.60);
 
     for (var i = 0; i < sira.length; i++) {
       var mx = solX + i * (olcu + bosluk) + olcu / 2;
@@ -1408,14 +1448,19 @@
        Dosya açılmazsa aşağıdaki elle çizim devreye girer. */
     var im = ikon('tasi');
     if (im) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y, r * 0.92, 0, Math.PI * 2);
-      ctx.fillStyle = etkin ? 'rgba(255,198,26,.92)'
-                    : (hazir ? 'rgba(255,198,26,.45)' : 'rgba(10,28,48,.55)');
-      ctx.fill();
-      ctx.restore();
-      ikonCiz(im, x, y, r * 1.42, etkin);
+      /* KOYU HALKA KALDIRILDI — ikonun altındaki lacivert daire
+         görseli soluk gösteriyordu. Taşıma AÇIKKEN ikonun arkasına
+         sarı bir parıltı konur, kapalıyken hiçbir şey konmaz:
+         durum ikonun kendi netliğini bozmadan okunuyor. */
+      if (etkin) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, r * 1.05, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,198,26,.55)';
+        ctx.fill();
+        ctx.restore();
+      }
+      ikonCiz(im, x, y, r * 2, etkin);
       return;
     }
 
@@ -1537,11 +1582,13 @@
       }
 
       if (secili && simgedeMi(px, py)) {
-        if (tasiModu) { tasiModu = false; tasiDokunus = 0; }
-        else {
-          tasiDokunus++;
-          if (tasiDokunus >= 2) { tasiModu = true; tasiDokunus = 0; }
-        }
+        /* TEK DOKUNUŞ. Eskiden iki dokunuş isteniyordu (yanlışlıkla
+           bina kaydırmayı önlemek için); ikonlu düğme yeterince
+           belirgin olduğu için ara adım kaldırıldı. tasiDokunus
+           artık kullanılmıyor ama sıfırlamaları duruyor — başka
+           yerlerden de sıfırlanıyor, sessiz kalıntı bırakmamak için. */
+        tasiModu = !tasiModu;
+        tasiDokunus = 0;
         kaydi = true;                 // bırakınca seçim değişmesin
         kareIste();
         return;
