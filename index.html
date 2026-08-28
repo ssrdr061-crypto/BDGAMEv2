@@ -6059,6 +6059,9 @@ function buildCastleNodesHTML() {
   return html;
 }
 
+/* Son yazılan katmanın imzası. Boş dizgi = henüz hiç yazılmadı. */
+let _mapHtmlImza = null;
+
 function renderBattleMap() {
   const mapEl = document.getElementById("battleMap");
   if (!mapEl) return;
@@ -6071,7 +6074,24 @@ function renderBattleMap() {
      Bu katmanda yalnız KALELER ve serbest işaretler kalır: birkaç
      tane, resim taşıyorlar ve sürükleme etkileşimleri var. */
   const castleNodes = buildCastleNodesHTML();
-  mapEl.innerHTML = buildMapGridHTML() + castleNodes;
+  const html = buildMapGridHTML() + castleNodes;
+
+  /* ── DEĞİŞMEDİYSE DOKUNMA ──
+     Bu fonksiyon açılışta en az DÖRT kez çağrılıyor (sayfa yüklenince,
+     enterApp'ta, kale listesi Firebase'den gelince, göç/çakışma
+     denetiminde) ve ayrıca her 30 saniyede bir. Her çağrıda innerHTML
+     baştan yazılıyordu: kaleler siliniyor, görselleri yeniden
+     yükleniyor, ekranda "gidip gelme" oluyordu.
+
+     Üretilen HTML öncekiyle aynıysa artık hiçbir şey yapılmıyor —
+     ne DOM yazımı, ne önbellek boşaltma, ne yeniden bağlama.
+     mapEl boşsa (başka bir kod temizlediyse) imza yok sayılır. */
+  if (html === _mapHtmlImza && mapEl.firstChild) {
+    applyMapPan();
+    return;
+  }
+  _mapHtmlImza = html;
+  mapEl.innerHTML = html;
 
   /* Katman baştan yazıldı: harita.js'in düğüm önbelleğindeki eleman
      adresleri artık KOPUK. Bildirmezsek konumları silinmiş elemanlara
