@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-14";
+  var SURUM = "insaat-15";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -552,6 +552,9 @@
   function tazele() {
     try { if (typeof renderKaynaklar === "function") renderKaynaklar(); } catch (e) {}
     try { if (window.KALEICI && typeof window.KALEICI.ciz === "function") window.KALEICI.ciz(); } catch (e) {}
+    /* Elmasla BITIR'de seviye ANINDA artar; 10 saniyelik turu beklemeden
+       harita da degissin. Seviye degismediyse ic kapida durur. */
+    try { kaleGorunumuTazele(); } catch (e) {}
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -1136,6 +1139,33 @@
      GİRİŞ İŞLEMESİ — oyuncu yokken de süre akar
      ═══════════════════════════════════════════════════════════ */
 
+  /* ── HARITADAKI KALE GORSELI ──
+     Dugum kaleSeviyesi() ile cizilir, o da state.binaSv.kale'yi okur.
+     GIRISTE harita bir kez ciziliyor; bulut kaydi (bsv) o an henuz
+     gelmediyse seviye 1 okunuyor ve dugum oyle KALIYOR — panel Sv3
+     gosterirken harita Sv1 gorunuyordu. Ustune, insaat bitip seviye
+     atladiginda haritayi yeniden cizen ve buluta yayinlayan hicbir
+     cagri yoktu; diger oyuncular da eski seviyeyi goruyordu.
+
+     Cozum seviyeyi HATIRLAMAK: degistigi gorulunce bir kez cizilir
+     ve yayinlanir. Degismediyse hicbir sey yapilmaz — 10 saniyede bir
+     harita cizmek kare hizini oldururdu. */
+  var _sonKaleSv = null;
+
+  function kaleGorunumuTazele() {
+    if (!hazir()) return;
+    var sv = seviye("kale");
+    if (_sonKaleSv === sv) return;
+    var ilk = (_sonKaleSv === null);
+    _sonKaleSv = sv;
+    /* Ilk turda da calisir: giriste yanlis seviyeyle cizilmis olabilir.
+       Yayin ilk turda YAPILMAZ, cunku o an kayit henuz okunuyor
+       olabilir ve buluta eski seviye yazilirdi. */
+    try { if (typeof renderBattleMap === "function") renderBattleMap(); } catch (e) {}
+    if (ilk) return;
+    try { if (typeof publishCastle === "function") publishCastle(); } catch (e) {}
+  }
+
   function turAt() {
     if (!hazir()) return;
     var bitti = bitenleriIsle();
@@ -1144,6 +1174,7 @@
       uyar("🏗️ Tamamlandı: " + bitti.join(", "));
       if (_kok && _kok.dataset.bina) ciz(_kok.dataset.bina);
     }
+    kaleGorunumuTazele();
   }
 
   setInterval(turAt, 10000);
@@ -1178,6 +1209,7 @@
     kalanMs: kalanMs,
     bitenleriIsle: bitenleriIsle,
     uretimCarpani: uretimCarpani,
+    kaleGorunumuTazele: kaleGorunumuTazele,
 
     /* index.html -> computePlayerPower bunu okur. */
     binaGucu: binaGucu,
