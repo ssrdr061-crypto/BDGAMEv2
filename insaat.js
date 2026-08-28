@@ -411,63 +411,63 @@
      degisken sifira dustugu icin degiskene guvenilmiyor.
      3B yok: cerceve yok, gradient yok, tek yumusak golge. */
   var CSS =
-    '#insaatModal{position:fixed;left:0;right:0;z-index:39;' +
+    '.ins-modal{position:fixed;left:0;right:0;z-index:39;' +
       'font-family:"Baloo 2","Nunito",sans-serif;pointer-events:none;}' +
 
     /* Zemin ve cerceve MENU PANELIYLE ayni (tema.js .overlay-card):
        linear-gradient(#1fa3ea,#0e6fc0) + 1px rgba(190,240,255,.85).
        Eski #0d2438 koyu zemin buradan silindi — ezme degil, degisim. */
-    '#insaatModal .ins-kart{pointer-events:auto;' +
+    '.ins-modal .ins-kart{pointer-events:auto;' +
       'max-height:62vh;overflow-y:auto;overflow-x:hidden;' +
       'background:linear-gradient(180deg,#1fa3ea,#0e6fc0);' +
       'border:1px solid rgba(190,240,255,.85);border-bottom:none;' +
       'border-radius:16px 16px 0 0;padding:14px 12px 12px;position:relative;' +
       'box-shadow:0 2px 6px rgba(0,20,45,.3);color:#eaf7ff;' +
       'transform:translateY(102%);transition:transform .22s cubic-bezier(.2,.9,.3,1);}' +
-    '#insaatModal.acik .ins-kart{transform:translateY(0);}' +
-    '#insaatModal .ins-kapat{position:absolute;top:10px;right:12px;width:28px;height:28px;' +
-      'border:none;border-radius:8px;background:rgba(0,20,45,.22);color:#eaf7ff;' +
+    '.ins-modal.acik .ins-kart{transform:translateY(0);}' +
+    '.ins-modal .ins-kapat{position:absolute;top:10px;right:12px;width:28px;height:28px;' +
+      'border:none;border-radius:8px;background:#e03b47;color:#ffffff;' +
       'font-size:15px;line-height:1;cursor:pointer;}' +
 
     /* Basliklar ORTALI — kapatma dugmesi mutlak konumlu, ortalamayi bozmaz */
-    '#insaatModal .ins-bas{font-size:17px;font-weight:800;text-align:center;' +
+    '.ins-modal .ins-bas{font-size:17px;font-weight:800;text-align:center;' +
       'margin:0 34px 2px;text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
-    '#insaatModal .ins-sv{font-size:13px;font-weight:700;color:#cfeaff;' +
-      'text-align:center;margin-bottom:10px;font-variant-numeric:tabular-nums;}' +
+    '.ins-modal .ins-sv{font-size:15px;font-weight:800;color:#cfeaff;' +
+      'text-align:center;margin-bottom:10px;font-variant-numeric:tabular-nums;' +
+      'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
+    '.ins-modal .ins-sv .ins-hedef{color:#5ef08c;font-weight:800;}' +
 
     /* ── GEREKSINIM KUTUCUKLARI ──
        Simge / ad / miktar UST ALTA. Yan yana yazilinca "Demir" ve
        "Enerji" bes kutuda telefona sigmiyor, ucu kirpiliyordu. */
-    '#insaatModal .ins-kutular{display:flex;gap:6px;margin-bottom:10px;}' +
-    '#insaatModal .ins-kutu{flex:1 1 0;min-width:0;border-radius:12px;' +
-      'background:linear-gradient(180deg,rgba(34,72,143,.62),rgba(13,34,70,.72));' +
-      'border:1px solid rgba(190,240,255,.20);padding:7px 3px 6px;text-align:center;}' +
-    '#insaatModal .ins-kutu .ins-ust{height:16px;line-height:16px;font-size:13px;}' +
-    '#insaatModal .ins-kutu .ins-ad{margin-top:2px;font-size:10.5px;font-weight:700;' +
-      'color:#cfeaff;white-space:nowrap;}' +
-    '#insaatModal .ins-kutu .ins-mik{margin-top:2px;font-size:15px;font-weight:800;' +
-      'color:#ffd257;font-variant-numeric:tabular-nums;}' +
-    '#insaatModal .ins-kutu.eksik .ins-mik{color:#ff8b8f;}' +
-    '#insaatModal img.ins-sim{width:14px;height:14px;object-fit:contain;' +
-      'vertical-align:-2px;display:inline-block;}' +
+    '.ins-modal .ins-kutular{display:flex;gap:6px;margin-bottom:10px;}' +
+    '.ins-modal .ins-kutu{flex:1 1 0;min-width:0;padding:2px 0 0;text-align:center;' +
+      'background:none;border:none;}' +
+    '.ins-modal .ins-kutu .ins-ust{height:30px;line-height:30px;font-size:24px;}' +
+    '.ins-modal .ins-kutu .ins-mik{margin-top:3px;font-size:15px;font-weight:800;' +
+      'color:#ffffff;font-variant-numeric:tabular-nums;' +
+      'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
+    '.ins-modal .ins-kutu.eksik .ins-mik{color:#ff6b6b;}' +
+    '.ins-modal img.ins-sim{width:28px;height:28px;object-fit:contain;' +
+      'vertical-align:-6px;display:inline-block;}' +
 
-    '#insaatModal .ins-sure{margin:2px 0 4px;font-size:14px;font-weight:700;color:#ffd257;' +
+    '.ins-modal .ins-sure{margin:2px 0 4px;font-size:14px;font-weight:700;color:#ffd257;' +
       'text-align:center;font-variant-numeric:tabular-nums;}' +
-    '#insaatModal .ins-not{font-size:12.5px;line-height:1.45;color:#ffd0d2;margin:6px 0 2px;' +
+    '.ins-modal .ins-not{font-size:12.5px;line-height:1.45;color:#ffd0d2;margin:6px 0 2px;' +
       'text-align:center;}' +
-    '#insaatModal .ins-bilgi{font-size:12.5px;line-height:1.45;color:#cfeaff;margin:6px 0 2px;' +
+    '.ins-modal .ins-bilgi{font-size:12.5px;line-height:1.45;color:#cfeaff;margin:6px 0 2px;' +
       'text-align:center;font-variant-numeric:tabular-nums;}' +
-    '#insaatModal .ins-dugmeler{display:flex;gap:8px;margin-top:12px;}' +
-    '#insaatModal .ins-btn{flex:1 1 0;border:none;border-radius:12px;padding:12px 8px;' +
+    '.ins-modal .ins-dugmeler{display:flex;gap:8px;margin-top:12px;}' +
+    '.ins-modal .ins-btn{flex:1 1 0;border:none;border-radius:12px;padding:12px 8px;' +
       'font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;' +
       'text-shadow:0 1px 2px rgba(0,20,45,.35);' +
       'transition:transform .09s ease,filter .09s ease;}' +
-    '#insaatModal .ins-btn:active{transform:scale(.96);filter:brightness(.93);}' +
-    '#insaatModal .ins-btn[disabled]{opacity:.45;cursor:default;}' +
-    '#insaatModal .ins-btn[disabled]:active{transform:none;filter:none;}' +
-    '#insaatModal .ins-yesil{background:#3fbf6a;color:#08331b;}' +
-    '#insaatModal .ins-sari{background:#ffd257;color:#3a2600;}' +
-    '#insaatModal .ins-geri{font-size:26px;font-weight:800;color:#ffd257;text-align:center;' +
+    '.ins-modal .ins-btn:active{transform:scale(.96);filter:brightness(.93);}' +
+    '.ins-modal .ins-btn[disabled]{opacity:.45;cursor:default;}' +
+    '.ins-modal .ins-btn[disabled]:active{transform:none;filter:none;}' +
+    '.ins-modal .ins-yesil{background:#3fbf6a;color:#ffffff;}' +
+    '.ins-modal .ins-sari{background:#ffd257;color:#3a2600;}' +
+    '.ins-modal .ins-geri{font-size:26px;font-weight:800;color:#ffd257;text-align:center;' +
       'margin:10px 0 4px;font-variant-numeric:tabular-nums;}';
 
   function stilBas() {
@@ -530,6 +530,11 @@
     var acilis = Date.now();
     var kok = document.createElement("div");
     kok.id = "insaatModal";
+    /* KOK SEBEP: kapat() id'yi siliyor, CSS ise id'ye baglıydı — stil
+       aninda dusuyor ve 240 ms boyunca odun gorseli dogal boyutunda
+       tam ekran basiliyordu. Stil artik SINIFA bagli, id sadece
+       eski surumlerin kalintisini bulmak icin duruyor. */
+    kok.className = "ins-modal";
     kok.dataset.bina = id;
     kok.innerHTML = '<div class="ins-kart"><button class="ins-kapat" type="button">✕</button>' +
                     '<div class="ins-govde"></div></div>';
@@ -590,7 +595,8 @@
     /* ── İNŞAAT SÜRÜYOR ── */
     var isi = kuyrukta(id);
     if (isi) {
-      h += '<div class="ins-sv">Sv' + sv + ' → Sv' + isi.hedef + ' · inşaatta</div>';
+      h += '<div class="ins-sv">Sv' + sv + ' → <span class="ins-hedef">Sv' +
+           isi.hedef + '</span> · inşaatta</div>';
       h += '<div class="ins-geri">' + sureYaz(kalanMs(id)) + '</div>';
       h += '<div class="ins-dugmeler">' +
              '<button class="ins-btn ins-sari" data-is="hizlandir">⏩ HIZLANDIR</button>' +
@@ -607,7 +613,8 @@
       return;
     }
 
-    h += '<div class="ins-sv">Sv' + sv + ' → Sv' + hedef + '</div>';
+    h += '<div class="ins-sv">Sv' + sv + ' → <span class="ins-hedef">Sv' +
+         hedef + '</span></div>';
 
     var b = bedel(id, hedef);
     if (!b) { govde.innerHTML = h; return; }
@@ -620,7 +627,6 @@
       var yeter = (cuzdan[k] || 0) >= gerek;
       kutular += '<div class="ins-kutu' + (yeter ? "" : " eksik") + '">' +
                    '<div class="ins-ust">' + simge(k) + '</div>' +
-                   '<div class="ins-ad">' + K_ADI[k] + '</div>' +
                    '<div class="ins-mik">' + kisaSayi(gerek) + '</div>' +
                  '</div>';
     });
