@@ -255,14 +255,6 @@
      Anahtarlar Firebase kimlikleridir, ADLARLA karıştırma. */
   var KISLA_AILE = { sovalye: 'knight', asker: 'soldier', robot: 'robot' };
 
-  /* ── ANA KALE SEVIYE GORSELLERI ──
-     Sv1 = anakale.webp (BINALAR kaydindaki asil dosya), Sv2..Sv5 asagida.
-     Bes gorsel de ONDEN yuklenir ve AYRI onbellek anahtarinda durur;
-     seviye degisince `src` DEGISTIRILMEZ, hazir duran oteki secilir
-     (Tuzak 21). Dosya yoksa bir alt seviyeye, o da yoksa emojiye duser. */
-  var KALE_SV_GORSEL = { 2: 'anakale2.webp', 3: 'anakale3.webp',
-                         4: 'anakale4.webp', 5: 'anakale5.webp' };
-
   /* ---- Görsel yükleyici: dosya yoksa sessizce emojiye düşülür ---- */
   var GORSELLER = {};
 
@@ -283,25 +275,6 @@
         im.src = b.gorsel;
       })(liste[i]);
     }
-    kaleGorselleriYukle();
-  }
-
-  /* Ana Kale'nin Sv2..Sv5 gorselleri. Anahtar 'kale@N'. */
-  function kaleGorselleriYukle() {
-    Object.keys(KALE_SV_GORSEL).forEach(function (n) {
-      var anahtar = 'kale@' + n;
-      if (GORSELLER[anahtar]) return;
-      var im = new Image();
-      GORSELLER[anahtar] = { im: im, hazir: false };
-      im.onload = function () {
-        var g = GORSELLER[anahtar];
-        g.kutu = saydamKenariOlc(im);
-        g.hazir = true;
-        kareIste();
-      };
-      im.onerror = function () { GORSELLER[anahtar].hazir = false; };
-      im.src = KALE_SV_GORSEL[n];
-    });
   }
 
   /* Şeffaf kenar boşluğunu ölçer → her bina aynı hizaya oturur.
@@ -361,17 +334,6 @@
 
   function binaGorseli(b) {
     var g = GORSELLER[b.id];
-    /* Ana Kale seviyelidir: Sv N gorseli hazirsa o, degilse asagi dogru
-       inilir, en sonda Sv1 (anakale.webp) kalir. */
-    if (b.id === 'kale') {
-      var sv = 1;
-      try { sv = parseInt(binaSeviyesi(b), 10) || 1; } catch (e) { sv = 1; }
-      if (sv > 5) sv = 5;
-      for (var n = sv; n >= 2; n--) {
-        var ust = GORSELLER['kale@' + n];
-        if (ust && ust.hazir && ust.im.naturalWidth > 0) { g = ust; break; }
-      }
-    }
     return (g && g.hazir && g.im.naturalWidth > 0) ? g : null;
   }
 
@@ -862,7 +824,44 @@
     if (b !== secili) { tasiModu = false; tasiDokunus = 0; }
     secili = b;
     secimZaman = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (b) binayaOdakla(b);
     kareIste();
+  }
+
+  /* ---- Seçilen binaya kamera odaklanır ----
+     Bina ekranın TAM ORTASINA değil, biraz YUKARISINA oturur:
+     alt yarıyı İNŞAAT paneli kaplıyor, ortaya alırsan bina panelin
+     altında kalır ve dokunduğun şey görünmez olur. */
+  var odakRaf = null;
+
+  function binayaOdakla(b) {
+    if (!b || !tuval || !katman || !katman.classList.contains('acik')) return;
+    var nk = taban(b);
+    var hx = (nk[1].x + nk[3].x) / 2;
+    var hy = (nk[0].y + nk[2].y) / 2;
+    /* Ekran yükseklidiğinin %16'sı kadar aşağı kaydırılır →
+       bina görsel olarak yukarı çıkar. Dünya birimine çevrilir. */
+    var kaydir = ((tuval.height / eb) * 0.16) / CFG.zoom;
+    var bx = camX, by = camY;
+    var hedefX = hx, hedefY = hy + kaydir;
+    if (Math.abs(hedefX - bx) < 1 && Math.abs(hedefY - by) < 1) return;
+
+    if (odakRaf) { cancelAnimationFrame(odakRaf); odakRaf = null; }
+    var simdi = function () {
+      return (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    };
+    var t0 = simdi(), SURE = 260;
+
+    function adim() {
+      var t = Math.min(1, (simdi() - t0) / SURE);
+      var e = 1 - Math.pow(1 - t, 3);
+      camX = bx + (hedefX - bx) * e;
+      camY = by + (hedefY - by) * e;
+      kameraSinirla();
+      ciz();
+      odakRaf = (t < 1 && !duraklat) ? requestAnimationFrame(adim) : null;
+    }
+    odakRaf = requestAnimationFrame(adim);
   }
 
   /* Binanın EKRANDAKİ dikdörtgeni — çizim de, dokunuş isabeti de
@@ -1406,6 +1405,15 @@
         kistirma = false;
         kareIste();
         if (gAc) setTimeout(function () {
+          /* İNŞAAT paneli açıkken tuval DÖNMEYE DEVAM EDİYORDU.
+             ciz() seçili bina varken her karede kendini yeniden
+             çağırıyor (yanıp sönme); EĞİT'te duraklat=true ile
+             durduruluyordu, GELİŞTİR'de durdurulmuyordu. Tam ekran
+             zemin boyaması panelin altında 60 fps dönünce telefon
+             boğuluyor. Panel kapanınca butonuGuncelle emniyet ağı
+             (400 ms) duraklatmayı kendiliğinden kaldırır. */
+          if (odakRaf) { cancelAnimationFrame(odakRaf); odakRaf = null; }
+          duraklat = true;
           try { if (window.INSAAT) window.INSAAT.ac(gAc); } catch (er) {}
         }, 0);
         return;
@@ -1552,8 +1560,11 @@
   function butonuGuncelle() {
     var g = document.getElementById('loginScreen');
     var oyunda = !g || getComputedStyle(g).display === 'none';
+    /* İNŞAAT paneli .overlay-panel değil, body'ye ekli ayrı bir
+       katman. Listeye yazılmazsa emniyet ağı 400 ms sonra
+       duraklatmayı kaldırır ve tuval panelin altında yeniden döner. */
     var panelAcik = !!document.querySelector(
-      '.overlay-panel.active, #seferOnayModal, .sefer-onay-modal');
+      '.overlay-panel.active, #seferOnayModal, .sefer-onay-modal, #insaatModal');
 
     /* Savaş penceresi (#battleArena / arazi paneli aynı kabuğu kullanır)
        display:none ile açılıp kapandığı için sınıfla anlaşılmıyor;

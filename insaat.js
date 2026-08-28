@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-2";
+  var SURUM = "insaat-3";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -119,6 +119,15 @@
     sovalye: "Savunucu Kışlası", asker: "Koruyucu Kışlası", robot: "Nişancı Kışlası",
   };
   var K_EMOJI = { odun: "🪵", et: "🍖", demir: "⛓️", su: "💧", enerji: "⚡" };
+
+  /* Gereksinim simgeleri UST SERITLE ayni dosyalari kullanir
+     (tema.js -> kayGorsel tablosu). Eskiden dugum.js'in seti
+     okunuyordu (et.webp / demir.webp / su.webp); ayni kaynak iki
+     ayri gorselle cikiyordu. Tek yer burasi, dosya yoksa emoji. */
+  var K_GORSEL = {
+    odun: "10kodun.webp", et: "10ket.webp", demir: "5kdemir.webp",
+    su: "5ksu.webp", enerji: "enerji.webp",
+  };
   var K_ADI   = { odun: "Odun", et: "Et", demir: "Demir", su: "Su", enerji: "Enerji" };
 
   /* ═══════════════════════════════════════════════════════════
@@ -380,16 +389,15 @@
     return g + " gün" + (ks ? " " + ks + " sa" : "");
   }
 
-  /* Kaynak simgesi — dugum.js'in görselini kullanır, yoksa emoji.
-     HTML bağlamı olduğu için GÖRSEL basılır (Simge/Görsel kuralı). */
+  /* Kaynak simgesi — HTML bağlamı olduğu için GÖRSEL basılır
+     (Simge/Görsel kuralı). Dosya açılmazsa emojiye döner. */
   function simge(k) {
-    try {
-      if (typeof kaynakSimge === "function") {
-        var s = kaynakSimge(k);
-        if (s) return s;
-      }
-    } catch (e) {}
-    return K_EMOJI[k] || "";
+    var d = K_GORSEL[k];
+    var e = K_EMOJI[k] || "";
+    if (!d) return e;
+    return '<img class="ins-sim" src="' + d + '" alt="" ' +
+           'onerror="this.onerror=null;this.replaceWith(' +
+           'document.createTextNode(\'' + e + '\'))">';
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -405,41 +413,52 @@
   var CSS =
     '#insaatModal{position:fixed;left:0;right:0;z-index:39;' +
       'font-family:"Baloo 2","Nunito",sans-serif;pointer-events:none;}' +
+
+    /* Zemin ve cerceve MENU PANELIYLE ayni (tema.js .overlay-card):
+       linear-gradient(#1fa3ea,#0e6fc0) + 1px rgba(190,240,255,.85).
+       Eski #0d2438 koyu zemin buradan silindi — ezme degil, degisim. */
     '#insaatModal .ins-kart{pointer-events:auto;' +
       'max-height:62vh;overflow-y:auto;overflow-x:hidden;' +
-      'background:#0d2438;border:none;' +
-      'border-radius:16px 16px 0 0;padding:14px 14px 12px;position:relative;' +
-      'box-shadow:0 2px 6px rgba(0,20,45,.3);color:#eaf6ff;' +
+      'background:linear-gradient(180deg,#1fa3ea,#0e6fc0);' +
+      'border:1px solid rgba(190,240,255,.85);border-bottom:none;' +
+      'border-radius:16px 16px 0 0;padding:14px 12px 12px;position:relative;' +
+      'box-shadow:0 2px 6px rgba(0,20,45,.3);color:#eaf7ff;' +
       'transform:translateY(102%);transition:transform .22s cubic-bezier(.2,.9,.3,1);}' +
     '#insaatModal.acik .ins-kart{transform:translateY(0);}' +
     '#insaatModal .ins-kapat{position:absolute;top:10px;right:12px;width:28px;height:28px;' +
-      'border:none;border-radius:8px;background:rgba(255,255,255,.10);color:#eaf6ff;' +
+      'border:none;border-radius:8px;background:rgba(0,20,45,.22);color:#eaf7ff;' +
       'font-size:15px;line-height:1;cursor:pointer;}' +
-    '#insaatModal .ins-bas{font-size:17px;font-weight:800;margin:0 32px 2px 0;' +
-      'text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
-    '#insaatModal .ins-sv{font-size:13px;font-weight:700;color:#9fd6ef;margin-bottom:10px;' +
-      'font-variant-numeric:tabular-nums;}' +
+
+    /* Basliklar ORTALI — kapatma dugmesi mutlak konumlu, ortalamayi bozmaz */
+    '#insaatModal .ins-bas{font-size:17px;font-weight:800;text-align:center;' +
+      'margin:0 34px 2px;text-shadow:0 1px 2px rgba(0,20,45,.55);}' +
+    '#insaatModal .ins-sv{font-size:13px;font-weight:700;color:#cfeaff;' +
+      'text-align:center;margin-bottom:10px;font-variant-numeric:tabular-nums;}' +
 
     /* ── GEREKSINIM KUTUCUKLARI ──
-       Eski yatay satir (simge · ad · miktar) kalkti. Artik yan yana
-       kutucuk: ustte gorsel + ad, altta kisaltilmis miktar. */
-    '#insaatModal .ins-kutular{display:flex;gap:8px;margin-bottom:10px;}' +
-    '#insaatModal .ins-kutu{flex:1 1 0;min-width:0;border:none;border-radius:10px;' +
-      'background:rgba(255,255,255,.06);padding:8px 6px 7px;text-align:center;}' +
-    '#insaatModal .ins-kutu .ins-ust{display:flex;align-items:center;justify-content:center;' +
-      'gap:5px;font-size:12.5px;font-weight:700;color:#cfe6f5;white-space:nowrap;' +
-      'overflow:hidden;text-overflow:ellipsis;}' +
-    '#insaatModal .ins-kutu .ins-mik{margin-top:4px;font-size:17px;font-weight:800;' +
-      'color:#eaf6ff;font-variant-numeric:tabular-nums;}' +
+       Simge / ad / miktar UST ALTA. Yan yana yazilinca "Demir" ve
+       "Enerji" bes kutuda telefona sigmiyor, ucu kirpiliyordu. */
+    '#insaatModal .ins-kutular{display:flex;gap:6px;margin-bottom:10px;}' +
+    '#insaatModal .ins-kutu{flex:1 1 0;min-width:0;border-radius:12px;' +
+      'background:linear-gradient(180deg,rgba(34,72,143,.62),rgba(13,34,70,.72));' +
+      'border:1px solid rgba(190,240,255,.20);padding:7px 3px 6px;text-align:center;}' +
+    '#insaatModal .ins-kutu .ins-ust{height:16px;line-height:16px;font-size:13px;}' +
+    '#insaatModal .ins-kutu .ins-ad{margin-top:2px;font-size:10.5px;font-weight:700;' +
+      'color:#cfeaff;white-space:nowrap;}' +
+    '#insaatModal .ins-kutu .ins-mik{margin-top:2px;font-size:15px;font-weight:800;' +
+      'color:#ffd257;font-variant-numeric:tabular-nums;}' +
     '#insaatModal .ins-kutu.eksik .ins-mik{color:#ff8b8f;}' +
+    '#insaatModal img.ins-sim{width:14px;height:14px;object-fit:contain;' +
+      'vertical-align:-2px;display:inline-block;}' +
 
-    '#insaatModal .ins-sure{margin:2px 0 4px;font-size:14px;font-weight:700;color:#ffd76a;' +
-      'font-variant-numeric:tabular-nums;}' +
-    '#insaatModal .ins-not{font-size:12.5px;line-height:1.45;color:#ffb3b6;margin:6px 0 2px;}' +
-    '#insaatModal .ins-bilgi{font-size:12.5px;line-height:1.45;color:#9fd6ef;margin:6px 0 2px;' +
-      'font-variant-numeric:tabular-nums;}' +
+    '#insaatModal .ins-sure{margin:2px 0 4px;font-size:14px;font-weight:700;color:#ffd257;' +
+      'text-align:center;font-variant-numeric:tabular-nums;}' +
+    '#insaatModal .ins-not{font-size:12.5px;line-height:1.45;color:#ffd0d2;margin:6px 0 2px;' +
+      'text-align:center;}' +
+    '#insaatModal .ins-bilgi{font-size:12.5px;line-height:1.45;color:#cfeaff;margin:6px 0 2px;' +
+      'text-align:center;font-variant-numeric:tabular-nums;}' +
     '#insaatModal .ins-dugmeler{display:flex;gap:8px;margin-top:12px;}' +
-    '#insaatModal .ins-btn{flex:1 1 0;border:none;border-radius:10px;padding:12px 8px;' +
+    '#insaatModal .ins-btn{flex:1 1 0;border:none;border-radius:12px;padding:12px 8px;' +
       'font-family:inherit;font-size:15px;font-weight:800;cursor:pointer;' +
       'text-shadow:0 1px 2px rgba(0,20,45,.35);' +
       'transition:transform .09s ease,filter .09s ease;}' +
@@ -447,11 +466,9 @@
     '#insaatModal .ins-btn[disabled]{opacity:.45;cursor:default;}' +
     '#insaatModal .ins-btn[disabled]:active{transform:none;filter:none;}' +
     '#insaatModal .ins-yesil{background:#3fbf6a;color:#08331b;}' +
-    '#insaatModal .ins-sari{background:#ffc61a;color:#3a2600;}' +
-    '#insaatModal .ins-geri{font-size:26px;font-weight:800;color:#ffd76a;text-align:center;' +
-      'margin:10px 0 4px;font-variant-numeric:tabular-nums;}' +
-    '#insaatModal .ins-kutu img.kay-sim{width:15px;height:15px;object-fit:contain;' +
-      'vertical-align:-2px;}';
+    '#insaatModal .ins-sari{background:#ffd257;color:#3a2600;}' +
+    '#insaatModal .ins-geri{font-size:26px;font-weight:800;color:#ffd257;text-align:center;' +
+      'margin:10px 0 4px;font-variant-numeric:tabular-nums;}';
 
   function stilBas() {
     if (document.getElementById("insaatCSS")) return;
@@ -462,6 +479,7 @@
   }
 
   var _sayac = null;
+  var _kok = null;     /* acik panelin KENDISI — id ile aranmaz */
 
   /* position:fixed oldugu icin offsetParent null doner (Tuzak 31);
      olcu offsetHeight'tan alinir. Dock gizliyse 0 gelir ve panel
@@ -474,17 +492,27 @@
     return 0;
   }
 
+  /* ══ PANELIN KENDILIGINDEN KAYBOLMASI — KOK SEBEP ══
+     Kapanis animasyonu icin eski dugum 240 ms DAHA DOM'da kaliyordu.
+     O sirada acilan YENI panelin id'si de "insaatModal" oluyor ve
+     document.getElementById ilk siradakini, yani OLMEKTE OLANI
+     donduruyordu: ciz() icerigi olu dugume yaziyor, 240 ms sonra o
+     dugum siliniyor ve panel ekrandan kayboluyordu.
+     Cozum: dugum artik id ile aranmiyor (_kok), olen dugumun id'si
+     de derhal siliniyor. Iki panel ayni ismi hic paylasmiyor. */
   function kapat() {
-    var m = document.getElementById("insaatModal");
-    if (m) {
-      m.classList.remove("acik");
-      /* Kayarak kapansin; kaldirma gecise birakilir. Kart yoksa
-         (eski surumden kalma dugum) hemen silinir. */
-      var k = m.querySelector(".ins-kart");
-      if (k) setTimeout(function () { if (m.parentNode) m.remove(); }, 240);
-      else m.remove();
-    }
+    var m = _kok;
+    _kok = null;
     if (_sayac) { clearInterval(_sayac); _sayac = null; }
+    if (!m) {
+      /* Eski surumden kalmis basibos dugum olabilir */
+      var kalinti = document.getElementById("insaatModal");
+      if (kalinti && kalinti.parentNode) kalinti.remove();
+      return;
+    }
+    m.removeAttribute("id");
+    m.classList.remove("acik");
+    setTimeout(function () { if (m.parentNode) m.remove(); }, 240);
   }
 
   function ac(id) {
@@ -492,8 +520,14 @@
     if (!kurDurum()) return;
     bitenleriIsle();
     stilBas();
+
+    /* Ayni bina icin ikinci dokunus paneli YIKIP kurmaz, tazeler.
+       Yikip kurmak her seferinde 240 ms'lik bir kapanis animasyonu
+       baslatiyordu — "acilip kapaniyor" goruntusunun ikinci sebebi. */
+    if (_kok && _kok.dataset.bina === id) { ciz(id); return; }
     kapat();
 
+    var acilis = Date.now();
     var kok = document.createElement("div");
     kok.id = "insaatModal";
     kok.dataset.bina = id;
@@ -506,8 +540,15 @@
     kok.style.bottom = dockYuksekligi() + "px";
 
     document.body.appendChild(kok);
+    _kok = kok;
 
-    kok.querySelector(".ins-kapat").addEventListener("click", kapat);
+    kok.querySelector(".ins-kapat").addEventListener("click", function () {
+      /* Panel kaleici tuvalindeki GELISTIR dugmesinin tam ustune
+         aciliyor; o dokunustan arta kalan hayalet tik ✕'e denk
+         gelebiliyor (Tuzak 29). Ilk 400 ms kapatma calismaz. */
+      if (Date.now() - acilis < 400) return;
+      kapat();
+    });
 
     ciz(id);
 
@@ -521,10 +562,10 @@
        parmak kalkinca ayni noktaya bir click daha geliyor (Tuzak 29). */
     var kart = kok.querySelector(".ins-kart");
     kart.style.pointerEvents = "none";
-    setTimeout(function () { kart.style.pointerEvents = ""; }, 350);
+    setTimeout(function () { kart.style.pointerEvents = ""; }, 400);
 
     _sayac = setInterval(function () {
-      if (!document.body.contains(kok)) { clearInterval(_sayac); _sayac = null; return; }
+      if (_kok !== kok || !kok.parentNode) { clearInterval(_sayac); _sayac = null; return; }
       var i = kuyrukta(id);
       if (i) {
         var g = kok.querySelector(".ins-geri");
@@ -536,7 +577,7 @@
 
   /* Panel içeriğini YERİNDE tazeler — kaydırma korunur. */
   function ciz(id) {
-    var kok = document.getElementById("insaatModal");
+    var kok = _kok;
     if (!kok) return;
     var govde = kok.querySelector(".ins-govde");
     if (!govde) return;
@@ -578,8 +619,8 @@
       if (!gerek) return;
       var yeter = (cuzdan[k] || 0) >= gerek;
       kutular += '<div class="ins-kutu' + (yeter ? "" : " eksik") + '">' +
-                   '<div class="ins-ust">' + simge(k) +
-                     '<span>' + K_ADI[k] + '</span></div>' +
+                   '<div class="ins-ust">' + simge(k) + '</div>' +
+                   '<div class="ins-ad">' + K_ADI[k] + '</div>' +
                    '<div class="ins-mik">' + kisaSayi(gerek) + '</div>' +
                  '</div>';
     });
@@ -661,12 +702,7 @@
     if (bitti.length) {
       tazele();
       uyar("🏗️ Tamamlandı: " + bitti.join(", "));
-      var m = document.getElementById("insaatModal");
-      if (m) {
-        /* Açık panel hangi binaya aitse onu yeniden çiz */
-        var acikId = m.dataset.bina;
-        if (acikId) ciz(acikId);
-      }
+      if (_kok && _kok.dataset.bina) ciz(_kok.dataset.bina);
     }
   }
 
@@ -725,8 +761,7 @@
       bitenleriIsle();
       yaz();
       tazele();
-      var m = document.getElementById("insaatModal");
-      if (m && m.dataset.bina) ciz(m.dataset.bina);
+      if (_kok && _kok.dataset.bina) ciz(_kok.dataset.bina);
     },
 
     tani: function () {

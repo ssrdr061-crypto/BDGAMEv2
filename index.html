@@ -6590,16 +6590,25 @@ function scrollMapToBase(maxFrames) {
   function tick() {
     const wrapEl = $id("battleMapWrap");
     if (wrapEl && wrapEl.clientWidth > 0 && wrapEl.clientHeight > 0) {
-      const mapW = 1586, mapH = 992;
-
       let startXPct = 15, startYPct = 50;
       const _sk = KOORD.kaleKaro(state.castle);
       if (_sk) {
         startXPct = KOORD.karodanYuzde(_sk.kx);
         startYPct = KOORD.karodanYuzde(_sk.ky);
       }
-      const startPxX = mapW * startXPct / 100;
-      const startPxY = mapH * startYPct / 100;
+
+      /* ── KENDİ KALEMİZE ODAKLANMA — KÖK HATA ──
+         Konum ZOOM ile çarpılmıyordu. mapZoom açılışta 1, ama
+         clampMapPan onu ekrana göre yükseltiyor (telefonda ~0,70).
+         Ölçek hesaba katılmayınca kamera kalenin bulunduğu yere
+         değil, orayla orantısız rastgele bir noktaya oturuyordu.
+         panTweenToGrid zaten mapZoom ile çarpıyor — doğru çalışan
+         oydu, burası ondan ayrışmıştı.
+         Zoom önce sabitlenir (clampMapPan), sonra konum onunla
+         hesaplanır. Ölçüler tek yerden: MAP_W / MAP_H. */
+      clampMapPan();
+      const startPxX = MAP_W * startXPct / 100 * mapZoom;
+      const startPxY = MAP_H * startYPct / 100 * mapZoom;
       mapPanX = (wrapEl.clientWidth / 2) - startPxX;
       mapPanY = (wrapEl.clientHeight / 2) - startPxY;
       clampMapPan();
