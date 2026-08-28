@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-8";
+  var SURUM = "insaat-9";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -149,6 +149,12 @@
     } catch (e) {}
     return null;
   }
+
+  /* Android \u2714/\u2716'yi RENKLI EMOJI olarak cizer; CSS color
+     hic tutmaz, isaretler kahverengi cikar. \uFE0E metin glifini
+     zorlar, boylece yesil/kirmizi uygulanir. */
+  var TIK   = "\u2713\uFE0E";
+  var CARPI = "\u2715\uFE0E";
 
   var BINA_EMOJI = {
     kale: "🏰", odun: "🪵", ahir: "🐄", demir: "⛏️", su: "💧", enerji: "⚡",
@@ -553,7 +559,11 @@
       'display:flex;align-items:center;justify-content:center;padding:18px;' +
       'background:rgba(2,10,26,.72);opacity:0;transition:opacity .18s ease;' +
       'font-family:"Baloo 2","Nunito",sans-serif;pointer-events:none;}' +
-    '.ins-modal.acik{opacity:1;}' +
+    /* KOK SEBEP: kok pointer-events:none idi, karartmaya yapilan
+       dokunus tuvale gecip gidiyordu — disari basinca kapanmiyordu.
+       Panel acikken kok dokunus alir; kapaliyken almaz ki tuval
+       normal calissin. */
+    '.ins-modal.acik{opacity:1;pointer-events:auto;}' +
 
     '.ins-modal .ins-kart{pointer-events:auto;position:relative;' +
       'width:100%;max-width:340px;max-height:86vh;' +
@@ -566,36 +576,34 @@
     '.ins-modal.acik .ins-kart{transform:scale(1);opacity:1;}' +
 
     /* Baslik: seritsiz. .overlay-card h2 ile ayni olcu ve golge. */
-    '.ins-modal .ins-baslik{position:relative;flex:0 0 auto;padding:15px 16px 8px;}' +
-    '.ins-modal .ins-bas{font-size:19px;font-weight:900;text-align:center;' +
-      'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
+    '.ins-modal .ins-baslik{position:relative;flex:0 0 auto;padding:12px 14px 6px;}' +
+    '.ins-modal .ins-bas{font-size:18px;font-weight:900;text-align:center;}' +
     '.ins-modal .ins-govde{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;' +
-      'padding:2px 16px 16px;}' +
+      'padding:2px 14px 14px;}' +
 
     /* ── SEVIYE ROZETLERI ── kart olcusu .hsm-card-item ile ayni aile */
     '.ins-modal .ins-rozetler{display:flex;align-items:center;justify-content:center;' +
-      'gap:10px;margin:2px 0 8px;}' +
+      'gap:10px;margin:0 0 6px;}' +
     '.ins-modal .ins-roz{width:40px;height:40px;border-radius:13px;' +
       'display:flex;align-items:center;justify-content:center;' +
-      'font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;' +
+      'font-size:18px;font-weight:900;font-variant-numeric:tabular-nums;' +
       'background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);' +
-      'border:1px solid rgba(190,240,255,.35);color:#dff2ff;' +
-      'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
+      'border:1px solid rgba(190,240,255,.35);color:#dff2ff;}' +
     '.ins-modal .ins-roz.hedef{background:linear-gradient(180deg,#5ce07a,#22a34a);' +
       'border-color:rgba(255,255,255,.45);color:#fff;}' +
     '.ins-modal .ins-ok{font-size:16px;font-weight:900;color:#dff2ff;}' +
 
     '.ins-modal .ins-cubuk{height:8px;border-radius:9px;overflow:hidden;' +
-      'background:rgba(3,16,38,.55);margin:0 0 10px;}' +
+      'background:rgba(3,16,38,.55);margin:0 0 6px;}' +
     '.ins-modal .ins-cubuk i{display:block;height:100%;' +
       'background:linear-gradient(180deg,#5ce07a,#22a34a);border-radius:9px;}' +
 
     '.ins-modal .ins-bolum{font-size:13px;font-weight:800;letter-spacing:.6px;' +
-      'text-align:center;color:#dff2ff;margin:12px 0 6px;}' +
+      'text-align:center;color:#dff2ff;margin:9px 0 4px;}' +
 
     /* ── SATIR ── */
-    '.ins-modal .ins-satir{display:flex;align-items:center;gap:8px;' +
-      'padding:5px 9px;border-radius:11px;margin-bottom:4px;' +
+    '.ins-modal .ins-satir{display:flex;align-items:center;gap:7px;' +
+      'padding:3px 8px;border-radius:9px;margin-bottom:3px;' +
       'background:rgba(3,16,38,.30);' +
       'border:1px solid rgba(190,240,255,.14);}' +
     '.ins-modal .ins-satir .ins-sol{flex:1 1 auto;min-width:0;font-size:13px;' +
@@ -603,30 +611,29 @@
     '.ins-modal .ins-satir .ins-sag{flex:0 0 auto;font-size:13.5px;font-weight:900;' +
       'color:#fff;font-variant-numeric:tabular-nums;}' +
     '.ins-modal .ins-satir .ins-sag b{color:#5ce07a;font-weight:900;}' +
-    '.ins-modal .ins-satir .ins-mik{flex:1 1 auto;font-size:13.5px;font-weight:900;' +
-      'color:#fff;font-variant-numeric:tabular-nums;' +
-      'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
+    '.ins-modal .ins-satir .ins-mik{flex:1 1 auto;font-size:13px;font-weight:900;' +
+      'color:#fff;font-variant-numeric:tabular-nums;}' +
     '.ins-modal .ins-satir.eksik .ins-mik{color:#ff8b8f;}' +
     '.ins-modal .ins-satir .ins-mik.ins-yapi{font-size:12.5px;font-weight:800;}' +
     '.ins-modal .ins-satir .ins-tik{flex:0 0 auto;font-size:14px;font-weight:900;' +
       'color:#5ce07a;}' +
     '.ins-modal .ins-satir.eksik .ins-tik{color:#ff8b8f;}' +
-    '.ins-modal .ins-satir .ins-ust{flex:0 0 26px;height:26px;line-height:26px;' +
-      'font-size:19px;text-align:center;}' +
-    '.ins-modal img.ins-sim{width:24px;height:24px;object-fit:contain;' +
-      'vertical-align:-6px;display:inline-block;}' +
+    '.ins-modal .ins-satir .ins-ust{flex:0 0 20px;height:20px;line-height:20px;' +
+      'font-size:16px;text-align:center;}' +
+    '.ins-modal img.ins-sim{width:20px;height:20px;object-fit:contain;' +
+      'vertical-align:-5px;display:inline-block;}' +
 
-    '.ins-modal .ins-not{font-size:12px;line-height:1.4;color:#ffd0d2;margin:6px 0 2px;' +
+    '.ins-modal .ins-not{font-size:12px;line-height:1.35;color:#ffd0d2;margin:5px 0 1px;' +
       'text-align:center;}' +
-    '.ins-modal .ins-bilgi{font-size:12px;line-height:1.4;color:#dff2ff;margin:6px 0 2px;' +
+    '.ins-modal .ins-bilgi{font-size:12px;line-height:1.35;color:#dff2ff;margin:5px 0 1px;' +
       'text-align:center;font-variant-numeric:tabular-nums;}' +
 
     /* ── DUGMELER ── olcu .hsm-btn ile ayni: 9px/6px dolgu, iki satir */
-    '.ins-modal .ins-dugmeler{display:flex;gap:9px;margin-top:12px;}' +
+    '.ins-modal .ins-dugmeler{display:flex;gap:9px;margin-top:10px;}' +
     '.ins-modal .ins-btn{flex:1 1 0;min-width:0;border:none;border-radius:12px;' +
       'padding:9px 6px;font-family:inherit;font-size:15px;font-weight:900;' +
-      'letter-spacing:.7px;color:#fff;cursor:pointer;' +
-      'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;' +
+      'letter-spacing:.6px;color:#fff;cursor:pointer;' +
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;' +
       'box-shadow:none;transition:transform .09s ease,filter .09s ease;}' +
     '.ins-modal .ins-btn small{font-size:13px;font-weight:900;' +
       'font-variant-numeric:tabular-nums;}' +
@@ -635,17 +642,12 @@
     '.ins-modal .ins-btn[disabled]:active{transform:none;filter:none;}' +
 
     /* Altin = bitirme (.hsm-finish), mavi = ikincil (.hsm-use), yesil = onay */
-    '.ins-modal .ins-altin{background:linear-gradient(180deg,#ffd257,#e0a12c);' +
-      'text-shadow:0 2px 0 rgba(120,70,0,.55);}' +
-    '.ins-modal .ins-altin small{text-shadow:0 2px 0 rgba(120,70,0,.55);}' +
-    '.ins-modal .ins-mavi{background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);' +
-      'text-shadow:0 2px 4px rgba(0,40,70,.6);}' +
-    '.ins-modal .ins-yesil{background:linear-gradient(180deg,#5ce07a,#22a34a);' +
-      'text-shadow:0 2px 0 rgba(0,60,20,.5);}' +
+    '.ins-modal .ins-altin{background:linear-gradient(180deg,#ffd257,#e0a12c);}' +
+    '.ins-modal .ins-mavi{background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);}' +
+    '.ins-modal .ins-yesil{background:linear-gradient(180deg,#5ce07a,#22a34a);}' +
 
     '.ins-modal .ins-geri{font-size:24px;font-weight:900;color:#ffd257;text-align:center;' +
-      'margin:4px 0 2px;font-variant-numeric:tabular-nums;' +
-      'text-shadow:0 2px 4px rgba(0,40,70,.6);}';
+      'margin:2px 0 0;font-variant-numeric:tabular-nums;}';
 
   function stilBas() {
     if (document.getElementById("insaatCSS")) return;
@@ -841,7 +843,7 @@
       h += '<div class="ins-satir' + (yeter ? "" : " eksik") + '">' +
              '<span class="ins-ust">' + simge(k) + "</span>" +
              '<span class="ins-mik">' + kisaSayi(var_) + " / " + kisaSayi(gerek) + "</span>" +
-             '<span class="ins-tik">' + (yeter ? "✔" : "✖") + "</span>" +
+             '<span class="ins-tik">' + (yeter ? TIK : CARPI) + "</span>" +
            "</div>";
     });
 
@@ -891,7 +893,7 @@
     return '<div class="ins-satir' + (tamam ? "" : " eksik") + '">' +
              '<span class="ins-ust">' + ikon + "</span>" +
              '<span class="ins-mik ins-yapi">' + metin + "</span>" +
-             '<span class="ins-tik">' + (tamam ? "✔" : "✖") + "</span>" +
+             '<span class="ins-tik">' + (tamam ? TIK : CARPI) + "</span>" +
            "</div>";
   }
 
