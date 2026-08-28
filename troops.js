@@ -1065,7 +1065,7 @@ const TroopTabs = (function () {
         ? `<img src="${def.img}" alt="${def.name}">`
         : `<span class="tp-emoji">${def.icon || "🪖"}</span>`;
       return `
-        <div class="tp-row${n > 0 ? "" : " tp-none"}" data-unit="${def.id}" style="animation-delay:${i * 0.05}s">
+        <div class="tp-row${n > 0 ? "" : " tp-none"}" data-unit="${def.id}" data-kad="${def.kademe || 1}" style="animation-delay:${i * 0.05}s">
           <div class="tp-img">${pic}</div>
           <div class="tp-mid">
             <div class="tp-name">${unitAdi(def)}</div>

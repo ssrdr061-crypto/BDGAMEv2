@@ -5935,14 +5935,17 @@ st.textContent = `
 #panel-troops .unit-screen .stage img.kad-katman{ display:none !important; }
 #panel-troops .unit-screen .stage img.kad-katman.kad-acik{ display:block !important; }
 
-/*  KİLİTLİ KADEME KARARTMASI — KALICI, ÖNCEDEN HAZIR.
-    Sv2-Sv6 henüz üretilemiyor; karartma bu görsellerin üstünde
-    en baştan duruyor. Katman sahneye kurulduğu anda karanlık,
-    ekrana gelene kadar da öyle bekliyor. Oyuncu bastığında hiçbir
-    hesap yapılmıyor, sadece görünür oluyor — renkli hâli hiç
-    boyanmadığı için kararma diye bir olay yaşanmıyor.
-    Sv1 (data-kad-k="1") her zaman açıktır, dışarıda bırakılır.    */
-#panel-troops .unit-screen .stage img.kad-katman:not([data-kad-k="1"]){
+/*  KİLİTLİ KADEME KARARTMASI — KİLİDE BAĞLI.
+    ESKİ KURAL: Sv1 dışındaki HER görsel koşulsuz karartılıyordu
+    (:not([data-kad-k="1"])). O kural "Sv2-Sv6 zaten üretilemiyor"
+    varsayımıyla yazılmıştı; kışla seviyelendikçe açılan kademeler
+    üretilebilir olduğu hâlde gri kalıyordu.
+    YENİ KURAL: karartma sahnenin .kademe-kilit sınıfına bağlı —
+    kilidi index.html'de kademeAcikMi() koyar, kutucuklardaki
+    .kp-kilit ile aynı doğruluk kaynağı.
+    Sıçrama olmaz: katman değişimi ile sınıf değişimi aynı
+    fonksiyonda, aynı karede yapılıyor (ikisi de sınıf işi). */
+#panel-troops .unit-screen.kademe-kilit .stage img.kad-katman{
   filter:grayscale(.85) brightness(.42) !important;
 }
 
@@ -6039,6 +6042,7 @@ document.head.appendChild(st);
    ------------------------------------------------------------
    Kafa kutucuğunun kullanıldığı HER YER aynı arka planı alır:
      · birlik menüsündeki kademe seçiciler (.uv-portrait)
+     · BİRLİKLER listesindeki kafa kutucukları (.tp-row .tp-img)
      · savaş raporunda savaşa sürülen birlikler (.rep-por)
      · raporun karşılıklı stat başlıkları (.rp-krs-baslik .rep-por)
 
@@ -6061,6 +6065,7 @@ document.head.appendChild(st);
    Kademe bilgisi işaretlemeden gelir:
      · .uv-portrait → data-kademe (index.html üretiyor)
      · .rep-por     → data-kad    (unitChips ve karşılıklı başlık)
+     · .tp-img      → satırın data-kad'ı (troops.js render üretiyor)
    ══════════════════════════════════════════════════════════════ */
 (function birlikKutuArkaPlan(){
 "use strict";
@@ -6090,6 +6095,36 @@ html body .rep-por[data-kad="1"]::before{
 html body #panel-troops .uv-portrait[data-kademe="2"]::before,
 html body .rep-por[data-kad="2"]::before{
   background-image:url("birlik2arkaplan.webp");
+}
+
+/*  BİRLİKLER LİSTESİ (.tp-row .tp-img)
+    Kutunun kendi background'ı transparent; Sv1 görsellerinde mavi
+    zemin dosyaya GÖMÜLÜ olduğu için satırlar dolu görünüyordu,
+    Sv2'lerde ise arkası boş kalıyordu. Burada da ::before ile
+    veriliyor — kademe kutucuklarıyla aynı dosyalar, aynı katman
+    düzeni. Kimlik biçimi hastane/sefer listesindekiyle aynı.     */
+html body #panel-troops .tp-img{ position:relative !important; }
+
+/*  ARKA PLAN HER SATIRDA VAR — kimlik tek tek SAYILMAZ.
+    Kimlikleri sayan kural (knight, knight2, ...) her yeni kademede
+    unutuluyordu. Satır artık data-kad taşıyor (troops.js render),
+    kural onu okuyor: taban kural HEPSİNE mavi verir, kademe 2
+    kırmızıya çevirir. Sv3-Sv6 için ayrı dosya çizilince buraya tek
+    bir [data-kad="3"] kuralı eklemek yetecek.                     */
+html body #panel-troops .tp-row .tp-img::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:url("birlik1arkaplan.webp");
+  background-size:cover; background-position:center;
+  background-repeat:no-repeat;
+  pointer-events:none; z-index:0;
+}
+html body #panel-troops .tp-row[data-kad="2"] .tp-img::before{
+  background-image:url("birlik2arkaplan.webp");
+}
+html body #panel-troops .tp-img img,
+html body #panel-troops .tp-img .tp-emoji{
+  position:relative !important; z-index:1 !important;
 }
 
 /*  Birlik görseli ve kademe numarası arka planın ÜSTÜNDE durur. */
