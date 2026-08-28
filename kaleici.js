@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-45';
+  var SURUM = 'kaleici-46';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -224,24 +224,27 @@
      Bina değildir: oyuncu göremez, seçemez, taşıyamaz; Firebase'e
      yazılmaz. Yalnız ayar paneli açıkken listede görünür ve sürüklenir.
      Görsel dosyası yoksa hiç çizilmez (emojiye düşmez). */
+  /* Değerler ?dagayar=1 panelinden dialandı, buraya kalıcı yazıldı.
+     dag_05 kaldırıldı (Serdar). Kimlikler boşluklu ilerler; yeniden
+     numaralamak eski ekran görüntüleriyle notları uyumsuz kılardı. */
   var SUSLER = [
-    { id: 'dag_01', ad: 'Dağ A', emoji: '⛰️', gorsel: 'dag1.webp', gx: 6, gy: -1, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_02', ad: 'Dağ B', emoji: '⛰️', gorsel: 'dag2.webp', gx: 9, gy: 3, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_03', ad: 'Dağ C', emoji: '⛰️', gorsel: 'dag3.webp', gx: 10, gy: 7, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_04', ad: 'Dağ D', emoji: '⛰️', gorsel: 'dag1.webp', gx: 9, gy: 11, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_05', ad: 'Dağ E', emoji: '⛰️', gorsel: 'dag2.webp', gx: 7, gy: 15, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_06', ad: 'Dağ F', emoji: '⛰️', gorsel: 'dag3.webp', gx: 4, gy: 17, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_07', ad: 'Dağ G', emoji: '⛰️', gorsel: 'dag1.webp', gx: 0, gy: 17, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_08', ad: 'Dağ H', emoji: '⛰️', gorsel: 'dag2.webp', gx: -5, gy: 16, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_09', ad: 'Dağ I', emoji: '⛰️', gorsel: 'dag3.webp', gx: -8, gy: 14, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_10', ad: 'Dağ J', emoji: '⛰️', gorsel: 'dag1.webp', gx: -11, gy: 10, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_11', ad: 'Dağ K', emoji: '⛰️', gorsel: 'dag2.webp', gx: -12, gy: 6, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_12', ad: 'Dağ L', emoji: '⛰️', gorsel: 'dag3.webp', gx: -11, gy: 2, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_13', ad: 'Dağ M', emoji: '⛰️', gorsel: 'dag1.webp', gx: -9, gy: -2, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_14', ad: 'Dağ N', emoji: '⛰️', gorsel: 'dag2.webp', gx: -6, gy: -4, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_15', ad: 'Dağ O', emoji: '⛰️', gorsel: 'dag3.webp', gx: -2, gy: -4, en: 3, boy: 3, olcek: 0.66, sus: true },
-    { id: 'dag_16', ad: 'Dağ P', emoji: '⛰️', gorsel: 'dag1.webp', gx: 3, gy: -3, en: 3, boy: 3, olcek: 0.66, sus: true }
+    { id: 'dag_01', ad: 'Dağ A', emoji: '⛰️', gorsel: 'dag1.webp', gx:   3, gy:  -3, en: 3, boy: 3, olcek: 2.06, dy:  200, dondur:  5, sus: true },
+    { id: 'dag_02', ad: 'Dağ B', emoji: '⛰️', gorsel: 'dag2.webp', gx:   9, gy:   4, en: 3, boy: 3, olcek: 2.32, dy:   32, sus: true },
+    { id: 'dag_03', ad: 'Dağ C', emoji: '⛰️', gorsel: 'dag3.webp', gx:  10, gy:   5, en: 3, boy: 3, olcek: 1.88, dy:   58, sus: true },
+    { id: 'dag_04', ad: 'Dağ D', emoji: '⛰️', gorsel: 'dag1.webp', gx:   9, gy:   9, en: 3, boy: 3, olcek: 2.32, dy:  108, dondur:  5, sus: true },
+    { id: 'dag_06', ad: 'Dağ F', emoji: '⛰️', gorsel: 'dag3.webp', gx:  -4, gy:  18, en: 3, boy: 3, olcek: 0.66, dy:  -10, dondur: -5, sus: true },
+    { id: 'dag_07', ad: 'Dağ G', emoji: '⛰️', gorsel: 'dag1.webp', gx:  -4, gy:  18, en: 3, boy: 3, olcek: 1.74, dy: -178, sus: true },
+    { id: 'dag_08', ad: 'Dağ H', emoji: '⛰️', gorsel: 'dag2.webp', gx:  -7, gy:  16, en: 3, boy: 3, olcek: 1.86, dy: -176, sus: true },
+    { id: 'dag_09', ad: 'Dağ I', emoji: '⛰️', gorsel: 'dag3.webp', gx: -11, gy:   9, en: 3, boy: 3, olcek: 1.76, dy:  -36, sus: true },
+    { id: 'dag_10', ad: 'Dağ J', emoji: '⛰️', gorsel: 'dag1.webp', gx: -12, gy:   4, en: 3, boy: 3, olcek: 2.04, dy:   -2, sus: true },
+    { id: 'dag_11', ad: 'Dağ K', emoji: '⛰️', gorsel: 'dag2.webp', gx: -12, gy:  -1, en: 3, boy: 3, olcek: 2.54, dy:   -6, sus: true },
+    { id: 'dag_12', ad: 'Dağ L', emoji: '⛰️', gorsel: 'dag3.webp', gx:  -8, gy:  -4, en: 3, boy: 3, olcek: 1.84, dy:  -18, dondur: -5, sus: true },
+    { id: 'dag_13', ad: 'Dağ M', emoji: '⛰️', gorsel: 'dag1.webp', gx:  -4, gy:  -5, en: 3, boy: 3, olcek: 1.84, dy:    8, sus: true },
+    { id: 'dag_14', ad: 'Dağ N', emoji: '⛰️', gorsel: 'dag2.webp', gx:  -1, gy:  -5, en: 3, boy: 3, olcek: 1.60, dy:   54, sus: true },
+    { id: 'dag_15', ad: 'Dağ O', emoji: '⛰️', gorsel: 'dag3.webp', gx:   0, gy:  -5, en: 3, boy: 3, olcek: 1.38, dy:   88, sus: true },
+    { id: 'dag_16', ad: 'Dağ P', emoji: '⛰️', gorsel: 'dag1.webp', gx:   4, gy:  -3, en: 3, boy: 3, olcek: 1.68, dy:   60, sus: true }
   ];
+
 
 
   /* Çizim, dokunuş ve ayar listesi bunu okur; kayıt yalnız BINALAR'ı. */
@@ -443,10 +446,10 @@
        merkez/yaricap DÜNYA pikselidir (ızgara değil). */
     ada: {
       mx: -240, my: 172,   // ada merkezi (dünya)
-      /* Dağ halkasının merkeze uzaklığı 377–464 (ölçüldü, ortalama 420).
-         560'ta kara dağların yüzlerce piksel ötesine taşıyordu.
-         ?dagayar=1 panelinden ayarlanır, dialanan değer buraya yazılır. */
-      yaricap: 450,        // kara sınırı
+      /* Kara sınırı ?dagayar=1 panelinden dialandı. Dağların yerleri
+         de değiştiği için bu sayı artık dağ halkasına göre elle
+         ayarlanmış değerdir, hesapla türetilmez. */
+      yaricap: 570,        // kara sınırı  (?dagayar=1 ile dialandı)
       dalga: 0.085,        // kıyının kırışma miktarı
       kiyi: 0.052,         // kum bandı genişliği (yarıçap oranı)
       /* Kum yalnız ÖNE bakan kıyıda. İzometride yukarı dönen kıyı
