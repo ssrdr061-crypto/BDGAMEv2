@@ -601,18 +601,6 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .overlay-card .desc{color:#dff2ff; font-size:13px; margin:0 0 20px;}
 
-/* ── SIRALAMA SEKMELERİ ── renkler .hsm-card-item / .overlay-close ailesinden */
-.rank-sekme{display:flex; gap:8px; margin:0 0 12px;}
-.rank-sk{
-  flex:1 1 0; min-width:0; border:none; border-radius:11px; cursor:pointer;
-  padding:7px 6px; font-family:'Baloo 2','Nunito',sans-serif;
-  font-size:13.5px; font-weight:900; letter-spacing:.4px; color:#dff2ff;
-  background:linear-gradient(180deg,#3d7ccc 0%,#22488f 55%,#152e5e 100%);
-  transition:transform .09s ease, filter .09s ease;
-}
-.rank-sk.is-active{background:linear-gradient(180deg,#5ce07a,#22a34a); color:#fff;}
-.rank-sk:active{transform:scale(.96); filter:brightness(.93);}
-
 @media (min-width:640px){
   .overlay-panel{align-items:center;}
   .overlay-card{border-radius:20px; border-top:1px solid var(--line);}
@@ -1289,6 +1277,17 @@ body.world-active{padding:0; overflow:hidden;}
   width:100%;
   text-shadow:0 3px 0 rgba(0,10,30,.55);
 }
+
+/* Doluluk: başlığın hemen altında tek satır. Rakamlar sayaç olduğu
+   için tabular-nums — yoksa her tazelemede satır oynuyor. */
+.hospital-kap{
+  text-align:center; margin:-8px 0 12px;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13.5px;
+  color:#dff2ff; font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+.hospital-kap.dolu{color:#ff8b8f;}
+.hospital-kap:empty{display:none;}
 
 .hospital-heal-card{
   position:relative;
@@ -2488,6 +2487,7 @@ body.world-active{padding:0; overflow:hidden;}
     <div class="overlay-card hospital-card">
       <button class="overlay-close" data-close>✕</button>
       <h2 class="hospital-title">HASTANE</h2>
+      <div class="hospital-kap" id="hospitalKap"></div>
       <div id="hospitalPendingList"></div>
 
       <h3 class="hero-subtitle hospital-queue-title" id="hospitalQueueTitle"
@@ -2500,10 +2500,6 @@ body.world-active{padding:0; overflow:hidden;}
     <div class="overlay-card">
       <button class="overlay-close" data-close>✕</button>
       <h2 id="rankBaslik">🏆 Güç Sıralaması</h2>
-      <div class="rank-sekme">
-        <button class="rank-sk is-active" data-rank="guc" type="button">Güç</button>
-        <button class="rank-sk" data-rank="kale" type="button">Kale Seviyesi</button>
-      </div>
       <div class="rank-list" id="rankList"></div>
     </div>
   </div>
@@ -3977,6 +3973,20 @@ function iyilesmeSuresiMs(unitId) {
   return def ? Math.round(def.trainMinutes * 60 * 1000 / 5) : 60000;
 }
 
+/* ── HASTANE KAPASİTESİ ──
+   Gerçek tablo insaat.js'te (HASTANE_KAP), hastane binasının
+   seviyesine bağlı. Dosya yüklenmemişse Infinity döner ve sınır
+   uygulanmaz — oyun eskisi gibi çalışır, sessizce kilitlenmez. */
+function hastaneKapasitesi() {
+  try {
+    if (window.INSAAT && typeof INSAAT.hastaneKapasitesi === "function") {
+      const k = INSAAT.hastaneKapasitesi();
+      if (typeof k === "number" && k > 0) return k;
+    }
+  } catch (e) {}
+  return Infinity;
+}
+
 /* Hastanedeki toplam yaralı (grup satırlarının adetleri toplamı) */
 function hastaneToplam(liste) {
   return (liste || state.hospital || []).reduce((t, p) => t + (p.adet || 0), 0);
@@ -4039,9 +4049,21 @@ function applyFinishedHospitalRecoveries() {
    ve eski sefer kayıtları hâlâ dizi gönderiyor. */
 function sendWoundedToHospital(troopsWoundedByUnit) {
   if (!troopsWoundedByUnit) return;
+  if (!Array.isArray(state.hospital)) state.hospital = [];
+
+  /* KAPASİTE: hastane doluysa fazla yaralı ALINMAZ — o birlikler
+     ölmüş sayılır. Boş yer savaş başına BİR KEZ hesaplanır, her
+     birlik türü sırayla ondan düşer; tükenince kalanı taşar. */
+  const _kap = hastaneKapasitesi();
+  let _bos = Math.max(0, _kap - hastaneToplam(state.hospital));
+  let _tasan = 0;
+
   Object.keys(troopsWoundedByUnit).forEach(unitId => {
     if (!UNIT_TYPES[unitId]) return;
-    const adet = yaraliAdet(troopsWoundedByUnit[unitId]);
+    let adet = yaraliAdet(troopsWoundedByUnit[unitId]);
+    if (adet <= 0) return;
+    if (adet > _bos) { _tasan += adet - _bos; adet = _bos; }
+    _bos -= adet;
     if (adet <= 0) return;
 
     /* DİKKAT: sayaç BURADA başlatılmaz (finishAt:0). Eskiden
@@ -4062,6 +4084,12 @@ function sendWoundedToHospital(troopsWoundedByUnit) {
       });
     }
   });
+
+  /* Görünmesi ZORUNLU uyarı: showToast kapalı (BILDIRIMLER_ACIK). */
+  if (_tasan > 0 && typeof showToastForce === "function") {
+    showToastForce("🏥 Hastane dolu — " + fmt(_tasan) +
+                   " yaralı kurtarılamadı.", 4500);
+  }
 }
 
 /* trainUnit, getTotalTroopStats → troops.js dosyasına taşındı */
@@ -5337,6 +5365,16 @@ function renderHospitalPanel() {
   const floatCount = document.getElementById("floatingHospitalCount");
   const patients = state.hospital || [];
   const toplamYarali = hastaneToplam(patients);
+
+  /* Doluluk yazısı — boş hastanede de görünsün diye erken çıkıştan ÖNCE. */
+  const kapEl = document.getElementById("hospitalKap");
+  if (kapEl) {
+    const kap = hastaneKapasitesi();
+    kapEl.textContent = (kap === Infinity)
+      ? ""
+      : (fmt(toplamYarali) + " / " + fmt(kap) + " yatak");
+    kapEl.classList.toggle("dolu", kap !== Infinity && toplamYarali >= kap);
+  }
 
   if (floatBtn) {
     if (toplamYarali > 0) {
@@ -7695,21 +7733,16 @@ function _rankRowsHTML(players) {
   }).join("");
 }
 
-/* Sekmeler bir kez bağlanır; panel her açılışta yeniden çizilse de
-   dinleyici çoğalmasın. */
-function rankSekmeBagla() {
-  const kutu = document.querySelector("#panel-rank .rank-sekme");
-  if (!kutu || kutu._bagli) return;
-  kutu._bagli = true;
-  kutu.addEventListener("click", (e) => {
-    const b = e.target.closest(".rank-sk");
-    if (!b) return;
-    rankKip = b.dataset.rank || "guc";
-    kutu.querySelectorAll(".rank-sk").forEach(x =>
-      x.classList.toggle("is-active", x === b));
-    renderRankPanel();
-  });
-}
+/* Sekme çubuğu ARTIK BURADA DEĞİL. Sıralama panelinde iki ayrı sekme
+   satırı vardı (buradaki Güç/Kale Seviyesi + tema.js'teki GÜÇ/KAHRAMAN)
+   ve üst üste biniyorlardı. Tek satır tema.js'te kaldı: GÜÇ · KAHRAMAN
+   · SEVİYE. Kipi oradan değiştirmek için tek kapı budur. */
+function rankSekmeBagla() { /* sekme çubuğu tema.js'e taşındı */ }
+
+window.rankKipSec = function (kip) {
+  rankKip = (kip === "kale") ? "kale" : "guc";
+  renderRankPanel();
+};
 
 function renderRankPanel() {
   const listEl = document.getElementById("rankList");
@@ -8426,7 +8459,13 @@ const TroopViewer = (function () {
       html += `</div>`;
 
       /* ── EĞİT BÖLÜMÜ ── */
-      const trainQueueForUnit = (state.trainingQueue || []).filter(j2 => j2.unitId === uid);
+      /* KÖK HATA (düzeltildi): burada `uid` kullanılıyordu. `uid` AİLE
+         kimliğidir (knight), `kid` ise EKRANDA SEÇİLİ KADEME'nin
+         kimliğidir (knight2 = Süvari). Aile kimliği ile çalışınca
+         Süvari ekranında "Üret"e basmak Sv1 Şövalye üretiyordu.
+         Bu bloktaki üretim, fiyat, kaynak ve sayaç işlerinin HEPSİ
+         artık `kid` üzerinden gider — üç aile için birden. */
+      const trainQueueForUnit = (state.trainingQueue || []).filter(j2 => j2.unitId === kid);
       const isTraining = trainQueueForUnit.length > 0;
       const speedUpCount = Object.keys(state.inventory || {})
         .filter(ad => /Hızlandırma/i.test(ad) && /\d+\s*(Dakika|Saat|Gün)/i.test(ad))
@@ -8438,12 +8477,12 @@ const TroopViewer = (function () {
          hesaplar, en küçüğünü verir — böylece oyuncu ödeyemeyeceği bir
          adede hiç çıkamaz ("yetmiyorsa yettiği kadar"). Tavan 500. */
       const sliderMax = (typeof maxUretilebilir === "function")
-        ? maxUretilebilir(uid, 500)
+        ? maxUretilebilir(kid, 500)
         : Math.min(affordableMax, 500);
       const qty = Math.min(selQty, sliderMax);
       unitTrainQty[uid] = qty;
       const totalCost = def.cost * qty;
-      const instCost = (typeof instantCostFor === "function") ? instantCostFor(uid, qty) : totalCost * 3;
+      const instCost = (typeof instantCostFor === "function") ? instantCostFor(kid, qty) : totalCost * 3;
 
       if (kilit) {
         /*  Sv2+ : statlar görünür ama üretim yok.
@@ -8474,9 +8513,9 @@ const TroopViewer = (function () {
         const bicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
         html += `<div class="unit-train-bar">
             <div class="utb-training">⏳ Eğitiliyor
-              <span class="unit-train-timer" data-unit="${uid}">x${trainQueueForUnit.length} · ${bicim(remaining)}</span>
+              <span class="unit-train-timer" data-unit="${kid}">x${trainQueueForUnit.length} · ${bicim(remaining)}</span>
             </div>
-            <button class="speedup-trigger unit-speedup-btn" data-unit="${uid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
+            <button class="speedup-trigger unit-speedup-btn" data-unit="${kid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
           </div>`;
       } else {
         html += `<div class="unit-qty-bar">
@@ -8525,11 +8564,11 @@ const TroopViewer = (function () {
       });
 
       const trainBtn = el.querySelector(".unit-train-btn");
-      if (trainBtn) bindTap(trainBtn, () => { trainUnit(uid, unitTrainQty[uid] || 1); renderUnitStats(); });
+      if (trainBtn) bindTap(trainBtn, () => { trainUnit(kid, unitTrainQty[uid] || 1); renderUnitStats(); });
 
       const instBtn = el.querySelector(".unit-instant-btn");
       if (instBtn) bindTap(instBtn, () => {
-        if (typeof trainUnitInstant === "function") trainUnitInstant(uid, unitTrainQty[uid] || 1);
+        if (typeof trainUnitInstant === "function") trainUnitInstant(kid, unitTrainQty[uid] || 1);
         renderUnitStats();
       });
 
@@ -8548,7 +8587,7 @@ const TroopViewer = (function () {
         const c1 = el.querySelector(".utb-cost");
         if (c1) c1.textContent = "💎 " + fmt(def.cost * v);
         const c2 = el.querySelector(".utb-inst-cost");
-        if (c2) c2.textContent = "💎 " + fmt((typeof instantCostFor === "function") ? instantCostFor(uid, v) : def.cost * v * 3);
+        if (c2) c2.textContent = "💎 " + fmt((typeof instantCostFor === "function") ? instantCostFor(kid, v) : def.cost * v * 3);
         const q = el.querySelector(".utb-qty");
         if (q) q.textContent = v;
         /* SÜRE de adetle güncellenir. Eskiden yalnız elmas
@@ -8558,7 +8597,7 @@ const TroopViewer = (function () {
         if (sr) sr.textContent = (typeof sureDk === "function")
           ? sureDk(def.trainMinutes * v) : (def.trainMinutes * v) + " dk";
         /* kaynak gereksinimi adetle birlikte anında değişir */
-        uvGereksinim(uid, el, v);
+        uvGereksinim(kid, el, v);
       };
       if (slider) slider.addEventListener("input", () => setQty(slider.value));
       if (numBox) numBox.addEventListener("input", () => setQty(numBox.value));
@@ -8568,7 +8607,7 @@ const TroopViewer = (function () {
       if (plus) bindTap(plus, () => setQty((unitTrainQty[uid] || 1) + 1));
 
       /* ilk çizimde de kaynak yazısı dolsun */
-      uvGereksinim(uid, el, qty);
+      uvGereksinim(kid, el, qty);
     });
   }
 

@@ -7112,8 +7112,13 @@ setTimeout(uygula, 2500);
 
 
 /* ═══════════════════════════════════════════════════════════════════
-   SIRALAMA PANELİ — İKİ SEKME  (rank-sekme-1)
-   #rankList'in üstüne "GÜÇ" ve "KAHRAMAN" sekmeleri eklenir.
+   SIRALAMA PANELİ — ÜÇ SEKME  (rank-sekme-2)
+   #rankList'in üstüne "GÜÇ · KAHRAMAN · SEVİYE" sekmeleri eklenir.
+   Panelde eskiden İKİ ayrı sekme satırı vardı: index.html'deki
+   .rank-sekme (Güç / Kale Seviyesi) ve buradaki (GÜÇ / KAHRAMAN).
+   İkisi üst üste biniyordu. index.html'deki satır SİLİNDİ, kale
+   seviyesi buradaki SEVİYE sekmesine taşındı; kipi değiştiren tek
+   kapı window.rankKipSec().
    GÜÇ sekmesi index.html'deki renderRankPanel()'e dokunmaz, onu
    olduğu gibi çağırır. KAHRAMAN sekmesi accounts'tan her oyuncunun
    EN GÜÇLÜ kahramanını bulup listeler.
@@ -7146,10 +7151,13 @@ setTimeout(uygula, 2500);
 
   var CSS = `
     #panel-rank .rs-sekmeler{ display:flex; gap:6px; margin:4px 2px 0; }
-    #panel-rank .rs-sekme{ flex:1; padding:7px 0; border:none; border-radius:11px;
+    /* Üç düğme yan yana: "KAHRAMAN" 8 harf, 13,5 punto ile dar
+       telefonda taşıyordu. Punto ve harf aralığı ölçülüp düşürüldü. */
+    #panel-rank .rs-sekme{ flex:1 1 0; min-width:0; padding:7px 2px;
+      border:none; border-radius:11px;
       background:rgba(255,255,255,.10); color:#cfe6ff;
-      font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:13.5px;
-      letter-spacing:.4px; box-shadow:none;
+      font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:12px;
+      letter-spacing:0; white-space:nowrap; box-shadow:none;
       transition:transform .09s, filter .09s; }
     #panel-rank .rs-sekme:active{ transform:scale(.96); filter:brightness(.93); }
     #panel-rank .rs-sekme.etkin{ background:linear-gradient(180deg,#4f9fe0,#2c68ad);
@@ -7275,8 +7283,19 @@ setTimeout(uygula, 2500);
     for (var i = 0; i < dgm.length; i++) {
       dgm[i].classList.toggle("etkin", dgm[i].dataset.sekme === hangi);
     }
-    if (hangi === "kahraman") kahramanListesiCiz();
-    else if (typeof renderRankPanel === "function") renderRankPanel();
+    if (hangi === "kahraman") {
+      var bas = document.getElementById("rankBaslik");
+      if (bas) bas.textContent = "🦸 Kahraman Sıralaması";
+      kahramanListesiCiz();
+      return;
+    }
+    /* GÜÇ ve SEVİYE aynı listeyi çizer, yalnız kip değişir.
+       Kip index.html'de tutulur; tek kapı rankKipSec. */
+    if (typeof window.rankKipSec === "function") {
+      window.rankKipSec(hangi === "seviye" ? "kale" : "guc");
+    } else if (typeof renderRankPanel === "function") {
+      renderRankPanel();
+    }
   }
 
   function sekmeleriKur() {
@@ -7292,7 +7311,8 @@ setTimeout(uygula, 2500);
     kutu.className = "rs-sekmeler";
     kutu.innerHTML =
       '<button class="rs-sekme etkin" data-sekme="guc">GÜÇ</button>' +
-      '<button class="rs-sekme" data-sekme="kahraman">KAHRAMAN</button>';
+      '<button class="rs-sekme" data-sekme="kahraman">KAHRAMAN</button>' +
+      '<button class="rs-sekme" data-sekme="seviye">SEVİYE</button>';
     liste.parentNode.insertBefore(kutu, liste);
 
     kutu.addEventListener("pointerup", function (e) {
