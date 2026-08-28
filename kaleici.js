@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-42';
+  var SURUM = 'kaleici-43';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -443,7 +443,10 @@
        merkez/yaricap DÜNYA pikselidir (ızgara değil). */
     ada: {
       mx: -240, my: 172,   // ada merkezi (dünya)
-      yaricap: 560,        // kara sınırı
+      /* Dağ halkasının merkeze uzaklığı 377–464 (ölçüldü, ortalama 420).
+         560'ta kara dağların yüzlerce piksel ötesine taşıyordu.
+         ?dagayar=1 panelinden ayarlanır, dialanan değer buraya yazılır. */
+      yaricap: 450,        // kara sınırı
       dalga: 0.085,        // kıyının kırışma miktarı
       kiyi: 0.052,         // kum bandı genişliği (yarıçap oranı)
       /* Kum yalnız ÖNE bakan kıyıda. İzometride yukarı dönen kıyı
@@ -914,7 +917,20 @@
       var k = g.kutu;
       var sap = secimSaydamlik(b);
       if (sap < 1) ctx.globalAlpha = sap;
-      ctx.drawImage(g.im, k.sx, k.sy, k.sw, k.sh, kut.x, kut.y, kut.w, kut.h);
+      /* DÖNDÜRME: yalnız 'dondur' alanı olan yapılarda çalışır (süsler).
+         Kutunun MERKEZİ etrafında döner; köşeden döndürseydik dağ
+         yerinden kayardı. Alan yoksa tek fazladan işlem bile yapılmaz. */
+      if (b.dondur) {
+        var mx0 = kut.x + kut.w / 2, my0 = kut.y + kut.h / 2;
+        ctx.save();
+        ctx.translate(mx0, my0);
+        ctx.rotate(b.dondur * Math.PI / 180);
+        ctx.drawImage(g.im, k.sx, k.sy, k.sw, k.sh,
+                      -kut.w / 2, -kut.h / 2, kut.w, kut.h);
+        ctx.restore();
+      } else {
+        ctx.drawImage(g.im, k.sx, k.sy, k.sw, k.sh, kut.x, kut.y, kut.w, kut.h);
+      }
       ctx.globalAlpha = 1;
     } else {
       /* Süsün görseli yoksa hiç çizilmez — ekranda emoji dağ istemiyoruz */
@@ -1688,6 +1704,150 @@
   } else {
     kur();
   }
+
+
+  /* ═══════════════════════════════════════════════════════════
+     DAĞ AYAR PANELİ — GEÇİCİ  (?dagayar=1)
+     Süslerin konumu, ölçeği, dikey kayması ve dönme açısı ekrandan
+     ayarlanır. Değerler dialanınca YAZDIR'a basılır, çıkan satırlar
+     SUSLER dizisine yapıştırılır ve bu blok silinir.
+     Kalıcı kod değil — parametre yoksa hiçbir şey yapmaz.
+     ═══════════════════════════════════════════════════════════ */
+  (function dagAyarPaneli() {
+    if (!/[?&]dagayar=1/.test(location.search || '')) return;
+
+    var sec = 0;                     /* seçili süsün SUSLER içindeki sırası */
+    var kok = null, ustBilgi = null, cikti = null;
+
+    function s() { return SUSLER[sec]; }
+
+    function stil() {
+      if (document.getElementById('dagAyarCSS')) return;
+      var st = document.createElement('style');
+      st.id = 'dagAyarCSS';
+      st.textContent =
+        '#dagAyar{position:fixed;left:0;right:0;bottom:0;z-index:99998;' +
+          'background:rgba(3,16,38,.94);color:#eaf7ff;padding:6px 8px 8px;' +
+          'font:12px/1.3 "Baloo 2",monospace;max-height:52vh;overflow:auto;}' +
+        '#dagAyar.kapali{transform:translateY(calc(100% - 26px));}' +
+        '#dagAyar .da-bas{display:flex;align-items:center;gap:6px;margin-bottom:4px;}' +
+        '#dagAyar .da-bas b{flex:1 1 auto;font-size:13px;}' +
+        '#dagAyar .da-sat{display:flex;align-items:center;gap:4px;margin:2px 0;}' +
+        '#dagAyar .da-sat span.et{flex:0 0 62px;opacity:.85;}' +
+        '#dagAyar .da-sat span.dg{flex:0 0 62px;text-align:right;' +
+          'font-variant-numeric:tabular-nums;font-weight:800;}' +
+        '#dagAyar button{border:none;border-radius:7px;background:#22488f;color:#fff;' +
+          'font:800 13px "Baloo 2",sans-serif;padding:5px 9px;cursor:pointer;}' +
+        '#dagAyar button:active{filter:brightness(.9);}' +
+        '#dagAyar button.ana{background:#3fbf6a;}' +
+        '#dagAyar button.kir{background:#c00d0d;}' +
+        '#dagAyar textarea{width:100%;height:110px;margin-top:6px;font:11px monospace;' +
+          'background:#08182f;color:#cfeaff;border:1px solid #2a5a94;border-radius:6px;}';
+      document.head.appendChild(st);
+    }
+
+    function dugme(ad, fn, sinif) {
+      var b = document.createElement('button');
+      b.textContent = ad;
+      if (sinif) b.className = sinif;
+      b.addEventListener('click', function (e) { e.stopPropagation(); fn(); tazele(); });
+      return b;
+    }
+
+    /* Bir alan için: etiket · − · değer · + */
+    function satir(etiket, oku, yaz, adim, bicim) {
+      var d = document.createElement('div');
+      d.className = 'da-sat';
+      var e = document.createElement('span'); e.className = 'et'; e.textContent = etiket;
+      var v = document.createElement('span'); v.className = 'dg';
+      d.appendChild(e);
+      d.appendChild(dugme('−', function () { yaz(oku() - adim); }));
+      d.appendChild(v);
+      d.appendChild(dugme('+', function () { yaz(oku() + adim); }));
+      d._tazele = function () { v.textContent = bicim ? bicim(oku()) : oku(); };
+      return d;
+    }
+
+    var satirlar = [];
+
+    function kur() {
+      stil();
+      kok = document.createElement('div');
+      kok.id = 'dagAyar';
+
+      var bas = document.createElement('div');
+      bas.className = 'da-bas';
+      var ad = document.createElement('b');
+      ustBilgi = ad;
+      bas.appendChild(dugme('◀', function () { sec = (sec - 1 + SUSLER.length) % SUSLER.length; }));
+      bas.appendChild(ad);
+      bas.appendChild(dugme('▶', function () { sec = (sec + 1) % SUSLER.length; }));
+      bas.appendChild(dugme('▾', function () { kok.classList.toggle('kapali'); }));
+      kok.appendChild(bas);
+
+      satirlar = [
+        satir('gx', function () { return s().gx; },
+              function (v) { s().gx = Math.round(v); }, 1),
+        satir('gy', function () { return s().gy; },
+              function (v) { s().gy = Math.round(v); }, 1),
+        satir('ölçek', function () { return s().olcek || 1; },
+              function (v) { s().olcek = Math.max(0.05, Math.round(v * 100) / 100); }, 0.02,
+              function (v) { return v.toFixed(2); }),
+        satir('dy px', function () { return s().dy || 0; },
+              function (v) { s().dy = Math.round(v); }, 2),
+        satir('dönme°', function () { return s().dondur || 0; },
+              function (v) { s().dondur = Math.round(v); }, 5),
+        satir('kara R', function () { return ZCFG.ada.yaricap; },
+              function (v) { ZCFG.ada.yaricap = Math.max(50, Math.round(v)); zOnbellek = null; }, 10),
+      ];
+      satirlar.forEach(function (d) { kok.appendChild(d); });
+
+      var alt = document.createElement('div');
+      alt.className = 'da-sat';
+      alt.appendChild(dugme('YAZDIR', yazdir, 'ana'));
+      alt.appendChild(dugme('SIFIRLA', function () {
+        s().dondur = 0; s().dy = 0;
+      }, 'kir'));
+      kok.appendChild(alt);
+
+      cikti = document.createElement('textarea');
+      cikti.readOnly = true;
+      kok.appendChild(cikti);
+
+      document.body.appendChild(kok);
+      tazele();
+    }
+
+    /* SUSLER satırlarını dosyaya yapıştırılacak biçimde yazar */
+    function yazdir() {
+      var sat = SUSLER.map(function (b) {
+        return "    { id: '" + b.id + "', ad: '" + b.ad + "', emoji: '" + b.emoji +
+               "', gorsel: '" + b.gorsel + "', gx: " + b.gx + ", gy: " + b.gy +
+               ", en: " + b.en + ", boy: " + b.boy +
+               ", olcek: " + (b.olcek || 1) +
+               (b.dy ? ", dy: " + b.dy : "") +
+               (b.dondur ? ", dondur: " + b.dondur : "") +
+               ", sus: true }";
+      }).join(',\n');
+      cikti.value = 'yaricap: ' + ZCFG.ada.yaricap + '\n\n' + sat;
+      cikti.focus(); cikti.select();
+    }
+
+    function tazele() {
+      if (!kok) return;
+      var b = s();
+      ustBilgi.textContent = (sec + 1) + '/' + SUSLER.length + '  ' + b.id;
+      satirlar.forEach(function (d) { d._tazele(); });
+      zOnbellek = null;          /* kara sınırı değişmiş olabilir */
+      kareIste();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', kur);
+    } else {
+      setTimeout(kur, 0);
+    }
+  })();
 
   window.KALEICI = { SURUM: SURUM, CFG: CFG, BINALAR: BINALAR, GORSELLER: GORSELLER,
                     ac: ac, kapat: kapat, ciz: ciz, gorselYukle: gorselYukle,
