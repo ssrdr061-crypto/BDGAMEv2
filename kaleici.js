@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-44';
+  var SURUM = 'kaleici-45';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -1708,19 +1708,43 @@
 
   /* ═══════════════════════════════════════════════════════════
      DAĞ AYAR PANELİ — GEÇİCİ  (?dagayar=1)
-     Süslerin konumu, ölçeği, dikey kayması ve dönme açısı sürgüyle
-     ayarlanır; seçilen dağa kamera kendiliğinden gider. Değerler
-     dialanınca YAZDIR'a basılır, çıkan satırlar SUSLER dizisine
-     yapıştırılır ve bu blok silinir. Kalıcı kod değil.
+     ÜÇ SATIR: dağ seçimi · alan sekmeleri · tek sürgü.
+     Altı sürgü aynı anda duruyordu, ekranın yarısını kaplıyor ve
+     ayarlanan dağ görünmüyordu — ayar paneli işe yaramıyordu.
+     Şimdi hangi alan seçiliyse yalnız o sürgü var.
+     Dialanınca YAZDIR'a basılır, çıkan satırlar SUSLER'e yapıştırılır
+     ve bu blok silinir. Kalıcı kod değil.
      ═══════════════════════════════════════════════════════════ */
   (function dagAyarPaneli() {
     if (!/[?&]dagayar=1/.test(location.search || '')) return;
 
-    var sec = 0;
+    var sec = 0, alan = 0;
     var kok = null, ustBilgi = null, cikti = null;
-    var satirlar = [];
+    var dagSurgu = null, aSurgu = null, aDeger = null, sekmeler = [];
 
     function s() { return SUSLER[sec]; }
+
+    /* Ayarlanabilir alanlar — tek tablo, başka yerde tekrarı yok */
+    var ALANLAR = [
+      { ad: 'gx',  az: -24,  cok: 24,   adim: 1,
+        oku: function () { return s().gx; },
+        yaz: function (v) { s().gx = Math.round(v); } },
+      { ad: 'gy',  az: -24,  cok: 24,   adim: 1,
+        oku: function () { return s().gy; },
+        yaz: function (v) { s().gy = Math.round(v); } },
+      { ad: 'ölç', az: 0.10, cok: 3.00, adim: 0.02, ondalik: 2,
+        oku: function () { return s().olcek || 1; },
+        yaz: function (v) { s().olcek = Math.max(0.05, Math.round(v * 100) / 100); } },
+      { ad: 'dy',  az: -200, cok: 200,  adim: 2,
+        oku: function () { return s().dy || 0; },
+        yaz: function (v) { s().dy = Math.round(v); } },
+      { ad: '°',   az: -180, cok: 180,  adim: 5,
+        oku: function () { return s().dondur || 0; },
+        yaz: function (v) { s().dondur = Math.round(v); } },
+      { ad: 'R',   az: 100,  cok: 900,  adim: 10,
+        oku: function () { return ZCFG.ada.yaricap; },
+        yaz: function (v) { ZCFG.ada.yaricap = Math.max(50, Math.round(v)); } }
+    ];
 
     function stil() {
       if (document.getElementById('dagAyarCSS')) return;
@@ -1728,25 +1752,24 @@
       st.id = 'dagAyarCSS';
       st.textContent =
         '#dagAyar{position:fixed;left:0;right:0;bottom:0;z-index:99998;' +
-          'background:rgba(3,16,38,.94);color:#eaf7ff;padding:6px 8px 8px;' +
-          'font:12px/1.3 "Baloo 2",monospace;max-height:58vh;overflow:auto;' +
-          'transition:transform .18s ease;}' +
-        '#dagAyar.kapali{transform:translateY(calc(100% - 30px));}' +
-        '#dagAyar .da-bas{display:flex;align-items:center;gap:6px;margin-bottom:5px;}' +
-        '#dagAyar .da-bas b{flex:1 1 auto;font-size:13px;text-align:center;}' +
-        '#dagAyar .da-sat{display:flex;align-items:center;gap:5px;margin:3px 0;}' +
-        '#dagAyar .da-sat .et{flex:0 0 52px;opacity:.85;}' +
-        '#dagAyar .da-sat .dg{flex:0 0 54px;text-align:right;' +
+          'background:rgba(3,16,38,.80);color:#eaf7ff;padding:2px 6px 4px;' +
+          'font:11px/1.15 "Baloo 2",monospace;transition:transform .16s ease;}' +
+        '#dagAyar.kapali{transform:translateY(calc(100% - 22px));}' +
+        '#dagAyar .da-sat{display:flex;align-items:center;gap:4px;margin:2px 0;}' +
+        '#dagAyar .da-sat .et{flex:0 0 auto;opacity:.8;font-size:10px;}' +
+        '#dagAyar .dg{flex:0 0 46px;text-align:right;font-size:11px;' +
           'font-variant-numeric:tabular-nums;font-weight:800;}' +
-        '#dagAyar input[type=range]{flex:1 1 auto;min-width:0;height:26px;' +
+        '#dagAyar b{flex:0 0 auto;font-size:11px;}' +
+        '#dagAyar input[type=range]{flex:1 1 auto;min-width:0;height:18px;margin:0;' +
           'accent-color:#3fbf6a;background:transparent;}' +
-        '#dagAyar button{border:none;border-radius:7px;background:#22488f;color:#fff;' +
-          'font:800 13px "Baloo 2",sans-serif;padding:4px 8px;cursor:pointer;}' +
-        '#dagAyar button:active{filter:brightness(.9);}' +
+        '#dagAyar button{border:none;border-radius:5px;background:#22488f;color:#fff;' +
+          'font:800 11px "Baloo 2",sans-serif;padding:2px 6px;cursor:pointer;}' +
+        '#dagAyar button.sk{background:rgba(255,255,255,.10);padding:2px 7px;}' +
+        '#dagAyar button.sk.acik{background:#3fbf6a;}' +
         '#dagAyar button.ana{background:#3fbf6a;}' +
-        '#dagAyar button.kir{background:#c00d0d;}' +
-        '#dagAyar textarea{width:100%;height:104px;margin-top:6px;font:11px monospace;' +
-          'background:#08182f;color:#cfeaff;border:1px solid #2a5a94;border-radius:6px;}';
+        '#dagAyar textarea{display:none;width:100%;height:96px;margin-top:4px;' +
+          'font:10px monospace;background:#08182f;color:#cfeaff;' +
+          'border:1px solid #2a5a94;border-radius:5px;}';
       document.head.appendChild(st);
     }
 
@@ -1758,45 +1781,10 @@
       return b;
     }
 
-    /* Sürgülü satır: etiket · − · sürgü · + · değer
-       Sürgü ADIM sayısıyla çalışır (tamsayı), gerçek değere adim ile
-       çevrilir — 0.02'lik ölçek adımı input[type=range] ile ancak
-       böyle sağlıklı yürüyor. */
-    function satir(etiket, oku, yaz, enAz, enCok, adim, bicim) {
-      var d = document.createElement('div');
-      d.className = 'da-sat';
-
-      var e = document.createElement('span'); e.className = 'et'; e.textContent = etiket;
-      var v = document.createElement('span'); v.className = 'dg';
-      var r = document.createElement('input');
-      r.type = 'range';
-      r.min = 0;
-      r.max = Math.round((enCok - enAz) / adim);
-      r.step = 1;
-
-      function uygula(n) {
-        yaz(enAz + n * adim);
-        v.textContent = bicim ? bicim(oku()) : oku();
-        zOnbellek = null;
-        kareIste();
-      }
-      r.addEventListener('input', function () { uygula(parseInt(r.value, 10) || 0); });
-
-      d.appendChild(e);
-      d.appendChild(dugme('−', function () { yaz(oku() - adim); }));
-      d.appendChild(r);
-      d.appendChild(dugme('+', function () { yaz(oku() + adim); }));
-      d.appendChild(v);
-
-      d._tazele = function () {
-        var deg = oku();
-        var n = Math.round((deg - enAz) / adim);
-        if (n < 0) n = 0;
-        if (n > +r.max) n = +r.max;
-        r.value = n;
-        v.textContent = bicim ? bicim(deg) : deg;
-      };
-      return d;
+    function yaz(v) {
+      ALANLAR[alan].yaz(v);
+      zOnbellek = null;
+      kareIste();
     }
 
     function kur() {
@@ -1804,55 +1792,51 @@
       kok = document.createElement('div');
       kok.id = 'dagAyar';
 
-      var bas = document.createElement('div');
-      bas.className = 'da-bas';
+      /* 1. SATIR — dağ seçimi + odak + katla */
+      var r1 = document.createElement('div');
+      r1.className = 'da-sat';
       ustBilgi = document.createElement('b');
-      bas.appendChild(dugme('◀', function () { sec = (sec - 1 + SUSLER.length) % SUSLER.length; odakla(); }));
-      bas.appendChild(ustBilgi);
-      bas.appendChild(dugme('▶', function () { sec = (sec + 1) % SUSLER.length; odakla(); }));
-      bas.appendChild(dugme('◎', odakla));
-      bas.appendChild(dugme('▾', function () { kok.classList.toggle('kapali'); }));
-      kok.appendChild(bas);
-
-      /* Dağ seçici de sürgü: 16 dağ arasında hızlı gezinme */
-      var dsat = document.createElement('div');
-      dsat.className = 'da-sat';
-      var det = document.createElement('span'); det.className = 'et'; det.textContent = 'dağ';
-      var dr = document.createElement('input');
-      dr.type = 'range'; dr.min = 0; dr.max = SUSLER.length - 1; dr.step = 1; dr.value = 0;
-      dr.addEventListener('input', function () {
-        sec = parseInt(dr.value, 10) || 0;
-        odakla();
-        tazele();
+      dagSurgu = document.createElement('input');
+      dagSurgu.type = 'range';
+      dagSurgu.min = 0; dagSurgu.max = SUSLER.length - 1; dagSurgu.step = 1;
+      dagSurgu.addEventListener('input', function () {
+        sec = parseInt(dagSurgu.value, 10) || 0;
+        odakla(); tazele();
       });
-      dsat.appendChild(det);
-      dsat.appendChild(dr);
-      kok.appendChild(dsat);
-      kok._dagSurgu = dr;
+      r1.appendChild(ustBilgi);
+      r1.appendChild(dagSurgu);
+      r1.appendChild(dugme('◎', odakla));
+      r1.appendChild(dugme('▾', function () { kok.classList.toggle('kapali'); }));
+      kok.appendChild(r1);
 
-      satirlar = [
-        satir('gx',      function () { return s().gx; },
-              function (v) { s().gx = Math.round(v); }, -24, 24, 1),
-        satir('gy',      function () { return s().gy; },
-              function (v) { s().gy = Math.round(v); }, -24, 24, 1),
-        satir('ölçek',   function () { return s().olcek || 1; },
-              function (v) { s().olcek = Math.max(0.05, Math.round(v * 100) / 100); },
-              0.10, 3.00, 0.02, function (v) { return v.toFixed(2); }),
-        satir('dy px',   function () { return s().dy || 0; },
-              function (v) { s().dy = Math.round(v); }, -200, 200, 2),
-        satir('dönme°',  function () { return s().dondur || 0; },
-              function (v) { s().dondur = Math.round(v); }, -180, 180, 5),
-        satir('kara R',  function () { return ZCFG.ada.yaricap; },
-              function (v) { ZCFG.ada.yaricap = Math.max(50, Math.round(v)); },
-              100, 900, 10),
-      ];
-      satirlar.forEach(function (d) { kok.appendChild(d); });
+      /* 2. SATIR — hangi alan ayarlanıyor */
+      var r2 = document.createElement('div');
+      r2.className = 'da-sat';
+      ALANLAR.forEach(function (a, i) {
+        var b = dugme(a.ad, function () { alan = i; }, 'sk');
+        sekmeler.push(b);
+        r2.appendChild(b);
+      });
+      r2.appendChild(dugme('YAZ', yazdir, 'ana'));
+      kok.appendChild(r2);
 
-      var alt = document.createElement('div');
-      alt.className = 'da-sat';
-      alt.appendChild(dugme('YAZDIR', yazdir, 'ana'));
-      alt.appendChild(dugme('SIFIRLA', function () { s().dondur = 0; s().dy = 0; }, 'kir'));
-      kok.appendChild(alt);
+      /* 3. SATIR — seçili alanın tek sürgüsü */
+      var r3 = document.createElement('div');
+      r3.className = 'da-sat';
+      aSurgu = document.createElement('input');
+      aSurgu.type = 'range'; aSurgu.step = 1;
+      aSurgu.addEventListener('input', function () {
+        var a = ALANLAR[alan];
+        yaz(a.az + (parseInt(aSurgu.value, 10) || 0) * a.adim);
+        degerYaz();
+      });
+      aDeger = document.createElement('span');
+      aDeger.className = 'dg';
+      r3.appendChild(dugme('−', function () { yaz(ALANLAR[alan].oku() - ALANLAR[alan].adim); }));
+      r3.appendChild(aSurgu);
+      r3.appendChild(dugme('+', function () { yaz(ALANLAR[alan].oku() + ALANLAR[alan].adim); }));
+      r3.appendChild(aDeger);
+      kok.appendChild(r3);
 
       cikti = document.createElement('textarea');
       cikti.readOnly = true;
@@ -1862,10 +1846,11 @@
       tazele();
     }
 
-    /* Seçilen dağ ekrana gelsin. Kaleiçi kapalıysa hiçbir şey yapmaz;
-       binayaOdakla zaten katmanın açık olup olmadığına bakıyor. */
-    function odakla() {
-      try { binayaOdakla(s()); } catch (e) {}
+    function odakla() { try { binayaOdakla(s()); } catch (e) {} }
+
+    function degerYaz() {
+      var a = ALANLAR[alan], d = a.oku();
+      aDeger.textContent = a.ondalik ? d.toFixed(a.ondalik) : d;
     }
 
     function yazdir() {
@@ -1878,15 +1863,24 @@
                (b.dondur ? ", dondur: " + b.dondur : "") +
                ", sus: true }";
       }).join(',\n');
+      cikti.style.display = 'block';
       cikti.value = 'yaricap: ' + ZCFG.ada.yaricap + '\n\n' + sat;
       cikti.focus(); cikti.select();
     }
 
     function tazele() {
       if (!kok) return;
-      ustBilgi.textContent = (sec + 1) + '/' + SUSLER.length + '  ' + s().id;
-      if (kok._dagSurgu) kok._dagSurgu.value = sec;
-      satirlar.forEach(function (d) { d._tazele(); });
+      ustBilgi.textContent = s().id;
+      dagSurgu.value = sec;
+      sekmeler.forEach(function (b, i) {
+        b.className = 'sk' + (i === alan ? ' acik' : '');
+      });
+      var a = ALANLAR[alan];
+      aSurgu.min = 0;
+      aSurgu.max = Math.round((a.cok - a.az) / a.adim);
+      var n = Math.round((a.oku() - a.az) / a.adim);
+      aSurgu.value = Math.max(0, Math.min(+aSurgu.max, n));
+      degerYaz();
       zOnbellek = null;
       kareIste();
     }
