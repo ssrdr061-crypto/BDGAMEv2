@@ -94,16 +94,16 @@
       {
         anahtar: binaId + "_surgu",
         metin: "Sürgüyü " + ADET + "'a çek.",
-        hedef: { tip: "dom", sec: "#troopTrainSlider_" + unitId },
+        hedef: { tip: "dom", sec: "#troopTrainSlider_knight,#troopTrainSlider_soldier,#troopTrainSlider_robot" },
         tamam: function () {
-          var sl = document.querySelector("#troopTrainSlider_" + unitId);
+          var sl = gorunurOge("#troopTrainSlider_knight,#troopTrainSlider_soldier,#troopTrainSlider_robot");
           return !!sl && (parseInt(sl.value, 10) || 0) >= ADET;
         }
       },
       {
         anahtar: binaId + "_uret",
         metin: "ÜRET düğmesine bas.",
-        hedef: { tip: "dom", sec: "#" + unitId + "_btn" },
+        hedef: { tip: "dom", sec: "#knight_btn,#soldier_btn,#robot_btn" },
         tamam: function () { return birlikVeKuyruk(unitId) >= ADET; }
       },
       {
@@ -215,11 +215,25 @@
       } catch (e) { return null; }
     }
     if (hedef.tip === "dom") {
-      var el = document.querySelector(hedef.sec);
+      var el = gorunurOge(hedef.sec);
       if (!el) return null;
       var r = el.getBoundingClientRect();
-      if (!r.width || !r.height) return null;   /* gizli kapsayıcı: ölçü 0 */
       return { x: r.left, y: r.top, w: r.width, h: r.height };
+    }
+    return null;
+  }
+
+  /* Birlik ekranında her birim için ayrı sürgü/düğme var; yalnız açık
+     sekmedekinin ölçüsü sıfırdan büyüktür. Seçiciyle eşleşenler
+     arasından EKRANDA GÖRÜNENİ döndürür — gizli olanı hedeflersek
+     halka hiç çizilmez. */
+  function gorunurOge(sec) {
+    var liste = document.querySelectorAll(sec);
+    for (var i = 0; i < liste.length; i++) {
+      var r = liste[i].getBoundingClientRect();
+      if (r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight) {
+        return liste[i];
+      }
     }
     return null;
   }
@@ -342,7 +356,17 @@
         var d = durum();
         if (!d || bittiMi() || ustPencereVar()) return;
         var adim = ZINCIR[d.adim];
-        if (!adim || izinliMi(adim, e)) return;
+        if (!adim || izinliMi(adim, e)) {
+          /* Doğru yere dokunuldu: halka 400 ms'lik denetimi beklemeden
+             ANINDA kalksın, tıklama hissi gecikmesin. */
+          if (tur === "pointerdown") {
+            var hl = document.getElementById("egitimHalka");
+            var elx = document.getElementById("egitimEl");
+            if (hl) hl.style.display = "none";
+            if (elx) elx.style.display = "none";
+          }
+          return;
+        }
         e.preventDefault();
         e.stopPropagation();
         if (tur === "pointerdown") toast("Işıklı yere dokun.");
@@ -355,7 +379,7 @@
     if (!h) return true;
 
     if (h.tip === "dom") {
-      var el = document.querySelector(h.sec);
+      var el = gorunurOge(h.sec);
       if (!el) return true;                 /* hedef henüz yoksa kilitleme */
       return !!(e.target && (e.target === el || (el.contains && el.contains(e.target))));
     }
@@ -600,8 +624,10 @@
     if (!d) { TANI("!! state yok"); return; }
     TANI("giris adim=" + d.adim + " kaleAcildi=" + (d.kaleAcildi ? 1 : 0));
     if (bittiMi()) { setTimeout(odulGerekiyorsaAc, 1000); return; }
-    if (!d.kaleAcildi) kaleicindeBaslat();
-    else setTimeout(akisiBaslat, 1200);
+    /* Kaleiçini artık index.html giriş akışı açıyor (herkes için).
+       Burada yalnız rehberlik akışı başlatılır. */
+    d.kaleAcildi = true;
+    setTimeout(akisiBaslat, 1400);
   }
 
   /* ── AYAR PANELİ ─────────────────────────────────────────────────── */

@@ -3528,7 +3528,10 @@ function defaultState() {
 
     /* KAYNAKLAR — arazilerden toplanır, canavarlardan düşer.
        Harcama yeri henüz yok; şimdilik yalnız birikir. */
-    kaynaklar: { odun: 0, et: 0, demir: 0, su: 0, enerji: 0 },
+    /* Başlangıç kaynağı: rehberlikte üç kışladan 30'ar birlik
+       üretilebilsin diye (gereken: et 540 · su 300 · demir 1080 ·
+       enerji 150) üstüne pay bırakılarak verilir. */
+    kaynaklar: { odun: 2000, et: 2000, demir: 3000, su: 2000, enerji: 2000 },
     /* Bina seviyeleri ve inşaat kuyruğu — tablolar insaat.js'te. */
     binaSv: {},
     insaat: [],
@@ -4376,6 +4379,12 @@ function startSessionFor(username) {
   renderBattleMap();
   backToMap();
   scrollMapToBase();
+  /* Oyun kaleiçinde açılır — haritaya "Haritaya dön" ile geçilir. */
+  setTimeout(function () {
+    try {
+      if (window.KALEICI && typeof window.KALEICI.ac === "function") window.KALEICI.ac();
+    } catch (e) {}
+  }, 300);
   setTimeout(maybeShowDailyRewardModal, 400);
   /* Yeni oyuncu rehberliği (egitim.js). Eski hesaplar önce muaf
      işaretlenir, sonra akış başlatılır. */
