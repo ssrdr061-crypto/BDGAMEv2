@@ -276,13 +276,43 @@
     s.querySelector(".es-sayac").textContent = (sira + 1) + " / " + TOPLAM_ADIM;
     s.querySelector(".es-metin").textContent = adim.metin;
 
-    /* Şerit hedefin üstüne binerse oyuncu hedefe dokunamıyor
-       (sürgü tam bu yükseklikteydi). Hedef ekranın alt yarısındaysa
-       şerit yukarı taşınır. */
-    var kutu = hedefKutu(adim.hedef);
-    var altta = kutu ? (kutu.y + kutu.h) > (window.innerHeight * 0.55) : false;
-    s.classList.toggle("es-ust-konum", altta);
-    s.classList.toggle("es-alt-konum", !altta);
+    /* Konum: bu adım için elle ayarlanmış değer varsa o kullanılır,
+       yoksa hedefin üstüne binmeyecek taraf kendiliğinden seçilir. */
+    var ayar = konumAyari(adim.anahtar);
+    if (ayar) {
+      s.classList.remove("es-ust-konum", "es-alt-konum");
+      if (ayar.taraf === "ust") { s.style.top = ayar.px + "px"; s.style.bottom = "auto"; }
+      else { s.style.bottom = ayar.px + "px"; s.style.top = "auto"; }
+    } else {
+      s.style.top = ""; s.style.bottom = "";
+      var kutu = hedefKutu(adim.hedef);
+      var altta = kutu ? (kutu.y + kutu.h) > (window.innerHeight * 0.55) : false;
+      s.classList.toggle("es-ust-konum", altta);
+      s.classList.toggle("es-alt-konum", !altta);
+    }
+  }
+
+  /* ── İNCE AYAR (?egitimayar=1) ───────────────────────────────────────
+     Her adım için Revolia şeridinin dikey yeri elle ayarlanır.
+     Değerler localStorage'da tutulur, ÇIKTI ile kopyalanıp
+     KONUM tablosuna kalıcı yazılır. İş bitince bu blok silinir. */
+  var AYAR_ANAHTAR = "egitimSeritKonum";
+
+  /* Kalıcı değerler buraya yazılacak (ÇIKTI'dan yapıştır). */
+  var KONUM = {
+    /* ornek: "sovalye_surgu": { taraf: "ust", px: 90 } */
+  };
+
+  function ayarlariOku() {
+    try { return JSON.parse(localStorage.getItem(AYAR_ANAHTAR) || "{}"); }
+    catch (e) { return {}; }
+  }
+  function ayarlariYaz(o) {
+    try { localStorage.setItem(AYAR_ANAHTAR, JSON.stringify(o)); } catch (e) {}
+  }
+  function konumAyari(anahtar) {
+    var y = ayarlariOku();
+    return y[anahtar] || KONUM[anahtar] || null;
   }
 
   function rehberligiGizle() {
@@ -572,6 +602,113 @@
     if (bittiMi()) { setTimeout(odulGerekiyorsaAc, 1000); return; }
     if (!d.kaleAcildi) kaleicindeBaslat();
     else setTimeout(akisiBaslat, 1200);
+  }
+
+  /* ── AYAR PANELİ ─────────────────────────────────────────────────── */
+  function ayarPaneli() {
+    if (document.getElementById("egitimAyar")) return;
+
+    var st = document.createElement("style");
+    st.textContent = [
+      "#egitimAyar{position:fixed;right:6px;z-index:99997;width:170px;",
+      "  background:rgba(2,8,22,.92);border:1px solid rgba(190,240,255,.20);",
+      "  border-radius:10px;padding:7px;color:#eaf4ff;",
+      "  font-family:'Baloo 2','Nunito',sans-serif;font-size:11px;}",
+      "#egitimAyar.ea-ust{top:6px;bottom:auto;}",
+      "#egitimAyar.ea-alt{bottom:6px;top:auto;}",
+      "#egitimAyar.ea-mini .ea-govde{display:none;}",
+      "#egitimAyar .ea-bas{display:flex;justify-content:space-between;align-items:center;gap:4px;}",
+      "#egitimAyar .ea-ad{font-weight:900;color:#ffd257;font-size:11px;",
+      "  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+      "#egitimAyar .ea-sr{display:flex;gap:4px;margin-top:5px;}",
+      "#egitimAyar button{flex:1 1 0;background:rgba(255,255,255,.12);color:#eaf4ff;",
+      "  border:1px solid rgba(190,240,255,.20);border-radius:7px;padding:5px 0;",
+      "  font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;font-size:11px;cursor:pointer;}",
+      "#egitimAyar button:active{filter:brightness(.9);}",
+      "#egitimAyar .ea-deger{text-align:center;font-weight:900;color:#9fe6ff;margin-top:4px;",
+      "  font-variant-numeric:tabular-nums;}"
+    ].join("\n");
+    document.head.appendChild(st);
+
+    var p = document.createElement("div");
+    p.id = "egitimAyar";
+    p.className = "ea-alt";
+    p.innerHTML =
+      '<div class="ea-bas">' +
+        '<div class="ea-ad">—</div>' +
+        '<button style="flex:0 0 26px" data-k="mini">▤</button>' +
+        '<button style="flex:0 0 26px" data-k="panel">⇅</button>' +
+      '</div>' +
+      '<div class="ea-govde">' +
+        '<div class="ea-deger">—</div>' +
+        '<div class="ea-sr"><button data-k="ust">ÜSTE</button><button data-k="alt">ALTA</button></div>' +
+        '<div class="ea-sr"><button data-k="yukari">▲ 5</button><button data-k="asagi">▼ 5</button></div>' +
+        '<div class="ea-sr"><button data-k="sifirla">SIFIRLA</button><button data-k="cikti">ÇIKTI</button></div>' +
+      '</div>';
+    document.body.appendChild(p);
+
+    function suankiAnahtar() {
+      var d = durum();
+      var a = d && ZINCIR[d.adim];
+      return a ? a.anahtar : null;
+    }
+
+    function tazele() {
+      var an = suankiAnahtar();
+      p.querySelector(".ea-ad").textContent = an || "—";
+      var v = an ? konumAyari(an) : null;
+      p.querySelector(".ea-deger").textContent =
+        v ? (v.taraf === "ust" ? "üst " : "alt ") + v.px + "px" : "otomatik";
+    }
+
+    function yaz(taraf, px) {
+      var an = suankiAnahtar();
+      if (!an) return;
+      var y = ayarlariOku();
+      y[an] = { taraf: taraf, px: px };
+      ayarlariYaz(y);
+      sonHazirlanan = sonHazirlanan;   /* adım değişmiyor, sadece çizim */
+      denetle();
+      tazele();
+    }
+
+    p.addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      var k = b.dataset.k;
+      var an = suankiAnahtar();
+      var v = an ? konumAyari(an) : null;
+      var taraf = v ? v.taraf : "alt";
+      var px = v ? v.px : 74;
+
+      if (k === "mini")   { p.classList.toggle("ea-mini"); return; }
+      if (k === "panel")  { p.classList.toggle("ea-ust"); p.classList.toggle("ea-alt"); return; }
+      if (k === "ust")    { yaz("ust", 76); return; }
+      if (k === "alt")    { yaz("alt", 74); return; }
+      if (k === "yukari") { yaz(taraf, taraf === "ust" ? px - 5 : px + 5); return; }
+      if (k === "asagi")  { yaz(taraf, taraf === "ust" ? px + 5 : px - 5); return; }
+      if (k === "sifirla") {
+        if (an) { var y = ayarlariOku(); delete y[an]; ayarlariYaz(y); denetle(); tazele(); }
+        return;
+      }
+      if (k === "cikti") {
+        var metin = JSON.stringify(ayarlariOku(), null, 2);
+        try {
+          navigator.clipboard.writeText(metin);
+          toast("Değerler kopyalandı.");
+        } catch (er) {
+          prompt("Kopyala:", metin);
+        }
+        return;
+      }
+    });
+
+    setInterval(tazele, 600);
+    tazele();
+  }
+
+  if (location.search.indexOf("egitimayar=1") >= 0) {
+    setTimeout(ayarPaneli, 1200);
   }
 
   window.EGITIM = {
