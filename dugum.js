@@ -429,6 +429,11 @@ let _durum = {};
 let _dinliyor = false;
 let _bulutHata = null;
 
+/* Teşhis için: son bulut olayı ve son tüketme işlemi (?dugum=1). */
+let _sonOlay = 0;
+let _olaySayisi = 0;
+let _sonIslem = null;
+
 function fbHazir() {
   return (typeof firebaseDb !== "undefined") && !!firebaseDb;
 }
@@ -489,6 +494,7 @@ function dinlemeyeBasla() {
   _dinliyor = true;
   try {
     firebaseDb.ref(AYAR.KOK).on("value", snap => {
+      _sonOlay = Date.now(); _olaySayisi++;
       durumUygula(snap.val() || {});
       _bulutHata = null;
       tazele();
@@ -784,9 +790,29 @@ function tuket(slotId, miktar) {
   const sab = sablon(s.id, s.seviye);
   const bk = benKey();
 
+  const varsayilanK = (sab.tur === "arazi" ? sab.miktar : sab.birlik);
+
   const uygula = (d) => {
-    if (!d) d = { n: nesilOf(slotId), k: (sab.tur === "arazi" ? sab.miktar : sab.birlik) };
-    const kalanOnce = typeof d.k === "number" ? d.k : (sab.tur === "arazi" ? sab.miktar : sab.birlik);
+    /* ── TÜKENMİŞ KAYIT NORMALİZASYONU ──
+       Kayıtta `td` varsa düğüm bir kez tükenmiş demektir ve `k` 0'da
+       kalmıştır. Doğuş saati geçtiğinde düğüm haritaya YENİ NESİL
+       olarak döner, ama buluttaki `k` yine 0'dır. Bu satırlar olmadan
+       ikinci öldürmede kalan 0 okunuyor, hiçbir şey alınmıyor ve
+       yalnız `td` bugüne çekiliyordu: nesil hiç ilerlemediği için
+       canavar AYNI KARODA tekrar doğuyordu. isgalAl bu düzeltmeyi
+       zaten yapıyor; tuket'te yoktu — "bazen siliyor bazen silmiyor,
+       hep aynı yere geliyor" belirtisinin sebebi buydu. */
+    if (d && typeof d.td === "number") {
+      const dogar = d.td + dogusGecikmesi(slotId, d.n || 0);
+      if (Date.now() < dogar) {
+        /* Düğüm şu an haritada YOK. Hiçbir şey alma ve `td`'yi
+           UZATMA — uzatmak doğuşu sürekli erteler. */
+        return { yeni: d, alinan: 0, bitti: true };
+      }
+      d = { n: (d.n || 0) + 1, k: varsayilanK };
+    }
+    if (!d) d = { n: nesilOf(slotId), k: varsayilanK };
+    const kalanOnce = typeof d.k === "number" ? d.k : varsayilanK;
     /* MİKTAR SAYI DEĞİLSE tamamı istenmiş sayılır. Aksi halde
        Math.min(undefined, …) NaN üretir, kalan NaN olur, "tükendi"
        koşulu asla sağlanmaz ve kural da sayı olmayan `k` yüzünden
@@ -820,6 +846,7 @@ function tuket(slotId, miktar) {
      sanıyordu. Belirti: canavar yenildi, ödül alındı, ama düğüm
      haritada duruyor ve hiçbir hata görünmüyor. */
   let sonuc = { ok: false, calisti: false, alinan: 0, bitti: false, sebep: "" };
+  _sonIslem = { slotId: slotId, istenen: miktar, sonuc: "gönderildi", at: Date.now() };
 
   /* ── ZAMAN AŞIMI KALKANI (isgalAl'daki ile aynı) ──
      Firebase kuralları `dugumler/` yolunu kapatıyorsa transaction
@@ -853,12 +880,14 @@ function tuket(slotId, miktar) {
       sonuc.alinan = r.alinan;
       sonuc.bitti  = r.bitti;
       sonuc.sebep  = _bulutHata;
+      _sonIslem.sonuc = "ZAMAN AŞIMI (yerel)";
       return sonuc;
     }
     if (x && x.err) {
       _bulutHata = x.err && x.err.message ? x.err.message : String(x.err);
       sonuc.ok = false;
       sonuc.sebep = "hata: " + _bulutHata;
+      _sonIslem.sonuc = "HATA: " + _bulutHata;
       return sonuc;
     }
     const res = x && x.res;
@@ -867,7 +896,9 @@ function tuket(slotId, miktar) {
     if (kabul) {
       durumUygulaTek(slotId, res.snapshot.val());
       tazele();
+      _sonIslem.sonuc = "TAMAM · alınan " + sonuc.alinan + (sonuc.bitti ? " · tükendi" : "");
     } else {
+      _sonIslem.sonuc = "REDDEDİLDİ";
       sonuc.sebep = sonuc.calisti
         ? "sunucu yazmayı kabul etmedi (kural ya da çakışma)"
         : "işlem hiç çalışmadı (yol okunamadı)";
@@ -1057,7 +1088,12 @@ function tesihisPaneli() {
   k.appendChild(bilgi);
 
   const satirlar = [];
-  function yaz(t) { satirlar.push(t); bilgi.textContent = satirlar.join("\n"); }
+  const kuyruk = [];
+  function yaz(t) { satirlar.push(t); }
+  function not(t) {
+    kuyruk.push(t);
+    if (kuyruk.length > 8) kuyruk.shift();
+  }
 
   function dugmeYap(metin, isle) {
     const b = document.createElement("button");
@@ -1069,14 +1105,32 @@ function tesihisPaneli() {
     return b;
   }
 
-  yaz("DÜĞÜM TEŞHİSİ");
-  yaz("firebaseDb : " + (fbHazir() ? "var" : "YOK"));
-  yaz("dinleyici  : " + (_dinliyor ? "açık" : "KAPALI"));
-  yaz("bulutHata  : " + (_bulutHata || "yok"));
-  yaz("bulut kaydı: " + Object.keys(_durum).length + " slot");
-  yaz("haritada   : " + dugumler().length + " / " + _slotlar.length);
+  /* CANLI: panel saniyede bir kendini tazeler. Tek karelik bir
+     görüntü yanıltıyordu — bulut kaydı 0 görünüyordu çünkü
+     dinleyicinin ilk olayı henüz gelmemişti. */
+  let _tik = null;
+  function tazeleyici() {
+    satirlar.length = 0;
+    yaz("DÜĞÜM TEŞHİSİ");
+    yaz("firebaseDb : " + (fbHazir() ? "var" : "YOK"));
+    yaz("dinleyici  : " + (_dinliyor ? "açık" : "KAPALI"));
+    yaz("bulut olayı: " + _olaySayisi + " kez" +
+        (_sonOlay ? " · son " + Math.round((Date.now() - _sonOlay) / 1000) + " sn önce" : ""));
+    yaz("bulutHata  : " + (_bulutHata || "yok"));
+    yaz("bulut kaydı: " + Object.keys(_durum).length + " slot");
+    yaz("haritada   : " + dugumler().length + " / " + _slotlar.length);
+    if (_sonIslem) {
+      const d = _durum[_sonIslem.slotId];
+      yaz("— son tüketme —");
+      yaz("slot   : " + _sonIslem.slotId);
+      yaz("istenen: " + _sonIslem.istenen);
+      yaz("sonuç  : " + _sonIslem.sonuc);
+      yaz("kayıt  : " + (d ? JSON.stringify(d) : "YOK"));
+    }
+    bilgi.textContent = satirlar.join("\n") + (kuyruk.length ? "\n" + kuyruk.join("\n") : "");
+  }
 
-  /* Kesici: Firebase kural engelinde söz asılı kalır, cevap gelmez. */
+  /* Kesici: kural engelinde söz asılı kalır, cevap hiç gelmez. */
   function kesici(soz, sn) {
     return Promise.race([
       soz.then(v => ({ ok: true, v: v })).catch(e => ({ ok: false, e: e })),
@@ -1085,28 +1139,30 @@ function tesihisPaneli() {
   }
 
   dugmeYap("OKUMA TESTİ", function () {
-    if (!fbHazir()) { yaz("→ okuma: firebaseDb yok"); return; }
-    yaz("→ okuma deneniyor…");
+    if (!fbHazir()) { not("→ okuma: firebaseDb yok"); return; }
+    not("→ okuma deneniyor…");
     kesici(firebaseDb.ref(AYAR.KOK).get(), 6).then(r => {
-      if (r.asili) yaz("→ OKUMA ASILI KALDI (kural okumayı engelliyor)");
-      else if (!r.ok) yaz("→ OKUMA REDDEDİLDİ: " + (r.e && r.e.message ? r.e.message : r.e));
-      else yaz("→ okuma TAMAM (" + Object.keys((r.v && r.v.val()) || {}).length + " kayıt)");
+      if (r.asili) not("→ OKUMA ASILI KALDI (kural okumayı engelliyor)");
+      else if (!r.ok) not("→ OKUMA REDDEDİLDİ: " + (r.e && r.e.message ? r.e.message : r.e));
+      else not("→ okuma TAMAM (" + Object.keys((r.v && r.v.val()) || {}).length + " kayıt)");
     });
   });
 
   dugmeYap("YAZMA TESTİ", function () {
-    if (!fbHazir()) { yaz("→ yazma: firebaseDb yok"); return; }
-    yaz("→ yazma deneniyor…");
+    if (!fbHazir()) { not("→ yazma: firebaseDb yok"); return; }
+    not("→ yazma deneniyor…");
     kesici(firebaseDb.ref(AYAR.KOK + "/_test").set({ n: 0, k: Date.now() }), 6).then(r => {
-      if (r.asili) yaz("→ YAZMA ASILI KALDI (kural yazmayı engelliyor)");
-      else if (!r.ok) yaz("→ YAZMA REDDEDİLDİ: " + (r.e && r.e.message ? r.e.message : r.e));
-      else yaz("→ yazma TAMAM");
+      if (r.asili) not("→ YAZMA ASILI KALDI (kural yazmayı engelliyor)");
+      else if (!r.ok) not("→ YAZMA REDDEDİLDİ: " + (r.e && r.e.message ? r.e.message : r.e));
+      else not("→ yazma TAMAM");
     });
   });
 
-  dugmeYap("KAPAT", function () { k.remove(); });
+  dugmeYap("KAPAT", function () { clearInterval(_tik); k.remove(); });
 
   document.body.appendChild(k);
+  tazeleyici();
+  _tik = setInterval(tazeleyici, 1000);
 }
 
 function baslat() {
