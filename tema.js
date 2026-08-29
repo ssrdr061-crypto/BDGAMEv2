@@ -7640,3 +7640,138 @@ setTimeout(uygula, 2500);
     setTimeout(kur, 1200);
   }
 })();
+
+
+/* ══════════════════════════════════════════════════════════════
+   ELMAS TANI — GEÇİCİ  (?elmastani=1)
+   --------------------------------------------------------------
+   state.diamonds'a bir setter koyar. Değer her değiştiğinde
+   ekrandaki panele bir satır düşer: eski → yeni + o anda çalışan
+   fonksiyon zinciri. Elmas "kendiliğinden" geri gidiyorsa bunu
+   yapan kod satırda görünür.
+
+   showToast KULLANILMAZ (Tuzak 12 — bildirimler kapalı).
+   İş bitince BU BLOK SİLİNİR.
+   ══════════════════════════════════════════════════════════════ */
+(function elmasTani(){
+"use strict";
+if (location.search.indexOf("elmastani=1") < 0) return;
+
+var kutu = null, satirSayisi = 0;
+
+function panelKur(){
+  if (kutu) return;
+  kutu = document.createElement("div");
+  kutu.id = "elmasTaniPanel";
+  kutu.style.cssText =
+    "position:fixed; left:4px; right:4px; top:calc(env(safe-area-inset-top,0px) + 96px);" +
+    "max-height:52vh; overflow-y:auto; overflow-x:hidden;" +
+    "background:#0d2438; color:#dff3ff; z-index:2147483000;" +
+    "font-family:'Baloo 2',sans-serif; font-size:11px; line-height:1.35;" +
+    "padding:8px 10px 10px; border-radius:12px;" +
+    "box-shadow:0 2px 6px rgba(0,20,45,.3); white-space:pre-wrap; word-break:break-word;";
+  var bas = document.createElement("div");
+  bas.style.cssText = "font-weight:800; font-size:13px; margin-bottom:6px; display:flex; gap:8px; align-items:center;";
+  bas.innerHTML = "<span style='flex:1'>ELMAS TANI</span>";
+  var tem = document.createElement("button");
+  tem.type = "button"; tem.textContent = "temizle";
+  tem.style.cssText = "font:inherit; font-size:11px; background:#164263; color:#dff3ff; border:none; border-radius:8px; padding:3px 9px;";
+  tem.addEventListener("click", function(){
+    var c = kutu.querySelector("#etGovde"); if (c) c.textContent = ""; satirSayisi = 0;
+  });
+  bas.appendChild(tem);
+  var kap = document.createElement("button");
+  kap.type = "button"; kap.textContent = "gizle";
+  kap.style.cssText = tem.style.cssText;
+  kap.addEventListener("click", function(){ kutu.style.display = "none"; });
+  bas.appendChild(kap);
+  kutu.appendChild(bas);
+  var govde = document.createElement("div");
+  govde.id = "etGovde";
+  kutu.appendChild(govde);
+  document.body.appendChild(kutu);
+}
+
+function yaz(metin){
+  panelKur();
+  var g = kutu.querySelector("#etGovde");
+  if (!g) return;
+  satirSayisi++;
+  var s = document.createElement("div");
+  s.style.cssText = "border-top:1px solid rgba(190,240,255,.20); padding:5px 0;";
+  s.textContent = satirSayisi + ") " + metin;
+  g.insertBefore(s, g.firstChild);
+  while (g.childNodes.length > 40) g.removeChild(g.lastChild);
+}
+
+function saat(){
+  var d = new Date();
+  return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2) +
+         ":" + ("0"+d.getSeconds()).slice(-2) + "." + ("00"+d.getMilliseconds()).slice(-3);
+}
+
+/* Çağrı zinciri. Kendi satırlarımızı ve tarayıcı gürültüsünü atıyoruz;
+   kalan ilk beş satır işi yapan koddur. */
+function zincir(){
+  var ham = "";
+  try { throw new Error("iz"); } catch (e) { ham = e.stack || ""; }
+  var sat = ham.split("\n");
+  var cikti = [];
+  for (var i = 0; i < sat.length && cikti.length < 5; i++) {
+    var t = sat[i].trim();
+    if (!t || t === "Error: iz" || t.indexOf("Error") === 0) continue;
+    if (t.indexOf("elmasTani") >= 0 || t.indexOf("zincir") >= 0 ||
+        t.indexOf("yaz") === 0 || t.indexOf("at set") >= 0) continue;
+    t = t.replace(/^at\s+/, "");
+    t = t.replace(/https?:\/\/[^\s)]*\//g, "");
+    cikti.push(t);
+  }
+  return cikti.length ? cikti.join("\n   ← ") : "(zincir okunamadi)";
+}
+
+function kur(){
+  if (typeof state === "undefined" || !state) { setTimeout(kur, 400); return; }
+  if (state.__elmasTaniKurulu) return;
+
+  var deger = state.diamonds;
+  try {
+    Object.defineProperty(state, "diamonds", {
+      configurable: true,
+      enumerable: true,
+      get: function(){ return deger; },
+      set: function(v){
+        var eski = deger;
+        deger = v;
+        if (eski !== v) {
+          var fark = (typeof v === "number" && typeof eski === "number")
+                     ? (v - eski > 0 ? "+" + (v - eski) : String(v - eski))
+                     : "?";
+          yaz(saat() + "  " + eski + " → " + v + "   (" + fark + ")\n   ← " + zincir());
+        }
+      }
+    });
+    state.__elmasTaniKurulu = true;
+    panelKur();
+    yaz(saat() + "  tani kuruldu, baslangic: " + deger);
+  } catch (e) {
+    panelKur();
+    yaz("KURULAMADI: " + (e && e.message ? e.message : e));
+  }
+}
+
+/* state'in tamamı DEĞİŞTİRİLİRSE setter kaybolur — bu tek başına
+   sorunun kanıtıdır. İki saniyede bir denetle, kaybolmuşsa yaz. */
+setInterval(function(){
+  if (typeof state === "undefined" || !state) return;
+  if (!state.__elmasTaniKurulu) {
+    yaz(saat() + "  !! SETTER KAYBOLDU — state nesnesi yeniden kuruldu. Yeniden baglaniyor.");
+    kur();
+  }
+}, 2000);
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", function(){ setTimeout(kur, 300); });
+} else {
+  setTimeout(kur, 300);
+}
+})();
