@@ -7851,140 +7851,152 @@ if (document.readyState === "loading") {
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   KALE IŞINLANMA (isin-2)
-   Taşıma bittikten sonra YENİ konumda: şimşek çakması → beyaz sis
-   → sis dağılırken kale belirir. Toplam 900 ms.
+   KALE IŞINLANMA (isin-4)
+   Taşıma bitince yeni konumda: mavi şerit yıldırımlar çakar (600 ms)
+   → kale AYNEN, tam boyunda oturur → yerden toz halka halinde
+   savrulur, kale kısa sarsılır. Toplam 1700 ms.
 
    ── NEDEN CSS ANIMASYONU YOK ──
-   index.html ~2088'de `@media (prefers-reduced-motion:reduce)` var ve
-   `*{animation-duration:.01ms !important}` yazıyor. Telefonda
-   "animasyonları azalt" açıksa HER CSS animasyonu 0,01 ms'de biter —
-   efekt oynar ama görünmez (isin-1 böyle kayboldu). O kural
-   erişilebilirlik kuralıdır, delinmez. Bunun yerine opaklık/ölçü
-   HER KAREDE elle yazılıyor; tarayıcı ayarı bunu kısaltamaz.
+   index.html ~2088'de `@media (prefers-reduced-motion:reduce)`:
+   `*{animation-duration:.01ms !important}`. Telefonda "animasyonları
+   azalt" açıksa her CSS animasyonu görünmeden biter. O erişilebilirlik
+   kuralı delinmez; efektin tamamı tuvale, kendi kare döngümüzde çizilir.
 
-   ── Diğer kurallar ──
+   ── NEDEN TUVAL ──
+   60 toz parçacığı DOM'da 60 eleman demek. Harita düğümleri zaten
+   DOM'dan canvas'a taşındı (kare hızı 46→16 düşmüştü); aynı hataya
+   dönmüyoruz. Tek tuval, tek katman.
+
+   ── YILDIRIM ÇİZİMİ (Tuzak 51) ──
+   Şerit, küçük parçaların ART ARDA STROKE'u ile çizilemez: yuvarlak
+   uçlar kıvrımda üst üste binip BONCUK gibi noktalar bırakır. Bu
+   yüzden gövde tek bir ÇOKGEN olarak doldurulur — sol kenar ileri,
+   sağ kenar geri. Kalınlık uca doğru azalır.
+   Hale (gölge) yalnız EN DIŞ katmanda ve tek fill'de uygulanır;
+   parça parça uygulanırsa telefon kasar.
+
+   ── Kurallar ──
    · Kamera 420 ms'de hedefe kayıyor; efekt 470 ms sonra başlar.
-   · Katman gövdeye asılı ama her karede kale düğümünün ekran yerini
-     yeniden okur → harita kaysa da efekt kaleden ayrılmaz (Tuzak 40).
-   · MutationObserver YOK (Tuzak 44). Sınıf/stil yalnız gerekirse yazılır.
-   · Kale yeniden çizilirse satır içi stil silinir; her karede yeniden
-     yazıldığı için kendiliğinden düzelir.
-   · Ölçü kalenin kendi genişliğinden gelir → Sv1–Sv5 hepsinde oturur.
-   · Katman pointer-events:none (Tuzak 19).
-   · Kale ölçeği .node-avatar'a DEĞİL içindeki img'ye yazılır: kutuda
+   · Vuruş noktası HER KAREDE kale düğümünden okunur → harita kaysa
+     da efekt kaleden ayrılmaz (Tuzak 40).
+   · MutationObserver YOK (Tuzak 44). Sınıf yalnız gerekirse yazılır.
+   · Ölçü kalenin genişliğinden gelir → Sv1–Sv5 hepsinde oturur.
+   · Tuval pointer-events:none (Tuzak 19).
+   · Sarsıntı .node-avatar'a DEĞİL içindeki img'ye yazılır: kutuda
      Sv2 için zaten translateY(22px) var, ezersek kale yerinden oynar.
    · `?isin=1` → tanı kutusu + OYNAT düğmesi. İş bitince o parça silinir.
    ══════════════════════════════════════════════════════════════ */
 (function () {
   if (window.KALE_ISIN) return;
 
-  var SURE = 900;       /* efektin toplam süresi (ms) */
-  var GECIKME = 470;    /* kamera varana kadar bekleme (ms) */
+  /* ── TEK AYAR NOKTASI — deneme panelinde dial'lanan değerler ── */
+  var AYAR = {
+    sure: 1700,        /* toplam süre (ms) */
+    gelis: 600,        /* kalenin oturduğu an (ms) */
+    sayi: 5,           /* yıldırım sayısı */
+    cakma: 6,          /* çakma sayısı */
+    kalin: 11,         /* yıldırım kalınlığı */
+    dal: 3,            /* dallanma */
+    kivrim: 80,        /* kıvrım */
+    hale: 70,          /* mavi hale (0-100) */
+    toz: 60,           /* toz parçacığı */
+    yayil: 135,        /* toz yayılımı (px) */
+    tozSure: 900,      /* toz süresi (ms) */
+    sarsinti: 16       /* oturma sarsıntısı */
+  };
+  var GECIKME = 470;   /* kamera varana kadar bekleme (ms) */
 
-  /* Yalnız DURAĞAN görünüm. Hareketin tamamı JS'te. */
   var css =
-    ".isin-kat{position:fixed;left:0;top:0;width:0;height:0;" +
-      "z-index:2147482000;pointer-events:none;transform-origin:0 0;}" +
-    ".isin-kat>div{position:absolute;left:0;top:0;opacity:0;}" +
-    ".isin-parla{width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;" +
-      "background:radial-gradient(closest-side,#fff,rgba(225,248,255,.85) 45%," +
-      "rgba(180,230,255,0) 75%);}" +
-    ".isin-halka{width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;" +
-      "border:2px solid rgba(255,255,255,.9);}" +
-    ".isin-sis{border-radius:50%;filter:blur(7px);" +
-      "background:radial-gradient(closest-side,rgba(255,255,255,.95)," +
-      "rgba(214,242,255,.6) 55%,rgba(190,235,255,0) 80%);}" +
-    ".isin-sis.a{width:170px;height:120px;margin:-70px 0 0 -85px;}" +
-    ".isin-sis.b{width:130px;height:96px;margin:-46px 0 0 -65px;}" +
-    ".isin-simsek{width:14px;height:140px;" +
-      "background:linear-gradient(180deg,rgba(255,255,255,0),#fff 35%,#dff4ff);" +
-      "clip-path:polygon(52% 0,62% 26%,46% 32%,60% 58%,42% 64%,54% 100%," +
-      "38% 62%,52% 56%,36% 30%,50% 24%);}" +
-    ".isin-simsek.s1{margin:-146px 0 0 -7px;}" +
-    ".isin-simsek.s2{margin:-138px 0 0 -34px;}" +
-    ".isin-simsek.s3{margin:-140px 0 0 22px;}" +
+    ".isin-tuval{position:fixed;left:0;top:0;width:100%;height:100%;" +
+      "z-index:2147482000;pointer-events:none;}" +
     "html body .map-node.castle-node.isin-gizli .node-ring," +
     "html body .map-node.castle-node.isin-gizli .node-label{opacity:0;}";
-
   var st = document.createElement("style");
   st.id = "isinCss";
   st.textContent = css;
   document.head.appendChild(st);
 
-  /* ── zaman çizgisi yardımcıları ──
-     nokta = [p, opaklık, ölçü, dönme]. Aradaki değer doğrusal. */
-  function ara(p, noktalar) {
-    var i, a, b, k;
-    if (p <= noktalar[0][0]) a = b = noktalar[0], k = 0;
-    for (i = 1; i < noktalar.length; i++) {
-      if (p <= noktalar[i][0]) {
-        a = noktalar[i - 1]; b = noktalar[i];
-        k = (b[0] - a[0]) ? (p - a[0]) / (b[0] - a[0]) : 0;
-        break;
-      }
-    }
-    if (!b) { a = b = noktalar[noktalar.length - 1]; k = 0; }
-    return {
-      o: a[1] + (b[1] - a[1]) * k,
-      s: a[2] + (b[2] - a[2]) * k,
-      r: (a[3] || 0) + ((b[3] || 0) - (a[3] || 0)) * k
-    };
-  }
-
-  var Z_PARLA = [[0, 0, .2], [.08, 1, 1.5], [.22, .85, 1.15], [.42, 0, 1.9], [1, 0, 1.9]];
-  var Z_HALKA = [[0, 0, .2], [.10, 1, .9], [.55, 0, 3.4], [1, 0, 3.4]];
-  var Z_SIS_A = [[0, 0, .35, -8], [.12, 1, 1.05, 0], [.55, .9, 1.18, 6], [1, 0, 1.5, 12]];
-  var Z_SIS_B = [[0, 0, .30, 10], [.18, .95, 1.1, 2], [.60, .7, 1.25, -6], [1, 0, 1.6, -14]];
-  /* şimşek: kırık kırık çakma — yalnız opaklık */
-  var Z_SIMSEK = [[0, 0, 1], [.04, 1, 1], [.10, .1, 1], [.16, 1, 1], [.24, .2, 1],
-                  [.30, .9, 1], [.42, 0, 1], [1, 0, 1]];
-  /* kale: sisin yarısında belirmeye başlar */
-  var Z_KALE = [[0, 0, .5], [.55, 1, 1.09], [1, 1, 1]];
-
   function isinKaleDugum() {
     return document.querySelector("#battleMap .map-node.castle-node.castle-own") ||
            document.querySelector(".map-node.castle-node.castle-own");
   }
-
   function isinYeri(n) {
     var a = n.querySelector(".castle-avatar") || n;
     var r = a.getBoundingClientRect();
-    if (!r.width || !r.height) return null;          /* Tuzak 15: ölçü 0 ise çık */
-    return { x: r.left + r.width / 2, y: r.top + r.height * 0.62, w: r.width };
+    if (!r.width || !r.height) return null;          /* Tuzak 15 */
+    return { x: r.left + r.width / 2, y: r.top + r.height * 0.80, w: r.width };
   }
-
-  /* Kale düğümü bulunamazsa efekt yok olmasın: ekran ortasında oynasın. */
   function isinYedekYer() {
-    return { x: window.innerWidth / 2, y: window.innerHeight / 2, w: 110 };
+    return { x: innerWidth / 2, y: innerHeight * 0.6, w: 110 };
   }
-
-  /* Kale görselinin ölçeği. Satır içi yazılır → yeniden çizim silse
-     bile bir sonraki karede geri gelir. */
-  function kaleGorselleri(n) {
-    return n ? n.querySelectorAll(".castle-avatar img") : [];
-  }
-  function kaleOlcek(n, o, s) {
+  function kaleGorselleri(n) { return n ? n.querySelectorAll(".castle-avatar img") : []; }
+  function kaleSars(n, dy) {
     var g = kaleGorselleri(n), i;
-    for (i = 0; i < g.length; i++) {
-      g[i].style.transformOrigin = "50% 88%";
-      g[i].style.opacity = o;
-      g[i].style.transform = "scale(" + s.toFixed(3) + ")";
-    }
+    for (i = 0; i < g.length; i++) g[i].style.transform = "translateY(" + dy.toFixed(1) + "px)";
   }
   function kaleTemizle(n) {
     var g = kaleGorselleri(n), i;
-    for (i = 0; i < g.length; i++) {
-      g[i].style.removeProperty("transform");
-      g[i].style.removeProperty("transform-origin");
-      g[i].style.removeProperty("opacity");
+    for (i = 0; i < g.length; i++) g[i].style.removeProperty("transform");
+  }
+
+  /* ── yol: Catmull-Rom ile yumuşatılmış kırık hat ── */
+  function yol(x1, y1, x2, y2, kiv, adet) {
+    var p = [[x1, y1]], d = [], i, k, t;
+    for (i = 1; i < adet; i++) {
+      t = i / adet;
+      p.push([x1 + (x2 - x1) * t + (Math.random() - 0.5) * kiv * (1 - Math.abs(t - 0.35)),
+              y1 + (y2 - y1) * t + (Math.random() - 0.5) * kiv * 0.25]);
     }
+    p.push([x2, y2]);
+    for (i = 0; i < p.length - 1; i++) {
+      for (k = 0; k < 4; k++) {
+        var u = k / 4,
+            a = p[Math.max(0, i - 1)], b = p[i],
+            c = p[i + 1], e = p[Math.min(p.length - 1, i + 2)];
+        d.push([
+          0.5 * ((2 * b[0]) + (-a[0] + c[0]) * u + (2 * a[0] - 5 * b[0] + 4 * c[0] - e[0]) * u * u +
+                 (-a[0] + 3 * b[0] - 3 * c[0] + e[0]) * u * u * u),
+          0.5 * ((2 * b[1]) + (-a[1] + c[1]) * u + (2 * a[1] - 5 * b[1] + 4 * c[1] - e[1]) * u * u +
+                 (-a[1] + 3 * b[1] - 3 * c[1] + e[1]) * u * u * u)
+        ]);
+      }
+    }
+    d.push(p[p.length - 1]);
+    return d;
+  }
+
+  function boltUret(hx, hy, ol) {
+    var l = [], i, j;
+    for (i = 0; i < AYAR.sayi; i++) {
+      var ana = yol(hx + (Math.random() - 0.5) * innerWidth * 0.5, -16,
+                    hx + (Math.random() - 0.5) * 14 * ol, hy, AYAR.kivrim * ol, 5);
+      var dal = [];
+      for (j = 0; j < AYAR.dal; j++) {
+        var k = Math.floor(ana.length * (0.25 + Math.random() * 0.5));
+        var b = ana[k], yon = Math.random() < 0.5 ? -1 : 1;
+        dal.push({ k: k, p: yol(b[0], b[1],
+                                b[0] + yon * (40 + Math.random() * 70) * ol,
+                                b[1] + (50 + Math.random() * 70) * ol,
+                                AYAR.kivrim * 0.6 * ol, 3) });
+      }
+      l.push({ ana: ana, dal: dal });
+    }
+    return l;
+  }
+
+  function tozUret() {
+    var l = [], i;
+    for (i = 0; i < AYAR.toz; i++) {
+      l.push({ a: Math.random() * 6.2832, hz: (0.45 + Math.random() * 0.55) * AYAR.yayil,
+               r: 3 + Math.random() * 9, kalk: 6 + Math.random() * 20,
+               gec: Math.random() * 0.18, ton: Math.random() });
+    }
+    return l;
   }
 
   /* ── TANI (?isin=1) — ekrana basar, showToast'a DEĞİL (Tuzak 12) ── */
   var TANI = (location.search.indexOf("isin=1") >= 0);
   var taniKutu = null, taniSatir = null, sonKare = 0, sonDurum = "—";
-
   function taniAc() {
     if (!TANI || taniKutu) return;
     taniKutu = document.createElement("div");
@@ -8000,108 +8012,153 @@ if (document.readyState === "loading") {
     b.style.cssText = "margin-top:6px;padding:7px 16px;border:none;border-radius:8px;" +
       "background:#1f9e46;color:#fff;font-weight:700;font-size:13px;";
     b.onclick = function () { isinOynat(); };
-    taniKutu.appendChild(taniSatir);
-    taniKutu.appendChild(b);
+    taniKutu.appendChild(taniSatir); taniKutu.appendChild(b);
     document.body.appendChild(taniKutu);
   }
-
   function taniTazele() {
     if (!TANI) return;
     taniAc();
     if (!taniSatir) return;
-    var K = window.KALE_TASIMA;
-    var n = isinKaleDugum();
-    var p = n ? isinYeri(n) : null;
+    var K = window.KALE_TASIMA, n = isinKaleDugum(), p = n ? isinYeri(n) : null;
     taniSatir.textContent =
-      "IŞINLANMA TANI (isin-2)\n" +
+      "IŞINLANMA TANI (isin-4)\n" +
       "KALE_TASIMA: " + (K ? "var" : "YOK") +
       "  · bağlı: " + (K && K._isinli ? "evet" : "HAYIR") + "\n" +
       "kale düğümü: " + (n ? "bulundu" : "YOK") +
       (p ? ("  · en:" + Math.round(p.w) + " x:" + Math.round(p.x) + " y:" + Math.round(p.y)) : "") + "\n" +
-      "katman: " + (document.querySelector(".isin-kat") ? "ekranda" : "yok") +
+      "tuval: " + (document.querySelector(".isin-tuval") ? "ekranda" : "yok") +
       "  · kare: " + sonKare + "\n" +
       "son: " + sonDurum;
   }
 
   function isinOynat() {
-    if (document.querySelector(".isin-kat")) return;   /* üst üste binmesin */
+    if (document.querySelector(".isin-tuval")) return;   /* üst üste binmesin */
 
-    var kat = document.createElement("div");
-    kat.className = "isin-kat";
-    kat.innerHTML =
-      '<div class="isin-sis a"></div><div class="isin-sis b"></div>' +
-      '<div class="isin-parla"></div><div class="isin-halka"></div>' +
-      '<div class="isin-simsek s1"></div><div class="isin-simsek s2"></div>' +
-      '<div class="isin-simsek s3"></div>';
-    document.body.appendChild(kat);
-
-    var eSisA  = kat.querySelector(".isin-sis.a");
-    var eSisB  = kat.querySelector(".isin-sis.b");
-    var eParla = kat.querySelector(".isin-parla");
-    var eHalka = kat.querySelector(".isin-halka");
-    var eSim   = kat.querySelectorAll(".isin-simsek");
-    var simDon = [0, -13, 11];          /* şimşeklerin sabit eğimi */
-    var simBoy = [1, .86, .92];
-
-    var t0 = performance.now(), son = null, kareSayisi = 0;
-    sonDurum = "başladı";
-
-    function yaz(el, v, ek) {
-      el.style.opacity = v.o.toFixed(3);
-      el.style.transform = "scale(" + v.s.toFixed(3) + ")" + (ek || "");
+    var cv = document.createElement("canvas");
+    cv.className = "isin-tuval";
+    document.body.appendChild(cv);
+    var g = cv.getContext("2d");
+    var DPR = Math.min(1.5, window.devicePixelRatio || 1), W = 0, H = 0;
+    function olcu() {
+      W = innerWidth; H = innerHeight;
+      cv.width = W * DPR; cv.height = H * DPR;
+      g.setTransform(DPR, 0, 0, DPR, 0, 0);
     }
+    olcu();
+
+    /* Tuzak 51: şerit tek çokgen — parça parça stroke boncuk bırakır. */
+    function seritCiz(p, bas, son, renk, kesim, hale) {
+      var n = p.length - 1, ust = Math.max(2, Math.floor(n * kesim));
+      var sol = [], sag = [], i;
+      for (i = 0; i <= ust; i++) {
+        var a = p[Math.max(0, i - 1)], b = p[Math.min(ust, i + 1)];
+        var dx = b[0] - a[0], dy = b[1] - a[1], uz = Math.sqrt(dx * dx + dy * dy) || 1;
+        var nx = -dy / uz, ny = dx / uz, w = (bas + (son - bas) * (i / n)) / 2;
+        sol.push([p[i][0] + nx * w, p[i][1] + ny * w]);
+        sag.push([p[i][0] - nx * w, p[i][1] - ny * w]);
+      }
+      g.beginPath();
+      g.moveTo(sol[0][0], sol[0][1]);
+      for (i = 1; i < sol.length; i++) g.lineTo(sol[i][0], sol[i][1]);
+      for (i = sag.length - 1; i >= 0; i--) g.lineTo(sag[i][0], sag[i][1]);
+      g.closePath();
+      g.fillStyle = renk;
+      if (hale) { g.shadowBlur = hale; g.shadowColor = "rgba(80,180,255,.95)"; }
+      g.fill();
+      g.shadowBlur = 0;
+    }
+
+    function cizBolt(b, guc, kesim, ol) {
+      var k = AYAR.kalin * ol, h = AYAR.hale / 100, d;
+      g.globalCompositeOperation = "lighter";
+      seritCiz(b.ana, k * 2.4, k * 0.8, "rgba(30,120,255," + (0.30 * guc * h).toFixed(3) + ")", kesim, 22 * h);
+      seritCiz(b.ana, k * 1.35, k * 0.45, "rgba(70,175,255," + (0.80 * guc).toFixed(3) + ")", kesim, 0);
+      seritCiz(b.ana, k * 0.55, k * 0.18, "rgba(190,235,255," + (0.95 * guc).toFixed(3) + ")", kesim, 0);
+      for (d = 0; d < b.dal.length; d++) {
+        if (b.dal[d].k > b.ana.length * kesim) continue;
+        seritCiz(b.dal[d].p, k * 1.1, k * 0.25, "rgba(60,165,255," + (0.60 * guc * h).toFixed(3) + ")", 1, 0);
+        seritCiz(b.dal[d].p, k * 0.40, k * 0.10, "rgba(190,235,255," + (0.80 * guc).toFixed(3) + ")", 1, 0);
+      }
+      g.globalCompositeOperation = "source-over";
+    }
+
+    var t0 = performance.now(), kare = 0, son = null, bolts = null, toz = tozUret();
+    sonDurum = "başladı";
 
     function adim(now) {
       var t = now - t0;
-      var p = Math.min(1, t / SURE);
-      var i;
-
-      /* konum: her karede kaleden okunur */
       var n = isinKaleDugum();
       var yer = n ? isinYeri(n) : null;
       if (!yer && !son) yer = isinYedekYer();
       if (yer) son = yer;
-      if (son) {
-        kat.style.left = son.x + "px";
-        kat.style.top = son.y + "px";
-        var o = Math.min(2.2, Math.max(0.6, son.w / 110));
-        kat.style.transform = "scale(" + o.toFixed(3) + ")";
+      var hx = son.x, hy = son.y;
+      var ol = Math.min(2.2, Math.max(0.6, son.w / 110));
+      if (!bolts) bolts = boltUret(hx, hy, ol);
+
+      if (cv.width !== Math.round(W * DPR)) olcu();
+      g.setTransform(DPR, 0, 0, DPR, 0, 0);
+      g.clearRect(0, 0, W, H);
+
+      /* ── YILDIRIM ── */
+      if (t < AYAR.gelis) {
+        var dilim = AYAR.gelis / AYAR.cakma, yerel = (t % dilim) / dilim;
+        var guc = yerel < 0.30 ? 1 : yerel < 0.44 ? 0.30 : yerel < 0.62 ? 0.85 : 0;
+        var kesim = Math.min(1, (t / AYAR.gelis) * 2.1 + 0.3);
+        if (guc > 0) {
+          for (var i = 0; i < bolts.length; i++) cizBolt(bolts[i], guc, kesim, ol);
+          g.fillStyle = "rgba(180,225,255," + (0.07 * guc).toFixed(3) + ")";
+          g.fillRect(0, 0, W, H);
+        }
       }
 
-      /* efekt katmanı */
-      var vA = ara(p, Z_SIS_A), vB = ara(p, Z_SIS_B);
-      yaz(eSisA, vA, " rotate(" + vA.r.toFixed(1) + "deg)");
-      yaz(eSisB, vB, " rotate(" + vB.r.toFixed(1) + "deg)");
-      yaz(eParla, ara(p, Z_PARLA));
-      yaz(eHalka, ara(p, Z_HALKA));
-      var vS = ara(p, Z_SIMSEK);
-      for (i = 0; i < eSim.length; i++) {
-        eSim[i].style.opacity = vS.o.toFixed(3);
-        eSim[i].style.transform =
-          "rotate(" + simDon[i] + "deg) scaleY(" + simBoy[i] + ")";
-      }
-
-      /* kale: önce gizli, sonra ölçeklenerek gelir */
+      /* ── KALE: oturma anına kadar gizli, sonra AYNEN gelir ── */
+      var gt = t - AYAR.gelis;
       if (n) {
-        if (p < 0.5) {
+        if (gt < 0) {
           if (!n.classList.contains("isin-gizli")) n.classList.add("isin-gizli");
           kaleTemizle(n);
         } else {
           if (n.classList.contains("isin-gizli")) n.classList.remove("isin-gizli");
-          var q = (p - 0.5) / 0.5;
-          var vK = ara(q, Z_KALE);
-          kaleOlcek(n, vK.o.toFixed(3), vK.s);
+          if (gt < 240) kaleSars(n, Math.sin(gt / 16) * AYAR.sarsinti * (1 - gt / 240) * 0.35);
+          else kaleTemizle(n);
         }
       }
 
-      kareSayisi++;
-      if (t < SURE) requestAnimationFrame(adim);
+      /* ── TOZ ── */
+      if (gt >= 0) {
+        var q = gt / AYAR.tozSure, j;
+        if (q < 1) {
+          var e = 1 - Math.pow(1 - q, 2.4);
+          g.globalAlpha = 0.5 * (1 - q);
+          g.strokeStyle = "#f4ecdf"; g.lineWidth = 3 * ol;
+          g.beginPath();
+          g.ellipse(hx, hy, (20 + e * AYAR.yayil * 0.9) * ol,
+                    (20 + e * AYAR.yayil * 0.9) * 0.34 * ol, 0, 0, 6.2832);
+          g.stroke(); g.globalAlpha = 1;
+        }
+        for (j = 0; j < toz.length; j++) {
+          var p2 = toz[j], q2 = q - p2.gec;
+          if (q2 <= 0 || q2 >= 1) continue;
+          var ee = 1 - Math.pow(1 - q2, 2.2);
+          var x = hx + Math.cos(p2.a) * p2.hz * ol * ee;
+          var y = hy + Math.sin(p2.a) * p2.hz * 0.34 * ol * ee -
+                  p2.kalk * ol * Math.sin(q2 * 3.1416) * 0.9;
+          var r = p2.r * ol * (0.6 + ee * 1.5);
+          g.globalAlpha = (1 - q2) * 0.75;
+          g.fillStyle = p2.ton > 0.5 ? "#f7f1e6" : "#dcc9b4";
+          g.beginPath(); g.ellipse(x, y, r, r * 0.72, 0, 0, 6.2832); g.fill();
+          g.globalAlpha = 1;
+        }
+      }
+
+      kare++;
+      if (t < AYAR.sure) requestAnimationFrame(adim);
       else {
-        kat.remove();
-        var m = isinKaleDugum();
-        if (m) { m.classList.remove("isin-gizli"); kaleTemizle(m); }
-        sonKare = kareSayisi;
-        sonDurum = "bitti · " + kareSayisi + " kare · düğüm " + (m ? "vardı" : "YOKTU");
+        cv.remove();
+        var m2 = isinKaleDugum();
+        if (m2) { m2.classList.remove("isin-gizli"); kaleTemizle(m2); }
+        sonKare = kare;
+        sonDurum = "bitti · " + kare + " kare · düğüm " + (m2 ? "vardı" : "YOKTU");
         taniTazele();
       }
     }
@@ -8128,9 +8185,9 @@ if (document.readyState === "loading") {
     [0, 300, 1000, 2500, 5000, 9000].forEach(function (ms) { setTimeout(isinBagla, ms); });
   }
 
-  window.KALE_ISIN = { oynat: isinOynat, sure: SURE };
+  window.KALE_ISIN = { oynat: isinOynat, ayar: AYAR };
 
-  /* GEÇİCİ — ayar/tanı için. İş bitince buradan aşağısı silinir. */
+  /* GEÇİCİ — tanı için. İş bitince buradan aşağısı silinir. */
   if (TANI) {
     setTimeout(taniTazele, 600);
     setInterval(taniTazele, 1000);
