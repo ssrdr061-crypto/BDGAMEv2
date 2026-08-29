@@ -1328,6 +1328,8 @@ function hizlandir(id) {
   if (!sureyiKis(id, AYAR.HIZ_ORANI)) return;   /* iş olmadıysa elmas gitmez */
 
   state.diamonds = elmas - bedel;
+  /* Rehberlik: elmasla hızlandırma sayılıyor (egitim.js). */
+  try { if (window.EGITIM && window.EGITIM.hizArtir) window.EGITIM.hizArtir(); } catch (e) {}
   ["renderDiamonds", "updateShopButtons", "persistCurrentState"].forEach(f => {
     if (typeof window[f] === "function") { try { window[f](); } catch (e) {} }
   });

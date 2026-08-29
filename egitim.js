@@ -136,14 +136,14 @@
         metin: "Alt menüden Kahraman ekranını aç.",
         hedef: { tip: "dom", sec: '.dock-btn[data-panel="hero"]' },
         tamam: function () {
-          return !!document.querySelector(".klist-card[data-hero]") || !!document.getElementById("hdBuyBtn");
+          return !!gorunurOge(".klist-card[data-hero]") || !!gorunurOge("#hdBuyBtn");
         }
       },
       {
         anahtar: skinId + "_kart",
         metin: ad + " kartına dokun.",
         hedef: { tip: "dom", sec: '.klist-card[data-hero="' + skinId + '"]' },
-        tamam: function () { return !!document.getElementById("hdBuyBtn"); }
+        tamam: function () { return !!gorunurOge("#hdBuyBtn"); }
       },
       {
         anahtar: skinId + "_al",
@@ -155,7 +155,9 @@
         anahtar: skinId + "_kapat",
         metin: "Ekranı ✕ ile kapat.",
         hedef: { tip: "dom", sec: "#hdClose" },
-        tamam: function () { return !document.getElementById("hdBuyBtn"); }
+        /* Satın alınca #hdBuyBtn display:none oluyor ama DOM'da kalıyor;
+           "var mı" yerine "görünür mü" bakılır. */
+        tamam: function () { return !gorunurOge("#hdClose"); }
       }
     ];
   }
@@ -165,7 +167,112 @@
     .concat(kislaZinciri("asker",   "soldier", "Koruyucu"))
     .concat(kislaZinciri("robot",   "robot",   "Nişancı"))
     .concat(kahramanZinciri("buz_savascisi", "HALVORSEN"))
-    .concat(kahramanZinciri("ates_buyucusu", "MİKİAN"));
+    .concat(kahramanZinciri("ates_buyucusu", "MİKİAN"))
+    .concat(savasZinciri());
+
+  /* ── SAVAŞ ZİNCİRİ ───────────────────────────────────────────────────
+     Kaleiçinden haritaya çık → kaleye en yakın Sv1 düğüme odaklan ve
+     dokun → Saldırıya git → üç birlik sürgüsünü sonuna çek → iki
+     komutanı kadroya al → SAVAŞ.                                      */
+  function savasZinciri() {
+    var birlikAdimi = function (unitId, ad) {
+      return {
+        anahtar: "sec_" + unitId,
+        metin: ad + " sürgüsünü sonuna kadar çek.",
+        hedef: { tip: "dom", sec: "#troopSlider_" + unitId },
+        tamam: function () {
+          var sl = document.getElementById("troopSlider_" + unitId);
+          if (!sl) return true;              /* o birlik listede yoksa atla */
+          var mx = parseInt(sl.max, 10) || 0;
+          return mx > 0 && (parseInt(sl.value, 10) || 0) >= mx;
+        }
+      };
+    };
+    var komutanAdimi = function (skinId, ad, sira) {
+      return [
+        {
+          anahtar: "kmt_" + skinId + "_yuva",
+          metin: "Boş komutan yuvasına dokun.",
+          hedef: { tip: "dom", sec: "#heroPicker .hpk-slot:not(.filled)" },
+          tamam: function () { return !!gorunurOge(".hpk-card[data-pick]"); }
+        },
+        {
+          anahtar: "kmt_" + skinId + "_sec",
+          metin: ad + " kartını seç.",
+          hedef: { tip: "dom", sec: '.hpk-card[data-pick="' + skinId + '"]' },
+          tamam: function () {
+            return !!document.querySelector('#heroPicker .hpk-slot.filled:nth-child(' + sira + ')') ||
+                   !gorunurOge('.hpk-card[data-pick="' + skinId + '"]');
+          }
+        }
+      ];
+    };
+
+    return [
+      {
+        anahtar: "haritaya_don",
+        metin: "Haritaya dön.",
+        hedef: { tip: "dom", sec: "#kaleiciKapat" },
+        tamam: function () { return !kaleicidiMi(); }
+      },
+      {
+        anahtar: "canavar_sec",
+        metin: "Işıklı 1. seviye canavara dokun.",
+        hazirla: function () { enYakinCanavaraOdakla(); },
+        hedef: { tip: "canavar" },
+        tamam: function () { return !!gorunurOge("#araziBilgiModal .abm-btn-yes, .abm-btn-kirmizi"); }
+      },
+      {
+        anahtar: "saldiriya_git",
+        metin: "Saldırıya git.",
+        hedef: { tip: "dom", sec: ".abm-btn-kirmizi" },
+        tamam: function () { return !!gorunurOge("#battleBtn"); }
+      }
+    ]
+    .concat([birlikAdimi("knight", "Savunucu"),
+             birlikAdimi("soldier", "Koruyucu"),
+             birlikAdimi("robot", "Nişancı")])
+    .concat(komutanAdimi("buz_savascisi", "HALVORSEN", 1))
+    .concat(komutanAdimi("ates_buyucusu", "MİKİAN", 2))
+    .concat([{
+      anahtar: "savas",
+      metin: "SAVAŞ düğmesine bas.",
+      hedef: { tip: "dom", sec: "#battleBtn" },
+      /* Ordu yola çıkınca HUD'da intikal satırı belirir. */
+      tamam: function () {
+        return !!gorunurOge(".sefer-satir") || bayrak("canavar");
+      }
+    }])
+    .concat(hizZinciri());
+  }
+
+  /* ── HIZLANDIRMA ─────────────────────────────────────────────────────
+     İntikal kutucuğuna dokun → pencerede elmaslı düğmeye bas.
+     Üç kez tekrarlanır (sefer.js: 2.000 💎 / kullanım).             */
+  var HIZ_TEKRAR = 3;
+
+  function hizZinciri() {
+    var adimlar = [];
+    for (var i = 1; i <= HIZ_TEKRAR; i++) {
+      (function (n) {
+        adimlar.push({
+          anahtar: "hiz_kutucuk_" + n,
+          metin: "İntikal kutucuğuna dokun. (" + n + "/" + HIZ_TEKRAR + ")",
+          hedef: { tip: "dom", sec: ".sefer-satir" },
+          tamam: function () {
+            return !!gorunurOge("#seferOnayModal .som-btn-yes") || hizSayaci() >= n;
+          }
+        });
+        adimlar.push({
+          anahtar: "hiz_bas_" + n,
+          metin: "Elmasla hızlandır. (" + n + "/" + HIZ_TEKRAR + ")",
+          hedef: { tip: "dom", sec: "#seferOnayModal .som-btn-yes" },
+          tamam: function () { return hizSayaci() >= n; }
+        });
+      })(i);
+    }
+    return adimlar;
+  }
 
   var TOPLAM_ADIM = ZINCIR.length;
 
@@ -187,6 +294,20 @@
     if (d.olaylar[ad]) return;
     d.olaylar[ad] = true;
     TANI("olay: " + ad);
+    denetle();
+  }
+
+  /* Hızlandırma sayılır, tek bayrakla yetinilmez: eğitimde üç kez
+     kullandırılıyor. sefer.js elmasla her hızlandırmada çağırır. */
+  function hizSayaci() {
+    var d = durum();
+    return (d && d.olaylar && d.olaylar.hizSayi) || 0;
+  }
+  function hizArtir() {
+    var d = durum(); if (!d) return;
+    d.olaylar.hizSayi = hizSayaci() + 1;
+    kaydet();
+    TANI("hizlandirma #" + d.olaylar.hizSayi);
     denetle();
   }
 
@@ -252,6 +373,57 @@
     return false;
   }
 
+  /* ── EN YAKIN 1. SEVİYE CANAVAR ──────────────────────────────────────
+     Kaleye en yakın Sv1 canavar düğümü bulunur, kamera oraya
+     oturtulur ve halka onun ekran konumuna çizilir. Düğümler tuval
+     üstünde çizildiği için DOM seçicisi yok; HARITA.ekranKonumu
+     karo → ekran çevirisini yapıyor.                                 */
+  var _canavarSlot = null;
+
+  function enYakinCanavar() {
+    var s = S();
+    if (!s || !window.DUGUM || typeof window.DUGUM.haritaDugumleri !== "function") return null;
+    var kale = s.castle || {};
+    var kx = kale.x, ky = kale.y;
+    var liste;
+    try { liste = window.DUGUM.haritaDugumleri() || []; } catch (e) { return null; }
+
+    var en = null, enUzak = Infinity;
+    liste.forEach(function (d) {
+      if (d.tur !== "canavar" || d.seviye !== 1) return;
+      var uz = (typeof kx === "number")
+        ? Math.abs(d.kx - kx) + Math.abs(d.ky - ky)
+        : 0;
+      if (uz < enUzak) { enUzak = uz; en = d; }
+    });
+    return en;
+  }
+
+  function enYakinCanavaraOdakla() {
+    var d = enYakinCanavar();
+    if (!d) return;
+    _canavarSlot = d;
+    try {
+      if (window.HARITA && typeof window.HARITA.merkezle === "function") {
+        window.HARITA.merkezle(d.kx, d.ky);
+      }
+    } catch (e) {}
+  }
+
+  function canavarKutusu() {
+    var d = _canavarSlot || enYakinCanavar();
+    if (!d) return null;
+    _canavarSlot = d;
+    try {
+      var p = window.HARITA.ekranKonumu(d.kx, d.ky);
+      if (!p) return null;
+      var wrap = document.getElementById("battleMapWrap");
+      var r = wrap ? wrap.getBoundingClientRect() : { left: 0, top: 0 };
+      var boy = Math.max(48, (p.kareYuksekligi || 40) * 1.6);
+      return { x: r.left + p.x - boy / 2, y: r.top + p.y - boy / 2, w: boy, h: boy };
+    } catch (e) { return null; }
+  }
+
   /* Hedefin ekran dikdörtgeni. Bulunamazsa null. */
   function hedefKutu(hedef) {
     if (!hedef) return null;
@@ -261,6 +433,7 @@
           ? window.KALEICI.egitDugmesiEkran() : null;
       } catch (e) { return null; }
     }
+    if (hedef.tip === "canavar") return canavarKutusu();
     if (hedef.tip === "dom") {
       var el = gorunurOge(hedef.sec);
       if (!el) return null;
@@ -452,7 +625,7 @@
       if (!el) return true;                 /* hedef henüz yoksa kilitleme */
       return !!(e.target && (e.target === el || (el.contains && el.contains(e.target))));
     }
-    if (h.tip === "kale") {
+    if (h.tip === "kale" || h.tip === "canavar") {
       var k = hedefKutu(h);
       if (!k) return true;
       var pay = 14, x = e.clientX, y = e.clientY;
@@ -842,6 +1015,8 @@
     durum: durum,
     bittiMi: bittiMi,
     olay: olay,
+    hizArtir: hizArtir,
+    hizSayaci: hizSayaci,
     denetle: denetle,
     akisiBaslat: akisiBaslat,
     odulVer: odulVer,
