@@ -332,13 +332,13 @@
        Bu sayılar ?ikonayar=1 paneliyle ölçüldü, tahmin değil. */
     /* YER DEĞİŞTİ: eskiden geliştir sağda, eğit soldaydı. Sayılar
        takas edildi; çizim sırası değil, yalnız kaymalar değişti. */
-    gelistir: { olcek: 3.50, x:  0.02, y:  0.25 },
+    gelistir: { olcek: 3.60, x:  0.02, y:  0.15 },
     egit:     { olcek: 3.50, x:  0.78, y: -0.05 },
 
     /* Hastanenin alt düğmesi KENDİ yuvasında. Önce egit yuvasını
        paylaşıyordu; hastaneyi oynatınca üç kışla da oynuyordu. */
-    tedavi:   { olcek: 3.50, x:  0.78, y: -0.05 },
-    tasi:     { olcek: 3.50, x: -0.20, y:  0.15 },
+    tedavi:   { olcek: 2.55, x:  0.88, y: -0.10 },
+    tasi:     { olcek: 3.65, x: -0.15, y:  0.15 },
 
     /* Taşıma onayı: ✔ ve ✕ daireleri. x ikisinin ARASINDAKİ
        açıklıktır, merkez tabanın alt köşesidir. */
