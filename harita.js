@@ -127,10 +127,34 @@
        0.20'yi aşma. */
     sinirDalgasi: 0.12,
 
-    /* Geçiş bandı genişliği. Büyütürsen biyomlar birbirine daha uzun
-       mesafede karışır (referans görseldeki gibi yumuşak), küçültürsen
-       sınırlar keskinleşir. 0 yaparsan karışım tamamen kapanır. */
-    gecisBandi: 0.06,
+    /* Geçiş bandı genişliği. ARTIK YUMUŞAMA PAYIDIR, geçişin kendisi
+       değil. Geniş tutulursa iki biyomun rengi ORTALANIR ve sınırda
+       çamurlu bir ara ton çıkar (yeşil+kırmızı = kahve-gri; göz bunu
+       arazi değil, çimenin üstüne atılmış GÖLGE diye okur). Geçiş
+       bunun yerine `serpme` ile yapılıyor; buradaki değer sadece her
+       beneğin kenarını tırtıklı bırakmayacak kadar (~1 karo). */
+    gecisBandi: 0.004,
+
+    /* ── SERPME GEÇİŞ (benekler) ──
+       Sınır çizgisi renk karıştırarak değil, biyom DEĞERİNİ ince
+       gürültüyle oynatarak geçiliyor. Sonuç: lav çimenin içine tek
+       karoluk benekler halinde girer, çimen lavın içine girer; her
+       nokta ya tam lav ya tam çimendir, ara çamur rengi hiç oluşmaz.
+       Aynısı kar ↔ çimen sınırında da çalışır.
+
+       genislik: beneklerin saçıldığı bandın eni. u birimi;
+         0.022 ≈ 6 karo. Büyütürsen serpme alanı genişler.
+       siklik : benek boyu. Büyük sayı = küçük benek. 0.55 ≈ 1.8 karo.
+         1.0'ı aşma: zemin `zeminAdim` (10 dünya pikseli) aralıkla
+         örneklendiği için daha küçük benek örneklemeye takılır,
+         bulanıklaşıp yine gri bir pusa döner.
+       ince/incePay: üstüne binen ikinci, daha küçük benek katmanı. */
+    serpme: {
+      genislik: 0.022,
+      siklik:   0.55,
+      ince:     1.15,
+      incePay:  0.35,
+    },
 
     /* ── Arazi dokuları ──
        DİKKAT: bunlar KARO değil, DÜZ DİKİŞSİZ DOKU olmalı. Yani üstten
@@ -562,6 +586,20 @@
   function renkKoy(c, t) { return [c[0] * (1 - t), c[1] * (1 - t), c[2] * (1 - t)]; }
   function yumusat(t)    { return t * t * (3 - 2 * t); }
 
+  /* ── SERPME SAPMASI ──
+     Biyom değerine eklenen ince gürültü. Sınır bandı dar tutulduğu
+     için bu sapma, sınırı "kaydırmak" yerine ONU BENEKLERE AYIRIR.
+     Izgara koordinatında örneklenir (lekeYatay uygulanmaz): benekler
+     karo ölçüsünde kalsın, yatay şeritlere dönüşmesin. */
+  function serpmeSapma(gx, gy) {
+    const S = CFG.serpme;
+    if (!S || S.genislik <= 0) return 0;
+    const f = S.siklik;
+    const n = smoothNoise(gx * f + 613, gy * f + 271) * (1 - S.incePay)
+            + smoothNoise(gx * S.ince + 97, gy * S.ince + 149) * S.incePay;
+    return (n - 0.5) * S.genislik;
+  }
+
   /* Biyom ağırlıkları [kar, cimen, lav] — toplamı 1.
      Sınır bandında iki biyom karışır. Hem RENK hem LEKE AYARI aynı
      ağırlıkla harmanlanır; yoksa sınırda leke karakteri zıplar. */
@@ -621,7 +659,9 @@
 
   function zeminRengi(gx, gy) {
     const R = CFG.zeminRenk, A = CFG.lekeAyar;
-    const v = biyomDeger(gx, gy);
+    /* Serpme YALNIZ boyamada. biyom()/biyomKarisim() ham değeri
+       okumaya devam eder — kale/düğüm arazisi kaymasın. */
+    const v = biyomDeger(gx, gy) + serpmeSapma(gx, gy);
     const w = biyomAgirlik(v);
 
     /* Saf çimen: kar/lav hesabına hiç girme */
