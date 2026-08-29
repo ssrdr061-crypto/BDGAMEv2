@@ -344,14 +344,39 @@
   var sonHazirlanan = -1;
   var denetimKuruldu = false;
 
+  function kaleicidiMi() {
+    var k = document.getElementById("kaleici");   /* kaleici.js katman id'si */
+    return !!k && k.classList.contains("acik");
+  }
+
+  function oyunEkraniAcik() {
+    var app = document.getElementById("appScreen");
+    return !!app && getComputedStyle(app).display !== "none";
+  }
+
   function denetle() {
     var d = durum();
-    if (!d) return;
+    /* Çıkış yapıldığında ya da giriş ekranındayken denetim döngüsü
+       çalışmaya devam ediyor ve şerit login ekranının üstünde asılı
+       kalıyordu. Oyun ekranı kapalıysa rehberlik tamamen gizlenir. */
+    if (!d || !oyunEkraniAcik()) { rehberligiGizle(); return; }
     if (bittiMi()) { rehberligiKaldir(); odulGerekiyorsaAc(); return; }
     if (ustPencereVar()) { rehberligiGizle(); return; }
 
     var adim = ZINCIR[d.adim];
     if (!adim) return;
+
+    /* Kale adımındayız ama oyuncu haritadaysa (çıkış-giriş, geri tuşu)
+       önce kaleiçi geri açılır, yoksa odak da vurgu da yapılamaz. */
+    var suanki = ZINCIR[d.adim];
+    if (suanki && suanki.hedef && suanki.hedef.tip === "kale" && !kaleicidiMi()) {
+      try {
+        if (window.KALEICI && typeof window.KALEICI.ac === "function") window.KALEICI.ac();
+      } catch (e) {}
+      sonHazirlanan = -1;
+      rehberligiGizle();
+      return;
+    }
 
     if (sonHazirlanan !== d.adim) {
       sonHazirlanan = d.adim;
@@ -537,6 +562,10 @@
   }
 
   function girisSonrasi() {
+    /* Hesap değişti: önceki oturumdan kalan adım imleci temizlenir,
+       yoksa yeni hesapta hazirla() hiç çalışmıyordu. */
+    sonHazirlanan = -1;
+    rehberligiKaldir();
     var d = durum();
     if (!d) { TANI("!! state yok"); return; }
     TANI("giris adim=" + d.adim + " kaleAcildi=" + (d.kaleAcildi ? 1 : 0));
