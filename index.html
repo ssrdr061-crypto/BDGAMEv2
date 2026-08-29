@@ -6090,6 +6090,7 @@ function hizlandirmaPenceresi(unitId, tur) {
     state.diamonds -= maliyet;
     kisalt(kalanMs());
     kapat();
+    try { if (window.EGITIM) window.EGITIM.olay("hiz"); } catch (e) {}
     showToast(tur === "insaat" ? "İnşaat tamamlandı!" : (tur === "egitim" ? "Eğitim tamamlandı!" : "Tedavi tamamlandı!"));
   });
 
@@ -7776,6 +7777,7 @@ async function startBattle() {
       }
 
       state.maxFrontierLevel = (state.maxFrontierLevel || 0) + 1;
+      try { if (window.EGITIM) window.EGITIM.olay("canavar"); } catch (e) {}
 
       const odulYazi = odulKaydi
         ? `${odulKaydi.ikon} ${fmt(odulKaydi.miktar)} ${odulKaydi.ad} savaş günlüğündeki hediye kutusunda seni bekliyor.`

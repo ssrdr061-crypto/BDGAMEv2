@@ -28,7 +28,68 @@
     { parca: "mor",                    adet: 5,  gorsel: "",              emoji: "🟣", ad: "Mor Parça" }
   ];
 
-  var TOPLAM_ADIM = 5;   /* bölüm 2'de beş adım bağlanacak */
+  /* ── ADIMLAR — tek doğruluk kaynağı ──────────────────────────────────
+     `tamam`  : adımın bittiğini anlatan koşul (saniyede bir denetlenir)
+     `izin`   : bu adımda açılmasına izin verilen paneller (nav-dock
+                data-panel değerleri). Boş dizi = dock tamamen kilitli.
+     `elmas`  : adım başında hesapta bulunması GARANTİ edilen miktar —
+                eksikse tamamlanır, böylece eğitim boyunca hiçbir şey
+                oyuncunun cebinden çıkmış olmaz.                        */
+  var ADIMLAR = [
+    {
+      ad: "uretim",
+      baslik: "Ordunu kur",
+      metin: "Kalendeki üç kışlaya dokun ve EĞİT ile her birinden 30 birlik üret: 30 Savunucu, 30 Koruyucu, 30 Nişancı.",
+      izin: ["troops"],
+      elmas: 20000,
+      tamam: function (s) {
+        var t = s.troops || {};
+        return (t.knight || 0) >= 30 && (t.soldier || 0) >= 30 && (t.robot || 0) >= 30;
+      }
+    },
+    {
+      ad: "kahraman",
+      baslik: "Komutan satın al",
+      metin: "Kahraman ekranını aç ve iki komutanı satın al: HALVORSEN ve MİKİAN.",
+      izin: ["hero"],
+      elmas: 300000,
+      tamam: function (s) {
+        var o = s.ownedHeroSkins || [];
+        return o.indexOf("buz_savascisi") !== -1 && o.indexOf("ates_buyucusu") !== -1;
+      }
+    },
+    {
+      ad: "kadro",
+      baslik: "Komutanları kadroya ekle",
+      metin: "Satın aldığın iki komutanı savaş kadrona ekle. Komutansız ordu eksik savaşır.",
+      izin: ["hero", "troops"],
+      elmas: 0,
+      tamam: function (s) {
+        var c = s.selectedCommanders || [];
+        return c.indexOf("buz_savascisi") !== -1 && c.indexOf("ates_buyucusu") !== -1;
+      }
+    },
+    {
+      ad: "canavar",
+      baslik: "İlk savaşın",
+      metin: "Haritada kalene yakın 1. seviye bir canavar bul ve saldır.",
+      izin: ["troops"],
+      elmas: 0,
+      tamam: function (s) {
+        return (s.maxFrontierLevel || 0) >= 1 || bayrak("canavar");
+      }
+    },
+    {
+      ad: "hiz",
+      baslik: "Hızlandırmayı öğren",
+      metin: "Süren bir eğitimin üstündeki ⏩ kutucuğuna dokun ve BİTİR ile elmasla anında tamamla.",
+      izin: ["troops"],
+      elmas: 50000,
+      tamam: function () { return bayrak("hiz"); }
+    }
+  ];
+
+  var TOPLAM_ADIM = ADIMLAR.length;
 
   function S() {
     try { return (typeof state !== "undefined") ? state : null; }
@@ -51,7 +112,7 @@
   function durum() {
     var s = S(); if (!s) return null;
     if (!s.egitim || typeof s.egitim !== "object") {
-      s.egitim = { adim: 0, odulAlindi: false, kaleAcildi: false };
+      s.egitim = { adim: 0, odulAlindi: false, kaleAcildi: false, olaylar: {} };
     }
     return s.egitim;
   }
@@ -240,6 +301,162 @@
     })();
   }
 
+  /* ── OLAY BAYRAKLARI ─────────────────────────────────────────────────
+     Durumdan okunamayan adımlar (canavara saldırı, hızlandırma) oyun
+     kodundan EGITIM.olay("...") ile bildirilir. */
+  function bayrak(ad) {
+    var d = durum();
+    return !!(d && d.olaylar && d.olaylar[ad]);
+  }
+
+  function olay(ad) {
+    var d = durum();
+    if (!d) return;
+    if (!d.olaylar || typeof d.olaylar !== "object") d.olaylar = {};
+    if (d.olaylar[ad]) return;
+    d.olaylar[ad] = true;
+    TANI("olay: " + ad);
+    denetle();
+  }
+
+  /* ── BEDAVA: adımın gerektirdiği elmas garanti edilir ──────────────── */
+  function elmasGaranti(n) {
+    var s = S();
+    if (!s || !(n > 0)) return;
+    if ((s.diamonds || 0) >= n) return;
+    s.diamonds = n;
+    try { if (typeof renderDiamonds === "function") renderDiamonds(); } catch (e) {}
+    try { if (typeof updateShopButtons === "function") updateShopButtons(); } catch (e) {}
+    kaydet();
+  }
+
+  /* ── ZORUNLU KİLİT ───────────────────────────────────────────────────
+     Eğitim sürerken alt menüden yalnız o adımın paneli açılabilir.
+     Dinleyici CAPTURE evresinde durur: düğmenin kendi dinleyicisi
+     hiç çalışmaz (Tuzak 16). Eğitim bitince kaldırılır. */
+  var kilitKuruldu = false;
+  function kilitKur() {
+    if (kilitKuruldu) return;
+    kilitKuruldu = true;
+    document.addEventListener("pointerdown", function (e) {
+      var d = durum();
+      if (!d || bittiMi()) return;
+      var btn = e.target && e.target.closest && e.target.closest("[data-panel]");
+      if (!btn) return;
+      var hedef = btn.getAttribute("data-panel");
+      var adim = ADIMLAR[d.adim];
+      if (!adim) return;
+      if (adim.izin.indexOf(hedef) !== -1) return;
+      e.preventDefault();
+      e.stopPropagation();
+      toast("Önce Revolia'nın gösterdiği adımı tamamla.");
+    }, true);
+  }
+
+  /* ── REVOLİA BALONU ──────────────────────────────────────────────── */
+  function balonStil() {
+    if (document.getElementById("egitimBalonCss")) return;
+    var st = document.createElement("style");
+    st.id = "egitimBalonCss";
+    st.textContent = [
+      "#egitimBalon{position:fixed;left:8px;right:8px;bottom:74px;z-index:9990;",
+      "  display:flex;gap:10px;align-items:flex-start;padding:12px;",
+      "  background:linear-gradient(180deg,#3d7ccc,#152e5e);",
+      "  border:1px solid rgba(190,240,255,.20);border-radius:16px;",
+      "  box-shadow:0 2px 6px rgba(0,20,45,.3);",
+      "  font-family:'Baloo 2','Nunito',sans-serif;color:#eaf4ff;}",
+      "#egitimBalon .eb-yuz{width:46px;height:46px;flex:0 0 46px;border-radius:12px;",
+      "  object-fit:cover;object-position:top center;background:rgba(255,255,255,.10);}",
+      "#egitimBalon .eb-govde{flex:1 1 auto;min-width:0;}",
+      "#egitimBalon .eb-ust{display:flex;justify-content:space-between;align-items:center;gap:8px;}",
+      "#egitimBalon .eb-baslik{font-weight:900;font-size:13.5px;color:#ffd257;",
+      "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
+      "#egitimBalon .eb-sayac{font-weight:800;font-size:11.5px;color:#a8c7e0;",
+      "  font-variant-numeric:tabular-nums;}",
+      "#egitimBalon .eb-metin{font-weight:700;font-size:12.5px;line-height:1.35;margin-top:3px;",
+      "  text-shadow:0 1px 2px rgba(0,20,45,.55);}"
+    ].join("\n");
+    document.head.appendChild(st);
+  }
+
+  function balonCiz() {
+    var d = durum();
+    if (!d) return;
+    if (bittiMi()) { balonKaldir(); return; }
+    balonStil();
+
+    var adim = ADIMLAR[d.adim];
+    if (!adim) return;
+
+    var el = document.getElementById("egitimBalon");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "egitimBalon";
+      el.innerHTML =
+        '<img class="eb-yuz" src="gorsel21.webp" alt="" onerror="this.style.display=\'none\'">' +
+        '<div class="eb-govde">' +
+          '<div class="eb-ust"><div class="eb-baslik"></div><div class="eb-sayac"></div></div>' +
+          '<div class="eb-metin"></div>' +
+        '</div>';
+      document.body.appendChild(el);
+    }
+    el.querySelector(".eb-baslik").textContent = adim.baslik;
+    el.querySelector(".eb-sayac").textContent = (d.adim + 1) + " / " + TOPLAM_ADIM;
+    el.querySelector(".eb-metin").textContent = adim.metin;
+  }
+
+  function balonKaldir() {
+    var el = document.getElementById("egitimBalon");
+    if (el) el.remove();
+  }
+
+  /* ── DENETİM ─────────────────────────────────────────────────────────
+     Adım koşulu sağlandıysa bir sonrakine geçilir. Son adım bitince
+     ödül penceresi açılır. */
+  var denetimKuruldu = false;
+
+  function denetle() {
+    var s = S(), d = durum();
+    if (!s || !d) return;
+    if (bittiMi()) { balonKaldir(); odulGerekiyorsaAc(); return; }
+
+    var adim = ADIMLAR[d.adim];
+    if (!adim) return;
+
+    var bittiBu = false;
+    try { bittiBu = !!adim.tamam(s); } catch (e) { bittiBu = false; }
+
+    if (bittiBu) {
+      d.adim++;
+      kaydet();
+      TANI("adim tamam -> " + d.adim);
+      var sonraki = ADIMLAR[d.adim];
+      if (sonraki) {
+        elmasGaranti(sonraki.elmas);
+        toast("✅ " + adim.baslik + " tamam!");
+        balonCiz();
+      } else {
+        balonKaldir();
+        toast("🎖️ Eğitim tamamlandı!");
+        setTimeout(odulGerekiyorsaAc, 500);
+      }
+      return;
+    }
+    balonCiz();
+  }
+
+  function akisiBaslat() {
+    var d = durum();
+    if (!d || bittiMi()) { balonKaldir(); return; }
+    kilitKur();
+    elmasGaranti((ADIMLAR[d.adim] || {}).elmas || 0);
+    balonCiz();
+    if (!denetimKuruldu) {
+      denetimKuruldu = true;
+      setInterval(denetle, 1000);
+    }
+  }
+
   /* Girişten sonra index.html çağırır. */
   function girisSonrasi() {
     var d = durum();
@@ -248,7 +465,8 @@
     /* Eğitimi hiç görmemiş YENİ oyuncu: kaleiçinde başlar.
        Eski oyuncular (eğitim bitmiş sayılır) etkilenmez. */
     if (d.adim === 0 && !d.kaleAcildi) kaleicindeBaslat();
-    setTimeout(odulGerekiyorsaAc, 800);
+    setTimeout(akisiBaslat, 1200);
+    setTimeout(odulGerekiyorsaAc, 1600);
   }
 
   /* Eski hesapları eğitime sokmamak için: hesabın birlikleri ya da
@@ -277,6 +495,9 @@
     odulVer: odulVer,
     odulPenceresi: odulPenceresi,
     girisSonrasi: girisSonrasi,
+    olay: olay,
+    denetle: denetle,
+    akisiBaslat: akisiBaslat,
     eskiHesabiIsaretle: eskiHesabiIsaretle,
     kaleicindeBaslat: kaleicindeBaslat
   };
