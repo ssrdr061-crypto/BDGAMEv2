@@ -336,6 +336,29 @@
     onay:     { olcek: 2.20, x:  0.62, y:  0.55 },
   };
 
+  /* ═══ İKİLİ DÜZEN — BEŞ KAYNAK BİNASI ═══
+     Bu binalarda EĞİT düğmesi yok: ekranda yalnız TAŞI ve GELİŞTİR
+     durur. Üçlü düzen için dialanan kaymalar burada aradaki boşluğu
+     orantısız gösteriyordu, bu yüzden ikisinin ayarı AYRI tabloda.
+     Kale ve Araştırma bilerek DIŞARIDA: onlar 2x2, tabanları büyük.
+     ?ikonayar=1 panelindeki "2'Lİ" kipi yalnız bu tabloyu değiştirir. */
+  var IKILI_BINA = { odun: 1, demir: 1, su: 1, enerji: 1, ahir: 1 };
+
+  var IK2 = {
+    /* İlk sayılar ölçüyle bulundu, tahmin değil: 1x1 tabanda taşı
+       ikonunun çıpası (sol+alt köşe ortası) alt köşeden ~tileW/4
+       solda kalıyor. Geliştir'in x'i o kaymanın aynası olacak
+       şekilde hesaplandı; ikisi alt köşenin iki yanında eşit durur. */
+    gelistir: { olcek: 3.50, x:  0.44, y:  0.14 },
+    tasi:     { olcek: 3.50, x: -0.20, y:  0.15 },
+  };
+
+  /* Bir binanın ikon ayarı hangi tablodan okunur — TEK karar yeri.
+     Tabloda karşılığı olmayan anahtar (egit, onay) hep IK'dan gelir. */
+  function ikonAyari(b, k) {
+    return (b && IKILI_BINA[b.id] && IK2[k]) ? IK2[k] : IK[k];
+  }
+
 
 
   /* ÜÇ DÜĞMENİN DE ÖLÇÜSÜ — tek yer.
@@ -1131,9 +1154,10 @@
     onayBtn.r = 0; iptalBtn.r = 0;
 
     /* Taşıma düğmesi — tabanın SOL ALT köşesinde. */
-    var tOlcu = Math.max(IK.tabanPx, boy * IK.tasi.olcek);
-    tasiSimge.x = (solW.x + altW.x) / 2 + tOlcu * IK.tasi.x;
-    tasiSimge.y = (solW.y + altW.y) / 2 + tOlcu * IK.tasi.y;
+    var ayT = ikonAyari(b, 'tasi');
+    var tOlcu = Math.max(IK.tabanPx, boy * ayT.olcek);
+    tasiSimge.x = (solW.x + altW.x) / 2 + tOlcu * ayT.x;
+    tasiSimge.y = (solW.y + altW.y) / 2 + tOlcu * ayT.y;
     tasiSimge.r = tOlcu / 2;
     tasiSimgesiCiz(tasiSimge.x, tasiSimge.y, tasiSimge.r, false, 0);
 
@@ -1237,8 +1261,8 @@
        oluyordu. Artık her ikon kendi çıpasından (tabanın alt
        köşesi) kendi x/y kaymasıyla yerleşiyor. */
     var cizilecek = [];
-    if (imEgit) cizilecek.push({ im: imEgit, a: IK.egit,     kutu: egitBtn, basili: egitBasili });
-    if (imGel)  cizilecek.push({ im: imGel,  a: IK.gelistir, kutu: gelBtn,  basili: gelBasili });
+    if (imEgit) cizilecek.push({ im: imEgit, a: ikonAyari(b, 'egit'),     kutu: egitBtn, basili: egitBasili });
+    if (imGel)  cizilecek.push({ im: imGel,  a: ikonAyari(b, 'gelistir'), kutu: gelBtn,  basili: gelBasili });
     if (!cizilecek.length) return;
 
     for (var i = 0; i < cizilecek.length; i++) {
@@ -2334,6 +2358,14 @@
     ];
     var secik = 'gelistir';
 
+    /* KİP: hangi tablo ayarlanıyor.
+       '3' → IK  (kışla, hastane, kale, araştırma…)
+       '2' → IK2 (beş kaynak binası; yalnız TAŞI + GELİŞTİR)
+       Kip değişince ekrandaki seçili bina DEĞİŞMEZ — 2'Lİ kipinde
+       ayarladığın sayıyı görmek için bir kaynak binasına basmalısın. */
+    var kip = '3';
+    function TABLO() { return kip === '2' ? IK2 : IK; }
+
     var ALANLAR = [
       { alan: 'olcek', ad: 'ölçü',  adim: 0.05, az: 0.5, cok: 5, ond: 2 },
       { alan: 'x',     ad: 'sağa',  adim: 0.05, az: -4,  cok: 4, ond: 2 },
@@ -2369,6 +2401,26 @@
       kok.style.display = a ? 'block' : 'none';
       anahtar.style.background = a ? 'rgba(63,191,106,.92)' : 'rgba(13,36,56,.88)';
     });
+
+    /* ── Kip seçici: 3'LÜ / 2'Lİ ── */
+    var kipKutu = document.createElement('div');
+    kipKutu.style.cssText = 'display:flex;gap:3px;margin-bottom:5px;';
+    var kipBtn = {};
+    [['3', "3'LÜ"], ['2', "2'Lİ"]].forEach(function (o) {
+      var b = document.createElement('button');
+      b.textContent = o[1];
+      stil(b, 'flex:1 1 0;min-width:0;height:24px;font-size:10.5px;');
+      b.addEventListener('pointerup', function () {
+        kip = o[0];
+        /* 2'Lİ tablosunda egit/onay yok — açık sekme oradaysa geri al. */
+        if (kip === '2' && !TABLO()[secik]) secik = 'gelistir';
+        tazele();
+        kareIste();
+      });
+      kipBtn[o[0]] = b;
+      kipKutu.appendChild(b);
+    });
+    kok.appendChild(kipKutu);
 
     /* ── Sekmeler ── */
     var sekmeKutu = document.createElement('div');
@@ -2424,8 +2476,8 @@
 
     ALANLAR.forEach(function (a) {
       var r = satir(a.ad,
-        function () { return IK[secik][a.alan]; },
-        function (v) { IK[secik][a.alan] = v; }, a);
+        function () { return TABLO()[secik][a.alan]; },
+        function (v) { TABLO()[secik][a.alan] = v; }, a);
       degerler[a.alan] = r;
       kok.appendChild(r.el);
     });
@@ -2455,9 +2507,16 @@
                  'border-radius:9px;font-size:11.5px;');
     dokBtn.addEventListener('pointerup', function () {
       var m = 'tabanPx: ' + IK.tabanPx + '\nizgaraPay: ' + IK.izgaraPay + '\n';
+      m += "-- 3'LÜ (IK) --\n";
       IKONLAR_AD.forEach(function (o) {
         var a = IK[o.k];
         m += o.k + ': olcek ' + a.olcek.toFixed(2) +
+             ' · x ' + a.x.toFixed(2) + ' · y ' + a.y.toFixed(2) + '\n';
+      });
+      m += "-- 2'Lİ (IK2) --\n";
+      ['gelistir', 'tasi'].forEach(function (k) {
+        var a = IK2[k];
+        m += k + ': olcek ' + a.olcek.toFixed(2) +
              ' · x ' + a.x.toFixed(2) + ' · y ' + a.y.toFixed(2) + '\n';
       });
       dok.textContent = m;
@@ -2465,7 +2524,13 @@
     kok.appendChild(dokBtn);
 
     function tazele() {
+      kipBtn['3'].style.background = (kip === '3') ? '#3d7ccc' : 'rgba(255,255,255,.12)';
+      kipBtn['2'].style.background = (kip === '2') ? '#3d7ccc' : 'rgba(255,255,255,.12)';
       IKONLAR_AD.forEach(function (o) {
+        /* Tabloda karşılığı olmayan sekme gizlenir — basılınca hiçbir
+           şey yapmayan düğme bırakmak yerine yok sayılır. */
+        var var_mi = !!TABLO()[o.k];
+        sekmeler[o.k].style.display = var_mi ? 'block' : 'none';
         sekmeler[o.k].style.background =
           (o.k === secik) ? '#3fbf6a' : 'rgba(255,255,255,.12)';
       });
