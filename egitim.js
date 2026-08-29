@@ -1,26 +1,29 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   egitim.js — YENİ OYUNCU REHBERLİĞİ  (BÖLÜM 1)
+   egitim.js — YENİ OYUNCU REHBERLİĞİ
 
-   Bu bölümde olan:
-     · state.egitim durumu ve kayda yazılması (index.html egt alanı)
-     · ÖDÜL PENCERESİ — eğitim bitince verilen paket, kutucuklu
-     · Yeni KAYIT olan oyuncu hoş geldin ödülünü aldıktan sonra
-       oyuna KALEİÇİNDE başlar
+   ELİNDEN TUTAN eğitim: her adımda tek bir öğe vurgulanır, oyuncu
+   YALNIZ ona basabilir. Adım koşulu sağlanınca zincir kendiliğinden
+   ilerler.
 
-   BÖLÜM 2'de gelecek: beş zorunlu adım (üretim → kahraman alma →
-   kahraman ekleme → canavar saldırısı → hızlandırma) ve adımları
-   kilitleyen maske.
+   PARÇA A (bu dosya): motor + kaleiçi üretim zinciri
+     savunucu kışlasına odak → EĞİT → sürgü 30 → ÜRET → kapat
+     aynısı koruyucu ve nişancı için.
+   PARÇA B/C/D'de eklenecek: kahraman alma, canavar savaşı,
+   hızlandırma ve Revolia'nın kapanış paneli.
+
+   Hedef türleri:
+     dom  → seçici ile bulunan bir eleman
+     kale → kaleiçi tuvalinde çizilen EĞİT düğmesi (KALEICI kapısı)
 
    Yükleme sırası: gelistir.js ve kaleici.js'ten SONRA.
-   Test: adres çubuğuna ?egitimodul=1 → ödül penceresi açılır.
+   Test: ?egitimodul=1 → ödül penceresi · ?egitimtani=1 → tanı şeridi
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
 
-  /* ── ÖDÜL PAKETİ — değiştirilecek TEK yer ────────────────────────────
-     `esya`  → state.inventory anahtarı (magaza.js'teki ad ile BİREBİR aynı
-               olmalı, yoksa çantada tanınmayan satır olarak görünür)
-     `parca` → gelistir.js parça havuzu anahtarı                        */
+  var ADET = 30;              /* her kışladan üretilecek birlik sayısı */
+
+  /* ── ÖDÜL PAKETİ — değiştirilecek TEK yer ──────────────────────────── */
   var ODULLER = [
     { esya: "İntikal Hızlandırma %50", adet: 5,  gorsel: "50intikal.webp", emoji: "🌀", ad: "%50 İntikal" },
     { esya: "İntikal Hızlandırma %25", adet: 5,  gorsel: "25intikal.webp", emoji: "⚡", ad: "%25 İntikal" },
@@ -28,124 +31,371 @@
     { parca: "mor",                    adet: 5,  gorsel: "",              emoji: "🟣", ad: "Mor Parça" }
   ];
 
-  /* ── ADIMLAR — tek doğruluk kaynağı ──────────────────────────────────
-     `tamam`  : adımın bittiğini anlatan koşul (saniyede bir denetlenir)
-     `izin`   : bu adımda açılmasına izin verilen paneller (nav-dock
-                data-panel değerleri). Boş dizi = dock tamamen kilitli.
-     `elmas`  : adım başında hesapta bulunması GARANTİ edilen miktar —
-                eksikse tamamlanır, böylece eğitim boyunca hiçbir şey
-                oyuncunun cebinden çıkmış olmaz.                        */
-  var ADIMLAR = [
-    {
-      ad: "uretim",
-      baslik: "Ordunu kur",
-      metin: "Kalendeki üç kışlaya dokun ve EĞİT ile her birinden 30 birlik üret: 30 Savunucu, 30 Koruyucu, 30 Nişancı.",
-      izin: ["troops"],
-      elmas: 20000,
-      tamam: function (s) {
-        var t = s.troops || {};
-        return (t.knight || 0) >= 30 && (t.soldier || 0) >= 30 && (t.robot || 0) >= 30;
-      }
-    },
-    {
-      ad: "kahraman",
-      baslik: "Komutan satın al",
-      metin: "Kahraman ekranını aç ve iki komutanı satın al: HALVORSEN ve MİKİAN.",
-      izin: ["hero"],
-      elmas: 300000,
-      tamam: function (s) {
-        var o = s.ownedHeroSkins || [];
-        return o.indexOf("buz_savascisi") !== -1 && o.indexOf("ates_buyucusu") !== -1;
-      }
-    },
-    {
-      ad: "kadro",
-      baslik: "Komutanları kadroya ekle",
-      metin: "Satın aldığın iki komutanı savaş kadrona ekle. Komutansız ordu eksik savaşır.",
-      izin: ["hero", "troops"],
-      elmas: 0,
-      tamam: function (s) {
-        var c = s.selectedCommanders || [];
-        return c.indexOf("buz_savascisi") !== -1 && c.indexOf("ates_buyucusu") !== -1;
-      }
-    },
-    {
-      ad: "canavar",
-      baslik: "İlk savaşın",
-      metin: "Haritada kalene yakın 1. seviye bir canavar bul ve saldır.",
-      izin: ["troops"],
-      elmas: 0,
-      tamam: function (s) {
-        return (s.maxFrontierLevel || 0) >= 1 || bayrak("canavar");
-      }
-    },
-    {
-      ad: "hiz",
-      baslik: "Hızlandırmayı öğren",
-      metin: "Süren bir eğitimin üstündeki ⏩ kutucuğuna dokun ve BİTİR ile elmasla anında tamamla.",
-      izin: ["troops"],
-      elmas: 50000,
-      tamam: function () { return bayrak("hiz"); }
-    }
-  ];
-
-  var TOPLAM_ADIM = ADIMLAR.length;
-
   function S() {
     try { return (typeof state !== "undefined") ? state : null; }
     catch (e) { return null; }
   }
-
-  function kaydet() {
-    if (typeof persistCurrentState === "function") persistCurrentState();
-  }
-
+  function kaydet() { if (typeof persistCurrentState === "function") persistCurrentState(); }
   function toast(m) {
     if (typeof showToastForce === "function") showToastForce(m);
     else if (typeof showToast === "function") showToast(m);
   }
+  function birlik(id) {
+    var s = S();
+    return (s && s.troops && s.troops[id]) || 0;
+  }
+  /* Kuyrukta bekleyenler de sayılır — ÜRET'e basınca adım geçmeli,
+     eğitim süresi boyunca oyuncu bekletilmemeli. */
+  function birlikVeKuyruk(id) {
+    var s = S(), k = 0;
+    if (s && s.trainingQueue) {
+      k = s.trainingQueue.filter(function (j) { return j.unitId === id; }).length;
+    }
+    return birlik(id) + k;
+  }
+  function panelAcik(id) {
+    var p = document.getElementById(id);
+    return !!p && p.classList.contains("active");
+  }
 
-  /* ── DURUM ───────────────────────────────────────────────────────────
-     adim        : tamamlanan adım sayısı (0..TOPLAM_ADIM)
-     odulAlindi  : ödül paketi hesaba geçti mi
-     kaleAcildi  : yeni kayıt kaleiçinde başlatıldı mı (bir kez)          */
+  /* ── TANI  (?egitimtani=1) ─────────────────────────────────────────── */
+  var TANI_ACIK = location.search.indexOf("egitimtani=1") >= 0;
+  function TANI(m) {
+    if (!TANI_ACIK) return;
+    var el = document.getElementById("egitimTani");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "egitimTani";
+      el.style.cssText = "position:fixed;left:6px;right:6px;top:6px;z-index:99999;" +
+        "background:rgba(2,8,22,.9);color:#9fe6ff;font:600 11px/1.35 'Baloo 2',sans-serif;" +
+        "padding:6px 8px;border-radius:8px;max-height:30vh;overflow:auto;white-space:pre-wrap;";
+      document.body.appendChild(el);
+    }
+    el.textContent = (m + "\n" + el.textContent).slice(0, 1500);
+  }
+
+  /* ── ZİNCİR ──────────────────────────────────────────────────────────
+     hazirla : adım başlarken bir kez çalışır (kamera odaklama vb.)
+     hedef   : vurgulanacak ve dokunmaya izin verilen tek öğe
+     tamam   : adımın bittiğini anlatan koşul                          */
+  function kislaZinciri(binaId, unitId, ad) {
+    return [
+      {
+        anahtar: binaId + "_egit",
+        metin: ad + " Kışlasının EĞİT düğmesine bas.",
+        hazirla: function () {
+          try {
+            if (window.KALEICI && window.KALEICI.egitimOdak) window.KALEICI.egitimOdak(binaId);
+          } catch (e) {}
+        },
+        hedef: { tip: "kale" },
+        tamam: function () { return panelAcik("panel-troops"); }
+      },
+      {
+        anahtar: binaId + "_surgu",
+        metin: "Sürgüyü " + ADET + "'a çek.",
+        hedef: { tip: "dom", sec: "#troopTrainSlider_" + unitId },
+        tamam: function () {
+          var sl = document.querySelector("#troopTrainSlider_" + unitId);
+          return !!sl && (parseInt(sl.value, 10) || 0) >= ADET;
+        }
+      },
+      {
+        anahtar: binaId + "_uret",
+        metin: "ÜRET düğmesine bas.",
+        hedef: { tip: "dom", sec: "#" + unitId + "_btn" },
+        tamam: function () { return birlikVeKuyruk(unitId) >= ADET; }
+      },
+      {
+        anahtar: binaId + "_kapat",
+        metin: "Ekranı ✕ ile kapat.",
+        hedef: { tip: "dom", sec: "#panel-troops .overlay-close" },
+        tamam: function () { return !panelAcik("panel-troops"); }
+      }
+    ];
+  }
+
+  var ZINCIR = []
+    .concat(kislaZinciri("sovalye", "knight",  "Savunucu"))
+    .concat(kislaZinciri("asker",   "soldier", "Koruyucu"))
+    .concat(kislaZinciri("robot",   "robot",   "Nişancı"));
+
+  var TOPLAM_ADIM = ZINCIR.length;
+
+  /* ── DURUM ───────────────────────────────────────────────────────── */
   function durum() {
     var s = S(); if (!s) return null;
     if (!s.egitim || typeof s.egitim !== "object") {
       s.egitim = { adim: 0, odulAlindi: false, kaleAcildi: false, olaylar: {} };
     }
+    if (!s.egitim.olaylar) s.egitim.olaylar = {};
     return s.egitim;
   }
-
   function bittiMi() {
     var d = durum();
     return !!d && d.adim >= TOPLAM_ADIM;
   }
+  function olay(ad) {
+    var d = durum(); if (!d) return;
+    if (d.olaylar[ad]) return;
+    d.olaylar[ad] = true;
+    TANI("olay: " + ad);
+    denetle();
+  }
 
-  /* ── ÖDÜL VERME ──────────────────────────────────────────────────────
-     Paket bir kez verilir. Eşyalar çantaya, parça kahraman havuzuna. */
+  /* Adımın gerektirdiği elmas hesapta yoksa tamamlanır — eğitim
+     boyunca hiçbir şey oyuncunun cebinden çıkmaz. */
+  function elmasGaranti(n) {
+    var s = S();
+    if (!s || !(n > 0) || (s.diamonds || 0) >= n) return;
+    s.diamonds = n;
+    try { if (typeof renderDiamonds === "function") renderDiamonds(); } catch (e) {}
+    try { if (typeof updateShopButtons === "function") updateShopButtons(); } catch (e) {}
+    kaydet();
+  }
+
+  /* ── VURGU + YÖNERGE ────────────────────────────────────────────────
+     Halka hedefin üstüne oturur, yönerge şeridi ekranın altındadır.
+     İkisi de pointer-events:none — altındaki düğmeye basılabilsin
+     (Tuzak 19).                                                       */
+  function stilKur() {
+    if (document.getElementById("egitimZincirCss")) return;
+    var st = document.createElement("style");
+    st.id = "egitimZincirCss";
+    st.textContent = [
+      "#egitimHalka{position:fixed;z-index:9992;pointer-events:none;border-radius:14px;",
+      "  border:3px solid #ffd257;box-shadow:0 0 0 4px rgba(255,210,87,.22);",
+      "  animation:egHalka 1.2s ease-in-out infinite;}",
+      "@keyframes egHalka{0%,100%{opacity:1;}50%{opacity:.45;}}",
+      "#egitimEl{position:fixed;z-index:9993;pointer-events:none;font-size:26px;line-height:1;",
+      "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.6));animation:egEl 1.2s ease-in-out infinite;}",
+      "@keyframes egEl{0%,100%{transform:translate(0,0);}50%{transform:translate(0,-7px);}}",
+      "#egitimSerit{position:fixed;left:8px;right:8px;bottom:74px;z-index:9991;",
+      "  display:flex;gap:10px;align-items:flex-end;pointer-events:none;",
+      "  font-family:'Baloo 2','Nunito',sans-serif;}",
+      "#egitimSerit .es-yuz{width:64px;flex:0 0 64px;object-fit:contain;object-position:bottom center;",
+      "  filter:drop-shadow(0 6px 14px rgba(0,20,45,.55));}",
+      "#egitimSerit .es-balon{flex:1 1 auto;min-width:0;padding:10px 12px;border-radius:16px;",
+      "  background:linear-gradient(180deg,#3d7ccc,#152e5e);",
+      "  border:1px solid rgba(190,240,255,.20);box-shadow:0 2px 6px rgba(0,20,45,.3);",
+      "  color:#eaf4ff;}",
+      "#egitimSerit .es-ust{display:flex;justify-content:space-between;align-items:center;gap:8px;}",
+      "#egitimSerit .es-ad{font-weight:900;font-size:13px;color:#ffd257;",
+      "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
+      "#egitimSerit .es-sayac{font-weight:800;font-size:11px;color:#a8c7e0;",
+      "  font-variant-numeric:tabular-nums;}",
+      "#egitimSerit .es-metin{font-weight:700;font-size:12.5px;line-height:1.35;margin-top:2px;",
+      "  text-shadow:0 1px 2px rgba(0,20,45,.55);}"
+    ].join("\n");
+    document.head.appendChild(st);
+  }
+
+  /* Üstte bir ödül/karşılama penceresi varsa rehberlik çekilir. */
+  function ustPencereVar() {
+    if (document.getElementById("welcomeBack")) return true;
+    if (document.getElementById("egitimOdul")) return true;
+    var dr = document.getElementById("dailyRewardOverlay");
+    if (dr && getComputedStyle(dr).display !== "none") return true;
+    return false;
+  }
+
+  /* Hedefin ekran dikdörtgeni. Bulunamazsa null. */
+  function hedefKutu(hedef) {
+    if (!hedef) return null;
+    if (hedef.tip === "kale") {
+      try {
+        return (window.KALEICI && window.KALEICI.egitDugmesiEkran)
+          ? window.KALEICI.egitDugmesiEkran() : null;
+      } catch (e) { return null; }
+    }
+    if (hedef.tip === "dom") {
+      var el = document.querySelector(hedef.sec);
+      if (!el) return null;
+      var r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return null;   /* gizli kapsayıcı: ölçü 0 */
+      return { x: r.left, y: r.top, w: r.width, h: r.height };
+    }
+    return null;
+  }
+
+  function vurguCiz(adim) {
+    stilKur();
+    var kutu = hedefKutu(adim.hedef);
+    var halka = document.getElementById("egitimHalka");
+    var el = document.getElementById("egitimEl");
+
+    if (!kutu) {
+      if (halka) halka.style.display = "none";
+      if (el) el.style.display = "none";
+      return;
+    }
+    if (!halka) {
+      halka = document.createElement("div");
+      halka.id = "egitimHalka";
+      document.body.appendChild(halka);
+    }
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "egitimEl";
+      el.textContent = "👆";
+      document.body.appendChild(el);
+    }
+    var pay = 6;
+    halka.style.display = "block";
+    halka.style.left = (kutu.x - pay) + "px";
+    halka.style.top = (kutu.y - pay) + "px";
+    halka.style.width = (kutu.w + pay * 2) + "px";
+    halka.style.height = (kutu.h + pay * 2) + "px";
+
+    el.style.display = "block";
+    el.style.left = (kutu.x + kutu.w / 2 - 13) + "px";
+    el.style.top = (kutu.y + kutu.h + 6) + "px";
+  }
+
+  function seritCiz(adim, sira) {
+    stilKur();
+    var s = document.getElementById("egitimSerit");
+    if (!s) {
+      s = document.createElement("div");
+      s.id = "egitimSerit";
+      s.innerHTML =
+        '<img class="es-yuz" src="gorsel21.webp" alt="" onerror="this.style.display=\'none\'">' +
+        '<div class="es-balon">' +
+          '<div class="es-ust"><div class="es-ad">Revolia</div><div class="es-sayac"></div></div>' +
+          '<div class="es-metin"></div>' +
+        '</div>';
+      document.body.appendChild(s);
+    }
+    s.style.display = "flex";
+    s.querySelector(".es-sayac").textContent = (sira + 1) + " / " + TOPLAM_ADIM;
+    s.querySelector(".es-metin").textContent = adim.metin;
+  }
+
+  function rehberligiGizle() {
+    ["egitimHalka", "egitimEl", "egitimSerit"].forEach(function (id) {
+      var e = document.getElementById(id);
+      if (e) e.style.display = "none";
+    });
+  }
+  function rehberligiKaldir() {
+    ["egitimHalka", "egitimEl", "egitimSerit"].forEach(function (id) {
+      var e = document.getElementById(id);
+      if (e) e.remove();
+    });
+  }
+
+  /* ── KİLİT ───────────────────────────────────────────────────────────
+     Eğitim sürerken YALNIZ vurgulanan öğeye basılabilir. Dinleyici
+     CAPTURE evresinde durur: öğenin kendi dinleyicisi hiç çalışmaz
+     (Tuzak 16). Tuval hedefinde dokunuşun EĞİT kutusu içinde olup
+     olmadığına bakılır — tuval tek eleman olduğu için seçici yetmez. */
+  var kilitKuruldu = false;
+  function kilitKur() {
+    if (kilitKuruldu) return;
+    kilitKuruldu = true;
+    ["pointerdown", "pointerup", "click", "touchstart", "mousedown"].forEach(function (tur) {
+      document.addEventListener(tur, function (e) {
+        var d = durum();
+        if (!d || bittiMi() || ustPencereVar()) return;
+        var adim = ZINCIR[d.adim];
+        if (!adim || izinliMi(adim, e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (tur === "pointerdown") toast("Işıklı yere dokun.");
+      }, true);
+    });
+  }
+
+  function izinliMi(adim, e) {
+    var h = adim.hedef;
+    if (!h) return true;
+
+    if (h.tip === "dom") {
+      var el = document.querySelector(h.sec);
+      if (!el) return true;                 /* hedef henüz yoksa kilitleme */
+      return !!(e.target && (e.target === el || (el.contains && el.contains(e.target))));
+    }
+    if (h.tip === "kale") {
+      var k = hedefKutu(h);
+      if (!k) return true;
+      var pay = 14, x = e.clientX, y = e.clientY;
+      if (typeof x !== "number") return true;
+      return x >= k.x - pay && x <= k.x + k.w + pay &&
+             y >= k.y - pay && y <= k.y + k.h + pay;
+    }
+    return true;
+  }
+
+  /* ── DENETİM DÖNGÜSÜ ─────────────────────────────────────────────── */
+  var sonHazirlanan = -1;
+  var denetimKuruldu = false;
+
+  function denetle() {
+    var d = durum();
+    if (!d) return;
+    if (bittiMi()) { rehberligiKaldir(); odulGerekiyorsaAc(); return; }
+    if (ustPencereVar()) { rehberligiGizle(); return; }
+
+    var adim = ZINCIR[d.adim];
+    if (!adim) return;
+
+    if (sonHazirlanan !== d.adim) {
+      sonHazirlanan = d.adim;
+      if (typeof adim.hazirla === "function") {
+        try { adim.hazirla(); } catch (e) { TANI("!! hazirla: " + (e && e.message)); }
+      }
+      TANI("adim " + d.adim + " · " + adim.anahtar);
+    }
+
+    var bitti = false;
+    try { bitti = !!adim.tamam(); } catch (e) { bitti = false; }
+
+    if (bitti) {
+      d.adim++;
+      kaydet();
+      TANI("tamam -> " + d.adim);
+      if (bittiMi()) {
+        rehberligiKaldir();
+        toast("🎖️ Eğitim tamamlandı!");
+        setTimeout(odulGerekiyorsaAc, 500);
+      }
+      return;
+    }
+
+    seritCiz(adim, d.adim);
+    vurguCiz(adim);
+  }
+
+  function akisiBaslat() {
+    var d = durum();
+    if (!d || bittiMi()) { rehberligiKaldir(); return; }
+    elmasGaranti(300000);         /* zincir boyunca harcama garantisi */
+    kilitKur();
+    if (!denetimKuruldu) {
+      denetimKuruldu = true;
+      setInterval(denetle, 400);  /* vurgu kayan kamerayı takip etsin */
+    }
+    denetle();
+  }
+
+  /* ── ÖDÜL ────────────────────────────────────────────────────────── */
   function odulVer() {
     var s = S(), d = durum();
     if (!s || !d || d.odulAlindi) return false;
     d.odulAlindi = true;
-
     if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
     ODULLER.forEach(function (o) {
-      if (o.esya) {
-        s.inventory[o.esya] = (s.inventory[o.esya] || 0) + o.adet;
-      } else if (o.parca && typeof window.parcaEkle === "function") {
+      if (o.esya) s.inventory[o.esya] = (s.inventory[o.esya] || 0) + o.adet;
+      else if (o.parca && typeof window.parcaEkle === "function") {
         try { window.parcaEkle(o.parca, o.adet); } catch (e) {}
       }
     });
-
     kaydet();
     try { if (typeof renderInventory === "function") renderInventory(); } catch (e) {}
     return true;
   }
 
-  /* ── ÖDÜL PENCERESİ ──────────────────────────────────────────────── */
-
-  function stilKur() {
+  function odulStil() {
     if (document.getElementById("egitimOdulCss")) return;
     var st = document.createElement("style");
     st.id = "egitimOdulCss";
@@ -160,7 +410,6 @@
       "  margin-bottom:4px;text-shadow:0 1px 2px rgba(0,20,45,.55);}",
       "#egitimOdul .eo-alt{font-weight:700;font-size:13px;text-align:center;color:#a8c7e0;",
       "  margin-bottom:14px;}",
-      /* Kutucuklar: iki sütun, hepsi AYNI yükseklikte — kayma olmasın */
       "#egitimOdul .eo-izgara{display:grid;grid-template-columns:1fr 1fr;gap:10px;}",
       "#egitimOdul .eo-oge{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;",
       "  gap:6px;height:118px;padding:10px 6px;border-radius:14px;",
@@ -171,7 +420,6 @@
       "#egitimOdul .eo-ad{font-weight:700;font-size:11.5px;color:#eaf4ff;text-align:center;line-height:1.2;}",
       "#egitimOdul .eo-adet{font-weight:900;font-size:14px;color:#ffd257;line-height:1;",
       "  font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,20,45,.55);}",
-      /* ÖDÜLÜ AL — düz yeşil, 3B yok, gölge yok. Yazı flex ile tam ortada. */
       "#egitimOdul .eo-al{display:flex;align-items:center;justify-content:center;",
       "  width:100%;height:50px;margin-top:14px;padding:0;box-sizing:border-box;",
       "  background:#2fa84f;border:none;border-radius:14px;box-shadow:none;",
@@ -195,14 +443,11 @@
 
   function odulPenceresi() {
     if (document.getElementById("egitimOdul")) return;
-    stilKur();
-
+    odulStil();
     var kutular = ODULLER.map(function (o) {
-      return '<div class="eo-oge">' +
-               gorselAlani(o) +
-               '<div class="eo-ad">' + o.ad + '</div>' +
-               '<div class="eo-adet">×' + o.adet + '</div>' +
-             '</div>';
+      return '<div class="eo-oge">' + gorselAlani(o) +
+             '<div class="eo-ad">' + o.ad + '</div>' +
+             '<div class="eo-adet">×' + o.adet + '</div></div>';
     }).join("");
 
     var arka = document.createElement("div");
@@ -216,8 +461,7 @@
       '</div>';
     document.body.appendChild(arka);
 
-    /* Hayalet tıklama: pencere kendi kendine basılmasın (ilk 350 ms). */
-    arka.style.pointerEvents = "none";
+    arka.style.pointerEvents = "none";               /* hayalet tıklama */
     setTimeout(function () { arka.style.pointerEvents = ""; }, 350);
 
     arka.querySelector(".eo-al").addEventListener("click", function () {
@@ -227,73 +471,34 @@
     });
   }
 
-  /* Eğitim bitmişse ve ödül alınmamışsa pencereyi göster. */
   function odulGerekiyorsaAc() {
     var d = durum();
     if (!d || d.odulAlindi || !bittiMi()) return;
     odulPenceresi();
   }
 
-  /* ── TANI ────────────────────────────────────────────────────────────
-     ?egitimtani=1 → ekranın üstünde ne beklendiğini yazan şerit.
-     Konsol yok, tanı ekrana basılır. İş bitince bu blok silinir. */
-  var TANI_ACIK = location.search.indexOf("egitimtani=1") >= 0;
-  function TANI(m) {
-    if (!TANI_ACIK) return;
-    var el = document.getElementById("egitimTani");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "egitimTani";
-      el.style.cssText = "position:fixed;left:6px;right:6px;top:6px;z-index:99999;" +
-        "background:rgba(2,8,22,.9);color:#9fe6ff;font:600 11px/1.35 'Baloo 2',sans-serif;" +
-        "padding:6px 8px;border-radius:8px;max-height:34vh;overflow:auto;white-space:pre-wrap;";
-      document.body.appendChild(el);
-    }
-    el.textContent = (m + "\n" + el.textContent).slice(0, 1500);
-  }
-
-  /* ── YENİ KAYIT: OYUN KALEİÇİNDE BAŞLAR ──────────────────────────────
-     Hoş geldin paneli (rehber.js) kapanana kadar beklenir; erken
-     açılırsa Revolia'nın paneli kaleiçinin altında kalır.
-
-     welcomeGiven ŞARTI YOK. Bayrak hiç yazılmazsa (hoş geldin paneli
-     bir sebeple açılmadıysa) kaleiçi de hiç açılmıyordu; beklenen tek
-     şey artık ekranın boş olması. 12 sn sonra panel hâlâ duruyorsa
-     beklemeden açılır — oyuncu ortada kalmasın. */
+  /* ── YENİ KAYIT: OYUN KALEİÇİNDE BAŞLAR ──────────────────────────── */
   function kaleicindeBaslat() {
     var d = durum();
     if (!d || d.kaleAcildi) return;
-
-    var deneme = 0;
-    var basladi = Date.now();
-
+    var deneme = 0, basladi = Date.now();
     (function bekle() {
       var d2 = durum();
       if (!d2 || d2.kaleAcildi) return;
-
       var app = document.getElementById("appScreen");
       var appAcik = app && getComputedStyle(app).display !== "none";
-      var hosGeldin = document.getElementById("welcomeBack");
-      var gunluk = document.getElementById("dailyRewardOverlay");
-      var gunlukAcik = gunluk && getComputedStyle(gunluk).display !== "none";
       var kaleVar = !!(window.KALEICI && typeof window.KALEICI.ac === "function");
       var sabirTasti = (Date.now() - basladi) > 12000;
 
-      TANI("bekle#" + deneme +
-           " app=" + (appAcik ? 1 : 0) +
-           " hosgeldin=" + (hosGeldin ? 1 : 0) +
-           " gunluk=" + (gunlukAcik ? 1 : 0) +
-           " KALEICI=" + (kaleVar ? 1 : 0));
+      TANI("bekle#" + deneme + " app=" + (appAcik ? 1 : 0) +
+           " ustPencere=" + (ustPencereVar() ? 1 : 0) + " KALEICI=" + (kaleVar ? 1 : 0));
 
-      if (appAcik && kaleVar && (sabirTasti || (!hosGeldin && !gunlukAcik))) {
+      if (appAcik && kaleVar && (sabirTasti || !ustPencereVar())) {
         d2.kaleAcildi = true;
         kaydet();
-        try {
-          window.KALEICI.ac();
-          TANI("KALEICI.ac() calisti");
-        } catch (e) {
-          TANI("!! KALEICI.ac PATLADI: " + (e && e.message));
-        }
+        try { window.KALEICI.ac(); TANI("KALEICI.ac() calisti"); }
+        catch (e) { TANI("!! KALEICI.ac: " + (e && e.message)); }
+        setTimeout(akisiBaslat, 800);
         return;
       }
       if (++deneme > 600) { TANI("!! zaman asimi"); return; }
@@ -301,223 +506,49 @@
     })();
   }
 
-  /* ── OLAY BAYRAKLARI ─────────────────────────────────────────────────
-     Durumdan okunamayan adımlar (canavara saldırı, hızlandırma) oyun
-     kodundan EGITIM.olay("...") ile bildirilir. */
-  function bayrak(ad) {
-    var d = durum();
-    return !!(d && d.olaylar && d.olaylar[ad]);
-  }
-
-  function olay(ad) {
-    var d = durum();
-    if (!d) return;
-    if (!d.olaylar || typeof d.olaylar !== "object") d.olaylar = {};
-    if (d.olaylar[ad]) return;
-    d.olaylar[ad] = true;
-    TANI("olay: " + ad);
-    denetle();
-  }
-
-  /* ── BEDAVA: adımın gerektirdiği elmas garanti edilir ──────────────── */
-  function elmasGaranti(n) {
-    var s = S();
-    if (!s || !(n > 0)) return;
-    if ((s.diamonds || 0) >= n) return;
-    s.diamonds = n;
-    try { if (typeof renderDiamonds === "function") renderDiamonds(); } catch (e) {}
-    try { if (typeof updateShopButtons === "function") updateShopButtons(); } catch (e) {}
-    kaydet();
-  }
-
-  /* ── ZORUNLU KİLİT ───────────────────────────────────────────────────
-     Eğitim sürerken alt menüden yalnız o adımın paneli açılabilir.
-     Dinleyici CAPTURE evresinde durur: düğmenin kendi dinleyicisi
-     hiç çalışmaz (Tuzak 16). Eğitim bitince kaldırılır. */
-  var kilitKuruldu = false;
-  function kilitKur() {
-    if (kilitKuruldu) return;
-    kilitKuruldu = true;
-    document.addEventListener("pointerdown", function (e) {
-      var d = durum();
-      if (!d || bittiMi()) return;
-      var btn = e.target && e.target.closest && e.target.closest("[data-panel]");
-      if (!btn) return;
-      var hedef = btn.getAttribute("data-panel");
-      var adim = ADIMLAR[d.adim];
-      if (!adim) return;
-      if (adim.izin.indexOf(hedef) !== -1) return;
-      e.preventDefault();
-      e.stopPropagation();
-      toast("Önce Revolia'nın gösterdiği adımı tamamla.");
-    }, true);
-  }
-
-  /* ── REVOLİA BALONU ──────────────────────────────────────────────── */
-  function balonStil() {
-    if (document.getElementById("egitimBalonCss")) return;
-    var st = document.createElement("style");
-    st.id = "egitimBalonCss";
-    st.textContent = [
-      "#egitimBalon{position:fixed;left:8px;right:8px;bottom:74px;z-index:9990;",
-      "  display:flex;gap:10px;align-items:flex-start;padding:12px;",
-      "  background:linear-gradient(180deg,#3d7ccc,#152e5e);",
-      "  border:1px solid rgba(190,240,255,.20);border-radius:16px;",
-      "  box-shadow:0 2px 6px rgba(0,20,45,.3);",
-      "  font-family:'Baloo 2','Nunito',sans-serif;color:#eaf4ff;}",
-      "#egitimBalon .eb-yuz{width:64px;flex:0 0 64px;align-self:flex-end;margin-bottom:-12px;",
-      "  object-fit:contain;object-position:bottom center;background:none;border:none;",
-      "  border-radius:0;filter:drop-shadow(0 6px 14px rgba(0,20,45,.55));pointer-events:none;}",
-      "#egitimBalon .eb-govde{flex:1 1 auto;min-width:0;}",
-      "#egitimBalon .eb-ust{display:flex;justify-content:space-between;align-items:center;gap:8px;}",
-      "#egitimBalon .eb-baslik{font-weight:900;font-size:13.5px;color:#ffd257;",
-      "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
-      "#egitimBalon .eb-sayac{font-weight:800;font-size:11.5px;color:#a8c7e0;",
-      "  font-variant-numeric:tabular-nums;}",
-      "#egitimBalon .eb-metin{font-weight:700;font-size:12.5px;line-height:1.35;margin-top:3px;",
-      "  text-shadow:0 1px 2px rgba(0,20,45,.55);}"
-    ].join("\n");
-    document.head.appendChild(st);
-  }
-
-  /* Ekranda bir ödül/karşılama penceresi varsa balon çekilir; yoksa
-     ikisi üst üste biniyor ve alttaki düğmeye ulaşılamıyor. */
-  function ustPencereVar() {
-    if (document.getElementById("welcomeBack")) return true;
-    if (document.getElementById("egitimOdul")) return true;
-    var dr = document.getElementById("dailyRewardOverlay");
-    if (dr && getComputedStyle(dr).display !== "none") return true;
-    return false;
-  }
-
-  function balonCiz() {
-    var d = durum();
-    if (!d) return;
-    if (bittiMi()) { balonKaldir(); return; }
-    if (ustPencereVar()) { balonKaldir(); return; }
-    balonStil();
-
-    var adim = ADIMLAR[d.adim];
-    if (!adim) return;
-
-    var el = document.getElementById("egitimBalon");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "egitimBalon";
-      el.innerHTML =
-        '<img class="eb-yuz" src="gorsel21.webp" alt="" onerror="this.style.display=\'none\'">' +
-        '<div class="eb-govde">' +
-          '<div class="eb-ust"><div class="eb-baslik"></div><div class="eb-sayac"></div></div>' +
-          '<div class="eb-metin"></div>' +
-        '</div>';
-      document.body.appendChild(el);
-    }
-    el.querySelector(".eb-baslik").textContent = adim.baslik;
-    el.querySelector(".eb-sayac").textContent = (d.adim + 1) + " / " + TOPLAM_ADIM;
-    el.querySelector(".eb-metin").textContent = adim.metin;
-  }
-
-  function balonKaldir() {
-    var el = document.getElementById("egitimBalon");
-    if (el) el.remove();
-  }
-
-  /* ── DENETİM ─────────────────────────────────────────────────────────
-     Adım koşulu sağlandıysa bir sonrakine geçilir. Son adım bitince
-     ödül penceresi açılır. */
-  var denetimKuruldu = false;
-
-  function denetle() {
-    var s = S(), d = durum();
-    if (!s || !d) return;
-    if (bittiMi()) { balonKaldir(); odulGerekiyorsaAc(); return; }
-
-    var adim = ADIMLAR[d.adim];
-    if (!adim) return;
-
-    var bittiBu = false;
-    try { bittiBu = !!adim.tamam(s); } catch (e) { bittiBu = false; }
-
-    if (bittiBu) {
-      d.adim++;
-      kaydet();
-      TANI("adim tamam -> " + d.adim);
-      var sonraki = ADIMLAR[d.adim];
-      if (sonraki) {
-        elmasGaranti(sonraki.elmas);
-        toast("✅ " + adim.baslik + " tamam!");
-        balonCiz();
-      } else {
-        balonKaldir();
-        toast("🎖️ Eğitim tamamlandı!");
-        setTimeout(odulGerekiyorsaAc, 500);
-      }
-      return;
-    }
-    balonCiz();
-  }
-
-  function akisiBaslat() {
-    var d = durum();
-    if (!d || bittiMi()) { balonKaldir(); return; }
-    kilitKur();
-    elmasGaranti((ADIMLAR[d.adim] || {}).elmas || 0);
-    balonCiz();
-    if (!denetimKuruldu) {
-      denetimKuruldu = true;
-      setInterval(denetle, 1000);
-    }
-  }
-
-  /* Girişten sonra index.html çağırır. */
-  function girisSonrasi() {
-    var d = durum();
-    if (!d) { TANI("!! state yok"); return; }
-    TANI("girisSonrasi adim=" + d.adim + " kaleAcildi=" + (d.kaleAcildi ? 1 : 0));
-    /* Eğitimi hiç görmemiş YENİ oyuncu: kaleiçinde başlar.
-       Eski oyuncular (eğitim bitmiş sayılır) etkilenmez. */
-    if (d.adim === 0 && !d.kaleAcildi) kaleicindeBaslat();
-    setTimeout(akisiBaslat, 1200);
-    setTimeout(odulGerekiyorsaAc, 1600);
-  }
-
-  /* Eski hesapları eğitime sokmamak için: hesabın birlikleri ya da
-     kahramanı varsa eğitim tamamlanmış sayılır. index.html giriş
-     akışında bir kez çağrılır. */
+  /* Eski hesaplar eğitime girmez: birliği ya da kahramanı olan hesap
+     tamamlanmış sayılır ve ödülü almaz. */
   function eskiHesabiIsaretle() {
     var s = S(), d = durum();
     if (!s || !d || d.adim > 0) return;
     var birlikVar = s.troops && (s.troops.knight > 0 || s.troops.soldier > 0 || s.troops.robot > 0);
     var kahramanVar = Array.isArray(s.ownedHeroSkins) && s.ownedHeroSkins.length > 0;
     if (birlikVar || kahramanVar) {
-      TANI("eski hesap sayildi (birlik=" + (birlikVar ? 1 : 0) +
-           " kahraman=" + (kahramanVar ? 1 : 0) + ") -> egitim atlandi");
+      TANI("eski hesap -> egitim atlandi");
       d.adim = TOPLAM_ADIM;
-      d.odulAlindi = true;      /* geçmiş hesap ödülü almaz */
+      d.odulAlindi = true;
       d.kaleAcildi = true;
       kaydet();
     }
   }
 
+  function girisSonrasi() {
+    var d = durum();
+    if (!d) { TANI("!! state yok"); return; }
+    TANI("giris adim=" + d.adim + " kaleAcildi=" + (d.kaleAcildi ? 1 : 0));
+    if (bittiMi()) { setTimeout(odulGerekiyorsaAc, 1000); return; }
+    if (!d.kaleAcildi) kaleicindeBaslat();
+    else setTimeout(akisiBaslat, 1200);
+  }
+
   window.EGITIM = {
+    ADET: ADET,
     TOPLAM_ADIM: TOPLAM_ADIM,
+    ZINCIR: ZINCIR,
     ODULLER: ODULLER,
     durum: durum,
     bittiMi: bittiMi,
-    odulVer: odulVer,
-    odulPenceresi: odulPenceresi,
-    girisSonrasi: girisSonrasi,
     olay: olay,
     denetle: denetle,
     akisiBaslat: akisiBaslat,
+    odulVer: odulVer,
+    odulPenceresi: odulPenceresi,
+    girisSonrasi: girisSonrasi,
     eskiHesabiIsaretle: eskiHesabiIsaretle,
     kaleicindeBaslat: kaleicindeBaslat
   };
 
-  /* Ödül penceresini tek başına görmek için: ?egitimodul=1 */
-  if (location.search.indexOf("egitimodul=1") >= 0) {
-    setTimeout(odulPenceresi, 600);
-  }
+  if (location.search.indexOf("egitimodul=1") >= 0) setTimeout(odulPenceresi, 600);
 
-  console.log("[egitim.js] Rehberlik bolum 1 yuklendi ✔");
+  console.log("[egitim.js] Rehberlik zinciri yuklendi ✔ adim=" + TOPLAM_ADIM);
 })();

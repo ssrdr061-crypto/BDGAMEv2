@@ -1922,6 +1922,26 @@
      binaya oturur, sonra o binanın paneli açılır. GELİŞTİR'e basınca
      yapılan iş ile AYNI akış; ikinci bir odaklama yolu yazılmadı.
      Döner: true = götürüldü. */
+  /* ── EĞİTİM KAPILARI (egitim.js) ─────────────────────────────────
+     gotur() bina seçip İNŞAAT panelini açar; rehberlikte panel
+     istemiyoruz, yalnız kamera binaya otursun. İkinci fonksiyon
+     EĞİT düğmesinin EKRAN dikdörtgenini verir — tuval üstünde
+     çizilen düğmeye vurgu halkası ancak böyle konabilir. */
+  function egitimOdak(id) {
+    var b = binaBulId(id);
+    if (!b) return false;
+    if (!katman || !katman.classList.contains('acik')) return false;
+    binaSec(b);
+    setTimeout(function () { binayaOdakla(b, function () {}); }, 0);
+    return true;
+  }
+
+  function egitDugmesiEkran() {
+    if (!tuval || !egitBtn || !egitBtn.w) return null;
+    var r = tuval.getBoundingClientRect();
+    return { x: r.left + egitBtn.x, y: r.top + egitBtn.y, w: egitBtn.w, h: egitBtn.h };
+  }
+
   function gotur(id) {
     var b = binaBulId(id);
     if (!b) return false;
@@ -2354,7 +2374,8 @@
                     SUSLER: SUSLER, ZCFG: ZCFG, IK: IK,
                     binaAdi: binaAdi, binaKutusu: binaKutusu,
                     binaSeviyesi: binaSeviyesi, gotur: gotur,
-                    yerlesimOku: yerlesimOku, yerlesimYaz: yerlesimYaz };
+                    yerlesimOku: yerlesimOku, yerlesimYaz: yerlesimYaz,
+                    egitimOdak: egitimOdak, egitDugmesiEkran: egitDugmesiEkran };
 
   /* ═══════════════════════════════════════════════════════════
      İKON İNCE AYAR PANELİ — GEÇİCİ  (?ikonayar=1)
