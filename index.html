@@ -4356,6 +4356,19 @@ function compactStateForExport(s) {
   if (s.troops && (s.troops.knight || s.troops.soldier || s.troops.robot)) {
     out.tr = [s.troops.knight || 0, s.troops.soldier || 0, s.troops.robot || 0];
   }
+  /*  Sv2+ birlikler (knight2 … robot6). `tr` dizisi ESKİ KODLARLA
+      UYUMLU KALSIN diye olduğu gibi bırakıldı — üç Sv1 orada durur,
+      üst kademeler ayrı bir tabloda taşınır. Yazılmazsa hesap kodu
+      dışa aktarılırken Süvari, Savaş Fili gibi birlikler düşerdi.  */
+  if (s.troops) {
+    const ust = {};
+    Object.keys(s.troops).forEach(uid => {
+      if (uid === "knight" || uid === "soldier" || uid === "robot") return;
+      const n = s.troops[uid] || 0;
+      if (n > 0) ust[uid] = n;
+    });
+    if (Object.keys(ust).length) out.trx = ust;
+  }
   if (s.trainingQueue && s.trainingQueue.length) {
     out.tq = s.trainingQueue.map(j => [j.unitId, j.finishAt]);
   }
@@ -4386,6 +4399,7 @@ function expandCompactState(c) {
   if (c.bsv) s.binaSv = c.bsv;
   if (c.ins) s.insaat = c.ins.map(i => ({ id: i[0], hedef: i[1], bitis: i[2] }));
   if (c.tr) s.troops = { knight: c.tr[0] || 0, soldier: c.tr[1] || 0, robot: c.tr[2] || 0 };
+  if (c.trx) Object.keys(c.trx).forEach(uid => { s.troops[uid] = c.trx[uid] || 0; });
   if (c.tq) s.trainingQueue = c.tq.map(j => ({ unitId: j[0], finishAt: j[1] }));
   return s;
 }
