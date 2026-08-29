@@ -7903,9 +7903,14 @@ if (document.readyState === "loading") {
     yayil: 135,        /* toz yayılımı (px) */
     tozSure: 900,      /* toz süresi (ms) */
     sarsinti: 16,      /* oturma sarsıntısı */
-    olcek: 0.49        /* efektin genel boyu — 1 = ilk hâli */
+    olcek: 0.49,       /* efektin genel boyu — 1 = ilk hâli */
+    bekle: 470         /* kamera hedefe varana kadar SESSİZ evre (ms) */
   };
-  var GECIKME = 470;   /* kamera varana kadar bekleme (ms) */
+  /* SIRA KURALI (Tuzak 54): efekt taşımanın İLK anında başlar.
+     Gecikmeli başlatılırsa kale önce çizilir, sonra efekt onu gizler,
+     sonra yeniden gösterir — "kale gelir, kaybolur, tekrar gelir".
+     Bekleme artık efektin İÇİNDE: ilk 470 ms hiçbir şey çizilmez,
+     yalnız kale gizli tutulur; kamera bu sürede hedefe varır. */
 
   var css =
     ".isin-tuval{position:fixed;left:0;top:0;width:100%;height:100%;" +
@@ -8096,8 +8101,20 @@ if (document.readyState === "loading") {
     sonDurum = "başladı";
 
     function adim(now) {
-      var t = now - t0;
+      var ham = now - t0;
+      var t = ham - AYAR.bekle;          /* efekt saati: bekleme düşülmüş */
       var n = isinKaleDugum();
+
+      /* SESSİZ EVRE — kamera yolda, kale gizli, tuval boş. */
+      if (t < 0) {
+        if (n && !n.classList.contains("isin-gizli")) n.classList.add("isin-gizli");
+        g.setTransform(DPR, 0, 0, DPR, 0, 0);
+        g.clearRect(0, 0, W, H);
+        kare++;
+        requestAnimationFrame(adim);
+        return;
+      }
+
       var yer = n ? isinYeri(n) : null;
       if (!yer && !son) yer = isinYedekYer();
       if (yer) son = yer;
@@ -8187,9 +8204,8 @@ if (document.readyState === "loading") {
     var eski = K.tasi;
     if (typeof eski !== "function") return false;
     K.tasi = function () {
-      var s = eski.apply(this, arguments);
-      setTimeout(isinOynat, GECIKME);
-      return s;
+      isinOynat();                       /* önce başlat: kale hiç görünmesin */
+      return eski.apply(this, arguments);
     };
     K._isinli = true;
     return true;
