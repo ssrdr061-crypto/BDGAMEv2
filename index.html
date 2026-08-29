@@ -3488,6 +3488,10 @@ function defaultState() {
     ownedHeroSkins: [],
     selectedHeroSkin: null,
 
+    /* Savaş panelindeki 1·2·3 kadro yuvaları (troops.js).
+       { "1": { t:{unitId:adet}, c:[komutanId,…] }, … } */
+    orduKayit: {},
+
     maxFrontierLevel: 0,
 
     /* KAYNAKLAR — arazilerden toplanır, canavarlardan düşer.
@@ -4324,6 +4328,8 @@ function compactStateForExport(s) {
   if (s.ownedHeroSkins && s.ownedHeroSkins.length) out.ohs = s.ownedHeroSkins;
   if (s.selectedHeroSkin) out.shs = s.selectedHeroSkin;
   if (s.selectedCommanders && s.selectedCommanders.length) out.sc = s.selectedCommanders;
+  /* Kadro yuvaları — yazılmazsa her girişte üç yuva da boşalır. */
+  if (s.orduKayit && Object.keys(s.orduKayit).length) out.okt = s.orduKayit;
   /* ── ÖDÜL BAYRAKLARI — kaydedilmezse her girişte ödül tekrar verilir ── */
   if (s.welcomeGiven)        out.wg  = true;
   if (s.welcomePending)      out.wp  = true;
@@ -4366,6 +4372,7 @@ function expandCompactState(c) {
   if (c.ldr) s.lastDailyRewardDate = c.ldr;
   if (c.lde) s.lastDailyExplore = c.lde;
   if (c.sc) s.selectedCommanders = c.sc;
+  if (c.okt) s.orduKayit = c.okt;
   if (c.mfl) s.maxFrontierLevel = c.mfl;
   if (c.kyn) s.kaynaklar = c.kyn;
   if (c.uat) s.uretimAt = c.uat;

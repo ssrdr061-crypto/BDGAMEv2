@@ -644,7 +644,7 @@ function renderTroopSelector() {
   }
 
   listEl.innerHTML = owned.map(def => {
-    const max = state.troops[def.id] || 0;
+    const max = seferSiniri(def.id);
     const current = Math.min(selectedTroopsForBattle[def.id] || 0, max);
     return `
       <div class="troop-select-row" data-unit="${def.id}">
@@ -677,6 +677,9 @@ function renderTroopSelector() {
       const kutu = satir ? satir.querySelector(".t-num") : null;
       if (kutu && document.activeElement !== kutu) kutu.value = slider.value;
       if (kutu) tNumBoyutla(kutu);
+      seferSinirlariTazele();
+      seferSayaciTazele();
+      aileYuzdeTazele();
       updateTroopSelectSummary();
       renderEnemyPowerPreview();
     });
@@ -692,9 +695,12 @@ function renderTroopSelector() {
     const satir2 = kutu.closest(".troop-select-row");
     const s = satir2 ? satir2.querySelector(".troop-slider") : null;
     if (!s) return;
-    const enCok = parseInt(s.max, 10) || 0;
 
     function uygula(duzelt) {
+      /* Sınır artık SABİT DEĞİL: sefer tavanı doldukça diğer
+         satırların sınırı düşer. Bu yüzden bağlanma anındaki
+         değer değil, sürgünün O ANKİ max'ı okunuyor. */
+      const enCok = parseInt(s.max, 10) || 0;
       let v = parseInt(String(kutu.value).replace(/[^0-9]/g, ""), 10);
       if (!isFinite(v)) v = 0;
       v = Math.max(0, Math.min(enCok, v));
@@ -746,6 +752,11 @@ function renderTroopSelector() {
     ["pointerup", "pointerleave", "pointercancel"].forEach(ev => btn.addEventListener(ev, bitir));
   });
 
+  seferSecimiKirp();
+  seferSinirlariTazele();
+  seferSayaciTazele();
+  orduKayitCiz();
+  aileYuzdeCiz();
   updateTroopSelectSummary();
 }
 
@@ -780,6 +791,343 @@ function buildTroopRoster(selectedTroops) {
     }
   });
   return roster;
+}
+
+
+/*  ═══════════════════════════════════════════════════════════
+    4.b) SEFER TAVANI · ORDU KAYITLARI · AİLE YÜZDELERİ
+    ------------------------------------------------------------
+    Üç iş de savaş panelinin ÜST şeridinde toplanır ve tek yerden
+    çizilir. Görünüm kuralları tema.js'te hazır duruyor
+    (.ok-serit / .ok-yuva / #orduKayitBtn / .ay-serit / .ay-num);
+    burada YALNIZCA işaretleme ve mantık var, tek satır stil yok.
+
+    1) TAVAN — gelistir.js'ten gelir (taban 5.000 + komutanların
+       kapasitesi). Tavan yalnız sefere çıkarken geçerlidir;
+       savunmada tavan yoktur.
+       gelistir.js yüklenmemişse tavan SONSUZ sayılır — oyun
+       tavansız çalışır, kilitlenmez.
+
+    2) ORDU KAYITLARI — 1·2·3 yuvası. Yuvaya basınca o kadro
+       yüklenir ve yuva seçili olur; 💾 seçili yuvaya YAZAR.
+       Kayıt hesapta durur (state.orduKayit → compact "okt"),
+       yani başka cihazda da açılır.
+
+    3) AİLE YÜZDELERİ — her ailenin sefer tavanına oranı.
+       Kutucuğa sayı yazınca o aileye tavanın o kadarı dağıtılır.
+       Dağıtım ÜST KADEMEDEN AŞAĞI yapılır (en güçlü birlik önce
+       gider). Tavan asla aşılmaz: bir aileye ayrılan yer,
+       diğer ailelerin şu anki seçiminden ARTAN yerle sınırlıdır.
+    ═══════════════════════════════════════════════════════════ */
+
+const AILE_SIRA = ["knight", "soldier", "robot"];
+
+/* Sefere çıkarken geçerli toplam tavan. */
+function seferTavani() {
+  if (typeof savasKapasitesi === "function") return savasKapasitesi();
+  return Infinity;
+}
+
+/* Bir birliğin kapladığı yer. Tek kaynak gelistir.js. */
+function seferYeri(unitId) {
+  if (typeof birimYeri === "function") return birimYeri(unitId) || 1;
+  return 1;
+}
+
+/* Şu an seçili birliklerin kapladığı toplam yer.
+   `harici` verilirse o birlik hesaba KATILMAZ — bir satırın
+   kendi sınırını bulurken kendini saymamalı. */
+function seferKullanilan(harici) {
+  let top = 0;
+  Object.keys(selectedTroopsForBattle).forEach(u => {
+    if (u === harici) return;
+    const n = selectedTroopsForBattle[u] || 0;
+    if (n > 0) top += n * seferYeri(u);
+  });
+  return top;
+}
+
+/* Bir satırın üst sınırı: elindeki kadar, ama tavandan ARTAN
+   yerden fazlası değil. SABİT DEĞİLDİR — başka satır büyüyünce
+   bu satırın sınırı düşer. */
+function seferSiniri(unitId) {
+  const sahip = (typeof state !== "undefined" && state.troops) ? (state.troops[unitId] || 0) : 0;
+  const tavan = seferTavani();
+  if (!isFinite(tavan)) return sahip;
+  const yer = Math.max(1, seferYeri(unitId));
+  const bos = Math.max(0, tavan - seferKullanilan(unitId));
+  return Math.max(0, Math.min(sahip, Math.floor(bos / yer)));
+}
+
+/* Tavan düştüğünde (komutan çıkarıldı, kayıt yüklendi) fazlalığı
+   kırp. Üst kademeden aşağı korunur: pahalı birlik kalır. */
+function seferSecimiKirp() {
+  const tavan = seferTavani();
+  if (!isFinite(tavan)) return;
+  const sirali = Object.keys(selectedTroopsForBattle)
+    .filter(u => (selectedTroopsForBattle[u] || 0) > 0)
+    .sort((a, b) => ((UNIT_TYPES[b] && UNIT_TYPES[b].kademe) || 1) -
+                    ((UNIT_TYPES[a] && UNIT_TYPES[a].kademe) || 1));
+  let kalan = tavan;
+  sirali.forEach(u => {
+    const yer = Math.max(1, seferYeri(u));
+    const sahip = (state.troops && state.troops[u]) || 0;
+    const istenen = Math.min(selectedTroopsForBattle[u] || 0, sahip);
+    const sigan = Math.max(0, Math.min(istenen, Math.floor(kalan / yer)));
+    selectedTroopsForBattle[u] = sigan;
+    kalan -= sigan * yer;
+  });
+}
+
+/* Sürgülerin max'ı ve "/ n" yazısı, seçim değiştikçe tazelenir. */
+function seferSinirlariTazele() {
+  const listEl = document.getElementById("troopSelectList");
+  if (!listEl) return;
+  listEl.querySelectorAll(".troop-select-row").forEach(satir => {
+    const u = satir.dataset.unit;
+    if (!u) return;
+    const s = satir.querySelector(".troop-slider");
+    const enCokEl = satir.querySelector(".t-max");
+    const secili = selectedTroopsForBattle[u] || 0;
+    /* Kendi seçimi sınıra DAHİLDİR, yoksa sürgü kendi değerinin
+       altına düşer ve elindeki birlik geri alınamaz olur. */
+    const sinir = Math.max(secili, seferSiniri(u));
+    if (s && parseInt(s.max, 10) !== sinir) s.max = sinir;
+    if (enCokEl) enCokEl.textContent = "/ " + sinir;
+  });
+}
+
+/* Başlıktaki "kullanılan / tavan" sayacı. Ayrı kutu açmaz,
+   birlik başlığının içine yazar — yeni stil gerekmez. */
+function seferSayaciTazele() {
+  const listEl = document.getElementById("troopSelectList");
+  if (!listEl) return;
+  const baslik = listEl.previousElementSibling;
+  if (!baslik || !baslik.classList.contains("troop-select-title")) return;
+
+  let sp = baslik.querySelector(".sf-sayac");
+  const tavan = seferTavani();
+  if (!isFinite(tavan)) { if (sp) sp.remove(); return; }
+
+  if (!sp) {
+    sp = document.createElement("span");
+    sp.className = "sf-sayac";
+    sp.style.cssText = "margin-left:6px; color:#ffd257; font-weight:800;" +
+                       "font-variant-numeric:tabular-nums;";
+    baslik.appendChild(sp);
+  }
+  const kul = seferKullanilan(null);
+  sp.textContent = "· " + kul.toLocaleString("tr-TR") + " / " + tavan.toLocaleString("tr-TR");
+}
+
+/* ── ORDU KAYITLARI ─────────────────────────────────────────── */
+
+const ORDU_KAYIT_SAYISI = 3;
+let orduKayitSecili = 1;      /* 💾 hangi yuvaya yazacak */
+
+function orduKayitlari() {
+  if (typeof state === "undefined") return {};
+  if (!state.orduKayit || typeof state.orduKayit !== "object") state.orduKayit = {};
+  return state.orduKayit;
+}
+
+/*  Kayıt biçimi: { t:{unitId:adet}, c:[komutanId,…] }
+    Firebase `undefined` yazmayı sessizce reddeder — sıfır olan
+    birlikler tabloya HİÇ konmaz, boş komutan yuvaları atılır. */
+function orduKaydet(no) {
+  const t = {};
+  Object.keys(selectedTroopsForBattle).forEach(u => {
+    const n = selectedTroopsForBattle[u] || 0;
+    if (n > 0) t[u] = n;
+  });
+  const c = (typeof selectedCommanders !== "undefined" && Array.isArray(selectedCommanders))
+    ? selectedCommanders.filter(Boolean) : [];
+  orduKayitlari()[String(no)] = { t, c };
+  if (typeof persistCurrentState === "function") persistCurrentState();
+  orduKayitCiz();
+  if (typeof showToastForce === "function") showToastForce("Kadro " + no + ". yuvaya kaydedildi.");
+}
+
+function orduYukle(no) {
+  const k = orduKayitlari()[String(no)];
+  if (!k) return false;
+
+  /* 1) Birlikler — elde olmayan sayı kırpılır. */
+  Object.keys(selectedTroopsForBattle).forEach(u => { selectedTroopsForBattle[u] = 0; });
+  Object.keys(k.t || {}).forEach(u => {
+    if (!UNIT_TYPES[u]) return;
+    const sahip = (state.troops && state.troops[u]) || 0;
+    selectedTroopsForBattle[u] = Math.min(k.t[u] || 0, sahip);
+  });
+
+  /* 2) Komutanlar — elde olmayan ve YOLDA olan düşer. Süzme ve
+        aile kuralı heroes.js'te; burada sadece listeyi veriyoruz. */
+  if (typeof selectedCommanders !== "undefined" && Array.isArray(k.c)) {
+    const sahipKahraman = (state.ownedHeroSkins || []);
+    selectedCommanders = k.c.filter(id => sahipKahraman.indexOf(id) !== -1);
+    if (typeof refreshAfterCommanderChange === "function") {
+      /* Tavan komutanlarla değiştiği için önce komutan yazılır;
+         refresh zaten renderTroopSelector'ı çağırıp kırpar. */
+      refreshAfterCommanderChange();
+      return true;
+    }
+  }
+  seferSecimiKirp();
+  renderTroopSelector();
+  if (typeof renderEnemyPowerPreview === "function") renderEnemyPowerPreview();
+  return true;
+}
+
+/*  Şeridi panele yerleştirir. Panel her çizimde yeniden
+    kurulmaz — varsa yalnız durumu tazelenir; yoksa kurulur.
+    Kap olarak .battle-arena seçilir: ✕ düğmesi (#mapBackBtn) de
+    orada duruyor, üçü aynı hizada kalsın diye. */
+function orduKayitCiz() {
+  const listEl = document.getElementById("troopSelectList");
+  if (!listEl) return;
+  const kap = listEl.closest(".battle-arena");
+  if (!kap) return;
+
+  let serit = kap.querySelector(".ok-serit");
+  if (!serit) {
+    serit = document.createElement("div");
+    serit.className = "ok-serit";
+    for (let i = 1; i <= ORDU_KAYIT_SAYISI; i++) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "ok-yuva";
+      b.dataset.no = String(i);
+      b.textContent = String(i);
+      b.addEventListener("click", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        const no = parseInt(b.dataset.no, 10);
+        orduKayitSecili = no;
+        if (!orduYukle(no)) orduKayitCiz();   /* boş yuva: yalnız seçilir */
+      });
+      serit.appendChild(b);
+    }
+    kap.appendChild(serit);
+  }
+
+  let btn = kap.querySelector("#orduKayitBtn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "orduKayitBtn";
+    btn.textContent = "💾";
+    btn.title = "Kadroyu seçili yuvaya kaydet";
+    btn.addEventListener("click", (e) => {
+      e.preventDefault(); e.stopPropagation();
+      orduKaydet(orduKayitSecili);
+    });
+    kap.appendChild(btn);
+  }
+
+  const kayitlar = orduKayitlari();
+  serit.querySelectorAll(".ok-yuva").forEach(b => {
+    const no = b.dataset.no;
+    b.classList.toggle("ok-dolu", !!kayitlar[no]);
+    b.classList.toggle("ok-secili", parseInt(no, 10) === orduKayitSecili);
+  });
+}
+
+/* ── AİLE YÜZDELERİ ─────────────────────────────────────────── */
+
+/*  Bir aileye `hedef` kadar yer ver. Üst kademeden aşağı doldurur;
+    elde olmayan kademe atlanır. */
+function aileyiAyarla(aile, hedef) {
+  const kademeler = aileKademeleri(aile).slice().reverse();   /* Sv6 → Sv1 */
+  let kalan = Math.max(0, hedef);
+  kademeler.forEach(def => {
+    const sahip = (state.troops && state.troops[def.id]) || 0;
+    const yer = Math.max(1, seferYeri(def.id));
+    const al = Math.max(0, Math.min(sahip, Math.floor(kalan / yer)));
+    selectedTroopsForBattle[def.id] = al;
+    kalan -= al * yer;
+  });
+}
+
+/* O ailenin şu an kapladığı yer. */
+function aileSecimi(aile) {
+  let top = 0;
+  Object.keys(selectedTroopsForBattle).forEach(u => {
+    if (birlikAilesi(u) !== aile) return;
+    const n = selectedTroopsForBattle[u] || 0;
+    if (n > 0) top += n * seferYeri(u);
+  });
+  return top;
+}
+
+/* Şeridi kurar (bir kez) — kutucukların içindeki sayıyı
+   aileYuzdeTazele() günceller. */
+function aileYuzdeCiz() {
+  const listEl = document.getElementById("troopSelectList");
+  if (!listEl) return;
+  const tavan = seferTavani();
+  const eski = listEl.parentNode ? listEl.parentNode.querySelector(".ay-serit") : null;
+
+  /* Tavan yoksa yüzde de yok — şerit varsa kaldırılır. */
+  if (!isFinite(tavan) || tavan <= 0) { if (eski) eski.remove(); return; }
+
+  let serit = eski;
+  if (!serit) {
+    serit = document.createElement("div");
+    serit.className = "ay-serit";
+    AILE_SIRA.forEach(aile => {
+      const def = UNIT_TYPES[aile] || {};
+      const oge = document.createElement("div");
+      oge.className = "ay-oge";
+      oge.innerHTML =
+        `<span class="ay-ico">${def.icon || ""}</span>` +
+        `<input type="text" class="ay-num" inputmode="numeric" pattern="[0-9]*" ` +
+        `maxlength="3" data-aile="${aile}" value="0">` +
+        `<span class="ay-pc">%</span>`;
+      serit.appendChild(oge);
+    });
+    listEl.parentNode.insertBefore(serit, listEl);
+
+    serit.querySelectorAll(".ay-num").forEach(kutu => {
+      const aile = kutu.dataset.aile;
+
+      function uygula() {
+        const t = seferTavani();
+        if (!isFinite(t)) return;
+        let v = parseInt(String(kutu.value).replace(/[^0-9]/g, ""), 10);
+        if (!isFinite(v)) v = 0;
+        v = Math.max(0, Math.min(100, v));
+
+        /*  Tavan asla aşılmaz: bu aileye ayrılabilecek yer,
+            DİĞER ailelerin şu anki seçiminden artan kadardır. */
+        const digerleri = AILE_SIRA.filter(f => f !== aile)
+                                   .reduce((top, f) => top + aileSecimi(f), 0);
+        const bosYer = Math.max(0, t - digerleri);
+        aileyiAyarla(aile, Math.min(bosYer, Math.round(t * v / 100)));
+
+        renderTroopSelector();
+        if (typeof renderEnemyPowerPreview === "function") renderEnemyPowerPreview();
+      }
+
+      kutu.addEventListener("blur", uygula);
+      kutu.addEventListener("focus", () => setTimeout(() => kutu.select(), 0));
+      kutu.addEventListener("click", (e) => e.stopPropagation());
+      kutu.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); kutu.blur(); }
+      });
+    });
+  }
+  aileYuzdeTazele();
+}
+
+/* Kutucuklardaki sayıyı seçime göre yaz. Odaktaki kutuya
+   DOKUNULMAZ — oyuncu yazarken altından çekilmesin. */
+function aileYuzdeTazele() {
+  const tavan = seferTavani();
+  if (!isFinite(tavan) || tavan <= 0) return;
+  document.querySelectorAll(".ay-serit .ay-num").forEach(kutu => {
+    if (document.activeElement === kutu) return;
+    const oran = Math.round(aileSecimi(kutu.dataset.aile) * 100 / tavan);
+    kutu.value = String(Math.max(0, Math.min(100, oran)));
+  });
 }
 
 
@@ -1065,7 +1413,7 @@ const TroopTabs = (function () {
         ? `<img src="${def.img}" alt="${def.name}">`
         : `<span class="tp-emoji">${def.icon || "🪖"}</span>`;
       return `
-        <div class="tp-row${n > 0 ? "" : " tp-none"}" data-unit="${def.id}" data-kad="${def.kademe || 1}" style="animation-delay:${i * 0.05}s">
+        <div class="tp-row${n > 0 ? "" : " tp-none"}" data-unit="${def.id}" style="animation-delay:${i * 0.05}s">
           <div class="tp-img">${pic}</div>
           <div class="tp-mid">
             <div class="tp-name">${unitAdi(def)}</div>
