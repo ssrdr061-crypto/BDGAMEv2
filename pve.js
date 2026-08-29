@@ -329,11 +329,59 @@
           _skins = state.selectedCommanders.filter(Boolean);
         }
       } catch (e) {}
+      /*  KÖK HATA: kahramanStatUygula `u.hp` alanına yazar, ama
+          PvE birimlerinde can alanının adı `hpEach`. Bonus var
+          olmayan bir alana yazılıp kayboluyordu — canavar savaşında
+          kahramanın CAN bonusu hiç işlemiyordu (pvp.js'te işliyor).
+          Alanı geçici olarak açıp sonucu geri yazıyoruz.          */
+      birimler.forEach(u => { u.hp = u.hpEach; });
       window.kahramanStatUygula(birimler, _skins);
+      birimler.forEach(u => {
+        u.hpEach = Math.max(1, Math.round(u.hp));
+        delete u.hp;
+      });
     }
 
     const baslangicSayi = orduSayi(birimler);
     const combinedMaxHp = Math.max(1, orduCan(birimler));
+
+    /* ── RAPOR STAT DÖKÜMÜ ────────────────────────────────────────
+       Biçim pvp.js `_orduStat` ile BİREBİR aynıdır; tema.js'teki
+       `statKarsiHTML` iki motoru da aynı kodla okusun diye.
+       `atk/def/hp/olum` savaşta kullanılan GERÇEK stat (istatistik
+       katmanı + buff + kahraman bonusu işlenmiş), `t*` troops.js'teki
+       HAM taban. Rapor ikisini oranlayıp "+%kaç" üretir.
+
+       Ölçüm BURADA alınır — savaş turları başlamadan önce, tıpkı
+       pvp.js'te olduğu gibi. Sonra alınsaydı ölen birlikler dökümden
+       düşer, yüzdeler ordu büyüklüğüne göre kayardı.
+
+       SAVUNAN TARAF BOŞ: canavarın ailesi yoktur, Savunucu/Koruyucu/
+       Nişancı satırlarında sağ sütun "—" görünür. Nesne yine de
+       verilir; `statKarsiHTML` iki taraf da yoksa hiç çizmiyor.    */
+    const _statOzet = {
+      attacker: {
+        sayi: baslangicSayi,
+        birimler: birimler.filter(u => (u.start || 0) > 0).map(u => {
+          const d = UT()[u.unitId] || {};
+          return {
+            unitId: u.unitId,
+            aile: AILE(u.unitId),
+            ad: d.name || u.unitId,
+            sayi: u.start,
+            atk:  Math.round((u.atk    || 0) * 100) / 100,
+            def:  Math.round((u.def    || 0) * 100) / 100,
+            hp:   Math.round((u.hpEach || 0) * 100) / 100,
+            olum: Math.round((u.olum   || 0) * 100) / 100,
+            tatk:  d.attack  || 0,
+            tdef:  d.defense || 0,
+            thp:   d.hp      || 0,
+            tolum: d.olum    || 0
+          };
+        })
+      },
+      defender: { sayi: cv.adet, birimler: [] }
+    };
 
     /* Yenilgi eşiği: ordunun %55'inden fazlası düşemez */
     const taban = Math.max(0, Math.ceil(baslangicSayi * (1 - PVE.yenilgiEsigi)));
@@ -602,10 +650,45 @@
 
     const kalanCan = orduCanKalan(birimler);
 
+    /* ── KİM KAÇ TANE ÖLDÜRDÜ ─────────────────────────────────────
+       pvp.js'teki `attribute()` ile aynı mantık. Fark şu: PvP'de her
+       vuruş kimin yaptığı biliniyor (`killsBy`), PvE'de hasar ordu
+       toplamı üzerinden hesaplanıyor ve canavar tek gövde. O yüzden
+       düşen canavar sayısı, birimlerin SALDIRI PAYINA göre dağıtılır
+       — hasarı kim verdiyse öldürme de ona yazılır. Bu, pvp.js'in
+       sahipsiz düşüşler için kullandığı yöntemin aynısıdır.
+
+       Canavarın yaralısı yoktur (hastanesi yok), `wounded` hep 0.
+       Yuvarlama artığı son birime yazılır ki toplam tutsun.       */
+    const _canavarOlen = Math.max(0, cv.adet - canavarAdet());
+    const _attrib = {};
+    (function dagit() {
+      const liste = birimler.filter(u => (u.start || 0) > 0);
+      liste.forEach(u => { _attrib[u.unitId] = { killed: 0, wounded: 0 }; });
+      if (!liste.length || _canavarOlen <= 0) return;
+
+      const toplamPay = liste.reduce((s, u) => s + (u.atk || 0) * (u.start || 0), 0);
+      let kalan = _canavarOlen;
+      liste.forEach((u, i) => {
+        if (i === liste.length - 1) { _attrib[u.unitId].killed += kalan; return; }
+        const pay = toplamPay > 0
+          ? ((u.atk || 0) * (u.start || 0)) / toplamPay
+          : 1 / liste.length;
+        const k = Math.min(Math.round(_canavarOlen * pay), kalan);
+        _attrib[u.unitId].killed += k;
+        kalan -= k;
+      });
+    })();
+
     /* Buff tek kullanımlıktır: savaş çözüldü, tüketildi. */
     if (BF) BF.savasBitti();
 
     return {
+      /* ── RAPOR ALANLARI (pvp.js ile aynı adlar) ── */
+      statlar: _statOzet,
+      attackerAttribution: _attrib,
+      defenderAttribution: {},
+
       rounds, win,
       heroHpLost: 0,                 /* kahramanın kendi canı yok */
       heroHpFinal: kalanCan,

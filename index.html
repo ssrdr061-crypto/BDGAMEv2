@@ -3766,6 +3766,13 @@ function openLogReportModal(entry) {
     abilities: r.abilities || [],
     flowFx: r.flowFx || {},
 
+    /* PvP raporuyla AYNI iki alan: İSTATİSTİKLER bölümü ve birlik
+       dökümündeki "Öldürdü" satırı. Canavarın kendi dökümü yoktur,
+       savunan taraf boş geçilir. */
+    statlar: r.statlar || null,
+    attackerAttribution: r.attribution || null,
+    defenderAttribution: null,
+
     /* ── SAVAŞ DETAYLARI PENCERESİ İÇİN ──────────────────────────
        O pencere (tema.js `savasDetaylariAc`) verisini YALNIZ
        `heroFx`ten okur; yukarıdaki `abilities`/`flowFx` alanlarına
@@ -7678,7 +7685,12 @@ async function startBattle() {
         })),
         flowFx: result.flowFx || {},
         enemyUltiTriggers: result.enemyUltiTriggers,
-        maxHp: effectiveHero.maxHp
+        maxHp: effectiveHero.maxHp,
+        /* İSTATİSTİKLER bölümü ve "Öldürdü" satırı bu ikisinden
+           çizilir (tema.js statKarsiHTML / unitDetailHTML).
+           Yazılmazsa canavar raporunda ikisi de boş kalır. */
+        statlar: result.statlar || null,
+        attribution: result.attackerAttribution || null
       }
     });
     gunlugüKirp();

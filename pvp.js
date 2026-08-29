@@ -426,19 +426,22 @@ function buildDefender(acc, fallbackName) {
   /* savunmadaki gerçek birlik sayıları (robot çarpanı dahil) */
   const troops = {};
   let troopCount = 0;
-  FRONT_ORDER.forEach(uid => {
+  /*  Savunanın Sv2+ birlikleri de sayılır. Savunma çarpanı KİMLİĞE
+      değil AİLEYE bakar: "robot" kimliği Nişancı ailesinin Sv1'idir,
+      Savaş Arabası (robot2) da aynı çarpanı almalı. */
+  SAF_SIRASI().forEach(uid => {
     let n = Math.max(0, Math.floor(num(src[uid], 0)));
-    if (uid === "robot") n = Math.round(n * CFG.defenseRobotMultiplier);
+    if (AILE(uid) === "robot") n = Math.round(n * CFG.defenseRobotMultiplier);
     troops[uid] = n;
     troopCount += n;
   });
   /* gerçek envanteri de sakla (kayıp düşerken çarpansız kullanılacak) */
   const realTroops = {};
-  FRONT_ORDER.forEach(uid => realTroops[uid] = Math.max(0, Math.floor(num(src[uid], 0))));
+  SAF_SIRASI().forEach(uid => realTroops[uid] = Math.max(0, Math.floor(num(src[uid], 0))));
 
   /* kutucukta gösterilecek toplam güç */
   let atk = num(h.attack, 40), def = num(h.defense, 25), hp = num(h.maxHp, 200);
-  FRONT_ORDER.forEach(uid => {
+  SAF_SIRASI().forEach(uid => {
     const d = UT()[uid]; if (!d) return;
     atk += d.attack * troops[uid]; def += d.defense * troops[uid]; hp += d.hp * troops[uid];
   });
@@ -1827,7 +1830,12 @@ async function runPvpBattle() {
   /* seçilen birlikler */
   const sel = {};
   let selTotal = 0;
-  FRONT_ORDER.forEach(uid => {
+  /*  KÖK HATA (düzeltildi): burada FRONT_ORDER geziliyordu; o dizi
+      yalnız Sv1 kimliklerini (knight/soldier/robot) tutar. Oyuncu
+      Süvari ya da Savaş Fili seçse bile savaşa GİRMEDEN eleniyordu —
+      ne dövüşüyor, ne rapora giriyor, ne de statı sayılıyordu.
+      SAF_SIRASI() 18 birliğin tamamını aile ve kademe sırasıyla verir. */
+  SAF_SIRASI().forEach(uid => {
     const n = Math.min(num((selectedTroopsForBattle||{})[uid], 0), num((state.troops||{})[uid], 0));
     sel[uid] = Math.max(0, Math.floor(n)); selTotal += sel[uid];
   });
@@ -1964,7 +1972,7 @@ function sendRaidReport(enemy, R, delta) {
   /* robot çarpanı yüzünden fazla kayıp yazılmasın */
   const real = Object.assign({}, enemy.realTroops);
   const killed = clampToReal(R.defender.killed, real);
-  FRONT_ORDER.forEach(u => real[u] = Math.max(0, num(real[u],0) - num(killed[u],0)));
+  SAF_SIRASI().forEach(u => real[u] = Math.max(0, num(real[u],0) - num(killed[u],0)));
   const wounded = clampToReal(R.defender.wounded, real);
 
   const totalLost = sumMap(killed) + sumMap(wounded);
@@ -1983,7 +1991,7 @@ function sendRaidReport(enemy, R, delta) {
       st.diamonds = Math.max(0, num(st.diamonds, 0) - lose);
     }
     if (!st.troops) st.troops = {};
-    FRONT_ORDER.forEach(uid => {
+    SAF_SIRASI().forEach(uid => {
       const gone = num(killed[uid], 0) + num(wounded[uid], 0);
       if (gone > 0) st.troops[uid] = Math.max(0, num(st.troops[uid], 0) - gone);
     }, function (err, committed) {
@@ -2007,7 +2015,7 @@ function sendRaidReport(enemy, R, delta) {
        sonucu sessizce kaybolur. Satır başına `adet` tutulur. */
     if (totalLost > 0 && sumMap(wounded) > 0) {
       if (!Array.isArray(st.hospital)) st.hospital = [];
-      FRONT_ORDER.forEach(uid => {
+      SAF_SIRASI().forEach(uid => {
         const n = Math.max(0, Math.round(num(wounded[uid], 0)));
         if (n <= 0) return;
         const d = UT()[uid];
