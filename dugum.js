@@ -810,6 +810,7 @@ function tuket(slotId, miktar) {
   if (!fbHazir()) {
     const r = uygula(_durum[slotId]);
     durumUygulaTek(slotId, r.yeni);
+    tazele();
     return Promise.resolve({ ok: true, alinan: r.alinan, bitti: r.bitti });
   }
 
@@ -819,27 +820,58 @@ function tuket(slotId, miktar) {
      sanıyordu. Belirti: canavar yenildi, ödül alındı, ama düğüm
      haritada duruyor ve hiçbir hata görünmüyor. */
   let sonuc = { ok: false, calisti: false, alinan: 0, bitti: false, sebep: "" };
-  return firebaseDb.ref(AYAR.KOK + "/" + slotId).transaction(mevcut => {
+
+  /* ── ZAMAN AŞIMI KALKANI (isgalAl'daki ile aynı) ──
+     Firebase kuralları `dugumler/` yolunu kapatıyorsa transaction
+     ne çözülür ne reddedilir; söz SONSUZA DEK ASILI KALIR. Kalkan
+     olmadan `.then` de `.catch` de hiç çalışmaz: çağıran hiçbir
+     cevap almaz, uyarı basılmaz, düğüm haritada durur ve ortada
+     tek bir hata belirtisi olmaz. "Canavarı yendim ama gitmedi,
+     hiçbir uyarı da yok" şikâyetinin sebebi buydu.
+     isgalAl'da bu kalkan vardı, burada YOKTU — bu yüzden arazi
+     toplama çalışıp düğüm kaldırma sessizce ölüyordu. */
+  const zamanAsimi = new Promise(coz => setTimeout(() => coz("_zamanasimi_"), 6000));
+
+  const islem = firebaseDb.ref(AYAR.KOK + "/" + slotId).transaction(mevcut => {
     const r = uygula(mevcut);
     sonuc.calisti = true;
     sonuc.alinan = r.alinan;
     sonuc.bitti  = r.bitti;
     return r.yeni;
-  }).then(res => {
+  }).then(res => ({ res: res })).catch(err => ({ err: err }));
+
+  return Promise.race([islem, zamanAsimi]).then(x => {
+    if (x === "_zamanasimi_") {
+      /* Bulut cevap vermedi: en azından BU cihazda düğüm kalksın,
+         sebep de çağırana dönsün (index.html kırmızı şeride basar). */
+      const r = uygula(_durum[slotId]);
+      durumUygulaTek(slotId, r.yeni);
+      tazele();
+      _bulutHata = "dugumler/ yanıt vermiyor (zaman aşımı) — Firebase kurallarını denetle";
+      sonuc.ok = false;
+      sonuc.yerel = true;
+      sonuc.alinan = r.alinan;
+      sonuc.bitti  = r.bitti;
+      sonuc.sebep  = _bulutHata;
+      return sonuc;
+    }
+    if (x && x.err) {
+      _bulutHata = x.err && x.err.message ? x.err.message : String(x.err);
+      sonuc.ok = false;
+      sonuc.sebep = "hata: " + _bulutHata;
+      return sonuc;
+    }
+    const res = x && x.res;
     const kabul = !!(res && res.committed);
     sonuc.ok = kabul;
     if (kabul) {
       durumUygulaTek(slotId, res.snapshot.val());
+      tazele();
     } else {
       sonuc.sebep = sonuc.calisti
         ? "sunucu yazmayı kabul etmedi (kural ya da çakışma)"
         : "işlem hiç çalışmadı (yol okunamadı)";
     }
-    return sonuc;
-  }).catch(err => {
-    _bulutHata = err && err.message ? err.message : String(err);
-    sonuc.ok = false;
-    sonuc.sebep = "hata: " + _bulutHata;
     return sonuc;
   });
 }
@@ -1006,8 +1038,82 @@ function tani() {
 /* ═══════════════════════════════════════════════════════════
    16) BAŞLATMA
    ═══════════════════════════════════════════════════════════ */
+/* ── TEŞHİS PANELİ  ?dugum=1 ──
+   Telefonda konsol yok. Bu panel `dugumler/` yolunun OKUNABİLİR ve
+   YAZILABİLİR olup olmadığını ekranda gösterir. Sorun çözülünce bu
+   blok silinecek — GEÇİCİDİR. */
+function tesihisPaneli() {
+  if (document.getElementById("dugumTaniPanel")) return;
+
+  const k = document.createElement("div");
+  k.id = "dugumTaniPanel";
+  k.style.cssText = "position:fixed;left:6px;right:6px;top:96px;z-index:99998;" +
+    "background:#0d2438;color:#dff2ff;padding:10px 12px;border-radius:12px;" +
+    "font:600 12px 'Baloo 2',sans-serif;box-shadow:0 2px 6px rgba(0,20,45,.3);" +
+    "max-height:60vh;overflow:auto;";
+
+  const bilgi = document.createElement("div");
+  bilgi.style.cssText = "white-space:pre-wrap;line-height:1.5;";
+  k.appendChild(bilgi);
+
+  const satirlar = [];
+  function yaz(t) { satirlar.push(t); bilgi.textContent = satirlar.join("\n"); }
+
+  function dugmeYap(metin, isle) {
+    const b = document.createElement("button");
+    b.textContent = metin;
+    b.style.cssText = "margin:8px 6px 0 0;padding:7px 12px;border:none;border-radius:9px;" +
+      "background:#1b4b70;color:#fff;font:700 12px 'Baloo 2',sans-serif;";
+    b.addEventListener("click", isle);
+    k.appendChild(b);
+    return b;
+  }
+
+  yaz("DÜĞÜM TEŞHİSİ");
+  yaz("firebaseDb : " + (fbHazir() ? "var" : "YOK"));
+  yaz("dinleyici  : " + (_dinliyor ? "açık" : "KAPALI"));
+  yaz("bulutHata  : " + (_bulutHata || "yok"));
+  yaz("bulut kaydı: " + Object.keys(_durum).length + " slot");
+  yaz("haritada   : " + dugumler().length + " / " + _slotlar.length);
+
+  /* Kesici: Firebase kural engelinde söz asılı kalır, cevap gelmez. */
+  function kesici(soz, sn) {
+    return Promise.race([
+      soz.then(v => ({ ok: true, v: v })).catch(e => ({ ok: false, e: e })),
+      new Promise(c => setTimeout(() => c({ ok: false, asili: true }), sn * 1000)),
+    ]);
+  }
+
+  dugmeYap("OKUMA TESTİ", function () {
+    if (!fbHazir()) { yaz("→ okuma: firebaseDb yok"); return; }
+    yaz("→ okuma deneniyor…");
+    kesici(firebaseDb.ref(AYAR.KOK).get(), 6).then(r => {
+      if (r.asili) yaz("→ OKUMA ASILI KALDI (kural okumayı engelliyor)");
+      else if (!r.ok) yaz("→ OKUMA REDDEDİLDİ: " + (r.e && r.e.message ? r.e.message : r.e));
+      else yaz("→ okuma TAMAM (" + Object.keys((r.v && r.v.val()) || {}).length + " kayıt)");
+    });
+  });
+
+  dugmeYap("YAZMA TESTİ", function () {
+    if (!fbHazir()) { yaz("→ yazma: firebaseDb yok"); return; }
+    yaz("→ yazma deneniyor…");
+    kesici(firebaseDb.ref(AYAR.KOK + "/_test").set({ n: 0, k: Date.now() }), 6).then(r => {
+      if (r.asili) yaz("→ YAZMA ASILI KALDI (kural yazmayı engelliyor)");
+      else if (!r.ok) yaz("→ YAZMA REDDEDİLDİ: " + (r.e && r.e.message ? r.e.message : r.e));
+      else yaz("→ yazma TAMAM");
+    });
+  });
+
+  dugmeYap("KAPAT", function () { k.remove(); });
+
+  document.body.appendChild(k);
+}
+
 function baslat() {
   dinlemeyeBasla();
+  try {
+    if (location.search.indexOf("dugum=1") !== -1) setTimeout(tesihisPaneli, 600);
+  } catch (e) {}
   /* Bulut yoksa da harita dolu görünsün: nesil 0 konumları
      zaten tohumdan hesaplanıyor, ek iş gerekmiyor. */
   tazele();
