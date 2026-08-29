@@ -399,15 +399,26 @@
     return en;
   }
 
+  /* DUGUM karo koordinatı verir (0–141); HARITA.merkezle ve
+     ekranKonumu ise grid bekler (0–30). Çeviri ORAN ile yapılır —
+     yapılmazsa kamera haritanın 4.7 katı uzağına gidip boş yeşil
+     alana oturuyor. */
+  function ORAN() {
+    try { return (window.HARITA && window.HARITA.ORAN) || 4.7; }
+    catch (e) { return 4.7; }
+  }
+
   function enYakinCanavaraOdakla() {
     var d = enYakinCanavar();
-    if (!d) return;
+    if (!d) { TANI("!! Sv1 canavar bulunamadi"); return; }
     _canavarSlot = d;
+    var o = ORAN();
+    TANI("canavar karo " + d.kx + "," + d.ky);
     try {
       if (window.HARITA && typeof window.HARITA.merkezle === "function") {
-        window.HARITA.merkezle(d.kx, d.ky);
+        window.HARITA.merkezle(d.kx / o, d.ky / o);
       }
-    } catch (e) {}
+    } catch (e) { TANI("!! merkezle: " + (e && e.message)); }
   }
 
   function canavarKutusu() {
@@ -415,7 +426,8 @@
     if (!d) return null;
     _canavarSlot = d;
     try {
-      var p = window.HARITA.ekranKonumu(d.kx, d.ky);
+      var o = ORAN();
+      var p = window.HARITA.ekranKonumu(d.kx / o, d.ky / o);
       if (!p) return null;
       var wrap = document.getElementById("battleMapWrap");
       var r = wrap ? wrap.getBoundingClientRect() : { left: 0, top: 0 };
