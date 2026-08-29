@@ -7903,7 +7903,7 @@ if (document.readyState === "loading") {
     yayil: 135,        /* toz yayılımı (px) */
     tozSure: 900,      /* toz süresi (ms) */
     sarsinti: 16,      /* oturma sarsıntısı */
-    olcek: 0.70        /* efektin genel boyu — 1 = eski hâli */
+    olcek: 0.49        /* efektin genel boyu — 1 = ilk hâli */
   };
   var GECIKME = 470;   /* kamera varana kadar bekleme (ms) */
 
