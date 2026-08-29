@@ -132,8 +132,8 @@
        çamurlu bir ara ton çıkar (yeşil+kırmızı = kahve-gri; göz bunu
        arazi değil, çimenin üstüne atılmış GÖLGE diye okur). Geçiş
        bunun yerine `serpme` ile yapılıyor; buradaki değer sadece her
-       beneğin kenarını tırtıklı bırakmayacak kadar (~1 karo). */
-    gecisBandi: 0.004,
+       beneğin kenarını tırtıklı bırakmayacak kadar (~2 karo). */
+    gecisBandi: 0.007,
 
     /* ── SERPME GEÇİŞ (benekler) ──
        Sınır çizgisi renk karıştırarak değil, biyom DEĞERİNİ ince
@@ -143,17 +143,21 @@
        Aynısı kar ↔ çimen sınırında da çalışır.
 
        genislik: beneklerin saçıldığı bandın eni. u birimi;
-         0.022 ≈ 6 karo. Büyütürsen serpme alanı genişler.
-       siklik : benek boyu. Büyük sayı = küçük benek. 0.55 ≈ 1.8 karo.
-         1.0'ı aşma: zemin `zeminAdim` (10 dünya pikseli) aralıkla
-         örneklendiği için daha küçük benek örneklemeye takılır,
+         0.022 ≈ 6 karo, 0.055 ≈ 15 karo. KÜÇÜKSE sınır kopmaz,
+         sadece kıvrılır — "geçiş sert" belirtisi budur. Parça parça
+         ada isteniyorsa bu sayı büyütülür.
+       kaba/orta/ince: üç gürültü katmanının sıklığı (büyük sayı =
+         küçük desen). Kaba katman sınırın genel şeklini bozar, orta
+         katman kenardan parçalar kopartır, ince katman kopan
+         parçaların kenarını tırtıklar.
+         2.0'ı aşma: zemin `zeminAdim` (10 dünya pikseli) aralıkla
+         örneklendiği için daha küçük desen örneklemeye takılır,
          bulanıklaşıp yine gri bir pusa döner.
-       ince/incePay: üstüne binen ikinci, daha küçük benek katmanı. */
+       pay: üç katmanın ağırlığı, toplamı 1 olmalı. */
     serpme: {
-      genislik: 0.022,
-      siklik:   0.55,
-      ince:     1.15,
-      incePay:  0.35,
+      genislik: 0.055,
+      kaba: 0.30, orta: 0.80, ince: 1.70,
+      pay: [0.45, 0.34, 0.21],
     },
 
     /* ── Arazi dokuları ──
@@ -594,9 +598,10 @@
   function serpmeSapma(gx, gy) {
     const S = CFG.serpme;
     if (!S || S.genislik <= 0) return 0;
-    const f = S.siklik;
-    const n = smoothNoise(gx * f + 613, gy * f + 271) * (1 - S.incePay)
-            + smoothNoise(gx * S.ince + 97, gy * S.ince + 149) * S.incePay;
+    const p = S.pay;
+    const n = smoothNoise(gx * S.kaba + 613, gy * S.kaba + 271) * p[0]
+            + smoothNoise(gx * S.orta +  97, gy * S.orta + 149) * p[1]
+            + smoothNoise(gx * S.ince + 331, gy * S.ince +  59) * p[2];
     return (n - 0.5) * S.genislik;
   }
 
