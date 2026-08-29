@@ -26,8 +26,23 @@
   /* Kışla ekranındaki gerçek öğeler (index.html unit viewer markup'ı).
      Kilitli kademelerin hayalet çubuğu dışlanır, yoksa görünmeyen
      sürgü hedef sanılıyor ve halka hiç çizilmiyordu. */
-  var SURGU_SEC = "#panel-troops .unit-qty-bar:not(.kilit-hayalet) .uv-qty-slider";
-  var URET_SEC  = "#panel-troops .unit-instant-btn";   /* ⚡ Anında — süreli üretim değil */
+  /* Üç birim ekranı da DOM'da durur; yalnız .is-active olanı açıktır.
+     Aile belirtilmezse hep ilki (savunucu) bulunuyor ve sonraki
+     kışlaların sürgü adımı yanlışlıkla tamamlanmış sayılıyordu. */
+  function surguSec(aile) {
+    return '#panel-troops .unit-screen[data-unit="' + aile + '"].is-active ' +
+           '.unit-qty-bar:not(.kilit-hayalet) .uv-qty-slider';
+  }
+  function sayiSec(aile) {
+    return '#panel-troops .unit-screen[data-unit="' + aile + '"].is-active ' +
+           '.unit-qty-bar:not(.kilit-hayalet) .uq-input';
+  }
+  function uretSec(aile) {
+    return '#panel-troops .unit-screen[data-unit="' + aile + '"].is-active .unit-instant-btn';
+  }
+
+  /* Tavan kilidi için o an açık olan ekran yeter. */
+  var SURGU_SEC = "#panel-troops .unit-screen.is-active .unit-qty-bar:not(.kilit-hayalet) .uv-qty-slider";
 
   /* ── ÖDÜL PAKETİ — değiştirilecek TEK yer ──────────────────────────── */
   var ODULLER = [
@@ -100,16 +115,16 @@
       {
         anahtar: binaId + "_surgu",
         metin: "Sürgüyü " + ADET + "'a çek.",
-        hedef: { tip: "dom", sec: SURGU_SEC },
+        hedef: { tip: "dom", sec: surguSec(unitId) },
         tamam: function () {
-          var sl = gorunurOge(SURGU_SEC);
+          var sl = gorunurOge(surguSec(unitId));
           return !!sl && (parseInt(sl.value, 10) || 0) >= ADET;
         }
       },
       {
         anahtar: binaId + "_uret",
         metin: "⚡ Anında düğmesine bas.",
-        hedef: { tip: "dom", sec: URET_SEC },
+        hedef: { tip: "dom", sec: uretSec(unitId) },
         tamam: function () { return birlik(unitId) >= ADET || birlikVeKuyruk(unitId) >= ADET; }
       },
       {
@@ -795,7 +810,7 @@
     }
     /* Yanındaki sayı kutusu da aynı tavana çekilir; yoksa oyuncu
        oradan 30'un üstüne yazabiliyor. */
-    var kutu = gorunurOge("#panel-troops .unit-qty-bar:not(.kilit-hayalet) .uq-input");
+    var kutu = gorunurOge("#panel-troops .unit-screen.is-active .unit-qty-bar:not(.kilit-hayalet) .uq-input");
     if (kutu) {
       if ((parseInt(kutu.max, 10) || 0) !== ADET) kutu.max = String(ADET);
       if ((parseInt(kutu.value, 10) || 0) > ADET) {
