@@ -238,8 +238,21 @@
     return null;
   }
 
+  var sonKaydirma = 0;
+  function hedefiGorunurYap(adim) {
+    if (!adim.hedef || adim.hedef.tip !== "dom") return;
+    if (Date.now() - sonKaydirma < 1200) return;      /* sürekli zıplamasın */
+    var el = gorunurOge(adim.hedef.sec);
+    if (!el) return;
+    var r = el.getBoundingClientRect();
+    if (r.top >= 60 && r.bottom <= window.innerHeight - 170) return;
+    sonKaydirma = Date.now();
+    try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {}
+  }
+
   function vurguCiz(adim) {
     stilKur();
+    hedefiGorunurYap(adim);
     var kutu = hedefKutu(adim.hedef);
     var halka = document.getElementById("egitimHalka");
     var el = document.getElementById("egitimEl");
@@ -299,8 +312,17 @@
       else { s.style.bottom = ayar.px + "px"; s.style.top = "auto"; }
     } else {
       s.style.top = ""; s.style.bottom = "";
+      /* Hangi tarafta durursa hedefin ÜSTÜNE binmiyorsa orada durur.
+         Eşik yerine gerçek kesişim ölçülür: şeridin kendi yüksekliği
+         hesaba katılmazsa sürgü gibi ince öğelerin önüne düşüyordu. */
       var kutu = hedefKutu(adim.hedef);
-      var altta = kutu ? (kutu.y + kutu.h) > (window.innerHeight * 0.55) : false;
+      var yuk = s.getBoundingClientRect().height || 90;
+      var altta = false;
+      if (kutu) {
+        var altSerit = { ust: window.innerHeight - 74 - yuk, alt: window.innerHeight - 74 };
+        var carpisiyor = (kutu.y + kutu.h + 8) > altSerit.ust && kutu.y < altSerit.alt;
+        altta = carpisiyor;
+      }
       s.classList.toggle("es-ust-konum", altta);
       s.classList.toggle("es-alt-konum", !altta);
     }
@@ -440,6 +462,8 @@
       TANI("adim " + d.adim + " · " + adim.anahtar);
     }
 
+    surguTavaniniKilitle();
+
     var bitti = false;
     try { bitti = !!adim.tamam(); } catch (e) { bitti = false; }
 
@@ -457,6 +481,22 @@
 
     seritCiz(adim, d.adim);
     vurguCiz(adim);
+  }
+
+  /* ── SÜRGÜ TAVANI ────────────────────────────────────────────────────
+     Kaynak bol olduğu için sürgü 30'u aşabiliyordu. Eğitim sürerken
+     görünür sürgünün max değeri ADET'e sabitlenir: oyuncu sonuna
+     kadar çekse bile tam 30'da durur. Eğitim bitince troops.js bir
+     sonraki çizimde kendi tavanını geri yazar. */
+  function surguTavaniniKilitle() {
+    if (bittiMi()) return;
+    var sl = gorunurOge("#troopTrainSlider_knight,#troopTrainSlider_soldier,#troopTrainSlider_robot");
+    if (!sl) return;
+    if ((parseInt(sl.max, 10) || 0) !== ADET) sl.max = ADET;
+    if ((parseInt(sl.value, 10) || 0) > ADET) {
+      sl.value = ADET;
+      try { sl.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
+    }
   }
 
   function akisiBaslat() {
