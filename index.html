@@ -709,10 +709,10 @@ body.world-active{padding:0; overflow:hidden;}
   text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
 .progress-track{
-  width:100%; max-width:280px; height:6px; border-radius:99px;
+  width:100%; max-width:280px; height:16px; border-radius:99px;
   background:rgba(0,0,0,.35); overflow:hidden; border:1px solid var(--line);
 }
-.progress-fill{height:100%; background:linear-gradient(90deg,var(--diamond-cyan),var(--gold)); width:0%; transition:width .3s ease;}
+.progress-fill{height:100%; background:linear-gradient(90deg,#1fa3ea,#4fd8ff); width:0%; transition:width .3s ease;}
 
 .inv-summary{
   display:flex; gap:14px; margin-bottom:18px; flex-wrap:wrap;
@@ -4377,6 +4377,11 @@ function startSessionFor(username) {
   backToMap();
   scrollMapToBase();
   setTimeout(maybeShowDailyRewardModal, 400);
+  /* Yeni oyuncu rehberliği (egitim.js). Eski hesaplar önce muaf
+     işaretlenir, sonra akış başlatılır. */
+  try {
+    if (window.EGITIM) { window.EGITIM.eskiHesabiIsaretle(); window.EGITIM.girisSonrasi(); }
+  } catch (e) {}
   startListeningForGifts(username);
   startListeningForChat();
   startListeningForCastles();
@@ -4435,6 +4440,8 @@ function compactStateForExport(s) {
   if (s.welcomePending)      out.wp  = true;
   if (s.lastDailyRewardDate) out.ldr = s.lastDailyRewardDate;
   if (s.lastDailyExplore)    out.lde = s.lastDailyExplore;
+  /* Eğitim durumu — yazılmazsa yeni oyuncu her girişte eğitime döner. */
+  if (s.egitim) out.egt = [s.egitim.adim || 0, s.egitim.odulAlindi ? 1 : 0, s.egitim.kaleAcildi ? 1 : 0];
   if (s.maxFrontierLevel) out.mfl = s.maxFrontierLevel;
   if (s.kaynaklar) out.kyn = s.kaynaklar;
   /* Üretim damgası kaydedilmezse her girişte "şimdi" olur ve
@@ -4484,6 +4491,7 @@ function expandCompactState(c) {
   if (c.wp)  s.welcomePending = true;
   if (c.ldr) s.lastDailyRewardDate = c.ldr;
   if (c.lde) s.lastDailyExplore = c.lde;
+  if (c.egt) s.egitim = { adim: c.egt[0] || 0, odulAlindi: !!c.egt[1], kaleAcildi: !!c.egt[2] };
   if (c.sc) s.selectedCommanders = c.sc;
   if (c.okt) s.orduKayit = c.okt;
   if (c.mfl) s.maxFrontierLevel = c.mfl;
@@ -6817,6 +6825,22 @@ function scrollMapToBase(maxFrames) {
          oydu, burası ondan ayrışmıştı.
          Zoom önce sabitlenir (clampMapPan), sonra konum onunla
          hesaplanır. Ölçüler tek yerden: MAP_W / MAP_H. */
+      /* ── KAMERA TEK KAYNAK: harita.js ortala() ──
+         Zemin izometrik canvas'ta çiziliyor; aşağıdaki MAP_W/MAP_H
+         yüzde hesabı o dünyayla aynı yeri göstermiyor. Üstelik
+         harita.js açılışta kendi ortala()'sını DOMContentLoaded'da
+         çalıştırıyor — o an state.castle henüz yok, kamera haritanın
+         ortasına oturuyor. Giriş bittikten sonra aynı fonksiyonu
+         tekrar çağırmak hem kaleyi ortalar hem iki ayrı hesabı
+         teke indirir. Yedek: harita.js yoksa eski yol. */
+      try {
+        if (window.HARITA && typeof window.HARITA.ortala === "function") {
+          window.HARITA.ortala();
+          _scrollMapToBaseRafId = null;
+          return;
+        }
+      } catch (e) {}
+
       clampMapPan();
       const startPxX = MAP_W * startXPct / 100 * mapZoom;
       const startPxY = MAP_H * startYPct / 100 * mapZoom;
@@ -8955,6 +8979,7 @@ setInterval(() => {
 <script src="uretim.js"></script>
 <script src="insaat.js"></script>
 <script src="kaleici.js"></script>
+<script src="egitim.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════════
      3D BİRLİK VIEWER — Three.js ile OBJ/MTL/Texture
