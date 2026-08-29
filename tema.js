@@ -7643,65 +7643,40 @@ setTimeout(uygula, 2500);
 
 
 /* ══════════════════════════════════════════════════════════════
-   ELMAS TANI — GEÇİCİ  (?elmastani=1)
+   ELMAS TANI v2 — GEÇİCİ  (?elmastani=1)
    --------------------------------------------------------------
-   state.diamonds'a bir setter koyar. Değer her değiştiğinde
-   ekrandaki panele bir satır düşer: eski → yeni + o anda çalışan
-   fonksiyon zinciri. Elmas "kendiliğinden" geri gidiyorsa bunu
-   yapan kod satırda görünür.
+   v1 kaybolma anını yakalayamadı: sayfa her yenilendiğinde panel
+   sıfırlanıyordu. Bu sürümde kayıtlar localStorage'da tutulur,
+   sayfa yenilense de silinmez.
 
-   showToast KULLANILMAZ (Tuzak 12 — bildirimler kapalı).
-   İş bitince BU BLOK SİLİNİR.
+   ÜÇ AYRI KAYNAK izlenir:
+     1. state.diamonds  → setter (kim yazdı, hangi zincirle)
+     2. HUD metni       → saniyelik örnekleme (#diamondAmount)
+     3. sayfa olayları  → yükleme, kapanma, gizlenme
+
+   state ile HUD ayrı ayrı izlenir. İkisi ayrışırsa sorun ekran
+   tarafında, birlikte düşerse veri tarafındadır.
+
+   showToast KULLANILMAZ (Tuzak 12). İş bitince BU BLOK SİLİNİR.
+   Kayıtları sıfırlamak için paneldeki "sil" düğmesi.
    ══════════════════════════════════════════════════════════════ */
-(function elmasTani(){
+(function elmasTani2(){
 "use strict";
 if (location.search.indexOf("elmastani=1") < 0) return;
 
-var kutu = null, satirSayisi = 0;
+var ANAHTAR = "bd_elmas_tani";
+var kutu = null, govde = null;
 
-function panelKur(){
-  if (kutu) return;
-  kutu = document.createElement("div");
-  kutu.id = "elmasTaniPanel";
-  kutu.style.cssText =
-    "position:fixed; left:4px; right:4px; top:calc(env(safe-area-inset-top,0px) + 96px);" +
-    "max-height:52vh; overflow-y:auto; overflow-x:hidden;" +
-    "background:#0d2438; color:#dff3ff; z-index:2147483000;" +
-    "font-family:'Baloo 2',sans-serif; font-size:11px; line-height:1.35;" +
-    "padding:8px 10px 10px; border-radius:12px;" +
-    "box-shadow:0 2px 6px rgba(0,20,45,.3); white-space:pre-wrap; word-break:break-word;";
-  var bas = document.createElement("div");
-  bas.style.cssText = "font-weight:800; font-size:13px; margin-bottom:6px; display:flex; gap:8px; align-items:center;";
-  bas.innerHTML = "<span style='flex:1'>ELMAS TANI</span>";
-  var tem = document.createElement("button");
-  tem.type = "button"; tem.textContent = "temizle";
-  tem.style.cssText = "font:inherit; font-size:11px; background:#164263; color:#dff3ff; border:none; border-radius:8px; padding:3px 9px;";
-  tem.addEventListener("click", function(){
-    var c = kutu.querySelector("#etGovde"); if (c) c.textContent = ""; satirSayisi = 0;
-  });
-  bas.appendChild(tem);
-  var kap = document.createElement("button");
-  kap.type = "button"; kap.textContent = "gizle";
-  kap.style.cssText = tem.style.cssText;
-  kap.addEventListener("click", function(){ kutu.style.display = "none"; });
-  bas.appendChild(kap);
-  kutu.appendChild(bas);
-  var govde = document.createElement("div");
-  govde.id = "etGovde";
-  kutu.appendChild(govde);
-  document.body.appendChild(kutu);
+/* ── KALICI KAYIT ─────────────────────────────────────────── */
+function oku(){
+  try {
+    var h = localStorage.getItem(ANAHTAR);
+    return h ? JSON.parse(h) : [];
+  } catch (e) { return []; }
 }
-
-function yaz(metin){
-  panelKur();
-  var g = kutu.querySelector("#etGovde");
-  if (!g) return;
-  satirSayisi++;
-  var s = document.createElement("div");
-  s.style.cssText = "border-top:1px solid rgba(190,240,255,.20); padding:5px 0;";
-  s.textContent = satirSayisi + ") " + metin;
-  g.insertBefore(s, g.firstChild);
-  while (g.childNodes.length > 40) g.removeChild(g.lastChild);
+function yazDiske(liste){
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(liste.slice(0, 60))); }
+  catch (e) {}
 }
 
 function saat(){
@@ -7710,68 +7685,167 @@ function saat(){
          ":" + ("0"+d.getSeconds()).slice(-2) + "." + ("00"+d.getMilliseconds()).slice(-3);
 }
 
-/* Çağrı zinciri. Kendi satırlarımızı ve tarayıcı gürültüsünü atıyoruz;
-   kalan ilk beş satır işi yapan koddur. */
+function kaydet(tur, metin){
+  var liste = oku();
+  liste.unshift({ t: saat(), tur: tur, m: metin });
+  yazDiske(liste);
+  ciz();
+}
+
+/* ── PANEL ────────────────────────────────────────────────── */
+var RENK = { state:"#7ee3ff", hud:"#ffd479", olay:"#9fb6c8", uyari:"#ff8f8f" };
+
+function panelKur(){
+  if (kutu) return;
+  kutu = document.createElement("div");
+  kutu.id = "elmasTaniPanel";
+  kutu.style.cssText =
+    "position:fixed; left:4px; right:4px; top:calc(env(safe-area-inset-top,0px) + 96px);" +
+    "max-height:56vh; overflow-y:auto; overflow-x:hidden;" +
+    "background:#0d2438; color:#dff3ff; z-index:2147483000;" +
+    "font-family:'Baloo 2',sans-serif; font-size:11px; line-height:1.35;" +
+    "padding:8px 10px 10px; border-radius:12px;" +
+    "box-shadow:0 2px 6px rgba(0,20,45,.3); white-space:pre-wrap; word-break:break-word;";
+
+  var bas = document.createElement("div");
+  bas.style.cssText = "font-weight:800; font-size:13px; margin-bottom:6px; display:flex; gap:6px; align-items:center;";
+  var ad = document.createElement("span");
+  ad.style.cssText = "flex:1;"; ad.textContent = "ELMAS TANI v2";
+  bas.appendChild(ad);
+
+  function dugme(yazi, isle){
+    var b = document.createElement("button");
+    b.type = "button"; b.textContent = yazi;
+    b.style.cssText = "font-family:inherit; font-weight:700; font-size:11px; background:#164263;" +
+                      "color:#dff3ff; border:none; border-radius:8px; padding:3px 9px;";
+    b.addEventListener("click", isle);
+    return b;
+  }
+  bas.appendChild(dugme("sil", function(){
+    try { localStorage.removeItem(ANAHTAR); } catch (e) {}
+    ciz();
+  }));
+  bas.appendChild(dugme("gizle", function(){ kutu.style.display = "none"; }));
+  kutu.appendChild(bas);
+
+  govde = document.createElement("div");
+  kutu.appendChild(govde);
+  document.body.appendChild(kutu);
+}
+
+function ciz(){
+  if (!govde) return;
+  var liste = oku();
+  govde.textContent = "";
+  for (var i = 0; i < liste.length; i++) {
+    var k = liste[i];
+    var s = document.createElement("div");
+    s.style.cssText = "border-top:1px solid rgba(190,240,255,.20); padding:5px 0; color:" +
+                      (RENK[k.tur] || "#dff3ff") + ";";
+    s.textContent = (liste.length - i) + ") " + k.t + "  " + k.m;
+    govde.appendChild(s);
+  }
+  if (!liste.length) govde.textContent = "(kayit yok)";
+}
+
+/* ── ÇAĞRI ZİNCİRİ ────────────────────────────────────────── */
 function zincir(){
   var ham = "";
   try { throw new Error("iz"); } catch (e) { ham = e.stack || ""; }
-  var sat = ham.split("\n");
-  var cikti = [];
+  var sat = ham.split("\n"), cikti = [];
   for (var i = 0; i < sat.length && cikti.length < 5; i++) {
     var t = sat[i].trim();
-    if (!t || t === "Error: iz" || t.indexOf("Error") === 0) continue;
+    if (!t || t.indexOf("Error") === 0) continue;
     if (t.indexOf("elmasTani") >= 0 || t.indexOf("zincir") >= 0 ||
-        t.indexOf("yaz") === 0 || t.indexOf("at set") >= 0) continue;
-    t = t.replace(/^at\s+/, "");
-    t = t.replace(/https?:\/\/[^\s)]*\//g, "");
+        t.indexOf("kaydet") >= 0 || t.indexOf("at set") >= 0) continue;
+    t = t.replace(/^at\s+/, "").replace(/https?:\/\/[^\s)]*\//g, "");
     cikti.push(t);
   }
-  return cikti.length ? cikti.join("\n   ← ") : "(zincir okunamadi)";
+  return cikti.length ? "\n   ← " + cikti.join("\n   ← ") : "";
 }
 
-function kur(){
-  if (typeof state === "undefined" || !state) { setTimeout(kur, 400); return; }
-  if (state.__elmasTaniKurulu) return;
+/* ── 1) state.diamonds SETTER ─────────────────────────────── */
+var setterKurulu = false;
 
+function setterKur(){
+  if (typeof state === "undefined" || !state) { setTimeout(setterKur, 300); return; }
+  if (state.__elmasTani2) { setterKurulu = true; return; }
   var deger = state.diamonds;
   try {
     Object.defineProperty(state, "diamonds", {
-      configurable: true,
-      enumerable: true,
+      configurable: true, enumerable: true,
       get: function(){ return deger; },
       set: function(v){
         var eski = deger;
         deger = v;
         if (eski !== v) {
           var fark = (typeof v === "number" && typeof eski === "number")
-                     ? (v - eski > 0 ? "+" + (v - eski) : String(v - eski))
-                     : "?";
-          yaz(saat() + "  " + eski + " → " + v + "   (" + fark + ")\n   ← " + zincir());
+                     ? (v - eski > 0 ? "+" + (v - eski) : String(v - eski)) : "?";
+          kaydet("state", "STATE  " + eski + " → " + v + "  (" + fark + ")" + zincir());
         }
       }
     });
-    state.__elmasTaniKurulu = true;
-    panelKur();
-    yaz(saat() + "  tani kuruldu, baslangic: " + deger);
+    state.__elmasTani2 = true;
+    setterKurulu = true;
+    kaydet("olay", "setter kuruldu, state.diamonds = " + deger);
   } catch (e) {
-    panelKur();
-    yaz("KURULAMADI: " + (e && e.message ? e.message : e));
+    kaydet("uyari", "SETTER KURULAMADI: " + (e && e.message ? e.message : e));
   }
 }
 
-/* state'in tamamı DEĞİŞTİRİLİRSE setter kaybolur — bu tek başına
-   sorunun kanıtıdır. İki saniyede bir denetle, kaybolmuşsa yaz. */
+/* ── 2) HUD ÖRNEKLEMESİ ───────────────────────────────────── */
+var sonHud = null;
+
+function hudOku(){
+  var el = document.getElementById("diamondAmount");
+  return el ? (el.textContent || "").trim() : null;
+}
+
+/* ── 3) SAYFA OLAYLARI ────────────────────────────────────── */
+window.addEventListener("beforeunload", function(){
+  var d = "?";
+  try { if (typeof state !== "undefined" && state) d = state.diamonds; } catch (e) {}
+  kaydet("olay", "SAYFA KAPANIYOR — state.diamonds = " + d + " · HUD = " + hudOku());
+});
+document.addEventListener("visibilitychange", function(){
+  if (document.visibilityState !== "hidden") return;
+  var d = "?";
+  try { if (typeof state !== "undefined" && state) d = state.diamonds; } catch (e) {}
+  kaydet("olay", "arka plana atildi — state = " + d + " · HUD = " + hudOku());
+});
+
+/* ── SANİYELİK DENETİM ────────────────────────────────────── */
 setInterval(function(){
-  if (typeof state === "undefined" || !state) return;
-  if (!state.__elmasTaniKurulu) {
-    yaz(saat() + "  !! SETTER KAYBOLDU — state nesnesi yeniden kuruldu. Yeniden baglaniyor.");
-    kur();
+  /* HUD metni degistiyse yaz. state satiri zaten ayri dusuyor;
+     ikisi ayrisirsa sorun ekran tarafindadir. */
+  var h = hudOku();
+  if (h !== null && h !== sonHud) {
+    var d = "?";
+    try { if (typeof state !== "undefined" && state) d = state.diamonds; } catch (e) {}
+    if (sonHud !== null) kaydet("hud", "HUD  " + sonHud + " → " + h + "   (state = " + d + ")");
+    sonHud = h;
   }
-}, 2000);
+
+  /* state nesnesi bastan kurulduysa setter kaybolur. */
+  if (typeof state !== "undefined" && state && setterKurulu && !state.__elmasTani2) {
+    kaydet("uyari", "!! SETTER KAYBOLDU — state nesnesi yeniden kuruldu (diamonds = " +
+                    state.diamonds + ")");
+    setterKurulu = false;
+    setterKur();
+  }
+}, 1000);
+
+/* ── BAŞLAT ───────────────────────────────────────────────── */
+function baslat(){
+  panelKur();
+  ciz();
+  kaydet("olay", "══ SAYFA YUKLENDI ══");
+  setterKur();
+}
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", function(){ setTimeout(kur, 300); });
+  document.addEventListener("DOMContentLoaded", function(){ setTimeout(baslat, 300); });
 } else {
-  setTimeout(kur, 300);
+  setTimeout(baslat, 300);
 }
 })();
