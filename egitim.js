@@ -173,33 +173,69 @@
     odulPenceresi();
   }
 
+  /* ── TANI ────────────────────────────────────────────────────────────
+     ?egitimtani=1 → ekranın üstünde ne beklendiğini yazan şerit.
+     Konsol yok, tanı ekrana basılır. İş bitince bu blok silinir. */
+  var TANI_ACIK = location.search.indexOf("egitimtani=1") >= 0;
+  function TANI(m) {
+    if (!TANI_ACIK) return;
+    var el = document.getElementById("egitimTani");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "egitimTani";
+      el.style.cssText = "position:fixed;left:6px;right:6px;top:6px;z-index:99999;" +
+        "background:rgba(2,8,22,.9);color:#9fe6ff;font:600 11px/1.35 'Baloo 2',sans-serif;" +
+        "padding:6px 8px;border-radius:8px;max-height:34vh;overflow:auto;white-space:pre-wrap;";
+      document.body.appendChild(el);
+    }
+    el.textContent = (m + "\n" + el.textContent).slice(0, 1500);
+  }
+
   /* ── YENİ KAYIT: OYUN KALEİÇİNDE BAŞLAR ──────────────────────────────
      Hoş geldin paneli (rehber.js) kapanana kadar beklenir; erken
-     açılırsa Revolia'nın paneli kaleiçinin altında kalır. */
+     açılırsa Revolia'nın paneli kaleiçinin altında kalır.
+
+     welcomeGiven ŞARTI YOK. Bayrak hiç yazılmazsa (hoş geldin paneli
+     bir sebeple açılmadıysa) kaleiçi de hiç açılmıyordu; beklenen tek
+     şey artık ekranın boş olması. 12 sn sonra panel hâlâ duruyorsa
+     beklemeden açılır — oyuncu ortada kalmasın. */
   function kaleicindeBaslat() {
     var d = durum();
     if (!d || d.kaleAcildi) return;
 
     var deneme = 0;
+    var basladi = Date.now();
+
     (function bekle() {
       var d2 = durum();
       if (!d2 || d2.kaleAcildi) return;
-      var s = S();
+
       var app = document.getElementById("appScreen");
       var appAcik = app && getComputedStyle(app).display !== "none";
       var hosGeldin = document.getElementById("welcomeBack");
       var gunluk = document.getElementById("dailyRewardOverlay");
       var gunlukAcik = gunluk && getComputedStyle(gunluk).display !== "none";
+      var kaleVar = !!(window.KALEICI && typeof window.KALEICI.ac === "function");
+      var sabirTasti = (Date.now() - basladi) > 12000;
 
-      if (appAcik && !hosGeldin && !gunlukAcik &&
-          s && s.welcomeGiven === true &&
-          window.KALEICI && typeof window.KALEICI.ac === "function") {
+      TANI("bekle#" + deneme +
+           " app=" + (appAcik ? 1 : 0) +
+           " hosgeldin=" + (hosGeldin ? 1 : 0) +
+           " gunluk=" + (gunlukAcik ? 1 : 0) +
+           " KALEICI=" + (kaleVar ? 1 : 0));
+
+      if (appAcik && kaleVar && (sabirTasti || (!hosGeldin && !gunlukAcik))) {
         d2.kaleAcildi = true;
         kaydet();
-        try { window.KALEICI.ac(); } catch (e) {}
+        try {
+          window.KALEICI.ac();
+          TANI("KALEICI.ac() calisti");
+        } catch (e) {
+          TANI("!! KALEICI.ac PATLADI: " + (e && e.message));
+        }
         return;
       }
-      if (++deneme > 600) return;          /* ~5 dk güvenlik */
+      if (++deneme > 600) { TANI("!! zaman asimi"); return; }
       setTimeout(bekle, 500);
     })();
   }
@@ -207,7 +243,8 @@
   /* Girişten sonra index.html çağırır. */
   function girisSonrasi() {
     var d = durum();
-    if (!d) return;
+    if (!d) { TANI("!! state yok"); return; }
+    TANI("girisSonrasi adim=" + d.adim + " kaleAcildi=" + (d.kaleAcildi ? 1 : 0));
     /* Eğitimi hiç görmemiş YENİ oyuncu: kaleiçinde başlar.
        Eski oyuncular (eğitim bitmiş sayılır) etkilenmez. */
     if (d.adim === 0 && !d.kaleAcildi) kaleicindeBaslat();
@@ -223,6 +260,8 @@
     var birlikVar = s.troops && (s.troops.knight > 0 || s.troops.soldier > 0 || s.troops.robot > 0);
     var kahramanVar = Array.isArray(s.ownedHeroSkins) && s.ownedHeroSkins.length > 0;
     if (birlikVar || kahramanVar) {
+      TANI("eski hesap sayildi (birlik=" + (birlikVar ? 1 : 0) +
+           " kahraman=" + (kahramanVar ? 1 : 0) + ") -> egitim atlandi");
       d.adim = TOPLAM_ADIM;
       d.odulAlindi = true;      /* geçmiş hesap ödülü almaz */
       d.kaleAcildi = true;
