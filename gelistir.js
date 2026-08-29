@@ -730,6 +730,7 @@
   window.kahramanNadirlik  = nadirlik;
   window.kahramanParcasi   = parcaSayisi;
   window.parcaEkle         = parcaEkleAnahtar;
+  window.parcaGorseli      = parcaGorseli;   /* günlük giriş / rehber kutucukları */
   window.parcaPaketiKullan = parcaPaketiKullan; /* günlük giriş / mağaza / canavar */
   window.glsYildizTazele   = glsYildizTazele;
   window.kahramanKapasitesi = kapasite;      /* heroes.js STAT sekmesi   */

@@ -2,9 +2,9 @@
    rehber.js — OYUN İÇİ REHBERLİK MERKEZİ
    ───────────────────────────────────────────────────────────────────────
    Paneller:
-     1) HOŞ GELDİN — yeni KAYIT olan oyunculara Revolia + 1.500.000 elmas (bir kez).
+     1) HOŞ GELDİN — yeni KAYIT olan oyunculara Revolia + 5.000.000 elmas (bir kez).
      2) GÜNLÜK KEŞİF — her gün saat 17:00'de yenilenir, TÜM oyunculara Revolia +
-        30.000 elmas (oyuna girince, günde bir kez).
+        50.000 elmas + 5 mor kahraman parçası (oyuna girince, günde bir kez).
 
    Bu dosya global degiskenlere GUVENMEZ; ana kod state + api'yi ARGUMAN verir:
        window.REHBER.maybeWelcome(state, api)
@@ -14,8 +14,10 @@
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
   const REVOLIA_IMG = "gorsel21.webp";
-  const WELCOME_GIFT = 1500000;
-  const DAILY_GIFT = 30000;
+  const WELCOME_GIFT = 5000000;
+  const DAILY_GIFT = 50000;
+  const DAILY_PARCA = 5;            // günlük keşifte verilen mor parça adedi
+  const DAILY_PARCA_ANAHTAR = "mor";
   const DAILY_HOUR = 17; // günlük ödül bu saatte (yerel) yenilenir
 
   function fmtOf(api, n) {
@@ -67,11 +69,30 @@
         text-shadow:0 2px 3px rgba(0,40,70,.5);
         box-shadow:none; }
       #welcomeBack .wc-next:active{ transform:scale(.96); filter:brightness(.93);box-shadow:none; }
+      #welcomeBack .wc-parca{ display:flex;align-items:center;justify-content:center;gap:10px;
+        margin:2px auto 0; width:fit-content; padding:8px 14px; border-radius:12px;
+        background:rgba(255,255,255,.12); border:1px solid rgba(190,240,255,.20);
+        box-shadow:0 2px 6px rgba(0,20,45,.3); }
+      #welcomeBack .wc-parca img{ width:44px;height:44px;object-fit:contain; }
+      #welcomeBack .wc-parca b{ font-weight:900;font-size:15px;color:#fff;
+        text-shadow:0 1px 2px rgba(0,20,45,.55); }
     `;
     document.head.appendChild(st);
   }
 
-  /* Paneli kurar. cfg = { gift, giftName, steps, claim } */
+  /* Parça kutucuğu. Görsel adı tek yerden: gelistir.js parcaGorseli(). */
+  function parcaKutusu(cfg) {
+    if (!cfg.parca || !(cfg.parca.adet > 0)) return "";
+    var g = "";
+    try {
+      if (typeof window.parcaGorseli === "function") g = window.parcaGorseli(cfg.parca.anahtar) || "";
+    } catch (e) {}
+    return '<div class="wc-parca">' +
+      (g ? '<img src="' + g + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+      '<b>' + cfg.parca.adet + ' ' + (cfg.parca.ad || "Kahraman Parçası") + '</b></div>';
+  }
+
+  /* Paneli kurar. cfg = { gift, giftName, steps, claim, parca } */
   function buildAndShow(state, api, cfg) {
     if (!state || !cfg) return;
     if (document.getElementById("welcomeBack")) return;
@@ -104,7 +125,8 @@
         bodyEl.innerHTML =
           '<div class="wc-name">' + (cfg.giftName || "🎁 HEDİYEN HAZIR") + '</div>' +
           (step.giftText ? '<div class="wc-giftline">' + step.giftText + '</div>' : '') +
-          '<div class="wc-gift"><div class="amt">' + fmtOf(api, cfg.gift) + ' 💎</div></div>';
+          '<div class="wc-gift"><div class="amt">' + fmtOf(api, cfg.gift) + ' 💎</div></div>' +
+          parcaKutusu(cfg);
         nextEl.textContent = "Al";
       } else {
         bodyEl.innerHTML =
@@ -116,6 +138,9 @@
 
     function grant() {
       state.diamonds = (state.diamonds || 0) + cfg.gift;
+      if (cfg.parca && cfg.parca.adet > 0 && typeof window.parcaEkle === "function") {
+        try { window.parcaEkle(cfg.parca.anahtar, cfg.parca.adet); } catch (e) {}
+      }
       if (typeof cfg.claim === "function") { try { cfg.claim(state); } catch (e) {} }
       if (api) {
         try { api.renderDiamonds && api.renderDiamonds(); } catch (e) {}
@@ -123,7 +148,10 @@
         try { api.persistCurrentState && api.persistCurrentState(); } catch (e) {}
       }
       back.remove();
-      if (api) { try { api.showToast && api.showToast("🎁 +" + fmtOf(api, cfg.gift) + " 💎 hesabına eklendi!"); } catch (e) {} }
+      var mesaj = "🎁 +" + fmtOf(api, cfg.gift) + " 💎" +
+        (cfg.parca && cfg.parca.adet > 0 ? " ve " + cfg.parca.adet + " " + (cfg.parca.ad || "parça") : "") +
+        " hesabına eklendi!";
+      if (api) { try { api.showToast && api.showToast(mesaj); } catch (e) {} }
     }
 
     nextEl.onclick = function () {
@@ -164,7 +192,7 @@
     claim: function (s) { s.welcomeGiven = true; s.welcomePending = false; }
   };
 
-  /* Yeni kayıt: 1.5M hoş geldin (bir kez). */
+  /* Yeni kayıt: 5M hoş geldin (bir kez). */
   function maybeWelcome(state, api) {
     poll(
       function () { return state && state.welcomeGiven !== true && state.welcomePending === true; },
@@ -172,15 +200,16 @@
     );
   }
 
-  /* Günlük keşif: her gün 17:00'de yenilenir, 30.000 elmas. */
+  /* Günlük keşif: her gün 17:00'de yenilenir, 50.000 elmas + 5 mor parça. */
   function maybeDaily(state, api) {
     if (!state) return;
     var cfg = {
       gift: DAILY_GIFT,
       giftName: "🎁 KEŞİF ÖDÜLÜ",
+      parca: { anahtar: DAILY_PARCA_ANAHTAR, adet: DAILY_PARCA, ad: "Mor Parça" },
       steps: [
         { text: "Tekrardan Merhaba! Orduna düzenli olarak sahip çıktığın için ordunuz sizin için arazide keşife çıktı..." },
-        { gift: true, giftText: "Keşifte sizin için değerli elmaslar buldu! 🎉" }
+        { gift: true, giftText: "Keşifte sizin için değerli elmaslar ve kahraman parçaları buldu! 🎉" }
       ],
       claim: function (s) { s.lastDailyExplore = dailyCycleId(); }
     };

@@ -286,6 +286,29 @@ body{
 }
 .daily-reward-item b{color:#d9ffb0;}
 
+/* Günlük ödül — kahraman parçası seçim kutucukları */
+.gunluk-parca-secim{
+  display:flex; gap:10px; justify-content:center; width:100%;
+}
+.gunluk-parca-sec{
+  flex:1 1 0; display:flex; flex-direction:column; align-items:center; gap:6px;
+  background:rgba(111,150,80,.14); border:1px solid rgba(190,240,255,.20);
+  border-radius:12px; padding:10px 6px; cursor:pointer;
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:12.5px;
+  color:#e4f3d4; text-shadow:0 1px 2px rgba(0,20,45,.55);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  transition:transform .09s ease, filter .09s ease;
+}
+.gunluk-parca-sec img{ width:52px; height:52px; object-fit:contain; }
+.gunluk-parca-sec:active{ transform:scale(.96); filter:brightness(.93); }
+.gunluk-parca-alindi{
+  display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+  background:rgba(111,150,80,.14); border:1px solid rgba(190,240,255,.20);
+  border-radius:12px; padding:10px 12px;
+  font-size:13px; color:#d9ffb0; text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+.gunluk-parca-alindi img{ width:38px; height:38px; object-fit:contain; }
+
 .daily-reward-close-btn{
   margin-top:18px; width:100%;
   background:rgba(0,0,0,.25); border:1px solid rgba(111,150,80,.4); color:#a9c98a;
@@ -2350,7 +2373,7 @@ body.world-active{padding:0; overflow:hidden;}
     <div class="overlay-card">
       <button class="overlay-close" data-close>✕</button>
       <h2>🗝️ Sandık Aç</h2>
-      <p class="desc">Her 3 saatte bir hakların yenilenir. %50 şans 300, %45 şans 1500, %5 şans 5000 elmas.</p>
+      <p class="desc">Her 3 saatte bir hakların yenilenir. %50 şans 1.000, %45 şans 3.000, %5 şans 10.000 elmas.</p>
       <div class="chest-zone">
         <div class="chest" id="chestEl">
           <img src="gorsel4.webp" class="chest-svg" id="chestSvg" style="object-fit:contain; width:100%; height:100%; background:none;"/>
@@ -3871,15 +3894,17 @@ function hasUnclaimedDailyReward() {
   return state.lastDailyRewardDate !== dailyChestCycleId();
 }
 
+/* Günlük giriş ödülü — tek yer burasıdır. */
+const GUNLUK_GIRIS_SAVUNUCU = 100;
+const GUNLUK_GIRIS_ELMAS    = 50000;
+
 function claimDailyReward() {
   if (!hasUnclaimedDailyReward()) return null;
   state.lastDailyRewardDate = dailyChestCycleId();
-  state.troops.knight = (state.troops.knight || 0) + 1;
-
-  applyStaminaRegen();
-  state.stamina.current = state.stamina.max;
+  state.troops.knight = (state.troops.knight || 0) + GUNLUK_GIRIS_SAVUNUCU;
+  state.diamonds = (state.diamonds || 0) + GUNLUK_GIRIS_ELMAS;
   persistCurrentState();
-  return { knight: 1, staminaFilled: true };
+  return { knight: GUNLUK_GIRIS_SAVUNUCU, diamonds: GUNLUK_GIRIS_ELMAS };
 }
 
 function maybeShowDailyRewardModal() {
@@ -3891,6 +3916,50 @@ function maybeShowDailyRewardModal() {
   const resultEl = document.getElementById("dailyRewardResult");
   if (chestEl) chestEl.classList.remove("opening", "opened");
   if (resultEl) { resultEl.style.opacity = "0"; resultEl.innerHTML = ""; }
+  gunlukParcaBekliyor = false;
+  gunlukKapatKilidi(false);
+}
+
+/* ── GÜNLÜK ÖDÜL PARÇA SEÇİMİ ──────────────────────────────────
+   Sandıktan çıkan turuncu parçayı oyuncu seçer. Seçim yapılmadan
+   pencere kapanırsa parça kaybolur (tarih zaten yazılmıştır), bu
+   yüzden seçim bitene kadar "Kapat" kilitlidir. */
+let gunlukParcaBekliyor = false;
+
+function gunlukParcaGorseli(anahtar) {
+  return (typeof parcaGorseli === "function") ? (parcaGorseli(anahtar) || "") : "";
+}
+
+function gunlukKapatKilidi(kilitli) {
+  const b = document.getElementById("closeDailyRewardBtn");
+  if (!b) return;
+  b.disabled = !!kilitli;
+  b.style.opacity = kilitli ? "0.45" : "";
+  b.textContent = kilitli ? "Önce parçanı seç" : "Kapat";
+}
+
+function gunlukParcaKutusu(anahtar, ad) {
+  const g = gunlukParcaGorseli(anahtar);
+  return '<button class="gunluk-parca-sec" data-parca="' + anahtar + '">' +
+           (g ? '<img src="' + g + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+           '<span>' + ad + '</span>' +
+         '</button>';
+}
+
+function gunlukParcaSec(anahtar) {
+  if (!gunlukParcaBekliyor) return;
+  gunlukParcaBekliyor = false;
+  if (typeof parcaEkle === "function") parcaEkle(anahtar, 1);
+  persistCurrentState();
+  const kutu = document.getElementById("gunlukParcaSecim");
+  if (kutu) {
+    const g = gunlukParcaGorseli(anahtar);
+    const ad = anahtar === "ivanovna" ? "İvanovna" : "Revolia";
+    kutu.innerHTML = '<div class="gunluk-parca-alindi">' +
+      (g ? '<img src="' + g + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+      '<b>1 ' + ad + ' Parçası alındı</b></div>';
+  }
+  gunlukKapatKilidi(false);
 }
 
 function openDailyRewardChest() {
@@ -3905,17 +3974,32 @@ function openDailyRewardChest() {
   setTimeout(() => {
     chestEl.classList.add("opened");
     resultEl.innerHTML = `
-      <div class="daily-reward-item">🪖 <b>1 Savunucu</b></div>
-      <div class="daily-reward-item">❤️ <b>Genel Can Tam Dolum</b></div>
+      <div class="daily-reward-item">🪖 <b>${fmt(reward.knight)} Savunucu</b></div>
+      <div class="daily-reward-item">💎 <b>${fmt(reward.diamonds)} Elmas</b></div>
+      <div class="daily-reward-item">Kahraman parçanı seç:</div>
+      <div class="gunluk-parca-secim" id="gunlukParcaSecim">
+        ${gunlukParcaKutusu("ivanovna", "İvanovna")}
+        ${gunlukParcaKutusu("revolia", "Revolia")}
+      </div>
     `;
     resultEl.style.opacity = "1";
+    gunlukParcaBekliyor = true;
+    gunlukKapatKilidi(true);
+    resultEl.querySelectorAll(".gunluk-parca-sec").forEach(b => {
+      b.addEventListener("click", () => gunlukParcaSec(b.dataset.parca));
+    });
     renderTroopsPanel();
-    renderStamina();
+    renderDiamonds();
+    updateShopButtons();
     showToast("Günlük ödülün hesabına eklendi!");
   }, 700);
 }
 
 function closeDailyRewardModal() {
+  if (gunlukParcaBekliyor) {
+    if (typeof showToastForce === "function") showToastForce("Önce kahraman parçanı seç.");
+    return;
+  }
   const modal = document.getElementById("dailyRewardOverlay");
   if (modal) modal.style.display = "none";
 }
@@ -5123,7 +5207,7 @@ function openChest() {
 
   setTimeout(() => {
     const roll = Math.floor(Math.random() * 100) + 1;
-    const reward = roll <= 50 ? 300 : roll <= 95 ? 1500 : 5000;
+    const reward = roll <= 50 ? 1000 : roll <= 95 ? 3000 : 10000;
 
     state.diamonds += reward;
     state.chestsOpened++;
