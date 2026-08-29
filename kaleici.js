@@ -291,6 +291,9 @@
     gelistir: 'gelistirikon.webp',
     egit:     'egitikon.webp',
     tasi:     'tasiikon.webp',
+    /* Hastanenin alt düğmesi: yaralı/tedavi. Dosya yoksa eski
+       sarı "HASTANE" kutusuna düşer, düğme kaybolmaz. */
+    tedavi:   'tedaviikon.webp',
   };
   var IKONLAR = {};
 
@@ -327,8 +330,10 @@
        değerler sağa ve aşağı iter. Çıpa: tabanın ALT köşesi
        (taşı ikonunda SOL ve ALT köşenin ortası).
        Bu sayılar ?ikonayar=1 paneliyle ölçüldü, tahmin değil. */
-    gelistir: { olcek: 3.50, x:  0.78, y: -0.05 },
-    egit:     { olcek: 3.50, x:  0.02, y:  0.25 },
+    /* YER DEĞİŞTİ: eskiden geliştir sağda, eğit soldaydı. Sayılar
+       takas edildi; çizim sırası değil, yalnız kaymalar değişti. */
+    gelistir: { olcek: 3.50, x:  0.02, y:  0.25 },
+    egit:     { olcek: 3.50, x:  0.78, y: -0.05 },
     tasi:     { olcek: 3.50, x: -0.20, y:  0.15 },
 
     /* Taşıma onayı: ✔ ve ✕ daireleri. x ikisinin ARASINDAKİ
@@ -1240,7 +1245,11 @@
 
     var kisla   = !!KISLA_AILE[b.id];
     var altYazi = altDugmeYazisi(b.id);
-    var imEgit  = (kisla && altYazi) ? ikon('egit') : null;
+    /* Alt düğmenin ikonu binaya göre değişir: kışlalarda EĞİT,
+       hastanede TEDAVİ. Konum ayarı ikisinde de aynı yuvadan
+       (IK.egit) gelir — hastane de artık üçlü düzendedir. */
+    var altIkonK = kisla ? 'egit' : (b.id === 'hastane' ? 'tedavi' : null);
+    var imEgit  = (altYazi && altIkonK) ? ikon(altIkonK) : null;
     var gelOlur = gelistirOlurMu(b);
     var imGel   = gelOlur ? ikon('gelistir') : null;
 
