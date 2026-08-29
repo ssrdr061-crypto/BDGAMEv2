@@ -7851,22 +7851,30 @@ if (document.readyState === "loading") {
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   KALE IŞINLANMA (isin-1)
+   KALE IŞINLANMA (isin-2)
    Taşıma bittikten sonra YENİ konumda: şimşek çakması → beyaz sis
    → sis dağılırken kale belirir. Toplam 900 ms.
 
+   ── NEDEN CSS ANIMASYONU YOK ──
+   index.html ~2088'de `@media (prefers-reduced-motion:reduce)` var ve
+   `*{animation-duration:.01ms !important}` yazıyor. Telefonda
+   "animasyonları azalt" açıksa HER CSS animasyonu 0,01 ms'de biter —
+   efekt oynar ama görünmez (isin-1 böyle kayboldu). O kural
+   erişilebilirlik kuralıdır, delinmez. Bunun yerine opaklık/ölçü
+   HER KAREDE elle yazılıyor; tarayıcı ayarı bunu kısaltamaz.
+
+   ── Diğer kurallar ──
    · Kamera 420 ms'de hedefe kayıyor; efekt 470 ms sonra başlar.
-   · Efekt katmanı gövdeye asılır ama HER KAREDE kale düğümünün
-     ekran yerini yeniden okur → harita kaysa da efekt kaleden
-     ayrılmaz (Tuzak 40). MutationObserver YOK (Tuzak 44).
-   · Kale düğümü yeniden çizilirse sınıf silinir; her karede
-     GEREKİYORSA yeniden eklenir, gerekmiyorsa hiç dokunulmaz.
+   · Katman gövdeye asılı ama her karede kale düğümünün ekran yerini
+     yeniden okur → harita kaysa da efekt kaleden ayrılmaz (Tuzak 40).
+   · MutationObserver YOK (Tuzak 44). Sınıf/stil yalnız gerekirse yazılır.
+   · Kale yeniden çizilirse satır içi stil silinir; her karede yeniden
+     yazıldığı için kendiliğinden düzelir.
    · Ölçü kalenin kendi genişliğinden gelir → Sv1–Sv5 hepsinde oturur.
-   · Katman pointer-events:none — altındaki haritaya basılır (Tuzak 19).
-   · Animasyon .node-avatar'a DEĞİL, içindeki img'ye yazılır: kutuda
+   · Katman pointer-events:none (Tuzak 19).
+   · Kale ölçeği .node-avatar'a DEĞİL içindeki img'ye yazılır: kutuda
      Sv2 için zaten translateY(22px) var, ezersek kale yerinden oynar.
-   · `?isin=1` → taşıma olmadan 3,5 sn'de bir oynatır (ayar içindir,
-     iş bitince bu blok silinir).
+   · `?isin=1` → tanı kutusu + OYNAT düğmesi. İş bitince o parça silinir.
    ══════════════════════════════════════════════════════════════ */
 (function () {
   if (window.KALE_ISIN) return;
@@ -7874,64 +7882,65 @@ if (document.readyState === "loading") {
   var SURE = 900;       /* efektin toplam süresi (ms) */
   var GECIKME = 470;    /* kamera varana kadar bekleme (ms) */
 
+  /* Yalnız DURAĞAN görünüm. Hareketin tamamı JS'te. */
   var css =
-    ".isin-kat{position:fixed;left:0;top:0;width:0;height:0;z-index:2147482000;" +
-      "pointer-events:none;transform-origin:0 0;}" +
-    ".isin-kat>div{position:absolute;left:0;top:0;}" +
-
+    ".isin-kat{position:fixed;left:0;top:0;width:0;height:0;" +
+      "z-index:2147482000;pointer-events:none;transform-origin:0 0;}" +
+    ".isin-kat>div{position:absolute;left:0;top:0;opacity:0;}" +
     ".isin-parla{width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;" +
       "background:radial-gradient(closest-side,#fff,rgba(225,248,255,.85) 45%," +
-      "rgba(180,230,255,0) 75%);animation:isinParla .9s ease-out forwards;}" +
-
+      "rgba(180,230,255,0) 75%);}" +
     ".isin-halka{width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;" +
-      "border:2px solid rgba(255,255,255,.9);animation:isinHalka .9s ease-out forwards;}" +
-
+      "border:2px solid rgba(255,255,255,.9);}" +
     ".isin-sis{border-radius:50%;filter:blur(7px);" +
       "background:radial-gradient(closest-side,rgba(255,255,255,.95)," +
       "rgba(214,242,255,.6) 55%,rgba(190,235,255,0) 80%);}" +
-    ".isin-sis.a{width:170px;height:120px;margin:-70px 0 0 -85px;" +
-      "animation:isinSisA .9s ease-out forwards;}" +
-    ".isin-sis.b{width:130px;height:96px;margin:-46px 0 0 -65px;" +
-      "animation:isinSisB .9s ease-out forwards;}" +
-
+    ".isin-sis.a{width:170px;height:120px;margin:-70px 0 0 -85px;}" +
+    ".isin-sis.b{width:130px;height:96px;margin:-46px 0 0 -65px;}" +
     ".isin-simsek{width:14px;height:140px;" +
       "background:linear-gradient(180deg,rgba(255,255,255,0),#fff 35%,#dff4ff);" +
       "clip-path:polygon(52% 0,62% 26%,46% 32%,60% 58%,42% 64%,54% 100%," +
-      "38% 62%,52% 56%,36% 30%,50% 24%);" +
-      "animation:isinCakma .9s linear forwards;}" +
+      "38% 62%,52% 56%,36% 30%,50% 24%);}" +
     ".isin-simsek.s1{margin:-146px 0 0 -7px;}" +
-    ".isin-simsek.s2{margin:-138px 0 0 -34px;transform:rotate(-13deg) scaleY(.86);}" +
-    ".isin-simsek.s3{margin:-140px 0 0 22px;transform:rotate(11deg) scaleY(.92);}" +
-
-    "@keyframes isinParla{0%{opacity:0;transform:scale(.2)}" +
-      "8%{opacity:1;transform:scale(1.5)}22%{opacity:.85;transform:scale(1.15)}" +
-      "42%{opacity:0;transform:scale(1.9)}100%{opacity:0;transform:scale(1.9)}}" +
-    "@keyframes isinHalka{0%{opacity:0;transform:scale(.2)}" +
-      "10%{opacity:1;transform:scale(.9)}55%{opacity:0;transform:scale(3.4)}" +
-      "100%{opacity:0;transform:scale(3.4)}}" +
-    "@keyframes isinSisA{0%{opacity:0;transform:scale(.35) rotate(-8deg)}" +
-      "12%{opacity:1;transform:scale(1.05) rotate(0deg)}" +
-      "55%{opacity:.9;transform:scale(1.18) rotate(6deg)}" +
-      "100%{opacity:0;transform:scale(1.5) rotate(12deg)}}" +
-    "@keyframes isinSisB{0%{opacity:0;transform:scale(.3) rotate(10deg)}" +
-      "18%{opacity:.95;transform:scale(1.1) rotate(2deg)}" +
-      "60%{opacity:.7;transform:scale(1.25) rotate(-6deg)}" +
-      "100%{opacity:0;transform:scale(1.6) rotate(-14deg)}}" +
-    "@keyframes isinCakma{0%{opacity:0}4%{opacity:1}10%{opacity:.1}" +
-      "16%{opacity:1}24%{opacity:.2}30%{opacity:.9}42%{opacity:0}100%{opacity:0}}" +
-
+    ".isin-simsek.s2{margin:-138px 0 0 -34px;}" +
+    ".isin-simsek.s3{margin:-140px 0 0 22px;}" +
     "html body .map-node.castle-node.isin-gizli .node-ring," +
-    "html body .map-node.castle-node.isin-gizli .node-label{opacity:0;}" +
-    "html body .map-node.castle-node.isin-cik .castle-avatar img{" +
-      "animation:isinKaleCik .42s cubic-bezier(.2,1.3,.5,1) both;" +
-      "transform-origin:50% 88%;}" +
-    "@keyframes isinKaleCik{0%{opacity:0;transform:scale(.5)}" +
-      "55%{opacity:1;transform:scale(1.09)}100%{opacity:1;transform:scale(1)}}";
+    "html body .map-node.castle-node.isin-gizli .node-label{opacity:0;}";
 
   var st = document.createElement("style");
   st.id = "isinCss";
   st.textContent = css;
   document.head.appendChild(st);
+
+  /* ── zaman çizgisi yardımcıları ──
+     nokta = [p, opaklık, ölçü, dönme]. Aradaki değer doğrusal. */
+  function ara(p, noktalar) {
+    var i, a, b, k;
+    if (p <= noktalar[0][0]) a = b = noktalar[0], k = 0;
+    for (i = 1; i < noktalar.length; i++) {
+      if (p <= noktalar[i][0]) {
+        a = noktalar[i - 1]; b = noktalar[i];
+        k = (b[0] - a[0]) ? (p - a[0]) / (b[0] - a[0]) : 0;
+        break;
+      }
+    }
+    if (!b) { a = b = noktalar[noktalar.length - 1]; k = 0; }
+    return {
+      o: a[1] + (b[1] - a[1]) * k,
+      s: a[2] + (b[2] - a[2]) * k,
+      r: (a[3] || 0) + ((b[3] || 0) - (a[3] || 0)) * k
+    };
+  }
+
+  var Z_PARLA = [[0, 0, .2], [.08, 1, 1.5], [.22, .85, 1.15], [.42, 0, 1.9], [1, 0, 1.9]];
+  var Z_HALKA = [[0, 0, .2], [.10, 1, .9], [.55, 0, 3.4], [1, 0, 3.4]];
+  var Z_SIS_A = [[0, 0, .35, -8], [.12, 1, 1.05, 0], [.55, .9, 1.18, 6], [1, 0, 1.5, 12]];
+  var Z_SIS_B = [[0, 0, .30, 10], [.18, .95, 1.1, 2], [.60, .7, 1.25, -6], [1, 0, 1.6, -14]];
+  /* şimşek: kırık kırık çakma — yalnız opaklık */
+  var Z_SIMSEK = [[0, 0, 1], [.04, 1, 1], [.10, .1, 1], [.16, 1, 1], [.24, .2, 1],
+                  [.30, .9, 1], [.42, 0, 1], [1, 0, 1]];
+  /* kale: sisin yarısında belirmeye başlar */
+  var Z_KALE = [[0, 0, .5], [.55, 1, 1.09], [1, 1, 1]];
 
   function isinKaleDugum() {
     return document.querySelector("#battleMap .map-node.castle-node.castle-own") ||
@@ -7945,11 +7954,31 @@ if (document.readyState === "loading") {
     return { x: r.left + r.width / 2, y: r.top + r.height * 0.62, w: r.width };
   }
 
-  /* Kale düğümü bulunamazsa efekt yok olmasın: ekranın ortasında oynasın.
-     Tanı sırasında "hiçbir şey olmuyor" ile "yanlış yerde oynuyor"
-     ayırt edilebilsin diye. */
+  /* Kale düğümü bulunamazsa efekt yok olmasın: ekran ortasında oynasın. */
   function isinYedekYer() {
     return { x: window.innerWidth / 2, y: window.innerHeight / 2, w: 110 };
+  }
+
+  /* Kale görselinin ölçeği. Satır içi yazılır → yeniden çizim silse
+     bile bir sonraki karede geri gelir. */
+  function kaleGorselleri(n) {
+    return n ? n.querySelectorAll(".castle-avatar img") : [];
+  }
+  function kaleOlcek(n, o, s) {
+    var g = kaleGorselleri(n), i;
+    for (i = 0; i < g.length; i++) {
+      g[i].style.transformOrigin = "50% 88%";
+      g[i].style.opacity = o;
+      g[i].style.transform = "scale(" + s.toFixed(3) + ")";
+    }
+  }
+  function kaleTemizle(n) {
+    var g = kaleGorselleri(n), i;
+    for (i = 0; i < g.length; i++) {
+      g[i].style.removeProperty("transform");
+      g[i].style.removeProperty("transform-origin");
+      g[i].style.removeProperty("opacity");
+    }
   }
 
   /* ── TANI (?isin=1) — ekrana basar, showToast'a DEĞİL (Tuzak 12) ── */
@@ -7984,20 +8013,19 @@ if (document.readyState === "loading") {
     var n = isinKaleDugum();
     var p = n ? isinYeri(n) : null;
     taniSatir.textContent =
-      "IŞINLANMA TANI\n" +
-      "blok: yüklendi\n" +
+      "IŞINLANMA TANI (isin-2)\n" +
       "KALE_TASIMA: " + (K ? "var" : "YOK") +
       "  · bağlı: " + (K && K._isinli ? "evet" : "HAYIR") + "\n" +
       "kale düğümü: " + (n ? "bulundu" : "YOK") +
-      (p ? ("  · en:" + Math.round(p.w) + " x:" + Math.round(p.x) + " y:" + Math.round(p.y))
-         : (n ? "  · ölçü 0" : "")) + "\n" +
+      (p ? ("  · en:" + Math.round(p.w) + " x:" + Math.round(p.x) + " y:" + Math.round(p.y)) : "") + "\n" +
       "katman: " + (document.querySelector(".isin-kat") ? "ekranda" : "yok") +
       "  · kare: " + sonKare + "\n" +
       "son: " + sonDurum;
   }
 
   function isinOynat() {
-    if (document.querySelector(".isin-kat")) return;  /* üst üste binmesin */
+    if (document.querySelector(".isin-kat")) return;   /* üst üste binmesin */
+
     var kat = document.createElement("div");
     kat.className = "isin-kat";
     kat.innerHTML =
@@ -8007,39 +8035,71 @@ if (document.readyState === "loading") {
       '<div class="isin-simsek s3"></div>';
     document.body.appendChild(kat);
 
-    var t0 = performance.now(), son = null, acildi = false, kareSayisi = 0;
+    var eSisA  = kat.querySelector(".isin-sis.a");
+    var eSisB  = kat.querySelector(".isin-sis.b");
+    var eParla = kat.querySelector(".isin-parla");
+    var eHalka = kat.querySelector(".isin-halka");
+    var eSim   = kat.querySelectorAll(".isin-simsek");
+    var simDon = [0, -13, 11];          /* şimşeklerin sabit eğimi */
+    var simBoy = [1, .86, .92];
+
+    var t0 = performance.now(), son = null, kareSayisi = 0;
     sonDurum = "başladı";
+
+    function yaz(el, v, ek) {
+      el.style.opacity = v.o.toFixed(3);
+      el.style.transform = "scale(" + v.s.toFixed(3) + ")" + (ek || "");
+    }
 
     function adim(now) {
       var t = now - t0;
+      var p = Math.min(1, t / SURE);
+      var i;
+
+      /* konum: her karede kaleden okunur */
       var n = isinKaleDugum();
-      var p = n ? isinYeri(n) : null;
-      if (!p && !son) p = isinYedekYer();          /* düğüm yoksa ekran ortası */
-      if (p) son = p;
-      kareSayisi++;
+      var yer = n ? isinYeri(n) : null;
+      if (!yer && !son) yer = isinYedekYer();
+      if (yer) son = yer;
       if (son) {
         kat.style.left = son.x + "px";
         kat.style.top = son.y + "px";
         var o = Math.min(2.2, Math.max(0.6, son.w / 110));
         kat.style.transform = "scale(" + o.toFixed(3) + ")";
       }
+
+      /* efekt katmanı */
+      var vA = ara(p, Z_SIS_A), vB = ara(p, Z_SIS_B);
+      yaz(eSisA, vA, " rotate(" + vA.r.toFixed(1) + "deg)");
+      yaz(eSisB, vB, " rotate(" + vB.r.toFixed(1) + "deg)");
+      yaz(eParla, ara(p, Z_PARLA));
+      yaz(eHalka, ara(p, Z_HALKA));
+      var vS = ara(p, Z_SIMSEK);
+      for (i = 0; i < eSim.length; i++) {
+        eSim[i].style.opacity = vS.o.toFixed(3);
+        eSim[i].style.transform =
+          "rotate(" + simDon[i] + "deg) scaleY(" + simBoy[i] + ")";
+      }
+
+      /* kale: önce gizli, sonra ölçeklenerek gelir */
       if (n) {
-        if (t < SURE * 0.5) {
+        if (p < 0.5) {
           if (!n.classList.contains("isin-gizli")) n.classList.add("isin-gizli");
+          kaleTemizle(n);
         } else {
           if (n.classList.contains("isin-gizli")) n.classList.remove("isin-gizli");
-          if (!acildi) { n.classList.add("isin-cik"); acildi = true; }
+          var q = (p - 0.5) / 0.5;
+          var vK = ara(q, Z_KALE);
+          kaleOlcek(n, vK.o.toFixed(3), vK.s);
         }
       }
+
+      kareSayisi++;
       if (t < SURE) requestAnimationFrame(adim);
       else {
         kat.remove();
         var m = isinKaleDugum();
-        if (m) m.classList.remove("isin-gizli");
-        setTimeout(function () {
-          var z = isinKaleDugum();
-          if (z) z.classList.remove("isin-cik");
-        }, 500);
+        if (m) { m.classList.remove("isin-gizli"); kaleTemizle(m); }
         sonKare = kareSayisi;
         sonDurum = "bitti · " + kareSayisi + " kare · düğüm " + (m ? "vardı" : "YOKTU");
         taniTazele();
@@ -8070,10 +8130,10 @@ if (document.readyState === "loading") {
 
   window.KALE_ISIN = { oynat: isinOynat, sure: SURE };
 
-  /* GEÇİCİ — ayar/tanı için. İş bitince bu blok silinir. */
+  /* GEÇİCİ — ayar/tanı için. İş bitince buradan aşağısı silinir. */
   if (TANI) {
     setTimeout(taniTazele, 600);
     setInterval(taniTazele, 1000);
-    setTimeout(isinOynat, 2200);          /* bir kez kendi oynar, sonrası OYNAT düğmesi */
+    setTimeout(isinOynat, 2200);
   }
 })();
