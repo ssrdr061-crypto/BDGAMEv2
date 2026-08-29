@@ -7875,7 +7875,7 @@ if (document.readyState === "loading") {
   var GECIKME = 470;    /* kamera varana kadar bekleme (ms) */
 
   var css =
-    ".isin-kat{position:fixed;left:0;top:0;width:0;height:0;z-index:9000;" +
+    ".isin-kat{position:fixed;left:0;top:0;width:0;height:0;z-index:2147482000;" +
       "pointer-events:none;transform-origin:0 0;}" +
     ".isin-kat>div{position:absolute;left:0;top:0;}" +
 
@@ -7945,6 +7945,57 @@ if (document.readyState === "loading") {
     return { x: r.left + r.width / 2, y: r.top + r.height * 0.62, w: r.width };
   }
 
+  /* Kale düğümü bulunamazsa efekt yok olmasın: ekranın ortasında oynasın.
+     Tanı sırasında "hiçbir şey olmuyor" ile "yanlış yerde oynuyor"
+     ayırt edilebilsin diye. */
+  function isinYedekYer() {
+    return { x: window.innerWidth / 2, y: window.innerHeight / 2, w: 110 };
+  }
+
+  /* ── TANI (?isin=1) — ekrana basar, showToast'a DEĞİL (Tuzak 12) ── */
+  var TANI = (location.search.indexOf("isin=1") >= 0);
+  var taniKutu = null, taniSatir = null, sonKare = 0, sonDurum = "—";
+
+  function taniAc() {
+    if (!TANI || taniKutu) return;
+    taniKutu = document.createElement("div");
+    taniKutu.id = "isinTani";
+    taniKutu.style.cssText =
+      "position:fixed;left:6px;right:6px;top:6px;z-index:2147483000;" +
+      "background:#0d2438;color:#dff3ff;font:12px/1.5 sans-serif;" +
+      "padding:8px 10px;border-radius:10px;white-space:pre-line;" +
+      "box-shadow:0 2px 6px rgba(0,20,45,.3);";
+    taniSatir = document.createElement("div");
+    var b = document.createElement("button");
+    b.textContent = "OYNAT";
+    b.style.cssText = "margin-top:6px;padding:7px 16px;border:none;border-radius:8px;" +
+      "background:#1f9e46;color:#fff;font-weight:700;font-size:13px;";
+    b.onclick = function () { isinOynat(); };
+    taniKutu.appendChild(taniSatir);
+    taniKutu.appendChild(b);
+    document.body.appendChild(taniKutu);
+  }
+
+  function taniTazele() {
+    if (!TANI) return;
+    taniAc();
+    if (!taniSatir) return;
+    var K = window.KALE_TASIMA;
+    var n = isinKaleDugum();
+    var p = n ? isinYeri(n) : null;
+    taniSatir.textContent =
+      "IŞINLANMA TANI\n" +
+      "blok: yüklendi\n" +
+      "KALE_TASIMA: " + (K ? "var" : "YOK") +
+      "  · bağlı: " + (K && K._isinli ? "evet" : "HAYIR") + "\n" +
+      "kale düğümü: " + (n ? "bulundu" : "YOK") +
+      (p ? ("  · en:" + Math.round(p.w) + " x:" + Math.round(p.x) + " y:" + Math.round(p.y))
+         : (n ? "  · ölçü 0" : "")) + "\n" +
+      "katman: " + (document.querySelector(".isin-kat") ? "ekranda" : "yok") +
+      "  · kare: " + sonKare + "\n" +
+      "son: " + sonDurum;
+  }
+
   function isinOynat() {
     if (document.querySelector(".isin-kat")) return;  /* üst üste binmesin */
     var kat = document.createElement("div");
@@ -7956,13 +8007,16 @@ if (document.readyState === "loading") {
       '<div class="isin-simsek s3"></div>';
     document.body.appendChild(kat);
 
-    var t0 = performance.now(), son = null, acildi = false;
+    var t0 = performance.now(), son = null, acildi = false, kareSayisi = 0;
+    sonDurum = "başladı";
 
     function adim(now) {
       var t = now - t0;
       var n = isinKaleDugum();
       var p = n ? isinYeri(n) : null;
+      if (!p && !son) p = isinYedekYer();          /* düğüm yoksa ekran ortası */
       if (p) son = p;
+      kareSayisi++;
       if (son) {
         kat.style.left = son.x + "px";
         kat.style.top = son.y + "px";
@@ -7986,6 +8040,9 @@ if (document.readyState === "loading") {
           var z = isinKaleDugum();
           if (z) z.classList.remove("isin-cik");
         }, 500);
+        sonKare = kareSayisi;
+        sonDurum = "bitti · " + kareSayisi + " kare · düğüm " + (m ? "vardı" : "YOKTU");
+        taniTazele();
       }
     }
     requestAnimationFrame(adim);
@@ -8008,13 +8065,15 @@ if (document.readyState === "loading") {
     return true;
   }
   if (!isinBagla()) {
-    [0, 300, 1000, 2500, 5000].forEach(function (ms) { setTimeout(isinBagla, ms); });
+    [0, 300, 1000, 2500, 5000, 9000].forEach(function (ms) { setTimeout(isinBagla, ms); });
   }
 
   window.KALE_ISIN = { oynat: isinOynat, sure: SURE };
 
-  /* GEÇİCİ — ayar için. İş bitince bu üç satır silinir. */
-  if (location.search.indexOf("isin=1") >= 0) {
-    setTimeout(function tekrar() { isinOynat(); setTimeout(tekrar, 3500); }, 2000);
+  /* GEÇİCİ — ayar/tanı için. İş bitince bu blok silinir. */
+  if (TANI) {
+    setTimeout(taniTazele, 600);
+    setInterval(taniTazele, 1000);
+    setTimeout(isinOynat, 2200);          /* bir kez kendi oynar, sonrası OYNAT düğmesi */
   }
 })();
