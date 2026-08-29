@@ -27,7 +27,7 @@
      Kilitli kademelerin hayalet çubuğu dışlanır, yoksa görünmeyen
      sürgü hedef sanılıyor ve halka hiç çizilmiyordu. */
   var SURGU_SEC = "#panel-troops .unit-qty-bar:not(.kilit-hayalet) .uv-qty-slider";
-  var URET_SEC  = "#panel-troops .unit-train-btn";
+  var URET_SEC  = "#panel-troops .unit-instant-btn";   /* ⚡ Anında — süreli üretim değil */
 
   /* ── ÖDÜL PAKETİ — değiştirilecek TEK yer ──────────────────────────── */
   var ODULLER = [
@@ -108,9 +108,9 @@
       },
       {
         anahtar: binaId + "_uret",
-        metin: "ÜRET düğmesine bas.",
+        metin: "⚡ Anında düğmesine bas.",
         hedef: { tip: "dom", sec: URET_SEC },
-        tamam: function () { return birlikVeKuyruk(unitId) >= ADET; }
+        tamam: function () { return birlik(unitId) >= ADET || birlikVeKuyruk(unitId) >= ADET; }
       },
       {
         anahtar: binaId + "_kapat",
@@ -153,11 +153,14 @@
       },
       {
         anahtar: skinId + "_kapat",
-        metin: "Ekranı ✕ ile kapat.",
+        metin: "Kahraman ekranını ✕ ile kapat.",
         hedef: { tip: "dom", sec: "#hdClose" },
         /* Satın alınca #hdBuyBtn display:none oluyor ama DOM'da kalıyor;
-           "var mı" yerine "görünür mü" bakılır. */
-        tamam: function () { return !gorunurOge("#hdClose"); }
+           "var mı" yerine "görünür mü" bakılır. Detay kapanmadan
+           adım geçmez. */
+        tamam: function () {
+          return !document.getElementById("hdClose") || !gorunurOge("#hdClose");
+        }
       }
     ];
   }
@@ -168,6 +171,14 @@
     .concat(kislaZinciri("robot",   "robot",   "Nişancı"))
     .concat(kahramanZinciri("buz_savascisi", "HALVORSEN"))
     .concat(kahramanZinciri("ates_buyucusu", "MİKİAN"))
+    .concat([{
+      /* Detay kapanınca kahraman LİSTESİ ekranda kalıyor; savaş
+         adımına geçmeden önce o da kapatılır. */
+      anahtar: "klist_kapat",
+      metin: "Kahraman listesini ✕ ile kapat.",
+      hedef: { tip: "dom", sec: "#klistCloseBtn" },
+      tamam: function () { return !gorunurOge("#klistCloseBtn"); }
+    }])
     .concat(savasZinciri());
 
   /* ── SAVAŞ ZİNCİRİ ───────────────────────────────────────────────────
