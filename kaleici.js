@@ -345,12 +345,11 @@
   var IKILI_BINA = { odun: 1, demir: 1, su: 1, enerji: 1, ahir: 1 };
 
   var IK2 = {
-    /* İlk sayılar ölçüyle bulundu, tahmin değil: 1x1 tabanda taşı
-       ikonunun çıpası (sol+alt köşe ortası) alt köşeden ~tileW/4
-       solda kalıyor. Geliştir'in x'i o kaymanın aynası olacak
-       şekilde hesaplandı; ikisi alt köşenin iki yanında eşit durur. */
-    gelistir: { olcek: 3.50, x:  0.44, y:  0.14 },
-    tasi:     { olcek: 3.50, x: -0.20, y:  0.15 },
+    /* ?ikonayar=1 "2'Lİ" kipiyle dialandı, tahmin değil.
+       Ölçü 3.50 değil 2.80: 1x1 taban 2x2'nin yarısı, üçlü düzenin
+       ikonu bu binanın üstünü örtüyordu. */
+    gelistir: { olcek: 2.80, x:  0.49, y:  0.19 },
+    tasi:     { olcek: 2.80, x: -0.15, y:  0.25 },
   };
 
   /* Bir binanın ikon ayarı hangi tablodan okunur — TEK karar yeri.
