@@ -365,8 +365,9 @@
       "  border:1px solid rgba(190,240,255,.20);border-radius:16px;",
       "  box-shadow:0 2px 6px rgba(0,20,45,.3);",
       "  font-family:'Baloo 2','Nunito',sans-serif;color:#eaf4ff;}",
-      "#egitimBalon .eb-yuz{width:46px;height:46px;flex:0 0 46px;border-radius:12px;",
-      "  object-fit:cover;object-position:top center;background:rgba(255,255,255,.10);}",
+      "#egitimBalon .eb-yuz{width:64px;flex:0 0 64px;align-self:flex-end;margin-bottom:-12px;",
+      "  object-fit:contain;object-position:bottom center;background:none;border:none;",
+      "  border-radius:0;filter:drop-shadow(0 6px 14px rgba(0,20,45,.55));pointer-events:none;}",
       "#egitimBalon .eb-govde{flex:1 1 auto;min-width:0;}",
       "#egitimBalon .eb-ust{display:flex;justify-content:space-between;align-items:center;gap:8px;}",
       "#egitimBalon .eb-baslik{font-weight:900;font-size:13.5px;color:#ffd257;",
@@ -379,10 +380,21 @@
     document.head.appendChild(st);
   }
 
+  /* Ekranda bir ödül/karşılama penceresi varsa balon çekilir; yoksa
+     ikisi üst üste biniyor ve alttaki düğmeye ulaşılamıyor. */
+  function ustPencereVar() {
+    if (document.getElementById("welcomeBack")) return true;
+    if (document.getElementById("egitimOdul")) return true;
+    var dr = document.getElementById("dailyRewardOverlay");
+    if (dr && getComputedStyle(dr).display !== "none") return true;
+    return false;
+  }
+
   function balonCiz() {
     var d = durum();
     if (!d) return;
     if (bittiMi()) { balonKaldir(); return; }
+    if (ustPencereVar()) { balonKaldir(); return; }
     balonStil();
 
     var adim = ADIMLAR[d.adim];
