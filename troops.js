@@ -636,7 +636,18 @@ function renderTroopSelector() {
 
   renderHeroPickerForBattle();
 
-  const owned = Object.values(UNIT_TYPES).filter(def => (state.troops[def.id] || 0) > 0);
+  /*  SIRALAMA — en yeni birlik EN ÜSTTE.
+      Önce kademe (Sv6 → Sv1), sonra aile (Savunucu, Koruyucu,
+      Nişancı). Yeni bir kademe üretilip sahip olununca kendiliğinden
+      listenin başına geçer; elle bir sıra tablosu tutulmuyor.     */
+  const AILE_YERI = { knight: 0, soldier: 1, robot: 2 };
+  const owned = Object.values(UNIT_TYPES)
+    .filter(def => (state.troops[def.id] || 0) > 0)
+    .sort((a, b) => {
+      const fark = (b.kademe || 1) - (a.kademe || 1);
+      if (fark) return fark;
+      return (AILE_YERI[a.aile] ?? 9) - (AILE_YERI[b.aile] ?? 9);
+    });
   if (owned.length === 0) {
     listEl.innerHTML = emptyState("🪖", 'Henüz birliğin yok. "Birlikler" menüsünden eğitebilirsin.', "10px");
     summaryEl.textContent = "";
@@ -752,6 +763,7 @@ function renderTroopSelector() {
     ["pointerup", "pointerleave", "pointercancel"].forEach(ev => btn.addEventListener(ev, bitir));
   });
 
+  listePenceresiOlc();
   seferSecimiKirp();
   seferSinirlariTazele();
   seferSayaciTazele();
@@ -819,6 +831,43 @@ function buildTroopRoster(selectedTroops) {
        gider). Tavan asla aşılmaz: bir aileye ayrılan yer,
        diğer ailelerin şu anki seçiminden ARTAN yerle sınırlıdır.
     ═══════════════════════════════════════════════════════════ */
+
+/*  ── LİSTE PENCERESİ: TAM 3 SATIR ──────────────────────────────
+    Liste üç satır boyunda durur, kalanı parmakla kaydırılarak
+    görülür. Sürgü çubuğu YOKTUR (tema.js'te tamamen kapatıldı).
+
+    Yükseklik TAHMİN EDİLMEZ, ÖLÇÜLÜR: ilk satırın dış yüksekliği
+    (alt boşluğu dahil) alınıp üçle çarpılır. Satır tasarımı
+    değişirse pencere kendiliğinden uyar, burada sayı düzeltmek
+    gerekmez.
+
+    Panel kapalıyken ölçü 0'dır — o durumda hiçbir şey yazılmaz,
+    panel açılınca yeniden çizim buraya zaten uğrar.               */
+function listePenceresiOlc() {
+  const listEl = document.getElementById("troopSelectList");
+  if (!listEl) return;
+  const satirlar = listEl.querySelectorAll(".troop-select-row");
+
+  /*  Üç satır veya daha azsa pencere gereksiz: kısıt kaldırılır,
+      liste kendi boyunda durur ve hiç kaymaz. */
+  if (satirlar.length <= 3) {
+    listEl.style.maxHeight = "";
+    listEl.style.overflowY = "";
+    return;
+  }
+
+  const ilk = satirlar[0];
+  const yukseklik = ilk.offsetHeight;
+  if (!yukseklik) return;                     /* kapalı panel: ölçü 0 */
+
+  /*  Satır arası boşluk da hesaba katılır, yoksa üçüncü satırın
+      altı kırpılır ve dördüncü satırın tepesi görünür. */
+  const stil = window.getComputedStyle(ilk);
+  const bosluk = parseFloat(stil.marginBottom) || 0;
+
+  listEl.style.maxHeight = Math.round(yukseklik * 3 + bosluk * 2) + "px";
+  listEl.style.overflowY = "auto";
+}
 
 const AILE_SIRA = ["knight", "soldier", "robot"];
 

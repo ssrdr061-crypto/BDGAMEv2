@@ -6459,9 +6459,15 @@ function araziSecimHazirla() {
 /* Panelin okuduğu tek yer: savaş seçimi. Ayrı bir _araziSecim
    tutulsaydı iki kaynak ayrışırdı (bkz. Tuzak 15). */
 function araziSecimOku() {
-  const s = { knight: 0, soldier: 0, robot: 0 };
+  /*  TÜM kademeler okunur. Eskiden yalnız Sv1 üçlüsü sayılıyordu:
+      sadece Süvari seçip toplamaya gidince seçim boş görünüyor,
+      "Yanına en az 1 birlik almalısın" çıkıyordu.                */
+  const s = {};
+  const idler = (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES)
+    ? Object.keys(UNIT_TYPES) : ["knight", "soldier", "robot"];
+  idler.forEach(u => { s[u] = 0; });
   if (typeof selectedTroopsForBattle !== "undefined") {
-    Object.keys(s).forEach(u => {
+    idler.forEach(u => {
       s[u] = Math.min(selectedTroopsForBattle[u] || 0, (state.troops || {})[u] || 0);
     });
   }
@@ -6528,7 +6534,7 @@ function araziPaneliAc(d) {
       showToast("⚠️ sefer.js güncel değil (SEFER.toplamaBaslat yok).", 6000); return;
     }
     const sec = araziSecimOku();
-    if ((sec.knight + sec.soldier + sec.robot) <= 0) {
+    if (Object.keys(sec).reduce((t, u) => t + (sec[u] || 0), 0) <= 0) {
       showToast("Yanına en az 1 birlik almalısın."); return;
     }
 

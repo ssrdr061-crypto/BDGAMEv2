@@ -8223,3 +8223,38 @@ if (document.readyState === "loading") {
     setTimeout(isinOynat, 2200);
   }
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   SAVAŞ PANELİ — BİRLİK LİSTESİ SÜRGÜ ÇUBUĞU KAPALI
+   ------------------------------------------------------------
+   Liste üç satır boyunda duruyor (yükseklik troops.js
+   `listePenceresiOlc` içinde ÖLÇÜLEREK yazılır, burada sabit
+   sayı yok). Kaydırma parmakla yapılır; çubuk hiçbir tarayıcıda
+   görünmez.
+
+   Üç ayrı kural gerekiyor çünkü tarayıcılar çubuğu farklı
+   yerlerden çiziyor: Firefox `scrollbar-width`, WebKit
+   `::-webkit-scrollbar`, eski Edge `-ms-overflow-style`.
+   Biri eksik kalırsa o tarayıcıda ince bir çizgi kalır.
+
+   `overscroll-behavior:contain` — liste sonuna gelince kaydırma
+   panele ve arkadaki haritaya SIÇRAMAZ. Bu olmadan üçüncü
+   satırdan sonra parmak paneli sürüklüyordu.
+   ══════════════════════════════════════════════════════════════ */
+(function birlikListesiCubukKapat(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaBirlikListeCubuk";
+st.textContent = `
+html body #battleArena #troopSelectList{
+  scrollbar-width:none !important;
+  -ms-overflow-style:none !important;
+  overscroll-behavior:contain !important;
+  -webkit-overflow-scrolling:touch !important;
+}
+html body #battleArena #troopSelectList::-webkit-scrollbar{
+  width:0 !important; height:0 !important; display:none !important;
+}
+`;
+document.head.appendChild(st);
+})();

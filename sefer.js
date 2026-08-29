@@ -68,7 +68,23 @@ const AYAR = {
   HIZ_ORANI: 0.25,          /* kalan sürenin %25'i silinir */
 };
 
-const BIRLIKLER = ["knight", "soldier", "robot"];
+/*  TÜM birlik kimlikleri — 3 aile × 6 kademe = 18.
+    Eskiden burada yalnız Sv1 üçlüsü yazılıydı; Süvari, Savaş Fili
+    gibi üst kademeler seferde HİÇ SAYILMIYORDU. Belirtisi şuydu:
+    yalnız Sv2 seçip gönderince "Yanına en az 1 birlik almalısın"
+    diyordu, çünkü toplam sıfır çıkıyordu — oyuncu mecburen bir
+    Sv1 ekliyordu. Ayrıca gönderilen Sv2 kaleden düşmüyordu.
+
+    Liste troops.js'ten OKUNUR, elle yazılmaz: yeni kademe eklenince
+    burası kendiliğinden uyar. troops.js yüklenmemişse eski üçlüye
+    düşer, oyun yine çalışır.                                      */
+const BIRLIKLER = (function () {
+  if (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES) {
+    const hepsi = Object.keys(UNIT_TYPES);
+    if (hepsi.length) return hepsi;
+  }
+  return ["knight", "soldier", "robot"];
+})();
 
 /* ═══════════════════════════════════════════════════════════
    2) İÇ DURUM
