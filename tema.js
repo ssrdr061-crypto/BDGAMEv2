@@ -1046,32 +1046,62 @@ function unitDetailHTML(r) {
       karşılık savaşa hiç girmemiş bir Sv1 birliğin görseli boş
       satır olarak duruyordu. Satır ancak o birlikte gerçekten bir
       sayı varsa yazılır.                                          */
-  const ids = rpBirlikIdleri([
-    AL.killed, AL.wounded, DL.killed, DL.wounded, AA, DA,
-    r.attackerTroops, r.defenderTroops
-  ]).filter(u => OLCU.some(o => o.sol(u) || o.sag(u)));
-  /* Döküm yoksa bile İSTATİSTİKLER bölümü yazılır — o yüzden burada
-     erken çıkılmaz, sadece blok yerine not konur. */
-  const bosNot = !ids.length
+  /*  ── SATIRLARIN EŞLEŞMESİ ──────────────────────────────────
+      Bir satır AYNI kimliği iki yana basmaz. Solda senin birliğin,
+      sağda rakibin KARŞILIK GELEN birliği durur.
+
+      Eşleşme AİLE üzerindendir: Savunucu'nun karşısında Savunucu,
+      Koruyucu'nun karşısında Koruyucu. Her ailenin içinde iki taraf
+      da yüksek kademeden aşağı sıralanır ve sırayla eşlenir — sende
+      Sv5 Savunucu varsa karşısına rakibin en yüksek Savunucu'su
+      gelir, kademeleri tutmak zorunda değildir.
+
+      Bir tarafın o ailede daha az kademesi varsa fazlalık satırlarda
+      o taraf boş kalır. Eskiden kimlik zorlanıyordu: rakipte hiç
+      Süvari yokken bile "onun da Süvarisi var" gibi görünüyordu.  */
+  const tarafListesi = (kadro, deger) => {
+    const idler = rpBirlikIdleri([kadro, deger.killed, deger.wounded, deger.attrib]);
+    return idler.filter(u =>
+      ((kadro && kadro[u]) || 0) > 0 ||
+      ((deger.killed  && deger.killed[u])  || 0) > 0 ||
+      ((deger.wounded && deger.wounded[u]) || 0) > 0 ||
+      ((deger.attrib  && deger.attrib[u]   && (deger.attrib[u].killed || deger.attrib[u].wounded)) || 0) > 0
+    );
+  };
+
+  const solHepsi = tarafListesi(r.attackerTroops, { killed: AL.killed, wounded: AL.wounded, attrib: AA });
+  const sagHepsi = tarafListesi(r.defenderTroops, { killed: DL.killed, wounded: DL.wounded, attrib: DA });
+
+  /*  Aile aile eşle. Aile sırası savaş panelindekiyle aynı. */
+  const ciftler = [];
+  ["knight", "soldier", "robot"].forEach(fam => {
+    const sol = solHepsi.filter(u => rpAile(u) === fam);
+    const sag = sagHepsi.filter(u => rpAile(u) === fam);
+    const n = Math.max(sol.length, sag.length);
+    for (let k = 0; k < n; k++) ciftler.push({ sol: sol[k] || null, sag: sag[k] || null });
+  });
+
+  const bosNot = !ciftler.length
     ? `<div class="rp-note">Bu savaşta kayıt altına alınmış birlik dökümü yok.</div>` : "";
 
-  const blok = ids.map(u => {
-    const satir = OLCU.map(o => `
-      <div class="rp-krs-satir">
-        <span class="rp-krs-sol ${rpRenk(o.tip, benS)}">${f(o.sol(u))}</span>
-        <span class="rp-krs-orta">${o.ad}</span>
-        <span class="rp-krs-sag ${rpRenk(o.tip, !benS)}">${f(o.sag(u))}</span>
-      </div>`).join("");
-    /* Başlıkta yazı yok: iki tarafa da o birliğin kafa kutucuğu konur —
-       aynı kadraj birlik seçicide ve raporun özet sayfasında kullanılıyor
-       (.rep-por[data-i]), yeni bir görsel ölçüsü uydurulmadı. */
+  const kafaHTML = (u) => {
+    if (!u) return `<div class="rep-por rp-por-bos"></div>`;
     const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[u] : null;
     const im = (d && d.img) ? `<img src="${d.img}" alt="${(d && d.name) || AD[u] || u}">` : "";
-    const i = RP_AILE_YERI[rpAile(u)] ?? 0;
-    const kad = rpKademe(u);
-    const kafa = `<div class="rep-por" data-i="${i}" data-kad="${kad}">${im}</div>`;
+    /*  data-i KADRAJDIR ve aileye bağlıdır (Süvari, Şövalye ile aynı
+        kırpma alanını kullanır). data-kad arka planı seçer.        */
+    return `<div class="rep-por" data-i="${RP_AILE_YERI[rpAile(u)] ?? 0}" data-kad="${rpKademe(u)}">${im}</div>`;
+  };
+
+  const blok = ciftler.map(c => {
+    const satir = OLCU.map(o => `
+      <div class="rp-krs-satir">
+        <span class="rp-krs-sol ${rpRenk(o.tip, benS)}">${c.sol ? f(o.sol(c.sol)) : "—"}</span>
+        <span class="rp-krs-orta">${o.ad}</span>
+        <span class="rp-krs-sag ${rpRenk(o.tip, !benS)}">${c.sag ? f(o.sag(c.sag)) : "—"}</span>
+      </div>`).join("");
     return `<div class="rp-krs-blok">
-        <div class="rp-krs-baslik">${kafa}<span class="rp-krs-cizgi"></span>${kafa}</div>
+        <div class="rp-krs-baslik">${kafaHTML(c.sol)}<span class="rp-krs-cizgi"></span>${kafaHTML(c.sag)}</div>
         ${satir}
       </div>`;
   }).join("");
@@ -8304,6 +8334,32 @@ html body #battleArena #troopSelectList{
 html body #battleArena #troopSelectList::-webkit-scrollbar{
   width:0 !important; height:0 !important; display:none !important;
 }
+`;
+document.head.appendChild(st);
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   RAPOR — BOŞ BİRLİK KUTUCUĞU
+   ------------------------------------------------------------
+   Bir birlik yalnız bir tarafta varsa, diğer tarafta kafa
+   çizilmez (tema.js unitDetailHTML). Yerine bu boş kutu geçer:
+   ölçüsü aynıdır, böylece iki başlık aynı hizada kalır ve
+   satırlar kaymaz. Arka plan görseli VERİLMEZ — .rep-por'un
+   kademe kuralları data-kad'a bağlı, boş kutuda o öznitelik
+   olmadığı için hiçbiri tutmaz.
+   ══════════════════════════════════════════════════════════════ */
+(function raporBosBirlikKutusu(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaRaporBosKutu";
+st.textContent = `
+html body .rep-por.rp-por-bos{
+  background-color:rgba(0,0,0,.05) !important;
+  background-image:none !important;
+  border:1px dashed rgba(90,60,25,.25) !important;
+  box-shadow:none !important;
+}
+html body .rep-por.rp-por-bos::before{ content:none !important; }
 `;
 document.head.appendChild(st);
 })();
