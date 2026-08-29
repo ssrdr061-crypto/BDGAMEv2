@@ -7902,7 +7902,8 @@ if (document.readyState === "loading") {
     toz: 60,           /* toz parçacığı */
     yayil: 135,        /* toz yayılımı (px) */
     tozSure: 900,      /* toz süresi (ms) */
-    sarsinti: 16       /* oturma sarsıntısı */
+    sarsinti: 16,      /* oturma sarsıntısı */
+    olcek: 0.70        /* efektin genel boyu — 1 = eski hâli */
   };
   var GECIKME = 470;   /* kamera varana kadar bekleme (ms) */
 
@@ -7967,8 +7968,12 @@ if (document.readyState === "loading") {
 
   function boltUret(hx, hy, ol) {
     var l = [], i, j;
+    /* Yıldırımın boyu da ölçekten geliyor: tepeden değil, kalenin
+       yukarısında bir noktadan iniyor. Yoksa "küçült" yalnız
+       kalınlığı kısar, hat yine ekranı boydan boya keser. */
+    var tepe = hy - (hy + 16) * AYAR.olcek;
     for (i = 0; i < AYAR.sayi; i++) {
-      var ana = yol(hx + (Math.random() - 0.5) * innerWidth * 0.5, -16,
+      var ana = yol(hx + (Math.random() - 0.5) * innerWidth * 0.5 * AYAR.olcek, tepe,
                     hx + (Math.random() - 0.5) * 14 * ol, hy, AYAR.kivrim * ol, 5);
       var dal = [];
       for (j = 0; j < AYAR.dal; j++) {
@@ -8092,7 +8097,7 @@ if (document.readyState === "loading") {
       if (!yer && !son) yer = isinYedekYer();
       if (yer) son = yer;
       var hx = son.x, hy = son.y;
-      var ol = Math.min(2.2, Math.max(0.6, son.w / 110));
+      var ol = Math.min(2.2, Math.max(0.6, son.w / 110)) * AYAR.olcek;
       if (!bolts) bolts = boltUret(hx, hy, ol);
 
       if (cv.width !== Math.round(W * DPR)) olcu();
