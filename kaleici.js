@@ -334,6 +334,10 @@
        takas edildi; çizim sırası değil, yalnız kaymalar değişti. */
     gelistir: { olcek: 3.50, x:  0.02, y:  0.25 },
     egit:     { olcek: 3.50, x:  0.78, y: -0.05 },
+
+    /* Hastanenin alt düğmesi KENDİ yuvasında. Önce egit yuvasını
+       paylaşıyordu; hastaneyi oynatınca üç kışla da oynuyordu. */
+    tedavi:   { olcek: 3.50, x:  0.78, y: -0.05 },
     tasi:     { olcek: 3.50, x: -0.20, y:  0.15 },
 
     /* Taşıma onayı: ✔ ve ✕ daireleri. x ikisinin ARASINDAKİ
@@ -1246,8 +1250,8 @@
     var kisla   = !!KISLA_AILE[b.id];
     var altYazi = altDugmeYazisi(b.id);
     /* Alt düğmenin ikonu binaya göre değişir: kışlalarda EĞİT,
-       hastanede TEDAVİ. Konum ayarı ikisinde de aynı yuvadan
-       (IK.egit) gelir — hastane de artık üçlü düzendedir. */
+       hastanede TEDAVİ. Konum ayarı da AYRI yuvadan gelir: IK.egit
+       üç kışlayı, IK.tedavi yalnız hastaneyi oynatır. */
     var altIkonK = kisla ? 'egit' : (b.id === 'hastane' ? 'tedavi' : null);
     var imEgit  = (altYazi && altIkonK) ? ikon(altIkonK) : null;
     var gelOlur = gelistirOlurMu(b);
@@ -1269,7 +1273,7 @@
        oluyordu. Artık her ikon kendi çıpasından (tabanın alt
        köşesi) kendi x/y kaymasıyla yerleşiyor. */
     var cizilecek = [];
-    if (imEgit) cizilecek.push({ im: imEgit, a: ikonAyari(b, 'egit'),     kutu: egitBtn, basili: egitBasili });
+    if (imEgit) cizilecek.push({ im: imEgit, a: ikonAyari(b, altIkonK),  kutu: egitBtn, basili: egitBasili });
     if (imGel)  cizilecek.push({ im: imGel,  a: ikonAyari(b, 'gelistir'), kutu: gelBtn,  basili: gelBasili });
     if (!cizilecek.length) return;
 
@@ -2361,6 +2365,7 @@
     var IKONLAR_AD = [
       { k: 'gelistir', ad: 'GELİŞ' },
       { k: 'egit',     ad: 'EĞİT' },
+      { k: 'tedavi',   ad: 'TEDAVİ' },
       { k: 'tasi',     ad: 'TAŞI' },
       { k: 'onay',     ad: '✔/✕' },
     ];
@@ -2432,12 +2437,13 @@
 
     /* ── Sekmeler ── */
     var sekmeKutu = document.createElement('div');
-    sekmeKutu.style.cssText = 'display:flex;gap:3px;margin-bottom:5px;';
+    sekmeKutu.style.cssText =
+      'display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px;';
     var sekmeler = {};
     IKONLAR_AD.forEach(function (o) {
       var b = document.createElement('button');
       b.textContent = o.ad;
-      stil(b, 'flex:1 1 0;min-width:0;height:24px;font-size:9.5px;');
+      stil(b, 'flex:1 1 46px;min-width:0;height:24px;font-size:9.5px;');
       b.addEventListener('pointerup', function () { secik = o.k; tazele(); });
       sekmeler[o.k] = b;
       sekmeKutu.appendChild(b);
