@@ -23,6 +23,12 @@
 
   var ADET = 30;              /* her kışladan üretilecek birlik sayısı */
 
+  /* Kışla ekranındaki gerçek öğeler (index.html unit viewer markup'ı).
+     Kilitli kademelerin hayalet çubuğu dışlanır, yoksa görünmeyen
+     sürgü hedef sanılıyor ve halka hiç çizilmiyordu. */
+  var SURGU_SEC = "#panel-troops .unit-qty-bar:not(.kilit-hayalet) .uv-qty-slider";
+  var URET_SEC  = "#panel-troops .unit-train-btn";
+
   /* ── ÖDÜL PAKETİ — değiştirilecek TEK yer ──────────────────────────── */
   var ODULLER = [
     { esya: "İntikal Hızlandırma %50", adet: 5,  gorsel: "50intikal.webp", emoji: "🌀", ad: "%50 İntikal" },
@@ -94,16 +100,16 @@
       {
         anahtar: binaId + "_surgu",
         metin: "Sürgüyü " + ADET + "'a çek.",
-        hedef: { tip: "dom", sec: "#troopTrainSlider_knight,#troopTrainSlider_soldier,#troopTrainSlider_robot" },
+        hedef: { tip: "dom", sec: SURGU_SEC },
         tamam: function () {
-          var sl = gorunurOge("#troopTrainSlider_knight,#troopTrainSlider_soldier,#troopTrainSlider_robot");
+          var sl = gorunurOge(SURGU_SEC);
           return !!sl && (parseInt(sl.value, 10) || 0) >= ADET;
         }
       },
       {
         anahtar: binaId + "_uret",
         metin: "ÜRET düğmesine bas.",
-        hedef: { tip: "dom", sec: "#knight_btn,#soldier_btn,#robot_btn" },
+        hedef: { tip: "dom", sec: URET_SEC },
         tamam: function () { return birlikVeKuyruk(unitId) >= ADET; }
       },
       {
@@ -490,12 +496,22 @@
      sonraki çizimde kendi tavanını geri yazar. */
   function surguTavaniniKilitle() {
     if (bittiMi()) return;
-    var sl = gorunurOge("#troopTrainSlider_knight,#troopTrainSlider_soldier,#troopTrainSlider_robot");
+    var sl = gorunurOge(SURGU_SEC);
     if (!sl) return;
-    if ((parseInt(sl.max, 10) || 0) !== ADET) sl.max = ADET;
+    if ((parseInt(sl.max, 10) || 0) !== ADET) sl.max = String(ADET);
     if ((parseInt(sl.value, 10) || 0) > ADET) {
-      sl.value = ADET;
+      sl.value = String(ADET);
       try { sl.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
+    }
+    /* Yanındaki sayı kutusu da aynı tavana çekilir; yoksa oyuncu
+       oradan 30'un üstüne yazabiliyor. */
+    var kutu = gorunurOge("#panel-troops .unit-qty-bar:not(.kilit-hayalet) .uq-input");
+    if (kutu) {
+      if ((parseInt(kutu.max, 10) || 0) !== ADET) kutu.max = String(ADET);
+      if ((parseInt(kutu.value, 10) || 0) > ADET) {
+        kutu.value = String(ADET);
+        try { kutu.dispatchEvent(new Event("input", { bubbles: true })); } catch (e) {}
+      }
     }
   }
 
