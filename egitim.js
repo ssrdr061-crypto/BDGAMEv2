@@ -214,9 +214,12 @@
         metin: "Haritaya dön.",
         hedef: { tip: "dom", sec: "#kaleiciKapat" },
         tamam: function () { return !kaleicidiMi(); }
+        /* Oyuncu zaten haritadaysa koşul en baştan doğrudur,
+           adım kendiliğinden geçer. */
       },
       {
         anahtar: "canavar_sec",
+        ekran: "harita",
         metin: "Işıklı 1. seviye canavara dokun.",
         hazirla: function () { enYakinCanavaraOdakla(); },
         hedef: { tip: "canavar" },
@@ -224,6 +227,7 @@
       },
       {
         anahtar: "saldiriya_git",
+        ekran: "harita",
         metin: "Saldırıya git.",
         hedef: { tip: "dom", sec: ".abm-btn-kirmizi" },
         tamam: function () { return !!gorunurOge("#battleBtn"); }
@@ -674,13 +678,27 @@
     var adim = ZINCIR[d.adim];
     if (!adim) return;
 
-    /* Kale adımındayız ama oyuncu haritadaysa (çıkış-giriş, geri tuşu)
-       önce kaleiçi geri açılır, yoksa odak da vurgu da yapılamaz. */
+    /* ── EKRAN UYUŞMASI ────────────────────────────────────────────
+       Adımın geçtiği ekranla oyuncunun bulunduğu ekran farklıysa
+       önce oraya götürülür. Oyun kaleiçinde açıldığı için, harita
+       adımında kalmış bir oyuncu kaleiçine düşüyor ve halka boş
+       zemine çiziliyordu; üstelik kilit yüzünden dışarı da
+       çıkamıyordu. */
     var suanki = ZINCIR[d.adim];
-    if (suanki && suanki.hedef && suanki.hedef.tip === "kale" && !kaleicidiMi()) {
+    var kaleGerek = !!(suanki && suanki.hedef && suanki.hedef.tip === "kale");
+    var haritaGerek = !!(suanki && suanki.ekran === "harita");
+
+    if (kaleGerek && !kaleicidiMi()) {
       try {
         if (window.KALEICI && typeof window.KALEICI.ac === "function") window.KALEICI.ac();
       } catch (e) {}
+      sonHazirlanan = -1;
+      rehberligiGizle();
+      return;
+    }
+    if (haritaGerek && kaleicidiMi()) {
+      var kapatBtn = document.getElementById("kaleiciKapat");
+      if (kapatBtn) kapatBtn.click();
       sonHazirlanan = -1;
       rehberligiGizle();
       return;
