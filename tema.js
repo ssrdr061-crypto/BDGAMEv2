@@ -879,17 +879,55 @@ function statKarsiHTML(r) {
   return out + `</div>`;
 }
 
+/*  ── RAPORDA BİRLİK KİMLİKLERİ — TEK KAYNAK ────────────────────
+    Raporun üç yeri (kutucuklar, toplam özet, birlik dökümü) eskiden
+    sabit ["knight","soldier","robot"] listesiyle çalışıyordu. Sonuç:
+    Süvari ya da Savaş Fili ile saldırınca raporda kutucuk çıkmıyor,
+    ölen/öldüren sayıları yazılmıyor, hiç gönderilmemiş Sv1 birliğin
+    görseli boş satır olarak duruyordu.
+
+    Artık kimlikler VERİDEN çıkarılır: hangi tabloda birlik varsa o
+    listeye girer. Sıra savaş panelindekiyle aynıdır — önce kademe
+    (Sv6 → Sv1), sonra aile (Savunucu, Koruyucu, Nişancı).
+
+    `nesneler` birden çok tablo alabilir (kayıp, zayiat, kadro);
+    hepsinin birleşimi döner.                                      */
+const RP_AILE_YERI = { knight: 0, soldier: 1, robot: 2 };
+
+function rpAile(uid) {
+  const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
+  return (d && d.aile) || String(uid).replace(/[0-9]+$/, "") || uid;
+}
+function rpKademe(uid) {
+  const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
+  return (d && (d.kademe || d.level)) || 1;
+}
+function rpBirlikIdleri(nesneler) {
+  const kume = {};
+  (nesneler || []).forEach(o => {
+    if (!o || typeof o !== "object") return;
+    Object.keys(o).forEach(k => { kume[k] = true; });
+  });
+  return Object.keys(kume).sort((a, b) => {
+    const fark = rpKademe(b) - rpKademe(a);
+    if (fark) return fark;
+    return (RP_AILE_YERI[rpAile(a)] ?? 9) - (RP_AILE_YERI[rpAile(b)] ?? 9);
+  });
+}
+
 /* savaşa sürülen birlikler — eğitim panelindeki kafa kutucuğu biçimi.
    .rep-por[data-i] kadrajı ?ayar=1 tuner'ından gelen değişkenleri kullanır. */
 function unitChips(troopsObj) {
   const t = troopsObj || {};
-  const sira = ["knight","soldier","robot"];
-  const out = sira.filter(uid => (t[uid] || 0) > 0).map(uid => {
+  /*  `data-i` kutucuğun KADRAJIDIR (görselin nereden kırpılacağı) ve
+      aileye bağlıdır, kimliğe değil: Süvari de Şövalye ile aynı
+      kadrajı kullanır. `data-kad` arka planı seçer.                */
+  const out = rpBirlikIdleri([t]).filter(uid => (t[uid] || 0) > 0).map(uid => {
     const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
     const im = (d && d.img) ? `<img src="${d.img}" alt="">` : "";
     const n  = (typeof fmt === "function") ? fmt(t[uid]) : String(t[uid]);
     return `<div class="rp-unit">
-      <div class="rep-por" data-i="${sira.indexOf(uid)}" data-kad="${(typeof KADEME_NO === "function" ? KADEME_NO(uid) : 1)}">${im}</div>
+      <div class="rep-por" data-i="${RP_AILE_YERI[rpAile(uid)] ?? 0}" data-kad="${rpKademe(uid)}">${im}</div>
       <span class="rp-ucap">${n}</span>
     </div>`;
   });
@@ -951,13 +989,17 @@ function rpRenk(tip, benimTarafim) {
 function ozetHTML(r) {
   const f = (n) => (typeof fmt === "function") ? fmt(n || 0) : String(n || 0);
   const benS = benSaldiranMi(r);
-  const sira = ["knight", "soldier", "robot"];
-
-  const toplam = (o) => sira.reduce((s, u) => s + ((o && o[u]) || 0), 0);
-  const kayip  = (L, k) => sira.reduce((s, u) => s + ((L && L[k] && L[k][u]) || 0), 0);
 
   const AT = r.attackerTroops || {}, DT = r.defenderTroops || {};
   const AL = r.attackerLosses || {}, DL = r.defenderLosses || {};
+
+  /*  Toplamlar artık sabit üçlüyle değil, kayıtta GEÇEN her kimlikle
+      hesaplanır — Sv2+ birlikler eskiden hiç sayılmıyordu, bu yüzden
+      "BİRLİKLER 0" ve "ÖLEN 0" görünüyordu.                        */
+  const sira = rpBirlikIdleri([AT, DT, AL.killed, AL.wounded, DL.killed, DL.wounded]);
+
+  const toplam = (o) => sira.reduce((s, u) => s + ((o && o[u]) || 0), 0);
+  const kayip  = (L, k) => sira.reduce((s, u) => s + ((L && L[k] && L[k][u]) || 0), 0);
 
   const aGiden = toplam(AT), dGiden = toplam(DT);
   if (aGiden <= 0 && dGiden <= 0) return "";      /* veri yoksa blok hiç çizilmez */
@@ -999,8 +1041,15 @@ function unitDetailHTML(r) {
     { tip: "yaraladi", ad: "Yaraladı", sol: u => vr(AA, u, "wounded"), sag: u => vr(DA, u, "wounded") },
   ];
 
-  const ids = ["knight", "soldier", "robot"].filter(u =>
-    OLCU.some(o => o.sol(u) || o.sag(u)));
+  /*  Listelenecek kimlikler VERİDEN gelir. Eskiden sabit üçlü
+      geziliyordu: Sv2 ile saldırınca hiçbir satır çıkmıyor, buna
+      karşılık savaşa hiç girmemiş bir Sv1 birliğin görseli boş
+      satır olarak duruyordu. Satır ancak o birlikte gerçekten bir
+      sayı varsa yazılır.                                          */
+  const ids = rpBirlikIdleri([
+    AL.killed, AL.wounded, DL.killed, DL.wounded, AA, DA,
+    r.attackerTroops, r.defenderTroops
+  ]).filter(u => OLCU.some(o => o.sol(u) || o.sag(u)));
   /* Döküm yoksa bile İSTATİSTİKLER bölümü yazılır — o yüzden burada
      erken çıkılmaz, sadece blok yerine not konur. */
   const bosNot = !ids.length
@@ -1017,9 +1066,9 @@ function unitDetailHTML(r) {
        aynı kadraj birlik seçicide ve raporun özet sayfasında kullanılıyor
        (.rep-por[data-i]), yeni bir görsel ölçüsü uydurulmadı. */
     const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[u] : null;
-    const im = (d && d.img) ? `<img src="${d.img}" alt="${AD[u] || u}">` : "";
-    const i = ["knight", "soldier", "robot"].indexOf(u);
-    const kad = (typeof KADEME_NO === "function") ? KADEME_NO(u) : 1;
+    const im = (d && d.img) ? `<img src="${d.img}" alt="${(d && d.name) || AD[u] || u}">` : "";
+    const i = RP_AILE_YERI[rpAile(u)] ?? 0;
+    const kad = rpKademe(u);
     const kafa = `<div class="rep-por" data-i="${i}" data-kad="${kad}">${im}</div>`;
     return `<div class="rp-krs-blok">
         <div class="rp-krs-baslik">${kafa}<span class="rp-krs-cizgi"></span>${kafa}</div>
