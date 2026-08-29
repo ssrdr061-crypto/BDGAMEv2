@@ -7966,15 +7966,20 @@ if (document.readyState === "loading") {
     return d;
   }
 
-  function boltUret(hx, hy, ol) {
+  /* ── KOORDİNAT KURALI (Tuzak 52) ──
+     Yol, vuruş noktasına GÖRE üretilir: (0,0) = kalenin oturduğu yer.
+     Mutlak ekran koordinatıyla üretilirse harita kaydığında kale gider,
+     yıldırım ekranda asılı kalır. Tuval her karede kaleye taşınıyor
+     (`g.translate`), yol hiç yeniden üretilmiyor. */
+  function boltUret(ol) {
     var l = [], i, j;
-    /* Yıldırımın boyu da ölçekten geliyor: tepeden değil, kalenin
-       yukarısında bir noktadan iniyor. Yoksa "küçült" yalnız
+    /* Yıldırımın boyu da ölçekten geliyor: ekranın tepesinden değil,
+       kalenin yukarısında bir noktadan iniyor. Yoksa "küçült" yalnız
        kalınlığı kısar, hat yine ekranı boydan boya keser. */
-    var tepe = hy - (hy + 16) * AYAR.olcek;
+    var tepe = -(innerHeight * 0.72) * AYAR.olcek;
     for (i = 0; i < AYAR.sayi; i++) {
-      var ana = yol(hx + (Math.random() - 0.5) * innerWidth * 0.5 * AYAR.olcek, tepe,
-                    hx + (Math.random() - 0.5) * 14 * ol, hy, AYAR.kivrim * ol, 5);
+      var ana = yol((Math.random() - 0.5) * innerWidth * 0.5 * AYAR.olcek, tepe,
+                    (Math.random() - 0.5) * 14 * ol, 0, AYAR.kivrim * ol, 5);
       var dal = [];
       for (j = 0; j < AYAR.dal; j++) {
         var k = Math.floor(ana.length * (0.25 + Math.random() * 0.5));
@@ -8098,7 +8103,7 @@ if (document.readyState === "loading") {
       if (yer) son = yer;
       var hx = son.x, hy = son.y;
       var ol = Math.min(2.2, Math.max(0.6, son.w / 110)) * AYAR.olcek;
-      if (!bolts) bolts = boltUret(hx, hy, ol);
+      if (!bolts) bolts = boltUret(ol);
 
       if (cv.width !== Math.round(W * DPR)) olcu();
       g.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -8110,7 +8115,10 @@ if (document.readyState === "loading") {
         var guc = yerel < 0.30 ? 1 : yerel < 0.44 ? 0.30 : yerel < 0.62 ? 0.85 : 0;
         var kesim = Math.min(1, (t / AYAR.gelis) * 2.1 + 0.3);
         if (guc > 0) {
+          g.save();
+          g.translate(hx, hy);                 /* yol kaleye göre çizilir */
           for (var i = 0; i < bolts.length; i++) cizBolt(bolts[i], guc, kesim, ol);
+          g.restore();
           g.fillStyle = "rgba(180,225,255," + (0.07 * guc).toFixed(3) + ")";
           g.fillRect(0, 0, W, H);
         }

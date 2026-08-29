@@ -1212,11 +1212,11 @@
     var a = IK.onay;
     var olcu = Math.max(IK.tabanPx, boy * a.olcek);
     var r = olcu / 2;
-    var my = Math.round(alt.y + olcu * a.y);
+    var my = alt.y + olcu * a.y;          /* Tuzak 53: yuvarlama yok */
     var ax = olcu * a.x;
 
-    onayBtn.x  = Math.round(alt.x - ax); onayBtn.y  = my; onayBtn.r  = r;
-    iptalBtn.x = Math.round(alt.x + ax); iptalBtn.y = my; iptalBtn.r = r;
+    onayBtn.x  = alt.x - ax; onayBtn.y  = my; onayBtn.r  = r;
+    iptalBtn.x = alt.x + ax; iptalBtn.y = my; iptalBtn.r = r;
 
     daireDugme(onayBtn.x,  my, r, '#3fbf6a', TIK_G,   onayBasili);
     daireDugme(iptalBtn.x, my, r, '#c0392b', CARPI_G, iptalBasili);
@@ -1280,8 +1280,12 @@
     for (var i = 0; i < cizilecek.length; i++) {
       var c = cizilecek[i];
       var olcu = Math.max(IK.tabanPx, boy * c.a.olcek);
-      var mx = Math.round(alt.x + olcu * c.a.x);
-      var my = Math.round(ust + olcu * c.a.y);
+      /* Tuzak 53: YUVARLAMA YOK. Binalar ondalıklı çiziliyor; düğme
+         tam piksele oturtulursa parmakla kaydırırken bina yumuşak
+         kayar, düğme piksel piksel zıplar — "titriyor, kendini
+         hizalıyor" belirtisi budur. */
+      var mx = alt.x + olcu * c.a.x;
+      var my = ust + olcu * c.a.y;
       var oz = ikonCiz(c.im, mx, my, olcu, c.basili);
       /* Dokunuş alanı ÇİZİLEN ölçüdür — en-boy oranı korunduğu için
          kare olmayabilir. Parmak payı dokunma denetiminde ekleniyor. */
