@@ -121,10 +121,51 @@
     ];
   }
 
+  /* ── KAHRAMAN ZİNCİRİ ────────────────────────────────────────────────
+     Alt menü → Kahraman → kart → Satın Al → ✕ , iki kahraman için.
+     Ekranlar: kahramanlar.js listesi (.klist-card[data-hero]) ve
+     heroes.js detayı (#hdBuyBtn / #hdClose).                          */
+  function kahramanZinciri(skinId, ad) {
+    var sahipMi = function () {
+      var s = S();
+      return !!(s && (s.ownedHeroSkins || []).indexOf(skinId) !== -1);
+    };
+    return [
+      {
+        anahtar: skinId + "_sekme",
+        metin: "Alt menüden Kahraman ekranını aç.",
+        hedef: { tip: "dom", sec: '.dock-btn[data-panel="hero"]' },
+        tamam: function () {
+          return !!document.querySelector(".klist-card[data-hero]") || !!document.getElementById("hdBuyBtn");
+        }
+      },
+      {
+        anahtar: skinId + "_kart",
+        metin: ad + " kartına dokun.",
+        hedef: { tip: "dom", sec: '.klist-card[data-hero="' + skinId + '"]' },
+        tamam: function () { return !!document.getElementById("hdBuyBtn"); }
+      },
+      {
+        anahtar: skinId + "_al",
+        metin: ad + "'ı satın al.",
+        hedef: { tip: "dom", sec: "#hdBuyBtn" },
+        tamam: sahipMi
+      },
+      {
+        anahtar: skinId + "_kapat",
+        metin: "Ekranı ✕ ile kapat.",
+        hedef: { tip: "dom", sec: "#hdClose" },
+        tamam: function () { return !document.getElementById("hdBuyBtn"); }
+      }
+    ];
+  }
+
   var ZINCIR = []
     .concat(kislaZinciri("sovalye", "knight",  "Savunucu"))
     .concat(kislaZinciri("asker",   "soldier", "Koruyucu"))
-    .concat(kislaZinciri("robot",   "robot",   "Nişancı"));
+    .concat(kislaZinciri("robot",   "robot",   "Nişancı"))
+    .concat(kahramanZinciri("buz_savascisi", "HALVORSEN"))
+    .concat(kahramanZinciri("ates_buyucusu", "MİKİAN"));
 
   var TOPLAM_ADIM = ZINCIR.length;
 
