@@ -6951,7 +6951,7 @@ function setupMapPanning() {
     if(!g){ showToast("Önce bir yer seç."); return; }
     if(!cellFree(g.gx, g.gy)){ showToast("Burası dolu — kale/canavar var. Başka yer seç."); return; }
     if((state.diamonds||0) < MOVE_COST){ showToast(`Taşıma için ${fmt(MOVE_COST)} 💎 gerekli, yeterli elmasın yok.`); return; }
-    doCastleMove(g);
+    window.KALE_TASIMA.tasi(g);   /* tek kapı: efekt bu kapıya bağlı */
   }
   function doCastleMove(g){
     state.diamonds -= MOVE_COST;
