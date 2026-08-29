@@ -163,14 +163,20 @@
     var st = document.createElement("style");
     st.id = "egitimZincirCss";
     st.textContent = [
-      "#egitimHalka{position:fixed;z-index:9992;pointer-events:none;border-radius:14px;",
-      "  border:3px solid #ffd257;box-shadow:0 0 0 4px rgba(255,210,87,.22);",
-      "  animation:egHalka 1.2s ease-in-out infinite;}",
-      "@keyframes egHalka{0%,100%{opacity:1;}50%{opacity:.45;}}",
-      "#egitimEl{position:fixed;z-index:9993;pointer-events:none;font-size:26px;line-height:1;",
+      "#egitimHalka{position:fixed;z-index:9995;pointer-events:none;border-radius:14px;",
+      "  border:3px solid #ffd257;",
+      "  box-shadow:0 0 0 4px rgba(255,210,87,.22), 0 0 18px 4px rgba(255,210,87,.45);",
+      "  animation:egHalka 1.1s ease-in-out infinite;}",
+      "@keyframes egHalka{0%,100%{box-shadow:0 0 0 4px rgba(255,210,87,.22),0 0 18px 4px rgba(255,210,87,.45);}",
+      "  50%{box-shadow:0 0 0 10px rgba(255,210,87,.05),0 0 26px 8px rgba(255,210,87,.20);}}",
+      "#egitimEl{position:fixed;z-index:9996;pointer-events:none;font-size:26px;line-height:1;",
       "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.6));animation:egEl 1.2s ease-in-out infinite;}",
       "@keyframes egEl{0%,100%{transform:translate(0,0);}50%{transform:translate(0,-7px);}}",
       "#egitimSerit{position:fixed;left:8px;right:8px;bottom:74px;z-index:9991;",
+      "  transition:none;}",
+      "#egitimSerit.es-ust-konum{bottom:auto;top:76px;}",
+      "#egitimSerit.es-alt-konum{bottom:74px;top:auto;}",
+      "#egitimSerit{",
       "  display:flex;gap:10px;align-items:flex-end;pointer-events:none;",
       "  font-family:'Baloo 2','Nunito',sans-serif;}",
       "#egitimSerit .es-yuz{width:64px;flex:0 0 64px;object-fit:contain;object-position:bottom center;",
@@ -269,6 +275,14 @@
     s.style.display = "flex";
     s.querySelector(".es-sayac").textContent = (sira + 1) + " / " + TOPLAM_ADIM;
     s.querySelector(".es-metin").textContent = adim.metin;
+
+    /* Şerit hedefin üstüne binerse oyuncu hedefe dokunamıyor
+       (sürgü tam bu yükseklikteydi). Hedef ekranın alt yarısındaysa
+       şerit yukarı taşınır. */
+    var kutu = hedefKutu(adim.hedef);
+    var altta = kutu ? (kutu.y + kutu.h) > (window.innerHeight * 0.55) : false;
+    s.classList.toggle("es-ust-konum", altta);
+    s.classList.toggle("es-alt-konum", !altta);
   }
 
   function rehberligiGizle() {
