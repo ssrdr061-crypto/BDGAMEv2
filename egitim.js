@@ -606,6 +606,32 @@
      (Tuzak 16). Tuval hedefinde dokunuşun EĞİT kutusu içinde olup
      olmadığına bakılır — tuval tek eleman olduğu için seçici yetmez. */
   var kilitKuruldu = false;
+  var engelSayaci = 0;
+
+  function egitimiBitir() {
+    var d = durum(); if (!d) return;
+    d.adim = TOPLAM_ADIM;
+    kaydet();
+    rehberligiKaldir();
+    var b = document.getElementById("egitimAtla");
+    if (b) b.remove();
+    toast("Eğitim kapatıldı.");
+  }
+
+  function atlaDugmesi() {
+    if (document.getElementById("egitimAtla")) return;
+    var b = document.createElement("button");
+    b.id = "egitimAtla";
+    b.type = "button";
+    b.textContent = "Eğitimi atla";
+    b.style.cssText = "position:fixed;right:8px;top:76px;z-index:9997;" +
+      "background:#2fa84f;border:none;border-radius:12px;color:#fff;" +
+      "font-family:'Baloo 2','Nunito',sans-serif;font-weight:900;font-size:12px;" +
+      "padding:9px 12px;box-shadow:none;";
+    b.addEventListener("click", function (e) { e.stopPropagation(); egitimiBitir(); }, true);
+    document.body.appendChild(b);
+  }
+
   function kilitKur() {
     if (kilitKuruldu) return;
     kilitKuruldu = true;
@@ -613,11 +639,13 @@
       document.addEventListener(tur, function (e) {
         var d = durum();
         if (!d || bittiMi() || ustPencereVar()) return;
+        if (e.target && e.target.closest && e.target.closest("#egitimAtla")) return;
         var adim = ZINCIR[d.adim];
         if (!adim || izinliMi(adim, e)) {
           /* Doğru yere dokunuldu: halka 400 ms'lik denetimi beklemeden
              ANINDA kalksın, tıklama hissi gecikmesin. */
           if (tur === "pointerdown") {
+            engelSayaci = 0;
             var hl = document.getElementById("egitimHalka");
             var elx = document.getElementById("egitimEl");
             if (hl) hl.style.display = "none";
@@ -627,7 +655,14 @@
         }
         e.preventDefault();
         e.stopPropagation();
-        if (tur === "pointerdown") toast("Işıklı yere dokun.");
+        if (tur === "pointerdown") {
+          toast("Işıklı yere dokun.");
+          /* Hedef bir sebeple bulunamıyorsa oyuncu kilitte kalmasın:
+             arka arkaya engellenen dokunuşlardan sonra çıkış düğmesi
+             belirir. */
+          engelSayaci++;
+          if (engelSayaci >= 4) atlaDugmesi();
+        }
       }, true);
     });
   }
@@ -901,18 +936,31 @@
 
   /* Eski hesaplar eğitime girmez: birliği ya da kahramanı olan hesap
      tamamlanmış sayılır ve ödülü almaz. */
+  /* Kurulmuş hesap eğitime alınmaz. Kontrol adım kaydından BAĞIMSIZ
+     yapılır: önceden yarım kalmış bir eğitim kaydı yüzünden eski
+     hesaplar kilitli kalıyordu. Ölçüt "oyuna başlamış olmak":
+     savaş geçmişi, ordu ya da kahraman. */
+  function kurulmusHesapMi(s) {
+    if (!s) return false;
+    if ((s.maxFrontierLevel || 0) > 0) return true;
+    if (Array.isArray(s.ownedHeroSkins) && s.ownedHeroSkins.length > 0) return true;
+    var t = s.troops || {};
+    var toplam = (t.knight || 0) + (t.soldier || 0) + (t.robot || 0);
+    if (toplam >= 90) return true;          /* eğitimin verdiği 3×30 */
+    if ((s.chestsOpened || 0) > 0) return true;
+    return false;
+  }
+
   function eskiHesabiIsaretle() {
     var s = S(), d = durum();
-    if (!s || !d || d.adim > 0) return;
-    var birlikVar = s.troops && (s.troops.knight > 0 || s.troops.soldier > 0 || s.troops.robot > 0);
-    var kahramanVar = Array.isArray(s.ownedHeroSkins) && s.ownedHeroSkins.length > 0;
-    if (birlikVar || kahramanVar) {
-      TANI("eski hesap -> egitim atlandi");
-      d.adim = TOPLAM_ADIM;
-      d.odulAlindi = true;
-      d.kaleAcildi = true;
-      kaydet();
-    }
+    if (!s || !d || bittiMi()) return;
+    if (!kurulmusHesapMi(s)) return;
+    TANI("kurulmus hesap -> egitim atlandi");
+    d.adim = TOPLAM_ADIM;
+    if (!d.odulAlindi) d.odulAlindi = true;   /* geçmiş hesap ödül almaz */
+    d.kaleAcildi = true;
+    kaydet();
+    rehberligiKaldir();
   }
 
   function girisSonrasi() {
@@ -1053,10 +1101,13 @@
     odulPenceresi: odulPenceresi,
     girisSonrasi: girisSonrasi,
     eskiHesabiIsaretle: eskiHesabiIsaretle,
+    egitimiBitir: egitimiBitir,
     kaleicindeBaslat: kaleicindeBaslat
   };
 
   if (location.search.indexOf("egitimodul=1") >= 0) setTimeout(odulPenceresi, 600);
+  /* Acil çıkış: ?egitimkapat=1 ile rehberlik tamamen kapanır. */
+  if (location.search.indexOf("egitimkapat=1") >= 0) setTimeout(egitimiBitir, 1500);
 
   console.log("[egitim.js] Rehberlik zinciri yuklendi ✔ adim=" + TOPLAM_ADIM);
 })();
