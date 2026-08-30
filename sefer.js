@@ -114,7 +114,15 @@ function benKey() {
   if (typeof toFirebaseKey !== "function") return null;
   return toFirebaseKey(currentUsername.toLowerCase());
 }
-function toast(msg, ms) { if (typeof showToast === "function") showToast(msg, ms); }
+/* TUZAK 12 — `showToast` kapalı (BILDIRIMLER_ACIK = false), hiçbir şey
+   yapmıyordu. Sefer uyarıları oyunun tek geri bildirimi: "canavar
+   yerinde yok", "varış işlenemedi" gibi satırlar görünmezse ordu
+   sessizce asılı kalıyor ve elde hiçbir ipucu olmuyor. Bu yüzden
+   zorlamalı sürüm kullanılır; yoksa eskisine düşer. */
+function toast(msg, ms) {
+  if (typeof showToastForce === "function") { showToastForce(msg, ms); return; }
+  if (typeof showToast === "function") showToast(msg, ms);
+}
 function izgara() { return (typeof COORD_GRID === "number") ? COORD_GRID : 30; }
 function bekle(ms) { return new Promise(r => setTimeout(r, ms)); }
 function toplam(b) { return BIRLIKLER.reduce((a, k) => a + ((b || {})[k] || 0), 0); }
@@ -382,6 +390,10 @@ function hedefBilgisi(e) {
   /* Canavar konumu TAM SAYI KARO (kx/ky). Çevrim koordinat.js'te. */
   if (typeof e.kx === "number" && typeof e.ky === "number") {
     return { tur: "canavar", ad: e.name, key: null,
+             /* SLOT KİMLİĞİ BURADAN TAŞINIR. Yazılmazsa varışta canavar
+                ADA göre aranır; haritada aynı adlı onlarca düğüm olduğu
+                için rastgele biri seçilir ve doğru slot tüketilmez. */
+             slotId: e.slotId || null,
              gx: window.KOORD.karodanOlcek(e.kx), gy: window.KOORD.karodanOlcek(e.ky) };
   }
 
@@ -429,6 +441,7 @@ function seferBaslat() {
     sahip: bk,
     sahipAd: (typeof currentUsername === "string" ? currentUsername : "Oyuncu"),
     tur: h.tur, hedefAd: h.ad, hedefKey: h.key || null,
+    slotId: h.slotId || null,
     /* KOORDİNAT BİRİMİ: oyunun kendi 0–30 ölçüsü — Firebase'deki
        kale verisiyle, ekranKonumu ile ve koordinat kutusuyla AYNI
        dil. Görsel karoya çevirmek ikinci bir çevrim noktası
@@ -546,9 +559,31 @@ function tik() {
 /* Varış → duraklama → savaş → dönüş */
 var _kilitZamani = {};
 
+/* Varış sonrası SAYIM + DÖNÜŞ KAYDI — tek yer.
+   Hem başarılı savaştan hem de çöken varıştan buraya girilir; iki ayrı
+   kopya olsaydı hata dalı yine dönüş yazmayı unuturdu. */
+function donusuYaz(id, s, gonderilen, yaraliListe) {
+  const yarali = yaraliSayilari(yaraliListe || {});
+  const olen = (window.PVP && window.PVP.sonSonuc && window.PVP.sonSonuc.killed)
+                 ? window.PVP.sonSonuc.killed : {};
+
+  const saglam = {};
+  BIRLIKLER.forEach(u => {
+    saglam[u] = Math.max(0, (gonderilen[u] || 0) - (olen[u] || 0) - (yarali[u] || 0));
+  });
+  birlikDus(saglam);   /* sağlamlar tekrar yola; net etki sıfır */
+
+  seferYaz(id, Object.assign({}, s, {
+    durum: "donus", donusAt: Date.now(), donusSureMs: s.sureMs,
+    donusFx: s.tx, donusFy: s.ty,
+    birlikler: saglam, yaralilar: yaraliListe || {}
+  }));
+}
+
 async function varisiIsle(id, s) {
   _isleniyor.add(id);
   _kilitZamani[id] = Date.now();
+  var _eklendi = false;   /* birlikler kaleye geri konuldu mu? */
   try {
     /* Çarpışma beklemesi SAVAŞ içindir. Toplama seferinde savaş yok;
        beklemek adın haritada 2 sn geç belirmesine yol açıyordu. */
@@ -556,6 +591,7 @@ async function varisiIsle(id, s) {
     const gonderilen = s.birlikler || {};
 
     birlikEkle(gonderilen);            /* savaş kaybı bunlardan düşecek */
+    _eklendi = true;
     _panelKilit = Date.now() + 12000;
     _yaraliYakala = true; _yakalanan = null;
     if (window.PVP) window.PVP.sonSonuc = null;
@@ -593,27 +629,32 @@ async function varisiIsle(id, s) {
 
     /* ── DÖNEN MEVCUT: SAYIM, TAHMİN DEĞİL ── */
     const yaraliListe = _yakalanan || {};
-    const yarali = yaraliSayilari(yaraliListe);
-    const olen = (window.PVP && window.PVP.sonSonuc && window.PVP.sonSonuc.killed)
-                   ? window.PVP.sonSonuc.killed : {};
     _yakalanan = null;
-
-    const saglam = {};
-    BIRLIKLER.forEach(u => {
-      saglam[u] = Math.max(0, (gonderilen[u] || 0) - (olen[u] || 0) - (yarali[u] || 0));
-    });
-    birlikDus(saglam);   /* sağlamlar tekrar yola; net etki sıfır */
-
-    const guncel = Object.assign({}, s, {
-      durum: "donus", donusAt: Date.now(), donusSureMs: s.sureMs,
-      donusFx: s.tx, donusFy: s.ty,
-      birlikler: saglam, yaralilar: yaraliListe
-    });
-    seferYaz(id, guncel);
+    donusuYaz(id, s, gonderilen, yaraliListe);
   } catch (err) {
+    /* ── ORDU HER HÂLÜKÂRDA EVE DÖNER ──
+       Eski hâli yalnız hatayı yazıp çıkıyordu: kayıt "gidis"te
+       kalıyor, bir sonraki tik aynı yerde yeniden çöküyor, sefer
+       sonsuza dek "0s"de asılı kalıyordu. Ordu bir daha geri
+       gelmiyordu. Artık hata ne olursa olsun dönüş kaydı yazılır. */
     console.error("[sefer] varış işlenemedi:", err);
-    toast("Varış işlenemedi — konsola bak.", 5000);
     _yaraliYakala = false; _panelKilit = 0;
+    const kurtarYarali = _yakalanan || {};
+    _yakalanan = null;
+    try {
+      if (_eklendi) {
+        /* Birlikler kaleye geri konmuştu; sayım yapılıp yeniden yola çıkar. */
+        donusuYaz(id, s, s.birlikler || {}, kurtarYarali);
+      } else {
+        /* Kaleye hiç geri konmadılar; kayıt olduğu gibi dönüşe geçer. */
+        seferYaz(id, Object.assign({}, s, {
+          durum: "donus", donusAt: Date.now(), donusSureMs: s.sureMs,
+          donusFx: s.tx, donusFy: s.ty
+        }));
+      }
+    } catch (e2) { console.error("[sefer] kurtarma da çöktü:", e2); }
+    toast("⚠️ Varış hatası: " + (err && err.message ? err.message : err) +
+          " — ordun geri dönüyor.", 12000);
   }
   _isleniyor.delete(id);
   delete _kilitZamani[id];
