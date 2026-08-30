@@ -2844,6 +2844,14 @@ function queueCloudSave(username) {
   const gecen = Date.now() - _sonBulutYazma;
   const bekle = gecen >= BULUT_EN_GEC ? 0 : Math.min(1200, BULUT_EN_GEC - gecen);
 
+  /*  BEKLEYEN YAZIM BAYRAĞI.
+      Bulut yazması gecikmeli. O aralıkta buluttan durum ÇEKEN kod
+      (pvp.js pullFreshStateFromCloud) eski değeri geri yazıyordu:
+      yeni kayıtta bulutta defaultState duruyor, hoş geldin 5.000.000
+      elması verildikten ~1,5 sn sonra sıfırlanıyordu. Çeken taraf bu
+      bayrağa bakıp bekler. */
+  window.BULUT_YAZIM_BEKLIYOR = true;
+
   _cloudSaveTimer = setTimeout(() => {
     _sonBulutYazma = Date.now();
     try {
@@ -2876,10 +2884,14 @@ function queueCloudSave(username) {
       }
       queueLogSave();
 
-      firebaseDb.ref("accounts/" + toFirebaseKey(key)).set(bulutAcc).catch(err => {
-        console.warn("Buluta kaydedilemedi (localStorage'da guvende):", err);
-      });
+      firebaseDb.ref("accounts/" + toFirebaseKey(key)).set(bulutAcc)
+        .then(() => { window.BULUT_YAZIM_BEKLIYOR = false; })
+        .catch(err => {
+          window.BULUT_YAZIM_BEKLIYOR = false;
+          console.warn("Buluta kaydedilemedi (localStorage'da guvende):", err);
+        });
     } catch (e) {
+      window.BULUT_YAZIM_BEKLIYOR = false;
       console.warn("Bulut senkron hatasi:", e);
     }
   }, bekle);

@@ -2081,6 +2081,15 @@ let _pullingState = false;
 function pullFreshStateFromCloud() {
   if (!fbOK() || !myKey() || _pullingState) return;
   if (typeof state !== "object" || !state) return;
+
+  /*  YEREL YAZIM BİTMEDEN ÇEKME.
+      Bulut yazması gecikmeli (index.html queueCloudSave). O aralıkta
+      çekersek buluttaki ESKİ değeri belleğe geri yazarız. Yeni
+      kayıtta bulutta defaultState duruyordu: hoş geldin 5.000.000
+      elması veriliyor, ~1,5 sn sonra buradan sıfırlanıyordu. Bekleyen
+      yazım varsa çekme ertelenir. */
+  if (window.BULUT_YAZIM_BEKLIYOR) { setTimeout(pullFreshStateFromCloud, 700); return; }
+
   _pullingState = true;
   firebaseDb.ref("accounts/" + myKey() + "/state").get()
     .then(snap => {
