@@ -75,11 +75,14 @@ const KLIST_UI = {
     id'sini buraya ekle; boş yuvalar kendiliğinden azalır.
     ───────────────────────────────────────────── */
 const KLIST_SIRA = [
-  "buz_savascisi",   /* 1 · HALVORSEN */
-  "celik_savasci",   /* 2 · STELLİN   */
-  "ates_buyucusu",   /* 3 · MİKİAN    */
-  "ivanovna",        /* 4 · İVANOVNA  */
-  "revolia"          /* 5 · REVOLİA   */
+  "buz_savascisi",   /* 1 · HALVORSEN · mor · Savunucu */
+  "ates_buyucusu",   /* 2 · MİKİAN    · mor · Koruyucu */
+  "robert",          /* 3 · ROBERT    · mor · Nişancı  */
+  "frankly",         /* 4 · FRANKLY   · mor · Koruyucu */
+  "yuneeb",          /* 5 · YU-NEEB   · mor · Savunucu */
+  "celik_savasci",   /* 6 · STELLİN   · ssr · Savunucu */
+  "ivanovna",        /* 7 · İVANOVNA  · ssr · Koruyucu */
+  "revolia"          /* 8 · REVOLİA   · ssr · Nişancı  */
 ];
 
 
