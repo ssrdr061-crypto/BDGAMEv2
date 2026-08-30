@@ -28,16 +28,12 @@
 
   /* Kahraman nadirliği — TEK YER burasıdır.
      Yeni kahraman eklendiğinde id'si buraya yazılır. */
-  const NADIRLIK = {
-    buz_savascisi: "mor",   /* HALVORSEN */
-    ates_buyucusu: "mor",   /* MİKİAN    */
-    robert:        "mor",   /* ROBERT    */
-    frankly:       "mor",   /* FRANKLY   */
-    yuneeb:        "mor",   /* YU-NEEB   */
-    celik_savasci: "ssr",   /* STELLİN   */
-    ivanovna:      "ssr",   /* İVANOVNA  */
-    revolia:       "ssr"    /* REVOLİA   */
-  };
+  /* Nadirlik ARTIK BURADA YAZILI DEĞİL — heroes.js KAHRAMAN kapısından
+     türer. Üç ayrı dosyada tekrarlanıyordu ve biri unutulunca kahraman
+     yanlış parça havuzuna düşüyordu. */
+  const NADIRLIK = (typeof KAHRAMAN !== "undefined")
+    ? KAHRAMAN.tablo(id => KAHRAMAN.nadirlik(id))
+    : {};
 
   /* Parça kutucuğunun rengi türe göre değişir; BAR her zaman SARI. */
   const RENK = {

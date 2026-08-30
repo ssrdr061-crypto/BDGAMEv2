@@ -146,16 +146,13 @@ const TARGET_ORDER = {
 /* Komutanların hangi sınıfa sayıldığı — kahramanın kendi saldırısı
    bu sınıfın hedef sırasını kullanır. Yeni kahraman eklenirse
    buraya da yazılmalı; yazılmazsa ön saf sırasıyla vurur. */
-const HERO_CATEGORY = {
-  buz_savascisi: "knight",   /* HALVORSEN */
-  celik_savasci: "knight",   /* STELLİN   */
-  yuneeb:        "knight",   /* YU-NEEB   */
-  ates_buyucusu: "soldier",  /* MİKİAN    */
-  ivanovna:      "soldier",  /* İVANOVNA  */
-  frankly:       "soldier",  /* FRANKLY   */
-  revolia:       "robot",    /* REVOLİA   */
-  robert:        "robot",    /* ROBERT    */
-};
+/*  Aile eşlemesi ARTIK BURADA YAZILI DEĞİL — heroes.js'teki KAHRAMAN
+    kapısından türer (heroes.js bu dosyadan önce yüklenir). Eskiden
+    aynı tablo iki dosyada duruyordu ve biri güncellenmeyince kahraman
+    sessizce kategorisiz kalıyordu.                                  */
+const HERO_CATEGORY = (typeof KAHRAMAN !== "undefined")
+  ? KAHRAMAN.tablo(id => KAHRAMAN.aile(id))
+  : {};
 
 /* ═══════════════════════════════════════════════════════════════
    1) CSS

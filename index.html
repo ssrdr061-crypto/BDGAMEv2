@@ -7921,13 +7921,13 @@ const TROOP_POWER = (function () {
   }
   return o;
 })();
-const HERO_POWER = {
-  buz_savascisi: 15000,   // Halvorsen
-  celik_savasci: 20000,   // Stellin
-  ates_buyucusu: 50000,   // Mikian
-  ivanovna:      75000,   // İvanovna
-  revolia:       100000,  // Revolia
-};
+/*  Kahraman gücü ARTIK BURADA YAZILI DEĞİL — heroes.js KAHRAMAN
+    kapısından türer. Aynı sayılar tema.js TABAN tablosunda da
+    duruyordu; ikisi ayrı ayrı elle güncelleniyor ve kaçınılmaz
+    olarak birbirinden ayrışıyordu.                                */
+const HERO_POWER = (typeof KAHRAMAN !== "undefined")
+  ? KAHRAMAN.tablo(id => KAHRAMAN.guc(id))
+  : {};
 
 function computePlayerPower(st) {
   if (!st || typeof st !== "object") return 0;

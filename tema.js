@@ -2503,7 +2503,8 @@ if (document.readyState === "loading") {
       r: { h: 116, b: -44, x: -4, pw: 140, pl: -18, pt: -10 },
       hx:{ h: 52,  b: 0,   x: 0,  pw: 100, pl: 0,   pt: 0 }
     };
-    const HERO_IDS  = ["buz_savascisi", "celik_savasci", "ates_buyucusu", "ivanovna", "revolia"];
+    const HERO_IDS  = (typeof KAHRAMAN !== "undefined") ? KAHRAMAN.hepsi()
+                    : ["buz_savascisi", "celik_savasci", "ates_buyucusu", "ivanovna", "revolia"];
     const HERO_ADI  = ["Halvorsen", "Stellin", "Mikian", "İvanovna", "Revolia"];
     const S = JSON.parse(JSON.stringify(VARSAYILAN));
     /* her kahramanın kendi rapor kutusu ayarı */
@@ -7318,20 +7319,13 @@ setTimeout(uygula, 2500);
 
   /* Taban güçler index.html HERO_POWER ile birebir aynı olmalı.
      Orada bir değer değişirse burası da değişir. */
-  var TABAN = {
-    buz_savascisi: 15000,
-    celik_savasci: 20000,
-    ates_buyucusu: 50000,
-    ivanovna:      75000,
-    revolia:       100000
-  };
-  var ADLAR = {
-    buz_savascisi: "HALVORSEN",
-    celik_savasci: "STELLİN",
-    ates_buyucusu: "MİKİAN",
-    ivanovna:      "İVANOVNA",
-    revolia:       "REVOLİA"
-  };
+  /*  Güç ve adlar ARTIK BURADA YAZILI DEĞİL — heroes.js KAHRAMAN
+      kapısından türer (heroes.js bu dosyadan önce yüklenir).
+      index.html HERO_POWER da aynı kaynaktan okur, ikisi hep eşittir. */
+  var TABAN = (typeof KAHRAMAN !== "undefined")
+    ? KAHRAMAN.tablo(function (id) { return KAHRAMAN.guc(id); }) : {};
+  var ADLAR = (typeof KAHRAMAN !== "undefined")
+    ? KAHRAMAN.tablo(function (id) { return KAHRAMAN.ad(id); }) : {};
   var MAX_SV = 5;
 
   var CSS = `

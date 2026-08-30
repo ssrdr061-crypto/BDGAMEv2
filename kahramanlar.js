@@ -74,16 +74,8 @@ const KLIST_UI = {
     Yuvalar bu sırayla dolar. Yeni kahraman geldiğinde
     id'sini buraya ekle; boş yuvalar kendiliğinden azalır.
     ───────────────────────────────────────────── */
-const KLIST_SIRA = [
-  "buz_savascisi",   /* 1 · HALVORSEN · mor · Savunucu */
-  "ates_buyucusu",   /* 2 · MİKİAN    · mor · Koruyucu */
-  "robert",          /* 3 · ROBERT    · mor · Nişancı  */
-  "frankly",         /* 4 · FRANKLY   · mor · Koruyucu */
-  "yuneeb",          /* 5 · YU-NEEB   · mor · Savunucu */
-  "celik_savasci",   /* 6 · STELLİN   · ssr · Savunucu */
-  "ivanovna",        /* 7 · İVANOVNA  · ssr · Koruyucu */
-  "revolia"          /* 8 · REVOLİA   · ssr · Nişancı  */
-];
+/* Sıra heroes.js'teki `sira` alanından türer — burada liste tutulmaz. */
+const KLIST_SIRA = (typeof KAHRAMAN !== "undefined") ? KAHRAMAN.hepsi() : [];
 
 
 /*  ─────────────────────────────────────────────
@@ -121,20 +113,12 @@ const KLIST_ZEMIN = {
   normal: "gorsel23.webp"    /* YEŞİL   — normal kahramanlar */
 };
 
-const KLIST_KADEME = {
-  /* Kart zemin rengi BURADAN gelir, heroes.js HERO_ARKA_TURUNCU'dan
-     DEĞİL. İkisi ayrı ekran: orası kahraman detayı, burası liste.
-     Nadirlik değişince İKİSİ de güncellenmeli — Stellin turuncuya
-     çıktığı halde burada "normal" kaldığı için kartı mor kalmıştı. */
-  celik_savasci: "ss",       /* STELLİN   · ssr */
-  ivanovna:      "ss",       /* İVANOVNA  · ssr */
-  revolia:       "ss",       /* REVOLİA   · ssr */
-  buz_savascisi: "normal",   /* HALVORSEN · mor */
-  ates_buyucusu: "normal",   /* MİKİAN    · mor */
-  robert:        "normal",   /* ROBERT    · mor */
-  frankly:       "normal",   /* FRANKLY   · mor */
-  yuneeb:        "normal"    /* YU-NEEB   · mor */
-};
+/*  Kart zemini nadirlikten türer. Eskiden burada ayrı bir liste
+    vardı ve heroes.js'te nadirlik değişince burası unutuluyordu —
+    Stellin turuncuya çıktığı halde kartı mor kalmıştı.            */
+const KLIST_KADEME = (typeof KAHRAMAN !== "undefined")
+  ? KAHRAMAN.tablo(id => KAHRAMAN.ssrMi(id) ? "ss" : "normal")
+  : {};
 
 
 /* ══════════════════════════════════════════════

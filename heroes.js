@@ -118,6 +118,10 @@ const HERO_STATS = {
 
   /* ═══ 1. KAHRAMAN — BUZ SAVAŞÇISI ═══ */
   buz_savascisi: {
+    /* KİMLİK — tek doğruluk kaynağı. Nadirlik, görsel, güç ve
+       sıra artık başka dosyalarda TEKRARLANMAZ; hepsi buradan
+       türetilir (aşağıdaki KAHRAMAN kapısı). */
+    nadirlik: "mor", gorsel: "hero_buz_savascisi.webp", guc: 15000, sira: 1,
     name: "HALVORSEN",
     specialty: "Savunma",
     specialtyIcon: "🛡️",
@@ -156,6 +160,10 @@ const HERO_STATS = {
 
   /* ═══ 2. KAHRAMAN — ÇELİK SAVAŞÇI ═══ */
   celik_savasci: {
+    /* KİMLİK — tek doğruluk kaynağı. Nadirlik, görsel, güç ve
+       sıra artık başka dosyalarda TEKRARLANMAZ; hepsi buradan
+       türetilir (aşağıdaki KAHRAMAN kapısı). */
+    nadirlik: "ssr", gorsel: "hero_celik_savasci.webp", guc: 80000, sira: 6,
     name: "STELLİN",
     specialty: "Denge",
     specialtyIcon: "⚡",
@@ -204,6 +212,10 @@ const HERO_STATS = {
 
   /* ═══ 3. KAHRAMAN — ATEŞ BÜYÜCÜSÜ ═══ */
   ates_buyucusu: {
+    /* KİMLİK — tek doğruluk kaynağı. Nadirlik, görsel, güç ve
+       sıra artık başka dosyalarda TEKRARLANMAZ; hepsi buradan
+       türetilir (aşağıdaki KAHRAMAN kapısı). */
+    nadirlik: "mor", gorsel: "hero_ates_buyucusu.webp", guc: 50000, sira: 2,
     name: "MİKİAN",
     specialty: "Saldırı",
     specialtyIcon: "⚔️",
@@ -242,6 +254,10 @@ const HERO_STATS = {
 
   /* ═══ 4. KAHRAMAN — İVANOVNA ═══ */
   ivanovna: {
+    /* KİMLİK — tek doğruluk kaynağı. Nadirlik, görsel, güç ve
+       sıra artık başka dosyalarda TEKRARLANMAZ; hepsi buradan
+       türetilir (aşağıdaki KAHRAMAN kapısı). */
+    nadirlik: "ssr", gorsel: "hero_ivanovna.webp", guc: 75000, sira: 7,
     name: "İVANOVNA",
     specialty: "Denge",
     specialtyIcon: "⚡",
@@ -291,6 +307,10 @@ const HERO_STATS = {
   },
 
   revolia: {
+    /* KİMLİK — tek doğruluk kaynağı. Nadirlik, görsel, güç ve
+       sıra artık başka dosyalarda TEKRARLANMAZ; hepsi buradan
+       türetilir (aşağıdaki KAHRAMAN kapısı). */
+    nadirlik: "ssr", gorsel: "hero_revolia.webp", guc: 100000, sira: 8,
     name: "REVOLİA",
     specialty: "Elektrik",
     specialtyIcon: "🤖",
@@ -340,6 +360,10 @@ const HERO_STATS = {
 
   /* ═══ 6. KAHRAMAN — ROBERT ═══ (Mor · Nişancı) */
   robert: {
+    /* KİMLİK — tek doğruluk kaynağı. Nadirlik, görsel, güç ve
+       sıra artık başka dosyalarda TEKRARLANMAZ; hepsi buradan
+       türetilir (aşağıdaki KAHRAMAN kapısı). */
+    nadirlik: "mor", gorsel: "hero_robert.webp", guc: 55000, sira: 3,
     name: "ROBERT",
     specialty: "Saldırı",
     specialtyIcon: "⚔️",
@@ -370,6 +394,10 @@ const HERO_STATS = {
 
   /* ═══ 7. KAHRAMAN — FRANKLY ═══ (Mor · Koruyucu) */
   frankly: {
+    /* KİMLİK — tek doğruluk kaynağı. Nadirlik, görsel, güç ve
+       sıra artık başka dosyalarda TEKRARLANMAZ; hepsi buradan
+       türetilir (aşağıdaki KAHRAMAN kapısı). */
+    nadirlik: "mor", gorsel: "hero_frankly.webp", guc: 50000, sira: 4,
     name: "FRANKLY",
     specialty: "Bilgelik",
     specialtyIcon: "📖",
@@ -399,6 +427,10 @@ const HERO_STATS = {
 
   /* ═══ 8. KAHRAMAN — YU-NEEB ═══ (Mor · Savunucu) */
   yuneeb: {
+    /* KİMLİK — tek doğruluk kaynağı. Nadirlik, görsel, güç ve
+       sıra artık başka dosyalarda TEKRARLANMAZ; hepsi buradan
+       türetilir (aşağıdaki KAHRAMAN kapısı). */
+    nadirlik: "mor", gorsel: "hero_yuneeb.webp", guc: 52000, sira: 5,
     name: "YU-NEEB",
     specialty: "Savunma",
     specialtyIcon: "🛡️",
@@ -437,6 +469,46 @@ const HERO_STATS = {
     hazır sayılarla döndürür. Ana koda dokunmadan buradaki
     değerleri değiştirmen yeterli olacak.
     ───────────────────────────────────────────── */
+/*  ══════════════════════════════════════════════════════════════
+    KAHRAMAN KAPISI — TEK DOĞRULUK KAYNAĞI
+
+    Kahraman bilgisi eskiden ON DÖRT ayrı tabloda dağınıktı:
+    nadirlik üç yerde (heroes/gelistir/kahramanlar), aile iki yerde
+    (heroes/pvp), ad üç yerde, güç iki yerde. Yeni kahraman eklerken
+    birini atlamak kaçınılmazdı — HERO_3D atlandığı için ROBERT,
+    FRANKLY ve YU-NEEB ekranı sessizce çöküyordu.
+
+    Artık her şey HERO_STATS'ten türer. YENİ KAHRAMAN EKLERKEN
+    YALNIZ HERO_STATS'e yaz; aşağıdaki hiçbir tabloya dokunma.
+
+    heroes.js tüm bu dosyalardan ÖNCE yüklenir (index.html 2645),
+    bu yüzden hepsi bu kapıyı güvenle okuyabilir.
+    ══════════════════════════════════════════════════════════════ */
+const KAHRAMAN = (function () {
+  function hepsi() {
+    return Object.keys(HERO_STATS).sort(
+      (a, b) => (HERO_STATS[a].sira || 99) - (HERO_STATS[b].sira || 99));
+  }
+  function h(id) { return HERO_STATS[id] || null; }
+  return {
+    hepsi: hepsi,
+    ad:       id => (h(id) && h(id).name) || id,
+    /* Aile zaten bonuses.aile'de duruyordu; ayrı tablo gereksizdi. */
+    aile:     id => (h(id) && h(id).bonuses && h(id).bonuses.aile) || null,
+    nadirlik: id => (h(id) && h(id).nadirlik) || "mor",
+    gorsel:   id => (h(id) && h(id).gorsel) || "",
+    guc:      id => (h(id) && h(id).guc) || 0,
+    ssrMi:    id => KAHRAMAN.nadirlik(id) === "ssr",
+    /* alan → id eşlemesi kuran yardımcı: { id: deger } üretir */
+    tablo: function (fn) {
+      const o = {};
+      hepsi().forEach(id => { const v = fn(id); if (v != null) o[id] = v; });
+      return o;
+    }
+  };
+})();
+try { window.KAHRAMAN = KAHRAMAN; } catch (e) {}
+
 function getHeroBattleEffects(skinId, level) {
   const h = HERO_STATS[skinId];
   if (!h) return [];
@@ -462,6 +534,22 @@ function getHeroBattleEffects(skinId, level) {
                Küçült = yukarı çıkar, büyüt = aşağı iner.
                (Örn: "60%" panelle çakışmayı önler)
     ───────────────────────────────────────────── */
+/* Kaydı olmayan kahraman için varsayılan — HERO_3D artık isteğe bağlı. */
+const HERO_3D_VARSAYILAN = {
+  model: {
+    position: { x: 0, y: 0, z: -0.35 },
+    rotation: { x: 35, y: 0 },
+    scale: 0.80
+  },
+  lighting: {
+    main:    { intensity: 1.5, color: "#ffffff" },
+    ambient: { intensity: 0.6, color: "#b0b0d0" },
+    back:    { intensity: 1.0, color: "#ffffff" },
+    hemi:    { intensity: 1.2, color: "#ddeeff" }
+  },
+  stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
+};
+
 const HERO_3D = {
   buz_savascisi: {
     model: {
@@ -543,16 +631,8 @@ const HERO_3D = {
     Menüdeki ‹ › oklarıyla geçiş bu sırayla olur.
     Sırayı değiştirmek için satırların yerini değiştir.
     ───────────────────────────────────────────── */
-const heroSkins = [
-  { id: "buz_savascisi",  name: "HALVORSEN" },
-  { id: "celik_savasci",  name: "STELLİN" },
-  { id: "ates_buyucusu",  name: "MİKİAN" },
-  { id: "ivanovna",       name: "İVANOVNA" },
-  { id: "revolia",        name: "REVOLİA" },
-  { id: "robert",         name: "ROBERT" },
-  { id: "frankly",        name: "FRANKLY" },
-  { id: "yuneeb",         name: "YU-NEEB" }
-];
+/* HERO_STATS'ten türetilir — sıra `sira` alanından gelir. */
+const heroSkins = KAHRAMAN.hepsi().map(id => ({ id: id, name: KAHRAMAN.ad(id) }));
 
 
 /*  ─────────────────────────────────────────────
@@ -573,16 +653,7 @@ const MAX_KOMUTAN = 3;   /* SAVAŞA KAÇ KOMUTAN GÖTÜRÜLEBİLİR — buradan 
    hedef sırasını, burası seçim kuralını belirler. Yeni kahraman
    eklenirse İKİ YERE de yazılmalı — yazılmazsa kategorisiz sayılır
    ve kural ona işlemez. */
-const KOMUTAN_AILESI = {
-  buz_savascisi: "knight",   /* HALVORSEN */
-  celik_savasci: "knight",   /* STELLİN   */
-  yuneeb:        "knight",   /* YU-NEEB   */
-  ates_buyucusu: "soldier",  /* MİKİAN    */
-  ivanovna:      "soldier",  /* İVANOVNA  */
-  frankly:       "soldier",  /* FRANKLY   */
-  revolia:       "robot",    /* REVOLİA   */
-  robert:        "robot",    /* ROBERT    */
-};
+const KOMUTAN_AILESI = KAHRAMAN.tablo(id => KAHRAMAN.aile(id));
 const KOMUTAN_AILE_ADI = { knight: "Savunucu", soldier: "Koruyucu", robot: "Nişancı" };
 
 function komutanAilesi(id) { return KOMUTAN_AILESI[id] || null; }
@@ -622,8 +693,13 @@ let selectedCommanders = [];
 /* ── KAHRAMAN DETAY EKRANI (dock'taki kahraman butonu bunu açar) ── */
 function openHeroDetail(skinId) {
   const h = HERO_STATS[skinId];
-  const cfg = (typeof HERO_3D !== "undefined") ? HERO_3D[skinId] : null;
-  if (!h || !cfg) { showToast("Kahraman verisi bulunamadı."); return; }
+  /*  HERO_3D artık ZORUNLU DEĞİL — yalnız ince ayar tablosudur.
+      Eskiden burada `if (!h || !cfg) return;` vardı: HERO_3D'ye
+      yazılmamış her yeni kahraman ekranı SESSİZCE çöküyordu
+      (showToast kapalı olduğu için hiçbir uyarı da çıkmıyordu).
+      Kaydı olmayan kahraman artık varsayılan ayarla açılır.       */
+  if (!h) { showToastForce("Kahraman verisi bulunamadı: " + skinId); return; }
+  const cfg = ((typeof HERO_3D !== "undefined") && HERO_3D[skinId]) || HERO_3D_VARSAYILAN;
 
   let ov = document.getElementById("heroDetailOverlay");
   const zatenAcik = !!ov && getComputedStyle(ov).display !== "none";
@@ -1758,12 +1834,12 @@ function refreshAfterCommanderChange() {
 }
 
 /* Kahraman varlıkları — dosya yolları (düz mod, klasörsüz) */
-const HERO_IMG = {"ates_buyucusu": "hero_ates_buyucusu.webp", "buz_savascisi": "hero_buz_savascisi.webp", "celik_savasci": "hero_celik_savasci.webp", "ivanovna": "hero_ivanovna.webp", "revolia": "hero_revolia.webp", "robert": "hero_robert.webp", "frankly": "hero_frankly.webp", "yuneeb": "hero_yuneeb.webp"};
+const HERO_IMG = KAHRAMAN.tablo(id => KAHRAMAN.gorsel(id));
 /* Arka plan artık kahramana özel DEĞİL, nadirliğe göre iki görsel.
    Mor: HALVORSEN · MİKİAN · ROBERT · FRANKLY · YU-NEEB
    Turuncu: STELLİN · İVANOVNA · REVOLİA
    Bu liste gelistir.js NADIRLIK tablosuyla aynı olmalı. */
-const HERO_ARKA_TURUNCU = ["celik_savasci", "ivanovna", "revolia"];
+const HERO_ARKA_TURUNCU = KAHRAMAN.hepsi().filter(KAHRAMAN.ssrMi);
 function heroArkaPlan(id) {
   return HERO_ARKA_TURUNCU.indexOf(id) !== -1
     ? "turuncuheroplan.webp" : "morheroplan.webp";
