@@ -359,6 +359,13 @@
        SAVUNAN TARAF BOŞ: canavarın ailesi yoktur, Savunucu/Koruyucu/
        Nişancı satırlarında sağ sütun "—" görünür. Nesne yine de
        verilir; `statKarsiHTML` iki taraf da yoksa hiç çizmiyor.    */
+    /* Canavar ordusu BURADA kurulur — `_statOzet` aşağıda `cv.adet`
+       okuyor. Tanım daha aşağıdaydı ve `const` ölü bölgesi yüzünden
+       her canavar savaşı burada "Cannot access 'cv' before
+       initialization" ile çöküyordu; sefer varışı bu istisnayla
+       askıda kalıyordu. Kullanımdan ÖNCE tanımlanmalı. */
+    const cv = canavarKur(enemy);
+
     const _statOzet = {
       attacker: {
         sayi: baslangicSayi,
@@ -396,7 +403,6 @@
     /* Canavar ordusu. Yetenek etkileri BİRİM BAŞINA statlara
        uygulanır; ordu değerleri her turda ayakta kalan birlikten
        yeniden hesaplanır. */
-    const cv = canavarKur(enemy);
     let cAtkBir = cv.atkBir * PVE.canavarAtkCarpani;
     let cDefBir = cv.defBir * PVE.canavarDefCarpani;
     let cHpBir  = cv.hpBir;
