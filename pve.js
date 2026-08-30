@@ -390,6 +390,22 @@
       defender: { sayi: cv.adet, birimler: [] }
     };
 
+    /*  KAHRAMAN YILDIZLARI — pvp.js ile BİREBİR AYNI BİÇİM.
+        Rapor (tema.js heroChip/heroSvOf) yıldızları
+        `statlar.attacker.seviyeler` haritasından okur: { heroId: sv }.
+        PvE bu alanı hiç yazmıyordu, o yüzden canavar raporlarında
+        yıldızlar çizilmiyordu. Canavarın kahramanı yok, savunan
+        tarafta harita boş kalır.                                   */
+    const _kendiSv = (typeof state !== "undefined" && state.heroLevels &&
+                      typeof state.heroLevels === "object") ? state.heroLevels : {};
+    const _atkSkins = (typeof selectedCommanders !== "undefined" &&
+                       Array.isArray(selectedCommanders))
+      ? selectedCommanders.filter(Boolean) : [];
+    _statOzet.attacker.seviyeler = _atkSkins.reduce(function (o, id) {
+      o[id] = Math.floor(_kendiSv[id] || 1); return o;
+    }, {});
+    _statOzet.defender.seviyeler = {};
+
     /* Yenilgi eşiği: ordunun %55'inden fazlası düşemez */
     const taban = Math.max(0, Math.ceil(baslangicSayi * (1 - PVE.yenilgiEsigi)));
 

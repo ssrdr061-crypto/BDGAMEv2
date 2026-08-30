@@ -1127,14 +1127,16 @@ function aileyiAyarla(aile, hedef) {
   });
 }
 
-/*  O ailenin ELDE DURAN toplamı (yer cinsinden).
-    Yüzdenin paydası budur — sefer tavanı DEĞİL. Tavan 55.000 iken
-    elindeki 342 şövalyenin tamamını çeksen bile 342/55.000 = %0,6
-    çıkıyor, kutuda 1 görünüyordu. Oyuncu yüzdeyi "ordumun ne
-    kadarını götürüyorum" diye okur; payda da o olmalı.            */
-function aileMevcudu(aile) {
+/*  ELDEKİ TÜM ORDU (yer cinsinden) — yüzdenin TEK paydası.
+    Ne sefer tavanı ne de ailenin kendi mevcudu kullanılır:
+      · Tavana bölünce 342/55.000 = %0,6 çıkıp kutuda 1 görünüyordu.
+      · Ailenin kendi mevcuduna bölünce her aile ayrı ayrı %100
+        oluyor, üç kutu birden 100 gösteriyordu.
+    Oyuncu yüzdeyi "ordumun ne kadarı bu aileden" diye okur, o yüzden
+    payda toplam ordudur ve üç kutunun toplamı %100 eder.          */
+function toplamOrdu() {
   let top = 0;
-  aileKademeleri(aile).forEach(def => {
+  Object.values(UNIT_TYPES).forEach(def => {
     const sahip = (typeof state !== "undefined" && state.troops)
       ? (state.troops[def.id] || 0) : 0;
     if (sahip > 0) top += sahip * Math.max(1, seferYeri(def.id));
@@ -1196,8 +1198,10 @@ function aileYuzdeCiz() {
         const digerleri = AILE_SIRA.filter(f => f !== aile)
                                    .reduce((top, f) => top + aileSecimi(f), 0);
         const bosYer = Math.max(0, t - digerleri);
-        /* Yüzde ELDEKİ ordunun payıdır; tavan yalnız üst sınırdır. */
-        const mevcut = aileMevcudu(aile);
+        /*  Yüzde TOPLAM ordunun payıdır; tavan yalnız üst sınırdır.
+            İstenen pay o ailede yoksa `aileyiAyarla` elindeki kadarını
+            alır — fazlası başka aileye taşmaz. */
+        const mevcut = toplamOrdu();
         aileyiAyarla(aile, Math.min(bosYer, Math.round(mevcut * v / 100)));
 
         /*  KUTUCUK GİRİLEN DEĞERİ TUTAR.
@@ -1258,7 +1262,7 @@ function aileYuzdeTazele() {
     delete kutu.dataset.hedef;
     delete kutu.dataset.uygulanan;
 
-    const mevcut = aileMevcudu(kutu.dataset.aile);
+    const mevcut = toplamOrdu();
     const oran = mevcut > 0 ? Math.round(simdiki * 100 / mevcut) : 0;
     kutu.value = String(Math.max(0, Math.min(100, oran)));
   });

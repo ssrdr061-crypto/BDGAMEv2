@@ -114,15 +114,10 @@ function benKey() {
   if (typeof toFirebaseKey !== "function") return null;
   return toFirebaseKey(currentUsername.toLowerCase());
 }
-/* TUZAK 12 — `showToast` kapalı (BILDIRIMLER_ACIK = false), hiçbir şey
-   yapmıyordu. Sefer uyarıları oyunun tek geri bildirimi: "canavar
-   yerinde yok", "varış işlenemedi" gibi satırlar görünmezse ordu
-   sessizce asılı kalıyor ve elde hiçbir ipucu olmuyor. Bu yüzden
-   zorlamalı sürüm kullanılır; yoksa eskisine düşer. */
-function toast(msg, ms) {
-  if (typeof showToastForce === "function") { showToastForce(msg, ms); return; }
-  if (typeof showToast === "function") showToast(msg, ms);
-}
+/* Sefer uyarıları normal kanaldan geçer. `showToast` kapalıyken
+   (BILDIRIMLER_ACIK = false) hiçbir şey görünmez — mini panellerin
+   kapalı kalması istendiği için zorlamalı sürüm KULLANILMAZ. */
+function toast(msg, ms) { if (typeof showToast === "function") showToast(msg, ms); }
 function izgara() { return (typeof COORD_GRID === "number") ? COORD_GRID : 30; }
 function bekle(ms) { return new Promise(r => setTimeout(r, ms)); }
 function toplam(b) { return BIRLIKLER.reduce((a, k) => a + ((b || {})[k] || 0), 0); }
