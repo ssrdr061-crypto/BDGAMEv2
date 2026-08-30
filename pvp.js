@@ -149,9 +149,12 @@ const TARGET_ORDER = {
 const HERO_CATEGORY = {
   buz_savascisi: "knight",   /* HALVORSEN */
   celik_savasci: "knight",   /* STELLİN   */
+  yuneeb:        "knight",   /* YU-NEEB   */
   ates_buyucusu: "soldier",  /* MİKİAN    */
   ivanovna:      "soldier",  /* İVANOVNA  */
+  frankly:       "soldier",  /* FRANKLY   */
   revolia:       "robot",    /* REVOLİA   */
+  robert:        "robot",    /* ROBERT    */
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -834,14 +837,35 @@ function yetenekEngeli(engelleyenSkins, hedefSkins) {
 function findBuff(ab, t) { return (ab || []).find(a => a.type === t); }
 
 /* Birim statlarına yetenekleri uygular (makeArmy içinde çağrılır) */
-function applyTroopBuffs(units, ab) {
+function applyTroopBuffs(units, ab, taraf) {
   let f;
+  /* `taraf` makeArmy'den gelir: "attacker" | "defender".
+     Yalnız savunmada işleyen yetenekler bunu okur. */
+  const savunmada = (taraf === "defender");
   units.forEach(u => {
+    /* Belirli bir AİLENİN canı — YALNIZ KALE SAVUNMASINDA.
+       Aile yetenek tanımından okunur, motorda sabit yazılmaz
+       (family_atk_pct ile aynı kalıp). */
+    if (savunmada && (f = findBuff(ab, "defense_family_hp_pct")) && f.v) {
+      const fam = (f.effect && f.effect.family) || "";
+      if (AILE(u.unitId) === fam) u.hp *= (1 + f.v / 100);
+    }
     if (AILE(u.unitId) === "robot") {
       const rob = findBuff(ab, "robot_atk_hp_pct");
       if (rob && rob.v) { u.atk *= (1 + rob.v / 100); u.hp *= (1 + rob.v / 100); }
-      const rd = findBuff(ab, "defense_robot_multiplier");
-      if (rd && rd.effect) u.def *= (rd.effect.multiplier || 2);
+    }
+    /*  Aile savunma çarpanı — YALNIZ KALE SAVUNMASINDA.
+        Eskiden `AILE === "robot"` bloğunun İÇİNDEYDİ ve taraf
+        bakılmıyordu: aile motorda sabit yazılıydı (tanımdaki
+        `troopType` alanı hiç okunmuyordu) ve çarpan saldırıya
+        çıkarken de uygulanıyordu. Artık aile tanımdan gelir ve
+        yalnız savunan tarafta işler.                               */
+    if (savunmada) {
+      const rd = findBuff(ab, "defense_family_def_mult");
+      if (rd && rd.effect) {
+        const fam = rd.effect.family || "";
+        if (AILE(u.unitId) === fam) u.def *= (rd.effect.multiplier || 2);
+      }
     }
     /* Belirli bir AİLENİN saldırısı (Çelik Yansıması) — aile
        yetenek tanımından okunur, motorda sabit yazılmaz. */
@@ -936,7 +960,7 @@ function makeArmy(troopsObj, heroStats, label, abilities, heroSkins) {
                  floor: 0, passive: false });
   });
   const ab = abilities || [];
-  applyTroopBuffs(units, ab);
+  applyTroopBuffs(units, ab, label);
   return {
     abilities: ab,
     flow: flowOf(ab),

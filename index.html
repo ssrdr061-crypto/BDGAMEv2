@@ -3629,6 +3629,33 @@ function abilitiesForSkins(skinList, engelli) {
       });
     });
 
+    /*  PASİF YETENEKLER — bunlar `h.abilities` içinde DEĞİL, ayrı
+        `h.passive` alanındadır ve eskiden bu birleştirici onları hiç
+        okumuyordu: motora ulaşmadıkları için Revolia'nın "Nişancı
+        Kopyalama" pasifi savaşta HİÇ çalışmıyordu. Artık dahil.
+        `ability_block` hariç — onu pvp.js yetenekEngeli() ayrıca
+        işler, buraya girerse iki kez sayılır.                        */
+    skins.forEach(skin => {
+      const lv = ((typeof window.kahramanSeviyesi === "function")
+                  ? window.kahramanSeviyesi(skin) : 1) - 1;
+      const h = HERO_STATS[skin];
+      const pa = h && h.passive;
+      if (!pa || !pa.effect || !pa.effect.type) return;
+      if (pa.effect.type === "ability_block") return;
+      if (kapaliMi(skin, pa.title || "")) return;
+
+      const t = pa.effect.type;
+      const v = (pa.valuesByLevel || [])[lv];
+      if (!merged[t]) {
+        merged[t] = { type: t, title: pa.title || "", v: 0, v2: null, chance: null,
+                      effect: pa.effect, sources: [] };
+      }
+      const m = merged[t];
+      if (typeof v === "number") m.v = (m.v || 0) + v;
+      m.sources.push({ heroId: skin, heroName: (h.name || skin),
+                       title: pa.title || "", v: v, v2: null, chance: null });
+    });
+
     return Object.keys(merged).map(k => merged[k]);
   } catch (e) { return []; }
 }
@@ -3867,8 +3894,10 @@ function getEffectiveHeroStats(selectedTroops) {
       if (unitId === "robot") {                       // Revolia: robot'a özel
         const rob = find("robot_atk_hp_pct");
         if (rob && rob.v) { a *= (1 + rob.v / 100); hp *= (1 + rob.v / 100); }
-        const rd = find("defense_robot_multiplier");
-        if (rd && rd.effect) d *= (rd.effect.multiplier || 2);
+        /* `defense_family_def_mult` BURADA UYGULANMAZ: bu önizleme
+           SEFERE ÇIKACAK orduyu gösterir, savunma çarpanı ise yalnız
+           kale savunmasında işler. Eskiden burada uygulanıyordu ve
+           saldırı gücünü olduğundan yüksek gösteriyordu. */
       }
       attack += a * n; defense += d * n; troopHp += hp * n;
     });
@@ -7460,6 +7489,14 @@ function computeHit(attackerAtk, defenderDef, ultiChance, ultiMultiplier) {
   return { dmg, isUlti };
 }
 
+/* Aile kimliğini (Firebase anahtarı) oyuncuya gösterilen ada çevirir.
+   Kimlik ≠ ad: "robot" anahtarı ekranda hiçbir zaman görünmemeli. */
+function aileEtiketi(fam) {
+  return fam === "knight"  ? "Savunucu"
+       : fam === "soldier" ? "Koruyucu"
+       : fam === "robot"   ? "Nişancı" : "birlik";
+}
+
 /* Aktif kahraman yeteneğini rapor için okunur metne çevirir.
    Henüz savaşa entegre EDİLMEYEN efektler için null döner (raporda gösterilmez). */
 function _describeBuff(a) {
@@ -7470,7 +7507,8 @@ function _describeBuff(a) {
     case "troop_atk_def_pct": return `${a.title}: birlik saldırı & savunma +%${v}`;
     case "troop_atk_def_hp_pct": return `${a.title}: saldırı +%${v}, savunma +%${v2}, can +%${(a.effect && a.effect.hpFlatPct) || 0}`;
     case "robot_atk_hp_pct": return `${a.title}: robot saldırı & can +%${v}`;
-    case "defense_robot_multiplier": return `${a.title}: robot savunması ×${(a.effect && a.effect.multiplier) || 2}`;
+    case "defense_family_def_mult": return `${a.title}: kale savunmasında ${aileEtiketi(a.effect && a.effect.family)} savunması ×${(a.effect && a.effect.multiplier) || 2}`;
+    case "defense_family_hp_pct": return `${a.title}: kale savunmasında ${aileEtiketi(a.effect && a.effect.family)} canı +%${v}`;
     case "enemy_def_shred_pct": return `${a.title}: düşman savunması -%${v}`;
     case "enemy_hp_atk_reduce_pct": return `${a.title}: düşman canı -%${v}, saldırısı -%${v2}`;
     case "wounded_return_pct": return `${a.title}: yaralıların %${v} kadarı geri döner`;

@@ -86,7 +86,11 @@ const HERO_UI_BY_HERO = {
   ates_buyucusu: { boxes: { box1: { dx: -5, dy: -85 }, box2: { dx: 5, dy: -85 }, box3: { dx: -5, dy: 40 } } },
   ivanovna:      { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } } },
   revolia:       { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } },
-                   panel: { dx: 0, dy: -15 } }
+                   panel: { dx: 0, dy: -15 } },
+  /* Yeni üçlü — görseller yüklendikten sonra 🎛 editöründen ince ayar yapılır. */
+  robert:        { boxes: { box1: { dx: -5, dy: -70 }, box2: { dx: 5, dy: -90 }, box3: { dx: -5, dy: 40 } } },
+  frankly:       { boxes: { box1: { dx: -5, dy: -75 }, box2: { dx: 5, dy: -85 }, box3: { dx: -5, dy: 40 } } },
+  yuneeb:        { boxes: { box1: { dx: -5, dy: -70 }, box2: { dx: 5, dy: -90 }, box3: { dx: -5, dy: 40 } } }
 };
 
 
@@ -158,7 +162,7 @@ const HERO_STATS = {
     desc: "Saldırı ve savunmayı dengeli kullanan savaşçı.",
     bonuses: { aile: "knight", artis: 5, taban: { def: 9, hp: 6 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#e8c84f",
-    price: 300000,          /* Satın alma bedeli (elmas) — buradan ayarla */
+    price: 600000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
 
     abilities: [
@@ -176,8 +180,26 @@ const HERO_STATS = {
         valuesByLevel: [4, 7, 10, 13, 16],
         /* Yalnız `family` ailesine işler — aile adı burada, motorda değil. */
         effect: { type: "family_atk_pct", family: "knight" }
+      },
+      {
+        icon: "yetenek_celikbeden.webp",
+        title: "Çelik Beden",
+        descTemplate: "Birliklerin bedenini çelikle kaplar ve tüm birliğin canını {value} arttırır.",
+        valuesByLevel: [6, 8, 10, 12, 14],
+        effect: { type: "troop_hp_pct" }
       }
-    ]
+    ],
+
+    /* PASİF YETENEK — detay ekranında ✕ butonunun altında yuvarlak kutu olarak görünür */
+    passive: {
+      icon: "yetenek_siper.webp",
+      title: "Çelik Siper",
+      desc: "Kaleye siper çeker: YALNIZ kale savunmasındayken Savunucu birliklerinin canı %5 artar. Saldırıya çıkarken işlemez.",
+      /* Motor: pvp.js → applyTroopBuffs(). Aile burada yazılır,
+         motorda sabit değildir. `taraf === "defender"` şartı motorda. */
+      effect: { type: "defense_family_hp_pct", family: "knight" },
+      valuesByLevel: [5, 5, 5, 5, 5]
+    }
   },
 
   /* ═══ 3. KAHRAMAN — ATEŞ BÜYÜCÜSÜ ═══ */
@@ -307,10 +329,101 @@ const HERO_STATS = {
     passive: {
       icon: "yetenek_kopya.webp",
       title: "Nişancı Kopyalama",
-      desc: "Sahip olunan Nişancı birlikleri kopyalanarak kale savunmasında 2 katı kadar çoğalır.",
-      /* Sadece KALE SAVUNMASINDA: robot sayısı hesapta 2 ile çarpılır, gerçek envanter değişmez. */
-      effect: { type: "defense_robot_multiplier", multiplier: 2, troopType: "robot" }
+      desc: "Kale savunmasındayken Nişancı birliklerinin savunması 2 katına çıkar. Saldırıya çıkarken işlemez.",
+      /*  Eski ad `defense_robot_multiplier` idi ve aile motorda SABİT
+          yazılıydı (`troopType` alanı hiç okunmuyordu). Ayrıca eski
+          açıklama "birlikler 2 katı çoğalır" diyordu ama kod SAYIYI
+          değil SAVUNMAYI ikiye katlıyor — metin koda uyduruldu.      */
+      effect: { type: "defense_family_def_mult", multiplier: 2, family: "robot" }
     }
+  },
+
+  /* ═══ 6. KAHRAMAN — ROBERT ═══ (Mor · Nişancı) */
+  robert: {
+    name: "ROBERT",
+    specialty: "Saldırı",
+    specialtyIcon: "⚔️",
+    desc: "Cephede yaşlanmış bir komutan; ağır silahlarla rakibin zırhını deler.",
+    bonuses: { aile: "robot", artis: 5, taban: { atk: 7, olum: 4 } },
+    color: "#c96a2a",
+    price: 320000,
+    upgradeCosts: [0, 0, 0, 0],
+
+    abilities: [
+      {
+        icon: "yetenek_atesgucu.webp",
+        title: "Ağır Ateş Gücü",
+        descTemplate: "Yılların cephe tecrübesiyle atış hatlarını düzenler ve Nişancı birliklerinin saldırısını {value} arttırır.",
+        valuesByLevel: [5, 8, 11, 14, 17],
+        effect: { type: "family_atk_pct", family: "robot" }
+      },
+      {
+        icon: "yetenek_roket.webp",
+        title: "Roket İsabeti",
+        descTemplate: "Omuzundaki roketatarla zırhlı hedefleri seçer; %35 ihtimalle rakibin savunmasını {value} yıpratır.",
+        valuesByLevel: [8, 11, 14, 17, 20],
+        /* DİKKAT: ihtimal `effect` İÇİNDE — düz `chance` alanı birleştiricide düşer. */
+        effect: { type: "enemy_def_shred_pct", chance: 35 }
+      }
+    ]
+  },
+
+  /* ═══ 7. KAHRAMAN — FRANKLY ═══ (Mor · Koruyucu) */
+  frankly: {
+    name: "FRANKLY",
+    specialty: "Bilgelik",
+    specialtyIcon: "📖",
+    desc: "Savaş meydanını kitaptan okuyan yaşlı profesör; yaralıyı ayağa kaldırır.",
+    bonuses: { aile: "soldier", artis: 5, taban: { hp: 8, def: 6 } },
+    color: "#8a6a4a",
+    price: 300000,
+    upgradeCosts: [0, 0, 0, 0],
+
+    abilities: [
+      {
+        icon: "yetenek_talimat.webp",
+        title: "Saha Talimatı",
+        descTemplate: "Elindeki talimatnameyi birliklere okutur; tüm birliğin saldırı ve savunmasını {value} arttırır.",
+        valuesByLevel: [5, 7, 9, 11, 13],
+        effect: { type: "troop_atk_def_pct" }
+      },
+      {
+        icon: "yetenek_revir.webp",
+        title: "Sahra Reviri",
+        descTemplate: "Cephe gerisinde revir kurar: yaralanan birliklerin {value} kadarı savaşa geri döner.",
+        valuesByLevel: [10, 12, 14, 16, 18],
+        effect: { type: "wounded_return_pct" }
+      }
+    ]
+  },
+
+  /* ═══ 8. KAHRAMAN — YU-NEEB ═══ (Mor · Savunucu) */
+  yuneeb: {
+    name: "YU-NEEB",
+    specialty: "Savunma",
+    specialtyIcon: "🛡️",
+    desc: "Havada asılı duran rahibe; duasıyla birliklerin etrafına kalkan örer.",
+    bonuses: { aile: "knight", artis: 5, taban: { def: 8, hp: 7 } },
+    color: "#d94f5c",
+    price: 330000,
+    upgradeCosts: [0, 0, 0, 0],
+
+    abilities: [
+      {
+        icon: "yetenek_bariyer.webp",
+        title: "Kutsal Bariyer",
+        descTemplate: "Birliklerin çevresine ışıktan bir bariyer örer ve tüm birliğin savunmasını {value} yükseltir.",
+        valuesByLevel: [6, 9, 12, 15, 18],
+        effect: { type: "troop_def_pct" }
+      },
+      {
+        icon: "yetenek_sifa.webp",
+        title: "Şifa Duası",
+        descTemplate: "Ellerini birleştirip şifa okur; birlik sağlığını {value} arttırır.",
+        valuesByLevel: [5, 8, 11, 14, 17],
+        effect: { type: "troop_hp_pct" }
+      }
+    ]
   }
 };
 
@@ -435,7 +548,10 @@ const heroSkins = [
   { id: "celik_savasci",  name: "STELLİN" },
   { id: "ates_buyucusu",  name: "MİKİAN" },
   { id: "ivanovna",       name: "İVANOVNA" },
-  { id: "revolia",        name: "REVOLİA" }
+  { id: "revolia",        name: "REVOLİA" },
+  { id: "robert",         name: "ROBERT" },
+  { id: "frankly",        name: "FRANKLY" },
+  { id: "yuneeb",         name: "YU-NEEB" }
 ];
 
 
@@ -460,9 +576,12 @@ const MAX_KOMUTAN = 3;   /* SAVAŞA KAÇ KOMUTAN GÖTÜRÜLEBİLİR — buradan 
 const KOMUTAN_AILESI = {
   buz_savascisi: "knight",   /* HALVORSEN */
   celik_savasci: "knight",   /* STELLİN   */
+  yuneeb:        "knight",   /* YU-NEEB   */
   ates_buyucusu: "soldier",  /* MİKİAN    */
   ivanovna:      "soldier",  /* İVANOVNA  */
+  frankly:       "soldier",  /* FRANKLY   */
   revolia:       "robot",    /* REVOLİA   */
+  robert:        "robot",    /* ROBERT    */
 };
 const KOMUTAN_AILE_ADI = { knight: "Savunucu", soldier: "Koruyucu", robot: "Nişancı" };
 
@@ -1639,10 +1758,12 @@ function refreshAfterCommanderChange() {
 }
 
 /* Kahraman varlıkları — dosya yolları (düz mod, klasörsüz) */
-const HERO_IMG = {"ates_buyucusu": "hero_ates_buyucusu.webp", "buz_savascisi": "hero_buz_savascisi.webp", "celik_savasci": "hero_celik_savasci.webp", "ivanovna": "hero_ivanovna.webp", "revolia": "hero_revolia.webp"};
+const HERO_IMG = {"ates_buyucusu": "hero_ates_buyucusu.webp", "buz_savascisi": "hero_buz_savascisi.webp", "celik_savasci": "hero_celik_savasci.webp", "ivanovna": "hero_ivanovna.webp", "revolia": "hero_revolia.webp", "robert": "hero_robert.webp", "frankly": "hero_frankly.webp", "yuneeb": "hero_yuneeb.webp"};
 /* Arka plan artık kahramana özel DEĞİL, nadirliğe göre iki görsel.
-   Mor: HALVORSEN · STELLİN · MİKİAN — Turuncu: İVANOVNA · REVOLİA */
-const HERO_ARKA_TURUNCU = ["ivanovna", "revolia"];
+   Mor: HALVORSEN · MİKİAN · ROBERT · FRANKLY · YU-NEEB
+   Turuncu: STELLİN · İVANOVNA · REVOLİA
+   Bu liste gelistir.js NADIRLIK tablosuyla aynı olmalı. */
+const HERO_ARKA_TURUNCU = ["celik_savasci", "ivanovna", "revolia"];
 function heroArkaPlan(id) {
   return HERO_ARKA_TURUNCU.indexOf(id) !== -1
     ? "turuncuheroplan.webp" : "morheroplan.webp";

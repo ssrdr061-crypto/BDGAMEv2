@@ -6,10 +6,10 @@
    Tek doğruluk kaynağı: state.heroLevels[id]
 
    PARÇA
-     mor      → HALVORSEN · STELLİN · MİKİAN için ORTAK havuz
-                state.heroShards.mor
-     turuncu  → İVANOVNA · REVOLİA için ŞAHSA ÖZEL
-                state.heroShards.ivanovna / .revolia
+     mor      → HALVORSEN · MİKİAN · ROBERT · FRANKLY · YU-NEEB
+                için ORTAK havuz — state.heroShards.mor
+     turuncu  → STELLİN · İVANOVNA · REVOLİA için ŞAHSA ÖZEL
+                state.heroShards.celik_savasci / .ivanovna / .revolia
 
    Bu dosya kahramanlar.js ve heroes.js'ten SONRA yüklenmeli.
    ═══════════════════════════════════════════════════════════════ */
@@ -30,8 +30,11 @@
      Yeni kahraman eklendiğinde id'si buraya yazılır. */
   const NADIRLIK = {
     buz_savascisi: "mor",   /* HALVORSEN */
-    celik_savasci: "mor",   /* STELLİN   */
     ates_buyucusu: "mor",   /* MİKİAN    */
+    robert:        "mor",   /* ROBERT    */
+    frankly:       "mor",   /* FRANKLY   */
+    yuneeb:        "mor",   /* YU-NEEB   */
+    celik_savasci: "ssr",   /* STELLİN   */
     ivanovna:      "ssr",   /* İVANOVNA  */
     revolia:       "ssr"    /* REVOLİA   */
   };
@@ -307,18 +310,52 @@
   }
 
   function sekmeStat(id) {
-    /* Kahraman statı şu an OYUNCUYA ait (state.hero), kahramana özel değil.
-       "Seviye kadar +stat" sistemi bağlanınca artış sütunu kendiliğinden dolar. */
-    const s = S() || {};
-    const h = s.hero || {};
+    /*  TEK GERÇEK KAYNAK: statSatirlari() + kapasite().
+        Eskiden burada `state.hero` okunuyordu — o OYUNCUNUN statıydı,
+        kahramana ait değildi ve savaşta hiçbir yere girmiyordu, yani
+        ekranda yalan bir sayı duruyordu. Kaldırıldı. Aşağıdaki
+        yüzdeler `HERO_STATS[id].bonuses` üzerinden gelir ve savaşta
+        `statUygula()` ile birebir aynı değerlerdir.                  */
+    const sv    = seviye(id);
+    const ileri = Math.min(MAX_SV, sv + 1);
+    const artar = ileri > sv;
+
+    const simdi = statSatirlari(id, sv);
+    if (!simdi.length) {
+      return `<div style="padding:16px 0;text-align:center;color:#9fb6c9;font-size:13px;">Stat bonusu yok.</div>`;
+    }
+    const sonra = artar ? statSatirlari(id, ileri) : [];
+    const sonraHaritasi = {};
+    sonra.forEach(x => { sonraHaritasi[x.anahtar] = x.yuzde; });
+
     let out = "";
-    out += satirHTML("Kahraman Saldırı", Math.round(h.attack  || 0), null, false);
-    out += satirHTML("Kahraman Savunma", Math.round(h.defense || 0), null, false);
-    out += satirHTML("Kahraman Can",     Math.round(h.maxHp   || 0), null, false);
+    simdi.forEach(x => {
+      const s2 = artar ? sonraHaritasi[x.anahtar] : null;
+      out += satirHTML(x.ad, "%" + x.yuzde,
+                       (s2 != null ? "%" + s2 : null), artar);
+    });
+
+    /* Sefer kapasitesi de seviyeye bağlıdır — aynı yerde gösterilir. */
+    const kSimdi = kapasite(id, sv);
+    const kSonra = artar ? kapasite(id, ileri) : null;
+    out += satirHTML("Sefer Kapasitesi",
+                     kSimdi.toLocaleString("tr-TR"),
+                     (kSonra != null ? kSonra.toLocaleString("tr-TR") : null),
+                     artar);
+
     out += `<div style="padding:10px 2px 0;font-size:11.5px;color:#7f96a8;line-height:1.5;">
-              Seviyeye bağlı stat artışı henüz bağlanmadı.
+              Bu yüzdeler yalnız <b>${aileAdi(id)}</b> birliklerine işler.
             </div>`;
     return out;
+  }
+
+  /* Kahramanın bağlı olduğu ailenin oyuncuya görünen adı. */
+  function aileAdi(id) {
+    const b = bonusTanimi(id);
+    const a = b && b.aile;
+    return a === "knight"  ? "Savunucu"
+         : a === "soldier" ? "Koruyucu"
+         : a === "robot"   ? "Nişancı" : "kendi ailesine ait";
   }
 
   function sekmeTaki() {

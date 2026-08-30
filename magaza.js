@@ -78,11 +78,14 @@ const shopItems = [
 
   /* ── FÜZE (kale saldırısı) ── */
   /* ── KAHRAMAN PARÇALARI ──
-     Mor parça üç mor kahramanın ORTAK havuzuna, turuncular
+     Mor parça BEŞ mor kahramanın ORTAK havuzuna, turuncular
      kahramana ÖZEL havuza düşer (gelistir.js). Haftada 10'ar. */
   { name: "Mor Kahraman Parçası", price: 15000, isParca: true, parcaKey: "mor",
     icon: "◆", gorsel: "morparca.webp",
-    parcaDesc: "HALVORSEN, STELLİN ve MİKİAN'ın seviyesini yükseltmekte kullanılır." },
+    parcaDesc: "HALVORSEN, MİKİAN, ROBERT, FRANKLY ve YU-NEEB'in seviyesini yükseltmekte kullanılır." },
+  { name: "STELLİN Parçası", price: 30000, isParca: true, parcaKey: "celik_savasci",
+    icon: "◆", gorsel: "stellinparca.webp",
+    parcaDesc: "Yalnız STELLİN'in seviyesini yükseltmekte kullanılır." },
   { name: "İVANOVNA Parçası", price: 30000, isParca: true, parcaKey: "ivanovna",
     icon: "◆", gorsel: "ivanovnaparca.webp",
     parcaDesc: "Yalnız İVANOVNA'nın seviyesini yükseltmekte kullanılır." },
