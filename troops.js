@@ -439,10 +439,29 @@ function trainUnit(unitId, count) {
     : `${count} ${def.name} eğitime başladı (toplam ${sureDk(def.trainMinutes * count)}).`);
 }
 
+/* ── EKRANDA GÖSTERİLEN MEVCUT ──
+   `state.troops` yalnız KALEDEKİ askeri tutar; sefere çıkan düşülür.
+   Oyuncu bunu "askerlerim kayboldu" diye görüyordu. Bu yüzden
+   Birlikler ekranı kale + yoldaki toplamını gösterir.
+   YALNIZ GÖSTERİMDİR: eğitim sürgüleri, sefer seçimi ve maliyet
+   hesapları `state.troops`'u okumaya devam eder — yoksa yoldaki
+   orduyu ikinci kez gönderebilirdin. */
+function ekrandakiBirlikler() {
+  const o = Object.assign({}, (typeof state !== "undefined" && state.troops) || {});
+  try {
+    if (window.SEFER && typeof SEFER.yoldakiBirlikler === "function") {
+      const y = SEFER.yoldakiBirlikler();
+      Object.keys(y).forEach(k => { o[k] = (o[k] || 0) + (y[k] || 0); });
+    }
+  } catch (e) {}
+  return o;
+}
+
 function getTotalTroopStats() {
   let attack = 0, defense = 0, hp = 0, count = 0;
-  Object.keys(state.troops).forEach(unitId => {
-    const n = state.troops[unitId] || 0;
+  const _mevcut = ekrandakiBirlikler();
+  Object.keys(_mevcut).forEach(unitId => {
+    const n = _mevcut[unitId] || 0;
     const def = UNIT_TYPES[unitId];
     if (!def || n <= 0) return;
     attack += def.attack * n;
@@ -463,12 +482,13 @@ function renderTroopsPanel() {
   if (!panel.dataset.tplBound) { bindTroopsTemplate(); panel.dataset.tplBound = "1"; }
 
   const totals = getTotalTroopStats();
+  const _mevcut = ekrandakiBirlikler();
   setTroopText("power_attack", totals.attack);
   setTroopText("power_defense", totals.defense);
   setTroopText("power_hp", totals.hp);
 
   Object.values(UNIT_TYPES).forEach(def => {
-    setTroopText("owned_" + def.id, "x" + (state.troops[def.id] || 0));
+    setTroopText("owned_" + def.id, "x" + (_mevcut[def.id] || 0));
     setTroopText(def.id + "_atk", def.attack);
     setTroopText(def.id + "_def", def.defense);
     setTroopText(def.id + "_hp", def.hp);

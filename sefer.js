@@ -1740,6 +1740,24 @@ function iadeEt(b) {
   return (typeof state !== "undefined") ? state.troops : null;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   YOLDAKİ BİRLİKLER — TEK DOĞRULUK KAYNAĞI
+   Sefere çıkan birlik `state.troops`'tan düşülür (yoksa aynı ordu
+   iki kez gönderilebilirdi). Birlikler ekranı bu yüzden "hiç askerim
+   yok" gibi görünüyordu. Ekranın toplamı gösterebilmesi için
+   yoldaki mevcut BURADAN okunur; sayım başka dosyaya kopyalanmaz.
+   Yaralılar sayılmaz: onlar dönüşte hastaneye girer, orada görünür. */
+function yoldakiBirlikler() {
+  const o = {};
+  try {
+    benimkiler().forEach(({ s }) => {
+      const b = (s && s.birlikler) || {};
+      Object.keys(b).forEach(k => { o[k] = (o[k] || 0) + (b[k] || 0); });
+    });
+  } catch (e) {}
+  return o;
+}
+
 window.SEFER = {
   SURUM: "canvas-11",          /* rozet bunu gösterir; yükleme doğrulaması */
   AYAR: AYAR, tani: tani, iadeEt: iadeEt,
@@ -1750,6 +1768,7 @@ window.SEFER = {
   geriCagir: geriCagir, baslat: seferBaslat,
   toplamaBaslat: toplamaBaslat,
   orduKapasitesi: orduKapasitesi,
+  yoldakiBirlikler: yoldakiBirlikler,
 };
 
 })();
