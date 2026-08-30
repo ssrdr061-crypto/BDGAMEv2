@@ -439,13 +439,10 @@ function trainUnit(unitId, count) {
     : `${count} ${def.name} eğitime başladı (toplam ${sureDk(def.trainMinutes * count)}).`);
 }
 
-/* ── EKRANDA GÖSTERİLEN MEVCUT ──
-   `state.troops` yalnız KALEDEKİ askeri tutar; sefere çıkan düşülür.
-   Oyuncu bunu "askerlerim kayboldu" diye görüyordu. Bu yüzden
-   Birlikler ekranı kale + yoldaki toplamını gösterir.
-   YALNIZ GÖSTERİMDİR: eğitim sürgüleri, sefer seçimi ve maliyet
-   hesapları `state.troops`'u okumaya devam eder — yoksa yoldaki
-   orduyu ikinci kez gönderebilirdin. */
+/*  `state.troops` yalnız KALEDEKİ askeri tutar; sefere çıkan düşülür.
+    Birlikler ekranı kale + yoldaki toplamını gösterir. YALNIZ
+    GÖSTERİMDİR: eğitim sürgüleri ve sefer seçimi `state.troops`
+    okumaya devam eder, yoksa yoldaki ordu ikinci kez gönderilirdi. */
 function ekrandakiBirlikler() {
   const o = Object.assign({}, (typeof state !== "undefined" && state.troops) || {});
   try {
@@ -649,7 +646,6 @@ function tNumBoyutla(kutu) {
 }
 
 function renderTroopSelector() {
-  _iz("render");
   applyFinishedTraining();
   const listEl = document.getElementById("troopSelectList");
   const summaryEl = document.getElementById("troopSelectSummary");
@@ -674,14 +670,6 @@ function renderTroopSelector() {
     summaryEl.textContent = "";
     return;
   }
-
-  /*  KIRPMA ÇİZİMDEN ÖNCE.
-      Eskiden `seferSecimiKirp()` bu fonksiyonun EN SONUNDA
-      çağrılıyordu: kutucuklar ve sürgüler kırpılmamış seçimden,
-      alttaki "0 / 55.000" sayacı ise kırpılmış seçimden çiziliyordu.
-      İki gösterge farklı veriye bakınca kutuda 342 yazarken sayaç
-      0 kalıyordu. Tek veri, tek an. */
-  seferSecimiKirp();
 
   listEl.innerHTML = owned.map(def => {
     const max = seferSiniri(def.id);
@@ -793,6 +781,7 @@ function renderTroopSelector() {
   });
 
   listePenceresiOlc();
+  seferSecimiKirp();
   seferSinirlariTazele();
   seferSayaciTazele();
   orduKayitCiz();
@@ -940,7 +929,6 @@ function seferSiniri(unitId) {
    kırp. Üst kademeden aşağı korunur: pahalı birlik kalır. */
 function seferSecimiKirp() {
   const tavan = seferTavani();
-  _iz("kirp tavan=" + tavan);
   if (!isFinite(tavan)) return;
   const sirali = Object.keys(selectedTroopsForBattle)
     .filter(u => (selectedTroopsForBattle[u] || 0) > 0)
@@ -980,8 +968,22 @@ function seferSinirlariTazele() {
 function seferSayaciTazele() {
   const listEl = document.getElementById("troopSelectList");
   if (!listEl) return;
-  const baslik = listEl.previousElementSibling;
-  if (!baslik || !baslik.classList.contains("troop-select-title")) return;
+  /*  BAŞLIK KOMŞULUKLA ARANMAZ.
+      Eskiden `listEl.previousElementSibling` okunuyordu. Aile yüzde
+      şeridi (`aileYuzdeCiz`) kendini `insertBefore(serit, listEl)`
+      ile listenin hemen ÖNÜNE koyuyor; o andan sonra listenin önceki
+      kardeşi başlık değil ŞERİT oluyor ve bu fonksiyon her çağrıda
+      erken çıkıyordu. Sonuç: sayaç ilk çizimde bir kez yazılıp
+      donuyor, kutucuklar dolarken başlıkta "0 / 55.000" kalıyordu.
+      Kapsayıcıdaki SON başlık aranır — liste hangi kutunun altındaysa
+      onun başlığıdır.                                              */
+  const kutu = listEl.closest(".troop-select-box") || listEl.parentNode;
+  let baslik = null;
+  if (kutu) {
+    const basliklar = kutu.querySelectorAll(".troop-select-title");
+    if (basliklar.length) baslik = basliklar[basliklar.length - 1];
+  }
+  if (!baslik) return;
 
   let sp = baslik.querySelector(".sf-sayac");
   const tavan = seferTavani();
@@ -996,71 +998,6 @@ function seferSayaciTazele() {
   }
   const kul = seferKullanilan(null);
   sp.textContent = "· " + kul.toLocaleString("tr-TR") + " / " + tavan.toLocaleString("tr-TR");
-  _seferTani(kul, tavan, listEl);
-}
-
-/* ── TANI (?seferi=1) ────────────────────────────────────────────
-   Kutucuklar dolu görünürken sayacın 0 kalmasının sebebi kod
-   okumayla bulunamadı. Bu şerit üç şeyi ekrana basar: seçim
-   nesnesinin HAM içeriği, sayacın okuduğu toplam ve sayfada kaç
-   tane liste/sayaç DOM'da duruyor. Sorun çözülünce SİLİNECEK. */
-/* Şerit KENDİ KENDİNE yenilenir. Eskiden yalnız seferSayaciTazele
-   çağrılınca güncelleniyordu; sayaç güncellenmediği anlarda şerit
-   donuyor ve ekrandaki gerçek durumla çelişiyordu. */
-if (_SEFER_TANI && typeof setInterval === "function") {
-  setInterval(function () {
-    var l = document.getElementById("troopSelectList");
-    if (!l) return;
-    var t = seferTavani();
-    _seferTani(seferKullanilan(null), isFinite(t) ? t : 0, l);
-  }, 500);
-}
-
-function _seferTani(kul, tavan, listEl) {
-  if (!_SEFER_TANI) return;
-  var el = document.getElementById("seferiTani");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "seferiTani";
-    el.style.cssText = "position:fixed;left:6px;right:6px;bottom:96px;z-index:99999;" +
-      "background:rgba(2,8,22,.94);color:#9fe6ff;font:600 11px/1.35 'Baloo 2',sans-serif;" +
-      "padding:6px 8px;border-radius:8px;white-space:pre-wrap;pointer-events:none;";
-    document.body.appendChild(el);
-  }
-
-  var sec = [];
-  try {
-    Object.keys(selectedTroopsForBattle).forEach(function (u) {
-      sec.push(u + "=" + selectedTroopsForBattle[u]);
-    });
-  } catch (e) { sec.push("OKUNAMADI"); }
-
-  var kutular = [];
-  try {
-    listEl.querySelectorAll(".t-num").forEach(function (k) {
-      kutular.push(k.dataset.unit + ":" + k.value);
-    });
-  } catch (e) {}
-
-  el.textContent =
-    "secim  " + (sec.join(" ") || "BOS") +
-    "\nkutu   " + (kutular.join(" ") || "BOS") +
-    "\nsayac  " + kul + " / " + tavan +
-    "\nliste  " + document.querySelectorAll("#troopSelectList").length +
-    " · uyku " + document.querySelectorAll("#troopSelectList_uyku").length +
-    " · sayacDOM " + document.querySelectorAll(".sf-sayac").length +
-    "\nyer    " + (typeof birimYeri === "function" ? "birimYeri var" : "birimYeri YOK") +
-    "\nham    " + _ilkKutuHam(listEl) +
-    "\n── iz ──\n" + _izDefteri.join("\n");
-}
-
-function _ilkKutuHam(listEl) {
-  try {
-    var k = listEl.querySelector(".t-num");
-    if (!k) return "yok";
-    return "v=" + k.value + " attr=" + k.getAttribute("value") +
-           " satir=" + listEl.querySelectorAll(".troop-select-row").length;
-  } catch (e) { return "hata"; }
 }
 
 /* ── ORDU KAYITLARI ─────────────────────────────────────────── */
@@ -1178,22 +1115,7 @@ function orduKayitCiz() {
 
 /*  Bir aileye `hedef` kadar yer ver. Üst kademeden aşağı doldurur;
     elde olmayan kademe atlanır. */
-/* İZ DEFTERİ (?seferi=1) — seçimi kimin değiştirdiğini kaydeder.
-   Sorun çözülünce _seferTani ile birlikte SİLİNECEK. */
-var _SEFER_TANI = (typeof location !== "undefined" &&
-                   location.search.indexOf("seferi=1") >= 0);
-var _izDefteri = [];
-function _iz(metin) {
-  if (!_SEFER_TANI) return;
-  var t = 0;
-  try { Object.keys(selectedTroopsForBattle).forEach(function (u) {
-    t += selectedTroopsForBattle[u] || 0; }); } catch (e) {}
-  _izDefteri.push(metin + " →" + t);
-  if (_izDefteri.length > 8) _izDefteri.shift();
-}
-
 function aileyiAyarla(aile, hedef) {
-  _iz("aileyiAyarla " + aile + "=" + hedef);
   const kademeler = aileKademeleri(aile).slice().reverse();   /* Sv6 → Sv1 */
   let kalan = Math.max(0, hedef);
   kademeler.forEach(def => {
@@ -1262,17 +1184,14 @@ function aileYuzdeCiz() {
         aileyiAyarla(aile, Math.min(bosYer, Math.round(t * v / 100)));
 
         /*  KUTUCUK GİRİLEN DEĞERİ TUTAR.
-            Eskiden kutu, seçimin TAVANA oranını gösteriyordu: elinde
-            213 okçu varken %7 yazsan da 213/75.000 = %0,28 çıkıyor,
-            yuvarlanınca 0 görünüyordu. Birlikler doğru seçiliyor ama
-            oyuncu "değeri kabul etmedi" sanıyordu. Artık girilen
-            hedef saklanır; seçim başka yoldan (sürgü, +/-) değişene
-            kadar kutuda o yazar. */
+            Kutu, seçimin TAVANA oranını gösteriyordu: elinde 342
+            şövalye varken %50 yazsan da 342/55.000 = %0,6 çıkıyor,
+            yuvarlanınca 1 görünüyordu. Birlikler doğru seçiliyor ama
+            oyuncu "değer kabul edilmedi" sanıyordu. Hedef saklanır;
+            seçim başka yoldan (sürgü, +/−) değişince düşer.        */
         kutu.dataset.hedef = String(v);
+        kutu.dataset.uygulanan = String(aileSecimi(aile));
 
-        /*  `uygulanan` render'dan SONRA okunur: kırpma seçimi
-            düşürürse kutudaki hedef geçersiz sayılmalı, yoksa
-            kutu gerçekte olmayan bir yüzdeyi gösterir. */
         renderTroopSelector();
         kutu.dataset.uygulanan = String(aileSecimi(aile));
         if (typeof renderEnemyPowerPreview === "function") renderEnemyPowerPreview();
@@ -1286,13 +1205,11 @@ function aileYuzdeCiz() {
       });
     });
 
-    /*  KLAVYE SÜRGÜYE GEÇMESİN.
-        Yüzde kutusu odaktayken alttaki birlik sürgüsünü kaydırınca
-        telefon klavyesi açık kalıyor ve ekranın yarısını kapatıyordu.
-        Kutunun DIŞINA yapılan ilk dokunuşta odak bırakılır; capture
-        evresinde dinlenir ki sürgü kendi işini yapmadan önce klavye
-        kapansın. Tek sefer bağlanır — şerit yeniden kurulursa
-        ikinci bir dinleyici eklenmez. */
+    /*  KLAVYE SÜRGÜYE GEÇMESİN. Yüzde kutusu odaktayken alttaki
+        sürgüyü kaydırınca telefon klavyesi açık kalıyor ve ekranın
+        yarısını kapatıyordu. Kutunun dışına yapılan ilk dokunuşta
+        odak bırakılır; capture evresinde dinlenir ki sürgü kendi
+        işini yapmadan önce klavye kapansın. */
     if (!document.body.dataset.ayKlavyeBagli) {
       document.body.dataset.ayKlavyeBagli = "1";
       document.addEventListener("pointerdown", function (e) {
@@ -1315,8 +1232,7 @@ function aileYuzdeTazele() {
     if (document.activeElement === kutu) return;
     const simdiki = aileSecimi(kutu.dataset.aile);
 
-    /*  Girilen hedef hâlâ geçerliyse (seçim o günden beri elle
-        değişmediyse) kutuda oyuncunun yazdığı sayı durur. */
+    /* Girilen hedef hâlâ geçerliyse oyuncunun yazdığı sayı durur. */
     if (kutu.dataset.hedef !== undefined &&
         String(simdiki) === kutu.dataset.uygulanan) {
       kutu.value = kutu.dataset.hedef;
