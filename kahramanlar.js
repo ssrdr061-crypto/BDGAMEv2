@@ -365,7 +365,13 @@ function _klistKartHTML(id) {
     </div>`;
 
   const h = HERO_STATS[id];
-  const cfg = (typeof HERO_3D !== "undefined") ? HERO_3D[id] : null;
+  /*  HERO_3D bir KAPI DEĞİL, yalnız ince ayar tablosudur. Eskiden
+      `HERO_3D[id]` null dönünce aşağıdaki yıldız bloğu hiç
+      çizilmiyordu: o tabloya yazılmamış yeni kahramanların kartında
+      yıldızlar görünmüyordu. (Aynı hata openHeroDetail'de ekranı
+      tamamen çökertiyordu.) Kaydı yoksa varsayılana düşer.        */
+  const cfg = ((typeof HERO_3D !== "undefined") && HERO_3D[id])
+           || ((typeof HERO_3D_VARSAYILAN !== "undefined") ? HERO_3D_VARSAYILAN : null);
   const k = _klistKartAyar(id);                    /* kahramana özel ayar */
   const img = (typeof HERO_IMG !== "undefined") ? HERO_IMG[id] : null;
   const sahip = _klistSahip(id);

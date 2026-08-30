@@ -840,8 +840,17 @@
     if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
     ODULLER.forEach(function (o) {
       if (o.esya) s.inventory[o.esya] = (s.inventory[o.esya] || 0) + o.adet;
-      else if (o.parca && typeof window.parcaEkle === "function") {
-        try { window.parcaEkle(o.parca, o.adet); } catch (e) {}
+      /* Eğitim ödülü parçası da ÇANTAYA düşer, havuza değil —
+         diğer tüm ödüllerle aynı akış (çanta → Kullan → havuz).
+         Doğrudan havuza yazıldığı için yeni hesap daha ilk
+         kahramanını açtığında elinde hazır parça buluyordu. */
+      else if (o.parca) {
+        try {
+          if (typeof window.parcaCantayaEkle === "function")
+            window.parcaCantayaEkle(o.parca, o.adet);
+          else if (typeof window.parcaEkle === "function")
+            window.parcaEkle(o.parca, o.adet);
+        } catch (e) {}
       }
     });
     kaydet();
