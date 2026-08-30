@@ -385,9 +385,22 @@
        ikisi tek hapta birleşti. Yanındaki turuncu ↑ parça penceresini
        açar. Hap parça yetmese de SARI kalır; yetmiyorsa dolgu
        oranı azalır ve basınca uyarı verir. */
-    const alt = sonSeviye
+    /*  SAHİPSİZ KAHRAMAN → geliştirme çubuğu YOK.
+        Aynı yerde SATIN AL düğmesi durur. Eskiden çubuk çiziliyor,
+        heroes.js'in ayrı "Satın Al" düğmesi de onun üstüne biniyordu:
+        iki düğme üst üste görünüyordu. Satın alma mantığı burada
+        TEKRARLANMAZ — heroes.js'teki tek kopya çağrılır.            */
+    const alt = !sahip(id)
+      ? `<button id="glsSatinAl" style="width:100%;height:38px;padding:0;
+              border:none;border-radius:19px;font-family:${YAZI};
+              font-size:14px;font-weight:800;color:#20140a;
+              background:${TEMA.sari};box-shadow:0 2px 6px rgba(0,20,45,.3);
+              cursor:pointer;">
+           Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}
+         </button>`
+      : sonSeviye
       ? `<div style="text-align:center;padding:10px;border-radius:14px;
-              background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});
+              background:${TEMA.sari};
               color:#20140a;font-weight:800;font-size:13.5px;
               font-family:${YAZI};">En yüksek seviye</div>`
       : `<div style="display:flex;align-items:center;gap:9px;">
@@ -395,7 +408,7 @@
                    border:none;border-radius:17px;position:relative;overflow:hidden;
                    background:rgba(60,38,10,.55);cursor:pointer;">
              <span style="position:absolute;inset:0 auto 0 0;width:${oran}%;
-                          background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});"></span>
+                          background:${TEMA.sari};"></span>
              <span style="position:absolute;inset:0;display:flex;align-items:center;
                           justify-content:center;gap:8px;font-size:13.5px;font-weight:800;
                           font-family:${YAZI};color:#20140a;white-space:nowrap;">
@@ -406,7 +419,7 @@
                    border:none;border-radius:10px;font-family:${YAZI};font-size:18px;
                    font-weight:800;line-height:34px;text-align:center;color:#20140a;
                    display:flex;align-items:center;justify-content:center;cursor:pointer;
-                   background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});">↑</button>
+                   background:${TEMA.sari};">↑</button>
          </div>`;
 
     /* Üst satır: YALNIZ yıldızlar, ortada. Ad/parça/seviye ibaresi
@@ -416,6 +429,12 @@
                   padding-bottom:8px;letter-spacing:2px;">${yildiz}</div>
       ${alt}
     `;
+
+    const satBtn = p.querySelector("#glsSatinAl");
+    if (satBtn) satBtn.onclick = e => {
+      e.stopPropagation();
+      if (typeof window.hdSatinAl === "function") window.hdSatinAl();
+    };
 
     const btn = p.querySelector("#glsYukselt");
     if (btn) btn.onclick = e => {

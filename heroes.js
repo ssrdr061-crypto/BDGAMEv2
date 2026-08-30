@@ -170,7 +170,7 @@ const HERO_STATS = {
     desc: "Saldırı ve savunmayı dengeli kullanan savaşçı.",
     bonuses: { aile: "knight", artis: 5, taban: { def: 9, hp: 6 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#e8c84f",
-    price: 600000,          /* Satın alma bedeli (elmas) — buradan ayarla */
+    price: 840000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
 
     abilities: [
@@ -370,7 +370,7 @@ const HERO_STATS = {
     desc: "Cephede yaşlanmış bir komutan; ağır silahlarla rakibin zırhını deler.",
     bonuses: { aile: "robot", artis: 5, taban: { atk: 7, olum: 4 } },
     color: "#c96a2a",
-    price: 320000,
+    price: 448000,
     upgradeCosts: [0, 0, 0, 0],
 
     abilities: [
@@ -404,7 +404,7 @@ const HERO_STATS = {
     desc: "Savaş meydanını kitaptan okuyan yaşlı profesör; yaralıyı ayağa kaldırır.",
     bonuses: { aile: "soldier", artis: 5, taban: { hp: 8, def: 6 } },
     color: "#8a6a4a",
-    price: 300000,
+    price: 420000,
     upgradeCosts: [0, 0, 0, 0],
 
     abilities: [
@@ -437,7 +437,7 @@ const HERO_STATS = {
     desc: "Havada asılı duran rahibe; duasıyla birliklerin etrafına kalkan örer.",
     bonuses: { aile: "knight", artis: 5, taban: { def: 8, hp: 7 } },
     color: "#d94f5c",
-    price: 330000,
+    price: 462000,
     upgradeCosts: [0, 0, 0, 0],
 
     abilities: [
@@ -690,6 +690,9 @@ let selectedCommanders = [];
     getHeroBattleEffects(id, seviye) ile toplanır. Aynı tip etkilerin
     toplama/tavan kuralları motor tasarımında belirlenecek. */
 
+/* Satın alınmamış kahramanın portre karartısı — tek yerden ayarlanır. */
+const HD_KARARTI = "grayscale(1) brightness(.45)";
+
 /* ── KAHRAMAN DETAY EKRANI (dock'taki kahraman butonu bunu açar) ── */
 function openHeroDetail(skinId) {
   const h = HERO_STATS[skinId];
@@ -737,7 +740,7 @@ function openHeroDetail(skinId) {
   let bgEski = ov.querySelector("#hdBg");
   ov.innerHTML = `
     <button id="hdClose" style="position:absolute;top:12px;right:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:18px;">✕</button>
-    <button id="hdBuyBtn" style="position:absolute;left:50%;bottom:4%;transform:translateX(-50%);z-index:10;width:64%;height:46px;font-size:16px;font-weight:800;border-radius:12px;border:2px solid #d4af37;background:linear-gradient(180deg,#f0c94f,#b8860b);color:#1b1430;box-shadow:0 4px 14px rgba(0,0,0,.5);"></button>
+    <button id="hdBuyBtn" style="position:absolute;left:50%;bottom:4%;transform:translateX(-50%);z-index:10;width:64%;height:46px;font-size:16px;font-weight:800;border-radius:12px;border:none;background:#f0c94f;color:#1b1430;box-shadow:0 2px 6px rgba(0,20,45,.3);text-shadow:none;"></button>
     ${h.passive ? `<button id="hdPassive" style="position:absolute;top:58px;right:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);color:#fff;font-size:14px;overflow:hidden;">${h.passive.icon ? `<img src="${h.passive.icon}" style="width:100%;height:100%;object-fit:cover;">` : "◈"}</button>` : ""}
     <button id="hdTune" style="position:absolute;top:12px;left:12px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:16px;">⚙</button>
     <button id="hdUiTune" style="position:absolute;top:12px;left:56px;z-index:10;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #d4af37;color:#d4af37;font-size:16px;">🎛</button>
@@ -1054,14 +1057,20 @@ ${modelTxt}`;
   }
   const refreshBuyBtn = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
-    /* Sahip olunan kahramanda alt düğme YOK — geliştirme paneli
-       zaten ekranın altında duruyor (gelistir.js).
-       Sistem kapalıyken eski davranış: "Geliştir" yazar. */
+    /*  Geliştirme paneli AÇIKSA alt düğme hiç görünmez — sahipli
+        kahramanda geliştirme hapını, sahipsizde SATIN AL düğmesini
+        panelin kendisi çiziyor. Eskiden yalnız sahipliyken gizleniyordu,
+        bu yüzden sahipsiz kahramanda mavi "Satın Al" düğmesi sarı
+        geliştirme çubuğunun ÜSTÜNE biniyordu.
+        Panel kapalıyken (sistem devre dışı) eski davranış sürer.     */
     const glsAcik = (typeof window.GELISTIR_ACIK === "function") && window.GELISTIR_ACIK();
-    buyBtn.style.display = (owned && glsAcik) ? "none" : "";
+    buyBtn.style.display = glsAcik ? "none" : "";
     buyBtn.textContent = owned
       ? "Geliştir"
       : `Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}`;
+    /* Sahiplik değişince portrenin karartısı da tazelenir. */
+    const im = ov.querySelector("#hdHero");
+    if (im) im.style.filter = owned ? "none" : HD_KARARTI;
   };
   buyBtn.onclick = () => {
     const owned = (state.ownedHeroSkins || []).includes(skinId);
@@ -1089,6 +1098,13 @@ ${modelTxt}`;
   };
   refreshBuyBtn();
   window.glsBtnTazele = refreshBuyBtn;
+  /*  Satın alma mantığı TEK YERDE kalsın diye dışarı açılıyor:
+      gelistir.js panelindeki SATIN AL düğmesi bunu çağırır, kendi
+      kopyasını tutmaz. Ekran kapanınca temizlenir.                 */
+  window.hdSatinAl = () => {
+    buyBtn.onclick();
+    if (typeof window.acGelistirme === "function") window.acGelistirme(skinId);
+  };
 
   /* ── GELİŞTİRME PANELİ — ekran açılır açılmaz gelir ── */
   if (typeof window.acGelistirme === "function") {
@@ -1218,7 +1234,14 @@ ${modelTxt}`;
     const imEl = document.createElement("img");
     imEl.id = "hdHero";
     imEl.src = heroImg;
-    imEl.style.cssText = `position:absolute;left:50%;top:50%;width:${cw0}px;height:${ch0}px;object-fit:contain;z-index:1;pointer-events:none;`;
+    /*  KARARTI ÇİZİM ANINDA VERİLİR. Sonradan sınıf/filtre eklenirse
+        görsel bir kare boyunca RENKLİ görünüp ardından kararıyor.
+        `sahipMi` bilinmiyorsa (bulut henüz inmediyse) KARARTILI kabul
+        edilir — böylece hiçbir zaman "önce renkli, sonra karartı"
+        olmaz; en kötü ihtimalle karartılı açılıp aydınlanır.        */
+    const _sahipMi = Array.isArray(state && state.ownedHeroSkins)
+                  && state.ownedHeroSkins.indexOf(skinId) !== -1;
+    imEl.style.cssText = `position:absolute;left:50%;top:50%;width:${cw0}px;height:${ch0}px;object-fit:contain;z-index:1;pointer-events:none;filter:${_sahipMi ? "none" : HD_KARARTI};`;
     const bgRef = ov.querySelector("video,img");
     ov.insertBefore(imEl, bgRef ? bgRef.nextSibling : ov.firstChild);
 
