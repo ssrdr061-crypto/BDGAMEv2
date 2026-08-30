@@ -1127,6 +1127,21 @@ function aileyiAyarla(aile, hedef) {
   });
 }
 
+/*  O ailenin ELDE DURAN toplamı (yer cinsinden).
+    Yüzdenin paydası budur — sefer tavanı DEĞİL. Tavan 55.000 iken
+    elindeki 342 şövalyenin tamamını çeksen bile 342/55.000 = %0,6
+    çıkıyor, kutuda 1 görünüyordu. Oyuncu yüzdeyi "ordumun ne
+    kadarını götürüyorum" diye okur; payda da o olmalı.            */
+function aileMevcudu(aile) {
+  let top = 0;
+  aileKademeleri(aile).forEach(def => {
+    const sahip = (typeof state !== "undefined" && state.troops)
+      ? (state.troops[def.id] || 0) : 0;
+    if (sahip > 0) top += sahip * Math.max(1, seferYeri(def.id));
+  });
+  return top;
+}
+
 /* O ailenin şu an kapladığı yer. */
 function aileSecimi(aile) {
   let top = 0;
@@ -1181,7 +1196,9 @@ function aileYuzdeCiz() {
         const digerleri = AILE_SIRA.filter(f => f !== aile)
                                    .reduce((top, f) => top + aileSecimi(f), 0);
         const bosYer = Math.max(0, t - digerleri);
-        aileyiAyarla(aile, Math.min(bosYer, Math.round(t * v / 100)));
+        /* Yüzde ELDEKİ ordunun payıdır; tavan yalnız üst sınırdır. */
+        const mevcut = aileMevcudu(aile);
+        aileyiAyarla(aile, Math.min(bosYer, Math.round(mevcut * v / 100)));
 
         /*  KUTUCUK GİRİLEN DEĞERİ TUTAR.
             Kutu, seçimin TAVANA oranını gösteriyordu: elinde 342
@@ -1241,7 +1258,8 @@ function aileYuzdeTazele() {
     delete kutu.dataset.hedef;
     delete kutu.dataset.uygulanan;
 
-    const oran = Math.round(simdiki * 100 / tavan);
+    const mevcut = aileMevcudu(kutu.dataset.aile);
+    const oran = mevcut > 0 ? Math.round(simdiki * 100 / mevcut) : 0;
     kutu.value = String(Math.max(0, Math.min(100, oran)));
   });
 }
