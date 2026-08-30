@@ -674,6 +674,14 @@ function renderTroopSelector() {
     return;
   }
 
+  /*  KIRPMA ÇİZİMDEN ÖNCE.
+      Eskiden `seferSecimiKirp()` bu fonksiyonun EN SONUNDA
+      çağrılıyordu: kutucuklar ve sürgüler kırpılmamış seçimden,
+      alttaki "0 / 55.000" sayacı ise kırpılmış seçimden çiziliyordu.
+      İki gösterge farklı veriye bakınca kutuda 342 yazarken sayaç
+      0 kalıyordu. Tek veri, tek an. */
+  seferSecimiKirp();
+
   listEl.innerHTML = owned.map(def => {
     const max = seferSiniri(def.id);
     const current = Math.min(selectedTroopsForBattle[def.id] || 0, max);
@@ -784,7 +792,6 @@ function renderTroopSelector() {
   });
 
   listePenceresiOlc();
-  seferSecimiKirp();
   seferSinirlariTazele();
   seferSayaciTazele();
   orduKayitCiz();
@@ -1180,9 +1187,12 @@ function aileYuzdeCiz() {
             hedef saklanır; seçim başka yoldan (sürgü, +/-) değişene
             kadar kutuda o yazar. */
         kutu.dataset.hedef = String(v);
-        kutu.dataset.uygulanan = String(aileSecimi(aile));
 
+        /*  `uygulanan` render'dan SONRA okunur: kırpma seçimi
+            düşürürse kutudaki hedef geçersiz sayılmalı, yoksa
+            kutu gerçekte olmayan bir yüzdeyi gösterir. */
         renderTroopSelector();
+        kutu.dataset.uygulanan = String(aileSecimi(aile));
         if (typeof renderEnemyPowerPreview === "function") renderEnemyPowerPreview();
       }
 
