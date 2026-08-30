@@ -1172,6 +1172,16 @@ function aileYuzdeCiz() {
         const bosYer = Math.max(0, t - digerleri);
         aileyiAyarla(aile, Math.min(bosYer, Math.round(t * v / 100)));
 
+        /*  KUTUCUK GİRİLEN DEĞERİ TUTAR.
+            Eskiden kutu, seçimin TAVANA oranını gösteriyordu: elinde
+            213 okçu varken %7 yazsan da 213/75.000 = %0,28 çıkıyor,
+            yuvarlanınca 0 görünüyordu. Birlikler doğru seçiliyor ama
+            oyuncu "değeri kabul etmedi" sanıyordu. Artık girilen
+            hedef saklanır; seçim başka yoldan (sürgü, +/-) değişene
+            kadar kutuda o yazar. */
+        kutu.dataset.hedef = String(v);
+        kutu.dataset.uygulanan = String(aileSecimi(aile));
+
         renderTroopSelector();
         if (typeof renderEnemyPowerPreview === "function") renderEnemyPowerPreview();
       }
@@ -1183,6 +1193,23 @@ function aileYuzdeCiz() {
         if (e.key === "Enter") { e.preventDefault(); kutu.blur(); }
       });
     });
+
+    /*  KLAVYE SÜRGÜYE GEÇMESİN.
+        Yüzde kutusu odaktayken alttaki birlik sürgüsünü kaydırınca
+        telefon klavyesi açık kalıyor ve ekranın yarısını kapatıyordu.
+        Kutunun DIŞINA yapılan ilk dokunuşta odak bırakılır; capture
+        evresinde dinlenir ki sürgü kendi işini yapmadan önce klavye
+        kapansın. Tek sefer bağlanır — şerit yeniden kurulursa
+        ikinci bir dinleyici eklenmez. */
+    if (!document.body.dataset.ayKlavyeBagli) {
+      document.body.dataset.ayKlavyeBagli = "1";
+      document.addEventListener("pointerdown", function (e) {
+        const etkin = document.activeElement;
+        if (!etkin || !etkin.classList || !etkin.classList.contains("ay-num")) return;
+        if (e.target && e.target.closest && e.target.closest(".ay-num")) return;
+        etkin.blur();
+      }, true);
+    }
   }
   aileYuzdeTazele();
 }
@@ -1194,7 +1221,19 @@ function aileYuzdeTazele() {
   if (!isFinite(tavan) || tavan <= 0) return;
   document.querySelectorAll(".ay-serit .ay-num").forEach(kutu => {
     if (document.activeElement === kutu) return;
-    const oran = Math.round(aileSecimi(kutu.dataset.aile) * 100 / tavan);
+    const simdiki = aileSecimi(kutu.dataset.aile);
+
+    /*  Girilen hedef hâlâ geçerliyse (seçim o günden beri elle
+        değişmediyse) kutuda oyuncunun yazdığı sayı durur. */
+    if (kutu.dataset.hedef !== undefined &&
+        String(simdiki) === kutu.dataset.uygulanan) {
+      kutu.value = kutu.dataset.hedef;
+      return;
+    }
+    delete kutu.dataset.hedef;
+    delete kutu.dataset.uygulanan;
+
+    const oran = Math.round(simdiki * 100 / tavan);
     kutu.value = String(Math.max(0, Math.min(100, oran)));
   });
 }
