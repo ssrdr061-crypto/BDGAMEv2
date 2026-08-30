@@ -370,7 +370,7 @@ const HERO_STATS = {
     desc: "Cephede yaşlanmış bir komutan; ağır silahlarla rakibin zırhını deler.",
     bonuses: { aile: "robot", artis: 5, taban: { atk: 7, olum: 4 } },
     color: "#c96a2a",
-    price: 448000,
+    price: 450000,
     upgradeCosts: [0, 0, 0, 0],
 
     abilities: [
@@ -437,7 +437,7 @@ const HERO_STATS = {
     desc: "Havada asılı duran rahibe; duasıyla birliklerin etrafına kalkan örer.",
     bonuses: { aile: "knight", artis: 5, taban: { def: 8, hp: 7 } },
     color: "#d94f5c",
-    price: 462000,
+    price: 460000,
     upgradeCosts: [0, 0, 0, 0],
 
     abilities: [
