@@ -170,6 +170,33 @@ function omruDoldu(s) {
   return Date.now() > tahminiBitis(s) + BAYAT_PAY_MS;
 }
 
+/* ── TANI (?sefertani=1) ─────────────────────────────────────────────
+   Sefer neden ilerlemiyor sorusunu ekranda yanıtlar: durum, evre,
+   bitti bayrağı ve işleniyor kilidi. Sorun çözülünce bu blok
+   silinecek. */
+var _TANI_ACIK = location.search.indexOf("sefertani=1") >= 0;
+function _tani(id, s, ev, not) {
+  if (!_TANI_ACIK) return;
+  var el = document.getElementById("seferTani");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "seferTani";
+    el.style.cssText = "position:fixed;left:6px;right:6px;top:6px;z-index:99999;" +
+      "background:rgba(2,8,22,.92);color:#9fe6ff;font:600 11px/1.35 'Baloo 2',sans-serif;" +
+      "padding:6px 8px;border-radius:8px;white-space:pre-wrap;";
+    document.body.appendChild(el);
+  }
+  el.textContent =
+    "id " + String(id).slice(-6) +
+    "\ndurum " + s.durum + " · tur " + s.tur +
+    "\nevre " + ev.ad + " · bitti " + (ev.bitti ? 1 : 0) +
+    " · kalan " + Math.round(ev.kalanMs / 1000) + "s" +
+    "\nsureMs " + s.sureMs + " · slotId " + (s.slotId || "-") +
+    "\nisleniyor " + (_isleniyor.size) + " " + (not || "") +
+    "\nenemies " + (typeof enemies !== "undefined" && enemies ? enemies.length : "YOK") +
+    " · startBattle " + (typeof startBattle === "function" ? "var" : "YOK");
+}
+
 function evre(s) {
   const now = Date.now();
 
@@ -466,8 +493,9 @@ function tik() {
   isinlanmaDenetimi();
 
   benimkiler().forEach(({ id, s }) => {
-    if (_isleniyor.has(id)) return;
+    if (_isleniyor.has(id)) { _tani(id, s, evre(s), "ISLENIYOR-KILIT"); return; }
     const ev = evre(s);
+    _tani(id, s, ev, "");
 
     /* ── ÖNCE EVRE İLERLETİLİR, SONRA ÖMÜR BAKILIR ──
        Oyunu kapatıp saatler sonra girsen bile sefer buradan sırayla
@@ -606,7 +634,10 @@ async function canavarSavasi(s) {
   let e = null;
   if (s.slotId) e = enemies.find(x => x && x.slotId === s.slotId);
   if (!e) e = enemies.find(x => x && x.name === s.hedefAd);   /* eski kayıtlar */
-  if (!e) { toast(`${s.hedefAd} yerinde yok — ordun eli boş dönüyor.`); return; }
+  if (!e) {
+    if (_TANI_ACIK) toast("TANI: slot " + s.slotId + " enemies icinde yok", 6000);
+    toast(`${s.hedefAd} yerinde yok — ordun eli boş dönüyor.`); return;
+  }
   currentEnemy = e;
   selectedTroopsForBattle = Object.assign({}, s.birlikler);
   if (Array.isArray(s.komutanlar) && typeof selectedCommanders !== "undefined") {
