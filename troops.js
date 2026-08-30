@@ -994,6 +994,50 @@ function seferSayaciTazele() {
   }
   const kul = seferKullanilan(null);
   sp.textContent = "· " + kul.toLocaleString("tr-TR") + " / " + tavan.toLocaleString("tr-TR");
+  _seferTani(kul, tavan, listEl);
+}
+
+/* ── TANI (?seferi=1) ────────────────────────────────────────────
+   Kutucuklar dolu görünürken sayacın 0 kalmasının sebebi kod
+   okumayla bulunamadı. Bu şerit üç şeyi ekrana basar: seçim
+   nesnesinin HAM içeriği, sayacın okuduğu toplam ve sayfada kaç
+   tane liste/sayaç DOM'da duruyor. Sorun çözülünce SİLİNECEK. */
+var _SEFER_TANI = (typeof location !== "undefined" &&
+                   location.search.indexOf("seferi=1") >= 0);
+function _seferTani(kul, tavan, listEl) {
+  if (!_SEFER_TANI) return;
+  var el = document.getElementById("seferiTani");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "seferiTani";
+    el.style.cssText = "position:fixed;left:6px;right:6px;bottom:96px;z-index:99999;" +
+      "background:rgba(2,8,22,.94);color:#9fe6ff;font:600 11px/1.35 'Baloo 2',sans-serif;" +
+      "padding:6px 8px;border-radius:8px;white-space:pre-wrap;pointer-events:none;";
+    document.body.appendChild(el);
+  }
+
+  var sec = [];
+  try {
+    Object.keys(selectedTroopsForBattle).forEach(function (u) {
+      sec.push(u + "=" + selectedTroopsForBattle[u]);
+    });
+  } catch (e) { sec.push("OKUNAMADI"); }
+
+  var kutular = [];
+  try {
+    listEl.querySelectorAll(".t-num").forEach(function (k) {
+      kutular.push(k.dataset.unit + ":" + k.value);
+    });
+  } catch (e) {}
+
+  el.textContent =
+    "secim  " + (sec.join(" ") || "BOS") +
+    "\nkutu   " + (kutular.join(" ") || "BOS") +
+    "\nsayac  " + kul + " / " + tavan +
+    "\nliste  " + document.querySelectorAll("#troopSelectList").length +
+    " · uyku " + document.querySelectorAll("#troopSelectList_uyku").length +
+    " · sayacDOM " + document.querySelectorAll(".sf-sayac").length +
+    "\nyer    " + (typeof birimYeri === "function" ? "birimYeri var" : "birimYeri YOK");
 }
 
 /* ── ORDU KAYITLARI ─────────────────────────────────────────── */
