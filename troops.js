@@ -649,6 +649,7 @@ function tNumBoyutla(kutu) {
 }
 
 function renderTroopSelector() {
+  _iz("render");
   applyFinishedTraining();
   const listEl = document.getElementById("troopSelectList");
   const summaryEl = document.getElementById("troopSelectSummary");
@@ -939,6 +940,7 @@ function seferSiniri(unitId) {
    kırp. Üst kademeden aşağı korunur: pahalı birlik kalır. */
 function seferSecimiKirp() {
   const tavan = seferTavani();
+  _iz("kirp tavan=" + tavan);
   if (!isFinite(tavan)) return;
   const sirali = Object.keys(selectedTroopsForBattle)
     .filter(u => (selectedTroopsForBattle[u] || 0) > 0)
@@ -1002,8 +1004,6 @@ function seferSayaciTazele() {
    okumayla bulunamadı. Bu şerit üç şeyi ekrana basar: seçim
    nesnesinin HAM içeriği, sayacın okuduğu toplam ve sayfada kaç
    tane liste/sayaç DOM'da duruyor. Sorun çözülünce SİLİNECEK. */
-var _SEFER_TANI = (typeof location !== "undefined" &&
-                   location.search.indexOf("seferi=1") >= 0);
 function _seferTani(kul, tavan, listEl) {
   if (!_SEFER_TANI) return;
   var el = document.getElementById("seferiTani");
@@ -1037,7 +1037,8 @@ function _seferTani(kul, tavan, listEl) {
     "\nliste  " + document.querySelectorAll("#troopSelectList").length +
     " · uyku " + document.querySelectorAll("#troopSelectList_uyku").length +
     " · sayacDOM " + document.querySelectorAll(".sf-sayac").length +
-    "\nyer    " + (typeof birimYeri === "function" ? "birimYeri var" : "birimYeri YOK");
+    "\nyer    " + (typeof birimYeri === "function" ? "birimYeri var" : "birimYeri YOK") +
+    "\n── iz ──\n" + _izDefteri.join("\n");
 }
 
 /* ── ORDU KAYITLARI ─────────────────────────────────────────── */
@@ -1155,7 +1156,22 @@ function orduKayitCiz() {
 
 /*  Bir aileye `hedef` kadar yer ver. Üst kademeden aşağı doldurur;
     elde olmayan kademe atlanır. */
+/* İZ DEFTERİ (?seferi=1) — seçimi kimin değiştirdiğini kaydeder.
+   Sorun çözülünce _seferTani ile birlikte SİLİNECEK. */
+var _SEFER_TANI = (typeof location !== "undefined" &&
+                   location.search.indexOf("seferi=1") >= 0);
+var _izDefteri = [];
+function _iz(metin) {
+  if (!_SEFER_TANI) return;
+  var t = 0;
+  try { Object.keys(selectedTroopsForBattle).forEach(function (u) {
+    t += selectedTroopsForBattle[u] || 0; }); } catch (e) {}
+  _izDefteri.push(metin + " →" + t);
+  if (_izDefteri.length > 8) _izDefteri.shift();
+}
+
 function aileyiAyarla(aile, hedef) {
+  _iz("aileyiAyarla " + aile + "=" + hedef);
   const kademeler = aileKademeleri(aile).slice().reverse();   /* Sv6 → Sv1 */
   let kalan = Math.max(0, hedef);
   kademeler.forEach(def => {
