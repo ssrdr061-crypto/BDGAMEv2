@@ -1038,7 +1038,17 @@ function _seferTani(kul, tavan, listEl) {
     " · uyku " + document.querySelectorAll("#troopSelectList_uyku").length +
     " · sayacDOM " + document.querySelectorAll(".sf-sayac").length +
     "\nyer    " + (typeof birimYeri === "function" ? "birimYeri var" : "birimYeri YOK") +
+    "\nham    " + _ilkKutuHam(listEl) +
     "\n── iz ──\n" + _izDefteri.join("\n");
+}
+
+function _ilkKutuHam(listEl) {
+  try {
+    var k = listEl.querySelector(".t-num");
+    if (!k) return "yok";
+    return "v=" + k.value + " attr=" + k.getAttribute("value") +
+           " satir=" + listEl.querySelectorAll(".troop-select-row").length;
+  } catch (e) { return "hata"; }
 }
 
 /* ── ORDU KAYITLARI ─────────────────────────────────────────── */
