@@ -934,6 +934,29 @@ function unitChips(troopsObj) {
   return out.join("") || '<span class="rp-dash">—</span>';
 }
 
+/* ── GANİMET ŞERİDİ ──
+   Savaştan elmas kazanılmıyor; rapor altında kazananın getirdiği
+   KAYNAKLAR yan yana dizilir. Simge innerHTML bağlamına yazıldığı
+   için DUGUM.kaynakSimge() kullanılır (görsel; dosya yoksa kendisi
+   emojiye döner). dugum.js yoksa düz emojiye düşülür. */
+function ganimetHTML(g) {
+  const gan = g || {};
+  const idler = (window.DUGUM && Array.isArray(DUGUM.KAYNAK_IDLER))
+                  ? DUGUM.KAYNAK_IDLER
+                  : ["odun", "et", "demir", "su", "enerji"];
+  const yedek = { odun:"🪵", et:"🍖", demir:"⛓️", su:"💧", enerji:"⚡" };
+  const f = (n) => (typeof fmt === "function") ? fmt(n) : String(n);
+  const out = idler.map(k => {
+    const m = Math.max(0, Math.floor(Number(gan[k]) || 0));
+    if (m <= 0) return "";
+    const sim = (window.DUGUM && typeof DUGUM.kaynakSimge === "function")
+                  ? DUGUM.kaynakSimge(k) : (yedek[k] || "");
+    return `<span class="rp-gan-oge">${sim} ${f(m)}</span>`;
+  }).filter(Boolean);
+  if (!out.length) return '<span class="rp-dash">—</span>';
+  return `<span class="rp-gan">${out.join("")}</span>`;
+}
+
 /* rapor verisini pencerede göster (açık-mavi güncel arayüz) */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1374,7 +1397,7 @@ function openReportModal(r) {
         ${statBolumuHTML(r)}
 
         <div class="rp-foot">
-          <span>💎 ${win?'+':''}${f(r.diamonds||0)}</span>
+          ${ganimetHTML(r.ganimet)}
           <span class="rp-turn">⏱️ ${r.turns||0} tur</span>
         </div>
       </div>
@@ -1437,7 +1460,7 @@ function entryToReport(entry) {
       attackerCommanders: entry.myCommanders||[], defenderCommanders: entry.enemyCommanders||[],
       attackerLosses: entry.myLosses||null, defenderLosses: entry.enemyLosses||null,
       attackerTroops: entry.usedTroops||null, defenderTroops: entry.enemyTroops||null,
-      diamonds: entry.diamondDelta||0, turns: entry.turns||0,
+      diamonds: 0, ganimet: entry.ganimet||null, turns: entry.turns||0,
       attackerAttribution: entry.myAttribution||null,
       defenderAttribution: entry.enemyAttribution||null,
       heroFx: entry.heroFx||null,
@@ -1455,7 +1478,7 @@ function entryToReport(entry) {
     defenderTroops: entry.usedTroops||null,
     attackerLosses: entry.enemyLosses||null,
     defenderLosses: entry.myLosses||null,
-    diamonds: entry.diamondsLost||0, turns: entry.turns||0,
+    diamonds: 0, ganimet: entry.ganimet||null, turns: entry.turns||0,
     attackerAttribution: entry.enemyAttribution||null,
     defenderAttribution: entry.myAttribution||null,
     heroFx: entry.heroFx||null,
@@ -2367,6 +2390,9 @@ if (document.readyState === "loading") {
   border:1px solid color-mix(in srgb, var(--rp-murekkep) 26%, transparent);
   border-radius:9px; padding:9px; margin-top:13px; color:var(--rp-murekkep); }
 .rp-turn{ color:var(--rp-murekkep-2); }
+.rp-gan{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  justify-content:center; font-variant-numeric:tabular-nums; }
+.rp-gan-oge{ display:inline-flex; align-items:center; gap:3px; white-space:nowrap; }
 
 /* ── DETAY bölümü ── */
 .rp-detail-btn{

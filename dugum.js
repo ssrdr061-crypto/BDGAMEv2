@@ -73,30 +73,68 @@ const AYAR = {
   ISGAL_OMRU_MS: 20 * 60 * 1000,
 };
 
-/* Birliklerin TAŞIMA KAPASİTESİ.
-   Seviye parametresi şimdilik hep 1 gelir; troops.js'e birlik
-   seviyeleri eklendiğinde çarpan BURADAN bağlanır, çağıran
-   yerlerin hiçbiri değişmez. */
-const KAPASITE = { knight: 100, soldier: 70, robot: 50 };
+/* ═══════════════════════════════════════════════════════════
+   BİRLİKLERİN TAŞIMA KAPASİTESİ — TEK KAYNAK BURASI
 
-function kapasite(tur, seviye) {
-  const temel = KAPASITE[tur] || 0;
-  const s = (typeof seviye === "number" && seviye > 0) ? seviye : 1;
-  /* seviye çarpanı henüz yok — 1. seviye = temel değer */
-  return temel * (s === 1 ? 1 : 1);
+   İki ayrı iş, iki ayrı tablo:
+     KAPASITE       → araziden kaynak TOPLARKEN taşınan miktar
+     YAGMA_KAPASITE → kazanılan KALE SAVAŞINDAN getirilen ganimet
+   Yağma sayıları bilerek çok daha küçüktür: baskın bir arazi
+   seferinin yerini tutmamalı.
+
+   Tabloya AİLE başına Sv1 değeri yazılır; üst kademeler
+   troops.js'teki KADEME.TASIMA_KAT (1,8) ile çarpılır — maliyet,
+   süre ve güçle aynı basamak. Sayı değiştirmek isteyen yalnız bu
+   iki tabloya dokunur.                                          */
+const KAPASITE       = { knight: 100, soldier: 70, robot: 50 };
+const YAGMA_KAPASITE = { knight:  10, soldier:  7, robot:  5 };
+
+function kademeKat() {
+  try {
+    if (typeof KADEME !== "undefined" && KADEME && KADEME.TASIMA_KAT)
+      return KADEME.TASIMA_KAT;
+  } catch (e) {}
+  return 1.8;   /* troops.js yoksa oyun yine yürür */
 }
 
-/* Bir ordunun toplam taşıma kapasitesi.
-   birlikler: { knight: n, soldier: n, robot: n } */
-function orduKapasitesi(birlikler, seviyeler) {
+/* Tek bir birliğin kapasitesi. `tablo` KAPASITE ya da YAGMA_KAPASITE.
+   Aile ve kademe UNIT_TYPES'tan okunur; tanım bulunamazsa birlik
+   kendi ailesi ve Sv1 sayılır. */
+function birimKapasitesi(tablo, unitId) {
+  const d = (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES)
+              ? UNIT_TYPES[unitId] : null;
+  const ai = (d && d.aile) || unitId;
+  const kd = (d && (d.kademe || d.level)) || 1;
+  const temel = (tablo || {})[ai] || 0;
+  if (temel <= 0) return 0;
+  return Math.round(temel * Math.pow(kademeKat(), kd - 1));
+}
+
+/* Eski imza korunuyor: `tur` artık BİRLİK KİMLİĞİDİR (knight2 de
+   olabilir), `seviye` kullanılmıyor — kademe kimlikten okunur. */
+function kapasite(tur, seviye) {
+  return birimKapasitesi(KAPASITE, tur);
+}
+
+/* Bir ordunun toplam kapasitesi.
+   TUZAK: eskiden Object.keys(KAPASITE) üzerinden dönülüyordu, yani
+   yalnız üç Sv1 kimliği sayılıyordu; Sv2+ birliklerden kurulu ordu
+   araziden SIFIR taşıyordu. Artık ordunun KENDİ anahtarları gezilir. */
+function kapasiteTopla(tablo, birlikler) {
   let t = 0;
-  Object.keys(KAPASITE).forEach(k => {
-    const adet = (birlikler || {})[k] || 0;
-    const sv = (seviyeler || {})[k] || 1;
-    t += adet * kapasite(k, sv);
+  Object.keys(birlikler || {}).forEach(uid => {
+    const adet = Math.max(0, Math.floor(Number(birlikler[uid]) || 0));
+    if (adet <= 0) return;
+    t += adet * birimKapasitesi(tablo, uid);
   });
   return t;
 }
+
+function orduKapasitesi(birlikler)  { return kapasiteTopla(KAPASITE, birlikler); }
+
+/* Kale savaşını kazanan ordunun getirebileceği kaynak miktarı.
+   pvp.js bunu çağırır; oraya sayı GÖMÜLMEZ. */
+function yagmaKapasitesi(birlikler) { return kapasiteTopla(YAGMA_KAPASITE, birlikler); }
 
 /* ═══════════════════════════════════════════════════════════
    2) KAYNAK TÜRLERİ
@@ -351,41 +389,86 @@ function nesilImzasi() {
    TARAFINDA çözülür: kale taşınırken cellFree zaten bu dosyanın
    haritaDugumleri() listesine bakıyor; yeni oyuncu kaydında ise
    _doluNoktalar doluNoktalar()'ı sayıyor (index.html). */
-function konumlariHesapla() {
+/* ── BÖLGE TABLOSU ──
+   Her slota haritada KENDİNE AİT, kalıcı bir dikdörtgen bölge verilir.
+   Bölgeler çakışmadığı için çarpışma denetimine hiç gerek kalmaz:
+   bir slotun nesli değişince YALNIZ o düğüm yer değiştirir, diğer
+   197'si kıpırdamaz.
+
+   ESKİ YÖNTEM NEDEN BIRAKILDI: slotlar sırayla yerleştiriliyor ve her
+   slot kendinden öncekilere çarpışma bakıyordu. Tek bir slotun nesli
+   artınca ondan sonraki BÜTÜN düğümler kayıyordu. Açılışta bulut
+   verisi gelmeden herkes nesil 0 sanıyor, veri gelince tablo baştan
+   kuruluyor ve harita zıplıyordu ("1 saniye sonra başka düğümler").
+   Öldürülen canavarın yerinde başka bir canavar belirmesi de buydu.
+
+   Bölge sırası TOHUMLU bir karıştırmayla dağıtılır; yoksa aynı türün
+   22 slotu yan yana bir şerit oluştururdu. Karıştırma nesle DEĞİL
+   yalnız tohuma bağlıdır — yani sabittir. */
+let _bolgeOnbellek = null;
+
+function bolgeTablosu() {
+  if (_bolgeOnbellek) return _bolgeOnbellek;
+
+  const say = _slotlar.length;
+  const sut = Math.max(1, Math.ceil(Math.sqrt(say)));
+  const sat = Math.max(1, Math.ceil(say / sut));
+
+  /* Tohumlu Fisher-Yates: bölge indeksleri karışır, sonuç herkeste
+     aynıdır. Math.random() BURADA KULLANILMAZ. */
+  const sira = [];
+  for (let i = 0; i < sut * sat; i++) sira.push(i);
+  const rnd = uretec(karma(AYAR.TOHUM + "|bolge"));
+  for (let i = sira.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    const t = sira[i]; sira[i] = sira[j]; sira[j] = t;
+  }
+
+  const tablo = {};
+  _slotlar.forEach((s, i) => {
+    const b = sira[i];
+    tablo[s.slotId] = { sut: b % sut, sat: Math.floor(b / sut) };
+  });
+
+  _bolgeOnbellek = { tablo: tablo, sutun: sut, satir: sat };
+  return _bolgeOnbellek;
+}
+
+/* Tek slotun konumu — BAŞKA HİÇBİR SLOTA BAKMAZ.
+   Bölge içinde MIN_ARA_KARO'luk bir iç pay bırakılır; komşu
+   bölgelerin seçimleri arasındaki en küçük mesafe böylece
+   bölge eni eksi iç pencere = MIN_ARA_KARO olur. */
+function slotKonumu(slotId, nesil) {
   const N = (window.KOORD ? window.KOORD.karoSayisi() : 141);
   const pay = AYAR.KENAR_PAY;
   const alan = Math.max(1, N - pay * 2);
-  const yerlesik = [];
-  const sonuc = {};
 
-  const cakisiyor = (kx, ky) => {
-    for (let i = 0; i < yerlesik.length; i++) {
-      const p = yerlesik[i];
-      if (Math.hypot(p.kx - kx, p.ky - ky) < AYAR.MIN_ARA_KARO) return true;
-    }
-    return false;
+  const B = bolgeTablosu();
+  const b = B.tablo[slotId];
+  if (!b) return { kx: pay, ky: pay };
+
+  const enB = alan / B.sutun;
+  const boyB = alan / B.satir;
+  const pencereEn  = Math.max(1, enB  - AYAR.MIN_ARA_KARO);
+  const pencereBoy = Math.max(1, boyB - AYAR.MIN_ARA_KARO);
+  const icPayEn  = (enB  - pencereEn)  / 2;
+  const icPayBoy = (boyB - pencereBoy) / 2;
+
+  const rnd = uretec(karma(AYAR.TOHUM + "|" + slotId + "|" + nesil));
+  const kx = Math.round(pay + b.sut * enB  + icPayEn  + rnd() * pencereEn);
+  const ky = Math.round(pay + b.sat * boyB + icPayBoy + rnd() * pencereBoy);
+
+  return {
+    kx: Math.max(pay, Math.min(N - pay - 1, kx)),
+    ky: Math.max(pay, Math.min(N - pay - 1, ky)),
   };
+}
 
+function konumlariHesapla() {
+  const sonuc = {};
   _slotlar.forEach(s => {
-    const nesil = etkinNesil(s.slotId);
-    const rnd = uretec(karma(AYAR.TOHUM + "|" + s.slotId + "|" + nesil));
-
-    let secilen = null;
-    for (let d = 0; d < AYAR.DENEME; d++) {
-      const kx = pay + Math.floor(rnd() * alan);
-      const ky = pay + Math.floor(rnd() * alan);
-      if (!cakisiyor(kx, ky)) { secilen = { kx: kx, ky: ky }; break; }
-    }
-    /* Hiç boş yer bulunamazsa son denemeyi kabul et — düğümün
-       hiç doğmaması, sıkışık doğmasından kötüdür. */
-    if (!secilen) {
-      secilen = { kx: pay + Math.floor(rnd() * alan),
-                  ky: pay + Math.floor(rnd() * alan) };
-    }
-    yerlesik.push(secilen);
-    sonuc[s.slotId] = secilen;
+    sonuc[s.slotId] = slotKonumu(s.slotId, etkinNesil(s.slotId));
   });
-
   return sonuc;
 }
 
@@ -1198,6 +1281,8 @@ window.DUGUM = {
   /* hesap */
   kapasite: kapasite,
   orduKapasitesi: orduKapasitesi,
+  yagmaKapasitesi: yagmaKapasitesi,
+  YAGMA_KAPASITE: YAGMA_KAPASITE,
   toplamaPlani: toplamaPlani,
   baskinSonrasiPlan: baskinSonrasiPlan,
 

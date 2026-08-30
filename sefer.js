@@ -568,10 +568,28 @@ function donusuYaz(id, s, gonderilen, yaraliListe) {
   });
   birlikDus(saglam);   /* sağlamlar tekrar yola; net etki sıfır */
 
+  /* ── GANİMET ──
+     Kale savaşı kazanıldıysa pvp.js savunanın deposundan düştüğü
+     kaynağı window.PVP.sonGanimet'e bırakır. Yük dönüş kaydına
+     yazılır ve ordu kaleye VARINCA depoya girer (seferiBitir) —
+     toplama seferindeki yolun aynısı. */
+  let yuk = {};
+  const g = (window.PVP && window.PVP.sonGanimet) ? window.PVP.sonGanimet : null;
+  if (g && g.alinan) {
+    Object.keys(g.alinan).forEach(k => {
+      const m = Math.max(0, Math.floor(g.alinan[k] || 0));
+      if (m > 0) yuk[k] = m;
+    });
+  }
+  /* Tek kullanımlık: okundu, düşürüldü. Bir sonraki sefer aynı
+     ganimeti ikinci kez getirmesin. */
+  if (window.PVP) window.PVP.sonGanimet = null;
+
   seferYaz(id, Object.assign({}, s, {
     durum: "donus", donusAt: Date.now(), donusSureMs: s.sureMs,
     donusFx: s.tx, donusFy: s.ty,
-    birlikler: saglam, yaralilar: yaraliListe || {}
+    birlikler: saglam, yaralilar: yaraliListe || {},
+    yuk: yuk
   }));
 }
 
@@ -589,7 +607,7 @@ async function varisiIsle(id, s) {
     _eklendi = true;
     _panelKilit = Date.now() + 12000;
     _yaraliYakala = true; _yakalanan = null;
-    if (window.PVP) window.PVP.sonSonuc = null;
+    if (window.PVP) { window.PVP.sonSonuc = null; window.PVP.sonGanimet = null; }
 
     /* ── TOPLAMA VARIŞI ──
        Savaş yok. Ordu araziye yerleşir, toplama evresine geçer.

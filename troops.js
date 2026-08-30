@@ -109,6 +109,7 @@ const KADEME = {
   SURE_KAT:    1.8,   /* eğitim süresi                                    */
   KAYNAK_KAT:  1.8,   /* et/su/demir/enerji                               */
   GUC_KAT:     1.8,   /* sıralamadaki güç puanı                           */
+  TASIMA_KAT:  1.8,   /* taşıma kapasitesi (toplama + yağma) — dugum.js    */
 };
 
 /*  ─────────────────────────────────────────────

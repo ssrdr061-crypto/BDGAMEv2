@@ -76,12 +76,13 @@ const CFG = {
   castleHpBonus:  1.10,
   defenseRobotMultiplier: 2,   /* REVOLİA pasifi: savunmada robotlar 2 kat */
 
-  /* ── Ganimet ── */
-  winStealPct: 0.10,   /* kazanınca rakip elmasının %10'u  */
-  maxSteal:    50000,
-  minSteal:    200,
-  loseCostPct: 0.04,   /* kaybedersen kendi elmasının %4'ü */
-  maxLoseCost: 20000,
+  /* ── Ganimet ──
+     SAVAŞTAN ELMAS KAZANILMAZ, KAYBEDİLMEZ. 28'e kadar kazanan
+     rakibin elmasının %10'unu çalıyor, kaybeden kendi elmasının
+     %4'ünü ödüyordu; ikisi de kaldırıldı.
+     Ganimet artık KAYNAKTIR: zaferde savunanın deposundan, hayatta
+     kalan ordunun taşıyabildiği kadar. Kaybedende ganimet yoktur. */
+  yagmaPay: 0.25,   /* tek baskında savunanın her kaynağından en çok %25 */
 
   /* ── Kısıtlar ── */
   attackCooldownMs: 0,                   /* aynı oyuncuya tekrar saldırı beklemesi — 0 = yok */
@@ -1891,16 +1892,38 @@ async function runPvpBattle() {
   const hpLost = Math.max(0, R.attacker.heroMaxHp - R.attacker.heroHp);
   state.stamina.current = Math.max(0, state.stamina.current - Math.max(2, Math.round(hpLost * drain / 10)));
 
-  /* ── GANİMET ── */
-  let delta;
-  if (R.win) {
-    delta = Math.max(CFG.minSteal, Math.min(CFG.maxSteal, Math.round(enemy.diamonds * CFG.winStealPct)));
-    state.diamonds += delta;
-  } else {
-    delta = -Math.min(state.diamonds, CFG.maxLoseCost, Math.round(state.diamonds * CFG.loseCostPct) + 100);
-    state.diamonds += delta;
-  }
+  /* ── GANİMET ──
+     Elmas artık el değiştirmiyor; alan yalnız eski kayıtlarla
+     uyum için 0 olarak taşınıyor. */
+  const delta = 0;
+
+  /* Yağmayı TAŞIYACAK ordu: gönderilenden ölen ve yaralı düşülür.
+     Yaralılar hastaneye gittiği için yük taşımaz. */
+  const saglamOrdu = {};
+  Object.keys(sel).forEach(uid => {
+    const n = Math.max(0, num(sel[uid], 0) - num(myKilled[uid], 0) - num(myWounded[uid], 0));
+    if (n > 0) saglamOrdu[uid] = n;
+  });
+
   pvpState().pvpCooldowns[enemy.name.toLowerCase()] = Date.now();
+
+  /* ── SAVUNANIN HESABI + GANİMET ──
+     Kaynak savunanın kaydından transaction içinde düşülür ve
+     GERÇEKTEN alınan miktar geri döner. Rapora yazılacağı için
+     günlük kaydından ÖNCE beklenir. */
+  let ganimet = {};
+  try {
+    ganimet = await sendRaidReport(enemy, R, saglamOrdu) || {};
+  } catch (e) {
+    console.warn("[pvp] ganimet/rapor:", e);
+  }
+
+  /* Yük kaleye SEFERLE gelir: sefer.js dönüş kaydını yazarken bunu
+     okuyup `yuk` alanına koyar, ordu kaleye varınca depoya girer.
+     Burada state.kaynaklar'a EKLENMEZ — yoksa ordu daha yoldayken
+     kaynak kalede belirirdi. */
+  if (window.PVP) window.PVP.sonGanimet = Object.keys(ganimet).length
+    ? { alinan: ganimet, at: Date.now() } : null;
 
   /* ── PANELE RAPOR YAZILMIYOR ──────────────────────────────────
      Sonuç savaş panelinde gösterilmiyor; kısa bir "sonuç" toast'u
@@ -1918,6 +1941,7 @@ async function runPvpBattle() {
   /* ── GÜNLÜK (mesaj kutusu) ── */
   state.battleLogHistory.unshift({
     enemyName: "🏰 " + enemy.name, win: R.win, diamondDelta: delta, turns: R.turns,
+    ganimet: ganimet,
     dmgDealt: R.attacker.damageDealt, dmgAbsorbed: 0, dmgTaken: R.attacker.damageTaken,
     heroHpFinal: R.attacker.heroHp, heroMaxHp: R.attacker.heroMaxHp,
     troopsWoundedByUnit: toHospitalFormat(myWounded),
@@ -1940,8 +1964,8 @@ async function runPvpBattle() {
   if (typeof gunlugüKirp === "function") gunlugüKirp();
   else if (state.battleLogHistory.length > 70) state.battleLogHistory.length = 70;
 
-  /* ── RAKİBE BİLDİR (birlik kayıpları dahil) ── */
-  sendRaidReport(enemy, R, delta);
+  /* Rakibe bildirim + savunanın kaydı YUKARIDA gönderildi
+     (ganimet günlüğe yazılabilsin diye). */
 
   ["renderBattleLogPanel","renderHospitalPanel","renderTroopsPanel",
    "renderDiamonds","updateShopButtons","renderStamina","persistCurrentState"]
@@ -1981,14 +2005,17 @@ function temizVeri(x) {
   return x;
 }
 
-function sendRaidReport(enemy, R, delta) {
-  if (!fbOK()) return;
+/* Savunanın kaydını günceller VE zaferde ganimeti düşer.
+   Dönüş: gerçekten alınan kaynak { odun: n, ... } — hiçbir şey
+   alınamadıysa boş nesne. `saglamOrdu` yağmayı taşıyacak ordudur. */
+async function sendRaidReport(enemy, R, saglamOrdu) {
+  if (!fbOK()) return {};
   /* Kendi kalene saldırırsan hem saldıran hem savunan sen olursun ve
      savaş günlüğüne iki kayıt düşer. Kendine bildirim gönderme. */
   const _hedef = enemy.accKey || fbKey(enemy.name);
   if (_hedef && _hedef === myKey()) {
     console.warn("[pvp] kendi kalene saldırı — savunma raporu gönderilmedi");
-    return;
+    return {};
   }
   /* robot çarpanı yüzünden fazla kayıp yazılmasın */
   const real = Object.assign({}, enemy.realTroops);
@@ -1999,18 +2026,53 @@ function sendRaidReport(enemy, R, delta) {
   const totalLost = sumMap(killed) + sumMap(wounded);
   const key = enemy.accKey || fbKey(enemy.name);
 
+  /* ── YAĞMA KAPASİTESİ ──
+     Sayılar dugum.js'te (YAGMA_KAPASITE); buraya GÖMÜLMEZ. */
+  const yagmaKap = (R.win && window.DUGUM && typeof DUGUM.yagmaKapasitesi === "function")
+                     ? Math.max(0, Math.floor(DUGUM.yagmaKapasitesi(saglamOrdu || {})))
+                     : 0;
+  const kaynakIdler = (window.DUGUM && Array.isArray(DUGUM.KAYNAK_IDLER))
+                        ? DUGUM.KAYNAK_IDLER
+                        : ["odun", "et", "demir", "su", "enerji"];
+  /* Transaction birden çok kez koşabilir (aynı anda başka saldırı
+     varsa Firebase baştan çalıştırır). Her koşuda yeniden yazılır,
+     GEÇERLİ OLAN son koşudur — bu yüzden dışarıda tutulur. */
+  let alinan = {};
+
   /* ── 1) SAVUNANIN KAYDINI DOĞRUDAN GÜNCELLE ──────────────────
      Savunan çevrimdışı olsa bile elması ve birlikleri gerçekten
      azalsın diye accounts/{key}/state üzerinde transaction çalıştırıyoruz.
      Transaction, aynı anda birden çok saldırı gelse bile veriyi
      tutarlı tutar (herkes en güncel değeri okuyup yazar). */
-  firebaseDb.ref("accounts/" + key + "/state").transaction(function (st) {
+  const _islem = firebaseDb.ref("accounts/" + key + "/state").transaction(function (st) {
     if (!st) return st;   /* hesap yoksa dokunma */
 
-    if (R.win) {
-      const lose = Math.min(num(st.diamonds, 0), Math.max(0, num(delta, 0)));
-      st.diamonds = Math.max(0, num(st.diamonds, 0) - lose);
+    /* ── GANİMET: SAVUNANIN DEPOSU ──
+       Elmasa DOKUNULMAZ. Her kaynaktan en çok CFG.yagmaPay kadarı
+       yağmalanabilir; toplam bu tavanı aşarsa ordunun kapasitesi
+       beş kaynağa ORANTILI dağıtılır (biri boşsa payı diğerlerine
+       gitmez, o kaynak zaten yoktur). */
+    alinan = {};
+    if (R.win && yagmaKap > 0) {
+      if (!st.kaynaklar || typeof st.kaynaklar !== "object") st.kaynaklar = {};
+      const ust = {};
+      let havuz = 0;
+      kaynakIdler.forEach(k => {
+        const eldeki = Math.max(0, Math.floor(num(st.kaynaklar[k], 0)));
+        const tavan = Math.floor(eldeki * CFG.yagmaPay);
+        if (tavan > 0) { ust[k] = tavan; havuz += tavan; }
+      });
+      if (havuz > 0) {
+        const oran = Math.min(1, yagmaKap / havuz);
+        Object.keys(ust).forEach(k => {
+          const m = Math.floor(ust[k] * oran);
+          if (m <= 0) return;
+          alinan[k] = m;
+          st.kaynaklar[k] = Math.max(0, Math.floor(num(st.kaynaklar[k], 0)) - m);
+        });
+      }
     }
+
     if (!st.troops) st.troops = {};
     SAF_SIRASI().forEach(uid => {
       const gone = num(killed[uid], 0) + num(wounded[uid], 0);
@@ -2052,7 +2114,19 @@ function sendRaidReport(enemy, R, delta) {
       });
     }
     return st;
-  }).catch(e => console.warn("[pvp] savunan kaydı güncellenemedi:", e));
+  });
+
+  /* GANİMET YAZILMADAN VERİLMEZ.
+     Transaction beklenir: commit edilmediyse savunan hiçbir şey
+     kaybetmemiştir, saldıran da yük getirmemeli. Yoksa kaynak
+     yoktan var olurdu. */
+  try {
+    const sonuc = await _islem;
+    if (!sonuc || !sonuc.committed) alinan = {};
+  } catch (e) {
+    console.warn("[pvp] savunan kaydı güncellenemedi:", e);
+    alinan = {};
+  }
 
   /* ── 2) BİLDİRİM KUTUSU ──────────────────────────────────────
      Artık veriyi DÜŞÜRMEK için değil, yalnızca savunan oyuna
@@ -2066,7 +2140,8 @@ function sendRaidReport(enemy, R, delta) {
     from: currentUsername || "Bilinmeyen",
     at: Date.now(),
     attackerWon: !!R.win,
-    diamondsLost: R.win ? delta : 0,
+    diamondsLost: 0,          /* elmas artık el değiştirmiyor */
+    ganimet: alinan,          /* savunanın kaybettiği kaynak */
     turns: R.turns,
     troopsLost: totalLost,
     applied: true,        /* kayıp zaten işlendi — inbox tekrar düşürmeyecek */
@@ -2090,6 +2165,8 @@ function sendRaidReport(enemy, R, delta) {
   } catch (e) {
     pvpUyar("Rapor gönderimi HATA verdi: " + (e && e.message ? e.message : e));
   }
+
+  return alinan;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2218,6 +2295,8 @@ function startRaidInbox() {
       enemyName: "🛡️ " + (r.from || "Bilinmeyen") + " (savunma)",
       win: !r.attackerWon,
       diamondDelta: r.attackerWon ? -lost : 0,
+      /* saldıranın götürdüğü kaynak — savunanın raporunda görünür */
+      ganimet: r.ganimet || null,
       turns: num(r.turns, 0), dmgDealt: 0, dmgAbsorbed: 0, dmgTaken: 0,
       heroHpFinal: 0, heroMaxHp: 0, troopsWoundedByUnit: {},
       timestamp: num(r.at, Date.now()), pvp: true,
