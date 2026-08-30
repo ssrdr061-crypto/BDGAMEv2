@@ -122,11 +122,18 @@ const KLIST_ZEMIN = {
 };
 
 const KLIST_KADEME = {
-  ivanovna:      "ss",
-  revolia:       "ss",
-  ates_buyucusu: "normal",   /* MİKİAN    */
-  celik_savasci: "normal",   /* STELLİN   */
-  buz_savascisi: "normal"    /* HALVORSEN */
+  /* Kart zemin rengi BURADAN gelir, heroes.js HERO_ARKA_TURUNCU'dan
+     DEĞİL. İkisi ayrı ekran: orası kahraman detayı, burası liste.
+     Nadirlik değişince İKİSİ de güncellenmeli — Stellin turuncuya
+     çıktığı halde burada "normal" kaldığı için kartı mor kalmıştı. */
+  celik_savasci: "ss",       /* STELLİN   · ssr */
+  ivanovna:      "ss",       /* İVANOVNA  · ssr */
+  revolia:       "ss",       /* REVOLİA   · ssr */
+  buz_savascisi: "normal",   /* HALVORSEN · mor */
+  ates_buyucusu: "normal",   /* MİKİAN    · mor */
+  robert:        "normal",   /* ROBERT    · mor */
+  frankly:       "normal",   /* FRANKLY   · mor */
+  yuneeb:        "normal"    /* YU-NEEB   · mor */
 };
 
 
@@ -520,7 +527,39 @@ function _klistKahramanAc(id) {
   if (ov) ov.style.display = "none";
   _klistDetayda = true;
   _klistPerdeAc();
-  openHeroDetail(id);
+  /*  openHeroDetail ÇÖKERSE liste gizli, perde açık kalıyordu:
+      ekran kararıp kendiliğinden kapanıyor gibi görünüyor ve hata
+      hiçbir yere yazılmıyor. Artık yakalanıyor: liste geri gelir ve
+      hata metni ekrana basılır (telefonda konsol yok).            */
+  try {
+    openHeroDetail(id);
+  } catch (e) {
+    _klistDetayda = false;
+    _klistPerdeKapat();
+    if (ov) { ov.style.display = "flex"; renderKahramanListesi(); }
+    _klistHataGoster(id, e);
+  }
+}
+
+/* Ekran üstü hata şeridi — showToast bu projede kapalı, konsol yok. */
+function _klistHataGoster(id, e) {
+  let d = document.getElementById("klistHata");
+  if (!d) {
+    d = document.createElement("div");
+    d.id = "klistHata";
+    d.style.cssText =
+      "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;" +
+      "background:#3a0d12;color:#ffd8dc;border:1px solid #ff6b7a;" +
+      "border-radius:10px;padding:10px 12px;font-size:12px;" +
+      "line-height:1.45;white-space:pre-wrap;word-break:break-word;" +
+      "max-height:45vh;overflow:auto;";
+    d.onclick = () => d.remove();
+    document.body.appendChild(d);
+  }
+  const yig = (e && e.stack ? String(e.stack) : String(e && e.message || e));
+  d.textContent = "KAHRAMAN AÇILAMADI: " + id + "\n" +
+                  yig.split("\n").slice(0, 6).join("\n") +
+                  "\n\n(kapatmak için dokun)";
 }
 
 /* ── perde ── */

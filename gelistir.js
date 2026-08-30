@@ -331,8 +331,9 @@
     let out = "";
     simdi.forEach(x => {
       const s2 = artar ? sonraHaritasi[x.anahtar] : null;
-      out += satirHTML(x.ad, "%" + x.yuzde,
-                       (s2 != null ? "%" + s2 : null), artar);
+      /* satirHTML'in 4. parametresi `yuzde` — "%" önekini KENDİSİ
+         koyar. Değerin başına ayrıca "%" eklenirse "%%25" çıkar. */
+      out += satirHTML(x.ad, x.yuzde, (s2 != null ? s2 : null), true);
     });
 
     /* Sefer kapasitesi de seviyeye bağlıdır — aynı yerde gösterilir. */
@@ -341,7 +342,7 @@
     out += satirHTML("Sefer Kapasitesi",
                      kSimdi.toLocaleString("tr-TR"),
                      (kSonra != null ? kSonra.toLocaleString("tr-TR") : null),
-                     artar);
+                     false);
 
     out += `<div style="padding:10px 2px 0;font-size:11.5px;color:#7f96a8;line-height:1.5;">
               Bu yüzdeler yalnız <b>${aileAdi(id)}</b> birliklerine işler.
