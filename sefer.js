@@ -65,6 +65,8 @@ const AYAR = {
      Bedel ve oran TEK YERDE; menüdeki yazı da buradan okunur,
      iki ayrı sayı ayrışmasın. */
   HIZ_BEDEL: 2000,          /* elmas */
+  SAVAS_ZAMAN_ASIMI_MS: 25000,  /* varışta savaş bu sürede çözülmezse kilit bırakılır */
+  KILIT_OMRU_MS: 60000,         /* takılı kalan varış kilidi bu süre sonunda düşer */
   HIZ_ORANI: 0.25,          /* kalan sürenin %25'i silinir */
 };
 
@@ -183,7 +185,7 @@ function _tani(id, s, ev, not) {
     el.id = "seferTani";
     el.style.cssText = "position:fixed;left:6px;right:6px;top:6px;z-index:99999;" +
       "background:rgba(2,8,22,.92);color:#9fe6ff;font:600 11px/1.35 'Baloo 2',sans-serif;" +
-      "padding:6px 8px;border-radius:8px;white-space:pre-wrap;";
+      "padding:6px 8px;border-radius:8px;white-space:pre-wrap;pointer-events:none;";
     document.body.appendChild(el);
   }
   el.textContent =
@@ -493,7 +495,19 @@ function tik() {
   isinlanmaDenetimi();
 
   benimkiler().forEach(({ id, s }) => {
-    if (_isleniyor.has(id)) { _tani(id, s, evre(s), "ISLENIYOR-KILIT"); return; }
+    if (_isleniyor.has(id)) {
+      /* Kilit çok uzun sürdüyse önceki deneme çökmüş demektir;
+         bırakılır ve bir sonraki tikte baştan işlenir. */
+      var basla = _kilitZamani[id] || 0;
+      if (basla && Date.now() - basla > AYAR.KILIT_OMRU_MS) {
+        _isleniyor.delete(id);
+        delete _kilitZamani[id];
+        _tani(id, s, evre(s), "KILIT-DUSURULDU");
+      } else {
+        _tani(id, s, evre(s), "ISLENIYOR-KILIT");
+      }
+      return;
+    }
     const ev = evre(s);
     _tani(id, s, ev, "");
 
@@ -530,8 +544,11 @@ function tik() {
 }
 
 /* Varış → duraklama → savaş → dönüş */
+var _kilitZamani = {};
+
 async function varisiIsle(id, s) {
   _isleniyor.add(id);
+  _kilitZamani[id] = Date.now();
   try {
     /* Çarpışma beklemesi SAVAŞ içindir. Toplama seferinde savaş yok;
        beklemek adın haritada 2 sn geç belirmesine yol açıyordu. */
@@ -556,8 +573,19 @@ async function varisiIsle(id, s) {
     }
 
     if (!s.iptal) {
-      if (s.tur === "kale")         await kaleSavasi(s);
-      else if (s.tur === "canavar") await canavarSavasi(s);
+      /* Savaş bir sebeple çözülmezse (düşman listede yok, ekran
+         hazır değil, beklenmedik hata) varış işlemi askıda kalıyor
+         ve _isleniyor kilidi hiç düşmüyordu: sefer sonsuza dek
+         haritada "0s" olarak asılı kalıyor, oyuncu ordusunu geri
+         alamıyordu. Zaman aşımı kilidi her hâlükârda çözer, ordu
+         dönüşe geçer. */
+      var savas = (s.tur === "kale") ? kaleSavasi(s)
+                : (s.tur === "canavar") ? canavarSavasi(s)
+                : Promise.resolve();
+      await Promise.race([
+        savas,
+        new Promise(function (r) { setTimeout(r, AYAR.SAVAS_ZAMAN_ASIMI_MS); })
+      ]);
     }
 
     _yaraliYakala = false;
@@ -588,6 +616,7 @@ async function varisiIsle(id, s) {
     _yaraliYakala = false; _panelKilit = 0;
   }
   _isleniyor.delete(id);
+  delete _kilitZamani[id];
 }
 
 async function kaleSavasi(s) {
