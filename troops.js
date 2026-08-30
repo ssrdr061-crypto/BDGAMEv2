@@ -674,6 +674,11 @@ function renderTroopSelector() {
 
   listEl.innerHTML = owned.map(def => {
     const max = seferSiniri(def.id);
+    /* SAĞDAKİ SAYI = ELİNDEKİ TOPLAM, sürgünün sınırı DEĞİL.
+       Sınır başka satır doldukça düşer; oyuncu bunu "askerlerim
+       azaldı" diye okuyordu. Sürgünün `max`ı kapasiteye bağlı
+       kalır (tavan aşılmasın), yalnız yazı sabittir. */
+    const eldeki = (state.troops && state.troops[def.id]) || 0;
     const current = Math.min(selectedTroopsForBattle[def.id] || 0, max);
     return `
       <div class="troop-select-row" data-unit="${def.id}">
@@ -684,7 +689,7 @@ function renderTroopSelector() {
           <span class="t-count" id="troopCount_${def.id}">
             <input type="text" class="t-num" inputmode="numeric" pattern="[0-9]*"
                    data-unit="${def.id}" value="${current}" maxlength="7">
-            <span class="t-max">/ ${max}</span>
+            <span class="t-max">/ ${eldeki}</span>
           </span>
         </div>
         <div class="t-slider-row">
@@ -960,7 +965,10 @@ function seferSinirlariTazele() {
        altına düşer ve elindeki birlik geri alınamaz olur. */
     const sinir = Math.max(secili, seferSiniri(u));
     if (s && parseInt(s.max, 10) !== sinir) s.max = sinir;
-    if (enCokEl) enCokEl.textContent = "/ " + sinir;
+    /* Yazı ELİNDEKİ TOPLAMI gösterir ve seçim değiştikçe OYNAMAZ. */
+    const eldeki = (typeof state !== "undefined" && state.troops)
+                     ? (state.troops[u] || 0) : sinir;
+    if (enCokEl) enCokEl.textContent = "/ " + Math.max(eldeki, secili);
   });
 }
 
