@@ -127,7 +127,35 @@
     toast(`${adet} ${def.name} kullanıldı.`);
   }
 
-  /* Doğrudan anahtarla ekleme — günlük giriş / mağaza / canavar için */
+  /*  ÖDÜL PARÇASI ÇANTAYA — havuza DEĞİL.
+      Parça hangi kahramana harcanacağına oyuncu karar verir; ödül
+      doğrudan havuza yazılırsa o karar elinden alınır ve oyuncu
+      "parçam nereye gitti" diye sorar. Mağazadan alınan parça zaten
+      çantaya düşüyordu, ödüller de artık aynı yoldan geçer:
+      çanta → "Kullan" → havuz.
+      Ürün adı mağazadan `parcaKey` üzerinden bulunur; mağaza yüklü
+      değilse havuza yazmaya düşer, ödül hiçbir şekilde kaybolmaz. */
+  function parcaUrunAdi(anahtar) {
+    try {
+      if (typeof shopItems === "undefined" || !Array.isArray(shopItems)) return null;
+      const it = shopItems.find(x => x && x.isParca && x.parcaKey === anahtar);
+      return it ? it.name : null;
+    } catch (e) { return null; }
+  }
+
+  function parcaCantayaEkle(anahtar, adet) {
+    const s = S(); if (!s || !(adet > 0)) return false;
+    const ad = parcaUrunAdi(anahtar);
+    if (!ad) { parcaEkleAnahtar(anahtar, adet); return false; }
+    if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
+    s.inventory[ad] = Math.floor((s.inventory[ad] || 0) + adet);
+    kaydet();
+    if (typeof renderInventory === "function") renderInventory();
+    return true;
+  }
+
+  /* Doğrudan anahtarla ekleme — havuza YAZAR. Ödüllerde kullanma;
+     onlar için parcaCantayaEkle(). */
   function parcaEkleAnahtar(anahtar, adet) {
     const h = havuz();
     h[anahtar] = Math.max(0, Math.floor((h[anahtar] || 0) + adet));
@@ -782,7 +810,8 @@
   window.kahramanStatUygula    = statUygula;    /* pvp.js / pve.js           */
   window.kahramanNadirlik  = nadirlik;
   window.kahramanParcasi   = parcaSayisi;
-  window.parcaEkle         = parcaEkleAnahtar;
+  window.parcaEkle         = parcaEkleAnahtar;     /* havuza yazar */
+  window.parcaCantayaEkle  = parcaCantayaEkle;     /* çantaya yazar (ödüller) */
   window.parcaGorseli      = parcaGorseli;   /* günlük giriş / rehber kutucukları */
   window.parcaPaketiKullan = parcaPaketiKullan; /* günlük giriş / mağaza / canavar */
   window.glsYildizTazele   = glsYildizTazele;

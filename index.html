@@ -4002,7 +4002,9 @@ function gunlukParcaKutusu(anahtar, ad) {
 function gunlukParcaSec(anahtar) {
   if (!gunlukParcaBekliyor) return;
   gunlukParcaBekliyor = false;
-  if (typeof parcaEkle === "function") parcaEkle(anahtar, 1);
+  /* Günlük giriş parçası da ÇANTAYA düşer (ödüller havuza yazmaz). */
+  if (typeof parcaCantayaEkle === "function") parcaCantayaEkle(anahtar, 1);
+  else if (typeof parcaEkle === "function") parcaEkle(anahtar, 1);
   persistCurrentState();
   const kutu = document.getElementById("gunlukParcaSecim");
   if (kutu) {
@@ -4420,12 +4422,51 @@ function startSessionFor(username) {
   renderBattleMap();
   backToMap();
   scrollMapToBase();
-  /* Oyun kaleiçinde açılır — haritaya "Haritaya dön" ile geçilir. */
-  setTimeout(function () {
-    try {
-      if (window.KALEICI && typeof window.KALEICI.ac === "function") window.KALEICI.ac();
-    } catch (e) {}
-  }, 300);
+
+  /*  ── AÇILIŞ: DOĞRUDAN KALEİÇİ ───────────────────────────────
+      Eskiden kaleiçi 300 ms'lik bir setTimeout ile açılıyordu:
+      o 300 ms boyunca dünya haritası ekranda duruyor, oyun
+      "önce haritayı açıp sonra kaleye atlıyor" gibi görünüyordu.
+
+      İki değişiklik:
+      1) Perde — kaleiçi çizilene kadar ekranı kapatan opak katman.
+         Harita bir kare bile görünmez.
+      2) Bekleme yok — KALEICI hazırsa AYNI ANDA açılır. Hazır
+         değilse (dosya sonra yükleniyorsa) 30 ms'de bir denenir,
+         en fazla 3 sn. Süre dolarsa perde yine kalkar, oyuncu
+         haritada kalır — hiçbir durumda ekran kilitli kalmaz.   */
+  (function acilistaKaleyiAc() {
+    var perde = document.getElementById("acilisPerde");
+    if (!perde) {
+      perde = document.createElement("div");
+      perde.id = "acilisPerde";
+      perde.style.cssText =
+        "position:fixed;inset:0;z-index:9000;background:#0b1a2b;" +
+        "pointer-events:auto;";
+      document.body.appendChild(perde);
+    }
+    var bitir = function () {
+      var p = document.getElementById("acilisPerde");
+      if (p) p.remove();
+    };
+    var basla = Date.now();
+    var dene = function () {
+      var oldu = false;
+      try {
+        if (window.KALEICI && typeof window.KALEICI.ac === "function") {
+          window.KALEICI.ac();
+          oldu = true;
+        }
+      } catch (e) { oldu = true; }   /* çökerse de perdede takılma */
+      if (oldu || Date.now() - basla > 3000) {
+        /* Tuval çizimi bitsin diye bir kare beklenir, sonra perde kalkar. */
+        requestAnimationFrame(function () { requestAnimationFrame(bitir); });
+        return;
+      }
+      setTimeout(dene, 30);
+    };
+    dene();
+  })();
   setTimeout(maybeShowDailyRewardModal, 400);
   /* Yeni oyuncu rehberliği (egitim.js). Eski hesaplar önce muaf
      işaretlenir, sonra akış başlatılır. */

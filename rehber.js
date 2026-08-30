@@ -138,8 +138,16 @@
 
     function grant() {
       state.diamonds = (state.diamonds || 0) + cfg.gift;
-      if (cfg.parca && cfg.parca.adet > 0 && typeof window.parcaEkle === "function") {
-        try { window.parcaEkle(cfg.parca.anahtar, cfg.parca.adet); } catch (e) {}
+      /* Ödül parçası ÇANTAYA düşer, havuza değil — hangi kahramana
+         harcanacağına oyuncu karar verir. Eskiden doğrudan havuza
+         yazılıyordu ve oyuncu parçayı çantada bulamıyordu. */
+      if (cfg.parca && cfg.parca.adet > 0) {
+        try {
+          if (typeof window.parcaCantayaEkle === "function")
+            window.parcaCantayaEkle(cfg.parca.anahtar, cfg.parca.adet);
+          else if (typeof window.parcaEkle === "function")
+            window.parcaEkle(cfg.parca.anahtar, cfg.parca.adet);
+        } catch (e) {}
       }
       if (typeof cfg.claim === "function") { try { cfg.claim(state); } catch (e) {} }
       if (api) {
