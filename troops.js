@@ -1004,6 +1004,18 @@ function seferSayaciTazele() {
    okumayla bulunamadı. Bu şerit üç şeyi ekrana basar: seçim
    nesnesinin HAM içeriği, sayacın okuduğu toplam ve sayfada kaç
    tane liste/sayaç DOM'da duruyor. Sorun çözülünce SİLİNECEK. */
+/* Şerit KENDİ KENDİNE yenilenir. Eskiden yalnız seferSayaciTazele
+   çağrılınca güncelleniyordu; sayaç güncellenmediği anlarda şerit
+   donuyor ve ekrandaki gerçek durumla çelişiyordu. */
+if (_SEFER_TANI && typeof setInterval === "function") {
+  setInterval(function () {
+    var l = document.getElementById("troopSelectList");
+    if (!l) return;
+    var t = seferTavani();
+    _seferTani(seferKullanilan(null), isFinite(t) ? t : 0, l);
+  }, 500);
+}
+
 function _seferTani(kul, tavan, listEl) {
   if (!_SEFER_TANI) return;
   var el = document.getElementById("seferiTani");
