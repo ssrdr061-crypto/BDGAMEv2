@@ -451,6 +451,17 @@ function seferBaslat() {
                   ? selectedCommanders.filter(Boolean) : [],
   };
 
+  /* ── SALDIRIYA GEÇEN KALKANINI KAYBEDER ──
+     Gönderme anında düşer, varışta değil: yoldaki dakikalar
+     boyunca hem saldırıp hem korunmak olmaz. Bütün doğrulamalar
+     geçtikten SONRA yazılır — sefer başlamadan kalkan düşmesin. */
+  if (h.tur === "kale" && typeof state !== "undefined" &&
+      Number(state.kalkanBitis || 0) > Date.now()) {
+    state.kalkanBitis = 0;
+    if (typeof persistCurrentState === "function") persistCurrentState();
+    toast("🛡️ Saldırıya geçtin — kalkanın düştü.", 4000);
+  }
+
   /* Birlikler kaleden düşülür ve sefer YERELDE kesinleşir.
      Bulut yazması başarısız olsa bile sefer yürür ve geri döner. */
   birlikDus(secili);
@@ -687,6 +698,18 @@ async function kaleSavasi(s) {
 
   const acc = snap.val();
   const kale = (acc.state || {}).castle;
+
+  /* ── KALKAN: ÇARPIŞMA OLMAZ, ORDU DÖNER ──
+     Hesap az önce TAZE çekildi; oyuncu biz yoldayken kalkan
+     açmışsa savaş kurulmaz. Işınlanma dalıyla aynı biçimde
+     çıkılır: varisiIsle donusuYaz'a düşer, ordu eve döner.
+     Kalkanı BURADA düşürmüyoruz — kalkan yalnız sahibi
+     saldırıya geçince düşer (bkz. seferBaslat). */
+  const kalkanMs = Number((acc.state || {}).kalkanBitis || 0) - Date.now();
+  if (kalkanMs > 0) {
+    toast(`🛡️ ${s.hedefAd} kalkan açmış! Ordun çarpışmadan geri dönüyor.`, 4500);
+    return;
+  }
 
   /* SAVUNAN IŞINLANDIYSA çarpışma olmaz */
   /* Karo üzerinden karşılaştır: kale kaydı artık kx/ky tutuyor,

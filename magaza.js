@@ -44,6 +44,13 @@ const shopItems = [
   { name: "İntikal Hızlandırma %50", price: 3500, isSeferHiz: true, hizOran: 0.50, icon: "🌀", gorsel: "50intikal.webp" },
   { name: "Can Potu", price: (typeof STAMINA_POTION_PRICE !== "undefined" ? STAMINA_POTION_PRICE : 6000), isStaminaPotion: true, icon: "❤️" },
 
+  /* ── KALKAN ──
+     Çantaya düşer; çantadan "Kullan" denince kale kalkanSaat kadar
+     saldırıya kapanır. Süre EKLENMEZ, her kullanımda başa sarar.
+     Görsel çizilince tek yapılacak: emoji satırının yanına
+     `gorsel: "kalkan.webp"` eklemek (dosya adında Türkçe harf YOK). */
+  { name: "Kalkan (6 Saat)", price: 10000, isKalkan: true, kalkanSaat: 6, icon: "🛡️", emoji: "🛡️" },
+
   /* ── KAYNAK PAKETLERİ ──
      Çantaya DÜŞMEZ; alındığı an doğrudan kaynak sayacına eklenir.
 
@@ -307,7 +314,7 @@ function renderShop() {
     if (item.isParca && !(typeof window.GELISTIR_ACIK === "function" && window.GELISTIR_ACIK()))
       return false;
     if (activeShopCategory === "all") return true;
-    if (activeShopCategory === "potion") return !!(item.isStaminaPotion || item.isSpeedUpItem || item.isSeferHiz);
+    if (activeShopCategory === "potion") return !!(item.isStaminaPotion || item.isSpeedUpItem || item.isSeferHiz || item.isKalkan);
     if (activeShopCategory === "kaynak") return !!item.isKaynak;
     if (activeShopCategory === "boost") return !!item.isBoost;
     return item.slot === activeShopCategory;
@@ -324,6 +331,7 @@ function renderShop() {
       lastTier = "boost";
     }
     if (!item.isBoost && !item.isStaminaPotion && !item.isSpeedUpItem && !item.isSeferHiz &&
+        !item.isKalkan &&
         activeShopCategory === "all" && item.tier && item.tier !== lastTier) {
       html += `<div class="shop-tier-header">${tierLabels[item.tier] || ""}</div>`;
       lastTier = item.tier;
@@ -331,7 +339,8 @@ function renderShop() {
 
     const left = shopLeft(item);
     const soldOut = left <= 0;
-    const badge = item.isSeferHiz ? ("%" + Math.round(item.hizOran * 100))
+    const badge = item.isKalkan ? ((item.kalkanSaat || 6) + "sa")
+                : item.isSeferHiz ? ("%" + Math.round(item.hizOran * 100))
                 : item.isKaynak
                     ? (item.miktar >= 1000 ? (item.miktar / 1000) + "K" : String(item.miktar))
                 : (item.isSpeedUpItem
@@ -393,6 +402,10 @@ function shopItemDesc(item) {
   if (item.isSeferHiz)       return "Yoldaki bir intikalin kalan süresini %" +
                                     Math.round(item.hizOran * 100) +
                                     " kısaltır. Haritadaki sefer kutusuna dokunup kullanılır.";
+  if (item.isKalkan)         return "Çantana düşer. Kullandığında kalen " +
+                                    (item.kalkanSaat || 6) +
+                                    " saat saldırıya kapanır: kimse ordu gönderemez, füze atamaz. " +
+                                    "Sen saldırırsan kalkanın anında düşer. Tekrar kullanınca süre başa sarar.";
   if (item.isStaminaPotion)  return "Genel Canı doldurur (envanterine düşer).";
   if (item.isParca)          return item.parcaDesc || "";
   if (item.isKaynak)         return item.kaynakDesc || "";

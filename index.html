@@ -3515,6 +3515,11 @@ function defaultState() {
     maxChests: 10,
     chestResetAt: null,
 
+    /* KALKAN — kalenin saldırıya kapalı olduğu son an (ms).
+       0 ise kalkan yok. Kaydedilmesi ZORUNLU: compactStateForExport
+       içinde `kb` alanı olarak yazılır, yoksa her girişte uçar. */
+    kalkanBitis: 0,
+
     hero: {
       attack: 60,
       defense: 42,
@@ -4531,6 +4536,8 @@ function compactStateForExport(s) {
   if (s.welcomePending)      out.wp  = true;
   if (s.lastDailyRewardDate) out.ldr = s.lastDailyRewardDate;
   if (s.lastDailyExplore)    out.lde = s.lastDailyExplore;
+  /* Kalkan bitişi — yazılmazsa oyuncu 10.000 elmasını çöpe atmış olur. */
+  if (s.kalkanBitis)         out.kb  = s.kalkanBitis;
   /* Eğitim durumu — yazılmazsa yeni oyuncu her girişte eğitime döner. */
   if (s.egitim) out.egt = [s.egitim.adim || 0, s.egitim.odulAlindi ? 1 : 0, s.egitim.kaleAcildi ? 1 : 0];
   if (s.maxFrontierLevel) out.mfl = s.maxFrontierLevel;
@@ -4582,6 +4589,7 @@ function expandCompactState(c) {
   if (c.wp)  s.welcomePending = true;
   if (c.ldr) s.lastDailyRewardDate = c.ldr;
   if (c.lde) s.lastDailyExplore = c.lde;
+  if (c.kb)  s.kalkanBitis = c.kb;
   if (c.egt) s.egitim = { adim: c.egt[0] || 0, odulAlindi: !!c.egt[1], kaleAcildi: !!c.egt[2] };
   if (c.sc) s.selectedCommanders = c.sc;
   if (c.okt) s.orduKayit = c.okt;
@@ -5136,6 +5144,8 @@ function renderInventory() {
         ? "Kullanınca kahraman parçası havuzuna eklenir"
         : def.isKaynak
         ? `Kullanınca +${fmt(def.miktar)} ${def.name.replace(/ (Sandığı|Hücresi)$/, "")} verir`
+        : def.isKalkan
+        ? `Kullanınca kalen ${def.kalkanSaat || 6} saat saldırıya kapanır`
         : def.isBoost
         ? def.boostDesc
         : (def.isStaminaPotion || def.isSpeedUpItem)
@@ -5150,7 +5160,7 @@ function renderInventory() {
         slotTag,
         bonusText,
         rightHTML: `<span class="qty">${qty}</span>
-            ${(def.isStaminaPotion || def.isKaynak || def.isParca) ? `<button class="inv-use-btn" data-item="${def.name}">Kullan</button>` : ""}`,
+            ${(def.isStaminaPotion || def.isKaynak || def.isParca || def.isKalkan) ? `<button class="inv-use-btn" data-item="${def.name}">Kullan</button>` : ""}`,
       });
     }).join("");
     bindAll(list, ".inv-use-btn", (ds) => {
@@ -5158,6 +5168,7 @@ function renderInventory() {
       const d  = ad ? getItemDef(ad) : null;
       if (d && d.isParca && typeof window.parcaPaketiKullan === "function") window.parcaPaketiKullan(ad);
       else if (d && d.isKaynak) kaynakPaketiKullan(ad);
+      else if (d && d.isKalkan) kalkanKullan(ad);
       else useStaminaPotion();
     });
   }
@@ -5193,6 +5204,51 @@ function kaynakPaketiKullan(ad) {
   showToast(`${def.icon} +${fmt(toplam)} ${ad.replace(/ (Sandığı|Hücresi)$/, "")} eklendi!`);
 }
 
+/*  ── KALKAN ────────────────────────────────────────────────────
+    Mağazadan alınan kalkan çantada durur; burada kullanılınca
+    kale belirtilen süre boyunca saldırıya kapanır.
+
+    SÜRE EKLENMEZ, SIFIRLANIR. Kalan süre 4sa 20dk olsa bile
+    yeniden kullanınca 6 saate döner — biriktirme yoktur, bu
+    bilerek böyledir.
+
+    Kaç saat olduğu magaza.js'teki tanımdan (kalkanSaat) okunur;
+    burada ikinci bir sayı tutulmaz.                              */
+function kalkanKullan(ad) {
+  const def = (typeof getItemDef === "function") ? getItemDef(ad) : null;
+  if (!def || !def.isKalkan) return;
+
+  const adet = (state.inventory && state.inventory[ad]) || 0;
+  if (adet <= 0) { showToast("Çantanda kalkan yok."); return; }
+
+  const saat = def.kalkanSaat || 6;
+  state.kalkanBitis = Date.now() + saat * 3600 * 1000;
+
+  state.inventory[ad] = adet - 1;
+  if (state.inventory[ad] <= 0) delete state.inventory[ad];
+
+  renderInventory();
+  persistCurrentState();
+  if (typeof renderBattleMap === "function") renderBattleMap();
+  showToast(`🛡️ Kalkan açıldı — kalen ${saat} saat saldırıya kapalı.`);
+}
+
+/*  Kalkanın kalan süresi, milisaniye. 0 = kalkan yok.
+    TEK OKUMA NOKTASI: pvp.js (saldırı kilidi), sefer.js (varışta
+    orduyu geri çevirme) ve haritadaki kubbe hep buradan sorar.
+    Argüman verilirse o state okunur (rakibin hesabı), verilmezse
+    kendi state'imiz.                                             */
+function kalkanKalanMs(st) {
+  const o = (st && typeof st === "object")
+              ? st
+              : (typeof state !== "undefined" ? state : null);
+  if (!o) return 0;
+  const b = Number(o.kalkanBitis || 0);
+  if (!isFinite(b) || b <= 0) return 0;
+  return Math.max(0, b - Date.now());
+}
+window.kalkanKalanMs = kalkanKalanMs;
+
 const SHOP_CATEGORIES = [
   { id: "all",       label: "Tümü" },
   { id: "boost",     label: "⭐ Güçlendirme" },
@@ -5216,6 +5272,7 @@ function rarityClass(item) {
 }
 
 function itemVisualKind(item) {
+  if (item.isKalkan) return "shield";
   if (item.isMissile) return "missile";
   if (item.isStaminaPotion) return "potion";
   if (item.isSpeedUpItem) return "speedup";

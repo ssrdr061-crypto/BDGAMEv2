@@ -487,18 +487,37 @@ function buildDefender(acc, fallbackName) {
     },
     diamonds:     num(st.diamonds, 0),
     registeredAt: num(acc && acc.registeredAt, 0),
+    /* KALKAN — savunanın state'inden taşınır. Buradan geçmezse
+       ne rozet çizilir ne de SALDIR düğmesi kilitlenir. */
+    kalkanBitis:  num(st.kalkanBitis, 0),
     troopCount:   troopCount,
     mapX: 0, mapY: 0, baseReward: 0,
   };
 }
 
-/* Yeni oyuncu kalkanı. `CFG.newbieShieldMs` 0 ise kalkan KAPALIDIR —
-   rozet çizilmez, uyarı yazılmaz, SALDIR düğmesi kilitlenmez.
-   Geri açmak için tek yer: CFG.newbieShieldMs. */
-function hasNewbieShield(d) {
-  if (!CFG.newbieShieldMs) return false;
-  return !!d.registeredAt && (Date.now() - d.registeredAt) < CFG.newbieShieldMs;
+/* ── KALKAN ─────────────────────────────────────────────────────
+   İKİ AYRI KALKAN, TEK KAPI:
+     1) Yeni oyuncu kalkanı — `CFG.newbieShieldMs`. 0 ise KAPALI.
+     2) Mağaza kalkanı — savunanın `state.kalkanBitis` damgası.
+   Bu fonksiyona bağlı olan her şey (rozet, uyarı metni, SALDIR
+   kilidi, füze kapısı) ikisini de kendiliğinden görür. Yeni bir
+   kontrol yolu AÇMA, buraya ekle.
+   Döner: kalan süre (ms). 0 = kalkan yok.                        */
+function kalkanKalan(d) {
+  if (!d) return 0;
+  const now = Date.now();
+  let en = 0;
+
+  const b = num(d.kalkanBitis, 0);
+  if (b > now) en = b - now;
+
+  if (CFG.newbieShieldMs && d.registeredAt) {
+    const y = d.registeredAt + CFG.newbieShieldMs;
+    if (y > now && (y - now) > en) en = y - now;
+  }
+  return en;
 }
+function hasNewbieShield(d) { return kalkanKalan(d) > 0; }
 
 /* ═══════════════════════════════════════════════════════════════
    5) KALE KUTUCUĞU
@@ -639,14 +658,15 @@ function openCastlePopup(name, gx, gy, isOwn) {
   const acc      = isOwn ? null : findAccountByName(name);
   const defender = isOwn ? null : buildDefender(acc, name);
   const friend   = !isOwn && isFriend(name);
-  const shield   = defender ? hasNewbieShield(defender) : false;
+  const shieldMs = defender ? kalkanKalan(defender) : 0;
+  const shield   = shieldMs > 0;
   const cdLeft   = isOwn ? 0 : cooldownLeft(name);
 
   let tag = "";
   /* KENDİ KALEN: "👑 SENİN KALEN" rozeti kaldırıldı — kendi kalene
      bastığını zaten biliyorsun, pencere sade kalsın. */
   if (friend) tag = `<span class="pvp-tag friend">🤝 DOSTUN</span>`;
-  else if (shield) tag = `<span class="pvp-tag shield">🛡️ YENİ OYUNCU KALKANI</span>`;
+  else if (shield) tag = `<span class="pvp-tag shield">🛡️ KALKAN — ${fmtLeft(shieldMs)}</span>`;
 
   /* Kale HP — SADECE füze sisteminin bilgisi, saldırıyla ilgisi yok */
   const hpBlock = `
@@ -690,7 +710,7 @@ function openCastlePopup(name, gx, gy, isOwn) {
      durumda hiçbir açıklama yazılmaz. */
   let note = "";
   if (friend)          note = "Dostuna saldıramazsın.";
-  else if (shield)     note = "Yeni oyuncular ilk 24 saat korumalıdır.";
+  else if (shield)     note = `Kalkanı açık. ${fmtLeft(shieldMs)} sonra saldırabilirsin.`;
   else if (cdLeft > 0) note = `Tekrar saldırmak için ${fmtLeft(cdLeft)} beklemelisin.`;
 
   const back = document.createElement("div");
@@ -768,6 +788,18 @@ function fireMissileAt(name, gx, gy, isOwn) {
   /* Kendi kalende füze düğmesi artık hiç çizilmiyor; buraya
      gelinirse sessizce çık — uyarı yazısı kaldırıldı. */
   if (isOwn) return;
+
+  /* ── KALKAN FÜZEYİ DE DURDURUR ──
+     Füze yalnız buradan fırlatılıyor (missile.js kendi başına
+     hedef seçmiyor), o yüzden kapı TEK YER: burası. */
+  const _d  = buildDefender(findAccountByName(name), name);
+  const _ms = kalkanKalan(_d);
+  if (_ms > 0) {
+    closeCastlePopup();
+    pvpNot(`🛡️ ${name} kalkan açmış — füze işlemez. (${fmtLeft(_ms)})`);
+    return;
+  }
+
   closeCastlePopup();
   const api = window.MISSILE_API;
   if (api && typeof api.open === "function") {
@@ -2569,6 +2601,8 @@ window.PVP = {
      savaş olmaz, eli boş döner. Silmeden önce projede ARA. */
   savasiCalistir: runPvpBattle,
   savunanKur: buildDefender,
+  /* sefer.js varış anında bunu sorar — kalkan hesabı TEK YERDE. */
+  kalkanKalan: kalkanKalan,
   sonSonuc: null,
 };
 })();
