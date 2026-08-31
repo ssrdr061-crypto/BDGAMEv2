@@ -3027,6 +3027,7 @@ function publishCastle() {
       name: currentUsername, kx: kk.kx, ky: kk.ky, kv: 2, sv: kaleSeviyesi()
     }).then(() => {
       _kaleYayinDurum = "ok";
+      kalkaniYayinla();
     }).catch(err => {
       /* Bir kez PERMISSION_DENIED ile karşılaşıldı: kurallar castles/
          altında gx/gy istiyordu, kod ise koordinat göçünden sonra
@@ -3041,9 +3042,36 @@ function publishCastle() {
   }
 }
 
+/* ── KALKANI YAYINLA — AYRI ÇAĞRI, BİLEREK ─────────────────────
+   `castles/{key}/kb` tek başına yazılır, ana kale kaydına
+   KARIŞTIRILMAZ. Sebep: Firebase kuralları castles/ altındaki
+   alanları tek tek sayıyorsa yeni bir alan eklemek TÜM yazmayı
+   PERMISSION_DENIED ile düşürür — belirtisi "kendi kaleni
+   görüyorsun ama kimse seni göremiyor" olur ve aylarca aranır.
+   Ayrı yazınca ana kayıt zaten kaydedilmiş olur; burası reddedilse
+   yalnız kubbe başkalarının haritasında görünmez, harita çalışır.
+   Sonucu KALE_DURUM() içinde okunabilir.                          */
+let _kalkanYayinDurum = "henüz denenmedi";
+function kalkaniYayinla() {
+  try {
+    if (!firebaseReady || !currentUsername) return;
+    const v = Number((typeof state !== "undefined" && state.kalkanBitis) || 0) || 0;
+    firebaseDb.ref("castles/" + toFirebaseKey(currentUsername.toLowerCase()) + "/kb")
+      .set(v)
+      .then(() => { _kalkanYayinDurum = "ok"; })
+      .catch(err => {
+        _kalkanYayinDurum = "HATA: " + String((err && err.message) || err);
+      });
+  } catch (e) {
+    _kalkanYayinDurum = "HATA(senkron): " + String((e && e.message) || e);
+  }
+}
+window.kalkaniYayinla = kalkaniYayinla;
+
 window.KALE_DURUM = function () {
   const r = {
     yayin: _kaleYayinDurum,
+    kalkanYayin: _kalkanYayinDurum,
     firebaseReady: (typeof firebaseReady !== "undefined") ? firebaseReady : "yok",
     kullanici: (typeof currentUsername !== "undefined") ? currentUsername : "yok",
     kendiKalem: (typeof state !== "undefined" && state && state.castle)
@@ -3071,6 +3099,7 @@ function migrateCastlesOnce() {
       list.push({
         name: ad,
         sv: (sv >= 1 && sv <= 5) ? sv : 1,
+        kb: Number(acc.state.kalkanBitis || 0) || 0,
         castle: KOORD.kaleKayit(kk.kx, kk.ky)
       });
     });
@@ -3239,6 +3268,9 @@ function startListeningForCastles() {
       list.push({
         name: ad,
         sv: (sv >= 1 && sv <= 5) ? sv : 1,   /* alan yoksa 1 */
+        /* KALKAN bitişi. Alan yoksa 0 — eski kayıtlar ve kuralların
+           reddettiği durum ikisi de sessizce kalkansız sayılır. */
+        kb: Number(c.kb || 0) || 0,
         castle: KOORD.kaleKayit(kk.kx, kk.ky)
       });
     });
@@ -5229,7 +5261,10 @@ function kalkanKullan(ad) {
 
   renderInventory();
   persistCurrentState();
+  /* Haritadaki kubbe için: kendi düğümümüz yeniden çizilir,
+     başkalarının görmesi için buluta yazılır. */
   if (typeof renderBattleMap === "function") renderBattleMap();
+  kalkaniYayinla();
   showToast(`🛡️ Kalkan açıldı — kalen ${saat} saat saldırıya kapalı.`);
 }
 
@@ -6310,7 +6345,7 @@ function buildMapGridHTML() {
   return html;
 }
 
-function castleNodeHTML(pos, isOwn, label, sv) {
+function castleNodeHTML(pos, isOwn, label, sv, kb) {
   const px = KOORD.olcektenYuzde(pos.gx);
   const py = KOORD.olcektenYuzde(pos.gy);
   const cls = isOwn ? "castle-own" : "castle-other";
@@ -6320,8 +6355,12 @@ function castleNodeHTML(pos, isOwn, label, sv) {
      Sayı burada kırpılır; bozuk veri gelse bile geçersiz bir dosya
      adı istenmez. */
   const svNo = (parseInt(sv, 10) >= 1 && parseInt(sv, 10) <= 5) ? parseInt(sv, 10) : 1;
+  /* KALKAN — kubbeyi tema.js çiziyor, burada yalnız ZAMAN DAMGASI
+     taşınır. Süresi geçmiş damga yazılmaz ki katmanın imzası boş
+     yere değişmesin (renderBattleMap değişmediyse hiç yazmıyor). */
+  const kbNo = (Number(kb) > Date.now()) ? Math.floor(Number(kb)) : 0;
   return `
-    <div class="map-node castle-node ${cls}" data-sv="${svNo}" data-cname="${safeName}" data-cx="${pos.gx}" data-cy="${pos.gy}" style="left:${px}%; top:${py}%;">
+    <div class="map-node castle-node ${cls}" data-sv="${svNo}" data-kb="${kbNo}" data-cname="${safeName}" data-cx="${pos.gx}" data-cy="${pos.gy}" style="left:${px}%; top:${py}%;">
       <div class="node-ring">
         <div class="node-avatar castle-avatar">
           <img src="kale${svNo}.webp" alt="" draggable="false"
@@ -6337,12 +6376,12 @@ function buildCastleNodesHTML() {
 
   if (state.castle && KOORD.kaleKaro(state.castle)) {
     html += castleNodeHTML(state.castle, true, currentUsername || "Kalen",
-                           kaleSeviyesi());
+                           kaleSeviyesi(), state.kalkanBitis || 0);
   }
 
   otherCastles.forEach(c => {
     if (c && c.castle && KOORD.kaleKaro(c.castle)) {
-      html += castleNodeHTML(c.castle, false, c.name, c.sv);
+      html += castleNodeHTML(c.castle, false, c.name, c.sv, c.kb || 0);
     }
   });
   return html;

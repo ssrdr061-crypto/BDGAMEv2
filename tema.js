@@ -8484,78 +8484,98 @@ document.head.appendChild(st);
 (function kalkanKubbesi() {
   "use strict";
 
+  /* ── AYARLANABİLİR ÖLÇÜLER ──
+     Hepsi CSS değişkeni; ?kalkanayar=1 paneli aynı değişkenleri
+     sürer. Panel açılınca ekran DEĞİŞMEZ — panelin varsayılanları
+     buradaki sayılarla birebir aynıdır.
+
+       --kk-en   kubbe genişliği, kale kutusunun yüzdesi
+       --kk-yas  yassılık: yükseklik = genişlik × bu sayı
+       --kk-x    yatay kaydırma (px) — kale görseli kutuda ortalı değil
+       --kk-y    dikey konum, kale kutusunun yüzdesi
+       --kk-op   cam dolgusunun koyuluğu
+       --kk-cep  çeper kalınlığı (px)                                */
   var st = document.createElement("style");
   st.id = "temaKalkanKubbe";
   st.textContent = `
 html body #battleMap .map-node.castle-node .kk-kubbe{
-  position:absolute; left:50%; top:50%;
-  width:150%; height:150%;
-  transform:translate(-50%,-50%);
+  --kk-en:112%;
+  --kk-yas:0.90;
+  --kk-x:0px;
+  --kk-y:46%;
+  --kk-op:0.34;
+  --kk-cep:2px;
+
+  position:absolute;
+  left:50%; top:var(--kk-y);
+  width:var(--kk-en);
+  aspect-ratio:1 / var(--kk-yas);
+  transform:translate(calc(-50% + var(--kk-x)), -50%);
   pointer-events:none;
   z-index:3;
 }
 
 /* ── CAM KUBBE ──
-   Ortası neredeyse saydam, kenarı parlak: kabartı değil, cam.
-   Görünüm kuralı gereği kalın kontur ve inset parlaklık yok. */
+   Ortası açık, kenarı belirgin turkuaz. 3B kabartı yok: tek çeper,
+   inset parlaklık yok, düşen gölge yok. */
 html body #battleMap .map-node.castle-node .kk-cam{
-  position:absolute; left:50%; top:44%;
-  width:100%; height:82%;
+  position:absolute; inset:0;
   border-radius:50%;
-  border:1px solid rgba(178,240,255,.55);
-  background:radial-gradient(ellipse at 38% 26%,
-              rgba(186,246,255,.26) 0%,
-              rgba(96,204,246,.09)  40%,
-              rgba(64,178,236,.06)  68%,
-              rgba(126,228,255,.24) 100%);
+  border:var(--kk-cep) solid rgba(140,244,255,.92);
+  background:radial-gradient(ellipse at 40% 28%,
+              rgba(190,250,255,calc(var(--kk-op) * 0.55)) 0%,
+              rgba(70,214,250,calc(var(--kk-op) * 0.30)) 46%,
+              rgba(46,190,240,calc(var(--kk-op) * 0.55)) 78%,
+              rgba(150,246,255,var(--kk-op))              100%);
   animation:kkNefes 3s ease-in-out infinite;
   will-change:transform, opacity;
 }
 @keyframes kkNefes{
-  0%,100%{ transform:translate(-50%,-50%) scale(1);     opacity:.86; }
-  50%    { transform:translate(-50%,-50%) scale(1.035); opacity:1;   }
+  0%,100%{ transform:scale(1);     opacity:.90; }
+  50%    { transform:scale(1.028); opacity:1;   }
 }
 
 /* ── TABAN HALKASI ──
-   2:1 basık elips: karoyla aynı oran, kubbeyi zemine oturtan parça. */
+   Kubbenin en geniş yatay çemberinin izdüşümü: aynı genişlik,
+   yarısı yükseklik. Karo oranı (64×32) ile aynı 2:1 — perspektifi
+   satan parça budur, kubbe onsuz havada asılı durur. */
 html body #battleMap .map-node.castle-node .kk-taban{
-  position:absolute; left:50%; top:74%;
-  width:94%; height:47%;
+  position:absolute;
+  left:50%; top:50%;
+  width:100%; height:50%;
   transform:translate(-50%,-50%);
   border-radius:50%;
-  border:1px solid rgba(178,240,255,.42);
+  border:1px solid rgba(150,246,255,.55);
   background:radial-gradient(ellipse at center,
-              rgba(126,228,255,.15), transparent 72%);
+              rgba(120,232,255,.14), transparent 74%);
   animation:kkTaban 3s ease-in-out infinite;
   will-change:opacity;
 }
 @keyframes kkTaban{
-  0%,100%{ opacity:.55; }
+  0%,100%{ opacity:.5; }
   50%    { opacity:.95; }
 }
 
 /* ── TARAMA BANDI ──
-   Kubbenin içinde soldan sağa geçen ince parlaklık. Kırpma için
-   ayrı bir kapsayıcı: ::before kendi kutusunun dışına taşmasın. */
+   Kubbenin içinde soldan sağa geçen parlaklık. Kırpma için ayrı
+   kapsayıcı: ::before kendi elipsinin dışına taşmasın. */
 html body #battleMap .map-node.castle-node .kk-parla{
-  position:absolute; left:50%; top:44%;
-  width:100%; height:82%;
-  transform:translate(-50%,-50%);
+  position:absolute; inset:0;
   border-radius:50%;
   overflow:hidden;
 }
 html body #battleMap .map-node.castle-node .kk-parla::before{
   content:"";
-  position:absolute; top:-10%; left:-55%;
-  width:45%; height:120%;
-  background:linear-gradient(100deg,
-              transparent, rgba(226,251,255,.32), transparent);
-  animation:kkTara 6s linear infinite;
+  position:absolute; top:-12%; left:-50%;
+  width:40%; height:124%;
+  background:linear-gradient(102deg,
+              transparent, rgba(232,253,255,.45), transparent);
+  animation:kkTara 5.5s linear infinite;
   will-change:transform;
 }
 @keyframes kkTara{
   0%  { transform:translateX(0); }
-  100%{ transform:translateX(360%); }
+  100%{ transform:translateX(390%); }
 }
 
 /* ── SAYAÇ ──
@@ -8564,7 +8584,7 @@ html body #battleMap .map-node.castle-node .kk-sure{
   margin-top:-1px;
   padding:1px 7px 2px;
   border-radius:9px;
-  background:rgba(8,44,74,.62);
+  background:rgba(8,44,74,.66);
   color:#bdf1ff;
   font-family:'Baloo 2','Nunito',sans-serif;
   font-weight:800; font-size:10.5px; line-height:1.25;
@@ -8576,7 +8596,7 @@ html body #battleMap .map-node.castle-node .kk-sure{
 `;
   document.head.appendChild(st);
 
-  /* Kalan süre — kısa biçim. Saat varsa dakika, yoksa dakika+saniye. */
+  /* Kalan süre — kısa biçim. */
   function sureYaz(ms) {
     var t = Math.max(0, Math.floor(ms / 1000));
     var sa = Math.floor(t / 3600);
@@ -8615,6 +8635,13 @@ html body #battleMap .map-node.castle-node .kk-sure{
     if (e.textContent !== yeni) e.textContent = yeni;
   }
 
+  /* ── NEDEN renderBattleMap SARILMADI ──
+     missile.js zaten sarıyor; ikinci sarmalayıcı yükleme sırası
+     değişince sessizce kopar. Sayaç metni için nasılsa kendi
+     zamanlayıcımız gerekiyor (Tuzak 54). Haritada birkaç kale
+     olduğu için saniyede bir taramanın maliyeti yok denecek kadar
+     az. Süresi dolan kubbe böylece renderBattleMap beklemeden
+     kalkar — imza değişmediği için o çağrılsa da bir şey yapmazdı. */
   function tara() {
     var liste;
     try { liste = document.querySelectorAll("#battleMap .map-node.castle-node"); }
@@ -8644,6 +8671,122 @@ html body #battleMap .map-node.castle-node .kk-sure{
 
   setInterval(tara, 1000);
   setTimeout(tara, 400);
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   KALKAN KUBBESİ AYAR PANELİ  —  ?kalkanayar=1
+
+   Bayrak yoksa HİÇBİR ŞEY yapmaz. Kubbenin ölçüsü, konumu ve
+   koyuluğu sürgüyle denenir; beğenilen değerler yukarıdaki CSS'e
+   KALICI yazılır ve BU BLOK SİLİNİR (?isik=1 ve ?kaleayar=1 ile
+   aynı mantık).
+
+   Değişkenler `#battleMap`e yazılır, tek tek düğümlere değil:
+   düğümler yeniden çizilince kaybolmasın.
+   ═══════════════════════════════════════════════════════════════ */
+(function kalkanAyar() {
+  "use strict";
+  try { if (location.search.indexOf("kalkanayar=1") < 0) return; }
+  catch (e) { return; }
+
+  /* Varsayılanlar yukarıdaki CSS ile BİREBİR AYNI olmak zorunda;
+     ayrışırsa panel açılır açılmaz kubbe zıplar ve neyi
+     ayarladığın belli olmaz. */
+  var A = { en:112, yas:90, x:0, y:46, op:34, cep:20 };
+
+  var ALAN = [
+    { k:"en",  et:"Genişlik",  min:60,  max:220, adim:1, br:"%"  },
+    { k:"yas", et:"Yassılık",  min:40,  max:130, adim:1, br:"%"  },
+    { k:"x",   et:"Yatay ↔",   min:-60, max:60,  adim:1, br:"px" },
+    { k:"y",   et:"Dikey ↕",   min:0,   max:100, adim:1, br:"%"  },
+    { k:"op",  et:"Koyuluk",   min:0,   max:100, adim:1, br:"%"  },
+    { k:"cep", et:"Çeper",     min:0,   max:60,  adim:1, br:"px" }
+  ];
+
+  function uygula() {
+    var m = document.getElementById("battleMap");
+    if (!m) return;
+    m.style.setProperty("--kk-en",  A.en + "%");
+    m.style.setProperty("--kk-yas", (A.yas / 100).toFixed(2));
+    m.style.setProperty("--kk-x",   A.x + "px");
+    m.style.setProperty("--kk-y",   A.y + "%");
+    m.style.setProperty("--kk-op",  (A.op / 100).toFixed(2));
+    m.style.setProperty("--kk-cep", (A.cep / 10).toFixed(1) + "px");
+  }
+
+  /* Değişkenler #battleMap'te tanımlı; .kk-kubbe kendi
+     varsayılanlarını yazdığı için MİRAS ALMAZ. Bu kural onu
+     yeniden mirasa bağlar — yalnız panel açıkken enjekte edilir. */
+  var köprü = document.createElement("style");
+  köprü.id = "kalkanAyarKopru";
+  köprü.textContent =
+    "html body #battleMap .map-node.castle-node .kk-kubbe{" +
+      "--kk-en:inherit;--kk-yas:inherit;--kk-x:inherit;" +
+      "--kk-y:inherit;--kk-op:inherit;--kk-cep:inherit;}";
+
+  var PCSS =
+    "#kalkanAyar{position:fixed;left:8px;right:8px;bottom:112px;z-index:99999;" +
+      "background:#0d2438;color:#eaf6ff;border:none;border-radius:12px;" +
+      "padding:10px 11px 11px;font:600 12.5px/1.35 'Baloo 2',sans-serif;" +
+      "box-shadow:0 2px 6px rgba(0,20,45,.3);font-variant-numeric:tabular-nums}" +
+    "#kalkanAyar label{display:flex;justify-content:space-between;margin:6px 0 1px;color:#9fd6ef}" +
+    "#kalkanAyar input[type=range]{width:100%;margin:0}" +
+    "#kalkanAyar .ka-ozet{margin-top:9px;padding:6px 7px;border-radius:8px;" +
+      "background:rgba(255,255,255,.06);font-size:11.5px;line-height:1.5;" +
+      "white-space:pre-wrap;color:#cfe6f5}" +
+    "#kalkanAyar .ka-kapat{position:absolute;top:7px;right:9px;border:none;" +
+      "background:none;color:#9fd6ef;font-size:15px;cursor:pointer;padding:0}";
+
+  function kur() {
+    var m = document.getElementById("battleMap");
+    if (!m) { setTimeout(kur, 600); return; }
+
+    document.head.appendChild(köprü);
+
+    var ps = document.createElement("style");
+    ps.textContent = PCSS;
+    document.head.appendChild(ps);
+
+    var p = document.createElement("div");
+    p.id = "kalkanAyar";
+    var h = '<button class="ka-kapat" type="button">✕</button>';
+    ALAN.forEach(function (f) {
+      h += '<label><span>' + f.et + '</span><b id="kav-' + f.k + '"></b></label>' +
+           '<input type="range" data-k="' + f.k + '" min="' + f.min +
+           '" max="' + f.max + '" step="' + f.adim + '" value="' + A[f.k] + '">';
+    });
+    h += '<div class="ka-ozet" id="kaOzet"></div>';
+    p.innerHTML = h;
+    document.body.appendChild(p);
+
+    function ozet() {
+      ALAN.forEach(function (f) {
+        var e = document.getElementById("kav-" + f.k);
+        if (e) e.textContent = A[f.k] + f.br;
+      });
+      document.getElementById("kaOzet").textContent =
+        "--kk-en:" + A.en + "%; --kk-yas:" + (A.yas / 100).toFixed(2) +
+        "; --kk-x:" + A.x + "px; --kk-y:" + A.y +
+        "%; --kk-op:" + (A.op / 100).toFixed(2) +
+        "; --kk-cep:" + (A.cep / 10).toFixed(1) + "px;";
+    }
+
+    p.querySelectorAll("input[type=range]").forEach(function (r) {
+      r.addEventListener("input", function () {
+        A[r.dataset.k] = parseInt(r.value, 10);
+        uygula(); ozet();
+      });
+    });
+    p.querySelector(".ka-kapat").addEventListener("click", function () { p.remove(); });
+
+    uygula(); ozet();
+    setInterval(uygula, 1500);   /* düğüm yeniden çizilirse geri yaz */
+  }
+
+  if (document.readyState === "complete") kur();
+  else window.addEventListener("load", kur);
+  setTimeout(kur, 1500);
 })();
 
 
