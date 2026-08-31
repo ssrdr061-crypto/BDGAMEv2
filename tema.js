@@ -8535,6 +8535,10 @@ html body #battleMap .map-node.castle-node .kk-taban{
 }
 @keyframes kkTaban{ 0%,100%{ opacity:.5; } 50%{ opacity:.95; } }
 
+/* ── TARAMA: ÇEMBERSEL ──
+   Eskiden soldan sağa geçen düz bir banttı; artık koni gradyanı
+   kubbenin ÇEVRESİNDE dönüyor. Kırpma kapsayıcısı elips olduğu
+   için dönen dilim kubbenin dışına taşmaz. */
 html body #battleMap .map-node.castle-node .kk-parla{
   position:absolute; inset:auto;
   left:50%; top:50%; width:100%; height:100%;
@@ -8544,14 +8548,47 @@ html body #battleMap .map-node.castle-node .kk-parla{
 }
 html body #battleMap .map-node.castle-node .kk-parla::before{
   content:"";
-  position:absolute; top:-12%; left:-50%;
-  width:40%; height:124%;
-  background:linear-gradient(102deg,
-              transparent, rgba(232,253,255,.45), transparent);
+  position:absolute; left:-2%; top:-2%; width:104%; height:104%;
+  border-radius:50%;
+  background:conic-gradient(from 0deg,
+              rgba(232,253,255,.45) 0deg,
+              transparent 55deg,
+              transparent 360deg);
   animation:kkTara 5.5s linear infinite;
   will-change:transform;
 }
-@keyframes kkTara{ 0%{ transform:translateX(0); } 100%{ transform:translateX(390%); } }
+@keyframes kkTara{ 0%{ transform:rotate(0deg); } 100%{ transform:rotate(360deg); } }
+
+/* ── SÜZÜLEN ÇİZGİLER ──
+   Kubbenin içinde üstten alta inen yatay taramalar. Üç tane var,
+   panelden 1'e düşürülebilir. Zamanlamaları eşit aralıklı; hepsi
+   aynı anda inseydi tek kalın çizgi gibi görünürdü.
+
+   Konum top ile canlandırılıyor, transform ile değil: çizgi ince olduğu için
+   translateY yuzdesi kendi boyuna gore hesaplanir ve kapsayiciyi
+   hiç kat etmez. */
+html body #battleMap .map-node.castle-node .kk-cizgiler{
+  position:absolute; inset:auto;
+  left:50%; top:50%; width:100%; height:100%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  overflow:hidden;
+}
+html body #battleMap .map-node.castle-node .kk-cizgiler i{
+  position:absolute; left:0; width:100%; height:2px;
+  background:linear-gradient(90deg,
+              transparent, rgba(232,253,255,.55), transparent);
+  animation:kkSuz 4s linear infinite;
+  will-change:top, opacity;
+}
+html body #battleMap .map-node.castle-node .kk-cizgiler i:nth-child(2){ animation-delay:1.33s; }
+html body #battleMap .map-node.castle-node .kk-cizgiler i:nth-child(3){ animation-delay:2.66s; }
+@keyframes kkSuz{
+  0%  { top:-4%;  opacity:0; }
+  12% { opacity:1; }
+  88% { opacity:1; }
+  100%{ top:102%; opacity:0; }
+}
 
 html body #battleMap .map-node.castle-node .kk-sure{
   margin-top:-1px;
@@ -8583,7 +8620,9 @@ html body #battleMap .map-node.castle-node .kk-sure{
     if (!av) return;
     var k = document.createElement("div");
     k.className = "kk-kubbe";
-    k.innerHTML = '<i class="kk-taban"></i><i class="kk-cam"></i><i class="kk-parla"></i>';
+    k.innerHTML = '<i class="kk-taban"></i><i class="kk-cam"></i>' +
+                  '<i class="kk-parla"></i>' +
+                  '<span class="kk-cizgiler"><i></i><i></i><i></i></span>';
     av.appendChild(k);
   }
 
@@ -8660,7 +8699,8 @@ html body #battleMap .map-node.castle-node .kk-sure{
              ton:62, cep:20, cepOp:92, dolu:34 },
     taban: { ac:1, en:100, boy:50,  dx:0, dy:0, don:0, egri:0,
              ton:70, cep:10, cepOp:55, dolu:14 },
-    tara:  { ac:1, en:40,  hiz:55, ton:88, dolu:45, aci:102 }
+    tara:  { ac:1, yay:55, hiz:55, ton:88, dolu:45 },
+    cizgi: { ac:1, adet:3, kal:20, hiz:40, ton:88, dolu:55 }
   };
 
   /* ── RENK TONU ──
@@ -8735,11 +8775,34 @@ html body #battleMap .map-node.castle-node .kk-sure{
 
     out += ON + ".kk-parla{ display:" + (r.ac ? "block" : "none") + "; }";
     out += ON + ".kk-parla::before{" +
-      "width:" + r.en + "%;" +
-      "background:linear-gradient(" + r.aci + "deg, transparent," +
-        rgba(rc, r.dolu / 100) + ", transparent);" +
+      "background:conic-gradient(from 0deg," +
+        rgba(rc, r.dolu / 100) + " 0deg," +
+        "transparent " + r.yay + "deg," +
+        "transparent 360deg);" +
       "animation-duration:" + (r.hiz / 10).toFixed(1) + "s;" +
     "}";
+
+    var z = A.cizgi, zc = ton(z.ton);
+    out += ON + ".kk-cizgiler{ display:" + (z.ac ? "block" : "none") + "; }";
+    out += ON + ".kk-cizgiler i{" +
+      "height:" + (z.kal / 10).toFixed(1) + "px;" +
+      "background:linear-gradient(90deg, transparent," +
+        rgba(zc, z.dolu / 100) + ", transparent);" +
+      "animation-duration:" + (z.hiz / 10).toFixed(1) + "s;" +
+    "}";
+    /* Adet: fazlalık çizgiler gizlenir, gecikmeler kalan sayıya
+       göre eşit aralıklı yeniden dağıtılır — yoksa iki çizgi
+       seçilince ikisi arka arkaya inip biri boşta kalırdı. */
+    for (var ci = 1; ci <= 3; ci++) {
+      var gorunur = ci <= z.adet;
+      out += ON + ".kk-cizgiler i:nth-child(" + ci + "){" +
+        "display:" + (gorunur ? "block" : "none") + ";" +
+        (gorunur
+          ? "animation-delay:" +
+            (((ci - 1) / Math.max(1, z.adet)) * (z.hiz / 10)).toFixed(2) + "s;"
+          : "") +
+      "}";
+    }
 
     stil.textContent = out;
   }
@@ -8749,7 +8812,8 @@ html body #battleMap .map-node.castle-node .kk-sure{
     { k:"genel", et:"GENEL" },
     { k:"cam",   et:"CAM" },
     { k:"taban", et:"TABAN" },
-    { k:"tara",  et:"TARAMA" }
+    { k:"tara",  et:"TARA" },
+    { k:"cizgi", et:"ÇİZGİ" }
   ];
 
   /* [alan, etiket, min, max, adım, birim] */
@@ -8788,9 +8852,16 @@ html body #battleMap .map-node.castle-node .kk-sure{
     ],
     tara: [
       ["ac",   "Görünür", 0, 1, 1, ""],
-      ["en",   "Bant eni", 5, 120, 1, "%"],
-      ["aci",  "Bant açısı", 0, 180, 1, "°"],
+      ["yay",  "Dilim yayı", 5, 340, 1, "°"],
       ["hiz",  "Tur süresi", 10, 200, 1, "×.1s"],
+      ["ton",  "Renk", 0, 100, 1, ""],
+      ["dolu", "Parlaklık", 0, 100, 1, "%"]
+    ],
+    cizgi: [
+      ["ac",   "Görünür", 0, 1, 1, ""],
+      ["adet", "Çizgi sayısı", 1, 3, 1, ""],
+      ["kal",  "Kalınlık", 5, 80, 1, "×.1px"],
+      ["hiz",  "İniş süresi", 10, 200, 1, "×.1s"],
       ["ton",  "Renk", 0, 100, 1, ""],
       ["dolu", "Parlaklık", 0, 100, 1, "%"]
     ]
@@ -8812,7 +8883,8 @@ html body #battleMap .map-node.castle-node .kk-sure{
       "background:rgba(255,255,255,.12);color:#eaf6ff;font:inherit;cursor:pointer}" +
     "#kkAyar .kk-sekmeler{display:flex;gap:4px;margin-bottom:6px}" +
     "#kkAyar .kk-sekmeler button{flex:1 1 0;border:none;border-radius:7px;padding:4px 0;" +
-      "background:rgba(255,255,255,.10);color:#cfe6f5;font:inherit;font-size:10.5px;cursor:pointer}" +
+      "background:rgba(255,255,255,.10);color:#cfe6f5;font:inherit;font-size:9.5px;cursor:pointer;" +
+      "padding-left:1px;padding-right:1px}" +
     "#kkAyar .kk-sekmeler button.on{background:#2fb3d8;color:#05263a}" +
     "#kkAyar .kk-govde{overflow-y:auto;flex:1 1 auto;-webkit-overflow-scrolling:touch}" +
     "#kkAyar .kk-sat{display:flex;align-items:center;gap:5px;margin:3px 0}" +
@@ -8822,14 +8894,33 @@ html body #battleMap .map-node.castle-node .kk-sure{
       "background:rgba(255,255,255,.13);color:#eaf6ff;font:inherit;font-size:14px;" +
       "line-height:1;cursor:pointer;padding:0}" +
     "#kkAyar .kk-sat .dg{flex:0 0 54px;text-align:right;font-size:10.5px;color:#ffd257}" +
-    "#kkAyar .kk-cikti{margin-top:6px;width:100%;height:52px;resize:none;" +
-      "border:none;border-radius:8px;background:rgba(255,255,255,.07);color:#cfe6f5;" +
-      "font:600 10px/1.35 monospace;padding:5px 6px}";
+    "#kkAyar .kk-cikti{margin-top:6px;width:100%;height:80px;resize:none;" +
+      "border:none;border-radius:8px;background:rgba(255,255,255,.07);color:#ffe9a8;" +
+      "font:700 11px/1.45 monospace;padding:6px 7px;" +
+      "-webkit-user-select:text;user-select:text}";
+
+  /* Çıktı okunur biçimde: kopyalanamazsa ekran görüntüsü de yeter.
+     Tek satırda tüm sayılar — sırası ALANLAR ile aynı. */
+  function ciktiMetni() {
+    var g = A.genel, c = A.cam, t = A.taban, r = A.tara;
+    return "GENEL en" + g.en + " yas" + g.yas + " dx" + g.dx + " dy" + g.dy + "\n" +
+           "CAM   " + (c.ac ? "" : "KAPALI ") + "en" + c.en + " boy" + c.boy +
+             " dx" + c.dx + " dy" + c.dy + " don" + c.don + " egri" + c.egri +
+             " ton" + c.ton + " cep" + c.cep + " cepOp" + c.cepOp + " dolu" + c.dolu + "\n" +
+           "TABAN " + (t.ac ? "" : "KAPALI ") + "en" + t.en + " boy" + t.boy +
+             " dx" + t.dx + " dy" + t.dy + " don" + t.don + " egri" + t.egri +
+             " ton" + t.ton + " cep" + t.cep + " cepOp" + t.cepOp + " dolu" + t.dolu + "\n" +
+           "TARA  " + (r.ac ? "" : "KAPALI ") + "yay" + r.yay +
+             " hiz" + r.hiz + " ton" + r.ton + " dolu" + r.dolu + "\n" +
+           "CIZGI " + (A.cizgi.ac ? "" : "KAPALI ") + "adet" + A.cizgi.adet +
+             " kal" + A.cizgi.kal + " hiz" + A.cizgi.hiz +
+             " ton" + A.cizgi.ton + " dolu" + A.cizgi.dolu;
+  }
 
   function ciktiYaz() {
     var e = document.getElementById("kkCikti");
     if (!e) return;
-    e.value = JSON.stringify(A);
+    e.value = ciktiMetni();
   }
 
   function govdeCiz() {
@@ -8893,7 +8984,7 @@ html body #battleMap .map-node.castle-node .kk-sure{
            ' type="button">' + sk.et + '</button>';
     });
     h += '</div><div class="kk-govde" id="kkGovde"></div>' +
-         '<textarea class="kk-cikti" id="kkCikti" readonly></textarea>';
+         '<textarea class="kk-cikti" id="kkCikti" spellcheck="false"></textarea>';
     p.innerHTML = h;
     document.body.appendChild(p);
 
@@ -8912,21 +9003,49 @@ html body #battleMap .map-node.castle-node .kk-sure{
       this.textContent = p.classList.contains("kapali") ? "▴" : "▾";
     });
 
+    /* ── KOPYALAMA ──
+       Android'de `readonly` bir textarea seçtirir ama kopyalama
+       menüsünü vermez; execCommand da çoğu sürümde sessizce
+       başarısız olur. Güvenilir yol: geçici, ekran dışında DURMAYAN
+       (görünmez ama ölçülebilir) bir textarea yaratıp onu seçmek.
+       Gizli kapsayıcının ölçüsü 0'dır — seçim de 0 olurdu (Tuzak 15),
+       o yüzden `opacity:0` kullanılıyor, `display:none` değil.
+       Hepsi başarısız olursa metin ekranda zaten okunur duruyor. */
     document.getElementById("kkKopya").addEventListener("click", function () {
-      var e = document.getElementById("kkCikti");
       var b = this;
+      var metin = ciktiMetni();
+      var bitti = false;
+
       try {
-        e.select(); e.setSelectionRange(0, 99999);
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(e.value);
-        } else {
-          document.execCommand("copy");
+          navigator.clipboard.writeText(metin).then(function () {
+            b.textContent = "ALINDI";
+          }).catch(function () { eskiYol(); });
+          bitti = true;
         }
-        b.textContent = "ALINDI";
-      } catch (err) {
-        b.textContent = "SEÇ+KOPYALA";
+      } catch (err) {}
+
+      if (!bitti) eskiYol();
+
+      function eskiYol() {
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = metin;
+          ta.style.cssText = "position:fixed;left:0;top:0;width:120px;height:60px;" +
+                             "opacity:0;z-index:-1;";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          ta.setSelectionRange(0, metin.length);
+          var ok = document.execCommand("copy");
+          ta.remove();
+          b.textContent = ok ? "ALINDI" : "EKRANI ÇEK";
+        } catch (e2) {
+          b.textContent = "EKRANI ÇEK";
+        }
       }
-      setTimeout(function () { b.textContent = "KOPYALA"; }, 1600);
+
+      setTimeout(function () { b.textContent = "KOPYALA"; }, 1800);
     });
 
     govdeCiz();
