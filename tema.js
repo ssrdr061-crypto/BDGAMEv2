@@ -8484,83 +8484,61 @@ document.head.appendChild(st);
 (function kalkanKubbesi() {
   "use strict";
 
-  /* ── AYARLANABİLİR ÖLÇÜLER ──
-     Hepsi CSS değişkeni; ?kalkanayar=1 paneli aynı değişkenleri
-     sürer. Panel açılınca ekran DEĞİŞMEZ — panelin varsayılanları
-     buradaki sayılarla birebir aynıdır.
+  /* ── TEMEL ÇİZİM ──
+     Üç parça: cam kubbe, taban halkası, tarama bandı. Ölçü, konum,
+     açı, eğri ve renk `?kalkanayar=1` paneliyle denenir; beğenilen
+     değerler buraya KALICI yazılır ve panel silinir.
 
-       --kk-en   kubbe genişliği, kale kutusunun yüzdesi
-       --kk-yas  yassılık: yükseklik = genişlik × bu sayı
-       --kk-x    yatay kaydırma (px) — kale görseli kutuda ortalı değil
-       --kk-y    dikey konum, kale kutusunun yüzdesi
-       --kk-op   cam dolgusunun koyuluğu
-       --kk-cep  çeper kalınlığı (px)                                */
+     TRANSFORM BOŞ BIRAKILDI. Nefes animasyonu eskiden `scale`
+     kullanıyordu; o yüzden çemberin açısı/eğrisi ayarlanamıyordu
+     (animasyon transform'u her karede geri yazar). Nefes artık
+     yalnız `opacity` — transform tamamen ayar panelinin. */
   var st = document.createElement("style");
   st.id = "temaKalkanKubbe";
   st.textContent = `
 html body #battleMap .map-node.castle-node .kk-kubbe{
-  --kk-en:112%;
-  --kk-yas:0.90;
-  --kk-x:0px;
-  --kk-y:46%;
-  --kk-op:0.34;
-  --kk-cep:2px;
-
   position:absolute;
-  left:50%; top:var(--kk-y);
-  width:var(--kk-en);
-  aspect-ratio:1 / var(--kk-yas);
-  transform:translate(calc(-50% + var(--kk-x)), -50%);
+  left:50%; top:50%;
+  width:112%;
+  aspect-ratio:1 / 0.90;
+  transform:translate(-50%, -54%);
   pointer-events:none;
   z-index:3;
 }
 
-/* ── CAM KUBBE ──
-   Ortası açık, kenarı belirgin turkuaz. 3B kabartı yok: tek çeper,
-   inset parlaklık yok, düşen gölge yok. */
 html body #battleMap .map-node.castle-node .kk-cam{
-  position:absolute; inset:0;
+  position:absolute; inset:auto;
+  left:50%; top:50%; width:100%; height:100%;
+  transform:translate(-50%,-50%);
   border-radius:50%;
-  border:var(--kk-cep) solid rgba(140,244,255,.92);
+  border:2px solid rgba(140,244,255,.92);
   background:radial-gradient(ellipse at 40% 28%,
-              rgba(190,250,255,calc(var(--kk-op) * 0.55)) 0%,
-              rgba(70,214,250,calc(var(--kk-op) * 0.30)) 46%,
-              rgba(46,190,240,calc(var(--kk-op) * 0.55)) 78%,
-              rgba(150,246,255,var(--kk-op))              100%);
+              rgba(140,244,255,.19) 0%,
+              rgba(140,244,255,.10) 46%,
+              rgba(140,244,255,.19) 78%,
+              rgba(140,244,255,.34) 100%);
   animation:kkNefes 3s ease-in-out infinite;
-  will-change:transform, opacity;
+  will-change:opacity;
 }
-@keyframes kkNefes{
-  0%,100%{ transform:scale(1);     opacity:.90; }
-  50%    { transform:scale(1.028); opacity:1;   }
-}
+@keyframes kkNefes{ 0%,100%{ opacity:.88; } 50%{ opacity:1; } }
 
-/* ── TABAN HALKASI ──
-   Kubbenin en geniş yatay çemberinin izdüşümü: aynı genişlik,
-   yarısı yükseklik. Karo oranı (64×32) ile aynı 2:1 — perspektifi
-   satan parça budur, kubbe onsuz havada asılı durur. */
 html body #battleMap .map-node.castle-node .kk-taban{
-  position:absolute;
-  left:50%; top:50%;
-  width:100%; height:50%;
+  position:absolute; inset:auto;
+  left:50%; top:50%; width:100%; height:50%;
   transform:translate(-50%,-50%);
   border-radius:50%;
   border:1px solid rgba(150,246,255,.55);
   background:radial-gradient(ellipse at center,
-              rgba(120,232,255,.14), transparent 74%);
+              rgba(150,246,255,.14), transparent 74%);
   animation:kkTaban 3s ease-in-out infinite;
   will-change:opacity;
 }
-@keyframes kkTaban{
-  0%,100%{ opacity:.5; }
-  50%    { opacity:.95; }
-}
+@keyframes kkTaban{ 0%,100%{ opacity:.5; } 50%{ opacity:.95; } }
 
-/* ── TARAMA BANDI ──
-   Kubbenin içinde soldan sağa geçen parlaklık. Kırpma için ayrı
-   kapsayıcı: ::before kendi elipsinin dışına taşmasın. */
 html body #battleMap .map-node.castle-node .kk-parla{
-  position:absolute; inset:0;
+  position:absolute; inset:auto;
+  left:50%; top:50%; width:100%; height:100%;
+  transform:translate(-50%,-50%);
   border-radius:50%;
   overflow:hidden;
 }
@@ -8573,13 +8551,8 @@ html body #battleMap .map-node.castle-node .kk-parla::before{
   animation:kkTara 5.5s linear infinite;
   will-change:transform;
 }
-@keyframes kkTara{
-  0%  { transform:translateX(0); }
-  100%{ transform:translateX(390%); }
-}
+@keyframes kkTara{ 0%{ transform:translateX(0); } 100%{ transform:translateX(390%); } }
 
-/* ── SAYAÇ ──
-   Düğüm flex sütun olduğu için ad etiketinin ALTINA düşer. */
 html body #battleMap .map-node.castle-node .kk-sure{
   margin-top:-1px;
   padding:1px 7px 2px;
@@ -8596,12 +8569,9 @@ html body #battleMap .map-node.castle-node .kk-sure{
 `;
   document.head.appendChild(st);
 
-  /* Kalan süre — kısa biçim. */
   function sureYaz(ms) {
     var t = Math.max(0, Math.floor(ms / 1000));
-    var sa = Math.floor(t / 3600);
-    var dk = Math.floor((t % 3600) / 60);
-    var sn = t % 60;
+    var sa = Math.floor(t / 3600), dk = Math.floor((t % 3600) / 60), sn = t % 60;
     if (sa > 0) return sa + "sa " + dk + "dk";
     if (dk > 0) return dk + "dk " + sn + "sn";
     return sn + "sn";
@@ -8618,30 +8588,20 @@ html body #battleMap .map-node.castle-node .kk-sure{
   }
 
   function kubbeSok(node) {
-    var k = node.querySelector(".kk-kubbe");
-    if (k) k.remove();
-    var s2 = node.querySelector(".kk-sure");
-    if (s2) s2.remove();
+    var k = node.querySelector(".kk-kubbe"); if (k) k.remove();
+    var s2 = node.querySelector(".kk-sure"); if (s2) s2.remove();
   }
 
   function sayacYaz(node, ms) {
     var e = node.querySelector(".kk-sure");
-    if (!e) {
-      e = document.createElement("b");
-      e.className = "kk-sure";
-      node.appendChild(e);
-    }
+    if (!e) { e = document.createElement("b"); e.className = "kk-sure"; node.appendChild(e); }
     var yeni = "🛡️ " + sureYaz(ms);
     if (e.textContent !== yeni) e.textContent = yeni;
   }
 
-  /* ── NEDEN renderBattleMap SARILMADI ──
-     missile.js zaten sarıyor; ikinci sarmalayıcı yükleme sırası
-     değişince sessizce kopar. Sayaç metni için nasılsa kendi
-     zamanlayıcımız gerekiyor (Tuzak 54). Haritada birkaç kale
-     olduğu için saniyede bir taramanın maliyeti yok denecek kadar
-     az. Süresi dolan kubbe böylece renderBattleMap beklemeden
-     kalkar — imza değişmediği için o çağrılsa da bir şey yapmazdı. */
+  /* renderBattleMap SARILMADI: missile.js zaten sarıyor, ikinci
+     sarmalayıcı yükleme sırası değişince sessizce kopar. Sayaç için
+     nasılsa kendi zamanlayıcımız gerekiyor (Tuzak 54). */
   function tara() {
     var liste;
     try { liste = document.querySelectorAll("#battleMap .map-node.castle-node"); }
@@ -8652,17 +8612,10 @@ html body #battleMap .map-node.castle-node .kk-sure{
     for (var i = 0; i < liste.length; i++) {
       var n = liste[i];
       var kb = parseInt(n.getAttribute("data-kb"), 10) || 0;
-
-      /* KENDİ KALEMİZ: data-kb bir sonraki renderBattleMap'e kadar
-         eskimiş olabilir; canlı state her zaman daha doğrudur. */
       if (n.classList.contains("castle-own")) {
-        try {
-          if (typeof state !== "undefined" && state) {
-            kb = Number(state.kalkanBitis || 0) || 0;
-          }
-        } catch (e2) {}
+        try { if (typeof state !== "undefined" && state) kb = Number(state.kalkanBitis || 0) || 0; }
+        catch (e2) {}
       }
-
       var kalan = kb - now;
       if (kalan > 0) { kubbeTak(n); sayacYaz(n, kalan); }
       else           { kubbeSok(n); }
@@ -8677,116 +8630,312 @@ html body #battleMap .map-node.castle-node .kk-sure{
 /* ═══════════════════════════════════════════════════════════════
    KALKAN KUBBESİ AYAR PANELİ  —  ?kalkanayar=1
 
-   Bayrak yoksa HİÇBİR ŞEY yapmaz. Kubbenin ölçüsü, konumu ve
-   koyuluğu sürgüyle denenir; beğenilen değerler yukarıdaki CSS'e
-   KALICI yazılır ve BU BLOK SİLİNİR (?isik=1 ve ?kaleayar=1 ile
-   aynı mantık).
+   Bayrak yoksa HİÇBİR ŞEY yapmaz. Dört sekme:
+     GENEL  → kubbenin bütününün boyu ve konumu
+     CAM    → dış küre
+     TABAN  → izometrik zemin halkası
+     TARAMA → dönen parlaklık bandı
 
-   Değişkenler `#battleMap`e yazılır, tek tek düğümlere değil:
-   düğümler yeniden çizilince kaybolmasın.
+   Her çember ayrı açılıp kapanır, ayrı ölçülür, ayrı döndürülür.
+   Renk tek bir TON sürgüsüyle seçilir: mavi → açık mavi → turkuaz
+   → buz mavisi arası yumuşak geçiş (ara değerler karıştırılır).
+
+   YÖNTEM: panel ayrı bir <style> yazar ve içeriğini günceller.
+   Düğümlere satır içi yazmıyoruz — kaleler yeniden çizilince
+   kaybolurdu ve saniyede bir geri yazmak gerekirdi.
+
+   Beğenilen değerler yukarıdaki KALICI CSS'e yazılır ve BU BLOK
+   SİLİNİR (?isik=1 ve ?kaleayar=1 ile aynı mantık).
    ═══════════════════════════════════════════════════════════════ */
 (function kalkanAyar() {
   "use strict";
   try { if (location.search.indexOf("kalkanayar=1") < 0) return; }
   catch (e) { return; }
 
-  /* Varsayılanlar yukarıdaki CSS ile BİREBİR AYNI olmak zorunda;
-     ayrışırsa panel açılır açılmaz kubbe zıplar ve neyi
-     ayarladığın belli olmaz. */
-  var A = { en:112, yas:90, x:0, y:46, op:34, cep:20 };
+  /* Varsayılanlar yukarıdaki KALICI CSS ile BİREBİR AYNI olmalı;
+     ayrışırsa panel açılır açılmaz kubbe zıplar. */
+  var A = {
+    genel: { en:112, yas:90, dx:0, dy:-4 },
+    cam:   { ac:1, en:100, boy:100, dx:0, dy:0, don:0, egri:0,
+             ton:62, cep:20, cepOp:92, dolu:34 },
+    taban: { ac:1, en:100, boy:50,  dx:0, dy:0, don:0, egri:0,
+             ton:70, cep:10, cepOp:55, dolu:14 },
+    tara:  { ac:1, en:40,  hiz:55, ton:88, dolu:45, aci:102 }
+  };
 
-  var ALAN = [
-    { k:"en",  et:"Genişlik",  min:60,  max:220, adim:1, br:"%"  },
-    { k:"yas", et:"Yassılık",  min:40,  max:130, adim:1, br:"%"  },
-    { k:"x",   et:"Yatay ↔",   min:-60, max:60,  adim:1, br:"px" },
-    { k:"y",   et:"Dikey ↕",   min:0,   max:100, adim:1, br:"%"  },
-    { k:"op",  et:"Koyuluk",   min:0,   max:100, adim:1, br:"%"  },
-    { k:"cep", et:"Çeper",     min:0,   max:60,  adim:1, br:"px" }
+  /* ── RENK TONU ──
+     0 mavi · 34 açık mavi · 67 turkuaz · 100 buz mavisi.
+     Ara değerler iki durak arasında doğrusal karıştırılır, yani
+     sürgü sürekli ve yumuşaktır. */
+  var DURAK = [
+    [0,   47,125,221],
+    [34,  89,184,245],
+    [67,  53,224,208],
+    [100,205,243,255]
   ];
-
-  function uygula() {
-    var m = document.getElementById("battleMap");
-    if (!m) return;
-    m.style.setProperty("--kk-en",  A.en + "%");
-    m.style.setProperty("--kk-yas", (A.yas / 100).toFixed(2));
-    m.style.setProperty("--kk-x",   A.x + "px");
-    m.style.setProperty("--kk-y",   A.y + "%");
-    m.style.setProperty("--kk-op",  (A.op / 100).toFixed(2));
-    m.style.setProperty("--kk-cep", (A.cep / 10).toFixed(1) + "px");
+  function ton(t) {
+    t = Math.max(0, Math.min(100, t));
+    for (var i = 0; i < DURAK.length - 1; i++) {
+      var a = DURAK[i], b = DURAK[i + 1];
+      if (t >= a[0] && t <= b[0]) {
+        var o = (b[0] === a[0]) ? 0 : (t - a[0]) / (b[0] - a[0]);
+        return [Math.round(a[1] + (b[1] - a[1]) * o),
+                Math.round(a[2] + (b[2] - a[2]) * o),
+                Math.round(a[3] + (b[3] - a[3]) * o)];
+      }
+    }
+    return [205, 243, 255];
+  }
+  function rgba(c, o) {
+    return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + (o).toFixed(3) + ")";
   }
 
-  /* Değişkenler #battleMap'te tanımlı; .kk-kubbe kendi
-     varsayılanlarını yazdığı için MİRAS ALMAZ. Bu kural onu
-     yeniden mirasa bağlar — yalnız panel açıkken enjekte edilir. */
-  var köprü = document.createElement("style");
-  köprü.id = "kalkanAyarKopru";
-  köprü.textContent =
-    "html body #battleMap .map-node.castle-node .kk-kubbe{" +
-      "--kk-en:inherit;--kk-yas:inherit;--kk-x:inherit;" +
-      "--kk-y:inherit;--kk-op:inherit;--kk-cep:inherit;}";
+  var stil = document.createElement("style");
+  stil.id = "kalkanAyarCanli";
+  document.head.appendChild(stil);
+
+  var ON = "html body #battleMap .map-node.castle-node ";
+
+  function uygula() {
+    var g = A.genel, c = A.cam, t = A.taban, r = A.tara;
+    var cc = ton(c.ton), tc = ton(t.ton), rc = ton(r.ton);
+
+    var out = "";
+
+    out += ON + ".kk-kubbe{" +
+      "width:" + g.en + "%;" +
+      "aspect-ratio:1 / " + (g.yas / 100).toFixed(2) + ";" +
+      "transform:translate(calc(-50% + " + g.dx + "px), calc(-50% + " + g.dy + "px));" +
+    "}";
+
+    out += ON + ".kk-cam{" +
+      "display:" + (c.ac ? "block" : "none") + ";" +
+      "inset:auto;left:50%;top:50%;" +
+      "width:" + c.en + "%;height:" + c.boy + "%;" +
+      "transform:translate(calc(-50% + " + c.dx + "px), calc(-50% + " + c.dy + "px))" +
+        " rotate(" + c.don + "deg) skewX(" + c.egri + "deg);" +
+      "border:" + (c.cep / 10).toFixed(1) + "px solid " + rgba(cc, c.cepOp / 100) + ";" +
+      "background:radial-gradient(ellipse at 40% 28%," +
+        rgba(cc, c.dolu / 100 * 0.55) + " 0%," +
+        rgba(cc, c.dolu / 100 * 0.30) + " 46%," +
+        rgba(cc, c.dolu / 100 * 0.55) + " 78%," +
+        rgba(cc, c.dolu / 100) + " 100%);" +
+    "}";
+
+    out += ON + ".kk-taban{" +
+      "display:" + (t.ac ? "block" : "none") + ";" +
+      "inset:auto;left:50%;top:50%;" +
+      "width:" + t.en + "%;height:" + t.boy + "%;" +
+      "transform:translate(calc(-50% + " + t.dx + "px), calc(-50% + " + t.dy + "px))" +
+        " rotate(" + t.don + "deg) skewX(" + t.egri + "deg);" +
+      "border:" + (t.cep / 10).toFixed(1) + "px solid " + rgba(tc, t.cepOp / 100) + ";" +
+      "background:radial-gradient(ellipse at center," +
+        rgba(tc, t.dolu / 100) + ", transparent 74%);" +
+    "}";
+
+    out += ON + ".kk-parla{ display:" + (r.ac ? "block" : "none") + "; }";
+    out += ON + ".kk-parla::before{" +
+      "width:" + r.en + "%;" +
+      "background:linear-gradient(" + r.aci + "deg, transparent," +
+        rgba(rc, r.dolu / 100) + ", transparent);" +
+      "animation-duration:" + (r.hiz / 10).toFixed(1) + "s;" +
+    "}";
+
+    stil.textContent = out;
+  }
+
+  /* ── PANEL ── */
+  var SEKME = [
+    { k:"genel", et:"GENEL" },
+    { k:"cam",   et:"CAM" },
+    { k:"taban", et:"TABAN" },
+    { k:"tara",  et:"TARAMA" }
+  ];
+
+  /* [alan, etiket, min, max, adım, birim] */
+  var ALANLAR = {
+    genel: [
+      ["en",  "Genişlik", 40, 260, 1, "%"],
+      ["yas", "Yassılık", 30, 160, 1, "%"],
+      ["dx",  "Yatay ↔",  -80, 80, 1, "px"],
+      ["dy",  "Dikey ↕",  -80, 80, 1, "px"]
+    ],
+    cam: [
+      ["ac",    "Görünür",  0, 1, 1, ""],
+      ["en",    "Genişlik", 20, 200, 1, "%"],
+      ["boy",   "Yükseklik",20, 200, 1, "%"],
+      ["dx",    "Yatay ↔",  -80, 80, 1, "px"],
+      ["dy",    "Dikey ↕",  -80, 80, 1, "px"],
+      ["don",   "Açı ↻",    -90, 90, 1, "°"],
+      ["egri",  "Eğri ⇗",   -60, 60, 1, "°"],
+      ["ton",   "Renk",     0, 100, 1, ""],
+      ["cep",   "Çeper",    0, 80, 1, "×.1px"],
+      ["cepOp", "Çeper op", 0, 100, 1, "%"],
+      ["dolu",  "Dolgu",    0, 100, 1, "%"]
+    ],
+    taban: [
+      ["ac",    "Görünür",  0, 1, 1, ""],
+      ["en",    "Genişlik", 20, 200, 1, "%"],
+      ["boy",   "Yükseklik",5, 160, 1, "%"],
+      ["dx",    "Yatay ↔",  -80, 80, 1, "px"],
+      ["dy",    "Dikey ↕",  -80, 80, 1, "px"],
+      ["don",   "Açı ↻",    -90, 90, 1, "°"],
+      ["egri",  "Eğri ⇗",   -60, 60, 1, "°"],
+      ["ton",   "Renk",     0, 100, 1, ""],
+      ["cep",   "Çeper",    0, 80, 1, "×.1px"],
+      ["cepOp", "Çeper op", 0, 100, 1, "%"],
+      ["dolu",  "Dolgu",    0, 100, 1, "%"]
+    ],
+    tara: [
+      ["ac",   "Görünür", 0, 1, 1, ""],
+      ["en",   "Bant eni", 5, 120, 1, "%"],
+      ["aci",  "Bant açısı", 0, 180, 1, "°"],
+      ["hiz",  "Tur süresi", 10, 200, 1, "×.1s"],
+      ["ton",  "Renk", 0, 100, 1, ""],
+      ["dolu", "Parlaklık", 0, 100, 1, "%"]
+    ]
+  };
+
+  var aktif = "cam";
 
   var PCSS =
-    "#kalkanAyar{position:fixed;left:8px;right:8px;bottom:112px;z-index:99999;" +
-      "background:#0d2438;color:#eaf6ff;border:none;border-radius:12px;" +
-      "padding:10px 11px 11px;font:600 12.5px/1.35 'Baloo 2',sans-serif;" +
-      "box-shadow:0 2px 6px rgba(0,20,45,.3);font-variant-numeric:tabular-nums}" +
-    "#kalkanAyar label{display:flex;justify-content:space-between;margin:6px 0 1px;color:#9fd6ef}" +
-    "#kalkanAyar input[type=range]{width:100%;margin:0}" +
-    "#kalkanAyar .ka-ozet{margin-top:9px;padding:6px 7px;border-radius:8px;" +
-      "background:rgba(255,255,255,.06);font-size:11.5px;line-height:1.5;" +
-      "white-space:pre-wrap;color:#cfe6f5}" +
-    "#kalkanAyar .ka-kapat{position:absolute;top:7px;right:9px;border:none;" +
-      "background:none;color:#9fd6ef;font-size:15px;cursor:pointer;padding:0}";
+    "#kkAyar{position:fixed;left:6px;right:6px;bottom:96px;z-index:99999;" +
+      "background:rgba(9,32,52,.93);color:#eaf6ff;border:none;border-radius:12px;" +
+      "padding:8px 9px 9px;font:700 11.5px/1.3 'Baloo 2',sans-serif;" +
+      "box-shadow:0 2px 6px rgba(0,20,45,.3);font-variant-numeric:tabular-nums;" +
+      "max-height:44vh;display:flex;flex-direction:column}" +
+    "#kkAyar.kapali{max-height:none;padding:5px 9px 6px}" +
+    "#kkAyar.kapali .kk-govde,#kkAyar.kapali .kk-sekmeler{display:none}" +
+    "#kkAyar .kk-ust{display:flex;align-items:center;gap:6px;margin-bottom:5px}" +
+    "#kkAyar .kk-ust b{flex:1 1 auto;color:#9fd6ef;font-size:11px}" +
+    "#kkAyar .kk-ust button{border:none;border-radius:7px;padding:3px 9px;" +
+      "background:rgba(255,255,255,.12);color:#eaf6ff;font:inherit;cursor:pointer}" +
+    "#kkAyar .kk-sekmeler{display:flex;gap:4px;margin-bottom:6px}" +
+    "#kkAyar .kk-sekmeler button{flex:1 1 0;border:none;border-radius:7px;padding:4px 0;" +
+      "background:rgba(255,255,255,.10);color:#cfe6f5;font:inherit;font-size:10.5px;cursor:pointer}" +
+    "#kkAyar .kk-sekmeler button.on{background:#2fb3d8;color:#05263a}" +
+    "#kkAyar .kk-govde{overflow-y:auto;flex:1 1 auto;-webkit-overflow-scrolling:touch}" +
+    "#kkAyar .kk-sat{display:flex;align-items:center;gap:5px;margin:3px 0}" +
+    "#kkAyar .kk-sat .et{width:62px;flex:0 0 62px;color:#9fd6ef;font-size:10.5px}" +
+    "#kkAyar .kk-sat input[type=range]{flex:1 1 auto;min-width:0;margin:0;height:18px}" +
+    "#kkAyar .kk-sat .db{flex:0 0 26px;border:none;border-radius:6px;height:23px;" +
+      "background:rgba(255,255,255,.13);color:#eaf6ff;font:inherit;font-size:14px;" +
+      "line-height:1;cursor:pointer;padding:0}" +
+    "#kkAyar .kk-sat .dg{flex:0 0 54px;text-align:right;font-size:10.5px;color:#ffd257}" +
+    "#kkAyar .kk-cikti{margin-top:6px;width:100%;height:52px;resize:none;" +
+      "border:none;border-radius:8px;background:rgba(255,255,255,.07);color:#cfe6f5;" +
+      "font:600 10px/1.35 monospace;padding:5px 6px}";
+
+  function ciktiYaz() {
+    var e = document.getElementById("kkCikti");
+    if (!e) return;
+    e.value = JSON.stringify(A);
+  }
+
+  function govdeCiz() {
+    var g = document.getElementById("kkGovde");
+    if (!g) return;
+    var liste = ALANLAR[aktif];
+    var h = "";
+    liste.forEach(function (f) {
+      h += '<div class="kk-sat" data-k="' + f[0] + '">' +
+             '<span class="et">' + f[1] + '</span>' +
+             '<button class="db" data-d="-1" type="button">−</button>' +
+             '<input type="range" min="' + f[2] + '" max="' + f[3] +
+                '" step="' + f[4] + '" value="' + A[aktif][f[0]] + '">' +
+             '<button class="db" data-d="1" type="button">+</button>' +
+             '<span class="dg"></span>' +
+           '</div>';
+    });
+    g.innerHTML = h;
+
+    g.querySelectorAll(".kk-sat").forEach(function (row) {
+      var k = row.dataset.k;
+      var inp = row.querySelector("input");
+      var dg = row.querySelector(".dg");
+      var f = liste.find(function (x) { return x[0] === k; });
+
+      function goster() {
+        dg.textContent = A[aktif][k] + (f[5] || "");
+        inp.value = A[aktif][k];
+      }
+      function degistir(v) {
+        A[aktif][k] = Math.max(f[2], Math.min(f[3], v));
+        goster(); uygula(); ciktiYaz();
+      }
+      inp.addEventListener("input", function () { degistir(parseInt(inp.value, 10)); });
+      row.querySelectorAll(".db").forEach(function (b) {
+        b.addEventListener("click", function () {
+          degistir(A[aktif][k] + parseInt(b.dataset.d, 10) * f[4]);
+        });
+      });
+      goster();
+    });
+    ciktiYaz();
+  }
 
   function kur() {
-    var m = document.getElementById("battleMap");
-    if (!m) { setTimeout(kur, 600); return; }
-
-    document.head.appendChild(köprü);
+    if (document.getElementById("kkAyar")) return;
+    if (!document.body) { setTimeout(kur, 500); return; }
 
     var ps = document.createElement("style");
     ps.textContent = PCSS;
     document.head.appendChild(ps);
 
     var p = document.createElement("div");
-    p.id = "kalkanAyar";
-    var h = '<button class="ka-kapat" type="button">✕</button>';
-    ALAN.forEach(function (f) {
-      h += '<label><span>' + f.et + '</span><b id="kav-' + f.k + '"></b></label>' +
-           '<input type="range" data-k="' + f.k + '" min="' + f.min +
-           '" max="' + f.max + '" step="' + f.adim + '" value="' + A[f.k] + '">';
+    p.id = "kkAyar";
+    var h = '<div class="kk-ust"><b>🛡️ KALKAN AYARI</b>' +
+            '<button id="kkKopya" type="button">KOPYALA</button>' +
+            '<button id="kkKuc" type="button">▾</button></div>' +
+            '<div class="kk-sekmeler">';
+    SEKME.forEach(function (sk) {
+      h += '<button data-s="' + sk.k + '"' + (sk.k === aktif ? ' class="on"' : '') +
+           ' type="button">' + sk.et + '</button>';
     });
-    h += '<div class="ka-ozet" id="kaOzet"></div>';
+    h += '</div><div class="kk-govde" id="kkGovde"></div>' +
+         '<textarea class="kk-cikti" id="kkCikti" readonly></textarea>';
     p.innerHTML = h;
     document.body.appendChild(p);
 
-    function ozet() {
-      ALAN.forEach(function (f) {
-        var e = document.getElementById("kav-" + f.k);
-        if (e) e.textContent = A[f.k] + f.br;
-      });
-      document.getElementById("kaOzet").textContent =
-        "--kk-en:" + A.en + "%; --kk-yas:" + (A.yas / 100).toFixed(2) +
-        "; --kk-x:" + A.x + "px; --kk-y:" + A.y +
-        "%; --kk-op:" + (A.op / 100).toFixed(2) +
-        "; --kk-cep:" + (A.cep / 10).toFixed(1) + "px;";
-    }
-
-    p.querySelectorAll("input[type=range]").forEach(function (r) {
-      r.addEventListener("input", function () {
-        A[r.dataset.k] = parseInt(r.value, 10);
-        uygula(); ozet();
+    p.querySelectorAll(".kk-sekmeler button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        aktif = b.dataset.s;
+        p.querySelectorAll(".kk-sekmeler button").forEach(function (x) {
+          x.classList.toggle("on", x === b);
+        });
+        govdeCiz();
       });
     });
-    p.querySelector(".ka-kapat").addEventListener("click", function () { p.remove(); });
 
-    uygula(); ozet();
-    setInterval(uygula, 1500);   /* düğüm yeniden çizilirse geri yaz */
+    document.getElementById("kkKuc").addEventListener("click", function () {
+      p.classList.toggle("kapali");
+      this.textContent = p.classList.contains("kapali") ? "▴" : "▾";
+    });
+
+    document.getElementById("kkKopya").addEventListener("click", function () {
+      var e = document.getElementById("kkCikti");
+      var b = this;
+      try {
+        e.select(); e.setSelectionRange(0, 99999);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(e.value);
+        } else {
+          document.execCommand("copy");
+        }
+        b.textContent = "ALINDI";
+      } catch (err) {
+        b.textContent = "SEÇ+KOPYALA";
+      }
+      setTimeout(function () { b.textContent = "KOPYALA"; }, 1600);
+    });
+
+    govdeCiz();
+    uygula();
   }
 
   if (document.readyState === "complete") kur();
   else window.addEventListener("load", kur);
-  setTimeout(kur, 1500);
+  setTimeout(kur, 1200);
 })();
 
 
