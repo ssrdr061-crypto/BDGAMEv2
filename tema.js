@@ -5925,12 +5925,79 @@ document.head.appendChild(st);
     if (!kart) return;
 
     var d = tanim(kartAdi(kart));
-    if (!d || !d.isKaynak) return;
+    if (!d) return;
+
+    /* ── KALKAN ──
+       Kaynak paketi değil: adet seçilmez, tek dokunuşta açılır.
+       Yine de onay soruyoruz — kalan süre varsa başa saracağı
+       için oyuncu bilerek basmalı. Aynı .bd-buy-* sınıfları,
+       yalnız adet satırı yok. */
+    if (d.isKalkan) {
+      e.stopPropagation();
+      e.preventDefault();
+      kalkanOnayi(d);
+      return;
+    }
+
+    if (!d.isKaynak) return;
 
     e.stopPropagation();
     e.preventDefault();
     pencere(d);
   }, true);
+
+  /* Kalkan onay penceresi. Kullanma işini index.html'deki
+     kalkanKullan() yapar — süre hesabı ve kayıt TEK YERDE kalsın. */
+  function kalkanOnayi(d) {
+    kapat();
+    try { if (typeof closeShopPopups === "function") closeShopPopups(); } catch (e) {}
+
+    var saat = d.kalkanSaat || 6;
+    var kalan = 0;
+    try {
+      if (typeof window.kalkanKalanMs === "function") kalan = window.kalkanKalanMs();
+    } catch (e) {}
+
+    var uyari = kalan > 0
+      ? '<div class="bd-buy-desc" style="color:#ffd257;margin-top:4px;">' +
+        'Şu an açık kalkanın var. Yeni kalkan süreyi ' + saat +
+        ' saate geri sarar, üstüne EKLEMEZ.</div>'
+      : "";
+
+    var mask = document.createElement("div");
+    mask.className = "bd-buy-mask";
+    mask.innerHTML =
+      '<div class="bd-buy-box">' +
+        '<div class="bd-buy-head">' +
+          '<span>Kullan</span>' +
+          '<button class="bd-buy-x" type="button">✕</button>' +
+        '</div>' +
+        '<div class="bd-buy-body">' +
+          '<div class="bd-buy-top">' +
+            '<div class="bd-buy-icon">' + simge(d) + '</div>' +
+            '<div class="bd-buy-txt">' +
+              '<div class="bd-buy-name">' + d.name + '</div>' +
+              '<div class="bd-buy-desc">' + aciklama(d) + '</div>' +
+              uyari +
+            '</div>' +
+          '</div>' +
+          '<button class="bd-buy-go" type="button">🛡️ ' + saat + ' SAAT KALKAN AÇ</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(mask);
+
+    mask.querySelector(".bd-buy-x").addEventListener("click", kapat);
+    mask.addEventListener("click", function (e) { if (e.target === mask) kapat(); });
+    mask.querySelector(".bd-buy-go").addEventListener("click", function () {
+      kapat();
+      try {
+        if (typeof window.kalkanKullan === "function") window.kalkanKullan(d.name);
+        else if (typeof kalkanKullan === "function") kalkanKullan(d.name);
+      } catch (e) {}
+    });
+    _esc = function (e) { if (e.key === "Escape") kapat(); };
+    document.addEventListener("keydown", _esc);
+  }
 })();
 
 /* ═══════════════════════════════════════════════════════════════
