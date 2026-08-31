@@ -8484,15 +8484,21 @@ document.head.appendChild(st);
 (function kalkanKubbesi() {
   "use strict";
 
-  /* ── TEMEL ÇİZİM ──
-     Üç parça: cam kubbe, taban halkası, tarama bandı. Ölçü, konum,
-     açı, eğri ve renk `?kalkanayar=1` paneliyle denenir; beğenilen
-     değerler buraya KALICI yazılır ve panel silinir.
+  /* ── KALKAN KUBBESİ ──
+     Üç katman: dolu enerji küresi, izometrik taban halkası ve
+     kürenin içinde üstten alta sürekli akan çizgiler.
 
-     TRANSFORM BOŞ BIRAKILDI. Nefes animasyonu eskiden `scale`
-     kullanıyordu; o yüzden çemberin açısı/eğrisi ayarlanamıyordu
-     (animasyon transform'u her karede geri yazar). Nefes artık
-     yalnız `opacity` — transform tamamen ayar panelinin. */
+     DÖNEN SÜPÜRME (tara) KALDIRILDI. Çember sabit duruyor;
+     hareketi yalnız akan çizgiler veriyor.
+
+     Ölçüler kale kutusunun YÜZDESİ: o kutu seviyeye göre 100px,
+     166px ya da 184px oluyor (bkz. ?kaleayar=1). Piksel yazılsaydı
+     Sv2 kalesi kubbeden taşardı.
+
+     TRANSFORM BOŞ BIRAKILDI. Nefes animasyonu yalnız opacity
+     kullanır; transform tamamen ayar panelinindir (açı, eğri,
+     kaydırma). Nefes scale kullansaydı panelin yazdığı açıyı her
+     karede geri ezerdi.                                          */
   var st = document.createElement("style");
   st.id = "temaKalkanKubbe";
   st.textContent = `
@@ -8506,16 +8512,10 @@ html body #battleMap .map-node.castle-node .kk-kubbe{
   z-index:3;
 }
 
-/* ── CAM KUBBE: DOLU KÜRE ──
-   İnce bir çember değil, gerçekten dolu bir enerji küresi.
-   Dört durak: sol üstte parlak nokta (ışık kaynağı), ortada
-   yarı saydam gövde, kenara doğru koyulaşma, dışta parlak çeper.
-   Küreyi küre yapan şey bu sıralamadır; tek düz dolgu verilseydi
-   düz bir daire gibi dururdu.
-
-   Dış hale (box-shadow) BİLEREK var: görünüm kuralındaki "radial
-   parlaklık yok" maddesi arayüz kabartısı içindir, sahnedeki
-   enerji alanı için değil. Panelden sıfırlanabilir. */
+/* ── DOLU ENERJİ KÜRESİ ──
+   Dört durak: sol üstte parlak nokta, ortada yarı saydam gövde,
+   kenara doğru koyulaşma, dışta parlak çeper. Küreyi küre yapan
+   bu sıralamadır; tek düz dolgu verilseydi düz bir daire olurdu. */
 html body #battleMap .map-node.castle-node .kk-cam{
   position:absolute; inset:auto;
   left:50%; top:50%; width:100%; height:100%;
@@ -8534,6 +8534,10 @@ html body #battleMap .map-node.castle-node .kk-cam{
 }
 @keyframes kkNefes{ 0%,100%{ opacity:.88; } 50%{ opacity:1; } }
 
+/* ── TABAN HALKASI ──
+   Kürenin en geniş yatay çemberinin izdüşümü: aynı genişlik,
+   yarısı yükseklik. Karo oranıyla (64x32) aynı 2:1 — perspektifi
+   satan parça budur, küre onsuz havada asılı durur. */
 html body #battleMap .map-node.castle-node .kk-taban{
   position:absolute; inset:auto;
   left:50%; top:50%; width:100%; height:50%;
@@ -8547,42 +8551,12 @@ html body #battleMap .map-node.castle-node .kk-taban{
 }
 @keyframes kkTaban{ 0%,100%{ opacity:.5; } 50%{ opacity:.95; } }
 
-/* ── TARAMA: ÇEMBERSEL ──
-   Eskiden soldan sağa geçen düz bir banttı; artık koni gradyanı
-   kubbenin ÇEVRESİNDE dönüyor. Kırpma kapsayıcısı elips olduğu
-   için dönen dilim kubbenin dışına taşmaz. */
-/* Dönen süpürme VARSAYILAN OLARAK KAPALI: kalkan çerçevesi
-   sabit duruyor, hareketi süzülen çizgiler veriyor. Panelden
-   açılabilir. */
-html body #battleMap .map-node.castle-node .kk-parla{
-  display:none;
-  position:absolute; inset:auto;
-  left:50%; top:50%; width:100%; height:100%;
-  transform:translate(-50%,-50%);
-  border-radius:50%;
-  overflow:hidden;
-}
-html body #battleMap .map-node.castle-node .kk-parla::before{
-  content:"";
-  position:absolute; left:-2%; top:-2%; width:104%; height:104%;
-  border-radius:50%;
-  background:conic-gradient(from 0deg,
-              rgba(232,253,255,.45) 0deg,
-              transparent 55deg,
-              transparent 360deg);
-  animation:kkTara 5.5s linear infinite;
-  will-change:transform;
-}
-@keyframes kkTara{ 0%{ transform:rotate(0deg); } 100%{ transform:rotate(360deg); } }
-
-/* ── SÜZÜLEN ÇİZGİLER ──
-   Kubbenin içinde üstten alta inen yatay taramalar. Üç tane var,
-   panelden 1'e düşürülebilir. Zamanlamaları eşit aralıklı; hepsi
-   aynı anda inseydi tek kalın çizgi gibi görünürdü.
-
-   Konum top ile canlandırılıyor, transform ile değil: çizgi ince olduğu için
-   translateY yuzdesi kendi boyuna gore hesaplanir ve kapsayiciyi
-   hiç kat etmez. */
+/* ── AKAN ÇİZGİLER ──
+   Kürenin içinde üstten alta inen yatay taramalar. Gecikmeler
+   eşit aralıklı: akış kesintisiz olsun, biri diğerini beklemesin.
+   Konum top ile canlandırılıyor, transform ile değil — çizgi ince
+   olduğu icin translateY yuzdesi kendi boyuna gore hesaplanir ve
+   kapsayiciyi hic kat etmez. */
 html body #battleMap .map-node.castle-node .kk-cizgiler{
   position:absolute; inset:auto;
   left:50%; top:50%; width:100%; height:100%;
@@ -8637,7 +8611,6 @@ html body #battleMap .map-node.castle-node .kk-sure{
     var k = document.createElement("div");
     k.className = "kk-kubbe";
     k.innerHTML = '<i class="kk-taban"></i><i class="kk-cam"></i>' +
-                  '<i class="kk-parla"></i>' +
                   '<span class="kk-cizgiler"><i></i><i></i><i></i></span>';
     av.appendChild(k);
   }
@@ -8689,11 +8662,7 @@ html body #battleMap .map-node.castle-node .kk-sure{
      GENEL  → kubbenin bütününün boyu ve konumu
      CAM    → dış küre
      TABAN  → izometrik zemin halkası
-     TARAMA → dönen parlaklık bandı
-
-   Her çember ayrı açılıp kapanır, ayrı ölçülür, ayrı döndürülür.
-   Renk tek bir TON sürgüsüyle seçilir: mavi → açık mavi → turkuaz
-   → buz mavisi arası yumuşak geçiş (ara değerler karıştırılır).
+     ÇİZGİ  → akan taramalar
 
    YÖNTEM: panel ayrı bir <style> yazar ve içeriğini günceller.
    Düğümlere satır içi yazmıyoruz — kaleler yeniden çizilince
@@ -8715,20 +8684,13 @@ html body #battleMap .map-node.castle-node .kk-sure{
              ton:62, cep:20, cepOp:90, dolu:70, isik:38, hale:20 },
     taban: { ac:1, en:100, boy:50,  dx:0, dy:0, don:0, egri:0,
              ton:70, cep:10, cepOp:55, dolu:14 },
-    tara:  { ac:0, yay:55, hiz:55, ton:88, dolu:45 },
     cizgi: { ac:1, adet:3, kal:20, hiz:40, ton:92, dolu:85 }
   };
 
   /* ── RENK TONU ──
      0 mavi · 34 açık mavi · 67 turkuaz · 100 buz mavisi.
-     Ara değerler iki durak arasında doğrusal karıştırılır, yani
-     sürgü sürekli ve yumuşaktır. */
-  var DURAK = [
-    [0,   47,125,221],
-    [34,  89,184,245],
-    [67,  53,224,208],
-    [100,205,243,255]
-  ];
+     Ara değerler iki durak arasında karıştırılır, sürgü yumuşaktır. */
+  var DURAK = [[0,47,125,221],[34,89,184,245],[67,53,224,208],[100,205,243,255]];
   function ton(t) {
     t = Math.max(0, Math.min(100, t));
     for (var i = 0; i < DURAK.length - 1; i++) {
@@ -8743,7 +8705,7 @@ html body #battleMap .map-node.castle-node .kk-sure{
     return [205, 243, 255];
   }
   function rgba(c, o) {
-    return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + (o).toFixed(3) + ")";
+    return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + o.toFixed(3) + ")";
   }
 
   var stil = document.createElement("style");
@@ -8753,9 +8715,8 @@ html body #battleMap .map-node.castle-node .kk-sure{
   var ON = "html body #battleMap .map-node.castle-node ";
 
   function uygula() {
-    var g = A.genel, c = A.cam, t = A.taban, r = A.tara;
-    var cc = ton(c.ton), tc = ton(t.ton), rc = ton(r.ton);
-
+    var g = A.genel, c = A.cam, t = A.taban, z = A.cizgi;
+    var cc = ton(c.ton), tc = ton(t.ton), zc = ton(z.ton);
     var out = "";
 
     out += ON + ".kk-kubbe{" +
@@ -8777,8 +8738,7 @@ html body #battleMap .map-node.castle-node .kk-sure{
         rgba(cc, c.dolu / 100 * 0.32) + " 55%," +
         rgba(cc, c.dolu / 100 * 0.76) + " 86%," +
         rgba(cc, c.dolu / 100) + " 100%);" +
-      "box-shadow:0 0 " + Math.round(c.hale / 2.5) + "px " +
-        rgba(cc, c.hale / 100 * 0.5) + ";" +
+      "box-shadow:0 0 " + Math.round(c.hale / 2.5) + "px " + rgba(cc, c.hale / 100 * 0.5) + ";" +
     "}";
 
     out += ON + ".kk-taban{" +
@@ -8792,16 +8752,6 @@ html body #battleMap .map-node.castle-node .kk-sure{
         rgba(tc, t.dolu / 100) + ", transparent 74%);" +
     "}";
 
-    out += ON + ".kk-parla{ display:" + (r.ac ? "block" : "none") + "; }";
-    out += ON + ".kk-parla::before{" +
-      "background:conic-gradient(from 0deg," +
-        rgba(rc, r.dolu / 100) + " 0deg," +
-        "transparent " + r.yay + "deg," +
-        "transparent 360deg);" +
-      "animation-duration:" + (r.hiz / 10).toFixed(1) + "s;" +
-    "}";
-
-    var z = A.cizgi, zc = ton(z.ton);
     out += ON + ".kk-cizgiler{ display:" + (z.ac ? "block" : "none") + "; }";
     out += ON + ".kk-cizgiler i{" +
       "height:" + (z.kal / 10).toFixed(1) + "px;" +
@@ -8809,9 +8759,9 @@ html body #battleMap .map-node.castle-node .kk-sure{
         rgba(zc, z.dolu / 100) + ", transparent);" +
       "animation-duration:" + (z.hiz / 10).toFixed(1) + "s;" +
     "}";
-    /* Adet: fazlalık çizgiler gizlenir, gecikmeler kalan sayıya
-       göre eşit aralıklı yeniden dağıtılır — yoksa iki çizgi
-       seçilince ikisi arka arkaya inip biri boşta kalırdı. */
+    /* Adet: fazlalık çizgiler gizlenir, gecikmeler KALAN sayıya göre
+       eşit aralıklı yeniden dağıtılır. Yoksa iki çizgi seçilince
+       ikisi arka arkaya inip akış kesintiye uğrardı. */
     for (var ci = 1; ci <= 3; ci++) {
       var gorunur = ci <= z.adet;
       out += ON + ".kk-cizgiler i:nth-child(" + ci + "){" +
@@ -8826,12 +8776,10 @@ html body #battleMap .map-node.castle-node .kk-sure{
     stil.textContent = out;
   }
 
-  /* ── PANEL ── */
   var SEKME = [
     { k:"genel", et:"GENEL" },
     { k:"cam",   et:"CAM" },
     { k:"taban", et:"TABAN" },
-    { k:"tara",  et:"TARA" },
     { k:"cizgi", et:"ÇİZGİ" }
   ];
 
@@ -8871,13 +8819,6 @@ html body #battleMap .map-node.castle-node .kk-sure{
       ["cepOp", "Çeper op", 0, 100, 1, "%"],
       ["dolu",  "Dolgu",    0, 100, 1, "%"]
     ],
-    tara: [
-      ["ac",   "Görünür", 0, 1, 1, ""],
-      ["yay",  "Dilim yayı", 5, 340, 1, "°"],
-      ["hiz",  "Tur süresi", 10, 200, 1, "×.1s"],
-      ["ton",  "Renk", 0, 100, 1, ""],
-      ["dolu", "Parlaklık", 0, 100, 1, "%"]
-    ],
     cizgi: [
       ["ac",   "Görünür", 0, 1, 1, ""],
       ["adet", "Çizgi sayısı", 1, 3, 1, ""],
@@ -8897,14 +8838,14 @@ html body #battleMap .map-node.castle-node .kk-sure{
       "box-shadow:0 2px 6px rgba(0,20,45,.3);font-variant-numeric:tabular-nums;" +
       "max-height:44vh;display:flex;flex-direction:column}" +
     "#kkAyar.kapali{max-height:none;padding:5px 9px 6px}" +
-    "#kkAyar.kapali .kk-govde,#kkAyar.kapali .kk-sekmeler{display:none}" +
+    "#kkAyar.kapali .kk-govde,#kkAyar.kapali .kk-sekmeler,#kkAyar.kapali .kk-cikti{display:none}" +
     "#kkAyar .kk-ust{display:flex;align-items:center;gap:6px;margin-bottom:5px}" +
     "#kkAyar .kk-ust b{flex:1 1 auto;color:#9fd6ef;font-size:11px}" +
     "#kkAyar .kk-ust button{border:none;border-radius:7px;padding:3px 9px;" +
       "background:rgba(255,255,255,.12);color:#eaf6ff;font:inherit;cursor:pointer}" +
     "#kkAyar .kk-sekmeler{display:flex;gap:4px;margin-bottom:6px}" +
     "#kkAyar .kk-sekmeler button{flex:1 1 0;border:none;border-radius:7px;padding:4px 0;" +
-      "background:rgba(255,255,255,.10);color:#cfe6f5;font:inherit;font-size:9.5px;cursor:pointer;" +
+      "background:rgba(255,255,255,.10);color:#cfe6f5;font:inherit;font-size:10px;cursor:pointer;" +
       "padding-left:1px;padding-right:1px}" +
     "#kkAyar .kk-sekmeler button.on{background:#2fb3d8;color:#05263a}" +
     "#kkAyar .kk-govde{overflow-y:auto;flex:1 1 auto;-webkit-overflow-scrolling:touch}" +
@@ -8915,15 +8856,14 @@ html body #battleMap .map-node.castle-node .kk-sure{
       "background:rgba(255,255,255,.13);color:#eaf6ff;font:inherit;font-size:14px;" +
       "line-height:1;cursor:pointer;padding:0}" +
     "#kkAyar .kk-sat .dg{flex:0 0 54px;text-align:right;font-size:10.5px;color:#ffd257}" +
-    "#kkAyar .kk-cikti{margin-top:6px;width:100%;height:80px;resize:none;" +
+    "#kkAyar .kk-cikti{margin-top:6px;width:100%;height:74px;resize:none;" +
       "border:none;border-radius:8px;background:rgba(255,255,255,.07);color:#ffe9a8;" +
       "font:700 11px/1.45 monospace;padding:6px 7px;" +
       "-webkit-user-select:text;user-select:text}";
 
-  /* Çıktı okunur biçimde: kopyalanamazsa ekran görüntüsü de yeter.
-     Tek satırda tüm sayılar — sırası ALANLAR ile aynı. */
+  /* Çıktı okunur biçimde: kopyalanamazsa ekran görüntüsü de yeter. */
   function ciktiMetni() {
-    var g = A.genel, c = A.cam, t = A.taban, r = A.tara;
+    var g = A.genel, c = A.cam, t = A.taban, z = A.cizgi;
     return "GENEL en" + g.en + " yas" + g.yas + " dx" + g.dx + " dy" + g.dy + "\n" +
            "CAM   " + (c.ac ? "" : "KAPALI ") + "en" + c.en + " boy" + c.boy +
              " dx" + c.dx + " dy" + c.dy + " don" + c.don + " egri" + c.egri +
@@ -8932,17 +8872,13 @@ html body #battleMap .map-node.castle-node .kk-sure{
            "TABAN " + (t.ac ? "" : "KAPALI ") + "en" + t.en + " boy" + t.boy +
              " dx" + t.dx + " dy" + t.dy + " don" + t.don + " egri" + t.egri +
              " ton" + t.ton + " cep" + t.cep + " cepOp" + t.cepOp + " dolu" + t.dolu + "\n" +
-           "TARA  " + (r.ac ? "" : "KAPALI ") + "yay" + r.yay +
-             " hiz" + r.hiz + " ton" + r.ton + " dolu" + r.dolu + "\n" +
-           "CIZGI " + (A.cizgi.ac ? "" : "KAPALI ") + "adet" + A.cizgi.adet +
-             " kal" + A.cizgi.kal + " hiz" + A.cizgi.hiz +
-             " ton" + A.cizgi.ton + " dolu" + A.cizgi.dolu;
+           "CIZGI " + (z.ac ? "" : "KAPALI ") + "adet" + z.adet + " kal" + z.kal +
+             " hiz" + z.hiz + " ton" + z.ton + " dolu" + z.dolu;
   }
 
   function ciktiYaz() {
     var e = document.getElementById("kkCikti");
-    if (!e) return;
-    e.value = ciktiMetni();
+    if (e) e.value = ciktiMetni();
   }
 
   function govdeCiz() {
@@ -9025,48 +8961,33 @@ html body #battleMap .map-node.castle-node .kk-sure{
       this.textContent = p.classList.contains("kapali") ? "▴" : "▾";
     });
 
-    /* ── KOPYALAMA ──
-       Android'de `readonly` bir textarea seçtirir ama kopyalama
-       menüsünü vermez; execCommand da çoğu sürümde sessizce
-       başarısız olur. Güvenilir yol: geçici, ekran dışında DURMAYAN
-       (görünmez ama ölçülebilir) bir textarea yaratıp onu seçmek.
-       Gizli kapsayıcının ölçüsü 0'dır — seçim de 0 olurdu (Tuzak 15),
-       o yüzden `opacity:0` kullanılıyor, `display:none` değil.
-       Hepsi başarısız olursa metin ekranda zaten okunur duruyor. */
+    /* Android'de readonly textarea kopyalama menüsünü vermez ve
+       execCommand çoğu sürümde sessizce başarısız olur. Önce pano
+       API'si denenir, olmazsa geçici bir textarea üzerinden. Hepsi
+       başarısız olursa metin ekranda zaten okunur duruyor. */
     document.getElementById("kkKopya").addEventListener("click", function () {
-      var b = this;
-      var metin = ciktiMetni();
-      var bitti = false;
-
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(metin).then(function () {
-            b.textContent = "ALINDI";
-          }).catch(function () { eskiYol(); });
-          bitti = true;
-        }
-      } catch (err) {}
-
-      if (!bitti) eskiYol();
-
+      var b = this, metin = ciktiMetni(), bitti = false;
       function eskiYol() {
         try {
           var ta = document.createElement("textarea");
           ta.value = metin;
-          ta.style.cssText = "position:fixed;left:0;top:0;width:120px;height:60px;" +
-                             "opacity:0;z-index:-1;";
+          ta.style.cssText = "position:fixed;left:0;top:0;width:120px;height:60px;opacity:0;z-index:-1;";
           document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          ta.setSelectionRange(0, metin.length);
+          ta.focus(); ta.select(); ta.setSelectionRange(0, metin.length);
           var ok = document.execCommand("copy");
           ta.remove();
           b.textContent = ok ? "ALINDI" : "EKRANI ÇEK";
-        } catch (e2) {
-          b.textContent = "EKRANI ÇEK";
-        }
+        } catch (e2) { b.textContent = "EKRANI ÇEK"; }
       }
-
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(metin)
+            .then(function () { b.textContent = "ALINDI"; })
+            .catch(eskiYol);
+          bitti = true;
+        }
+      } catch (err) {}
+      if (!bitti) eskiYol();
       setTimeout(function () { b.textContent = "KOPYALA"; }, 1800);
     });
 
@@ -9079,94 +9000,3 @@ html body #battleMap .map-node.castle-node .kk-sure{
   setTimeout(kur, 1200);
 })();
 
-
-/* ═══════════════════════════════════════════════════════════════
-   KALKAN TANI ŞERİDİ  —  ?kalkantani=1
-
-   Adres satırında bayrak yoksa HİÇBİR ŞEY yapmaz. Kubbe
-   görünmediğinde hangi halkanın koptuğunu ayırt eder:
-
-     VERİ    → state.kalkanBitis dolu mu, kalan süre ne
-     DÜĞÜM   → haritada kaç kale var, data-kb neyi tutuyor
-     DOM     → .kk-kubbe eklenmiş mi
-     ÖLÇÜ    → eklenmişse ekranda kaç piksel yer kaplıyor
-
-   Kendi setInterval'i var: gösterdiği an ile gerçek durum
-   ayrışmasın (tanı aracının kendisi yalan söyleyebilir).
-   İş bitince BU BLOĞU SİL.
-   ═══════════════════════════════════════════════════════════════ */
-(function kalkanTani() {
-  "use strict";
-  try { if (location.search.indexOf("kalkantani=1") < 0) return; }
-  catch (e) { return; }
-
-  var kutu = document.createElement("div");
-  kutu.id = "kalkanTaniKutu";
-  kutu.style.cssText =
-    "position:fixed;left:6px;right:6px;bottom:96px;z-index:99999;" +
-    "background:#08243c;color:#dff2ff;border-radius:10px;padding:8px 10px;" +
-    "font:700 11px/1.45 'Baloo 2',monospace;white-space:pre-wrap;" +
-    "font-variant-numeric:tabular-nums;box-shadow:0 2px 6px rgba(0,20,45,.3);";
-  function ekle() {
-    if (document.body && !document.getElementById("kalkanTaniKutu")) {
-      document.body.appendChild(kutu);
-    }
-  }
-
-  function yaz() {
-    ekle();
-    var L = [];
-
-    /* 1) VERİ */
-    var kb = -1, hata = "";
-    try {
-      if (typeof state === "undefined") hata = "state TANIMSIZ";
-      else if (!state) hata = "state null";
-      else kb = Number(state.kalkanBitis || 0) || 0;
-    } catch (e) { hata = "state okunamadi: " + e.message; }
-
-    if (hata) L.push("VERI: " + hata);
-    else {
-      var kalan = kb - Date.now();
-      L.push("VERI: kalkanBitis=" + kb +
-             " kalan=" + (kb ? Math.round(kalan / 1000) + "s" : "YOK"));
-    }
-    L.push("FN: kullan=" + (typeof window.kalkanKullan) +
-           " yayin=" + (typeof window.kalkaniYayinla));
-
-    /* 2) DÜĞÜM */
-    var harita = document.getElementById("battleMap");
-    L.push("HARITA: #battleMap " + (harita ? "VAR" : "YOK"));
-    var liste = document.querySelectorAll("#battleMap .map-node.castle-node");
-    L.push("DUGUM: kale=" + liste.length);
-
-    /* 3+4) DOM ve ÖLÇÜ — her kale için tek satır */
-    for (var i = 0; i < liste.length && i < 6; i++) {
-      var n = liste[i];
-      var ad = n.getAttribute("data-cname") || "?";
-      var benim = n.classList.contains("castle-own");
-      var dkb = n.getAttribute("data-kb");
-      var av = n.querySelector(".node-avatar");
-      var k = n.querySelector(".kk-kubbe");
-      var olcu = "-";
-      if (k) {
-        var r = k.getBoundingClientRect();
-        olcu = Math.round(r.width) + "x" + Math.round(r.height) +
-               " @" + Math.round(r.left) + "," + Math.round(r.top);
-      }
-      L.push((benim ? "> " : "  ") + ad +
-             " kb=" + dkb +
-             " avatar=" + (av ? "VAR" : "YOK") +
-             " kubbe=" + (k ? "VAR" : "YOK") +
-             " olcu=" + olcu);
-    }
-
-    /* 5) STİL yüklendi mi */
-    L.push("STIL: " + (document.getElementById("temaKalkanKubbe") ? "VAR" : "YOK"));
-
-    kutu.textContent = L.join("\n");
-  }
-
-  setInterval(yaz, 1000);
-  setTimeout(yaz, 500);
-})();
