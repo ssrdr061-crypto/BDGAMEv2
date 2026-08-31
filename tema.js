@@ -8513,19 +8513,18 @@ html body #battleMap .map-node.castle-node .kk-kubbe{
 }
 
 /* ── DOLU ENERJİ KÜRESİ ──
-   Dört durak: sol üstte parlak nokta, ortada yarı saydam gövde,
-   kenara doğru koyulaşma, dışta parlak çeper. Küreyi küre yapan
-   bu sıralamadır; tek düz dolgu verilseydi düz bir daire olurdu. */
+   PARLAMA YOK: sol üstteki ışık lekesi kaldırıldı. Gradyan
+   merkezden dışa doğru koyulaşıyor — hacim hissi kenardaki
+   yoğunlaşmadan geliyor, parlak noktadan değil. */
 html body #battleMap .map-node.castle-node .kk-cam{
   position:absolute; inset:auto;
   left:50%; top:50%; width:100%; height:100%;
   transform:translate(-50%,-50%);
   border-radius:50%;
   border:2px solid rgba(190,248,255,.90);
-  background:radial-gradient(circle at 36% 26%,
-              rgba(255,255,255,.38)  0%,
-              rgba(140,244,255,.39) 20%,
-              rgba(140,244,255,.22) 55%,
+  background:radial-gradient(circle at 50% 50%,
+              rgba(140,244,255,.22)  0%,
+              rgba(140,244,255,.29) 55%,
               rgba(140,244,255,.53) 86%,
               rgba(140,244,255,.70) 100%);
   box-shadow:0 0 8px rgba(140,244,255,.20);
@@ -8534,29 +8533,19 @@ html body #battleMap .map-node.castle-node .kk-cam{
 }
 @keyframes kkNefes{ 0%,100%{ opacity:.88; } 50%{ opacity:1; } }
 
-/* ── TABAN HALKASI ──
-   Kürenin en geniş yatay çemberinin izdüşümü: aynı genişlik,
-   yarısı yükseklik. Karo oranıyla (64x32) aynı 2:1 — perspektifi
-   satan parça budur, küre onsuz havada asılı durur. */
-html body #battleMap .map-node.castle-node .kk-taban{
-  position:absolute; inset:auto;
-  left:50%; top:50%; width:100%; height:50%;
-  transform:translate(-50%,-50%);
-  border-radius:50%;
-  border:1px solid rgba(150,246,255,.55);
-  background:radial-gradient(ellipse at center,
-              rgba(150,246,255,.14), transparent 74%);
-  animation:kkTaban 3s ease-in-out infinite;
-  will-change:opacity;
-}
-@keyframes kkTaban{ 0%,100%{ opacity:.5; } 50%{ opacity:.95; } }
+/* ── AKAN OVAL ÇİZGİLER ──
+   Her çizgi kürenin üzerinde aşağı kayan bir ENLEM HALKASIDIR.
+   Düz yatay çizgi değil: üstte dar başlar, ekvatorda kürenin tam
+   genişliğine ulaşır, altta yine daralır. Küre üzerinde çizilmiş
+   gibi durmasının sebebi budur — sabit genişlikte olsaydı kürenin
+   önünden geçen düz bir çubuk gibi görünürdü.
 
-/* ── AKAN ÇİZGİLER ──
-   Kürenin içinde üstten alta inen yatay taramalar. Gecikmeler
-   eşit aralıklı: akış kesintisiz olsun, biri diğerini beklemesin.
-   Konum top ile canlandırılıyor, transform ile değil — çizgi ince
-   olduğu icin translateY yuzdesi kendi boyuna gore hesaplanir ve
-   kapsayiciyi hic kat etmez. */
+   Bunun için üç şey birlikte canlandırılır: dikey konum (top),
+   genişlik ve yükseklik. Her halka kendi merkezine oturur
+   (translate -50%,-50%), böylece büyüyüp küçülürken kaymaz.
+
+   Gecikmeler eşit aralıklı: akış kesintisiz olsun, biri
+   diğerini beklemesin. */
 html body #battleMap .map-node.castle-node .kk-cizgiler{
   position:absolute; inset:auto;
   left:50%; top:50%; width:100%; height:100%;
@@ -8565,19 +8554,22 @@ html body #battleMap .map-node.castle-node .kk-cizgiler{
   overflow:hidden;
 }
 html body #battleMap .map-node.castle-node .kk-cizgiler i{
-  position:absolute; left:0; width:100%; height:2px;
-  background:linear-gradient(90deg,
-              transparent, rgba(240,254,255,.85), transparent);
+  position:absolute; left:50%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  border:2px solid rgba(240,254,255,.85);
+  background:none;
   animation:kkSuz 4s linear infinite;
-  will-change:top, opacity;
+  will-change:top, width, height, opacity;
 }
 html body #battleMap .map-node.castle-node .kk-cizgiler i:nth-child(2){ animation-delay:1.33s; }
 html body #battleMap .map-node.castle-node .kk-cizgiler i:nth-child(3){ animation-delay:2.66s; }
 @keyframes kkSuz{
-  0%  { top:-4%;  opacity:0; }
-  12% { opacity:1; }
-  88% { opacity:1; }
-  100%{ top:102%; opacity:0; }
+  0%  { top:10%; width:20%;  height:6%;  opacity:0; }
+  18% { opacity:1; }
+  50% { top:50%; width:100%; height:30%; }
+  82% { opacity:1; }
+  100%{ top:90%; width:20%;  height:6%;  opacity:0; }
 }
 
 html body #battleMap .map-node.castle-node .kk-sure{
@@ -8610,7 +8602,7 @@ html body #battleMap .map-node.castle-node .kk-sure{
     if (!av) return;
     var k = document.createElement("div");
     k.className = "kk-kubbe";
-    k.innerHTML = '<i class="kk-taban"></i><i class="kk-cam"></i>' +
+    k.innerHTML = '<i class="kk-cam"></i>' +
                   '<span class="kk-cizgiler"><i></i><i></i><i></i></span>';
     av.appendChild(k);
   }
@@ -8681,9 +8673,7 @@ html body #battleMap .map-node.castle-node .kk-sure{
   var A = {
     genel: { en:112, yas:90, dx:0, dy:-4 },
     cam:   { ac:1, en:100, boy:100, dx:0, dy:0, don:0, egri:0,
-             ton:62, cep:20, cepOp:90, dolu:70, isik:38, hale:20 },
-    taban: { ac:1, en:100, boy:50,  dx:0, dy:0, don:0, egri:0,
-             ton:70, cep:10, cepOp:55, dolu:14 },
+             ton:62, cep:20, cepOp:90, dolu:70, hale:20 },
     cizgi: { ac:1, adet:3, kal:20, hiz:40, ton:92, dolu:85 }
   };
 
@@ -8715,8 +8705,8 @@ html body #battleMap .map-node.castle-node .kk-sure{
   var ON = "html body #battleMap .map-node.castle-node ";
 
   function uygula() {
-    var g = A.genel, c = A.cam, t = A.taban, z = A.cizgi;
-    var cc = ton(c.ton), tc = ton(t.ton), zc = ton(z.ton);
+    var g = A.genel, c = A.cam, z = A.cizgi;
+    var cc = ton(c.ton), zc = ton(z.ton);
     var out = "";
 
     out += ON + ".kk-kubbe{" +
@@ -8732,31 +8722,17 @@ html body #battleMap .map-node.castle-node .kk-sure{
       "transform:translate(calc(-50% + " + c.dx + "px), calc(-50% + " + c.dy + "px))" +
         " rotate(" + c.don + "deg) skewX(" + c.egri + "deg);" +
       "border:" + (c.cep / 10).toFixed(1) + "px solid " + rgba(cc, c.cepOp / 100) + ";" +
-      "background:radial-gradient(circle at 36% 26%," +
-        "rgba(255,255,255," + (c.isik / 100).toFixed(3) + ") 0%," +
-        rgba(cc, c.dolu / 100 * 0.56) + " 20%," +
-        rgba(cc, c.dolu / 100 * 0.32) + " 55%," +
+      "background:radial-gradient(circle at 50% 50%," +
+        rgba(cc, c.dolu / 100 * 0.32) + " 0%," +
+        rgba(cc, c.dolu / 100 * 0.42) + " 55%," +
         rgba(cc, c.dolu / 100 * 0.76) + " 86%," +
         rgba(cc, c.dolu / 100) + " 100%);" +
       "box-shadow:0 0 " + Math.round(c.hale / 2.5) + "px " + rgba(cc, c.hale / 100 * 0.5) + ";" +
     "}";
 
-    out += ON + ".kk-taban{" +
-      "display:" + (t.ac ? "block" : "none") + ";" +
-      "inset:auto;left:50%;top:50%;" +
-      "width:" + t.en + "%;height:" + t.boy + "%;" +
-      "transform:translate(calc(-50% + " + t.dx + "px), calc(-50% + " + t.dy + "px))" +
-        " rotate(" + t.don + "deg) skewX(" + t.egri + "deg);" +
-      "border:" + (t.cep / 10).toFixed(1) + "px solid " + rgba(tc, t.cepOp / 100) + ";" +
-      "background:radial-gradient(ellipse at center," +
-        rgba(tc, t.dolu / 100) + ", transparent 74%);" +
-    "}";
-
     out += ON + ".kk-cizgiler{ display:" + (z.ac ? "block" : "none") + "; }";
     out += ON + ".kk-cizgiler i{" +
-      "height:" + (z.kal / 10).toFixed(1) + "px;" +
-      "background:linear-gradient(90deg, transparent," +
-        rgba(zc, z.dolu / 100) + ", transparent);" +
+      "border:" + (z.kal / 10).toFixed(1) + "px solid " + rgba(zc, z.dolu / 100) + ";" +
       "animation-duration:" + (z.hiz / 10).toFixed(1) + "s;" +
     "}";
     /* Adet: fazlalık çizgiler gizlenir, gecikmeler KALAN sayıya göre
@@ -8779,7 +8755,6 @@ html body #battleMap .map-node.castle-node .kk-sure{
   var SEKME = [
     { k:"genel", et:"GENEL" },
     { k:"cam",   et:"CAM" },
-    { k:"taban", et:"TABAN" },
     { k:"cizgi", et:"ÇİZGİ" }
   ];
 
@@ -8803,21 +8778,7 @@ html body #battleMap .map-node.castle-node .kk-sure{
       ["cep",   "Çeper",    0, 80, 1, "×.1px"],
       ["cepOp", "Çeper op", 0, 100, 1, "%"],
       ["dolu",  "Dolgu",    0, 100, 1, "%"],
-      ["isik",  "Parlak nk",0, 100, 1, "%"],
       ["hale",  "Dış hale", 0, 100, 1, "%"]
-    ],
-    taban: [
-      ["ac",    "Görünür",  0, 1, 1, ""],
-      ["en",    "Genişlik", 20, 200, 1, "%"],
-      ["boy",   "Yükseklik",5, 160, 1, "%"],
-      ["dx",    "Yatay ↔",  -80, 80, 1, "px"],
-      ["dy",    "Dikey ↕",  -80, 80, 1, "px"],
-      ["don",   "Açı ↻",    -90, 90, 1, "°"],
-      ["egri",  "Eğri ⇗",   -60, 60, 1, "°"],
-      ["ton",   "Renk",     0, 100, 1, ""],
-      ["cep",   "Çeper",    0, 80, 1, "×.1px"],
-      ["cepOp", "Çeper op", 0, 100, 1, "%"],
-      ["dolu",  "Dolgu",    0, 100, 1, "%"]
     ],
     cizgi: [
       ["ac",   "Görünür", 0, 1, 1, ""],
@@ -8863,15 +8824,12 @@ html body #battleMap .map-node.castle-node .kk-sure{
 
   /* Çıktı okunur biçimde: kopyalanamazsa ekran görüntüsü de yeter. */
   function ciktiMetni() {
-    var g = A.genel, c = A.cam, t = A.taban, z = A.cizgi;
+    var g = A.genel, c = A.cam, z = A.cizgi;
     return "GENEL en" + g.en + " yas" + g.yas + " dx" + g.dx + " dy" + g.dy + "\n" +
            "CAM   " + (c.ac ? "" : "KAPALI ") + "en" + c.en + " boy" + c.boy +
              " dx" + c.dx + " dy" + c.dy + " don" + c.don + " egri" + c.egri +
              " ton" + c.ton + " cep" + c.cep + " cepOp" + c.cepOp + " dolu" + c.dolu +
-             " isik" + c.isik + " hale" + c.hale + "\n" +
-           "TABAN " + (t.ac ? "" : "KAPALI ") + "en" + t.en + " boy" + t.boy +
-             " dx" + t.dx + " dy" + t.dy + " don" + t.don + " egri" + t.egri +
-             " ton" + t.ton + " cep" + t.cep + " cepOp" + t.cepOp + " dolu" + t.dolu + "\n" +
+             " hale" + c.hale + "\n" +
            "CIZGI " + (z.ac ? "" : "KAPALI ") + "adet" + z.adet + " kal" + z.kal +
              " hiz" + z.hiz + " ton" + z.ton + " dolu" + z.dolu;
   }
