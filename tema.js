@@ -8506,17 +8506,29 @@ html body #battleMap .map-node.castle-node .kk-kubbe{
   z-index:3;
 }
 
+/* ── CAM KUBBE: DOLU KÜRE ──
+   İnce bir çember değil, gerçekten dolu bir enerji küresi.
+   Dört durak: sol üstte parlak nokta (ışık kaynağı), ortada
+   yarı saydam gövde, kenara doğru koyulaşma, dışta parlak çeper.
+   Küreyi küre yapan şey bu sıralamadır; tek düz dolgu verilseydi
+   düz bir daire gibi dururdu.
+
+   Dış hale (box-shadow) BİLEREK var: görünüm kuralındaki "radial
+   parlaklık yok" maddesi arayüz kabartısı içindir, sahnedeki
+   enerji alanı için değil. Panelden sıfırlanabilir. */
 html body #battleMap .map-node.castle-node .kk-cam{
   position:absolute; inset:auto;
   left:50%; top:50%; width:100%; height:100%;
   transform:translate(-50%,-50%);
   border-radius:50%;
-  border:2px solid rgba(140,244,255,.92);
-  background:radial-gradient(ellipse at 40% 28%,
-              rgba(140,244,255,.19) 0%,
-              rgba(140,244,255,.10) 46%,
-              rgba(140,244,255,.19) 78%,
-              rgba(140,244,255,.34) 100%);
+  border:2px solid rgba(190,248,255,.90);
+  background:radial-gradient(circle at 36% 26%,
+              rgba(255,255,255,.38)  0%,
+              rgba(140,244,255,.39) 20%,
+              rgba(140,244,255,.22) 55%,
+              rgba(140,244,255,.53) 86%,
+              rgba(140,244,255,.70) 100%);
+  box-shadow:0 0 8px rgba(140,244,255,.20);
   animation:kkNefes 3s ease-in-out infinite;
   will-change:opacity;
 }
@@ -8539,7 +8551,11 @@ html body #battleMap .map-node.castle-node .kk-taban{
    Eskiden soldan sağa geçen düz bir banttı; artık koni gradyanı
    kubbenin ÇEVRESİNDE dönüyor. Kırpma kapsayıcısı elips olduğu
    için dönen dilim kubbenin dışına taşmaz. */
+/* Dönen süpürme VARSAYILAN OLARAK KAPALI: kalkan çerçevesi
+   sabit duruyor, hareketi süzülen çizgiler veriyor. Panelden
+   açılabilir. */
 html body #battleMap .map-node.castle-node .kk-parla{
+  display:none;
   position:absolute; inset:auto;
   left:50%; top:50%; width:100%; height:100%;
   transform:translate(-50%,-50%);
@@ -8577,7 +8593,7 @@ html body #battleMap .map-node.castle-node .kk-cizgiler{
 html body #battleMap .map-node.castle-node .kk-cizgiler i{
   position:absolute; left:0; width:100%; height:2px;
   background:linear-gradient(90deg,
-              transparent, rgba(232,253,255,.55), transparent);
+              transparent, rgba(240,254,255,.85), transparent);
   animation:kkSuz 4s linear infinite;
   will-change:top, opacity;
 }
@@ -8696,11 +8712,11 @@ html body #battleMap .map-node.castle-node .kk-sure{
   var A = {
     genel: { en:112, yas:90, dx:0, dy:-4 },
     cam:   { ac:1, en:100, boy:100, dx:0, dy:0, don:0, egri:0,
-             ton:62, cep:20, cepOp:92, dolu:34 },
+             ton:62, cep:20, cepOp:90, dolu:70, isik:38, hale:20 },
     taban: { ac:1, en:100, boy:50,  dx:0, dy:0, don:0, egri:0,
              ton:70, cep:10, cepOp:55, dolu:14 },
-    tara:  { ac:1, yay:55, hiz:55, ton:88, dolu:45 },
-    cizgi: { ac:1, adet:3, kal:20, hiz:40, ton:88, dolu:55 }
+    tara:  { ac:0, yay:55, hiz:55, ton:88, dolu:45 },
+    cizgi: { ac:1, adet:3, kal:20, hiz:40, ton:92, dolu:85 }
   };
 
   /* ── RENK TONU ──
@@ -8755,11 +8771,14 @@ html body #battleMap .map-node.castle-node .kk-sure{
       "transform:translate(calc(-50% + " + c.dx + "px), calc(-50% + " + c.dy + "px))" +
         " rotate(" + c.don + "deg) skewX(" + c.egri + "deg);" +
       "border:" + (c.cep / 10).toFixed(1) + "px solid " + rgba(cc, c.cepOp / 100) + ";" +
-      "background:radial-gradient(ellipse at 40% 28%," +
-        rgba(cc, c.dolu / 100 * 0.55) + " 0%," +
-        rgba(cc, c.dolu / 100 * 0.30) + " 46%," +
-        rgba(cc, c.dolu / 100 * 0.55) + " 78%," +
+      "background:radial-gradient(circle at 36% 26%," +
+        "rgba(255,255,255," + (c.isik / 100).toFixed(3) + ") 0%," +
+        rgba(cc, c.dolu / 100 * 0.56) + " 20%," +
+        rgba(cc, c.dolu / 100 * 0.32) + " 55%," +
+        rgba(cc, c.dolu / 100 * 0.76) + " 86%," +
         rgba(cc, c.dolu / 100) + " 100%);" +
+      "box-shadow:0 0 " + Math.round(c.hale / 2.5) + "px " +
+        rgba(cc, c.hale / 100 * 0.5) + ";" +
     "}";
 
     out += ON + ".kk-taban{" +
@@ -8835,7 +8854,9 @@ html body #battleMap .map-node.castle-node .kk-sure{
       ["ton",   "Renk",     0, 100, 1, ""],
       ["cep",   "Çeper",    0, 80, 1, "×.1px"],
       ["cepOp", "Çeper op", 0, 100, 1, "%"],
-      ["dolu",  "Dolgu",    0, 100, 1, "%"]
+      ["dolu",  "Dolgu",    0, 100, 1, "%"],
+      ["isik",  "Parlak nk",0, 100, 1, "%"],
+      ["hale",  "Dış hale", 0, 100, 1, "%"]
     ],
     taban: [
       ["ac",    "Görünür",  0, 1, 1, ""],
@@ -8906,7 +8927,8 @@ html body #battleMap .map-node.castle-node .kk-sure{
     return "GENEL en" + g.en + " yas" + g.yas + " dx" + g.dx + " dy" + g.dy + "\n" +
            "CAM   " + (c.ac ? "" : "KAPALI ") + "en" + c.en + " boy" + c.boy +
              " dx" + c.dx + " dy" + c.dy + " don" + c.don + " egri" + c.egri +
-             " ton" + c.ton + " cep" + c.cep + " cepOp" + c.cepOp + " dolu" + c.dolu + "\n" +
+             " ton" + c.ton + " cep" + c.cep + " cepOp" + c.cepOp + " dolu" + c.dolu +
+             " isik" + c.isik + " hale" + c.hale + "\n" +
            "TABAN " + (t.ac ? "" : "KAPALI ") + "en" + t.en + " boy" + t.boy +
              " dx" + t.dx + " dy" + t.dy + " don" + t.don + " egri" + t.egri +
              " ton" + t.ton + " cep" + t.cep + " cepOp" + t.cepOp + " dolu" + t.dolu + "\n" +
