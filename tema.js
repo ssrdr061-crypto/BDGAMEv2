@@ -8534,6 +8534,16 @@ document.head.appendChild(st);
   }
   function rgba(c, o) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + o.toFixed(3) + ")"; }
 
+  /* ── calc İÇİNDE İŞARET ──
+     calc(-50% + -2.1%) GEÇERSİZDİR; tarayıcı bildirimin TAMAMINI
+     atar. Belirtisi sinsi: kubbe ortalanmaz ve kaydırma sürgüleri
+     hiçbir şey yapmaz, ama konsolda hata da çıkmaz. Negatif değer
+     "+ -x" değil "- x" olarak yazılmak zorunda. */
+  function kaydir(v) {
+    var n = Number(v) || 0;
+    return n < 0 ? " - " + Math.abs(n) + "%" : " + " + n + "%";
+  }
+
   var st = document.createElement("style");
   st.id = "temaKalkanKubbe";
   document.head.appendChild(st);
@@ -8553,7 +8563,7 @@ document.head.appendChild(st);
     st.textContent =
       "html body #battleMap .map-node.castle-node .kk-kubbe{" +
         "position:absolute;left:50%;top:50%;width:150%;aspect-ratio:1/1;" +
-        "transform:translate(calc(-50% + " + AY.dx + "%), calc(-50% + " + AY.dy + "%));" +
+        "transform:translate(calc(-50%" + kaydir(AY.dx) + "), calc(-50%" + kaydir(AY.dy) + "));" +
         "pointer-events:none;z-index:3;}" +
       "html body #battleMap .map-node.castle-node .kk-svg{" +
         "width:100%;height:100%;overflow:visible;display:block;}" +
@@ -8588,7 +8598,7 @@ document.head.appendChild(st);
     var sure = AY.hiz / 10, pay = sure / AY.adet * (AY.aralik / 100), halka = "";
     for (var j = 0; j < AY.adet; j++) {
       halka += '<ellipse cx="0" fill="none" stroke="' + rgba(zc, AY.zDolu / 100) +
-               '" stroke-width="' + (AY.kal / 10).toFixed(1) +
+               '" stroke-width="' + (AY.kal / 10 * 2).toFixed(2) +
                '" style="animation:kkHalka ' + sure.toFixed(1) +
                's linear infinite;animation-delay:-' + (j * pay).toFixed(2) + 's"/>';
     }
