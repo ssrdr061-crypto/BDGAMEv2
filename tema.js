@@ -8910,3 +8910,189 @@ document.head.appendChild(st);
   else window.addEventListener("load", kur);
   setTimeout(kur, 1200);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   ELMAS SİMGESİ AYAR PANELİ  —  ?elmasayar=1
+   ------------------------------------------------------------
+   Görselin ölçüsünü ekranda canlı ayarlamak için. Sürgüler oynadıkça
+   sayfaya <style id="elmasAyarStil"> yazılır; değerler localStorage'da
+   durur, sayfayı yenileyince kaybolmaz.
+   İş bitince: KOPYALA'ya bas, çıkan CSS'i bu dosyanın kalıcı kuralına
+   geçir ve BU BLOĞU SİL. Panel geçicidir.
+
+   NEDEN !important: .kay-sim kuralı bu dosyanın 6179. satırında
+   tanımlı. Bu blok dosyanın SONUNDA, yani sonradan eklenen stil
+   kazanır — ama HUD hapının kendi font-size'ı ayrı bir eksen olduğu
+   için karışıklığa yer bırakmamak adına !important yazılıyor.
+   ══════════════════════════════════════════════════════════════ */
+(function elmasAyarPaneli() {
+"use strict";
+if (!/[?&]elmasayar=1/.test(location.search)) return;
+
+var ANAHTAR = "elmasAyar1";
+var VARSAYILAN = { boy: 1.15, dikey: -0.20, hud: 13, canta: 1.05 };
+
+var A;
+try { A = JSON.parse(localStorage.getItem(ANAHTAR)) || {}; } catch (e) { A = {}; }
+for (var k in VARSAYILAN) if (typeof A[k] !== "number") A[k] = VARSAYILAN[k];
+
+function kaydet() {
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
+}
+
+function ciktiMetni() {
+  return ".kay-sim.elmas-sim{\n" +
+         "  width:" + A.boy.toFixed(2) + "em; height:" + A.boy.toFixed(2) + "em;\n" +
+         "  vertical-align:" + A.dikey.toFixed(2) + "em;\n" +
+         "}\n" +
+         ".hud-pill .gem{ font-size:" + A.hud + "px; }\n" +
+         "#panel-inventory .inv-summary .stat-card .num::before{\n" +
+         "  width:" + A.canta.toFixed(2) + "em; height:" + A.canta.toFixed(2) + "em;\n" +
+         "}";
+}
+
+var stil = document.getElementById("elmasAyarStil");
+if (!stil) {
+  stil = document.createElement("style");
+  stil.id = "elmasAyarStil";
+  document.head.appendChild(stil);
+}
+
+function uygula() {
+  stil.textContent =
+    ".kay-sim.elmas-sim{width:" + A.boy + "em !important;height:" + A.boy + "em !important;" +
+      "vertical-align:" + A.dikey + "em !important;}" +
+    "html body .hud-pill .gem{font-size:" + A.hud + "px !important;}" +
+    "#panel-inventory .inv-summary .stat-card .num::before{" +
+      "width:" + A.canta + "em !important;height:" + A.canta + "em !important;}";
+  var c = document.getElementById("eaCikti");
+  if (c) c.textContent = ciktiMetni();
+}
+
+function kur() {
+  if (document.getElementById("elmasAyarPanel")) return;
+
+  var p = document.createElement("div");
+  p.id = "elmasAyarPanel";
+  p.style.cssText =
+    "position:fixed;left:0;right:0;bottom:0;z-index:100000;" +
+    "background:#0d2137;color:#eaf6ff;font:600 12px/1.3 'Baloo 2',sans-serif;" +
+    "padding:8px 10px 10px;max-height:60vh;overflow-y:auto;" +
+    "box-shadow:0 -2px 6px rgba(0,20,45,.3);";
+
+  /* Sürgü satırı: etiket · sürgü · sayı · örnek simge */
+  function satir(ad, alan, min, max, adim, birim) {
+    return '<div style="display:flex;align-items:center;gap:7px;margin:5px 0;">' +
+             '<span style="width:96px;flex:0 0 auto;">' + ad + '</span>' +
+             '<input type="range" data-alan="' + alan + '" min="' + min + '" max="' + max +
+               '" step="' + adim + '" value="' + A[alan] + '" style="flex:1;min-width:0;">' +
+             '<span data-deger="' + alan + '" style="width:52px;flex:0 0 auto;text-align:right;' +
+               'font-variant-numeric:tabular-nums;color:#7fe4ff;">' + A[alan] + birim + '</span>' +
+           '</div>';
+  }
+
+  p.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+      '<b style="font-size:13px;letter-spacing:.4px;">ELMAS AYAR</b>' +
+      '<span style="flex:1;"></span>' +
+      '<button id="eaSifirla" style="padding:4px 10px;border:none;border-radius:8px;' +
+        'background:#1d3f63;color:#eaf6ff;font:600 11.5px/1 \'Baloo 2\',sans-serif;">SIFIRLA</button>' +
+      '<button id="eaKopya" style="padding:4px 10px;border:none;border-radius:8px;' +
+        'background:#2f6ea8;color:#eaf6ff;font:600 11.5px/1 \'Baloo 2\',sans-serif;">KOPYALA</button>' +
+      '<button id="eaKapat" style="padding:4px 10px;border:none;border-radius:8px;' +
+        'background:#c62828;color:#fff;font:600 11.5px/1 \'Baloo 2\',sans-serif;">KAPAT</button>' +
+    '</div>' +
+
+    /* Canlı örnek: gerçek yazı içinde nasıl duruyor */
+    '<div style="background:#12304e;border-radius:9px;padding:6px 9px;margin:4px 0 6px;">' +
+      '<div style="font-size:13px;">HUD: <span class="gem" style="font-size:' + A.hud + 'px">' +
+        '<img class="kay-sim elmas-sim" src="elmas.webp" alt="" ' +
+        'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))">' +
+      '</span> <b>4,8B</b></div>' +
+      '<div style="font-size:12.5px;margin-top:3px;">Mağaza: ' +
+        '<img class="kay-sim elmas-sim" src="elmas.webp" alt="" ' +
+        'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))">' +
+        ' 10.000</div>' +
+      '<div style="font-size:22px;margin-top:3px;">' +
+        '<img class="kay-sim elmas-sim" src="elmas.webp" alt="" ' +
+        'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))">' +
+        ' 31,5M</div>' +
+    '</div>' +
+
+    satir("Boy (em)",        "boy",   0.70, 3.00, 0.05, "") +
+    satir("Dikey (em)",      "dikey", -0.80, 0.40, 0.02, "") +
+    satir("HUD hapı (px)",   "hud",   8,    32,   1,    "px") +
+    satir("Çanta özet (em)", "canta", 0.70, 2.50, 0.05, "") +
+
+    '<div style="margin-top:6px;font-size:11px;color:#9fc6e6;">' +
+      'Boy = yazının kaç katı. Dikey eksi ise simge aşağı iner. ' +
+      'HUD hapı ayrı eksen: oradaki em bu px değerinden hesaplanır.</div>' +
+    '<pre id="eaCikti" style="margin:6px 0 0;padding:7px 9px;background:#08192b;' +
+      'border-radius:8px;font:600 10.5px/1.35 monospace;white-space:pre-wrap;' +
+      'color:#bfe9ff;">' + ciktiMetni() + '</pre>';
+
+  document.body.appendChild(p);
+
+  p.querySelectorAll('input[type="range"]').forEach(function (r) {
+    r.addEventListener("input", function () {
+      var alan = r.dataset.alan;
+      A[alan] = parseFloat(r.value);
+      var d = p.querySelector('[data-deger="' + alan + '"]');
+      if (d) d.textContent = A[alan] + (alan === "hud" ? "px" : "");
+      /* Örnekteki HUD hapı da anında değişsin */
+      if (alan === "hud") {
+        var g = p.querySelector(".gem");
+        if (g) g.style.fontSize = A.hud + "px";
+      }
+      kaydet();
+      uygula();
+    });
+  });
+
+  document.getElementById("eaSifirla").addEventListener("click", function () {
+    for (var kk in VARSAYILAN) A[kk] = VARSAYILAN[kk];
+    kaydet();
+    p.remove();
+    kur();
+    uygula();
+  });
+
+  document.getElementById("eaKapat").addEventListener("click", function () { p.remove(); });
+
+  /* Android: readonly textarea kopyalama menüsü vermez, execCommand
+     çoğu sürümde sessizce düşer. Önce pano API'si, olmazsa geçici
+     off-screen textarea. */
+  document.getElementById("eaKopya").addEventListener("click", function () {
+    var b = this, metin = ciktiMetni(), bitti = false;
+    function eskiYol() {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = metin;
+        ta.style.cssText = "position:fixed;left:0;top:0;width:120px;height:60px;opacity:0;z-index:-1;";
+        document.body.appendChild(ta);
+        ta.focus(); ta.select(); ta.setSelectionRange(0, metin.length);
+        var ok = document.execCommand("copy");
+        ta.remove();
+        b.textContent = ok ? "ALINDI" : "EKRANI ÇEK";
+      } catch (e2) { b.textContent = "EKRANI ÇEK"; }
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(metin)
+          .then(function () { b.textContent = "ALINDI"; })
+          .catch(eskiYol);
+        bitti = true;
+      }
+    } catch (err) {}
+    if (!bitti) eskiYol();
+    setTimeout(function () { b.textContent = "KOPYALA"; }, 1800);
+  });
+
+  uygula();
+}
+
+uygula();
+if (document.readyState === "complete") kur();
+else window.addEventListener("load", kur);
+setTimeout(kur, 1200);
+})();
