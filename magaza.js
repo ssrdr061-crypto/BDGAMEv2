@@ -91,17 +91,19 @@ const shopItems = [
   /* ── KAHRAMAN PARÇALARI ──
      Mor parça BEŞ mor kahramanın ORTAK havuzuna, turuncular
      kahramana ÖZEL havuza düşer (gelistir.js). Haftada 10'ar. */
+  /* PARÇA GÖRSELİ BURADA YAZILMAZ — gelistir.js PARCA_GORSEL tek
+     kaynaktır, kart çerçeveyle birlikte PARCA.kutu() ile çizilir. */
   { name: "Mor Kahraman Parçası", price: 15000, isParca: true, parcaKey: "mor",
-    icon: "◆", gorsel: "morparca.webp",
+    icon: "◆",
     parcaDesc: "HALVORSEN, MİKİAN, ROBERT, FRANKLY ve YU-NEEB'in seviyesini yükseltmekte kullanılır." },
   { name: "STELLİN Parçası", price: 30000, isParca: true, parcaKey: "celik_savasci",
-    icon: "◆", gorsel: "stellinparca.webp",
+    icon: "◆",
     parcaDesc: "Yalnız STELLİN'in seviyesini yükseltmekte kullanılır." },
   { name: "İVANOVNA Parçası", price: 30000, isParca: true, parcaKey: "ivanovna",
-    icon: "◆", gorsel: "ivanovnaparca.webp",
+    icon: "◆",
     parcaDesc: "Yalnız İVANOVNA'nın seviyesini yükseltmekte kullanılır." },
   { name: "REVOLİA Parçası", price: 30000, isParca: true, parcaKey: "revolia",
-    icon: "◆", gorsel: "revoliaparca.webp",
+    icon: "◆",
     parcaDesc: "Yalnız REVOLİA'nın seviyesini yükseltmekte kullanılır." },
 
   { name: "Füze", price: 200000, isMissile: true, icon: "🚀",

@@ -45,12 +45,51 @@
 
   /* Parça görselleri — kahramana göre. Dosya adları KÜÇÜK HARF,
      Türkçe karakter yok (aksi halde sunucuda sessizce bulunamaz). */
+  /*  PARÇA GÖRSELLERİ — TEK DOĞRULUK KAYNAĞI.
+      Anahtar = parçanın saklandığı anahtar: mor ORTAK, turuncular
+      kahramanın KİMLİĞİ (celik_savasci gibi). Dosya adı ile kimlik
+      aynı değildir — STELLİN'in kimliği celik_savasci, dosyası
+      stellinparca.webp. Bu yüzden bir süre tabloda unutulmuştu.
+      Mağaza artık kendi listesini tutmuyor, buradan okuyor.        */
   const PARCA_GORSEL = {
-    mor:      "morparca.webp",
-    ivanovna: "ivanovnaparca.webp",
-    revolia:  "revoliaparca.webp"
+    mor:           "morparca.webp",
+    celik_savasci: "stellinparca.webp",
+    ivanovna:      "ivanovnaparca.webp",
+    revolia:       "revoliaparca.webp"
   };
   function parcaGorseli(id) { return PARCA_GORSEL[parcaAnahtari(id)] || ""; }
+
+  /*  ── PARÇA KUTUCUĞU — ÇERÇEVE + PARÇA, TEK YERDEN ──────────────
+      Arkada nadirlik çerçevesi (mor → gorsel23, turuncu → gorsel22),
+      üstünde parçanın kendi görseli. Mağaza kartı, geliştirme
+      penceresi ve günlük giriş şeridi bu kapıdan geçer; çerçeve
+      kuralı ikinci bir yerde tekrarlanmaz.
+
+      anahtar: "mor" | kahraman kimliği | ya da yalnız nadirlik
+      ("ssr") — o zaman içerik konmaz, boş çerçeve döner (günlük
+      giriş şeridi gibi hangi parçanın geleceği belli olmayan yer).  */
+  function parcaNadirligi(anahtar) {
+    return (anahtar === "mor") ? "mor" : "ssr";
+  }
+
+  function parcaKutusu(anahtar, boy) {
+    const r = RENK[parcaNadirligi(anahtar)] || RENK.mor;
+    const g = PARCA_GORSEL[anahtar] || "";
+    const olcu = (typeof boy === "number") ? (boy + "px") : (boy || "100%");
+    return '<span style="display:inline-block;position:relative;flex:0 0 auto;' +
+             'width:' + olcu + ';height:' + olcu + ';border-radius:12px;overflow:hidden;' +
+             'background:linear-gradient(180deg,' + r.ana + ',' + r.koyu + ');">' +
+             '<img src="' + r.arka + '" alt="" style="position:absolute;inset:0;' +
+               'width:100%;height:100%;object-fit:cover;" ' +
+               'onerror="this.style.display=\'none\'">' +
+             (g ? '<img src="' + g + '" alt="" style="position:absolute;inset:0;' +
+                    'width:100%;height:100%;object-fit:contain;" ' +
+                    'onerror="this.style.display=\'none\'">'
+                : '<span style="position:absolute;inset:0;display:flex;' +
+                    'align-items:center;justify-content:center;font-size:' +
+                    'calc(' + olcu + ' * .55);color:#fff;">\u25C6</span>') +
+           '</span>';
+  }
 
   /* Oyunun mavi teması (tema.js :root) — TEK YER burasıdır. */
   const TEMA = {
@@ -541,20 +580,7 @@
 
       kutu.innerHTML = `
         <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:56px;height:56px;border-radius:12px;flex:0 0 auto;
-                      position:relative;overflow:hidden;
-                      background:linear-gradient(180deg,${r.ana},${r.koyu});">
-            <img src="${r.arka}" alt=""
-                 style="position:absolute;inset:0;width:100%;height:100%;
-                        object-fit:cover;"
-                 onerror="this.style.display='none'">
-            <img src="${parcaGorseli(id)}" alt=""
-                 style="position:absolute;inset:0;width:100%;height:100%;
-                        object-fit:contain;"
-                 onerror="this.replaceWith(Object.assign(document.createElement('div'),
-                          {textContent:'◆',
-                           style:'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:25px;'}))">
-          </div>
+          ${parcaKutusu(parcaAnahtari(id), 56)}
           <div style="flex:1;min-width:0;">
             <div style="font-size:15px;font-weight:800;color:${TEMA.sari};">${h.name} · Sv${sv}</div>
             <div style="font-size:12px;color:#cbe4ff;">
@@ -813,6 +839,14 @@
   window.parcaEkle         = parcaEkleAnahtar;     /* havuza yazar */
   window.parcaCantayaEkle  = parcaCantayaEkle;     /* çantaya yazar (ödüller) */
   window.parcaGorseli      = parcaGorseli;   /* günlük giriş / rehber kutucukları */
+  /* Çerçeveli parça kutucuğu — mağaza, günlük giriş ve geliştirme
+     penceresi bunu kullanır. Çerçeve kuralı başka yerde yazılmaz. */
+  window.PARCA = {
+    gorsel:   function (anahtar) { return PARCA_GORSEL[anahtar] || ""; },
+    cerceve:  function (anahtar) { const r = RENK[parcaNadirligi(anahtar)] || RENK.mor; return r.arka; },
+    nadirlik: parcaNadirligi,
+    kutu:     parcaKutusu
+  };
   window.parcaPaketiKullan = parcaPaketiKullan; /* günlük giriş / mağaza / canavar */
   window.glsYildizTazele   = glsYildizTazele;
   window.kahramanKapasitesi = kapasite;      /* heroes.js STAT sekmesi   */

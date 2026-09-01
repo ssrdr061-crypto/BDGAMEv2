@@ -4033,10 +4033,13 @@ const GUNLUK_ODUL = [
   { savunucu: 500, elmas: 5000, parca: 3 }
 ];
 
-/* Şeritte gösterilen parça görseli. Oyuncu ödülü alırken İvanovna /
-   Revolia arasında seçim yapar; kutucuktaki bu simge yalnız temsilîdir.
-   Başka bir görsel istersen SADECE burayı değiştir. */
-const GUNLUK_PARCA_IKON = "morparca.webp";
+/* Şeritte gösterilen parça kutucuğu. Hangi parçanın geleceği ödül
+   alınırken seçilir, o yüzden burada BOŞ turuncu çerçeve durur —
+   çerçeve ve görsel kuralı gelistir.js PARCA kapısından gelir. */
+function gunlukParcaSimgesi(boy) {
+  if (window.PARCA && typeof PARCA.kutu === "function") return PARCA.kutu("ssr", boy);
+  return "\u25C6";
+}
 
 /* Bugün hangi gündeyiz (1–7). Kaçırılan gün seriyi sıfırlar. */
 function gunlukBugunGun() {
@@ -4115,7 +4118,8 @@ function gunlukSeritCiz() {
            '<div class="gk-gun">' + g + '. GÜN</div>' +
            gunlukSatir(bGor, "x" + gunlukKisa(o.savunucu)) +
            '<div class="gk-satir">' + ELMAS("gunluk") + '<span>x' + gunlukKisa(o.elmas) + '</span></div>' +
-           gunlukSatir(GUNLUK_PARCA_IKON, "x" + o.parca) +
+           '<div class="gk-satir">' + gunlukParcaSimgesi(15) +
+             '<span>x' + o.parca + '</span></div>' +
          '</div>';
   }
   kap.innerHTML = h;
@@ -4160,10 +4164,11 @@ function gunlukKapatKilidi(kilitli) {
 }
 
 function gunlukParcaKutusu(anahtar, ad) {
-  const g = gunlukParcaGorseli(anahtar);
+  const kutu = (window.PARCA && typeof PARCA.kutu === "function")
+    ? PARCA.kutu(anahtar, 52)
+    : '<img src="' + gunlukParcaGorseli(anahtar) + '" alt="">';
   return '<button class="gunluk-parca-sec" data-parca="' + anahtar + '">' +
-           (g ? '<img src="' + g + '" alt="" onerror="this.style.display=\'none\'">' : '') +
-           '<span>' + ad + '</span>' +
+           kutu + '<span>' + ad + '</span>' +
          '</button>';
 }
 
@@ -5491,6 +5496,12 @@ function itemIconSVG(item) {
       GEREKMEZ, sadece ürüne alanı ekle.
       DİKKAT: dosya adında Türkçe karakter olmasın (ı, ş, ğ...) —
       sunucuda sessizce bulunamaz.                                 */
+  /*  PARÇA ÜRÜNLERİ — görsel ve çerçeve gelistir.js'ten gelir
+      (PARCA.kutu). Mağaza kendi listesini tutmaz; parça dosyası
+      tek yerde yazılıdır ve nadirlik çerçevesi de oradan türer.  */
+  if (item && item.isParca && window.PARCA && typeof PARCA.kutu === "function") {
+    return PARCA.kutu(item.parcaKey, "100%");
+  }
   if (item && item.gorsel) {
     return `<img class="sc-img" src="${item.gorsel}" alt="">`;
   }
