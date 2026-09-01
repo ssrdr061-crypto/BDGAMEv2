@@ -468,6 +468,10 @@
     /* Menü şeritleri kaleiçinin üstünde kalsın (normalde 20-21) */
     'body.kaleici-acik .hud-top,body.kaleici-acik .hud-kaynak,' +
       'body.kaleici-acik .nav-dock{z-index:40}' +
+    /* Sohbet şeridi kaleiçinde de görünsün: kaleiçi 30'un ÜSTÜNE çıkar.
+       Koordinat kutusu (#coordPanel) haritaya aittir, o gizli kalır. */
+    'body.kaleici-acik .chat-strip{z-index:40}' +
+    'body.kaleici-acik .coord-panel{display:none}' +
     /* Kaleiçi açıkken giriş düğmesi görünmesin — body'de, üste biner */
     'body.kaleici-acik #kaleiciGir{display:none}' +
     /* Kapat düğmesi ve sürüm yazısı üst panelin altına iner */

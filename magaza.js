@@ -172,6 +172,7 @@ function getItemDef(name) {
    Burada OLMAYAN ürünler limitsizdir (kartta ∞ görünür). */
 const SHOP_LIMITS = {
   "Füze": 2,
+  "Kalkan (6 Saat)": 10,
   "5 Dakika Hızlandırma": 1000,
   "1 Saat Hızlandırma": 500,
   "3 Saat Hızlandırma": 200,
