@@ -47,9 +47,13 @@ const shopItems = [
   /* ── KALKAN ──
      Çantaya düşer; çantadan "Kullan" denince kale kalkanSaat kadar
      saldırıya kapanır. Süre EKLENMEZ, her kullanımda başa sarar.
-     Görsel çizilince tek yapılacak: emoji satırının yanına
-     `gorsel: "kalkan.webp"` eklemek (dosya adında Türkçe harf YOK). */
-  { name: "Kalkan (6 Saat)", price: 10000, isKalkan: true, kalkanSaat: 6, icon: "🛡️", emoji: "🛡️" },
+     Görsel `kalkan.webp`. `emoji` YEDEK olarak duruyor: dosya
+     sunucuda bulunamazsa itemIconSVG ona düşmez (gorsel dalı önce
+     gelir), ama ürün tanımından gorsel satırı silinirse emoji
+     devreye girer. Dosya adında Türkçe harf YOK — sunucuda
+     sessizce bulunamaz. */
+  { name: "Kalkan (6 Saat)", price: 10000, isKalkan: true, kalkanSaat: 6, icon: "🛡️",
+    gorsel: "kalkan.webp", emoji: "🛡️" },
 
   /* ── KAYNAK PAKETLERİ ──
      Çantaya DÜŞMEZ; alındığı an doğrudan kaynak sayacına eklenir.
