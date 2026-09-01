@@ -557,13 +557,14 @@ const DRAG_PX = 12;
 }
 .daily-reward-sub{ color:#eaf7ff !important; font-weight:800 !important;
   text-shadow:0 1px 2px rgba(0,30,55,.5) !important; }
+/* Düz düğme: 3B kabartma, kalın kontur ve degrade yok. */
 .daily-reward-close-btn{
-  background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;
-  border:1px solid rgba(190,240,255,.9) !important;
+  background:#1fa3ea !important;
+  border:none !important;
   border-radius:14px !important; color:#fff !important;
   font-family:'Baloo 2','Nunito',sans-serif !important; font-weight:900 !important;
-  text-shadow:0 2px 3px rgba(0,40,70,.5) !important;
-  box-shadow:none !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 .daily-reward-close-btn:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none !important; }
 

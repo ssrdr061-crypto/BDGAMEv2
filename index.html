@@ -249,44 +249,46 @@ body{
   text-shadow:0 1px 2px rgba(0,30,55,.5);}
 
 /* ── 7 GÜNLÜK ŞERİT ───────────────────────────────────────────────
-   Kutucuğun ZEMİNİ görselin kendisidir (gunlukkutuacik/kapali.webp);
-   CSS ile ikinci bir kutu çizilmez. Bağlantı çizgisi kutucukların
-   ARKASINDAN geçer (::before, z-index:0). */
+   Dört üstte, üç altta ORTALI. Grid değil flex-wrap: son satırda
+   üç kutu kalınca kendiliğinden ortalanır, gridde sola yaslanırdı.
+   "1. GÜN" yazısı kutunun DIŞINDA, üstünde durur; ödüller kutunun
+   İÇİNDE. Kutucuğun zemini görselin kendisidir, CSS ile ikinci bir
+   kutu çizilmez. */
 .gunluk-serit{
-  position:relative;
-  display:grid; grid-template-columns:repeat(4,1fr); gap:7px;
-  padding:2px 0 0;
+  display:flex; flex-wrap:wrap; justify-content:center;
+  gap:9px 7px; padding:2px 0 0;
 }
-.gunluk-kutu{
-  position:relative; z-index:1;
-  aspect-ratio:1/1.12; min-width:0;
-  background-image:url("gunlukkutukapali.webp");
-  background-size:100% 100%; background-repeat:no-repeat; background-position:center;
-  background-color:transparent;
-  border:none; padding:4px 3px 3px; cursor:default;
-  display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:1px;
-  font-family:'Baloo 2','Nunito',sans-serif; color:#fff;
+.gunluk-hucre{
+  width:calc(25% - 6px); min-width:0;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  font-family:'Baloo 2','Nunito',sans-serif;
+}
+.gunluk-hucre .gk-gun{
+  font-weight:900; font-size:10px; line-height:1; color:#fff;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
-/* Dosya yoksa kutucuk hiç görünmesin diye zemin rengi verilmez;
-   yalnız ince bir iz kalır ki ödüller boşlukta durmasın. */
+.gunluk-kutu{
+  width:100%; aspect-ratio:1/1;
+  background-image:url("gunlukkutukapali.webp");
+  background-size:100% 100%; background-repeat:no-repeat; background-position:center;
+  background-color:transparent; border:none; cursor:default;
+  /* Ödüller sandığın GÖVDESİNE oturur; üst boşluk kapak payıdır. */
+  padding:34% 6% 8%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:#fff; text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
 .gunluk-kutu.acik{ background-image:url("gunlukkutuacik.webp"); }
 .gunluk-kutu.bugun{ cursor:pointer; animation:gunlukNabiz 1.4s ease-in-out infinite; }
 @keyframes gunlukNabiz{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
 .gunluk-kutu.bugun:active{ transform:scale(.96); filter:brightness(.93); }
 .gunluk-kutu.kilitli{ filter:brightness(.82); }
-.gunluk-kutu .gk-gun{ font-weight:900; font-size:10px; line-height:1.05; opacity:.95; }
 .gunluk-kutu .gk-satir{
-  display:flex; align-items:center; justify-content:center; gap:2px;
-  font-weight:800; font-size:9.5px; line-height:1; white-space:nowrap;
-  font-variant-numeric:tabular-nums;
+  display:flex; align-items:center; justify-content:center; gap:1px;
+  font-weight:800; font-size:8.5px; line-height:1.15; white-space:nowrap;
+  font-variant-numeric:tabular-nums; max-width:100%;
 }
-.gunluk-kutu .gk-satir img.gk-ik{ width:15px; height:15px; object-fit:contain; flex:0 0 auto; }
-/* Yedinci kutu son satırın tamamını kaplar — hafta sonu ödülü belli olsun. */
-.gunluk-kutu.buyuk{ grid-column:span 4; aspect-ratio:auto; padding:6px 8px;
-  flex-direction:row; justify-content:center; gap:10px; }
-.gunluk-kutu.buyuk .gk-satir{ font-size:11.5px; }
-.gunluk-kutu.buyuk .gk-satir img.gk-ik{ width:19px; height:19px; }
+/* em ile: yazı küçüldüğünde simge de küçülür, satır taşmaz. */
+.gunluk-kutu .gk-satir img.gk-ik{ width:1.5em; height:1.5em; object-fit:contain; flex:0 0 auto; }
 
 .daily-reward-result{
   margin-top:14px; display:flex; flex-direction:column; gap:8px;
@@ -324,12 +326,12 @@ body{
 
 .daily-reward-close-btn{
   margin-top:18px; width:100%;
-  background:rgba(0,0,0,.25); border:1px solid rgba(111,150,80,.4); color:#a9c98a;
+  background:#1fa3ea; border:none; color:#fff;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:700; font-size:12.5px;
   padding:10px; border-radius:9px; cursor:pointer;
   transition:all .15s ease;
 }
-.daily-reward-close-btn:hover{border-color:#6f9650; color:#d9ffb0;}
+.daily-reward-close-btn:active{transform:scale(.96); filter:brightness(.93);}
 
 .admin-panel-modal{max-width:380px;}
 .admin-gift-success{
@@ -4111,15 +4113,14 @@ function gunlukSeritCiz() {
     const o = GUNLUK_ODUL[g - 1];
     const acikMi  = (g < bugun) || (g === bugun && alindi);
     const bugunMu = (g === bugun && !alindi);
-    const sinif = "gunluk-kutu" +
-      (acikMi ? " acik" : (bugunMu ? " bugun" : " kilitli")) +
-      (g === 7 ? " buyuk" : "");
-    h += '<div class="' + sinif + '" data-gun="' + g + '">' +
+    const sinif = "gunluk-kutu" + (acikMi ? " acik" : (bugunMu ? " bugun" : " kilitli"));
+    h += '<div class="gunluk-hucre">' +
            '<div class="gk-gun">' + g + '. GÜN</div>' +
-           gunlukSatir(bGor, "x" + gunlukKisa(o.savunucu)) +
-           '<div class="gk-satir">' + ELMAS("gunluk") + '<span>x' + gunlukKisa(o.elmas) + '</span></div>' +
-           '<div class="gk-satir">' + gunlukParcaSimgesi(15) +
-             '<span>x' + o.parca + '</span></div>' +
+           '<div class="' + sinif + '" data-gun="' + g + '">' +
+             gunlukSatir(bGor, "x" + gunlukKisa(o.savunucu)) +
+             '<div class="gk-satir">' + ELMAS("gunluk") + '<span>x' + gunlukKisa(o.elmas) + '</span></div>' +
+             '<div class="gk-satir">' + gunlukParcaSimgesi(13) + '<span>x' + o.parca + '</span></div>' +
+           '</div>' +
          '</div>';
   }
   kap.innerHTML = h;
@@ -4183,10 +4184,12 @@ function gunlukParcaSec(anahtar) {
   persistCurrentState();
   const kutu = document.getElementById("gunlukParcaSecim");
   if (kutu) {
-    const g = gunlukParcaGorseli(anahtar);
-    const ad = anahtar === "ivanovna" ? "İvanovna" : "Revolia";
-    kutu.innerHTML = '<div class="gunluk-parca-alindi">' +
-      (g ? '<img src="' + g + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+    const ad = (typeof KAHRAMAN !== "undefined" && KAHRAMAN.ad)
+      ? KAHRAMAN.ad(anahtar) : anahtar;
+    const gk = (window.PARCA && typeof PARCA.kutu === "function")
+      ? PARCA.kutu(anahtar, 38)
+      : '<img src="' + gunlukParcaGorseli(anahtar) + '" alt="">';
+    kutu.innerHTML = '<div class="gunluk-parca-alindi">' + gk +
       '<b>' + adet + ' ' + ad + ' Parçası alındı</b></div>';
   }
   gunlukKapatKilidi(false);
@@ -4212,8 +4215,9 @@ function openDailyRewardChest() {
     '<div class="daily-reward-item">' + ELMAS("gunluk") + ' <b>' + fmt(reward.elmas) + '</b> Elmas</div>' +
     '<div class="daily-reward-item">Kahraman parçanı seç (' + reward.parca + ' adet):</div>' +
     '<div class="gunluk-parca-secim" id="gunlukParcaSecim">' +
-      gunlukParcaKutusu("ivanovna", "İvanovna") +
-      gunlukParcaKutusu("revolia", "Revolia") +
+      gunlukParcaKutusu("celik_savasci", "STELLİN") +
+      gunlukParcaKutusu("ivanovna", "İVANOVNA") +
+      gunlukParcaKutusu("revolia", "REVOLİA") +
     '</div>';
   resultEl.style.opacity = "1";
 
