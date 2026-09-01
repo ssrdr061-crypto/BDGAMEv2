@@ -8999,8 +8999,14 @@ YERLER.forEach(function (y) {
 });
 
 var secili = A._son && A[A._son] ? A._son : "hud";
+var kapali = !!A._kapali;   /* panel toplanmış mı — yenilenince hatırlanır */
 
-function kaydet() { try { A._son = secili; localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {} }
+function kaydet() {
+  try {
+    A._son = secili; A._kapali = kapali;
+    localStorage.setItem(ANAHTAR, JSON.stringify(A));
+  } catch (e) {}
+}
 
 function d2(n) { return (Math.round(n * 100) / 100).toFixed(2); }
 
@@ -9099,17 +9105,23 @@ function kur() {
           'background:#1d3f63;color:#eaf6ff;font:600 10.5px/1 \'Baloo 2\',sans-serif;">SIFIRLA</button>' +
         '<button id="eaKopya" style="padding:3px 8px;border:none;border-radius:7px;' +
           'background:#2f6ea8;color:#eaf6ff;font:600 10.5px/1 \'Baloo 2\',sans-serif;">KOPYALA</button>' +
-        '<button id="eaKapat" style="padding:3px 8px;border:none;border-radius:7px;' +
-          'background:#c62828;color:#fff;font:600 10.5px/1 \'Baloo 2\',sans-serif;">✕</button>' +
+        '<button id="eaAcKapa" style="padding:3px 10px;border:none;border-radius:7px;' +
+          'background:#c62828;color:#fff;font:700 12px/1 \'Baloo 2\',sans-serif;">' +
+          (kapali ? "▴" : "▾") + '</button>' +
       '</div>' +
 
-      '<div style="display:flex;gap:4px;overflow-x:auto;padding:5px 0 4px;">' + sekmeler + '</div>' +
+      /* GÖVDE — kapatınca yalnız bu gizlenir, başlık şeridi kalır ki
+         panel geri açılabilsin. Eskiden ✕ paneli DOM'dan siliyordu,
+         geri getirmenin tek yolu sayfayı yenilemekti. */
+      '<div id="eaGovde" style="display:' + (kapali ? "none" : "block") + ';">' +
+        '<div style="display:flex;gap:4px;overflow-x:auto;padding:5px 0 4px;">' + sekmeler + '</div>' +
 
-      '<div style="background:#12304e;border-radius:8px;padding:4px 8px;margin-bottom:3px;' +
-        'font-size:13px;">' + ornek + ' 10.000 · <span style="font-size:19px;">' +
-        (secili === "canta" ? "" : ornek) + ' 31,5M</span></div>' +
+        '<div style="background:#12304e;border-radius:8px;padding:4px 8px;margin-bottom:3px;' +
+          'font-size:13px;">' + ornek + ' 10.000 · <span style="font-size:19px;">' +
+          (secili === "canta" ? "" : ornek) + ' 31,5M</span></div>' +
 
-      surgu +
+        surgu +
+      '</div>' +
 
       '<pre id="eaCikti" style="display:none;"></pre>';
 
@@ -9132,7 +9144,13 @@ function kur() {
       for (var kk in VARSAYILAN) A[secili][kk] = VARSAYILAN[kk];
       kaydet(); uygula(); ciz();
     });
-    document.getElementById("eaKapat").addEventListener("click", function () { p.remove(); });
+    document.getElementById("eaAcKapa").addEventListener("click", function () {
+      kapali = !kapali;
+      kaydet();
+      var g = document.getElementById("eaGovde");
+      if (g) g.style.display = kapali ? "none" : "block";
+      this.textContent = kapali ? "▴" : "▾";
+    });
 
     /* Android: readonly textarea kopyalama menüsü vermez, execCommand
        çoğu sürümde sessizce düşer. Önce pano API'si, olmazsa geçici
