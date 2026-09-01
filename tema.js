@@ -8508,10 +8508,10 @@ document.head.appendChild(st);
   "use strict";
 
   var AY = {
-    aci: 32, en: 107, dx: -2.1, dy: 5.8,
-    kubbeAc: 1, kTon: 22, cep: 8, cepOp: 100, dolu: 89,
-    cizgiAc: 1, adet: 2, aralik: 100, kal: 4, hiz: 45, sonuk: 20,
-    zTon: 100, zDolu: 100
+    aci: 36, en: 87, dx: 0, dy: 8,
+    kubbeAc: 1, kTon: 16, cep: 28, cepOp: 100, dolu: 95,
+    cizgiAc: 1, adet: 3, aralik: 100, kal: 3, hiz: 76, sonuk: 20,
+    zTon: 42, zDolu: 100
   };
   window.KALKAN_AYAR = AY;
 
