@@ -8453,62 +8453,59 @@ document.head.appendChild(st);
 
 
 /* ═══════════════════════════════════════════════════════════════
-   KALKAN KUBBESİ  —  haritadaki kalelerin üzerindeki koruma alanı
+   KALKAN KUBBESİ  —  haritada kalkanı açık kalenin koruma alanı
 
-   GÖRSEL DOSYA YOK. Kubbe tamamen CSS: iki elips + bir tarama
-   bandı. Kale düğümü #battleMap katmanında DOM olduğu için harita
-   yakınlaştırması (0.75–3.0) ve kaydırması kubbeye kendiliğinden
-   uygulanır; canvas'a hiçbir şey çizilmiyor.
+   TEK BLOK. Daha önce bu dosyada bu bloğun İKİ KOPYASI oluştu;
+   sonraki kopyanın <style>'ı öncekini ezdiği için düzeltmeler
+   çalışmıyor gibi göründü. Yeni sürüm eklerken eskisini SİL,
+   sonuna ikinci bir kopya ekleme.
 
-   İZOMETRİK OTURUŞ: karo oranı 64×32, yani 2:1. Kubbenin TABAN
-   halkası da 2:1 basık elips — perspektifi satan parça odur.
-   Üstteki cam kubbe 1,2:1'dir; tam 2:1 yapılsaydı kalenin
-   üstünde su birikintisi gibi dururdu.
+   ── GEOMETRİ (tahmin değil, hesap) ──
+   Zemine oturan YARIM KÜRE, oyunun izometrik kamerasına göre.
+   Silueti düz kesilmiş bir daire DEĞİLDİR: kamera yukarıdan
+   baktığı için taban dairesi elipse döner, kubbe ÖNDE zeminin
+   altına taşar, arkada taşmaz. Yol = üstte yarım çember yayı +
+   altta yarım elips yayı.
 
-   ÖLÇÜ .node-avatar'a GÖRE (yüzde): o kutu seviyeye göre 100px,
-   166px ya da 184px oluyor (bkz. ?kaleayar=1). Piksel yazsaydık
-   Sv2 kalesi kubbeden taşardı.
-
-   ── NEDEN renderBattleMap SARILMADI ──
-   missile.js zaten sarıyor; ikinci bir sarmalayıcı zincire
-   bağımlılık ekler ve yükleme sırası değişince sessizce kopar.
-   Ayrıca sayaç metni için nasılsa kendi zamanlayıcımız gerekiyor
-   (Tuzak 54: gösterim kendi saatiyle yenilenmeli). Bu yüzden tek
-   yol var: saniyede bir düğümleri tara. Haritada birkaç kale
-   olduğu için maliyeti yok denecek kadar az.
-
-   Süresi dolan kubbe kendiliğinden kalkar — renderBattleMap
-   çağrılmasını beklemez (imza değişmediği için çağrılsa bile
-   hiçbir şey yapmazdı).
-   ═══════════════════════════════════════════════════════════════ */
-(function kalkanKubbesi() {
-  "use strict";
-
-  /* ── KALKAN KUBBESİ ──
-     Zemine oturan YARIM KÜRE, oyunun izometrik kamerasına göre.
-
-     GEOMETRİ (tahmin değil, hesap):
-     Silueti düz kesilmiş bir daire DEĞİLDİR. Kamera yukarıdan
-     baktığı için taban dairesi elipse döner ve kubbe ÖNDE zeminin
-     altına taşar, arkada taşmaz. Yol: üstte yarım çember yayı,
-     altta yarım elips yayı.
-
-     Halkalar da aynı hesaptan gelir. z yüksekliğindeki bir enlem
-     çemberi için:
+   Halkalar da aynı hesaptan gelir. z yüksekliğindeki enlem
+   çemberi için:
        yarıçap  = r * karekök(1 - z*z)
        basıklık = yarıçap * sin(aci)
        dikey    = -r * cos(aci) * z
-     Halka tepede sıfır yarıçapla doğar, inerken küreyi takip
-     ederek genişler, en altta TAM TABAN ÇEMBERİ olarak biter.
-     Kenara kendiliğinden yapışır; ayrı bir kapsam ayarı gerekmez.
+   Halka tepede sıfır yarıçapla doğar, inerken küreyi takip ederek
+   genişler, en altta TAM TABAN ÇEMBERİ olarak biter. Kenara
+   kendiliğinden yapışır; ayrı bir kapsam ayarı gerekmez.
 
-     Değerler ?kalkanayar=1 paneliyle oyun üzerinde ölçüldü.
+   ── NEDEN CSS ANİMASYONU YOK ──
+   index.html ~2122'de erişilebilirlik kuralı var:
+     @media (prefers-reduced-motion:reduce){
+       *{animation-duration:.01ms !important;
+         animation-iteration-count:1 !important} }
+   Telefonda "animasyonları azalt" açıksa her CSS animasyonu
+   görünmeden biter; halka doğar doğmaz sıfır yarıçapa dönüp
+   KAYBOLUR. Belirtisi tam olarak şudur: kubbe görünür (animasyonu
+   yok), halkalar görünmez. O kural delinmez — halkalar kendi
+   requestAnimationFrame döngümüzde çizilir. Toz efektinde de aynı
+   yol izlenmişti.
 
-     SVG KİMLİKLERİ SAYAÇLA BENZERSİZLEŞTİRİLİR. Gradyan ve kırpma
-     yolu url(#kimlik) ile çağrılır; kimlikler belge genelinde
-     benzersiz olmak zorundadır. İki kalede aynı kimlik olsaydı
-     ikincisi birincinin tanımını kullanır, ölçüsü tutmazsa hiç
-     çizilmezdi.                                                  */
+   ── ÖLÇÜLER YÜZDEYLE ──
+   Kale kutusu seviyeye göre 100px, 166px ya da 184px (?kaleayar=1).
+   Piksel yazılırsa Sv2 kalesi kubbeden taşar.
+
+   ── calc İÇİNDE İŞARET ──
+   calc(-50% + -2.1%) GEÇERSİZDİR ve tarayıcı bildirimin TAMAMINI
+   atar; kubbe ortalanmaz, kaydırma sürgüleri hiçbir şey yapmaz,
+   konsolda hata da çıkmaz. Negatif değer "- x" olarak yazılır.
+
+   ── SVG KİMLİKLERİ ──
+   Gradyan ve kırpma yolu url(#kimlik) ile çağrılır; kimlik belge
+   genelinde benzersiz olmalı. İki kalede aynı kimlik olsaydı
+   ikincisi birincinin tanımını kullanırdı. Sayaçla ayrılıyor.
+
+   Değerler ?kalkanayar=1 paneliyle oyun üzerinde ölçüldü.
+   ═══════════════════════════════════════════════════════════════ */
+(function kalkanKubbesi() {
+  "use strict";
 
   var AY = {
     aci: 32, en: 107, dx: -2.1, dy: 5.8,
@@ -8533,12 +8530,6 @@ document.head.appendChild(st);
     return [205,243,255];
   }
   function rgba(c, o) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + o.toFixed(3) + ")"; }
-
-  /* ── calc İÇİNDE İŞARET ──
-     calc(-50% + -2.1%) GEÇERSİZDİR; tarayıcı bildirimin TAMAMINI
-     atar. Belirtisi sinsi: kubbe ortalanmaz ve kaydırma sürgüleri
-     hiçbir şey yapmaz, ama konsolda hata da çıkmaz. Negatif değer
-     "+ -x" değil "- x" olarak yazılmak zorunda. */
   function kaydir(v) {
     var n = Number(v) || 0;
     return n < 0 ? " - " + Math.abs(n) + "%" : " + " + n + "%";
@@ -8549,17 +8540,6 @@ document.head.appendChild(st);
   document.head.appendChild(st);
 
   function stilYaz() {
-    var rad = AY.aci * Math.PI / 180, S = Math.sin(rad), C = Math.cos(rad);
-    var r = AY.en;
-    var kf = "";
-    for (var i = 0; i <= 26; i++) {
-      var p = i / 26, z = 1 - p;
-      var rx = r * Math.sqrt(Math.max(0, 1 - z * z));
-      var op = (AY.sonuk > 0 && p < AY.sonuk / 100) ? (p / (AY.sonuk / 100)).toFixed(2) : "1";
-      kf += (p * 100).toFixed(2) + "%{cy:" + (-r * C * z).toFixed(2) +
-            "px;rx:" + rx.toFixed(2) + "px;ry:" + (rx * S).toFixed(2) + "px;opacity:" + op + "}";
-    }
-
     st.textContent =
       "html body #battleMap .map-node.castle-node .kk-kubbe{" +
         "position:absolute;left:50%;top:50%;width:150%;aspect-ratio:1/1;" +
@@ -8573,7 +8553,6 @@ document.head.appendChild(st);
         "display:" + (AY.kubbeAc ? "block" : "none") + ";}" +
       "html body #battleMap .map-node.castle-node .kk-halkalar{" +
         "display:" + (AY.cizgiAc ? "block" : "none") + ";}" +
-      "@keyframes kkHalka{" + kf + "}" +
       "html body #battleMap .map-node.castle-node .kk-sure{" +
         "margin-top:-1px;padding:1px 7px 2px;border-radius:9px;" +
         "background:rgba(8,44,74,.66);color:#bdf1ff;" +
@@ -8595,12 +8574,14 @@ document.head.appendChild(st);
     var kc = ton(AY.kTon), zc = ton(AY.zTon), d = AY.dolu / 100;
     var gid = "kkg" + no, cid = "kkc" + no;
 
-    var sure = AY.hiz / 10, pay = sure / AY.adet * (AY.aralik / 100), halka = "";
+    /* Faz halkanın dizideki sırasından gelir ve data-faz'da saklanır;
+       kare döngüsü onu okur. */
+    var pay = (AY.aralik / 100) / AY.adet, halka = "";
     for (var j = 0; j < AY.adet; j++) {
-      halka += '<ellipse cx="0" fill="none" stroke="' + rgba(zc, AY.zDolu / 100) +
+      halka += '<ellipse cx="0" rx="0" ry="0" cy="0" fill="none" stroke="' +
+               rgba(zc, AY.zDolu / 100) +
                '" stroke-width="' + (AY.kal / 10 * 2).toFixed(2) +
-               '" style="animation:kkHalka ' + sure.toFixed(1) +
-               's linear infinite;animation-delay:-' + (j * pay).toFixed(2) + 's"/>';
+               '" data-faz="' + (j * pay).toFixed(4) + '"/>';
     }
 
     return '<svg class="kk-svg" viewBox="-115 -115 230 230">' +
@@ -8615,6 +8596,41 @@ document.head.appendChild(st);
       '<path class="kk-cerceve" fill="none" d="' + yol + '" stroke="' +
         rgba(kc, AY.cepOp / 100) + '" stroke-width="' + (AY.cep / 10).toFixed(1) + '"/>' +
       '<g class="kk-halkalar" clip-path="url(#' + cid + ')">' + halka + '</g></svg>';
+  }
+
+  /* ── HALKA KARE DÖNGÜSÜ ──
+     Elemanlar dizide tutulur; her karede DOM sorgusu yapılmaz.
+     Dizi yalnız kubbe eklenip çıkarıldığında tazelenir. Kubbe yoksa
+     döngü kendini durdurur, boşa kare harcamaz. */
+  var _halka = [], _donuyor = false;
+
+  function halkaTazele() {
+    _halka = [];
+    try {
+      var l = document.querySelectorAll("#battleMap .kk-halkalar > ellipse");
+      for (var i = 0; i < l.length; i++) _halka.push(l[i]);
+    } catch (e) {}
+    if (_halka.length && !_donuyor) { _donuyor = true; requestAnimationFrame(kare); }
+  }
+
+  function kare() {
+    if (!_halka.length) { _donuyor = false; return; }
+    var rad = AY.aci * Math.PI / 180, S = Math.sin(rad), C = Math.cos(rad);
+    var r = AY.en, sure = Math.max(0.1, AY.hiz / 10), esik = AY.sonuk / 100;
+    var t = Date.now() / 1000 / sure;
+
+    for (var i = 0; i < _halka.length; i++) {
+      var e = _halka[i];
+      var faz = parseFloat(e.getAttribute("data-faz")) || 0;
+      var p = (t + faz) % 1;
+      var z = 1 - p;
+      var rx = r * Math.sqrt(Math.max(0, 1 - z * z));
+      e.setAttribute("rx", rx.toFixed(2));
+      e.setAttribute("ry", (rx * S).toFixed(2));
+      e.setAttribute("cy", (-r * C * z).toFixed(2));
+      e.setAttribute("opacity", (esik > 0 && p < esik) ? (p / esik).toFixed(2) : "1");
+    }
+    requestAnimationFrame(kare);
   }
 
   function sureYaz(ms) {
@@ -8633,11 +8649,16 @@ document.head.appendChild(st);
     k.className = "kk-kubbe";
     k.innerHTML = svgYaz(++_no);
     av.appendChild(k);
+    halkaTazele();
   }
 
   function kubbeSok(node) {
-    var k = node.querySelector(".kk-kubbe"); if (k) k.remove();
-    var s2 = node.querySelector(".kk-sure"); if (s2) s2.remove();
+    var k = node.querySelector(".kk-kubbe");
+    var s2 = node.querySelector(".kk-sure");
+    if (s2) s2.remove();
+    if (!k) return;
+    k.remove();
+    halkaTazele();
   }
 
   function sayacYaz(node, ms) {
@@ -8647,13 +8668,16 @@ document.head.appendChild(st);
     if (e.textContent !== yeni) e.textContent = yeni;
   }
 
-  /* Ayar paneli değer değiştirince mevcut kubbeleri söker, tara()
-     bir sonraki tikte yenisini çizer. */
-  function hepsiniYenile() {
+  /* Ayar paneli değer değiştirince kubbe SİLİNMEZ, içeriği yerinde
+     yeniden yazılır. Silip tara()'nın yeniden çizmesini beklemek
+     saniyeye varan boşluklar yaratıyordu; sürgüyü oynatırken
+     görüntü sürekli kesiliyordu. */
+  window.KALKAN_YENILE = function () {
+    stilYaz();
     var l = document.querySelectorAll("#battleMap .map-node.castle-node .kk-kubbe");
-    for (var i = 0; i < l.length; i++) l[i].remove();
-  }
-  window.KALKAN_YENILE = function () { stilYaz(); hepsiniYenile(); };
+    for (var i = 0; i < l.length; i++) l[i].innerHTML = svgYaz(++_no);
+    halkaTazele();
+  };
 
   /* renderBattleMap SARILMADI: missile.js zaten sarıyor, ikinci
      sarmalayıcı yükleme sırası değişince sessizce kopar. Sayaç için
@@ -8687,10 +8711,8 @@ document.head.appendChild(st);
    KALKAN HİZALAMA PANELİ  —  ?kalkanayar=1
 
    Bayrak yoksa HİÇBİR ŞEY yapmaz. Kubbeyi kale görselinin üzerine
-   oturtmak içindir: boyut, kayma, kamera açısı.
-
-   Beğenilen değerler yukarıdaki AY nesnesine KALICI yazılır ve BU
-   BLOK SİLİNİR (?isik=1 ve ?kaleayar=1 ile aynı mantık).
+   oturtmak içindir. Beğenilen değerler yukarıdaki AY nesnesine
+   KALICI yazılır ve BU BLOK SİLİNİR (?isik=1 ile aynı mantık).
    ═══════════════════════════════════════════════════════════════ */
 (function kalkanAyar() {
   "use strict";
@@ -8701,7 +8723,6 @@ document.head.appendChild(st);
   if (!AY) return;
 
   var SEKME = [{k:"genel",et:"GENEL"},{k:"kubbe",et:"KUBBE"},{k:"cizgi",et:"ÇİZGİ"}];
-  /* [alan, etiket, min, max, adım, birim] */
   var ALANLAR = {
     genel: [
       ["aci","Bakış açısı",10,60,1,"°"],
@@ -8848,8 +8869,8 @@ document.head.appendChild(st);
 
     /* Android'de readonly textarea kopyalama menüsünü vermez ve
        execCommand çoğu sürümde sessizce başarısız olur. Önce pano
-       API'si denenir, olmazsa geçici textarea. Hepsi başarısız
-       olursa metin ekranda zaten okunur duruyor. */
+       API'si denenir, olmazsa geçici textarea. İkisi de olmazsa
+       metin ekranda zaten okunur duruyor. */
     document.getElementById("kkKopya").addEventListener("click", function () {
       var b = this, metin = ciktiMetni(), bitti = false;
       function eskiYol() {
@@ -8883,1155 +8904,3 @@ document.head.appendChild(st);
   else window.addEventListener("load", kur);
   setTimeout(kur, 1200);
 })();
-
-
-/* ══════════════════════════════════════════════════════════════
-   ELMAS TANI v2 — GEÇİCİ  (?elmastani=1)
-   --------------------------------------------------------------
-   v1 kaybolma anını yakalayamadı: sayfa her yenilendiğinde panel
-   sıfırlanıyordu. Bu sürümde kayıtlar localStorage'da tutulur,
-   sayfa yenilense de silinmez.
-
-   ÜÇ AYRI KAYNAK izlenir:
-     1. state.diamonds  → setter (kim yazdı, hangi zincirle)
-     2. HUD metni       → saniyelik örnekleme (#diamondAmount)
-     3. sayfa olayları  → yükleme, kapanma, gizlenme
-
-   state ile HUD ayrı ayrı izlenir. İkisi ayrışırsa sorun ekran
-   tarafında, birlikte düşerse veri tarafındadır.
-
-   showToast KULLANILMAZ (Tuzak 12). İş bitince BU BLOK SİLİNİR.
-   Kayıtları sıfırlamak için paneldeki "sil" düğmesi.
-   ══════════════════════════════════════════════════════════════ */
-(function elmasTani2(){
-"use strict";
-if (location.search.indexOf("elmastani=1") < 0) return;
-
-var ANAHTAR = "bd_elmas_tani";
-var kutu = null, govde = null;
-
-/* ── KALICI KAYIT ─────────────────────────────────────────── */
-function oku(){
-  try {
-    var h = localStorage.getItem(ANAHTAR);
-    return h ? JSON.parse(h) : [];
-  } catch (e) { return []; }
-}
-function yazDiske(liste){
-  try { localStorage.setItem(ANAHTAR, JSON.stringify(liste.slice(0, 60))); }
-  catch (e) {}
-}
-
-function saat(){
-  var d = new Date();
-  return ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2) +
-         ":" + ("0"+d.getSeconds()).slice(-2) + "." + ("00"+d.getMilliseconds()).slice(-3);
-}
-
-function kaydet(tur, metin){
-  var liste = oku();
-  liste.unshift({ t: saat(), tur: tur, m: metin });
-  yazDiske(liste);
-  ciz();
-}
-
-/* ── PANEL ────────────────────────────────────────────────── */
-var RENK = { state:"#7ee3ff", hud:"#ffd479", olay:"#9fb6c8", uyari:"#ff8f8f" };
-
-function panelKur(){
-  if (kutu) return;
-  kutu = document.createElement("div");
-  kutu.id = "elmasTaniPanel";
-  kutu.style.cssText =
-    "position:fixed; left:4px; right:4px; top:calc(env(safe-area-inset-top,0px) + 96px);" +
-    "max-height:56vh; overflow-y:auto; overflow-x:hidden;" +
-    "background:#0d2438; color:#dff3ff; z-index:2147483000;" +
-    "font-family:'Baloo 2',sans-serif; font-size:11px; line-height:1.35;" +
-    "padding:8px 10px 10px; border-radius:12px;" +
-    "box-shadow:0 2px 6px rgba(0,20,45,.3); white-space:pre-wrap; word-break:break-word;";
-
-  var bas = document.createElement("div");
-  bas.style.cssText = "font-weight:800; font-size:13px; margin-bottom:6px; display:flex; gap:6px; align-items:center;";
-  var ad = document.createElement("span");
-  ad.style.cssText = "flex:1;"; ad.textContent = "ELMAS TANI v2";
-  bas.appendChild(ad);
-
-  function dugme(yazi, isle){
-    var b = document.createElement("button");
-    b.type = "button"; b.textContent = yazi;
-    b.style.cssText = "font-family:inherit; font-weight:700; font-size:11px; background:#164263;" +
-                      "color:#dff3ff; border:none; border-radius:8px; padding:3px 9px;";
-    b.addEventListener("click", isle);
-    return b;
-  }
-  bas.appendChild(dugme("sil", function(){
-    try { localStorage.removeItem(ANAHTAR); } catch (e) {}
-    ciz();
-  }));
-  bas.appendChild(dugme("gizle", function(){ kutu.style.display = "none"; }));
-  kutu.appendChild(bas);
-
-  govde = document.createElement("div");
-  kutu.appendChild(govde);
-  document.body.appendChild(kutu);
-}
-
-function ciz(){
-  if (!govde) return;
-  var liste = oku();
-  govde.textContent = "";
-  for (var i = 0; i < liste.length; i++) {
-    var k = liste[i];
-    var s = document.createElement("div");
-    s.style.cssText = "border-top:1px solid rgba(190,240,255,.20); padding:5px 0; color:" +
-                      (RENK[k.tur] || "#dff3ff") + ";";
-    s.textContent = (liste.length - i) + ") " + k.t + "  " + k.m;
-    govde.appendChild(s);
-  }
-  if (!liste.length) govde.textContent = "(kayit yok)";
-}
-
-/* ── ÇAĞRI ZİNCİRİ ────────────────────────────────────────── */
-function zincir(){
-  var ham = "";
-  try { throw new Error("iz"); } catch (e) { ham = e.stack || ""; }
-  var sat = ham.split("\n"), cikti = [];
-  for (var i = 0; i < sat.length && cikti.length < 5; i++) {
-    var t = sat[i].trim();
-    if (!t || t.indexOf("Error") === 0) continue;
-    if (t.indexOf("elmasTani") >= 0 || t.indexOf("zincir") >= 0 ||
-        t.indexOf("kaydet") >= 0 || t.indexOf("at set") >= 0) continue;
-    t = t.replace(/^at\s+/, "").replace(/https?:\/\/[^\s)]*\//g, "");
-    cikti.push(t);
-  }
-  return cikti.length ? "\n   ← " + cikti.join("\n   ← ") : "";
-}
-
-/* ── 1) state.diamonds SETTER ─────────────────────────────── */
-var setterKurulu = false;
-
-function setterKur(){
-  if (typeof state === "undefined" || !state) { setTimeout(setterKur, 300); return; }
-  if (state.__elmasTani2) { setterKurulu = true; return; }
-  var deger = state.diamonds;
-  try {
-    Object.defineProperty(state, "diamonds", {
-      configurable: true, enumerable: true,
-      get: function(){ return deger; },
-      set: function(v){
-        var eski = deger;
-        deger = v;
-        if (eski !== v) {
-          var fark = (typeof v === "number" && typeof eski === "number")
-                     ? (v - eski > 0 ? "+" + (v - eski) : String(v - eski)) : "?";
-          kaydet("state", "STATE  " + eski + " → " + v + "  (" + fark + ")" + zincir());
-        }
-      }
-    });
-    state.__elmasTani2 = true;
-    setterKurulu = true;
-    kaydet("olay", "setter kuruldu, state.diamonds = " + deger);
-  } catch (e) {
-    kaydet("uyari", "SETTER KURULAMADI: " + (e && e.message ? e.message : e));
-  }
-}
-
-/* ── 2) HUD ÖRNEKLEMESİ ───────────────────────────────────── */
-var sonHud = null;
-
-function hudOku(){
-  var el = document.getElementById("diamondAmount");
-  return el ? (el.textContent || "").trim() : null;
-}
-
-/* ── 3) SAYFA OLAYLARI ────────────────────────────────────── */
-window.addEventListener("beforeunload", function(){
-  var d = "?";
-  try { if (typeof state !== "undefined" && state) d = state.diamonds; } catch (e) {}
-  kaydet("olay", "SAYFA KAPANIYOR — state.diamonds = " + d + " · HUD = " + hudOku());
-});
-document.addEventListener("visibilitychange", function(){
-  if (document.visibilityState !== "hidden") return;
-  var d = "?";
-  try { if (typeof state !== "undefined" && state) d = state.diamonds; } catch (e) {}
-  kaydet("olay", "arka plana atildi — state = " + d + " · HUD = " + hudOku());
-});
-
-/* ── SANİYELİK DENETİM ────────────────────────────────────── */
-setInterval(function(){
-  /* HUD metni degistiyse yaz. state satiri zaten ayri dusuyor;
-     ikisi ayrisirsa sorun ekran tarafindadir. */
-  var h = hudOku();
-  if (h !== null && h !== sonHud) {
-    var d = "?";
-    try { if (typeof state !== "undefined" && state) d = state.diamonds; } catch (e) {}
-    if (sonHud !== null) kaydet("hud", "HUD  " + sonHud + " → " + h + "   (state = " + d + ")");
-    sonHud = h;
-  }
-
-  /* state nesnesi bastan kurulduysa setter kaybolur. */
-  if (typeof state !== "undefined" && state && setterKurulu && !state.__elmasTani2) {
-    kaydet("uyari", "!! SETTER KAYBOLDU — state nesnesi yeniden kuruldu (diamonds = " +
-                    state.diamonds + ")");
-    setterKurulu = false;
-    setterKur();
-  }
-}, 1000);
-
-/* ── BAŞLAT ───────────────────────────────────────────────── */
-function baslat(){
-  panelKur();
-  ciz();
-  kaydet("olay", "══ SAYFA YUKLENDI ══");
-  setterKur();
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", function(){ setTimeout(baslat, 300); });
-} else {
-  setTimeout(baslat, 300);
-}
-})();
-
-/* ══════════════════════════════════════════════════════════════
-   KALE IŞINLANMA (isin-4)
-   Taşıma bitince yeni konumda: mavi şerit yıldırımlar çakar (600 ms)
-   → kale AYNEN, tam boyunda oturur → yerden toz halka halinde
-   savrulur, kale kısa sarsılır. Toplam 1700 ms.
-
-   ── NEDEN CSS ANIMASYONU YOK ──
-   index.html ~2088'de `@media (prefers-reduced-motion:reduce)`:
-   `*{animation-duration:.01ms !important}`. Telefonda "animasyonları
-   azalt" açıksa her CSS animasyonu görünmeden biter. O erişilebilirlik
-   kuralı delinmez; efektin tamamı tuvale, kendi kare döngümüzde çizilir.
-
-   ── NEDEN TUVAL ──
-   60 toz parçacığı DOM'da 60 eleman demek. Harita düğümleri zaten
-   DOM'dan canvas'a taşındı (kare hızı 46→16 düşmüştü); aynı hataya
-   dönmüyoruz. Tek tuval, tek katman.
-
-   ── YILDIRIM ÇİZİMİ (Tuzak 51) ──
-   Şerit, küçük parçaların ART ARDA STROKE'u ile çizilemez: yuvarlak
-   uçlar kıvrımda üst üste binip BONCUK gibi noktalar bırakır. Bu
-   yüzden gövde tek bir ÇOKGEN olarak doldurulur — sol kenar ileri,
-   sağ kenar geri. Kalınlık uca doğru azalır.
-   Hale (gölge) yalnız EN DIŞ katmanda ve tek fill'de uygulanır;
-   parça parça uygulanırsa telefon kasar.
-
-   ── Kurallar ──
-   · Kamera 420 ms'de hedefe kayıyor; efekt 470 ms sonra başlar.
-   · Vuruş noktası HER KAREDE kale düğümünden okunur → harita kaysa
-     da efekt kaleden ayrılmaz (Tuzak 40).
-   · MutationObserver YOK (Tuzak 44). Sınıf yalnız gerekirse yazılır.
-   · Ölçü kalenin genişliğinden gelir → Sv1–Sv5 hepsinde oturur.
-   · Tuval pointer-events:none (Tuzak 19).
-   · Sarsıntı .node-avatar'a DEĞİL içindeki img'ye yazılır: kutuda
-     Sv2 için zaten translateY(22px) var, ezersek kale yerinden oynar.
-   · `?isin=1` → tanı kutusu + OYNAT düğmesi. İş bitince o parça silinir.
-   ══════════════════════════════════════════════════════════════ */
-(function () {
-  if (window.KALE_ISIN) return;
-
-  /* ── TEK AYAR NOKTASI — deneme panelinde dial'lanan değerler ── */
-  var AYAR = {
-    sure: 1700,        /* toplam süre (ms) */
-    gelis: 600,        /* kalenin oturduğu an (ms) */
-    sayi: 5,           /* yıldırım sayısı */
-    cakma: 6,          /* çakma sayısı */
-    kalin: 11,         /* yıldırım kalınlığı */
-    dal: 3,            /* dallanma */
-    kivrim: 80,        /* kıvrım */
-    hale: 70,          /* mavi hale (0-100) */
-    toz: 60,           /* toz parçacığı */
-    yayil: 135,        /* toz yayılımı (px) */
-    tozSure: 900,      /* toz süresi (ms) */
-    sarsinti: 16,      /* oturma sarsıntısı */
-    olcek: 0.49,       /* efektin genel boyu — 1 = ilk hâli */
-    bekle: 470         /* kamera hedefe varana kadar SESSİZ evre (ms) */
-  };
-  /* SIRA KURALI (Tuzak 54): efekt taşımanın İLK anında başlar.
-     Gecikmeli başlatılırsa kale önce çizilir, sonra efekt onu gizler,
-     sonra yeniden gösterir — "kale gelir, kaybolur, tekrar gelir".
-     Bekleme artık efektin İÇİNDE: ilk 470 ms hiçbir şey çizilmez,
-     yalnız kale gizli tutulur; kamera bu sürede hedefe varır. */
-
-  var css =
-    ".isin-tuval{position:fixed;left:0;top:0;width:100%;height:100%;" +
-      "z-index:2147482000;pointer-events:none;}" +
-    "html body .map-node.castle-node.isin-gizli .node-ring," +
-    "html body .map-node.castle-node.isin-gizli .node-label{opacity:0;}";
-  var st = document.createElement("style");
-  st.id = "isinCss";
-  st.textContent = css;
-  document.head.appendChild(st);
-
-  function isinKaleDugum() {
-    return document.querySelector("#battleMap .map-node.castle-node.castle-own") ||
-           document.querySelector(".map-node.castle-node.castle-own");
-  }
-  function isinYeri(n) {
-    var a = n.querySelector(".castle-avatar") || n;
-    var r = a.getBoundingClientRect();
-    if (!r.width || !r.height) return null;          /* Tuzak 15 */
-    return { x: r.left + r.width / 2, y: r.top + r.height * 0.80, w: r.width };
-  }
-  function isinYedekYer() {
-    return { x: innerWidth / 2, y: innerHeight * 0.6, w: 110 };
-  }
-  function kaleGorselleri(n) { return n ? n.querySelectorAll(".castle-avatar img") : []; }
-  function kaleSars(n, dy) {
-    var g = kaleGorselleri(n), i;
-    for (i = 0; i < g.length; i++) g[i].style.transform = "translateY(" + dy.toFixed(1) + "px)";
-  }
-  function kaleTemizle(n) {
-    var g = kaleGorselleri(n), i;
-    for (i = 0; i < g.length; i++) g[i].style.removeProperty("transform");
-  }
-
-  /* ── yol: Catmull-Rom ile yumuşatılmış kırık hat ── */
-  function yol(x1, y1, x2, y2, kiv, adet) {
-    var p = [[x1, y1]], d = [], i, k, t;
-    for (i = 1; i < adet; i++) {
-      t = i / adet;
-      p.push([x1 + (x2 - x1) * t + (Math.random() - 0.5) * kiv * (1 - Math.abs(t - 0.35)),
-              y1 + (y2 - y1) * t + (Math.random() - 0.5) * kiv * 0.25]);
-    }
-    p.push([x2, y2]);
-    for (i = 0; i < p.length - 1; i++) {
-      for (k = 0; k < 4; k++) {
-        var u = k / 4,
-            a = p[Math.max(0, i - 1)], b = p[i],
-            c = p[i + 1], e = p[Math.min(p.length - 1, i + 2)];
-        d.push([
-          0.5 * ((2 * b[0]) + (-a[0] + c[0]) * u + (2 * a[0] - 5 * b[0] + 4 * c[0] - e[0]) * u * u +
-                 (-a[0] + 3 * b[0] - 3 * c[0] + e[0]) * u * u * u),
-          0.5 * ((2 * b[1]) + (-a[1] + c[1]) * u + (2 * a[1] - 5 * b[1] + 4 * c[1] - e[1]) * u * u +
-                 (-a[1] + 3 * b[1] - 3 * c[1] + e[1]) * u * u * u)
-        ]);
-      }
-    }
-    d.push(p[p.length - 1]);
-    return d;
-  }
-
-  /* ── KOORDİNAT KURALI (Tuzak 52) ──
-     Yol, vuruş noktasına GÖRE üretilir: (0,0) = kalenin oturduğu yer.
-     Mutlak ekran koordinatıyla üretilirse harita kaydığında kale gider,
-     yıldırım ekranda asılı kalır. Tuval her karede kaleye taşınıyor
-     (`g.translate`), yol hiç yeniden üretilmiyor. */
-  function boltUret(ol) {
-    var l = [], i, j;
-    /* Yıldırımın boyu da ölçekten geliyor: ekranın tepesinden değil,
-       kalenin yukarısında bir noktadan iniyor. Yoksa "küçült" yalnız
-       kalınlığı kısar, hat yine ekranı boydan boya keser. */
-    var tepe = -(innerHeight * 0.72) * AYAR.olcek;
-    for (i = 0; i < AYAR.sayi; i++) {
-      var ana = yol((Math.random() - 0.5) * innerWidth * 0.5 * AYAR.olcek, tepe,
-                    (Math.random() - 0.5) * 14 * ol, 0, AYAR.kivrim * ol, 5);
-      var dal = [];
-      for (j = 0; j < AYAR.dal; j++) {
-        var k = Math.floor(ana.length * (0.25 + Math.random() * 0.5));
-        var b = ana[k], yon = Math.random() < 0.5 ? -1 : 1;
-        dal.push({ k: k, p: yol(b[0], b[1],
-                                b[0] + yon * (40 + Math.random() * 70) * ol,
-                                b[1] + (50 + Math.random() * 70) * ol,
-                                AYAR.kivrim * 0.6 * ol, 3) });
-      }
-      l.push({ ana: ana, dal: dal });
-    }
-    return l;
-  }
-
-  function tozUret() {
-    var l = [], i;
-    for (i = 0; i < AYAR.toz; i++) {
-      l.push({ a: Math.random() * 6.2832, hz: (0.45 + Math.random() * 0.55) * AYAR.yayil,
-               r: 3 + Math.random() * 9, kalk: 6 + Math.random() * 20,
-               gec: Math.random() * 0.18, ton: Math.random() });
-    }
-    return l;
-  }
-
-  /* ── TANI (?isin=1) — ekrana basar, showToast'a DEĞİL (Tuzak 12) ── */
-  var TANI = (location.search.indexOf("isin=1") >= 0);
-  var taniKutu = null, taniSatir = null, sonKare = 0, sonDurum = "—";
-  function taniAc() {
-    if (!TANI || taniKutu) return;
-    taniKutu = document.createElement("div");
-    taniKutu.id = "isinTani";
-    taniKutu.style.cssText =
-      "position:fixed;left:6px;right:6px;top:6px;z-index:2147483000;" +
-      "background:#0d2438;color:#dff3ff;font:12px/1.5 sans-serif;" +
-      "padding:8px 10px;border-radius:10px;white-space:pre-line;" +
-      "box-shadow:0 2px 6px rgba(0,20,45,.3);";
-    taniSatir = document.createElement("div");
-    var b = document.createElement("button");
-    b.textContent = "OYNAT";
-    b.style.cssText = "margin-top:6px;padding:7px 16px;border:none;border-radius:8px;" +
-      "background:#1f9e46;color:#fff;font-weight:700;font-size:13px;";
-    b.onclick = function () { isinOynat(); };
-    taniKutu.appendChild(taniSatir); taniKutu.appendChild(b);
-    document.body.appendChild(taniKutu);
-  }
-  function taniTazele() {
-    if (!TANI) return;
-    taniAc();
-    if (!taniSatir) return;
-    var K = window.KALE_TASIMA, n = isinKaleDugum(), p = n ? isinYeri(n) : null;
-    taniSatir.textContent =
-      "IŞINLANMA TANI (isin-4)\n" +
-      "KALE_TASIMA: " + (K ? "var" : "YOK") +
-      "  · bağlı: " + (K && K._isinli ? "evet" : "HAYIR") + "\n" +
-      "kale düğümü: " + (n ? "bulundu" : "YOK") +
-      (p ? ("  · en:" + Math.round(p.w) + " x:" + Math.round(p.x) + " y:" + Math.round(p.y)) : "") + "\n" +
-      "tuval: " + (document.querySelector(".isin-tuval") ? "ekranda" : "yok") +
-      "  · kare: " + sonKare + "\n" +
-      "son: " + sonDurum;
-  }
-
-  function isinOynat() {
-    if (document.querySelector(".isin-tuval")) return;   /* üst üste binmesin */
-
-    var cv = document.createElement("canvas");
-    cv.className = "isin-tuval";
-    document.body.appendChild(cv);
-    var g = cv.getContext("2d");
-    var DPR = Math.min(1.5, window.devicePixelRatio || 1), W = 0, H = 0;
-    function olcu() {
-      W = innerWidth; H = innerHeight;
-      cv.width = W * DPR; cv.height = H * DPR;
-      g.setTransform(DPR, 0, 0, DPR, 0, 0);
-    }
-    olcu();
-
-    /* Tuzak 51: şerit tek çokgen — parça parça stroke boncuk bırakır. */
-    function seritCiz(p, bas, son, renk, kesim, hale) {
-      var n = p.length - 1, ust = Math.max(2, Math.floor(n * kesim));
-      var sol = [], sag = [], i;
-      for (i = 0; i <= ust; i++) {
-        var a = p[Math.max(0, i - 1)], b = p[Math.min(ust, i + 1)];
-        var dx = b[0] - a[0], dy = b[1] - a[1], uz = Math.sqrt(dx * dx + dy * dy) || 1;
-        var nx = -dy / uz, ny = dx / uz, w = (bas + (son - bas) * (i / n)) / 2;
-        sol.push([p[i][0] + nx * w, p[i][1] + ny * w]);
-        sag.push([p[i][0] - nx * w, p[i][1] - ny * w]);
-      }
-      g.beginPath();
-      g.moveTo(sol[0][0], sol[0][1]);
-      for (i = 1; i < sol.length; i++) g.lineTo(sol[i][0], sol[i][1]);
-      for (i = sag.length - 1; i >= 0; i--) g.lineTo(sag[i][0], sag[i][1]);
-      g.closePath();
-      g.fillStyle = renk;
-      if (hale) { g.shadowBlur = hale; g.shadowColor = "rgba(80,180,255,.95)"; }
-      g.fill();
-      g.shadowBlur = 0;
-    }
-
-    function cizBolt(b, guc, kesim, ol) {
-      var k = AYAR.kalin * ol, h = AYAR.hale / 100, d;
-      g.globalCompositeOperation = "lighter";
-      seritCiz(b.ana, k * 2.4, k * 0.8, "rgba(30,120,255," + (0.30 * guc * h).toFixed(3) + ")", kesim, 22 * h);
-      seritCiz(b.ana, k * 1.35, k * 0.45, "rgba(70,175,255," + (0.80 * guc).toFixed(3) + ")", kesim, 0);
-      seritCiz(b.ana, k * 0.55, k * 0.18, "rgba(190,235,255," + (0.95 * guc).toFixed(3) + ")", kesim, 0);
-      for (d = 0; d < b.dal.length; d++) {
-        if (b.dal[d].k > b.ana.length * kesim) continue;
-        seritCiz(b.dal[d].p, k * 1.1, k * 0.25, "rgba(60,165,255," + (0.60 * guc * h).toFixed(3) + ")", 1, 0);
-        seritCiz(b.dal[d].p, k * 0.40, k * 0.10, "rgba(190,235,255," + (0.80 * guc).toFixed(3) + ")", 1, 0);
-      }
-      g.globalCompositeOperation = "source-over";
-    }
-
-    var t0 = performance.now(), kare = 0, son = null, bolts = null, toz = tozUret();
-    sonDurum = "başladı";
-
-    function adim(now) {
-      var ham = now - t0;
-      var t = ham - AYAR.bekle;          /* efekt saati: bekleme düşülmüş */
-      var n = isinKaleDugum();
-
-      /* SESSİZ EVRE — kamera yolda, kale gizli, tuval boş. */
-      if (t < 0) {
-        if (n && !n.classList.contains("isin-gizli")) n.classList.add("isin-gizli");
-        g.setTransform(DPR, 0, 0, DPR, 0, 0);
-        g.clearRect(0, 0, W, H);
-        kare++;
-        requestAnimationFrame(adim);
-        return;
-      }
-
-      var yer = n ? isinYeri(n) : null;
-      if (!yer && !son) yer = isinYedekYer();
-      if (yer) son = yer;
-      var hx = son.x, hy = son.y;
-      var ol = Math.min(2.2, Math.max(0.6, son.w / 110)) * AYAR.olcek;
-      if (!bolts) bolts = boltUret(ol);
-
-      if (cv.width !== Math.round(W * DPR)) olcu();
-      g.setTransform(DPR, 0, 0, DPR, 0, 0);
-      g.clearRect(0, 0, W, H);
-
-      /* ── YILDIRIM ── */
-      if (t < AYAR.gelis) {
-        var dilim = AYAR.gelis / AYAR.cakma, yerel = (t % dilim) / dilim;
-        var guc = yerel < 0.30 ? 1 : yerel < 0.44 ? 0.30 : yerel < 0.62 ? 0.85 : 0;
-        var kesim = Math.min(1, (t / AYAR.gelis) * 2.1 + 0.3);
-        if (guc > 0) {
-          g.save();
-          g.translate(hx, hy);                 /* yol kaleye göre çizilir */
-          for (var i = 0; i < bolts.length; i++) cizBolt(bolts[i], guc, kesim, ol);
-          g.restore();
-          g.fillStyle = "rgba(180,225,255," + (0.07 * guc).toFixed(3) + ")";
-          g.fillRect(0, 0, W, H);
-        }
-      }
-
-      /* ── KALE: oturma anına kadar gizli, sonra AYNEN gelir ── */
-      var gt = t - AYAR.gelis;
-      if (n) {
-        if (gt < 0) {
-          if (!n.classList.contains("isin-gizli")) n.classList.add("isin-gizli");
-          kaleTemizle(n);
-        } else {
-          if (n.classList.contains("isin-gizli")) n.classList.remove("isin-gizli");
-          if (gt < 240) kaleSars(n, Math.sin(gt / 16) * AYAR.sarsinti * (1 - gt / 240) * 0.35);
-          else kaleTemizle(n);
-        }
-      }
-
-      /* ── TOZ ── */
-      if (gt >= 0) {
-        var q = gt / AYAR.tozSure, j;
-        if (q < 1) {
-          var e = 1 - Math.pow(1 - q, 2.4);
-          g.globalAlpha = 0.5 * (1 - q);
-          g.strokeStyle = "#f4ecdf"; g.lineWidth = 3 * ol;
-          g.beginPath();
-          g.ellipse(hx, hy, (20 + e * AYAR.yayil * 0.9) * ol,
-                    (20 + e * AYAR.yayil * 0.9) * 0.34 * ol, 0, 0, 6.2832);
-          g.stroke(); g.globalAlpha = 1;
-        }
-        for (j = 0; j < toz.length; j++) {
-          var p2 = toz[j], q2 = q - p2.gec;
-          if (q2 <= 0 || q2 >= 1) continue;
-          var ee = 1 - Math.pow(1 - q2, 2.2);
-          var x = hx + Math.cos(p2.a) * p2.hz * ol * ee;
-          var y = hy + Math.sin(p2.a) * p2.hz * 0.34 * ol * ee -
-                  p2.kalk * ol * Math.sin(q2 * 3.1416) * 0.9;
-          var r = p2.r * ol * (0.6 + ee * 1.5);
-          g.globalAlpha = (1 - q2) * 0.75;
-          g.fillStyle = p2.ton > 0.5 ? "#f7f1e6" : "#dcc9b4";
-          g.beginPath(); g.ellipse(x, y, r, r * 0.72, 0, 0, 6.2832); g.fill();
-          g.globalAlpha = 1;
-        }
-      }
-
-      kare++;
-      if (t < AYAR.sure) requestAnimationFrame(adim);
-      else {
-        cv.remove();
-        var m2 = isinKaleDugum();
-        if (m2) { m2.classList.remove("isin-gizli"); kaleTemizle(m2); }
-        sonKare = kare;
-        sonDurum = "bitti · " + kare + " kare · düğüm " + (m2 ? "vardı" : "YOKTU");
-        taniTazele();
-      }
-    }
-    requestAnimationFrame(adim);
-  }
-
-  /* KALE_TASIMA index.html'de tanımlanıyor; tema.js ondan önce
-     çalışmış olabilir → birkaç kez dene, bağlanınca bırak. */
-  function isinBagla() {
-    var K = window.KALE_TASIMA;
-    if (!K) return false;
-    if (K._isinli) return true;
-    var eski = K.tasi;
-    if (typeof eski !== "function") return false;
-    K.tasi = function () {
-      isinOynat();                       /* önce başlat: kale hiç görünmesin */
-      return eski.apply(this, arguments);
-    };
-    K._isinli = true;
-    return true;
-  }
-  if (!isinBagla()) {
-    [0, 300, 1000, 2500, 5000, 9000].forEach(function (ms) { setTimeout(isinBagla, ms); });
-  }
-
-  window.KALE_ISIN = { oynat: isinOynat, ayar: AYAR };
-
-  /* GEÇİCİ — tanı için. İş bitince buradan aşağısı silinir. */
-  if (TANI) {
-    setTimeout(taniTazele, 600);
-    setInterval(taniTazele, 1000);
-    setTimeout(isinOynat, 2200);
-  }
-})();
-
-/* ══════════════════════════════════════════════════════════════
-   SAVAŞ PANELİ — BİRLİK LİSTESİ SÜRGÜ ÇUBUĞU KAPALI
-   ------------------------------------------------------------
-   Liste üç satır boyunda duruyor (yükseklik troops.js
-   `listePenceresiOlc` içinde ÖLÇÜLEREK yazılır, burada sabit
-   sayı yok). Kaydırma parmakla yapılır; çubuk hiçbir tarayıcıda
-   görünmez.
-
-   Üç ayrı kural gerekiyor çünkü tarayıcılar çubuğu farklı
-   yerlerden çiziyor: Firefox `scrollbar-width`, WebKit
-   `::-webkit-scrollbar`, eski Edge `-ms-overflow-style`.
-   Biri eksik kalırsa o tarayıcıda ince bir çizgi kalır.
-
-   `overscroll-behavior:contain` — liste sonuna gelince kaydırma
-   panele ve arkadaki haritaya SIÇRAMAZ. Bu olmadan üçüncü
-   satırdan sonra parmak paneli sürüklüyordu.
-   ══════════════════════════════════════════════════════════════ */
-(function birlikListesiCubukKapat(){
-"use strict";
-const st = document.createElement("style");
-st.id = "temaBirlikListeCubuk";
-st.textContent = `
-html body #battleArena #troopSelectList{
-  scrollbar-width:none !important;
-  -ms-overflow-style:none !important;
-  overscroll-behavior:contain !important;
-  -webkit-overflow-scrolling:touch !important;
-}
-html body #battleArena #troopSelectList::-webkit-scrollbar{
-  width:0 !important; height:0 !important; display:none !important;
-}
-`;
-document.head.appendChild(st);
-})();
-
-/* ══════════════════════════════════════════════════════════════
-   RAPOR — BOŞ BİRLİK KUTUCUĞU
-   ------------------------------------------------------------
-   Bir birlik yalnız bir tarafta varsa, diğer tarafta kafa
-   çizilmez (tema.js unitDetailHTML). Yerine bu boş kutu geçer:
-   ölçüsü aynıdır, böylece iki başlık aynı hizada kalır ve
-   satırlar kaymaz. Arka plan görseli VERİLMEZ — .rep-por'un
-   kademe kuralları data-kad'a bağlı, boş kutuda o öznitelik
-   olmadığı için hiçbiri tutmaz.
-   ══════════════════════════════════════════════════════════════ */
-(function raporBosBirlikKutusu(){
-"use strict";
-const st = document.createElement("style");
-st.id = "temaRaporBosKutu";
-st.textContent = `
-html body .rep-por.rp-por-bos{
-  background-color:rgba(0,0,0,.05) !important;
-  background-image:none !important;
-  border:1px dashed rgba(90,60,25,.25) !important;
-  box-shadow:none !important;
-}
-html body .rep-por.rp-por-bos::before{ content:none !important; }
-`;
-document.head.appendChild(st);
-})();
-
-
-/* ═══════════════════════════════════════════════════════════════
-   KALKAN KUBBESİ  —  haritadaki kalelerin üzerindeki koruma alanı
-
-   GÖRSEL DOSYA YOK. Kubbe tamamen CSS: iki elips + bir tarama
-   bandı. Kale düğümü #battleMap katmanında DOM olduğu için harita
-   yakınlaştırması (0.75–3.0) ve kaydırması kubbeye kendiliğinden
-   uygulanır; canvas'a hiçbir şey çizilmiyor.
-
-   İZOMETRİK OTURUŞ: karo oranı 64×32, yani 2:1. Kubbenin TABAN
-   halkası da 2:1 basık elips — perspektifi satan parça odur.
-   Üstteki cam kubbe 1,2:1'dir; tam 2:1 yapılsaydı kalenin
-   üstünde su birikintisi gibi dururdu.
-
-   ÖLÇÜ .node-avatar'a GÖRE (yüzde): o kutu seviyeye göre 100px,
-   166px ya da 184px oluyor (bkz. ?kaleayar=1). Piksel yazsaydık
-   Sv2 kalesi kubbeden taşardı.
-
-   ── NEDEN renderBattleMap SARILMADI ──
-   missile.js zaten sarıyor; ikinci bir sarmalayıcı zincire
-   bağımlılık ekler ve yükleme sırası değişince sessizce kopar.
-   Ayrıca sayaç metni için nasılsa kendi zamanlayıcımız gerekiyor
-   (Tuzak 54: gösterim kendi saatiyle yenilenmeli). Bu yüzden tek
-   yol var: saniyede bir düğümleri tara. Haritada birkaç kale
-   olduğu için maliyeti yok denecek kadar az.
-
-   Süresi dolan kubbe kendiliğinden kalkar — renderBattleMap
-   çağrılmasını beklemez (imza değişmediği için çağrılsa bile
-   hiçbir şey yapmazdı).
-   ═══════════════════════════════════════════════════════════════ */
-(function kalkanKubbesi() {
-  "use strict";
-
-  /* ── KALKAN KUBBESİ ──
-     Üç katman: dolu enerji küresi, izometrik taban halkası ve
-     kürenin içinde üstten alta sürekli akan çizgiler.
-
-     DÖNEN SÜPÜRME (tara) KALDIRILDI. Çember sabit duruyor;
-     hareketi yalnız akan çizgiler veriyor.
-
-     Ölçüler kale kutusunun YÜZDESİ: o kutu seviyeye göre 100px,
-     166px ya da 184px oluyor (bkz. ?kaleayar=1). Piksel yazılsaydı
-     Sv2 kalesi kubbeden taşardı.
-
-     TRANSFORM BOŞ BIRAKILDI. Nefes animasyonu yalnız opacity
-     kullanır; transform tamamen ayar panelinindir (açı, eğri,
-     kaydırma). Nefes scale kullansaydı panelin yazdığı açıyı her
-     karede geri ezerdi.                                          */
-  var st = document.createElement("style");
-  st.id = "temaKalkanKubbe";
-  st.textContent = `
-html body #battleMap .map-node.castle-node .kk-kubbe{
-  position:absolute;
-  left:50%; top:50%;
-  width:112%;
-  aspect-ratio:1 / 0.90;
-  transform:translate(-50%, -54%);
-  pointer-events:none;
-  z-index:3;
-}
-
-/* ── DOLU ENERJİ KÜRESİ ──
-   PARLAMA YOK: sol üstteki ışık lekesi kaldırıldı. Gradyan
-   merkezden dışa doğru koyulaşıyor — hacim hissi kenardaki
-   yoğunlaşmadan geliyor, parlak noktadan değil. */
-html body #battleMap .map-node.castle-node .kk-cam{
-  position:absolute; inset:auto;
-  left:50%; top:50%; width:100%; height:100%;
-  transform:translate(-50%,-50%);
-  border-radius:50%;
-  border:2px solid rgba(190,248,255,.90);
-  background:radial-gradient(circle at 50% 50%,
-              rgba(140,244,255,.22)  0%,
-              rgba(140,244,255,.29) 55%,
-              rgba(140,244,255,.53) 86%,
-              rgba(140,244,255,.70) 100%);
-  box-shadow:0 0 8px rgba(140,244,255,.20);
-  animation:kkNefes 3s ease-in-out infinite;
-  will-change:opacity;
-}
-@keyframes kkNefes{ 0%,100%{ opacity:.88; } 50%{ opacity:1; } }
-
-/* ── AKAN OVAL ÇİZGİLER ──
-   Her çizgi kürenin üzerinde aşağı kayan bir ENLEM HALKASIDIR.
-   Düz yatay çizgi değil: üstte dar başlar, ekvatorda kürenin tam
-   genişliğine ulaşır, altta yine daralır. Küre üzerinde çizilmiş
-   gibi durmasının sebebi budur — sabit genişlikte olsaydı kürenin
-   önünden geçen düz bir çubuk gibi görünürdü.
-
-   Bunun için üç şey birlikte canlandırılır: dikey konum (top),
-   genişlik ve yükseklik. Her halka kendi merkezine oturur
-   (translate -50%,-50%), böylece büyüyüp küçülürken kaymaz.
-
-   Gecikmeler eşit aralıklı: akış kesintisiz olsun, biri
-   diğerini beklemesin. */
-html body #battleMap .map-node.castle-node .kk-cizgiler{
-  position:absolute; inset:auto;
-  left:50%; top:50%; width:100%; height:100%;
-  transform:translate(-50%,-50%);
-  border-radius:50%;
-  overflow:hidden;
-}
-html body #battleMap .map-node.castle-node .kk-cizgiler i{
-  position:absolute; left:50%;
-  transform:translate(-50%,-50%);
-  border-radius:50%;
-  border:2px solid rgba(240,254,255,.85);
-  background:none;
-  animation:kkSuz 4s linear infinite;
-  will-change:top, width, height, opacity;
-}
-html body #battleMap .map-node.castle-node .kk-cizgiler i:nth-child(2){ animation-delay:1.33s; }
-html body #battleMap .map-node.castle-node .kk-cizgiler i:nth-child(3){ animation-delay:2.66s; }
-@keyframes kkSuz{
-  0%  { top:10%; width:20%;  height:6%;  opacity:0; }
-  18% { opacity:1; }
-  50% { top:50%; width:100%; height:30%; }
-  82% { opacity:1; }
-  100%{ top:90%; width:20%;  height:6%;  opacity:0; }
-}
-
-html body #battleMap .map-node.castle-node .kk-sure{
-  margin-top:-1px;
-  padding:1px 7px 2px;
-  border-radius:9px;
-  background:rgba(8,44,74,.66);
-  color:#bdf1ff;
-  font-family:'Baloo 2','Nunito',sans-serif;
-  font-weight:800; font-size:10.5px; line-height:1.25;
-  font-variant-numeric:tabular-nums;
-  text-shadow:0 1px 2px rgba(0,20,45,.55);
-  white-space:nowrap;
-  pointer-events:none;
-}
-`;
-  document.head.appendChild(st);
-
-  function sureYaz(ms) {
-    var t = Math.max(0, Math.floor(ms / 1000));
-    var sa = Math.floor(t / 3600), dk = Math.floor((t % 3600) / 60), sn = t % 60;
-    if (sa > 0) return sa + "sa " + dk + "dk";
-    if (dk > 0) return dk + "dk " + sn + "sn";
-    return sn + "sn";
-  }
-
-  function kubbeTak(node) {
-    if (node.querySelector(".kk-kubbe")) return;
-    var av = node.querySelector(".node-avatar");
-    if (!av) return;
-    var k = document.createElement("div");
-    k.className = "kk-kubbe";
-    k.innerHTML = '<i class="kk-cam"></i>' +
-                  '<span class="kk-cizgiler"><i></i><i></i><i></i></span>';
-    av.appendChild(k);
-  }
-
-  function kubbeSok(node) {
-    var k = node.querySelector(".kk-kubbe"); if (k) k.remove();
-    var s2 = node.querySelector(".kk-sure"); if (s2) s2.remove();
-  }
-
-  function sayacYaz(node, ms) {
-    var e = node.querySelector(".kk-sure");
-    if (!e) { e = document.createElement("b"); e.className = "kk-sure"; node.appendChild(e); }
-    var yeni = "🛡️ " + sureYaz(ms);
-    if (e.textContent !== yeni) e.textContent = yeni;
-  }
-
-  /* renderBattleMap SARILMADI: missile.js zaten sarıyor, ikinci
-     sarmalayıcı yükleme sırası değişince sessizce kopar. Sayaç için
-     nasılsa kendi zamanlayıcımız gerekiyor (Tuzak 54). */
-  function tara() {
-    var liste;
-    try { liste = document.querySelectorAll("#battleMap .map-node.castle-node"); }
-    catch (e) { return; }
-    if (!liste || !liste.length) return;
-
-    var now = Date.now();
-    for (var i = 0; i < liste.length; i++) {
-      var n = liste[i];
-      var kb = parseInt(n.getAttribute("data-kb"), 10) || 0;
-      if (n.classList.contains("castle-own")) {
-        try { if (typeof state !== "undefined" && state) kb = Number(state.kalkanBitis || 0) || 0; }
-        catch (e2) {}
-      }
-      var kalan = kb - now;
-      if (kalan > 0) { kubbeTak(n); sayacYaz(n, kalan); }
-      else           { kubbeSok(n); }
-    }
-  }
-
-  setInterval(tara, 1000);
-  setTimeout(tara, 400);
-})();
-
-
-/* ═══════════════════════════════════════════════════════════════
-   KALKAN KUBBESİ AYAR PANELİ  —  ?kalkanayar=1
-
-   Bayrak yoksa HİÇBİR ŞEY yapmaz. Dört sekme:
-     GENEL  → kubbenin bütününün boyu ve konumu
-     CAM    → dış küre
-     TABAN  → izometrik zemin halkası
-     ÇİZGİ  → akan taramalar
-
-   YÖNTEM: panel ayrı bir <style> yazar ve içeriğini günceller.
-   Düğümlere satır içi yazmıyoruz — kaleler yeniden çizilince
-   kaybolurdu ve saniyede bir geri yazmak gerekirdi.
-
-   Beğenilen değerler yukarıdaki KALICI CSS'e yazılır ve BU BLOK
-   SİLİNİR (?isik=1 ve ?kaleayar=1 ile aynı mantık).
-   ═══════════════════════════════════════════════════════════════ */
-(function kalkanAyar() {
-  "use strict";
-  try { if (location.search.indexOf("kalkanayar=1") < 0) return; }
-  catch (e) { return; }
-
-  /* Varsayılanlar yukarıdaki KALICI CSS ile BİREBİR AYNI olmalı;
-     ayrışırsa panel açılır açılmaz kubbe zıplar. */
-  var A = {
-    genel: { en:112, yas:90, dx:0, dy:-4 },
-    cam:   { ac:1, en:100, boy:100, dx:0, dy:0, don:0, egri:0,
-             ton:62, cep:20, cepOp:90, dolu:70, hale:20 },
-    cizgi: { ac:1, adet:3, kal:20, hiz:40, ton:92, dolu:85 }
-  };
-
-  /* ── RENK TONU ──
-     0 mavi · 34 açık mavi · 67 turkuaz · 100 buz mavisi.
-     Ara değerler iki durak arasında karıştırılır, sürgü yumuşaktır. */
-  var DURAK = [[0,47,125,221],[34,89,184,245],[67,53,224,208],[100,205,243,255]];
-  function ton(t) {
-    t = Math.max(0, Math.min(100, t));
-    for (var i = 0; i < DURAK.length - 1; i++) {
-      var a = DURAK[i], b = DURAK[i + 1];
-      if (t >= a[0] && t <= b[0]) {
-        var o = (b[0] === a[0]) ? 0 : (t - a[0]) / (b[0] - a[0]);
-        return [Math.round(a[1] + (b[1] - a[1]) * o),
-                Math.round(a[2] + (b[2] - a[2]) * o),
-                Math.round(a[3] + (b[3] - a[3]) * o)];
-      }
-    }
-    return [205, 243, 255];
-  }
-  function rgba(c, o) {
-    return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + o.toFixed(3) + ")";
-  }
-
-  var stil = document.createElement("style");
-  stil.id = "kalkanAyarCanli";
-  document.head.appendChild(stil);
-
-  var ON = "html body #battleMap .map-node.castle-node ";
-
-  function uygula() {
-    var g = A.genel, c = A.cam, z = A.cizgi;
-    var cc = ton(c.ton), zc = ton(z.ton);
-    var out = "";
-
-    out += ON + ".kk-kubbe{" +
-      "width:" + g.en + "%;" +
-      "aspect-ratio:1 / " + (g.yas / 100).toFixed(2) + ";" +
-      "transform:translate(calc(-50% + " + g.dx + "px), calc(-50% + " + g.dy + "px));" +
-    "}";
-
-    out += ON + ".kk-cam{" +
-      "display:" + (c.ac ? "block" : "none") + ";" +
-      "inset:auto;left:50%;top:50%;" +
-      "width:" + c.en + "%;height:" + c.boy + "%;" +
-      "transform:translate(calc(-50% + " + c.dx + "px), calc(-50% + " + c.dy + "px))" +
-        " rotate(" + c.don + "deg) skewX(" + c.egri + "deg);" +
-      "border:" + (c.cep / 10).toFixed(1) + "px solid " + rgba(cc, c.cepOp / 100) + ";" +
-      "background:radial-gradient(circle at 50% 50%," +
-        rgba(cc, c.dolu / 100 * 0.32) + " 0%," +
-        rgba(cc, c.dolu / 100 * 0.42) + " 55%," +
-        rgba(cc, c.dolu / 100 * 0.76) + " 86%," +
-        rgba(cc, c.dolu / 100) + " 100%);" +
-      "box-shadow:0 0 " + Math.round(c.hale / 2.5) + "px " + rgba(cc, c.hale / 100 * 0.5) + ";" +
-    "}";
-
-    out += ON + ".kk-cizgiler{ display:" + (z.ac ? "block" : "none") + "; }";
-    out += ON + ".kk-cizgiler i{" +
-      "border:" + (z.kal / 10).toFixed(1) + "px solid " + rgba(zc, z.dolu / 100) + ";" +
-      "animation-duration:" + (z.hiz / 10).toFixed(1) + "s;" +
-    "}";
-    /* Adet: fazlalık çizgiler gizlenir, gecikmeler KALAN sayıya göre
-       eşit aralıklı yeniden dağıtılır. Yoksa iki çizgi seçilince
-       ikisi arka arkaya inip akış kesintiye uğrardı. */
-    for (var ci = 1; ci <= 3; ci++) {
-      var gorunur = ci <= z.adet;
-      out += ON + ".kk-cizgiler i:nth-child(" + ci + "){" +
-        "display:" + (gorunur ? "block" : "none") + ";" +
-        (gorunur
-          ? "animation-delay:" +
-            (((ci - 1) / Math.max(1, z.adet)) * (z.hiz / 10)).toFixed(2) + "s;"
-          : "") +
-      "}";
-    }
-
-    stil.textContent = out;
-  }
-
-  var SEKME = [
-    { k:"genel", et:"GENEL" },
-    { k:"cam",   et:"CAM" },
-    { k:"cizgi", et:"ÇİZGİ" }
-  ];
-
-  /* [alan, etiket, min, max, adım, birim] */
-  var ALANLAR = {
-    genel: [
-      ["en",  "Genişlik", 40, 260, 1, "%"],
-      ["yas", "Yassılık", 30, 160, 1, "%"],
-      ["dx",  "Yatay ↔",  -80, 80, 1, "px"],
-      ["dy",  "Dikey ↕",  -80, 80, 1, "px"]
-    ],
-    cam: [
-      ["ac",    "Görünür",  0, 1, 1, ""],
-      ["en",    "Genişlik", 20, 200, 1, "%"],
-      ["boy",   "Yükseklik",20, 200, 1, "%"],
-      ["dx",    "Yatay ↔",  -80, 80, 1, "px"],
-      ["dy",    "Dikey ↕",  -80, 80, 1, "px"],
-      ["don",   "Açı ↻",    -90, 90, 1, "°"],
-      ["egri",  "Eğri ⇗",   -60, 60, 1, "°"],
-      ["ton",   "Renk",     0, 100, 1, ""],
-      ["cep",   "Çeper",    0, 80, 1, "×.1px"],
-      ["cepOp", "Çeper op", 0, 100, 1, "%"],
-      ["dolu",  "Dolgu",    0, 100, 1, "%"],
-      ["hale",  "Dış hale", 0, 100, 1, "%"]
-    ],
-    cizgi: [
-      ["ac",   "Görünür", 0, 1, 1, ""],
-      ["adet", "Çizgi sayısı", 1, 3, 1, ""],
-      ["kal",  "Kalınlık", 5, 80, 1, "×.1px"],
-      ["hiz",  "İniş süresi", 10, 200, 1, "×.1s"],
-      ["ton",  "Renk", 0, 100, 1, ""],
-      ["dolu", "Parlaklık", 0, 100, 1, "%"]
-    ]
-  };
-
-  var aktif = "cam";
-
-  var PCSS =
-    "#kkAyar{position:fixed;left:6px;right:6px;bottom:96px;z-index:99999;" +
-      "background:rgba(9,32,52,.93);color:#eaf6ff;border:none;border-radius:12px;" +
-      "padding:8px 9px 9px;font:700 11.5px/1.3 'Baloo 2',sans-serif;" +
-      "box-shadow:0 2px 6px rgba(0,20,45,.3);font-variant-numeric:tabular-nums;" +
-      "max-height:44vh;display:flex;flex-direction:column}" +
-    "#kkAyar.kapali{max-height:none;padding:5px 9px 6px}" +
-    "#kkAyar.kapali .kk-govde,#kkAyar.kapali .kk-sekmeler,#kkAyar.kapali .kk-cikti{display:none}" +
-    "#kkAyar .kk-ust{display:flex;align-items:center;gap:6px;margin-bottom:5px}" +
-    "#kkAyar .kk-ust b{flex:1 1 auto;color:#9fd6ef;font-size:11px}" +
-    "#kkAyar .kk-ust button{border:none;border-radius:7px;padding:3px 9px;" +
-      "background:rgba(255,255,255,.12);color:#eaf6ff;font:inherit;cursor:pointer}" +
-    "#kkAyar .kk-sekmeler{display:flex;gap:4px;margin-bottom:6px}" +
-    "#kkAyar .kk-sekmeler button{flex:1 1 0;border:none;border-radius:7px;padding:4px 0;" +
-      "background:rgba(255,255,255,.10);color:#cfe6f5;font:inherit;font-size:10px;cursor:pointer;" +
-      "padding-left:1px;padding-right:1px}" +
-    "#kkAyar .kk-sekmeler button.on{background:#2fb3d8;color:#05263a}" +
-    "#kkAyar .kk-govde{overflow-y:auto;flex:1 1 auto;-webkit-overflow-scrolling:touch}" +
-    "#kkAyar .kk-sat{display:flex;align-items:center;gap:5px;margin:3px 0}" +
-    "#kkAyar .kk-sat .et{width:62px;flex:0 0 62px;color:#9fd6ef;font-size:10.5px}" +
-    "#kkAyar .kk-sat input[type=range]{flex:1 1 auto;min-width:0;margin:0;height:18px}" +
-    "#kkAyar .kk-sat .db{flex:0 0 26px;border:none;border-radius:6px;height:23px;" +
-      "background:rgba(255,255,255,.13);color:#eaf6ff;font:inherit;font-size:14px;" +
-      "line-height:1;cursor:pointer;padding:0}" +
-    "#kkAyar .kk-sat .dg{flex:0 0 54px;text-align:right;font-size:10.5px;color:#ffd257}" +
-    "#kkAyar .kk-cikti{margin-top:6px;width:100%;height:74px;resize:none;" +
-      "border:none;border-radius:8px;background:rgba(255,255,255,.07);color:#ffe9a8;" +
-      "font:700 11px/1.45 monospace;padding:6px 7px;" +
-      "-webkit-user-select:text;user-select:text}";
-
-  /* Çıktı okunur biçimde: kopyalanamazsa ekran görüntüsü de yeter. */
-  function ciktiMetni() {
-    var g = A.genel, c = A.cam, z = A.cizgi;
-    return "GENEL en" + g.en + " yas" + g.yas + " dx" + g.dx + " dy" + g.dy + "\n" +
-           "CAM   " + (c.ac ? "" : "KAPALI ") + "en" + c.en + " boy" + c.boy +
-             " dx" + c.dx + " dy" + c.dy + " don" + c.don + " egri" + c.egri +
-             " ton" + c.ton + " cep" + c.cep + " cepOp" + c.cepOp + " dolu" + c.dolu +
-             " hale" + c.hale + "\n" +
-           "CIZGI " + (z.ac ? "" : "KAPALI ") + "adet" + z.adet + " kal" + z.kal +
-             " hiz" + z.hiz + " ton" + z.ton + " dolu" + z.dolu;
-  }
-
-  function ciktiYaz() {
-    var e = document.getElementById("kkCikti");
-    if (e) e.value = ciktiMetni();
-  }
-
-  function govdeCiz() {
-    var g = document.getElementById("kkGovde");
-    if (!g) return;
-    var liste = ALANLAR[aktif];
-    var h = "";
-    liste.forEach(function (f) {
-      h += '<div class="kk-sat" data-k="' + f[0] + '">' +
-             '<span class="et">' + f[1] + '</span>' +
-             '<button class="db" data-d="-1" type="button">−</button>' +
-             '<input type="range" min="' + f[2] + '" max="' + f[3] +
-                '" step="' + f[4] + '" value="' + A[aktif][f[0]] + '">' +
-             '<button class="db" data-d="1" type="button">+</button>' +
-             '<span class="dg"></span>' +
-           '</div>';
-    });
-    g.innerHTML = h;
-
-    g.querySelectorAll(".kk-sat").forEach(function (row) {
-      var k = row.dataset.k;
-      var inp = row.querySelector("input");
-      var dg = row.querySelector(".dg");
-      var f = liste.find(function (x) { return x[0] === k; });
-
-      function goster() {
-        dg.textContent = A[aktif][k] + (f[5] || "");
-        inp.value = A[aktif][k];
-      }
-      function degistir(v) {
-        A[aktif][k] = Math.max(f[2], Math.min(f[3], v));
-        goster(); uygula(); ciktiYaz();
-      }
-      inp.addEventListener("input", function () { degistir(parseInt(inp.value, 10)); });
-      row.querySelectorAll(".db").forEach(function (b) {
-        b.addEventListener("click", function () {
-          degistir(A[aktif][k] + parseInt(b.dataset.d, 10) * f[4]);
-        });
-      });
-      goster();
-    });
-    ciktiYaz();
-  }
-
-  function kur() {
-    if (document.getElementById("kkAyar")) return;
-    if (!document.body) { setTimeout(kur, 500); return; }
-
-    var ps = document.createElement("style");
-    ps.textContent = PCSS;
-    document.head.appendChild(ps);
-
-    var p = document.createElement("div");
-    p.id = "kkAyar";
-    var h = '<div class="kk-ust"><b>🛡️ KALKAN AYARI</b>' +
-            '<button id="kkKopya" type="button">KOPYALA</button>' +
-            '<button id="kkKuc" type="button">▾</button></div>' +
-            '<div class="kk-sekmeler">';
-    SEKME.forEach(function (sk) {
-      h += '<button data-s="' + sk.k + '"' + (sk.k === aktif ? ' class="on"' : '') +
-           ' type="button">' + sk.et + '</button>';
-    });
-    h += '</div><div class="kk-govde" id="kkGovde"></div>' +
-         '<textarea class="kk-cikti" id="kkCikti" spellcheck="false"></textarea>';
-    p.innerHTML = h;
-    document.body.appendChild(p);
-
-    p.querySelectorAll(".kk-sekmeler button").forEach(function (b) {
-      b.addEventListener("click", function () {
-        aktif = b.dataset.s;
-        p.querySelectorAll(".kk-sekmeler button").forEach(function (x) {
-          x.classList.toggle("on", x === b);
-        });
-        govdeCiz();
-      });
-    });
-
-    document.getElementById("kkKuc").addEventListener("click", function () {
-      p.classList.toggle("kapali");
-      this.textContent = p.classList.contains("kapali") ? "▴" : "▾";
-    });
-
-    /* Android'de readonly textarea kopyalama menüsünü vermez ve
-       execCommand çoğu sürümde sessizce başarısız olur. Önce pano
-       API'si denenir, olmazsa geçici bir textarea üzerinden. Hepsi
-       başarısız olursa metin ekranda zaten okunur duruyor. */
-    document.getElementById("kkKopya").addEventListener("click", function () {
-      var b = this, metin = ciktiMetni(), bitti = false;
-      function eskiYol() {
-        try {
-          var ta = document.createElement("textarea");
-          ta.value = metin;
-          ta.style.cssText = "position:fixed;left:0;top:0;width:120px;height:60px;opacity:0;z-index:-1;";
-          document.body.appendChild(ta);
-          ta.focus(); ta.select(); ta.setSelectionRange(0, metin.length);
-          var ok = document.execCommand("copy");
-          ta.remove();
-          b.textContent = ok ? "ALINDI" : "EKRANI ÇEK";
-        } catch (e2) { b.textContent = "EKRANI ÇEK"; }
-      }
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(metin)
-            .then(function () { b.textContent = "ALINDI"; })
-            .catch(eskiYol);
-          bitti = true;
-        }
-      } catch (err) {}
-      if (!bitti) eskiYol();
-      setTimeout(function () { b.textContent = "KOPYALA"; }, 1800);
-    });
-
-    govdeCiz();
-    uygula();
-  }
-
-  if (document.readyState === "complete") kur();
-  else window.addEventListener("load", kur);
-  setTimeout(kur, 1200);
-})();
-
