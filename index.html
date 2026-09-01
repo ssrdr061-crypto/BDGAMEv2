@@ -224,67 +224,80 @@ body{
 
 .daily-reward-overlay{
   position:fixed; inset:0; z-index:400;
-  background:rgba(3,3,8,.88);
+  /* KARARTMA YOK: arka plan olduğu gibi görünür. Katman yine tıklamayı
+     tutar, yoksa pencere açıkken haritaya basılırdı. */
+  background:none;
   display:flex; align-items:center; justify-content:center;
   padding:20px;
 }
 .daily-reward-banner{
-  max-width:340px; width:100%;
-  background:linear-gradient(165deg,#1f3318 0%, #14200f 100%);
-  border:1px solid #6f9650;
+  max-width:360px; width:100%;
+  background:linear-gradient(180deg,#1fa3ea,#0e6fc0);
+  border:1px solid rgba(190,240,255,.85);
   border-radius:20px;
-  padding:24px 22px 26px;
+  padding:18px 14px 20px;
   text-align:center;
-  box-shadow:none;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
   animation:dailyBannerPop .35s cubic-bezier(.34,1.56,.64,1);
 }
 @keyframes dailyBannerPop{from{transform:scale(.85); opacity:0;}to{transform:scale(1); opacity:1;}}
 .daily-reward-banner-top{
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:900; font-size:18px; letter-spacing:.04em;
-  color:#d9ffb0;
-  text-shadow:0 0 18px rgba(160,230,100,.5);
+  color:#fff; text-shadow:0 2px 4px rgba(0,40,70,.6);
 }
-.daily-reward-sub{font-size:12.5px; color:#a9c98a; margin:6px 0 18px;}
+.daily-reward-sub{font-size:12.5px; color:#eaf7ff; font-weight:800; margin:6px 0 14px;
+  text-shadow:0 1px 2px rgba(0,30,55,.5);}
 
-.daily-reward-chest{
-  width:140px; height:120px; margin:0 auto; position:relative;
-  cursor:pointer; user-select:none;
-  filter:drop-shadow(0 12px 16px rgba(0,0,0,.5));
-  animation:idleFloat 3s ease-in-out infinite;
+/* ── 7 GÜNLÜK ŞERİT ───────────────────────────────────────────────
+   Kutucuğun ZEMİNİ görselin kendisidir (gunlukkutuacik/kapali.webp);
+   CSS ile ikinci bir kutu çizilmez. Bağlantı çizgisi kutucukların
+   ARKASINDAN geçer (::before, z-index:0). */
+.gunluk-serit{
+  position:relative;
+  display:grid; grid-template-columns:repeat(4,1fr); gap:7px;
+  padding:2px 0 0;
 }
-.daily-reward-chest:hover{transform:scale(1.04);}
-.ammo-crate-svg{width:100%; height:100%; overflow:visible;}
-.crate-lid{
-  transform-origin:50px 38px;
-  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+.gunluk-kutu{
+  position:relative; z-index:1;
+  aspect-ratio:1/1.12; min-width:0;
+  background-image:url("gunlukkutukapali.webp");
+  background-size:100% 100%; background-repeat:no-repeat; background-position:center;
+  background-color:transparent;
+  border:none; padding:4px 3px 3px; cursor:default;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:1px;
+  font-family:'Baloo 2','Nunito',sans-serif; color:#fff;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
-.daily-reward-chest.opening .crate-lid{transform:rotate(-55deg) translate(-4px,-6px);}
-.daily-reward-chest.opening{animation:crateRumble 1s ease;}
-@keyframes crateRumble{
-  0%,100%{transform:translateX(0) rotate(0);}
-  10%{transform:translateX(-3px) rotate(-2deg);}
-  20%{transform:translateX(3px) rotate(2deg);}
-  30%{transform:translateX(-2px) rotate(-1deg);}
-  40%{transform:translateX(0) rotate(0);}
+/* Dosya yoksa kutucuk hiç görünmesin diye zemin rengi verilmez;
+   yalnız ince bir iz kalır ki ödüller boşlukta durmasın. */
+.gunluk-kutu.acik{ background-image:url("gunlukkutuacik.webp"); }
+.gunluk-kutu.bugun{ cursor:pointer; animation:gunlukNabiz 1.4s ease-in-out infinite; }
+@keyframes gunlukNabiz{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+.gunluk-kutu.bugun:active{ transform:scale(.96); filter:brightness(.93); }
+.gunluk-kutu.kilitli{ filter:brightness(.82); }
+.gunluk-kutu .gk-gun{ font-weight:900; font-size:10px; line-height:1.05; opacity:.95; }
+.gunluk-kutu .gk-satir{
+  display:flex; align-items:center; justify-content:center; gap:2px;
+  font-weight:800; font-size:9.5px; line-height:1; white-space:nowrap;
+  font-variant-numeric:tabular-nums;
 }
-.crate-glow-burst{transition:opacity .5s ease;}
-.daily-reward-chest.opening .crate-glow-burst{opacity:0.9; animation:glowPulseOut 1s ease .35s;}
-.daily-reward-chest.opened .crate-glow-burst{opacity:0;}
-.daily-reward-sparkle{
-  position:absolute; top:-4px; right:8px; font-size:20px; opacity:0; pointer-events:none;
-}
-.daily-reward-chest.opening .daily-reward-sparkle{animation:sparkleRise 1s ease .4s;}
+.gunluk-kutu .gk-satir img.gk-ik{ width:15px; height:15px; object-fit:contain; flex:0 0 auto; }
+/* Yedinci kutu son satırın tamamını kaplar — hafta sonu ödülü belli olsun. */
+.gunluk-kutu.buyuk{ grid-column:span 4; aspect-ratio:auto; padding:6px 8px;
+  flex-direction:row; justify-content:center; gap:10px; }
+.gunluk-kutu.buyuk .gk-satir{ font-size:11.5px; }
+.gunluk-kutu.buyuk .gk-satir img.gk-ik{ width:19px; height:19px; }
 
 .daily-reward-result{
-  margin-top:16px; display:flex; flex-direction:column; gap:8px;
+  margin-top:14px; display:flex; flex-direction:column; gap:8px;
   transition:opacity .4s ease;
 }
 .daily-reward-item{
-  background:rgba(111,150,80,.14); border:1px solid rgba(111,150,80,.4);
-  border-radius:10px; padding:9px 14px;
-  font-size:13.5px; color:#e4f3d4;
+  background:rgba(255,255,255,.12); border:1px solid rgba(190,240,255,.20);
+  border-radius:10px; padding:8px 14px;
+  font-size:13px; font-weight:800; color:#fff; text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
-.daily-reward-item b{color:#d9ffb0;}
+.daily-reward-item b{color:#ffd257;}
 
 /* Günlük ödül — kahraman parçası seçim kutucukları */
 .gunluk-parca-secim{
@@ -2577,40 +2590,11 @@ body.world-active{padding:0; overflow:hidden;}
 <div class="daily-reward-overlay" id="dailyRewardOverlay" style="display:none;">
   <div class="daily-reward-banner">
     <div class="daily-reward-banner-top">GÜNLÜK GİRİŞ ÖDÜLÜ</div>
-    <p class="daily-reward-sub">Mühimmat sandığına dokun, ödülünü al!</p>
+    <p class="daily-reward-sub">Bugünün kutusuna dokun, ödülünü al!</p>
 
-    <div class="daily-reward-chest" id="dailyRewardChest">
-      <svg viewBox="0 0 100 90" class="ammo-crate-svg">
-        <defs>
-          <linearGradient id="crateGreen" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#5a7a3e"/><stop offset="1" stop-color="#3a5226"/>
-          </linearGradient>
-          <linearGradient id="crateGreenLight" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#6f9650"/><stop offset="1" stop-color="#4a6530"/>
-          </linearGradient>
-        </defs>
-
-        <rect x="10" y="38" width="80" height="42" rx="3" fill="url(#crateGreen)" stroke="#1f2e15" stroke-width="2.5"/>
-
-        <rect x="10" y="38" width="80" height="6" fill="#1f2e15" opacity="0.5"/>
-        <rect x="14" y="38" width="6" height="42" fill="#2a3a1c" opacity="0.6"/>
-        <rect x="80" y="38" width="6" height="42" fill="#2a3a1c" opacity="0.6"/>
-
-        <g class="crate-lid" id="crateLid">
-          <rect x="8" y="26" width="84" height="14" rx="3" fill="url(#crateGreenLight)" stroke="#1f2e15" stroke-width="2.5"/>
-          <rect x="8" y="26" width="84" height="4" fill="#7fa860" opacity="0.5"/>
-        </g>
-
-        <path d="M50 50 L53 57 L61 57 L54.5 62 L57 69 L50 65 L43 69 L45.5 62 L39 57 L47 57 Z" fill="#e8d98a" stroke="#5a4e1a" stroke-width="0.8"/>
-
-        <rect x="46" y="36" width="8" height="8" rx="1.5" fill="#2a3a1c" stroke="#111a0a" stroke-width="1"/>
-
-        <g id="crateGlow" class="crate-glow-burst" opacity="0">
-          <circle cx="50" cy="40" r="30" fill="#d9ffb0"/>
-        </g>
-      </svg>
-      <div class="daily-reward-sparkle">✨</div>
-    </div>
+    <!-- Yedi kutucuk JS ile çizilir: ödül tablosu ve açık savunucu
+         kademesi state'e bağlıdır, sabit HTML yazılamaz. -->
+    <div class="gunluk-serit" id="gunlukSerit"></div>
 
     <div class="daily-reward-result" id="dailyRewardResult" style="opacity:0;"></div>
 
@@ -3633,6 +3617,8 @@ function defaultState() {
     uretimAt: 0,
     battleLogHistory: [],
     lastDailyRewardDate: null,
+    /* Kaçıncı gündeyiz (1–7). 0 = hiç alınmadı. */
+    gunlukSeri: 0,
     hospital: [],
 
     troops: { knight: 0, soldier: 0, robot: 0 },
@@ -4014,12 +4000,14 @@ function todayDateStr() {
 /* Günlük sandık döngüsü: her gün saat 13:00'te yenilenir.
    13:00'ten önce girenler hâlâ dünkü döngüdedir. */
 const DAILY_CHEST_HOUR = 13;
-function dailyChestCycleId() {
+function dailyChestCycleIdOnce(gunOnce) {
   const now = new Date();
   const b = new Date(now); b.setHours(DAILY_CHEST_HOUR, 0, 0, 0);
   if (now < b) b.setDate(b.getDate() - 1);
+  if (gunOnce) b.setDate(b.getDate() - gunOnce);
   return b.getFullYear() + "-" + (b.getMonth() + 1) + "-" + b.getDate();
 }
+function dailyChestCycleId() { return dailyChestCycleIdOnce(0); }
 
 function hasUnclaimedDailyReward() {
   /* Revolia hoş geldin ödülü alınmadan günlük sandık açılmaz */
@@ -4027,17 +4015,116 @@ function hasUnclaimedDailyReward() {
   return state.lastDailyRewardDate !== dailyChestCycleId();
 }
 
-/* Günlük giriş ödülü — tek yer burasıdır. */
-const GUNLUK_GIRIS_SAVUNUCU = 100;
-const GUNLUK_GIRIS_ELMAS    = 50000;
+/* ══════════════════════════════════════════════════════════════
+   GÜNLÜK GİRİŞ ÖDÜLÜ — YEDİ GÜNLÜK SERİ
+   --------------------------------------------------------------
+   Tablo TEK YERDE. Gün atlanırsa seri 1'e döner; 7. gün alındıktan
+   sonra da başa döner. Verilen savunucu SABİT DEĞİL: Şövalye
+   kışlasının seviyesine göre AÇIK OLAN EN ÜST kademe verilir
+   (troops.js kademeAcikMi — orada ikinci bir seviye kaydı tutulmaz).
+   ══════════════════════════════════════════════════════════════ */
+const GUNLUK_ODUL = [
+  { savunucu:  50, elmas: 1000, parca: 1 },
+  { savunucu: 100, elmas: 1500, parca: 1 },
+  { savunucu: 150, elmas: 2000, parca: 1 },
+  { savunucu: 250, elmas: 2500, parca: 1 },
+  { savunucu: 350, elmas: 3000, parca: 1 },
+  { savunucu: 450, elmas: 3500, parca: 3 },
+  { savunucu: 500, elmas: 5000, parca: 3 }
+];
+
+/* Şeritte gösterilen parça görseli. Oyuncu ödülü alırken İvanovna /
+   Revolia arasında seçim yapar; kutucuktaki bu simge yalnız temsilîdir.
+   Başka bir görsel istersen SADECE burayı değiştir. */
+const GUNLUK_PARCA_IKON = "morparca.webp";
+
+/* Bugün hangi gündeyiz (1–7). Kaçırılan gün seriyi sıfırlar. */
+function gunlukBugunGun() {
+  const bugun = dailyChestCycleId();
+  const dun   = dailyChestCycleIdOnce(1);
+  const seri  = Math.max(0, Math.min(7, state.gunlukSeri || 0));
+  if (state.lastDailyRewardDate === bugun) return seri > 0 ? seri : 1;
+  if (state.lastDailyRewardDate === dun)   return seri >= 7 ? 1 : seri + 1;
+  return 1;
+}
+
+function gunlukAlindiMi() { return state.lastDailyRewardDate === dailyChestCycleId(); }
+
+/* Açık olan en üst savunucu kademesinin kimliği (knight … knight6). */
+function gunlukSavunucuId() {
+  let en = 1;
+  try {
+    for (let i = 1; i <= 6; i++) {
+      if (typeof kademeAcikMi === "function" && kademeAcikMi("knight", i)) en = i;
+    }
+  } catch (e) {}
+  return en <= 1 ? "knight" : "knight" + en;
+}
+
+function gunlukBirlikGorseli(uid) {
+  try {
+    if (typeof KADEME_GORSEL === "undefined") return "";
+    return KADEME_GORSEL[uid === "knight" ? "knight1" : uid] || "";
+  } catch (e) { return ""; }
+}
 
 function claimDailyReward() {
   if (!hasUnclaimedDailyReward()) return null;
+  const gun = gunlukBugunGun();
+  const o = GUNLUK_ODUL[gun - 1];
+  if (!o) return null;
+  const uid = gunlukSavunucuId();
   state.lastDailyRewardDate = dailyChestCycleId();
-  state.troops.knight = (state.troops.knight || 0) + GUNLUK_GIRIS_SAVUNUCU;
-  state.diamonds = (state.diamonds || 0) + GUNLUK_GIRIS_ELMAS;
+  state.gunlukSeri = gun;
+  state.troops[uid] = (state.troops[uid] || 0) + o.savunucu;
+  state.diamonds = (state.diamonds || 0) + o.elmas;
   persistCurrentState();
-  return { knight: GUNLUK_GIRIS_SAVUNUCU, diamonds: GUNLUK_GIRIS_ELMAS };
+  return { gun: gun, unitId: uid, savunucu: o.savunucu, elmas: o.elmas, parca: o.parca };
+}
+
+/* ── ŞERİT ÇİZİMİ ───────────────────────────────────────────────
+   Kutucuğun zemini görselin kendisidir; içine ikinci bir kutu
+   çizilmez. Sayılar kısa biçimde (x50 · x1,5B) yazılır. */
+function gunlukKisa(n) {
+  return (typeof kisaSayi === "function") ? kisaSayi(n) : fmt(n);
+}
+
+function gunlukSatir(gorsel, metin) {
+  return '<div class="gk-satir">' +
+    (gorsel ? '<img class="gk-ik" src="' + gorsel + '" alt="" onerror="this.style.display=\'none\'">' : '') +
+    '<span>' + metin + '</span></div>';
+}
+
+function gunlukSeritCiz() {
+  const kap = document.getElementById("gunlukSerit");
+  if (!kap) return;
+  const bugun  = gunlukBugunGun();
+  const alindi = gunlukAlindiMi();
+  const uid    = gunlukSavunucuId();
+  const bGor   = gunlukBirlikGorseli(uid);
+
+  let h = "";
+  for (let g = 1; g <= 7; g++) {
+    const o = GUNLUK_ODUL[g - 1];
+    const acikMi  = (g < bugun) || (g === bugun && alindi);
+    const bugunMu = (g === bugun && !alindi);
+    const sinif = "gunluk-kutu" +
+      (acikMi ? " acik" : (bugunMu ? " bugun" : " kilitli")) +
+      (g === 7 ? " buyuk" : "");
+    h += '<div class="' + sinif + '" data-gun="' + g + '">' +
+           '<div class="gk-gun">' + g + '. GÜN</div>' +
+           gunlukSatir(bGor, "x" + gunlukKisa(o.savunucu)) +
+           '<div class="gk-satir">' + ELMAS("gunluk") + '<span>x' + gunlukKisa(o.elmas) + '</span></div>' +
+           gunlukSatir(GUNLUK_PARCA_IKON, "x" + o.parca) +
+         '</div>';
+  }
+  kap.innerHTML = h;
+
+  /* Yalnız BUGÜNÜN kutusu basılabilir. Şerit her çizimde yeniden
+     kurulduğu için dinleyici de burada bağlanır. */
+  kap.querySelectorAll(".gunluk-kutu.bugun").forEach(k => {
+    k.addEventListener("click", openDailyRewardChest);
+  });
 }
 
 function maybeShowDailyRewardModal() {
@@ -4045,19 +4132,20 @@ function maybeShowDailyRewardModal() {
   const modal = document.getElementById("dailyRewardOverlay");
   if (!modal) return;
   modal.style.display = "flex";
-  const chestEl = document.getElementById("dailyRewardChest");
   const resultEl = document.getElementById("dailyRewardResult");
-  if (chestEl) chestEl.classList.remove("opening", "opened");
   if (resultEl) { resultEl.style.opacity = "0"; resultEl.innerHTML = ""; }
   gunlukParcaBekliyor = false;
+  gunlukParcaAdet = 0;
   gunlukKapatKilidi(false);
+  gunlukSeritCiz();
 }
 
 /* ── GÜNLÜK ÖDÜL PARÇA SEÇİMİ ──────────────────────────────────
-   Sandıktan çıkan turuncu parçayı oyuncu seçer. Seçim yapılmadan
-   pencere kapanırsa parça kaybolur (tarih zaten yazılmıştır), bu
-   yüzden seçim bitene kadar "Kapat" kilitlidir. */
+   Parçayı oyuncu seçer. Seçim yapılmadan pencere kapanırsa parça
+   kaybolur (tarih zaten yazılmıştır), bu yüzden seçim bitene kadar
+   "Kapat" kilitlidir. */
 let gunlukParcaBekliyor = false;
+let gunlukParcaAdet = 0;
 
 function gunlukParcaGorseli(anahtar) {
   return (typeof parcaGorseli === "function") ? (parcaGorseli(anahtar) || "") : "";
@@ -4081,10 +4169,12 @@ function gunlukParcaKutusu(anahtar, ad) {
 
 function gunlukParcaSec(anahtar) {
   if (!gunlukParcaBekliyor) return;
+  const adet = Math.max(1, gunlukParcaAdet || 1);
   gunlukParcaBekliyor = false;
+  gunlukParcaAdet = 0;
   /* Günlük giriş parçası da ÇANTAYA düşer (ödüller havuza yazmaz). */
-  if (typeof parcaCantayaEkle === "function") parcaCantayaEkle(anahtar, 1);
-  else if (typeof parcaEkle === "function") parcaEkle(anahtar, 1);
+  if (typeof parcaCantayaEkle === "function") parcaCantayaEkle(anahtar, adet);
+  else if (typeof parcaEkle === "function") parcaEkle(anahtar, adet);
   persistCurrentState();
   const kutu = document.getElementById("gunlukParcaSecim");
   if (kutu) {
@@ -4092,42 +4182,48 @@ function gunlukParcaSec(anahtar) {
     const ad = anahtar === "ivanovna" ? "İvanovna" : "Revolia";
     kutu.innerHTML = '<div class="gunluk-parca-alindi">' +
       (g ? '<img src="' + g + '" alt="" onerror="this.style.display=\'none\'">' : '') +
-      '<b>1 ' + ad + ' Parçası alındı</b></div>';
+      '<b>' + adet + ' ' + ad + ' Parçası alındı</b></div>';
   }
   gunlukKapatKilidi(false);
 }
 
 function openDailyRewardChest() {
-  const chestEl = document.getElementById("dailyRewardChest");
   const resultEl = document.getElementById("dailyRewardResult");
-  if (!chestEl || chestEl.classList.contains("opening") || chestEl.classList.contains("opened")) return;
+  if (!resultEl || gunlukParcaBekliyor) return;
 
   const reward = claimDailyReward();
   if (!reward) return;
 
-  chestEl.classList.add("opening");
-  setTimeout(() => {
-    chestEl.classList.add("opened");
-    resultEl.innerHTML = `
-      <div class="daily-reward-item">🪖 <b>${fmt(reward.knight)} Savunucu</b></div>
-      <div class="daily-reward-item">${ELMAS("gunluk")} <b>${fmt(reward.diamonds)} Elmas</b></div>
-      <div class="daily-reward-item">Kahraman parçanı seç:</div>
-      <div class="gunluk-parca-secim" id="gunlukParcaSecim">
-        ${gunlukParcaKutusu("ivanovna", "İvanovna")}
-        ${gunlukParcaKutusu("revolia", "Revolia")}
-      </div>
-    `;
-    resultEl.style.opacity = "1";
-    gunlukParcaBekliyor = true;
-    gunlukKapatKilidi(true);
-    resultEl.querySelectorAll(".gunluk-parca-sec").forEach(b => {
-      b.addEventListener("click", () => gunlukParcaSec(b.dataset.parca));
-    });
-    renderTroopsPanel();
-    renderDiamonds();
-    updateShopButtons();
-    showToast("Günlük ödülün hesabına eklendi!");
-  }, 700);
+  gunlukSeritCiz();
+
+  const ad = (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES[reward.unitId])
+    ? UNIT_TYPES[reward.unitId].name : "Savunucu";
+  const bGor = gunlukBirlikGorseli(reward.unitId);
+
+  resultEl.innerHTML =
+    '<div class="daily-reward-item">' +
+      (bGor ? '<img class="gk-ik" src="' + bGor + '" alt="" style="width:18px;height:18px;vertical-align:-3px;">' : '') +
+      ' <b>' + fmt(reward.savunucu) + '</b> ' + ad + '</div>' +
+    '<div class="daily-reward-item">' + ELMAS("gunluk") + ' <b>' + fmt(reward.elmas) + '</b> Elmas</div>' +
+    '<div class="daily-reward-item">Kahraman parçanı seç (' + reward.parca + ' adet):</div>' +
+    '<div class="gunluk-parca-secim" id="gunlukParcaSecim">' +
+      gunlukParcaKutusu("ivanovna", "İvanovna") +
+      gunlukParcaKutusu("revolia", "Revolia") +
+    '</div>';
+  resultEl.style.opacity = "1";
+
+  gunlukParcaBekliyor = true;
+  gunlukParcaAdet = reward.parca;
+  gunlukKapatKilidi(true);
+
+  resultEl.querySelectorAll(".gunluk-parca-sec").forEach(b => {
+    b.addEventListener("click", () => gunlukParcaSec(b.dataset.parca));
+  });
+
+  renderTroopsPanel();
+  renderDiamonds();
+  updateShopButtons();
+  showToast("Günlük ödülün hesabına eklendi!");
 }
 
 function closeDailyRewardModal() {
@@ -4444,6 +4540,7 @@ function startSessionFor(username) {
   if (!state.maxFrontierLevel) state.maxFrontierLevel = 0;
   if (!state.battleLogHistory) state.battleLogHistory = [];
   if (state.lastDailyRewardDate === undefined) state.lastDailyRewardDate = null;
+  if (typeof state.gunlukSeri !== "number") state.gunlukSeri = 0;
   if (!state.hospital) state.hospital = [];
   /* Eski kayıtta her yaralı ayrı satırdı (40.000 yaralı = 40.000
      satır → depo doluyor, kayıt yazılamıyordu). Burada gruplu
@@ -4610,6 +4707,8 @@ function compactStateForExport(s) {
   if (s.welcomeGiven)        out.wg  = true;
   if (s.welcomePending)      out.wp  = true;
   if (s.lastDailyRewardDate) out.ldr = s.lastDailyRewardDate;
+  /* Seri yazılmazsa oyuncu her girişte 1. güne düşer. */
+  if (s.gunlukSeri) out.gsr = s.gunlukSeri;
   if (s.lastDailyExplore)    out.lde = s.lastDailyExplore;
   /* Kalkan bitişi — yazılmazsa oyuncu 10.000 elmasını çöpe atmış olur. */
   if (s.kalkanBitis)         out.kb  = s.kalkanBitis;
@@ -4663,6 +4762,7 @@ function expandCompactState(c) {
   if (c.wg)  s.welcomeGiven = true;
   if (c.wp)  s.welcomePending = true;
   if (c.ldr) s.lastDailyRewardDate = c.ldr;
+  if (c.gsr) s.gunlukSeri = c.gsr;
   if (c.lde) s.lastDailyExplore = c.lde;
   if (c.kb)  s.kalkanBitis = c.kb;
   if (c.egt) s.egitim = { adim: c.egt[0] || 0, odulAlindi: !!c.egt[1], kaleAcildi: !!c.egt[2] };
@@ -5453,7 +5553,7 @@ function openChest() {
   const chestEl = document.getElementById("chestEl");
   const resultEl = document.getElementById("chestResult");
   chestEl.classList.add("opening");
-  resultEl.innerHTML = "";
+  resultEl.textContent = "";
   resultEl.className = "chest-result";
 
   setTimeout(() => {
@@ -5468,9 +5568,7 @@ function openChest() {
     }
 
     resultEl.className = "chest-result " + diamondColorClass(reward);
-    /* textContent DEĞİL: elmas görseli innerHTML ister. Değer ayrı
-       span'de dursun ki ileride tazelenirse görsel silinmesin (Tuzak 23). */
-    resultEl.innerHTML = `<span class="chest-deger">${fmt(reward)}</span> ${ELMAS("sandik")}`;
+    resultEl.textContent = `${fmt(reward)} 💎`;
 
     renderDiamonds();
     renderChestUI();
@@ -8514,7 +8612,7 @@ safeBind("confirmLogoutBtn", "click", () => {
   logout();
 });
 safeBind("cancelLogoutBtn", "click", hideLogoutConfirm);
-safeBind("dailyRewardChest", "click", openDailyRewardChest);
+/* Günlük ödül artık şeritteki BUGÜN kutusuna bağlanır (gunlukSeritCiz). */
 safeBind("closeDailyRewardBtn", "click", closeDailyRewardModal);
 
 let _secretTapCount = 0;
@@ -8901,16 +8999,17 @@ const TroopViewer = (function () {
         .filter(ad => /Hızlandırma/i.test(ad) && /\d+\s*(Dakika|Saat|Gün)/i.test(ad))
         .reduce((t, ad) => t + (state.inventory[ad] || 0), 0);
       const selQty = unitTrainQty[uid] || 1;
-      /* Üst sınır YALNIZ kaynağa bakar — normal üretimde elmas
-         alınmıyor. maxUretilebilir (troops.js) her kaynak için ayrı
-         hesaplar, en küçüğünü verir ("yetmiyorsa yettiği kadar").
-         Tavan 500. */
+      const affordableMax = Math.max(1, Math.floor(state.diamonds / def.cost));
+      /* Üst sınır artık SADECE elmasa değil, kaynağa da bakar.
+         maxUretilebilir (troops.js) elmas ve her kaynak için ayrı ayrı
+         hesaplar, en küçüğünü verir — böylece oyuncu ödeyemeyeceği bir
+         adede hiç çıkamaz ("yetmiyorsa yettiği kadar"). Tavan 500. */
       const sliderMax = (typeof maxUretilebilir === "function")
         ? maxUretilebilir(kid, 500)
-        : 500;
+        : Math.min(affordableMax, 500);
       const qty = Math.min(selQty, sliderMax);
       unitTrainQty[uid] = qty;
-      const totalCost = def.cost * qty;   /* yalnız ANINDA fiyatının yedeği */
+      const totalCost = def.cost * qty;
       const instCost = (typeof instantCostFor === "function") ? instantCostFor(kid, qty) : totalCost * 3;
 
       if (kilit) {
@@ -8957,11 +9056,11 @@ const TroopViewer = (function () {
         html += `<div class="unit-train-bar">
             <button class="unit-instant-btn" data-unit="${uid}">
               <span class="utb-top">⚡ Anında</span>
-              <span class="utb-sub utb-inst-cost">${ELMAS("kisla")} <span class="utb-inst-deger">${fmt(instCost)}</span></span>
+              <span class="utb-sub utb-inst-cost">💎 ${fmt(instCost)}</span>
             </button>
             <button class="unit-train-btn" data-unit="${uid}">
               <span class="utb-top">Üret ×<span class="utb-qty">${qty}</span></span>
-              <span class="utb-sub">⏱ <span class="utb-sure">${(typeof sureDk === "function") ? sureDk(def.trainMinutes * qty) : (def.trainMinutes * qty) + " dk"}</span></span>
+              <span class="utb-sub"><span class="utb-cost">💎 ${fmt(totalCost)}</span> · ⏱ <span class="utb-sure">${(typeof sureDk === "function") ? sureDk(def.trainMinutes * qty) : (def.trainMinutes * qty) + " dk"}</span></span>
             </button>
           </div>`;
       }
@@ -9013,10 +9112,10 @@ const TroopViewer = (function () {
         unitTrainQty[uid] = v;
         if (slider) slider.value = v;
         if (numBox && document.activeElement !== numBox) numBox.value = v;
-        /* ANINDA fiyatı: yalnız DEĞER span'i tazelenir. Kutunun
-           tamamına textContent yazılırsa elmas görseli silinir (Tuzak 23). */
-        const c2 = el.querySelector(".utb-inst-deger");
-        if (c2) c2.textContent = fmt((typeof instantCostFor === "function") ? instantCostFor(kid, v) : def.cost * v * 3);
+        const c1 = el.querySelector(".utb-cost");
+        if (c1) c1.textContent = "💎 " + fmt(def.cost * v);
+        const c2 = el.querySelector(".utb-inst-cost");
+        if (c2) c2.textContent = "💎 " + fmt((typeof instantCostFor === "function") ? instantCostFor(kid, v) : def.cost * v * 3);
         const q = el.querySelector(".utb-qty");
         if (q) q.textContent = v;
         /* SÜRE de adetle güncellenir. Eskiden yalnız elmas
