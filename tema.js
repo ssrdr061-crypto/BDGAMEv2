@@ -8973,6 +8973,8 @@ st.textContent = `
 .elmas-kutu.ey-gunluk  {--el-kutu:1.25em; --el-boy:2.65em; --el-x:-0.16em; --el-y:0.00em; --el-hiza:-0.20em;}
 .elmas-kutu.ey-tasima  {--el-kutu:1.15em; --el-boy:1.15em; --el-x: 0.00em; --el-y:0.00em; --el-hiza:-0.20em;}
 .elmas-kutu.ey-rehber  {--el-kutu:1.15em; --el-boy:1.15em; --el-x: 0.00em; --el-y:0.00em; --el-hiza:-0.20em;}
+.elmas-kutu.ey-sandik  {--el-kutu:1.15em; --el-boy:1.15em; --el-x: 0.00em; --el-y:0.00em; --el-hiza:-0.20em;}
+.elmas-kutu.ey-kisla   {--el-kutu:1.15em; --el-boy:1.15em; --el-x: 0.00em; --el-y:0.00em; --el-hiza:-0.20em;}
 `;
 document.head.appendChild(st);
 })();
@@ -8997,7 +8999,9 @@ var YERLER = [
   { id: "gunluk",   ad: "Günlük",   not: "Giriş ödülü satırı" },
   { id: "tasima",   ad: "Taşıma",   not: "Kale taşıma onay çubuğu" },
   { id: "rehber",   ad: "Rehber",   not: "Revolia hediye kutusu" },
-  { id: "canta",    ad: "Çanta",    not: "Özet kutusu (CSS ::before)" }
+  { id: "canta",    ad: "Çanta",    not: "Özet kutusu (CSS ::before)" },
+  { id: "sandik",   ad: "Sandık",   not: "Şans kutusu ödül satırı" },
+  { id: "kisla",    ad: "Kışla",    not: "⚡ Anında düğmesi (üç kışla)" }
 ];
 
 var ANAHTAR = "elmasAyar3";
@@ -9075,10 +9079,24 @@ function kur() {
 
   var p = document.createElement("div");
   p.id = "elmasAyarPanel";
+  /* ALT KONUM: panel ekrani kapatmasin diye basliktan tutulup
+     yukari/asagi tasinir. Deger localStorage'da (A._alt), yenileyince
+     ayni yerde acilir. */
+  var altPx = (typeof A._alt === "number") ? A._alt : 0;
   p.style.cssText =
-    "position:fixed;left:0;right:0;bottom:0;z-index:100000;" +
+    "position:fixed;left:0;right:0;bottom:" + altPx + "px;z-index:100000;" +
     "background:#0d2137;color:#eaf6ff;font:600 11.5px/1.2 'Baloo 2',sans-serif;" +
     "padding:6px 8px 7px;box-shadow:0 -2px 6px rgba(0,20,45,.3);";
+
+  /* position:fixed oldugu icin offsetParent null gelir (Tuzak 19);
+     olcu icin window.innerHeight ve offsetHeight kullanilir. */
+  function altAyarla(v) {
+    var tavan = Math.max(0, window.innerHeight - p.offsetHeight);
+    altPx = Math.max(0, Math.min(tavan, v));
+    p.style.bottom = altPx + "px";
+    A._alt = altPx;
+    kaydet();
+  }
 
   function ciz() {
     var v = A[secili];
@@ -9109,7 +9127,10 @@ function kur() {
         'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))"></span>';
 
     p.innerHTML =
-      '<div style="display:flex;align-items:center;gap:6px;">' +
+      '<div id="eaBaslik" style="display:flex;align-items:center;gap:6px;">' +
+        '<span id="eaTut" style="flex:0 0 auto;padding:2px 6px;border-radius:6px;' +
+          'background:#1d3f63;color:#7fe4ff;font-size:13px;line-height:1;' +
+          'touch-action:none;cursor:grab;">\u2195</span>' +
         '<b style="font-size:12px;letter-spacing:.3px;">ELMAS</b>' +
         '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' +
           'color:#9fc6e6;font-weight:600;">' + yer.not + '</span>' +
@@ -9152,6 +9173,28 @@ function kur() {
       });
     });
 
+    /* ── DİKEY SÜRÜKLEME ──
+       Yalnız tutamaktan. Başlığın tamamına bağlanırsa SIFIRLA/KOPYALA
+       basılamaz. touch-action:none olmadan tarayıcı sayfayı kaydırır. */
+    (function () {
+      var tut = document.getElementById("eaTut");
+      if (!tut) return;
+      var baslaY = 0, baslaAlt = 0, suruk = false;
+      tut.addEventListener("pointerdown", function (e) {
+        suruk = true; baslaY = e.clientY; baslaAlt = altPx;
+        try { tut.setPointerCapture(e.pointerId); } catch (e2) {}
+        e.preventDefault();
+      });
+      tut.addEventListener("pointermove", function (e) {
+        if (!suruk) return;
+        altAyarla(baslaAlt + (baslaY - e.clientY));
+        e.preventDefault();
+      });
+      function birak() { suruk = false; }
+      tut.addEventListener("pointerup", birak);
+      tut.addEventListener("pointercancel", birak);
+    })();
+
     document.getElementById("eaSifirla").addEventListener("click", function () {
       for (var kk in VARSAYILAN) A[secili][kk] = VARSAYILAN[kk];
       kaydet(); uygula(); ciz();
@@ -9162,6 +9205,8 @@ function kur() {
       var g = document.getElementById("eaGovde");
       if (g) g.style.display = kapali ? "none" : "block";
       this.textContent = kapali ? "▴" : "▾";
+      /* boy degisti — panel ekran disinda kalmasin */
+      altAyarla(altPx);
     });
 
     /* Android: readonly textarea kopyalama menüsü vermez, execCommand

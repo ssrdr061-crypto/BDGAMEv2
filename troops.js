@@ -253,10 +253,8 @@ function maxUretilebilir(unitId, tavan) {
 
   let en = ust;
 
-  /* elmas */
-  if (def.cost > 0) {
-    en = Math.min(en, Math.floor((state.diamonds || 0) / def.cost));
-  }
+  /* ELMAS ARTIK BAKILMAZ. Normal üretim yalnız kaynağa bağlıdır;
+     def.cost sadece ANINDA üretimin (INSTANT_COST_MULT) tabanıdır. */
   /* kaynaklar */
   const kay = (state && state.kaynaklar) || {};
   if (def.kaynak) {
@@ -408,14 +406,14 @@ function trainUnit(unitId, count) {
   const enFazla = maxUretilebilir(unitId, count);
   if (enFazla < count) count = enFazla;
 
-  const totalCost = def.cost * count;
-  if (state.diamonds < totalCost || !kaynakYeterli(unitId, count)) {
+  /* NORMAL ÜRETİM ELMAS ALMAZ — yalnız kaynak. Elmas tek yerde
+     kalır: ANINDA üretim (trainUnitInstant). */
+  if (!kaynakYeterli(unitId, count)) {
     const g = kaynakMaliyet(unitId, count);
     const liste = Object.keys(g).map(k => `${KAYNAK_IKON[k] || ""} ${fmt(g[k])}`).join(" · ");
-    showToast(`Yeterli kaynağın yok. ${count} ${def.name} için 💎 ${fmt(totalCost)}${liste ? " · " + liste : ""} gerekiyor.`);
+    showToast(`Yeterli kaynağın yok. ${count} ${def.name} için${liste ? " " + liste : ""} gerekiyor.`);
     return;
   }
-  state.diamonds -= totalCost;
   kaynakDus(unitId, count);
   if (typeof renderKaynaklar === "function") { try { renderKaynaklar(); } catch (e) {} }
 

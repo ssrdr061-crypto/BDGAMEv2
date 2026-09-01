@@ -5453,7 +5453,7 @@ function openChest() {
   const chestEl = document.getElementById("chestEl");
   const resultEl = document.getElementById("chestResult");
   chestEl.classList.add("opening");
-  resultEl.textContent = "";
+  resultEl.innerHTML = "";
   resultEl.className = "chest-result";
 
   setTimeout(() => {
@@ -5468,7 +5468,9 @@ function openChest() {
     }
 
     resultEl.className = "chest-result " + diamondColorClass(reward);
-    resultEl.textContent = `${fmt(reward)} 💎`;
+    /* textContent DEĞİL: elmas görseli innerHTML ister. Değer ayrı
+       span'de dursun ki ileride tazelenirse görsel silinmesin (Tuzak 23). */
+    resultEl.innerHTML = `<span class="chest-deger">${fmt(reward)}</span> ${ELMAS("sandik")}`;
 
     renderDiamonds();
     renderChestUI();
@@ -8899,17 +8901,16 @@ const TroopViewer = (function () {
         .filter(ad => /Hızlandırma/i.test(ad) && /\d+\s*(Dakika|Saat|Gün)/i.test(ad))
         .reduce((t, ad) => t + (state.inventory[ad] || 0), 0);
       const selQty = unitTrainQty[uid] || 1;
-      const affordableMax = Math.max(1, Math.floor(state.diamonds / def.cost));
-      /* Üst sınır artık SADECE elmasa değil, kaynağa da bakar.
-         maxUretilebilir (troops.js) elmas ve her kaynak için ayrı ayrı
-         hesaplar, en küçüğünü verir — böylece oyuncu ödeyemeyeceği bir
-         adede hiç çıkamaz ("yetmiyorsa yettiği kadar"). Tavan 500. */
+      /* Üst sınır YALNIZ kaynağa bakar — normal üretimde elmas
+         alınmıyor. maxUretilebilir (troops.js) her kaynak için ayrı
+         hesaplar, en küçüğünü verir ("yetmiyorsa yettiği kadar").
+         Tavan 500. */
       const sliderMax = (typeof maxUretilebilir === "function")
         ? maxUretilebilir(kid, 500)
-        : Math.min(affordableMax, 500);
+        : 500;
       const qty = Math.min(selQty, sliderMax);
       unitTrainQty[uid] = qty;
-      const totalCost = def.cost * qty;
+      const totalCost = def.cost * qty;   /* yalnız ANINDA fiyatının yedeği */
       const instCost = (typeof instantCostFor === "function") ? instantCostFor(kid, qty) : totalCost * 3;
 
       if (kilit) {
@@ -8956,11 +8957,11 @@ const TroopViewer = (function () {
         html += `<div class="unit-train-bar">
             <button class="unit-instant-btn" data-unit="${uid}">
               <span class="utb-top">⚡ Anında</span>
-              <span class="utb-sub utb-inst-cost">💎 ${fmt(instCost)}</span>
+              <span class="utb-sub utb-inst-cost">${ELMAS("kisla")} <span class="utb-inst-deger">${fmt(instCost)}</span></span>
             </button>
             <button class="unit-train-btn" data-unit="${uid}">
               <span class="utb-top">Üret ×<span class="utb-qty">${qty}</span></span>
-              <span class="utb-sub"><span class="utb-cost">💎 ${fmt(totalCost)}</span> · ⏱ <span class="utb-sure">${(typeof sureDk === "function") ? sureDk(def.trainMinutes * qty) : (def.trainMinutes * qty) + " dk"}</span></span>
+              <span class="utb-sub">⏱ <span class="utb-sure">${(typeof sureDk === "function") ? sureDk(def.trainMinutes * qty) : (def.trainMinutes * qty) + " dk"}</span></span>
             </button>
           </div>`;
       }
@@ -9012,10 +9013,10 @@ const TroopViewer = (function () {
         unitTrainQty[uid] = v;
         if (slider) slider.value = v;
         if (numBox && document.activeElement !== numBox) numBox.value = v;
-        const c1 = el.querySelector(".utb-cost");
-        if (c1) c1.textContent = "💎 " + fmt(def.cost * v);
-        const c2 = el.querySelector(".utb-inst-cost");
-        if (c2) c2.textContent = "💎 " + fmt((typeof instantCostFor === "function") ? instantCostFor(kid, v) : def.cost * v * 3);
+        /* ANINDA fiyatı: yalnız DEĞER span'i tazelenir. Kutunun
+           tamamına textContent yazılırsa elmas görseli silinir (Tuzak 23). */
+        const c2 = el.querySelector(".utb-inst-deger");
+        if (c2) c2.textContent = fmt((typeof instantCostFor === "function") ? instantCostFor(kid, v) : def.cost * v * 3);
         const q = el.querySelector(".utb-qty");
         if (q) q.textContent = v;
         /* SÜRE de adetle güncellenir. Eskiden yalnız elmas
