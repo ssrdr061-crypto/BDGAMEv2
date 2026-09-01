@@ -412,7 +412,7 @@ function _klistKartHTML(id) {
 
   const kilit = sahip ? "" :
     `<div class="klist-lock"><span>🔒</span>
-       <div class="klist-price">💎 ${(h.price || 0).toLocaleString("tr-TR")}</div></div>`;
+       <div class="klist-price">${ELMAS()} ${(h.price || 0).toLocaleString("tr-TR")}</div></div>`;
 
   return `
     <div class="klist-card ${sahip ? "" : "locked"} ${KV.kart_cer > 0 ? "cerceveli" : ""}" data-hero="${id}"

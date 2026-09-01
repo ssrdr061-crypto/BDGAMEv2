@@ -125,7 +125,7 @@
         bodyEl.innerHTML =
           '<div class="wc-name">' + (cfg.giftName || "🎁 HEDİYEN HAZIR") + '</div>' +
           (step.giftText ? '<div class="wc-giftline">' + step.giftText + '</div>' : '') +
-          '<div class="wc-gift"><div class="amt">' + fmtOf(api, cfg.gift) + ' 💎</div></div>' +
+          '<div class="wc-gift"><div class="amt">' + fmtOf(api, cfg.gift) + ' ' + ELMAS() + '</div></div>' +
           parcaKutusu(cfg);
         nextEl.textContent = "Al";
       } else {

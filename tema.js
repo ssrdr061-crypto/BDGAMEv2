@@ -348,7 +348,13 @@ const DRAG_PX = 12;
 }
 #panel-inventory .inv-summary .stat-card .lbl{ display:none !important; } /* "TOPLAM ELMAS" yazısı yok */
 #panel-inventory .inv-summary .stat-card .num{ font-size:22px !important; }
-#panel-inventory .inv-summary .stat-card .num::before{ content:"💎 "; }
+/* Emoji yerine elmas gorseli. CSS'te onerror yoktur — dosya eksikse
+   simge hic cikmaz, sayi yalniz kalir (yazi bozulmaz). */
+#panel-inventory .inv-summary .stat-card .num::before{
+  content:""; display:inline-block; width:1.05em; height:1.05em;
+  margin-right:.22em; vertical-align:-.14em;
+  background:url("elmas.webp") center/contain no-repeat;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    MARKET (MAĞAZA) — başlık ortalı, X kırmızı kare, kalın font

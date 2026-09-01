@@ -424,7 +424,7 @@
               font-size:14px;font-weight:800;color:#20140a;
               background:${TEMA.sari};box-shadow:0 2px 6px rgba(0,20,45,.3);
               cursor:pointer;">
-           Satın Al  💎 ${(h.price || 0).toLocaleString("tr-TR")}
+           Satın Al  ${ELMAS()} ${(h.price || 0).toLocaleString("tr-TR")}
          </button>`
       : sonSeviye
       ? `<div style="text-align:center;padding:10px;border-radius:14px;

@@ -2297,7 +2297,8 @@ body.world-active{padding:0; overflow:hidden;}
 
   <div class="hud-top">
     <div class="hud-pill diamond-pill hud-pill-left">
-      <span class="gem">💎</span>
+      <span class="gem"><img class="kay-sim elmas-sim" src="elmas.webp" alt=""
+              onerror="this.onerror=null;this.replaceWith(document.createTextNode('💎'))"></span>
       <span class="amount" id="diamondAmount">0</span>
     </div>
     <div class="hud-pill stamina-pill hud-pill-center" id="staminaPill">
@@ -2672,6 +2673,27 @@ body.world-active{padding:0; overflow:hidden;}
 
 const ensure = (val, min = 0) => Math.max(min, val);
 const fmt = (n) => n.toLocaleString("tr-TR");
+
+/* -- ELMAS SIMGESI — TEK YER --
+   Emoji ile gorsel IKI AYRI BAGLAM (dugum.js kaynakSimge ile ayni kural):
+     - innerHTML -> ELMAS()  (gorsel)
+     - duz metin -> 💎       (toast, textContent, canvas)
+   Karistirirsan ekranda ham <img ...> cikar.
+   Olcu .kay-sim sinifindan gelir (1.15em): hangi yazinin icine girerse
+   onun boyunu alir, yerine gectigi emojiyle ayni buyuklukte durur.
+   Dosya sunucuda yoksa onerror 💎'a doner, ekran bos kalmaz.
+   Dosya adi LOWERCASE ASCII: elmas.webp
+   ELMAS() diger dosyalardan da (magaza/insaat/kahramanlar/gelistir/
+   rehber) cagrilir — tanim YALNIZ BURADADIR. */
+function elmasIkon() {
+  return '<img class="kay-sim elmas-sim" src="elmas.webp" alt="" ' +
+         'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'💎\'))">';
+}
+function ELMAS() {
+  return (typeof elmasIkon === "function") ? elmasIkon() : "💎";
+}
+window.elmasIkon = elmasIkon;
+window.ELMAS = ELMAS;
 
 function toggleMapOverlays(show) {
   ["chatStrip", "coordPanel"].forEach(id => {
@@ -4085,7 +4107,7 @@ function openDailyRewardChest() {
     chestEl.classList.add("opened");
     resultEl.innerHTML = `
       <div class="daily-reward-item">🪖 <b>${fmt(reward.knight)} Savunucu</b></div>
-      <div class="daily-reward-item">💎 <b>${fmt(reward.diamonds)} Elmas</b></div>
+      <div class="daily-reward-item">${ELMAS()} <b>${fmt(reward.diamonds)} Elmas</b></div>
       <div class="daily-reward-item">Kahraman parçanı seç:</div>
       <div class="gunluk-parca-secim" id="gunlukParcaSecim">
         ${gunlukParcaKutusu("ivanovna", "İvanovna")}
@@ -7305,7 +7327,7 @@ function setupMapPanning() {
     bar.id = "castleMoveBar";
     bar.innerHTML =
       '<button class="cmb-cancel" title="İptal">✕</button>'+
-      '<span class="cmb-cost">'+fmt(MOVE_COST)+' 💎</span>'+
+      '<span class="cmb-cost">'+fmt(MOVE_COST)+' '+ELMAS()+'</span>'+
       '<button class="cmb-ok" title="Taşı">✓</button>';
     document.body.appendChild(bar);
     bar.querySelector(".cmb-cancel").onclick = () => cancelCastleMove();

@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-16";
+  var SURUM = "insaat-15";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -126,31 +126,6 @@
   /* Dizi indeksi SEVİYEDİR: [1]=Sv1. Artış ~1,6-2 kat. Daha dik bir
      eğri (×2,7) Sv10'da 20 milyona çıkardı, orduyu anlamsız kılardı. */
   var GUC_KAT = [0, 1, 2, 3.5, 6, 10, 16, 25, 40, 64, 100];
-
-  /* ── HASTANE KAPASİTESİ ──
-     Hastanede aynı anda kaç yaralı durabilir. Dizi indeksi SEVİYEDİR
-     ([1] = Sv1). Tek doğruluk kaynağı burasıdır; index.html ->
-     sendWoundedToHospital bunu INSAAT.hastaneKapasitesi() ile okur.
-     Dosya yüklenmemişse sınır UYGULANMAZ (oyun eski gibi çalışır).
-
-     Sv1 40.000 · sonra +10 / +15 / +10 / +5 / +10 / +5 / +10 / +5 / +10 bin.
-     Aşağıdaki sayılar TOPLAMDIR, artış değil. */
-  var HASTANE_KAP = [0,
-    40000, 50000, 65000, 75000, 80000, 90000, 95000, 105000, 110000, 120000];
-
-  /* Argümansız: kendi hastanemiz. Başka oyuncunun kaydı geçilirse
-     bulut anahtarı (bsv) da denenir — toplamGuc ile aynı kural. */
-  function hastaneKapasitesi(st) {
-    var sv;
-    if (st && typeof st === "object") {
-      var k = st.binaSv || st.bsv;
-      sv = (k && k.hastane) || 1;
-    } else {
-      sv = seviye("hastane");
-    }
-    sv = Math.max(1, Math.min(TAVAN, Math.floor(sv) || 1));
-    return HASTANE_KAP[sv] || HASTANE_KAP[1];
-  }
 
   /* Tek binanın verdiği güç. */
   function binaGucu(id, sv) {
@@ -922,7 +897,7 @@
       h += '<div class="ins-dugmeler">' +
              '<button class="ins-btn ins-altin" data-is="bitirSuren"' +
                (elmasVar() >= bm ? "" : " disabled") + '>BİTİR' +
-               '<small>💎 ' + sayi(bm) + '</small></button>' +
+               '<small>' + ELMAS() + ' ' + sayi(bm) + '</small></button>' +
              '<button class="ins-btn ins-mavi" data-is="hizlandir">HIZLANDIR</button>' +
            '</div>';
       govde.innerHTML = h;
@@ -957,13 +932,6 @@
     }
     /* Kale gücü her binada var — kışla, tesis ve Ana Kale'de bu bölüm
        eskiden bomboş açılmıyordu, artık tek satırla da olsa doluyor. */
-    /* Hastanenin ölçülebilir bonusu: yaralı kapasitesi. */
-    if (id === "hastane") {
-      var k0 = HASTANE_KAP[sv] || 0, k1 = HASTANE_KAP[hedef] || 0;
-      if (k1 > k0) {
-        h += satir("Yaralı kapasitesi", sayi(k0) + " <b>+" + sayi(k1 - k0) + "</b>");
-      }
-    }
     var g0 = binaGucu(id, sv), g1 = binaGucu(id, hedef);
     if (g1 > g0) {
       h += satir("Kale gücü", sayi(g0) + " <b>+" + sayi(g1 - g0) + "</b>");
@@ -1021,7 +989,7 @@
     h += '<div class="ins-dugmeler">' +
            '<button class="ins-btn ins-altin" data-is="bitir"' +
              (bitirOlur ? "" : " disabled") + '>BİTİR' +
-             '<small>💎 ' + (m ? sayi(m.elmas) : "-") + "</small></button>" +
+             '<small>' + ELMAS() + ' ' + (m ? sayi(m.elmas) : "-") + "</small></button>" +
            '<button class="ins-btn ins-yesil" data-is="basla"' +
              (d.olur ? "" : " disabled") + ">GELİŞTİR" +
              "<small>⏱ " + dkYaz(b.dk) + "</small></button>" +
@@ -1247,10 +1215,6 @@
     binaGucu: binaGucu,
     toplamGuc: toplamGuc,
     GUC_TABAN: GUC_TABAN,
-
-    /* index.html -> sendWoundedToHospital ve hastane paneli bunu okur. */
-    hastaneKapasitesi: hastaneKapasitesi,
-    HASTANE_KAP: HASTANE_KAP,
 
     gelistirilebilir: function (id) { return !!TIP[id]; },
     kurDurum: kurDurum,
