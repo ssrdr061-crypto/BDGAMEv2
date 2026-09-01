@@ -6022,7 +6022,7 @@ document.head.appendChild(st);
 /* ── ÜST ŞERİT ── */
 html body .hud-top{
   box-shadow:none !important;
-  border-bottom:1px solid rgba(190,240,255,.20) !important;
+  border:none !important;          /* çerçeve tamamen kalktı */
 }
 html body .hud-top .hud-pill,
 html body .hud-pill, html body .user-pill,
@@ -6036,7 +6036,7 @@ html body .hud-top .kaynak-oge{
 /* ── ALT MENÜ ── */
 html body .nav-dock{
   box-shadow:none !important;
-  border-top:1px solid rgba(190,240,255,.20) !important;
+  border:none !important;          /* çerçeve tamamen kalktı */
 }
 html body .dock-icon{ filter:none !important; }
 html body .dock-btn{ box-shadow:none !important; }
