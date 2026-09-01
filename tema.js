@@ -351,9 +351,12 @@ const DRAG_PX = 12;
 /* Emoji yerine elmas gorseli. CSS'te onerror yoktur — dosya eksikse
    simge hic cikmaz, sayi yalniz kalir (yazi bozulmaz). */
 #panel-inventory .inv-summary .stat-card .num::before{
-  content:""; display:inline-block; width:1.05em; height:1.05em;
+  content:""; display:inline-block;
+  width:var(--elc-kutu, 1.05em); height:var(--elc-kutu, 1.05em);
   margin-right:.22em; vertical-align:-.14em;
   background:url("elmas.webp") center/contain no-repeat;
+  /* scale AKISI DEGISTIRMEZ: kutu 1.05em kalir, gorsel buyur. */
+  transform:scale(var(--elc-olcek, 1)) translate(var(--elc-x, 0em), var(--elc-y, 0em));
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -8912,43 +8915,94 @@ document.head.appendChild(st);
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   ELMAS SİMGESİ AYAR PANELİ  —  ?elmasayar=1
+   ELMAS SİMGESİ — İKİ AYRI ÖLÇÜ
    ------------------------------------------------------------
-   Görselin ölçüsünü ekranda canlı ayarlamak için. Sürgüler oynadıkça
-   sayfaya <style id="elmasAyarStil"> yazılır; değerler localStorage'da
-   durur, sayfayı yenileyince kaybolmaz.
-   İş bitince: KOPYALA'ya bas, çıkan CSS'i bu dosyanın kalıcı kuralına
-   geçir ve BU BLOĞU SİL. Panel geçicidir.
+   SORUN: <img> akışın içinde durduğu için boyu büyüdükçe satırı,
+   düğmeyi, HUD hapını da büyütüyordu. Görselin büyümesi düzeni
+   bozmamalı.
 
-   NEDEN !important: .kay-sim kuralı bu dosyanın 6179. satırında
-   tanımlı. Bu blok dosyanın SONUNDA, yani sonradan eklenen stil
-   kazanır — ama HUD hapının kendi font-size'ı ayrı bir eksen olduğu
-   için karışıklığa yer bırakmamak adına !important yazılıyor.
+   ÇÖZÜM: iki kutu.
+     .elmas-kutu → AKIŞTA yer kaplayan kutu. Satır yüksekliğini,
+                   düğme boyunu YALNIZ bu belirler. Emojinin
+                   kapladığı yerle aynı kalsın diye 1.15em.
+     .elmas-gor  → içinde MUTLAK konumlu görsel. Büyüyünce kutudan
+                   taşar, hiçbir ölçüye dokunmaz.
+
+   TUZAK — calc: konum kaydırması `calc(-50% + var(--el-x))` ile
+   yazılmamalı. Değer eksi olduğunda `calc(-50% + -0.2em)` çıkar,
+   bu GEÇERSİZ CSS'tir ve transform'un TAMAMI sessizce düşer.
+   Onun yerine iki ayrı translate zincirleniyor.
+
+   TUZAK — kırpılma: taşan görsel, üst kutusunda `overflow:hidden`
+   ya da `overflow-y:auto` varsa kesilir (yatayda da kırpar).
+   Bu yüzden görünen boy kutunun 1,8 katını çok geçmemeli.
+
+   Ölçüler değişken; ayar paneli (?elmasayar=1) bunları yazar.
+   ══════════════════════════════════════════════════════════════ */
+(function elmasSimgeOlcu(){
+"use strict";
+var st = document.createElement("style");
+st.id = "elmasSimgeStil";
+st.textContent = `
+:root{
+  --el-kutu:1.15em;    /* akışta kapladığı yer  */
+  --el-boy:1.15em;     /* görünen boy           */
+  --el-x:0em;          /* sağa/sola kaydırma    */
+  --el-y:0em;          /* yukarı/aşağı kaydırma */
+  --el-hiza:-0.2em;    /* satır hizası          */
+}
+.elmas-kutu{
+  display:inline-block; position:relative;
+  width:var(--el-kutu); height:var(--el-kutu);
+  vertical-align:var(--el-hiza);
+}
+.elmas-gor{
+  position:absolute; left:50%; top:50%;
+  width:var(--el-boy); height:var(--el-boy);
+  max-width:none; object-fit:contain;
+  transform:translate(-50%,-50%) translate(var(--el-x), var(--el-y));
+  pointer-events:none;
+}
+`;
+document.head.appendChild(st);
+})();
+
+
+/* ══════════════════════════════════════════════════════════════
+   ELMAS AYAR PANELİ  —  ?elmasayar=1   (GEÇİCİ)
+   Sürgüler --el-* değişkenlerini yazar; değerler localStorage'da.
+   İş bitince KOPYALA'daki değerleri yukarıdaki :root bloğuna geçir
+   ve BU BLOĞU SİL.
    ══════════════════════════════════════════════════════════════ */
 (function elmasAyarPaneli() {
 "use strict";
 if (!/[?&]elmasayar=1/.test(location.search)) return;
 
-var ANAHTAR = "elmasAyar1";
-var VARSAYILAN = { boy: 1.15, dikey: -0.20, hud: 13, canta: 1.05 };
+var ANAHTAR = "elmasAyar2";
+var VARSAYILAN = {
+  kutu: 1.15, boy: 1.15, x: 0, y: 0, hiza: -0.20,
+  hud: 13, cantaKutu: 1.05, cantaOlcek: 1, cantaX: 0, cantaY: 0
+};
 
 var A;
 try { A = JSON.parse(localStorage.getItem(ANAHTAR)) || {}; } catch (e) { A = {}; }
 for (var k in VARSAYILAN) if (typeof A[k] !== "number") A[k] = VARSAYILAN[k];
 
-function kaydet() {
-  try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
-}
+function kaydet() { try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {} }
 
 function ciktiMetni() {
-  return ".kay-sim.elmas-sim{\n" +
-         "  width:" + A.boy.toFixed(2) + "em; height:" + A.boy.toFixed(2) + "em;\n" +
-         "  vertical-align:" + A.dikey.toFixed(2) + "em;\n" +
+  return ":root{\n" +
+         "  --el-kutu:" + A.kutu.toFixed(2) + "em;\n" +
+         "  --el-boy:"  + A.boy.toFixed(2)  + "em;\n" +
+         "  --el-x:"    + A.x.toFixed(2)    + "em;\n" +
+         "  --el-y:"    + A.y.toFixed(2)    + "em;\n" +
+         "  --el-hiza:" + A.hiza.toFixed(2) + "em;\n" +
+         "  --elc-kutu:"  + A.cantaKutu.toFixed(2)  + "em;\n" +
+         "  --elc-olcek:" + A.cantaOlcek.toFixed(2) + ";\n" +
+         "  --elc-x:"     + A.cantaX.toFixed(2)     + "em;\n" +
+         "  --elc-y:"     + A.cantaY.toFixed(2)     + "em;\n" +
          "}\n" +
-         ".hud-pill .gem{ font-size:" + A.hud + "px; }\n" +
-         "#panel-inventory .inv-summary .stat-card .num::before{\n" +
-         "  width:" + A.canta.toFixed(2) + "em; height:" + A.canta.toFixed(2) + "em;\n" +
-         "}";
+         ".hud-pill .gem{ font-size:" + A.hud + "px; }";
 }
 
 var stil = document.getElementById("elmasAyarStil");
@@ -8960,11 +9014,18 @@ if (!stil) {
 
 function uygula() {
   stil.textContent =
-    ".kay-sim.elmas-sim{width:" + A.boy + "em !important;height:" + A.boy + "em !important;" +
-      "vertical-align:" + A.dikey + "em !important;}" +
-    "html body .hud-pill .gem{font-size:" + A.hud + "px !important;}" +
-    "#panel-inventory .inv-summary .stat-card .num::before{" +
-      "width:" + A.canta + "em !important;height:" + A.canta + "em !important;}";
+    ":root{" +
+      "--el-kutu:" + A.kutu + "em;" +
+      "--el-boy:"  + A.boy  + "em;" +
+      "--el-x:"    + A.x    + "em;" +
+      "--el-y:"    + A.y    + "em;" +
+      "--el-hiza:" + A.hiza + "em;" +
+      "--elc-kutu:"  + A.cantaKutu  + "em;" +
+      "--elc-olcek:" + A.cantaOlcek + ";" +
+      "--elc-x:"     + A.cantaX     + "em;" +
+      "--elc-y:"     + A.cantaY     + "em;" +
+    "}" +
+    "html body .hud-pill .gem{font-size:" + A.hud + "px !important;}";
   var c = document.getElementById("eaCikti");
   if (c) c.textContent = ciktiMetni();
 }
@@ -8977,22 +9038,32 @@ function kur() {
   p.style.cssText =
     "position:fixed;left:0;right:0;bottom:0;z-index:100000;" +
     "background:#0d2137;color:#eaf6ff;font:600 12px/1.3 'Baloo 2',sans-serif;" +
-    "padding:8px 10px 10px;max-height:60vh;overflow-y:auto;" +
+    "padding:8px 10px 10px;max-height:64vh;overflow-y:auto;" +
     "box-shadow:0 -2px 6px rgba(0,20,45,.3);";
 
-  /* Sürgü satırı: etiket · sürgü · sayı · örnek simge */
-  function satir(ad, alan, min, max, adim, birim) {
-    return '<div style="display:flex;align-items:center;gap:7px;margin:5px 0;">' +
-             '<span style="width:96px;flex:0 0 auto;">' + ad + '</span>' +
+  function orn() {
+    return '<span class="elmas-kutu"><img class="elmas-gor" src="elmas.webp" alt="" ' +
+           'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))"></span>';
+  }
+
+  function satir(ad, alan, min, max, adim, birim, akis) {
+    return '<div style="display:flex;align-items:center;gap:7px;margin:4px 0;">' +
+             '<span style="width:104px;flex:0 0 auto;' +
+               (akis ? 'color:#ffd257;' : '') + '">' + ad + '</span>' +
              '<input type="range" data-alan="' + alan + '" min="' + min + '" max="' + max +
                '" step="' + adim + '" value="' + A[alan] + '" style="flex:1;min-width:0;">' +
-             '<span data-deger="' + alan + '" style="width:52px;flex:0 0 auto;text-align:right;' +
+             '<span data-deger="' + alan + '" style="width:50px;flex:0 0 auto;text-align:right;' +
                'font-variant-numeric:tabular-nums;color:#7fe4ff;">' + A[alan] + birim + '</span>' +
            '</div>';
   }
 
+  function baslik(t) {
+    return '<div style="margin:8px 0 2px;font-size:11.5px;letter-spacing:.4px;' +
+           'color:#9fc6e6;">' + t + '</div>';
+  }
+
   p.innerHTML =
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+    '<div style="display:flex;align-items:center;gap:8px;">' +
       '<b style="font-size:13px;letter-spacing:.4px;">ELMAS AYAR</b>' +
       '<span style="flex:1;"></span>' +
       '<button id="eaSifirla" style="padding:4px 10px;border:none;border-radius:8px;' +
@@ -9003,30 +9074,33 @@ function kur() {
         'background:#c62828;color:#fff;font:600 11.5px/1 \'Baloo 2\',sans-serif;">KAPAT</button>' +
     '</div>' +
 
-    /* Canlı örnek: gerçek yazı içinde nasıl duruyor */
-    '<div style="background:#12304e;border-radius:9px;padding:6px 9px;margin:4px 0 6px;">' +
-      '<div style="font-size:13px;">HUD: <span class="gem" style="font-size:' + A.hud + 'px">' +
-        '<img class="kay-sim elmas-sim" src="elmas.webp" alt="" ' +
-        'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))">' +
-      '</span> <b>4,8B</b></div>' +
-      '<div style="font-size:12.5px;margin-top:3px;">Mağaza: ' +
-        '<img class="kay-sim elmas-sim" src="elmas.webp" alt="" ' +
-        'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))">' +
-        ' 10.000</div>' +
-      '<div style="font-size:22px;margin-top:3px;">' +
-        '<img class="kay-sim elmas-sim" src="elmas.webp" alt="" ' +
-        'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))">' +
-        ' 31,5M</div>' +
+    /* Canlı örnek — üç ayrı yazı boyu + kutunun sınırı çizgiyle */
+    '<div style="background:#12304e;border-radius:9px;padding:6px 9px;margin:5px 0 2px;">' +
+      '<div style="font-size:13px;">HUD <span class="gem" style="font-size:' + A.hud + 'px">' + orn() + '</span> <b>4,8B</b></div>' +
+      '<div style="font-size:12.5px;margin-top:3px;">Mağaza ' + orn() + ' 10.000</div>' +
+      '<div style="font-size:22px;margin-top:3px;">' + orn() + ' 31,5M</div>' +
+      '<div style="margin-top:4px;padding:3px 7px;border-radius:14px;background:#1a3a75;' +
+        'display:inline-block;font-size:12.5px;">Düğme ' + orn() + ' 2.000</div>' +
     '</div>' +
 
-    satir("Boy (em)",        "boy",   0.70, 3.00, 0.05, "") +
-    satir("Dikey (em)",      "dikey", -0.80, 0.40, 0.02, "") +
-    satir("HUD hapı (px)",   "hud",   8,    32,   1,    "px") +
-    satir("Çanta özet (em)", "canta", 0.70, 2.50, 0.05, "") +
+    baslik('SARI = düzeni etkiler · MAVİ = yalnız görseli oynatır') +
+
+    satir("Kutu (akış)",  "kutu", 0.60, 2.20, 0.05, "", true) +
+    satir("Görsel boyu",  "boy",  0.60, 4.00, 0.05, "", false) +
+    satir("Sağ / sol",    "x",   -1.20, 1.20, 0.02, "", false) +
+    satir("Yukarı/aşağı", "y",   -1.20, 1.20, 0.02, "", false) +
+    satir("Satır hizası", "hiza",-0.90, 0.40, 0.02, "", true) +
+    satir("HUD hapı (px)","hud",  8,   32,   1,    "px", true) +
+
+    baslik('ÇANTA ÖZET KUTUSU (ayrı yol — CSS ::before)') +
+    satir("Kutu (akış)",  "cantaKutu",  0.60, 2.20, 0.05, "", true) +
+    satir("Görsel ölçek", "cantaOlcek", 0.50, 4.00, 0.05, "", false) +
+    satir("Sağ / sol",    "cantaX",    -1.20, 1.20, 0.02, "", false) +
+    satir("Yukarı/aşağı", "cantaY",    -1.20, 1.20, 0.02, "", false) +
 
     '<div style="margin-top:6px;font-size:11px;color:#9fc6e6;">' +
-      'Boy = yazının kaç katı. Dikey eksi ise simge aşağı iner. ' +
-      'HUD hapı ayrı eksen: oradaki em bu px değerinden hesaplanır.</div>' +
+      'Görsel boyu kutuyu 1,8 katından çok geçerse üst kutusunda ' +
+      'overflow varsa kenarlardan kırpılır. Panelleri gezip kontrol et.</div>' +
     '<pre id="eaCikti" style="margin:6px 0 0;padding:7px 9px;background:#08192b;' +
       'border-radius:8px;font:600 10.5px/1.35 monospace;white-space:pre-wrap;' +
       'color:#bfe9ff;">' + ciktiMetni() + '</pre>';
@@ -9039,7 +9113,6 @@ function kur() {
       A[alan] = parseFloat(r.value);
       var d = p.querySelector('[data-deger="' + alan + '"]');
       if (d) d.textContent = A[alan] + (alan === "hud" ? "px" : "");
-      /* Örnekteki HUD hapı da anında değişsin */
       if (alan === "hud") {
         var g = p.querySelector(".gem");
         if (g) g.style.fontSize = A.hud + "px";
@@ -9051,10 +9124,7 @@ function kur() {
 
   document.getElementById("eaSifirla").addEventListener("click", function () {
     for (var kk in VARSAYILAN) A[kk] = VARSAYILAN[kk];
-    kaydet();
-    p.remove();
-    kur();
-    uygula();
+    kaydet(); p.remove(); kur(); uygula();
   });
 
   document.getElementById("eaKapat").addEventListener("click", function () { p.remove(); });

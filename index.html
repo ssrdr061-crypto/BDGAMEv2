@@ -2297,8 +2297,8 @@ body.world-active{padding:0; overflow:hidden;}
 
   <div class="hud-top">
     <div class="hud-pill diamond-pill hud-pill-left">
-      <span class="gem"><img class="kay-sim elmas-sim" src="elmas.webp" alt=""
-              onerror="this.onerror=null;this.replaceWith(document.createTextNode('💎'))"></span>
+      <span class="gem"><span class="elmas-kutu"><img class="elmas-gor" src="elmas.webp" alt=""
+              onerror="this.onerror=null;this.replaceWith(document.createTextNode('💎'))"></span></span>
       <span class="amount" id="diamondAmount">0</span>
     </div>
     <div class="hud-pill stamina-pill hud-pill-center" id="staminaPill">
@@ -2679,15 +2679,17 @@ const fmt = (n) => n.toLocaleString("tr-TR");
      - innerHTML -> ELMAS()  (gorsel)
      - duz metin -> 💎       (toast, textContent, canvas)
    Karistirirsan ekranda ham <img ...> cikar.
-   Olcu .kay-sim sinifindan gelir (1.15em): hangi yazinin icine girerse
-   onun boyunu alir, yerine gectigi emojiyle ayni buyuklukte durur.
+   IKI OLCU AYRI: .elmas-kutu AKISTA yer kaplar (satiri o buyutur),
+   icindeki .elmas-gor yalnizca GORUNEN boydur ve kutudan tasabilir —
+   boylece gorsel buyurken hicbir satir/panel genislemez.
+   Olculer tema.js'teki --el-* degiskenlerinden gelir.
    Dosya sunucuda yoksa onerror 💎'a doner, ekran bos kalmaz.
    Dosya adi LOWERCASE ASCII: elmas.webp
    ELMAS() diger dosyalardan da (magaza/insaat/kahramanlar/gelistir/
    rehber) cagrilir — tanim YALNIZ BURADADIR. */
 function elmasIkon() {
-  return '<img class="kay-sim elmas-sim" src="elmas.webp" alt="" ' +
-         'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'💎\'))">';
+  return '<span class="elmas-kutu"><img class="elmas-gor" src="elmas.webp" alt="" ' +
+         'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'💎\'))"></span>';
 }
 function ELMAS() {
   return (typeof elmasIkon === "function") ? elmasIkon() : "💎";
