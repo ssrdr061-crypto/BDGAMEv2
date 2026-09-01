@@ -8961,6 +8961,18 @@ st.textContent = `
   transform:translate(-50%,-50%) translate(var(--el-x), var(--el-y));
   pointer-events:none;
 }
+
+/* ── YER BAŞINA ÖLÇÜ — ?elmasayar=1 panelinde ayarlandı ──
+   Kutu = akışta kapladığı yer · Görsel = görünen boy · x/y = kaydırma.
+   Taşıma, Rehber ve Çanta henüz ayarlanmadı, varsayılanda duruyor. */
+.elmas-kutu.ey-hud     {--el-kutu:1.45em; --el-boy:2.75em; --el-x: 0.14em; --el-y:0.12em; --el-hiza:-0.20em;}
+.elmas-kutu.ey-magaza  {--el-kutu:1.15em; --el-boy:3.00em; --el-x:-0.42em; --el-y:0.14em; --el-hiza:-0.20em;}
+.elmas-kutu.ey-insaat  {--el-kutu:1.10em; --el-boy:2.90em; --el-x:-0.32em; --el-y:0.00em; --el-hiza:-0.20em;}
+.elmas-kutu.ey-kahraman{--el-kutu:1.15em; --el-boy:1.85em; --el-x:-0.30em; --el-y:0.18em; --el-hiza:-0.20em;}
+.elmas-kutu.ey-gelistir{--el-kutu:1.15em; --el-boy:3.10em; --el-x:-0.32em; --el-y:0.00em; --el-hiza:-0.20em;}
+.elmas-kutu.ey-gunluk  {--el-kutu:1.25em; --el-boy:2.65em; --el-x:-0.16em; --el-y:0.00em; --el-hiza:-0.20em;}
+.elmas-kutu.ey-tasima  {--el-kutu:1.15em; --el-boy:1.15em; --el-x: 0.00em; --el-y:0.00em; --el-hiza:-0.20em;}
+.elmas-kutu.ey-rehber  {--el-kutu:1.15em; --el-boy:1.15em; --el-x: 0.00em; --el-y:0.00em; --el-hiza:-0.20em;}
 `;
 document.head.appendChild(st);
 })();
