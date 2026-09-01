@@ -360,7 +360,7 @@ function renderShop() {
         ${item.isBoost ? `<div class="sc-tag">${item.heroName}</div>` : ""}
         <div class="sc-left">Limit: ${shopLimitOf(item) ? fmt(left) : "∞"}</div>
         <button class="sc-price" data-idx="${realIdx}" ${soldOut ? "disabled" : ""}>
-          ${soldOut ? "Tükendi" : ELMAS() + " " + fmt(item.price)}
+          ${soldOut ? "Tükendi" : ELMAS("magaza") + " " + fmt(item.price)}
         </button>
         ${soldOut ? '<div class="sc-soldtag">TÜKENDİ</div>' : ""}
       </div>`;

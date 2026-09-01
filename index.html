@@ -2297,7 +2297,7 @@ body.world-active{padding:0; overflow:hidden;}
 
   <div class="hud-top">
     <div class="hud-pill diamond-pill hud-pill-left">
-      <span class="gem"><span class="elmas-kutu"><img class="elmas-gor" src="elmas.webp" alt=""
+      <span class="gem"><span class="elmas-kutu ey-hud"><img class="elmas-gor" src="elmas.webp" alt=""
               onerror="this.onerror=null;this.replaceWith(document.createTextNode('💎'))"></span></span>
       <span class="amount" id="diamondAmount">0</span>
     </div>
@@ -2687,12 +2687,13 @@ const fmt = (n) => n.toLocaleString("tr-TR");
    Dosya adi LOWERCASE ASCII: elmas.webp
    ELMAS() diger dosyalardan da (magaza/insaat/kahramanlar/gelistir/
    rehber) cagrilir — tanim YALNIZ BURADADIR. */
-function elmasIkon() {
-  return '<span class="elmas-kutu"><img class="elmas-gor" src="elmas.webp" alt="" ' +
+function elmasIkon(yer) {
+  var s = yer ? " ey-" + yer : "";
+  return '<span class="elmas-kutu' + s + '"><img class="elmas-gor" src="elmas.webp" alt="" ' +
          'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'💎\'))"></span>';
 }
-function ELMAS() {
-  return (typeof elmasIkon === "function") ? elmasIkon() : "💎";
+function ELMAS(yer) {
+  return (typeof elmasIkon === "function") ? elmasIkon(yer) : "💎";
 }
 window.elmasIkon = elmasIkon;
 window.ELMAS = ELMAS;
@@ -4109,7 +4110,7 @@ function openDailyRewardChest() {
     chestEl.classList.add("opened");
     resultEl.innerHTML = `
       <div class="daily-reward-item">🪖 <b>${fmt(reward.knight)} Savunucu</b></div>
-      <div class="daily-reward-item">${ELMAS()} <b>${fmt(reward.diamonds)} Elmas</b></div>
+      <div class="daily-reward-item">${ELMAS("gunluk")} <b>${fmt(reward.diamonds)} Elmas</b></div>
       <div class="daily-reward-item">Kahraman parçanı seç:</div>
       <div class="gunluk-parca-secim" id="gunlukParcaSecim">
         ${gunlukParcaKutusu("ivanovna", "İvanovna")}
@@ -7329,7 +7330,7 @@ function setupMapPanning() {
     bar.id = "castleMoveBar";
     bar.innerHTML =
       '<button class="cmb-cancel" title="İptal">✕</button>'+
-      '<span class="cmb-cost">'+fmt(MOVE_COST)+' '+ELMAS()+'</span>'+
+      '<span class="cmb-cost">'+fmt(MOVE_COST)+' '+ELMAS("tasima")+'</span>'+
       '<button class="cmb-ok" title="Taşı">✓</button>';
     document.body.appendChild(bar);
     bar.querySelector(".cmb-cancel").onclick = () => cancelCastleMove();

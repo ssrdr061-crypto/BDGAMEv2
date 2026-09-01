@@ -897,7 +897,7 @@
       h += '<div class="ins-dugmeler">' +
              '<button class="ins-btn ins-altin" data-is="bitirSuren"' +
                (elmasVar() >= bm ? "" : " disabled") + '>BİTİR' +
-               '<small>' + ELMAS() + ' ' + sayi(bm) + '</small></button>' +
+               '<small>' + ELMAS("insaat") + ' ' + sayi(bm) + '</small></button>' +
              '<button class="ins-btn ins-mavi" data-is="hizlandir">HIZLANDIR</button>' +
            '</div>';
       govde.innerHTML = h;
@@ -989,7 +989,7 @@
     h += '<div class="ins-dugmeler">' +
            '<button class="ins-btn ins-altin" data-is="bitir"' +
              (bitirOlur ? "" : " disabled") + '>BİTİR' +
-             '<small>' + ELMAS() + ' ' + (m ? sayi(m.elmas) : "-") + "</small></button>" +
+             '<small>' + ELMAS("insaat") + ' ' + (m ? sayi(m.elmas) : "-") + "</small></button>" +
            '<button class="ins-btn ins-yesil" data-is="basla"' +
              (d.olur ? "" : " disabled") + ">GELİŞTİR" +
              "<small>⏱ " + dkYaz(b.dk) + "</small></button>" +

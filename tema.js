@@ -8915,29 +8915,27 @@ document.head.appendChild(st);
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   ELMAS SİMGESİ — İKİ AYRI ÖLÇÜ
+   ELMAS SİMGESİ — İKİ AYRI ÖLÇÜ + YER BAŞINA AYAR
    ------------------------------------------------------------
    SORUN: <img> akışın içinde durduğu için boyu büyüdükçe satırı,
-   düğmeyi, HUD hapını da büyütüyordu. Görselin büyümesi düzeni
-   bozmamalı.
+   düğmeyi, HUD hapını da büyütüyordu.
 
    ÇÖZÜM: iki kutu.
-     .elmas-kutu → AKIŞTA yer kaplayan kutu. Satır yüksekliğini,
-                   düğme boyunu YALNIZ bu belirler. Emojinin
-                   kapladığı yerle aynı kalsın diye 1.15em.
+     .elmas-kutu → AKIŞTA yer kaplayan kutu. Satır yüksekliğini
+                   YALNIZ bu belirler.
      .elmas-gor  → içinde MUTLAK konumlu görsel. Büyüyünce kutudan
                    taşar, hiçbir ölçüye dokunmaz.
 
-   TUZAK — calc: konum kaydırması `calc(-50% + var(--el-x))` ile
-   yazılmamalı. Değer eksi olduğunda `calc(-50% + -0.2em)` çıkar,
-   bu GEÇERSİZ CSS'tir ve transform'un TAMAMI sessizce düşer.
-   Onun yerine iki ayrı translate zincirleniyor.
+   YER BAŞINA AYAR: elmasIkon("magaza") → <span class="elmas-kutu
+   ey-magaza">. Her yerin kendi `.ey-*` kuralı --el-* değişkenlerini
+   ezer. Kural yazılmamışsa aşağıdaki :root varsayılanı geçerlidir.
 
-   TUZAK — kırpılma: taşan görsel, üst kutusunda `overflow:hidden`
-   ya da `overflow-y:auto` varsa kesilir (yatayda da kırpar).
-   Bu yüzden görünen boy kutunun 1,8 katını çok geçmemeli.
+   TUZAK — calc: kaydırma `calc(-50% + var(--el-x))` ile yazılamaz.
+   Değer eksi olunca `calc(-50% + -0.2em)` çıkar, bu GEÇERSİZ CSS'tir
+   ve transform'un TAMAMI sessizce düşer. İki ayrı translate zincirli.
 
-   Ölçüler değişken; ayar paneli (?elmasayar=1) bunları yazar.
+   TUZAK — kırpılma: taşan görsel, üst kutusunda overflow varsa
+   kesilir (overflow-y yatayda da kırpar).
    ══════════════════════════════════════════════════════════════ */
 (function elmasSimgeOlcu(){
 "use strict";
@@ -8970,39 +8968,67 @@ document.head.appendChild(st);
 
 /* ══════════════════════════════════════════════════════════════
    ELMAS AYAR PANELİ  —  ?elmasayar=1   (GEÇİCİ)
-   Sürgüler --el-* değişkenlerini yazar; değerler localStorage'da.
-   İş bitince KOPYALA'daki değerleri yukarıdaki :root bloğuna geçir
-   ve BU BLOĞU SİL.
+   Üstte yer kutucukları, altta beş sürgü. Her yer ayrı kaydedilir.
+   İş bitince KOPYALA çıktısını kalıcı CSS'e geçir, BU BLOĞU SİL.
    ══════════════════════════════════════════════════════════════ */
 (function elmasAyarPaneli() {
 "use strict";
 if (!/[?&]elmasayar=1/.test(location.search)) return;
 
-var ANAHTAR = "elmasAyar2";
-var VARSAYILAN = {
-  kutu: 1.15, boy: 1.15, x: 0, y: 0, hiza: -0.20,
-  hud: 13, cantaKutu: 1.05, cantaOlcek: 1, cantaX: 0, cantaY: 0
-};
+/* Yer listesi — elmasIkon(anahtar) ile birebir aynı olmalı. */
+var YERLER = [
+  { id: "hud",      ad: "HUD",      not: "Üst şerit elmas hapı" },
+  { id: "magaza",   ad: "Mağaza",   not: "Ürün kartı fiyat düğmesi" },
+  { id: "insaat",   ad: "İnşaat",   not: "BİTİR düğmeleri (iki yer)" },
+  { id: "kahraman", ad: "Kahraman", not: "Liste kilit fiyatı" },
+  { id: "gelistir", ad: "Geliştir", not: "Panel Satın Al düğmesi" },
+  { id: "gunluk",   ad: "Günlük",   not: "Giriş ödülü satırı" },
+  { id: "tasima",   ad: "Taşıma",   not: "Kale taşıma onay çubuğu" },
+  { id: "rehber",   ad: "Rehber",   not: "Revolia hediye kutusu" },
+  { id: "canta",    ad: "Çanta",    not: "Özet kutusu (CSS ::before)" }
+];
+
+var ANAHTAR = "elmasAyar3";
+var VARSAYILAN = { kutu: 1.15, boy: 1.15, x: 0, y: 0, hiza: -0.20 };
 
 var A;
 try { A = JSON.parse(localStorage.getItem(ANAHTAR)) || {}; } catch (e) { A = {}; }
-for (var k in VARSAYILAN) if (typeof A[k] !== "number") A[k] = VARSAYILAN[k];
+YERLER.forEach(function (y) {
+  if (!A[y.id]) A[y.id] = {};
+  for (var k in VARSAYILAN) if (typeof A[y.id][k] !== "number") A[y.id][k] = VARSAYILAN[k];
+});
 
-function kaydet() { try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {} }
+var secili = A._son && A[A._son] ? A._son : "hud";
+
+function kaydet() { try { A._son = secili; localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {} }
+
+function d2(n) { return (Math.round(n * 100) / 100).toFixed(2); }
+
+/* Çanta ::before'un kutusu ve ölçeği ayrı yoldan gider; boy/kutu
+   oranı scale'e çevrilir, böylece sürgüler her yerde aynı anlamda. */
+function cantaKurali(v) {
+  var olcek = v.kutu > 0 ? v.boy / v.kutu : 1;
+  return "#panel-inventory .inv-summary .stat-card .num::before{" +
+           "width:" + d2(v.kutu) + "em;height:" + d2(v.kutu) + "em;" +
+           "vertical-align:" + d2(v.hiza) + "em;" +
+           "transform:scale(" + d2(olcek) + ") translate(" + d2(v.x) + "em," + d2(v.y) + "em);}";
+}
+
+function yerKurali(id, v) {
+  return ".elmas-kutu.ey-" + id + "{" +
+           "--el-kutu:" + d2(v.kutu) + "em;" +
+           "--el-boy:"  + d2(v.boy)  + "em;" +
+           "--el-x:"    + d2(v.x)    + "em;" +
+           "--el-y:"    + d2(v.y)    + "em;" +
+           "--el-hiza:" + d2(v.hiza) + "em;}";
+}
 
 function ciktiMetni() {
-  return ":root{\n" +
-         "  --el-kutu:" + A.kutu.toFixed(2) + "em;\n" +
-         "  --el-boy:"  + A.boy.toFixed(2)  + "em;\n" +
-         "  --el-x:"    + A.x.toFixed(2)    + "em;\n" +
-         "  --el-y:"    + A.y.toFixed(2)    + "em;\n" +
-         "  --el-hiza:" + A.hiza.toFixed(2) + "em;\n" +
-         "  --elc-kutu:"  + A.cantaKutu.toFixed(2)  + "em;\n" +
-         "  --elc-olcek:" + A.cantaOlcek.toFixed(2) + ";\n" +
-         "  --elc-x:"     + A.cantaX.toFixed(2)     + "em;\n" +
-         "  --elc-y:"     + A.cantaY.toFixed(2)     + "em;\n" +
-         "}\n" +
-         ".hud-pill .gem{ font-size:" + A.hud + "px; }";
+  var out = [];
+  YERLER.forEach(function (y) {
+    out.push(y.id === "canta" ? cantaKurali(A[y.id]) : yerKurali(y.id, A[y.id]));
+  });
+  return out.join("\n");
 }
 
 var stil = document.getElementById("elmasAyarStil");
@@ -9013,22 +9039,18 @@ if (!stil) {
 }
 
 function uygula() {
-  stil.textContent =
-    ":root{" +
-      "--el-kutu:" + A.kutu + "em;" +
-      "--el-boy:"  + A.boy  + "em;" +
-      "--el-x:"    + A.x    + "em;" +
-      "--el-y:"    + A.y    + "em;" +
-      "--el-hiza:" + A.hiza + "em;" +
-      "--elc-kutu:"  + A.cantaKutu  + "em;" +
-      "--elc-olcek:" + A.cantaOlcek + ";" +
-      "--elc-x:"     + A.cantaX     + "em;" +
-      "--elc-y:"     + A.cantaY     + "em;" +
-    "}" +
-    "html body .hud-pill .gem{font-size:" + A.hud + "px !important;}";
+  stil.textContent = ciktiMetni();
   var c = document.getElementById("eaCikti");
   if (c) c.textContent = ciktiMetni();
 }
+
+var SURGULER = [
+  { alan: "kutu", ad: "Kutu",    min: 0.60, max: 2.20, adim: 0.05, akis: true  },
+  { alan: "boy",  ad: "Görsel",  min: 0.60, max: 4.00, adim: 0.05, akis: false },
+  { alan: "x",    ad: "Sağ/sol", min: -1.20, max: 1.20, adim: 0.02, akis: false },
+  { alan: "y",    ad: "Yukarı",  min: -1.20, max: 1.20, adim: 0.02, akis: false },
+  { alan: "hiza", ad: "Hiza",    min: -0.90, max: 0.40, adim: 0.02, akis: true  }
+];
 
 function kur() {
   if (document.getElementById("elmasAyarPanel")) return;
@@ -9037,128 +9059,115 @@ function kur() {
   p.id = "elmasAyarPanel";
   p.style.cssText =
     "position:fixed;left:0;right:0;bottom:0;z-index:100000;" +
-    "background:#0d2137;color:#eaf6ff;font:600 12px/1.3 'Baloo 2',sans-serif;" +
-    "padding:8px 10px 10px;max-height:64vh;overflow-y:auto;" +
-    "box-shadow:0 -2px 6px rgba(0,20,45,.3);";
+    "background:#0d2137;color:#eaf6ff;font:600 11.5px/1.2 'Baloo 2',sans-serif;" +
+    "padding:6px 8px 7px;box-shadow:0 -2px 6px rgba(0,20,45,.3);";
 
-  function orn() {
-    return '<span class="elmas-kutu"><img class="elmas-gor" src="elmas.webp" alt="" ' +
-           'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))"></span>';
+  function ciz() {
+    var v = A[secili];
+    var yer = YERLER.filter(function (y) { return y.id === secili; })[0];
+
+    var sekmeler = YERLER.map(function (y) {
+      var s = (y.id === secili);
+      return '<button class="ea-sek" data-yer="' + y.id + '" style="flex:0 0 auto;' +
+             'padding:3px 9px;border:none;border-radius:12px;' +
+             'font:700 11px/1 \'Baloo 2\',sans-serif;' +
+             (s ? 'background:#2DC9FC;color:#08192b;' : 'background:#1d3f63;color:#bfe9ff;') +
+             '">' + y.ad + '</button>';
+    }).join("");
+
+    var surgu = SURGULER.map(function (g) {
+      return '<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">' +
+               '<span style="width:52px;flex:0 0 auto;' + (g.akis ? 'color:#ffd257;' : '') + '">' + g.ad + '</span>' +
+               '<input type="range" data-alan="' + g.alan + '" min="' + g.min + '" max="' + g.max +
+                 '" step="' + g.adim + '" value="' + v[g.alan] + '" style="flex:1;min-width:0;height:18px;">' +
+               '<span data-deger="' + g.alan + '" style="width:42px;flex:0 0 auto;text-align:right;' +
+                 'font-variant-numeric:tabular-nums;color:#7fe4ff;">' + d2(v[g.alan]) + '</span>' +
+             '</div>';
+    }).join("");
+
+    var ornek = (secili === "canta")
+      ? '<span style="font-size:22px;">Çanta örneği panelde değil — çantayı aç</span>'
+      : '<span class="elmas-kutu ey-' + secili + '"><img class="elmas-gor" src="elmas.webp" alt="" ' +
+        'onerror="this.onerror=null;this.replaceWith(document.createTextNode(String.fromCodePoint(128142)))"></span>';
+
+    p.innerHTML =
+      '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<b style="font-size:12px;letter-spacing:.3px;">ELMAS</b>' +
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' +
+          'color:#9fc6e6;font-weight:600;">' + yer.not + '</span>' +
+        '<button id="eaSifirla" style="padding:3px 8px;border:none;border-radius:7px;' +
+          'background:#1d3f63;color:#eaf6ff;font:600 10.5px/1 \'Baloo 2\',sans-serif;">SIFIRLA</button>' +
+        '<button id="eaKopya" style="padding:3px 8px;border:none;border-radius:7px;' +
+          'background:#2f6ea8;color:#eaf6ff;font:600 10.5px/1 \'Baloo 2\',sans-serif;">KOPYALA</button>' +
+        '<button id="eaKapat" style="padding:3px 8px;border:none;border-radius:7px;' +
+          'background:#c62828;color:#fff;font:600 10.5px/1 \'Baloo 2\',sans-serif;">✕</button>' +
+      '</div>' +
+
+      '<div style="display:flex;gap:4px;overflow-x:auto;padding:5px 0 4px;">' + sekmeler + '</div>' +
+
+      '<div style="background:#12304e;border-radius:8px;padding:4px 8px;margin-bottom:3px;' +
+        'font-size:13px;">' + ornek + ' 10.000 · <span style="font-size:19px;">' +
+        (secili === "canta" ? "" : ornek) + ' 31,5M</span></div>' +
+
+      surgu +
+
+      '<pre id="eaCikti" style="display:none;"></pre>';
+
+    p.querySelectorAll(".ea-sek").forEach(function (b) {
+      b.addEventListener("click", function () { secili = b.dataset.yer; kaydet(); ciz(); });
+    });
+
+    p.querySelectorAll('input[type="range"]').forEach(function (r) {
+      r.addEventListener("input", function () {
+        var alan = r.dataset.alan;
+        A[secili][alan] = parseFloat(r.value);
+        var dd = p.querySelector('[data-deger="' + alan + '"]');
+        if (dd) dd.textContent = d2(A[secili][alan]);
+        kaydet();
+        uygula();
+      });
+    });
+
+    document.getElementById("eaSifirla").addEventListener("click", function () {
+      for (var kk in VARSAYILAN) A[secili][kk] = VARSAYILAN[kk];
+      kaydet(); uygula(); ciz();
+    });
+    document.getElementById("eaKapat").addEventListener("click", function () { p.remove(); });
+
+    /* Android: readonly textarea kopyalama menüsü vermez, execCommand
+       çoğu sürümde sessizce düşer. Önce pano API'si, olmazsa geçici
+       off-screen textarea. */
+    document.getElementById("eaKopya").addEventListener("click", function () {
+      var b = this, metin = ciktiMetni(), bitti = false;
+      function eskiYol() {
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = metin;
+          ta.style.cssText = "position:fixed;left:0;top:0;width:120px;height:60px;opacity:0;z-index:-1;";
+          document.body.appendChild(ta);
+          ta.focus(); ta.select(); ta.setSelectionRange(0, metin.length);
+          var ok = document.execCommand("copy");
+          ta.remove();
+          b.textContent = ok ? "ALINDI" : "OLMADI";
+        } catch (e2) { b.textContent = "OLMADI"; }
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(metin)
+            .then(function () { b.textContent = "ALINDI"; })
+            .catch(eskiYol);
+          bitti = true;
+        }
+      } catch (err) {}
+      if (!bitti) eskiYol();
+      setTimeout(function () { b.textContent = "KOPYALA"; }, 1800);
+    });
+
+    uygula();
   }
-
-  function satir(ad, alan, min, max, adim, birim, akis) {
-    return '<div style="display:flex;align-items:center;gap:7px;margin:4px 0;">' +
-             '<span style="width:104px;flex:0 0 auto;' +
-               (akis ? 'color:#ffd257;' : '') + '">' + ad + '</span>' +
-             '<input type="range" data-alan="' + alan + '" min="' + min + '" max="' + max +
-               '" step="' + adim + '" value="' + A[alan] + '" style="flex:1;min-width:0;">' +
-             '<span data-deger="' + alan + '" style="width:50px;flex:0 0 auto;text-align:right;' +
-               'font-variant-numeric:tabular-nums;color:#7fe4ff;">' + A[alan] + birim + '</span>' +
-           '</div>';
-  }
-
-  function baslik(t) {
-    return '<div style="margin:8px 0 2px;font-size:11.5px;letter-spacing:.4px;' +
-           'color:#9fc6e6;">' + t + '</div>';
-  }
-
-  p.innerHTML =
-    '<div style="display:flex;align-items:center;gap:8px;">' +
-      '<b style="font-size:13px;letter-spacing:.4px;">ELMAS AYAR</b>' +
-      '<span style="flex:1;"></span>' +
-      '<button id="eaSifirla" style="padding:4px 10px;border:none;border-radius:8px;' +
-        'background:#1d3f63;color:#eaf6ff;font:600 11.5px/1 \'Baloo 2\',sans-serif;">SIFIRLA</button>' +
-      '<button id="eaKopya" style="padding:4px 10px;border:none;border-radius:8px;' +
-        'background:#2f6ea8;color:#eaf6ff;font:600 11.5px/1 \'Baloo 2\',sans-serif;">KOPYALA</button>' +
-      '<button id="eaKapat" style="padding:4px 10px;border:none;border-radius:8px;' +
-        'background:#c62828;color:#fff;font:600 11.5px/1 \'Baloo 2\',sans-serif;">KAPAT</button>' +
-    '</div>' +
-
-    /* Canlı örnek — üç ayrı yazı boyu + kutunun sınırı çizgiyle */
-    '<div style="background:#12304e;border-radius:9px;padding:6px 9px;margin:5px 0 2px;">' +
-      '<div style="font-size:13px;">HUD <span class="gem" style="font-size:' + A.hud + 'px">' + orn() + '</span> <b>4,8B</b></div>' +
-      '<div style="font-size:12.5px;margin-top:3px;">Mağaza ' + orn() + ' 10.000</div>' +
-      '<div style="font-size:22px;margin-top:3px;">' + orn() + ' 31,5M</div>' +
-      '<div style="margin-top:4px;padding:3px 7px;border-radius:14px;background:#1a3a75;' +
-        'display:inline-block;font-size:12.5px;">Düğme ' + orn() + ' 2.000</div>' +
-    '</div>' +
-
-    baslik('SARI = düzeni etkiler · MAVİ = yalnız görseli oynatır') +
-
-    satir("Kutu (akış)",  "kutu", 0.60, 2.20, 0.05, "", true) +
-    satir("Görsel boyu",  "boy",  0.60, 4.00, 0.05, "", false) +
-    satir("Sağ / sol",    "x",   -1.20, 1.20, 0.02, "", false) +
-    satir("Yukarı/aşağı", "y",   -1.20, 1.20, 0.02, "", false) +
-    satir("Satır hizası", "hiza",-0.90, 0.40, 0.02, "", true) +
-    satir("HUD hapı (px)","hud",  8,   32,   1,    "px", true) +
-
-    baslik('ÇANTA ÖZET KUTUSU (ayrı yol — CSS ::before)') +
-    satir("Kutu (akış)",  "cantaKutu",  0.60, 2.20, 0.05, "", true) +
-    satir("Görsel ölçek", "cantaOlcek", 0.50, 4.00, 0.05, "", false) +
-    satir("Sağ / sol",    "cantaX",    -1.20, 1.20, 0.02, "", false) +
-    satir("Yukarı/aşağı", "cantaY",    -1.20, 1.20, 0.02, "", false) +
-
-    '<div style="margin-top:6px;font-size:11px;color:#9fc6e6;">' +
-      'Görsel boyu kutuyu 1,8 katından çok geçerse üst kutusunda ' +
-      'overflow varsa kenarlardan kırpılır. Panelleri gezip kontrol et.</div>' +
-    '<pre id="eaCikti" style="margin:6px 0 0;padding:7px 9px;background:#08192b;' +
-      'border-radius:8px;font:600 10.5px/1.35 monospace;white-space:pre-wrap;' +
-      'color:#bfe9ff;">' + ciktiMetni() + '</pre>';
 
   document.body.appendChild(p);
-
-  p.querySelectorAll('input[type="range"]').forEach(function (r) {
-    r.addEventListener("input", function () {
-      var alan = r.dataset.alan;
-      A[alan] = parseFloat(r.value);
-      var d = p.querySelector('[data-deger="' + alan + '"]');
-      if (d) d.textContent = A[alan] + (alan === "hud" ? "px" : "");
-      if (alan === "hud") {
-        var g = p.querySelector(".gem");
-        if (g) g.style.fontSize = A.hud + "px";
-      }
-      kaydet();
-      uygula();
-    });
-  });
-
-  document.getElementById("eaSifirla").addEventListener("click", function () {
-    for (var kk in VARSAYILAN) A[kk] = VARSAYILAN[kk];
-    kaydet(); p.remove(); kur(); uygula();
-  });
-
-  document.getElementById("eaKapat").addEventListener("click", function () { p.remove(); });
-
-  /* Android: readonly textarea kopyalama menüsü vermez, execCommand
-     çoğu sürümde sessizce düşer. Önce pano API'si, olmazsa geçici
-     off-screen textarea. */
-  document.getElementById("eaKopya").addEventListener("click", function () {
-    var b = this, metin = ciktiMetni(), bitti = false;
-    function eskiYol() {
-      try {
-        var ta = document.createElement("textarea");
-        ta.value = metin;
-        ta.style.cssText = "position:fixed;left:0;top:0;width:120px;height:60px;opacity:0;z-index:-1;";
-        document.body.appendChild(ta);
-        ta.focus(); ta.select(); ta.setSelectionRange(0, metin.length);
-        var ok = document.execCommand("copy");
-        ta.remove();
-        b.textContent = ok ? "ALINDI" : "EKRANI ÇEK";
-      } catch (e2) { b.textContent = "EKRANI ÇEK"; }
-    }
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(metin)
-          .then(function () { b.textContent = "ALINDI"; })
-          .catch(eskiYol);
-        bitti = true;
-      }
-    } catch (err) {}
-    if (!bitti) eskiYol();
-    setTimeout(function () { b.textContent = "KOPYALA"; }, 1800);
-  });
-
-  uygula();
+  ciz();
 }
 
 uygula();
