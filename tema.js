@@ -2767,6 +2767,7 @@ st.textContent = `
 .backup-modal,
 .pvp-pop,
 .daily-reward-banner,
+.gunluk-pop-kutu,
 .hpk-modal,
 #welcomeBack .wc-box,
 #logReportModal .lrm-box,
