@@ -613,9 +613,9 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   transform:translate(var(--rz-x,0px), var(--rz-y,0px)) scale(var(--rz-o,1));
   transform-origin:center;
 }
-.floating-chest-svg   { --rz-o:1.00; --rz-x:0px; --rz-y:0px; }
-.floating-daily-icon  { --rz-o:1.00; --rz-x:0px; --rz-y:0px; }
-.floating-hospital-icon{ --rz-o:1.00; --rz-x:0px; --rz-y:0px; }
+.floating-chest-svg    { --rz-o:1.04; --rz-x:6px; --rz-y:32px; }
+.floating-daily-icon   { --rz-o:1.44; --rz-x:5px; --rz-y:-60px; }
+.floating-hospital-icon{ --rz-o:1.03; --rz-x:5px; --rz-y:-6px; }
 
 .floating-chest-btn{
   position:absolute; top:96px; right:10px; z-index:18;
@@ -668,11 +668,7 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   0%,100%{opacity:.85; transform:scale(1);}
   50%{opacity:1; transform:scale(1.08);}
 }
-.floating-hospital-count{
-  margin-top:-2px;
-  font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#ff8a8a;
-  text-shadow:0 2px 4px rgba(0,0,0,.8);
-}
+
 @media (max-width:380px){
 }
 
@@ -2410,7 +2406,6 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 
   <button class="floating-hospital-btn" id="floatingHospitalBtn" data-panel="hospital">
     <img src="gorsel18.webp" class="floating-hospital-icon" style="width:40px; height:40px; object-fit:contain; background:none;"/>
-    <span class="floating-hospital-count" id="floatingHospitalCount">0</span>
   </button>
 
   <div class="battle-arena-overlay" id="battleArena" style="display:none;">
@@ -5951,7 +5946,6 @@ function renderHospitalPanel() {
   const pendingEl = document.getElementById("hospitalPendingList");
   const queueEl = document.getElementById("hospitalQueueList");
   const floatBtn = document.getElementById("floatingHospitalBtn");
-  const floatCount = document.getElementById("floatingHospitalCount");
   const patients = state.hospital || [];
   const toplamYarali = hastaneToplam(patients);
 
@@ -5966,12 +5960,8 @@ function renderHospitalPanel() {
   }
 
   if (floatBtn) {
-    if (toplamYarali > 0) {
-      floatBtn.classList.remove("is-hidden");
-      if (floatCount) floatCount.textContent = fmt(toplamYarali);
-    } else {
-      floatBtn.classList.add("is-hidden");
-    }
+    /* Rozette SAYI YOK — yalnız görsel. Yaralı varsa görünür. */
+    floatBtn.classList.toggle("is-hidden", toplamYarali <= 0);
   }
 
   if (!pendingEl || !queueEl) return;
