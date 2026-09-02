@@ -374,15 +374,21 @@
     var st = document.createElement("style");
     st.id = "egitimZincirCss";
     st.textContent = [
-      "#egitimHalka{position:fixed;z-index:9995;pointer-events:none;border-radius:14px;",
-      "  border:3px solid #ffd257;",
-      "  box-shadow:0 0 0 4px rgba(255,210,87,.22), 0 0 18px 4px rgba(255,210,87,.45);",
-      "  animation:egHalka 1.1s ease-in-out infinite;}",
-      "@keyframes egHalka{0%,100%{box-shadow:0 0 0 4px rgba(255,210,87,.22),0 0 18px 4px rgba(255,210,87,.45);}",
-      "  50%{box-shadow:0 0 0 10px rgba(255,210,87,.05),0 0 26px 8px rgba(255,210,87,.20);}}",
-      "#egitimEl{position:fixed;z-index:9996;pointer-events:none;font-size:26px;line-height:1;",
-      "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.6));animation:egEl 1.2s ease-in-out infinite;}",
-      "@keyframes egEl{0%,100%{transform:translate(0,0);}50%{transform:translate(0,-7px);}}",
+      /*  KONUM ve CANLANDIRMA ARTIK JS'TE (vurguDongusu).
+          Eskiden nabız/zıplama CSS `animation` ile yapılıyordu:
+          cihazda `prefers-reduced-motion` açıksa tarayıcı bu
+          animasyonları tamamen öldürüyor, halka ve el taş gibi
+          duruyordu. Konum da `left/top` ile yazılıyordu; harita
+          tuvali `transform` ile kaydığı için ikisi farklı piksel
+          hassasiyetinde çalışıp titreme yapıyordu.
+          Şimdi ikisi de tek bir `transform` içinde, her karede. */
+      "#egitimHalka{position:fixed;left:0;top:0;z-index:9995;pointer-events:none;",
+      "  border-radius:14px;border:3px solid #ffd257;",
+      "  transform-origin:50% 50%;will-change:transform;",
+      "  box-shadow:0 0 0 4px rgba(255,210,87,.22), 0 0 18px 4px rgba(255,210,87,.45);}",
+      "#egitimEl{position:fixed;left:0;top:0;z-index:9996;pointer-events:none;",
+      "  font-size:26px;line-height:1;will-change:transform;",
+      "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.6));}",
       "#egitimSerit{position:fixed;left:8px;right:8px;bottom:74px;z-index:9991;",
       "  transition:none;}",
       "#egitimSerit.es-ust-konum{bottom:auto;top:76px;}",
@@ -525,40 +531,122 @@
     try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {}
   }
 
-  function vurguCiz(adim) {
-    stilKur();
-    hedefiGorunurYap(adim);
-    var kutu = hedefKutu(adim.hedef);
+  /*  ── VURGU: HER KAREDE KONUM, JS CANLANDIRMA ──────────────────────
+      Eskiden `vurguCiz` yalnız `denetle()` icinden, yani 400 ms'lik
+      dongudden cagriliyordu. Harita kayarken halka canavari saniyede
+      2,5 kez, sicraya sicraya takip ediyordu. Artik konum HER KAREDE
+      (requestAnimationFrame) yaziliyor; halka tuvalle birlikte akar.
+
+      Nabiz ve el ziplamasi da CSS animasyonundan buraya alindi:
+      cihazda `prefers-reduced-motion` acik oldugu icin CSS tarafi
+      hic calismiyor, halka ve el tas gibi duruyordu.
+
+      Konum `left/top` yerine `translate3d` ile yaziliyor — harita
+      tuvali transform ile kaydigi icin ikisi ayni piksel
+      hassasiyetinde olmali, yoksa kayarken titriyor.
+
+      `denetle()` artik halkayi CIZMEZ; yalnizca hangi adimin hedefi
+      gosterilecek onu bildirir ve gerekirse hedefi ekrana kaydirir. */
+  var _vurguAdim = null;      /* o an vurgulanan adim */
+  var _vurguRaf = 0;          /* rAF kimligi — 0 ise dongu durmus */
+  var _hedefOnbellek = null;  /* son bulunan DOM ogesi */
+  var _hedefSecici = "";      /* onbellegin hangi seciciye ait oldugu */
+  var _vurguGizli = false;    /* dogru yere dokunuldu, halka gizli */
+
+  /*  Her karede querySelectorAll calistirmamak icin son bulunan oge
+      saklanir. Oge DOM'dan koptuysa ya da olculeri sifirlandiysa
+      onbellek dusurulur ve yeniden aranir. */
+  function hedefOge(sec) {
+    if (_hedefSecici === sec && _hedefOnbellek && _hedefOnbellek.isConnected) {
+      var rr = _hedefOnbellek.getBoundingClientRect();
+      if (rr.width > 0 && rr.height > 0) return _hedefOnbellek;
+    }
+    _hedefSecici = sec;
+    _hedefOnbellek = gorunurOge(sec);
+    return _hedefOnbellek;
+  }
+
+  function vurguKutusu(hedef) {
+    if (!hedef) return null;
+    if (hedef.tip === "dom") {
+      var el = hedefOge(hedef.sec);
+      if (!el) return null;
+      var r = el.getBoundingClientRect();
+      return { x: r.left, y: r.top, w: r.width, h: r.height };
+    }
+    return hedefKutu(hedef);   /* kale / canavar yollari degismedi */
+  }
+
+  /*  Tek kare: konum + nabiz + ziplama. */
+  function vurguKare() {
+    _vurguRaf = requestAnimationFrame(vurguKare);
+
     var halka = document.getElementById("egitimHalka");
     var el = document.getElementById("egitimEl");
+    var kutu = (_vurguAdim && !_vurguGizli) ? vurguKutusu(_vurguAdim.hedef) : null;
 
     if (!kutu) {
       if (halka) halka.style.display = "none";
       if (el) el.style.display = "none";
       return;
     }
-    if (!halka) {
-      halka = document.createElement("div");
-      halka.id = "egitimHalka";
-      document.body.appendChild(halka);
-    }
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "egitimEl";
-      el.textContent = "👆";
-      document.body.appendChild(el);
-    }
+    if (!halka || !el) return;
+
+    var t = Date.now();
     var pay = 6;
+
+    /* Nabiz: 1,1 sn'de bir tur, %4 buyuyup kuculur. */
+    var nabiz = 1 + 0.04 * (0.5 - 0.5 * Math.cos((t % 1100) / 1100 * Math.PI * 2));
+    /* El: 1,2 sn'de bir tur, 7 piksel yukari. */
+    var zipla = -7 * (0.5 - 0.5 * Math.cos((t % 1200) / 1200 * Math.PI * 2));
+
     halka.style.display = "block";
-    halka.style.left = (kutu.x - pay) + "px";
-    halka.style.top = (kutu.y - pay) + "px";
     halka.style.width = (kutu.w + pay * 2) + "px";
     halka.style.height = (kutu.h + pay * 2) + "px";
+    halka.style.transform =
+      "translate3d(" + (kutu.x - pay) + "px," + (kutu.y - pay) + "px,0) scale(" +
+      nabiz.toFixed(3) + ")";
 
     el.style.display = "block";
-    el.style.left = (kutu.x + kutu.w / 2 - 13) + "px";
-    el.style.top = (kutu.y + kutu.h + 6) + "px";
+    el.style.transform =
+      "translate3d(" + (kutu.x + kutu.w / 2 - 13) + "px," +
+      (kutu.y + kutu.h + 6 + zipla) + "px,0)";
   }
+
+  function vurguDongusuBaslat() {
+    stilKur();
+    if (!document.getElementById("egitimHalka")) {
+      var h = document.createElement("div");
+      h.id = "egitimHalka";
+      document.body.appendChild(h);
+    }
+    if (!document.getElementById("egitimEl")) {
+      var e = document.createElement("div");
+      e.id = "egitimEl";
+      e.textContent = "\uD83D\uDC46";
+      document.body.appendChild(e);
+    }
+    if (!_vurguRaf) _vurguRaf = requestAnimationFrame(vurguKare);
+  }
+
+  function vurguDongusuDurdur() {
+    if (_vurguRaf) { cancelAnimationFrame(_vurguRaf); _vurguRaf = 0; }
+    _vurguAdim = null;
+    _hedefOnbellek = null;
+    _hedefSecici = "";
+    _vurguGizli = false;
+  }
+
+  /*  denetle() buradan gecer: hangi adimin vurgulanacagini bildirir.
+      Konumu artik kendisi yazmaz, dongu yazar. */
+  function vurguCiz(adim) {
+    if (_vurguAdim !== adim) _hedefOnbellek = null;   /* adim degisti */
+    _vurguAdim = adim;
+    _vurguGizli = false;
+    vurguDongusuBaslat();
+    hedefiGorunurYap(adim);
+  }
+
 
   function seritCiz(adim, sira) {
     stilKur();
@@ -633,6 +721,9 @@
     });
   }
   function rehberligiKaldir() {
+    /* Öğeleri silmeden ÖNCE döngü durdurulur; yoksa rAF her karede
+       silinmiş öğeleri arayıp boşuna dönmeye devam eder. */
+    vurguDongusuDurdur();
     ["egitimHalka", "egitimEl", "egitimSerit"].forEach(function (id) {
       var e = document.getElementById(id);
       if (e) e.remove();
@@ -685,10 +776,11 @@
              ANINDA kalksın, tıklama hissi gecikmesin. */
           if (tur === "pointerdown") {
             engelSayaci = 0;
-            var hl = document.getElementById("egitimHalka");
-            var elx = document.getElementById("egitimEl");
-            if (hl) hl.style.display = "none";
-            if (elx) elx.style.display = "none";
+            /* rAF her karede display:block yazdigi icin ogeye dogrudan
+               display:none vermek iş görmez — bir sonraki karede geri
+               gelirdi. Dongunun saygi duydugu bayrak kullanilir;
+               bayrak, adim degisince vurguCiz() icinde sifirlanir. */
+            _vurguGizli = true;
           }
           return;
         }
