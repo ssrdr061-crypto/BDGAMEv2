@@ -3986,12 +3986,23 @@ function openLogReportModal(entry) {
     abilities: r.abilities || [],
     flowFx: r.flowFx || {},
 
-    /* PvP raporuyla AYNI iki alan: İSTATİSTİKLER bölümü ve birlik
-       dökümündeki "Öldürdü" satırı. Canavarın kendi dökümü yoktur,
-       savunan taraf boş geçilir. */
+    /* PvP raporuyla AYNI alanlar: İSTATİSTİKLER bölümü, toplam özet
+       ve birlik dökümündeki "Öldürdü"/"Yaraladı" satırları.
+
+       CANAVARIN ARTIK KENDİ DÖKÜMÜ VAR. Canavar üç aileli gerçek bir
+       ordudur (pve.js canavarKur), o yüzden savunan taraf artık boş
+       geçilmiyor — birlikleri, kayıpları ve kimin kaç birlik
+       düşürdüğü kayıttan okunuyor. Bu üç alan yazılmazsa raporun sağ
+       sütunu 0/0/0 kalır; belirtisi tam olarak budur.
+
+       Canavarın araştırma/kale bonusu yoktur, bu yüzden İSTATİSTİKLER
+       sağ sütununda yüzde değil HAM DEĞER görünür (tema.js `yaz()`
+       bonus sıfırken değeri yazar) — beklenen davranış budur. */
     statlar: r.statlar || null,
     attackerAttribution: r.attribution || null,
-    defenderAttribution: null,
+    defenderAttribution: entry.enemyAttribution || null,
+    defenderTroops: entry.enemyTroops || null,
+    defenderLosses: entry.enemyLosses || null,
 
     /* ── SAVAŞ DETAYLARI PENCERESİ İÇİN ──────────────────────────
        O pencere (tema.js `savasDetaylariAc`) verisini YALNIZ
@@ -8273,6 +8284,7 @@ async function startBattle() {
          pve.js üretiyor (defenderTroops / defenderLosses). */
       enemyTroops: Object.assign({}, result.defenderTroops || {}),
       enemyLosses: result.defenderLosses || { killed: {}, wounded: {} },
+      enemyAttribution: result.defenderAttribution || null,
       odul: odulKaydi,                  /* hediye kutusu bunu verir */
       win: result.win,
       turns: result.turns,
