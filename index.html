@@ -605,20 +605,27 @@ body.kaleici-acik .floating-chest-btn.is-hidden,
 body.kaleici-acik .floating-daily-btn.is-hidden{ display:none; }
 body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 
-/* İNCE AYAR — her rozetin görseli kendi değişkenlerini kullanır,
-   biri diğerini etkilemez. Değerler ?rozetayar=1 ile ölçüldü. */
+/* İNCE AYAR — YALNIZ ÖLÇEK burada uygulanır.
+   TUZAK: kaydırma da transform ile yapılıyordu; görsel taşınıyor ama
+   düğmenin DOKUNMA ALANI yerinde kalıyordu. Sandık 32px aşağı,
+   günlük 60px yukarı kayınca ikisi görsel olarak yer değiştirdi ve
+   sandığa basan oyuncu günlük ödül penceresini açıyordu. Kaydırma
+   artık düğmenin gerçek top/right değerine yazılıyor, dokunma alanı
+   görselle birlikte taşınıyor. ?rozetayar=1 ile ölçülen x/y
+   değerleri buraya değil, aşağıdaki konumlara işlenir. */
 .floating-chest-svg,
 .floating-daily-icon,
 .floating-hospital-icon{
-  transform:translate(var(--rz-x,0px), var(--rz-y,0px)) scale(var(--rz-o,1));
+  transform:scale(var(--rz-o,1));
   transform-origin:center;
 }
-.floating-chest-svg    { --rz-o:1.04; --rz-x:6px; --rz-y:32px; }
-.floating-daily-icon   { --rz-o:1.44; --rz-x:5px; --rz-y:-60px; }
-.floating-hospital-icon{ --rz-o:1.03; --rz-x:5px; --rz-y:-6px; }
+.floating-chest-svg    { --rz-o:1.04; }
+.floating-daily-icon   { --rz-o:1.44; }
+.floating-hospital-icon{ --rz-o:1.03; }
 
 .floating-chest-btn{
-  position:absolute; top:96px; right:10px; z-index:18;
+  /* 96 + 32 (ölçülen y), 10 - 6 (ölçülen x) */
+  position:absolute; top:128px; right:4px; z-index:18;
   display:flex; flex-direction:column; align-items:center; gap:0;
   width:45px; background:none; border:none; padding:0;
   cursor:pointer;
@@ -641,7 +648,8 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 /* GÜNLÜK GİRİŞ — şans sandığının altında, hastanenin üstünde.
    Ödül alınmış olsa da durur; oyuncu şeridi istediği an açabilir. */
 .floating-daily-btn{
-  position:absolute; top:138px; right:10px; z-index:18;
+  /* 138 - 60 (ölçülen y), 10 - 5 (ölçülen x) */
+  position:absolute; top:78px; right:5px; z-index:18;
   display:flex; flex-direction:column; align-items:center; gap:0;
   width:45px; background:none; border:none; padding:0; cursor:pointer;
 }
@@ -652,7 +660,8 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 .floating-daily-btn.gunluk-hazir{ animation:floatingChestPulse 2.6s ease-in-out infinite; }
 
 .floating-hospital-btn{
-  position:absolute; top:180px; right:10px; z-index:18;
+  /* 180 - 6 (ölçülen y), 10 - 5 (ölçülen x) */
+  position:absolute; top:174px; right:5px; z-index:18;
   display:flex; flex-direction:column; align-items:center; gap:0;
   width:45px; background:none; border:none; padding:0;
   cursor:pointer;

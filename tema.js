@@ -9294,9 +9294,9 @@ setTimeout(kur, 1200);
   catch (e) { return; }
 
   var YERLER = [
-    { id: "chest",    ad: "Sandık",  sec: ".floating-chest-svg" },
-    { id: "daily",    ad: "Günlük",  sec: ".floating-daily-icon" },
-    { id: "hospital", ad: "Yaralı",  sec: ".floating-hospital-icon" }
+    { id: "chest",    ad: "Sandık",  sec: ".floating-chest-svg",     btn: ".floating-chest-btn" },
+    { id: "daily",    ad: "Günlük",  sec: ".floating-daily-icon",    btn: ".floating-daily-btn" },
+    { id: "hospital", ad: "Yaralı",  sec: ".floating-hospital-icon", btn: ".floating-hospital-btn" }
   ];
   var VARSAYILAN = { o: 100, x: 0, y: 0 };   /* o: yüzde, x/y: piksel */
   var A = {};
@@ -9315,10 +9315,11 @@ setTimeout(kur, 1200);
     var css = "";
     YERLER.forEach(function (y) {
       var v = A[y.id];
-      css += "html body " + y.sec + "{" +
-             "--rz-o:" + (v.o / 100).toFixed(2) + ";" +
-             "--rz-x:" + v.x + "px;" +
-             "--rz-y:" + v.y + "px;}";
+      /* Ölçek görsele, KAYDIRMA DÜĞMEYE uygulanır — görsel ile
+         dokunma alanı ayrışırsa yanlış pencere açılır (yaşandı). */
+      css += "html body " + y.sec + "{--rz-o:" + (v.o / 100).toFixed(2) + ";}" +
+             "html body " + y.btn + "{" +
+             "margin-top:" + v.y + "px;margin-right:" + (-v.x) + "px;}";
     });
     st.textContent = css;
   }
@@ -9332,8 +9333,9 @@ setTimeout(kur, 1200);
     var out = "";
     YERLER.forEach(function (y) {
       var v = A[y.id];
-      out += y.sec + "{ --rz-o:" + (v.o / 100).toFixed(2) +
-             "; --rz-x:" + v.x + "px; --rz-y:" + v.y + "px; }\n";
+      out += y.sec + "{ --rz-o:" + (v.o / 100).toFixed(2) + "; }  /* " +
+             y.btn + " : top " + (v.y >= 0 ? "+" : "") + v.y +
+             "px , right " + (-v.x >= 0 ? "+" : "") + (-v.x) + "px */\n";
     });
     return out;
   }
