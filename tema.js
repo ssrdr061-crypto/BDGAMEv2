@@ -9458,3 +9458,25 @@ setTimeout(kur, 1200);
   ciz();
   uygula();
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   GÜNLÜK GİRİŞ — AÇILMIŞ SANDIK KARARSIN
+
+   index.html'de `.gunluk-kutu.kilitli` karartılıyor ama `.acik`
+   için hiçbir kural yok: alınmış gün ile bugünün sandığı yan yana
+   aynı parlaklıkta duruyordu. tema.js en son yüklendiği için kural
+   buraya yazılıyor, index.html'e dokunulmuyor.
+
+   `!important` YOK: index.html'de `.gunluk-kutu.acik` yalnız
+   background-image veriyor, filter üzerinde çakışma yok. Bugünün
+   kutusu (`.bugun`) daha sonra geldiği için parlaklığını korur.
+   ═══════════════════════════════════════════════════════════════ */
+(function gunlukAcikKarart() {
+  const st = document.createElement("style");
+  st.id = "gunlukAcikKarartCss";
+  st.textContent =
+    ".gunluk-kutu.acik{ filter:brightness(.55) saturate(.65); }" +
+    ".gunluk-hucre .gunluk-kutu.acik + .gk-gun,"                +
+    ".gunluk-hucre:has(.gunluk-kutu.acik) .gk-gun{ opacity:.60; }";
+  document.head.appendChild(st);
+})();

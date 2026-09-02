@@ -26,11 +26,11 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 2,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
+  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 1,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 6,  su: 2, demir: 9  } },
-  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 3,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
+  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 1.5,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 12, su: 3, demir: 12 } },
-  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 4,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ /* görsel: KADEME_GORSEL tablosunda */
+  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 2,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { su: 5, demir: 15, enerji: 5 } },
 };
 
@@ -253,8 +253,10 @@ function maxUretilebilir(unitId, tavan) {
 
   let en = ust;
 
-  /* ELMAS ARTIK BAKILMAZ. Normal üretim yalnız kaynağa bağlıdır;
-     def.cost sadece ANINDA üretimin (INSTANT_COST_MULT) tabanıdır. */
+  /* elmas */
+  if (def.cost > 0) {
+    en = Math.min(en, Math.floor((state.diamonds || 0) / def.cost));
+  }
   /* kaynaklar */
   const kay = (state && state.kaynaklar) || {};
   if (def.kaynak) {
@@ -406,14 +408,14 @@ function trainUnit(unitId, count) {
   const enFazla = maxUretilebilir(unitId, count);
   if (enFazla < count) count = enFazla;
 
-  /* NORMAL ÜRETİM ELMAS ALMAZ — yalnız kaynak. Elmas tek yerde
-     kalır: ANINDA üretim (trainUnitInstant). */
-  if (!kaynakYeterli(unitId, count)) {
+  const totalCost = def.cost * count;
+  if (state.diamonds < totalCost || !kaynakYeterli(unitId, count)) {
     const g = kaynakMaliyet(unitId, count);
     const liste = Object.keys(g).map(k => `${KAYNAK_IKON[k] || ""} ${fmt(g[k])}`).join(" · ");
-    showToast(`Yeterli kaynağın yok. ${count} ${def.name} için${liste ? " " + liste : ""} gerekiyor.`);
+    showToast(`Yeterli kaynağın yok. ${count} ${def.name} için 💎 ${fmt(totalCost)}${liste ? " · " + liste : ""} gerekiyor.`);
     return;
   }
+  state.diamonds -= totalCost;
   kaynakDus(unitId, count);
   if (typeof renderKaynaklar === "function") { try { renderKaynaklar(); } catch (e) {} }
 
@@ -497,13 +499,26 @@ function renderTroopsPanel() {
 
     const slider = document.getElementById("troopTrainSlider_" + def.id);
     if (slider) {
-      slider.min = 1;
-      slider.max = sliderMax;
-      slider.value = current;
-      slider.disabled = (affordableMax === 0);
+      /* ── KASMA KÖKÜ ──
+         Bu fonksiyon panel açıkken SANİYEDE BİR çalışıyor
+         (index.html içindeki setInterval). Eskiden her turda
+         `slider.value = current` yazıyordu — parmağın sürgünün
+         üstündeyken topuz saniyede bir geri itiliyordu. Kasma
+         hissi bundandı, ağır hesaptan değil.
+
+         Artık: parmak üstündeyse sürgüye HİÇ dokunulmaz, ve
+         dokunulduğunda da yalnız GERÇEKTEN değişen alan yazılır
+         (her yazma düzen/boyama tetikler). */
+      const tutuluyor = slider.dataset.tutuluyor === "1"
+                        || document.activeElement === slider;
+      if (parseInt(slider.min, 10) !== 1) slider.min = 1;
+      if (parseInt(slider.max, 10) !== sliderMax) slider.max = sliderMax;
+      if (!tutuluyor && (parseInt(slider.value, 10) || 0) !== current) slider.value = current;
+      const kapali = (affordableMax === 0);
+      if (slider.disabled !== kapali) slider.disabled = kapali;
     }
     const btn = document.getElementById(def.id + "_btn");
-    if (btn) btn.disabled = (affordableMax === 0);
+    if (btn && btn.disabled !== (affordableMax === 0)) btn.disabled = (affordableMax === 0);
 
     setTroopText(def.id + "_qty", current);
     setTroopText(def.id + "_total", fmt(def.cost * current));
@@ -514,15 +529,29 @@ function renderTroopsPanel() {
   renderTroopQueue();
 }
 
+/* Değişmeyen metni YAZMA. Bu fonksiyon saniyede bir, 18 birlik ×
+   ~9 alan için çağrılıyor; her atama yeniden düzen/boyama
+   tetiklediği için boşuna yazmak üretim menüsünü ağırlaştırıyordu. */
 function setTroopText(id, val) {
   const el = document.getElementById(id);
-  if (el) el.textContent = val;
+  if (!el) return;
+  const s = String(val);
+  if (el.textContent !== s) el.textContent = s;
 }
 
 function bindTroopsTemplate() {
   Object.values(UNIT_TYPES).forEach(def => {
     const slider = document.getElementById("troopTrainSlider_" + def.id);
     if (slider) {
+      /* Parmak sürgünün üstündeyken saniyelik çizim değere
+         dokunmasın diye bayrak. pointercancel de dinlenir, yoksa
+         kaydırma araya girince bayrak açık kalır ve sürgü bir daha
+         hiç tazelenmez. */
+      const tut = () => { slider.dataset.tutuluyor = "1"; };
+      const birak = () => { slider.dataset.tutuluyor = "0"; };
+      slider.addEventListener("pointerdown", tut);
+      ["pointerup", "pointercancel", "pointerleave", "blur"].forEach(ev =>
+        slider.addEventListener(ev, birak));
       slider.addEventListener("input", () => {
         const v = ensure(parseInt(slider.value, 10) || 1, 1);
         troopTrainSelection[def.id] = v;
@@ -671,12 +700,19 @@ function renderTroopSelector() {
   }
 
   listEl.innerHTML = owned.map(def => {
-    const max = seferSiniri(def.id);
-    /* SAĞDAKİ SAYI = ELİNDEKİ TOPLAM, sürgünün sınırı DEĞİL.
-       Sınır başka satır doldukça düşer; oyuncu bunu "askerlerim
-       azaldı" diye okuyordu. Sürgünün `max`ı kapasiteye bağlı
-       kalır (tavan aşılmasın), yalnız yazı sabittir. */
+    /* SÜRGÜNÜN MAX'I ARTIK SABİT: ELİNDEKİ BİRLİK SAYISI.
+       Eskiden `max` sefer kapasitesine bağlıydı ve başka satır
+       doldukça düşüyordu. `<input type=range>` topuzunun konumu
+       `value / max` oranıdır — `value` sabit kalsa bile `max`
+       değişince TOPUZ KAYIYOR. Oyuncu tek bir sürgüyü çekerken
+       üstteki bütün çubuklar kendiliğinden oynuyordu.
+
+       Kapasite artık sınırı GİZLİCE kısarak değil, sürgü hareket
+       ederken DEĞERİ KIRPARAK uygulanıyor (aşağıdaki `input`
+       dinleyicisi → seferSiniri). Çubuk sadece kendi parmağınla
+       oynar. */
     const eldeki = (state.troops && state.troops[def.id]) || 0;
+    const max = eldeki;
     const current = Math.min(selectedTroopsForBattle[def.id] || 0, max);
     return `
       <div class="troop-select-row" data-unit="${def.id}">
@@ -703,11 +739,18 @@ function renderTroopSelector() {
   listEl.querySelectorAll(".troop-slider").forEach(slider => {
     slider.addEventListener("input", () => {
       const unitId = slider.dataset.unit;
-      selectedTroopsForBattle[unitId] = parseInt(slider.value, 10);
+      /* KAPASİTE BURADA UYGULANIR. `seferSiniri` bu birliği hesaba
+         KATMADAN boş yeri ölçer, yani bu satırın gerçek tavanıdır.
+         Aşarsa sürgü orada durur — başka satırın çubuğuna
+         dokunulmaz. */
+      let v = parseInt(slider.value, 10) || 0;
+      const izin = seferSiniri(unitId);
+      if (v > izin) { v = izin; slider.value = v; }
+      selectedTroopsForBattle[unitId] = v;
       /* yazarken kutuyu ezme: sadece odakta değilse güncelle */
       const satir = slider.closest(".troop-select-row");
       const kutu = satir ? satir.querySelector(".t-num") : null;
-      if (kutu && document.activeElement !== kutu) kutu.value = slider.value;
+      if (kutu && document.activeElement !== kutu) kutu.value = v;
       if (kutu) tNumBoyutla(kutu);
       seferSinirlariTazele();
       seferSayaciTazele();
@@ -729,10 +772,10 @@ function renderTroopSelector() {
     if (!s) return;
 
     function uygula(duzelt) {
-      /* Sınır artık SABİT DEĞİL: sefer tavanı doldukça diğer
-         satırların sınırı düşer. Bu yüzden bağlanma anındaki
-         değer değil, sürgünün O ANKİ max'ı okunuyor. */
-      const enCok = parseInt(s.max, 10) || 0;
+      /* Sınır sürgünün `max`ından DEĞİL, kapasite hesabından okunur.
+         `max` artık elindeki birlik sayısına sabitlendiği için
+         (çubuklar oynamasın diye) tavanı o taşımıyor. */
+      const enCok = Math.max(0, seferSiniri(unitId));
       let v = parseInt(String(kutu.value).replace(/[^0-9]/g, ""), 10);
       if (!isFinite(v)) v = 0;
       v = Math.max(0, Math.min(enCok, v));
@@ -761,7 +804,8 @@ function renderTroopSelector() {
       const satir3 = btn.closest(".troop-select-row");
       const s = satir3 ? satir3.querySelector(".troop-slider") : null;
       if (!s) return;
-      const enCok = parseInt(s.max, 10) || 0;
+      /* Sınır kapasiteden okunur; `s.max` artık elindeki toplamdır. */
+      const enCok = Math.max(0, seferSiniri(s.dataset.unit));
       const yeni = Math.max(0, Math.min(enCok, (parseInt(s.value, 10) || 0) + yon * adim));
       if (yeni === parseInt(s.value, 10)) return;
       s.value = yeni;
@@ -949,24 +993,24 @@ function seferSecimiKirp() {
   });
 }
 
-/* Sürgülerin max'ı ve "/ n" yazısı, seçim değiştikçe tazelenir. */
+/* Yalnız "/ n" yazısını tazeler. SÜRGÜNÜN `max`INA DOKUNMAZ —
+   dokunsaydı bir satır çekilirken diğer satırların topuzu kayardı
+   (bkz. liste çizimindeki not). Kapasite kırpması `input`
+   dinleyicisinde yapılır. */
 function seferSinirlariTazele() {
   const listEl = document.getElementById("troopSelectList");
   if (!listEl) return;
   listEl.querySelectorAll(".troop-select-row").forEach(satir => {
     const u = satir.dataset.unit;
     if (!u) return;
-    const s = satir.querySelector(".troop-slider");
     const enCokEl = satir.querySelector(".t-max");
+    if (!enCokEl) return;
     const secili = selectedTroopsForBattle[u] || 0;
-    /* Kendi seçimi sınıra DAHİLDİR, yoksa sürgü kendi değerinin
-       altına düşer ve elindeki birlik geri alınamaz olur. */
-    const sinir = Math.max(secili, seferSiniri(u));
-    if (s && parseInt(s.max, 10) !== sinir) s.max = sinir;
     /* Yazı ELİNDEKİ TOPLAMI gösterir ve seçim değiştikçe OYNAMAZ. */
     const eldeki = (typeof state !== "undefined" && state.troops)
-                     ? (state.troops[u] || 0) : sinir;
-    if (enCokEl) enCokEl.textContent = "/ " + Math.max(eldeki, secili);
+                     ? (state.troops[u] || 0) : secili;
+    const yeni = "/ " + Math.max(eldeki, secili);
+    if (enCokEl.textContent !== yeni) enCokEl.textContent = yeni;
   });
 }
 

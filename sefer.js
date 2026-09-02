@@ -451,17 +451,6 @@ function seferBaslat() {
                   ? selectedCommanders.filter(Boolean) : [],
   };
 
-  /* ── SALDIRIYA GEÇEN KALKANINI KAYBEDER ──
-     Gönderme anında düşer, varışta değil: yoldaki dakikalar
-     boyunca hem saldırıp hem korunmak olmaz. Bütün doğrulamalar
-     geçtikten SONRA yazılır — sefer başlamadan kalkan düşmesin. */
-  if (h.tur === "kale" && typeof state !== "undefined" &&
-      Number(state.kalkanBitis || 0) > Date.now()) {
-    state.kalkanBitis = 0;
-    if (typeof persistCurrentState === "function") persistCurrentState();
-    toast("🛡️ Saldırıya geçtin — kalkanın düştü.", 4000);
-  }
-
   /* Birlikler kaleden düşülür ve sefer YERELDE kesinleşir.
      Bulut yazması başarısız olsa bile sefer yürür ve geri döner. */
   birlikDus(secili);
@@ -698,18 +687,6 @@ async function kaleSavasi(s) {
 
   const acc = snap.val();
   const kale = (acc.state || {}).castle;
-
-  /* ── KALKAN: ÇARPIŞMA OLMAZ, ORDU DÖNER ──
-     Hesap az önce TAZE çekildi; oyuncu biz yoldayken kalkan
-     açmışsa savaş kurulmaz. Işınlanma dalıyla aynı biçimde
-     çıkılır: varisiIsle donusuYaz'a düşer, ordu eve döner.
-     Kalkanı BURADA düşürmüyoruz — kalkan yalnız sahibi
-     saldırıya geçince düşer (bkz. seferBaslat). */
-  const kalkanMs = Number((acc.state || {}).kalkanBitis || 0) - Date.now();
-  if (kalkanMs > 0) {
-    toast(`🛡️ ${s.hedefAd} kalkan açmış! Ordun çarpışmadan geri dönüyor.`, 4500);
-    return;
-  }
 
   /* SAVUNAN IŞINLANDIYSA çarpışma olmaz */
   /* Karo üzerinden karşılaştır: kale kaydı artık kx/ky tutuyor,
@@ -1407,18 +1384,64 @@ function seferBittiyseKapat(id) {
 
 /* Ürünle hızlandırma: elmas ALINMAZ, çantadan bir adet düşer. */
 function urunleHizlandir(id, ad) {
-  if (cantada(ad) <= 0) { toast("Çantanda kalmamış."); return; }
+  if (cantada(ad) <= 0) { toast("Çantanda kalmamış."); ENVLOG("RED: çantada yok", ad); return; }
   const oran = urunOrani(ad);
-  if (oran <= 0) { toast("Ürün tanımı okunamadı."); return; }
+  if (oran <= 0) { toast("Ürün tanımı okunamadı."); ENVLOG("RED: oran 0", ad); return; }
 
-  if (!sureyiKis(id, oran)) return;
+  const once = cantada(ad);
+  if (!sureyiKis(id, oran)) { ENVLOG("RED: sureyiKis false", ad, once); return; }
 
   state.inventory[ad] = cantada(ad) - 1;
   if (state.inventory[ad] <= 0) delete state.inventory[ad];
+  const sonra = cantada(ad);
+  ENVLOG("KULLANILDI " + ad, ad, once, sonra);
   ["renderInventory", "persistCurrentState"].forEach(f => {
-    if (typeof window[f] === "function") { try { window[f](); } catch (e) {} }
+    if (typeof window[f] === "function") { try { window[f](); } catch (e) { ENVLOG("HATA " + f + ": " + e.message, ad); } }
+    else ENVLOG("YOK: window." + f + " fonksiyon değil", ad);
   });
+  /* Yazma gecikmeli; bir saniye sonra değer hâlâ aynı mı diye bak.
+     Değiştiyse başka bir kod çantayı geri yazıyor demektir. */
+  ENVGEC(ad, sonra);
   toast(`🎒 ${ad} kullanıldı.`, 3500);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   15b-T) ?envanter=1 — GEÇİCİ TEŞHİS PANELİ
+   Hızlandırma ürünü çantadan düşüyor mu, düştükten sonra bir şey
+   geri yazıyor mu? Konsol olmadan görmek için ekrana basar.
+   İŞ BİTİNCE SİLİNECEK — kalıcı değildir.
+   ═══════════════════════════════════════════════════════════ */
+const ENV_ACIK = (function () {
+  try { return location.search.indexOf("envanter=1") !== -1; } catch (e) { return false; }
+})();
+let _envKutu = null;
+function ENVLOG(mesaj, ad, once, sonra) {
+  if (!ENV_ACIK) return;
+  if (!_envKutu) {
+    _envKutu = document.createElement("div");
+    _envKutu.style.cssText =
+      "position:fixed;left:6px;right:6px;bottom:6px;z-index:99999;max-height:38vh;" +
+      "overflow:auto;background:rgba(0,0,0,.86);color:#7dffa8;font:11px/1.35 monospace;" +
+      "padding:6px 8px;border:1px solid #2f6;border-radius:8px;white-space:pre-wrap;";
+    document.body.appendChild(_envKutu);
+  }
+  const t = new Date().toLocaleTimeString();
+  let satir = t + "  " + mesaj;
+  if (once !== undefined)  satir += "  önce=" + once;
+  if (sonra !== undefined) satir += "  sonra=" + sonra;
+  satir += "  bulutBekliyor=" + (window.BULUT_YAZIM_BEKLIYOR ? "EVET" : "hayır");
+  if (ad) satir += "\n        state.inventory[" + ad + "]=" + JSON.stringify((state.inventory || {})[ad]);
+  _envKutu.insertAdjacentText("afterbegin", satir + "\n");
+}
+/* Kullanımdan 1 ve 4 saniye sonra değeri tekrar okur. */
+function ENVGEC(ad, beklenen) {
+  if (!ENV_ACIK) return;
+  [1000, 4000].forEach(ms => setTimeout(() => {
+    const simdi = cantada(ad);
+    ENVLOG((simdi === beklenen ? "· " + (ms / 1000) + "sn sonra AYNI"
+                               : "‼ " + (ms / 1000) + "sn sonra DEĞİŞTİ (geri yazan var)"),
+           ad, beklenen, simdi);
+  }, ms));
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1542,7 +1565,49 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
       kutu.classList.add("kullanildi");
     }
     cagir(() => kullanFn(k.ad), !sec.kalici);
+    /* ── DONMUŞ ROZET ──
+       `kalici:true` ile pencere açık kalıyor ama kutucuklar kurulum
+       anında BİR KEZ çiziliyordu; adet rozeti hiç tazelenmiyordu.
+       Oyuncu ürünü kullanıyor, rozette hâlâ eski sayı duruyor,
+       "envanterimden düşmüyor" diye okunuyordu. Çantayı yeniden
+       okuyup rozetleri güncelliyoruz.
+
+       Yenileme İŞTEN SONRA yapılmalı (kullanFn `state.inventory`'yi
+       değiştirir), o yüzden bir sonraki frame'e bırakılıyor. */
+    if (sec.kalici) setTimeout(() => kutulariTazele(), 0);
   };
+
+  /* Açık penceredeki adet rozetlerini çantadan yeniden okur.
+     Ürün bittiyse kutucuk kaybolur; hiç ürün kalmadıysa satır ve
+     "Kullan" düğmesi birlikte kalkar. */
+  function kutulariTazele() {
+    if (!document.body.contains(kok)) return;
+    const yeni = (typeof cantaKutulari === "function") ? cantaKutulari() : [];
+    kutuListe.length = 0;
+    yeni.forEach(x => kutuListe.push(x));
+
+    const satirEl = kok.querySelector(".som-kutular");
+    if (!satirEl) return;
+    if (!kutuListe.length) {
+      satirEl.remove();
+      if (kullanBtn) kullanBtn.remove();
+      return;
+    }
+    if (secili >= kutuListe.length) secili = kutuListe.length - 1;
+    satirEl.innerHTML = kutuListe.map((k, i) =>
+      `<button class="som-kutu${i === secili ? " secili" : ""}" type="button" data-kutu="${i}">` +
+        (k.gorsel ? `<img src="${k.gorsel}" alt="">` : `<span class="som-kutu-emoji">🎒</span>`) +
+        `<span class="som-kutu-adet">${k.adet}</span>` +
+      `</button>`
+    ).join("");
+    satirEl.querySelectorAll("[data-kutu]").forEach(b => {
+      b.onclick = () => {
+        secili = parseInt(b.dataset.kutu, 10);
+        satirEl.querySelectorAll("[data-kutu]").forEach(x => x.classList.remove("secili"));
+        b.classList.add("secili");
+      };
+    });
+  }
 
   const xBtn = kok.querySelector(".som-x");
   if (xBtn) xBtn.onclick = kapat;
