@@ -106,7 +106,12 @@ const shopItems = [
     icon: "◆",
     parcaDesc: "Yalnız REVOLİA'nın seviyesini yükseltmekte kullanılır." },
 
-  { name: "Füze", price: 200000, isMissile: true, icon: "🚀",
+  /* MAĞAZA GÖRSELİ BEKLENİYOR: `missile.js`teki fuze_Fuze-roket.webp
+     HARİTADA UÇAN füzedir, kart görseli değil. Kart için ayrı
+     asset üretilince buraya `gorsel: "fuzemagaza.webp"` eklenecek.
+     ÖNCE DOSYAYI YÜKLE: `gorsel` satırı varken dosya yoksa kart
+     kırık resim gösterir, emojiye DÜŞMEZ (index.html:5644). */
+  { name: "Füze", price: 400000, isMissile: true, icon: "🚀",
     missileDesc: "Kale saldırısı için 1 füze. Haritada bir düşman kalesine 🚀 ile atılır ve kaleye ağır hasar verir. Füze yiyen oyuncu 24 saat boyunca hiçbir saldırı yapamaz (yalnızca savunma ve füze). Haftalık en fazla 2 adet alınabilir." },
 
   /*  ── KAHRAMAN GÜÇLENDİRMELERİ ───────────────────────────────
@@ -190,11 +195,11 @@ const SHOP_LIMITS = {
   "Ek Bağlantı": 5,
   "Yedek Şarj": 5,
 
-  /* Kahraman parçaları — haftada 10'ar. */
+  /* Kahraman parçaları. TURUNCU üçlü haftada 5, mor 10 kalır. */
   "Mor Kahraman Parçası": 10,
-  "STELLİN Parçası": 10,
-  "İVANOVNA Parçası": 10,
-  "REVOLİA Parçası": 10,
+  "STELLİN Parçası": 5,
+  "İVANOVNA Parçası": 5,
+  "REVOLİA Parçası": 5,
 
   /* Kaynak paketleri — haftada 50'şer.
      ODUN LİSTEDE YOKTU: bu tabloda adı geçmeyen ürün limitsiz
@@ -213,7 +218,7 @@ const SHOP_LIMITS = {
    uçuş/patlama davranışına bakabilirsin.
 
    NORMAL GİRİŞTE HİÇ ÇALIŞMAZ — ?ayar=1 yoksa limit yine 2, fiyat yine
-   200.000. Yani canlıdaki oyuncular bundan etkilenmez.
+   400.000. Yani canlıdaki oyuncular bundan etkilenmez.
 
    İKİ UYARI:
    1) Bu istemci tarafıdır. Adresi bilen herkes ?ayar=1 ekleyip ucuza
