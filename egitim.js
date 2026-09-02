@@ -158,7 +158,20 @@
         anahtar: skinId + "_kart",
         metin: ad + " kartına dokun.",
         hedef: { tip: "dom", sec: '.klist-card[data-hero="' + skinId + '"]' },
-        tamam: function () { return !!gorunurOge("#hdBuyBtn"); }
+        /*  KALICI GERÇEĞE BAĞLI KOŞUL.
+            Eskiden yalnız `gorunurOge("#hdBuyBtn")` bakılıyordu, yani
+            "Satın Al düğmesi ŞU AN ekranda mı". Oyuncu kartı açıp
+            denetim aralığı dolmadan satın alırsa düğme iki bakış
+            arasında belirip kayboluyor, denetleyici hiç göremiyordu.
+            Sahip olunduğu için düğme bir daha ASLA görünmediğinden
+            adım kalıcı olarak kilitleniyordu (14/32 takılması).
+            Artık üç kapıdan biri yeter: sahiplik (geri alınamaz
+            gerçek), detayın açık olması, ya da düğmenin görünürlüğü. */
+        tamam: function () {
+          return sahipMi() ||
+                 !!gorunurOge("#hdBuyBtn") ||
+                 !!gorunurOge("#hdClose");
+        }
       },
       {
         anahtar: skinId + "_al",
@@ -820,6 +833,33 @@
     }
   }
 
+  /*  ── DOKUNUŞ DİNLEYİCİSİ — ANLIK GEÇİŞ ────────────────────────────
+      Adım geçişi eskiden YALNIZCA 400 ms'lik yoklamaya bağlıydı:
+      oyuncu bastıktan sonra geçişin görünmesi yarım saniyeye kadar
+      gecikiyor, akıcılık düşük hissettiriyordu. Daha kötüsü, hedef
+      öğe iki yoklama arasında belirip kaybolursa adım hiç geçmiyordu.
+
+      Artık parmak her kalktığında denetim ANINDA çalışır. İki kez
+      çağrılır: hemen (0 ms) ve panel açılma/kapanma animasyonu
+      bitsin diye kısa süre sonra (ANLIK_GECIKME).
+
+      NOT: `pointerup` seçildi, `click` değil — oyunun bindTap /
+      safeBind yardımcıları da pointerup ile bağlanıyor; click
+      dinlersek oyunun kendi işleyicisinden ÖNCE mi sonra mı
+      çalışacağımız belirsiz kalırdı. Yakalama (capture) aşamasında
+      dinlenir ki eğitim kilidi olayı yutsa bile haberimiz olsun.
+
+      400 ms'lik döngü KALDIRILMADI: vurgu halkasının kayan haritayı
+      takip etmesi ona bağlı, ayrıca olay kaçarsa güvenlik ağıdır. */
+  var ANLIK_GECIKME = 120;
+
+  function anlikDenetim() {
+    try { denetle(); } catch (e) {}
+    setTimeout(function () {
+      try { denetle(); } catch (e) {}
+    }, ANLIK_GECIKME);
+  }
+
   function akisiBaslat() {
     var d = durum();
     if (!d || bittiMi()) { rehberligiKaldir(); return; }
@@ -828,6 +868,10 @@
     if (!denetimKuruldu) {
       denetimKuruldu = true;
       setInterval(denetle, 400);  /* vurgu kayan kamerayı takip etsin */
+      document.addEventListener("pointerup", anlikDenetim, true);
+      /* Sürgüler parmak kaldırmadan da değer değiştirir; sürgü
+         adımlarının bekleme hissi olmasın diye onlar da dinlenir. */
+      document.addEventListener("change", anlikDenetim, true);
     }
     denetle();
   }
