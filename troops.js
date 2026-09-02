@@ -26,11 +26,11 @@
                 gerekir — dosyanın en altındaki nota bak.
     ───────────────────────────────────────────── */
 const UNIT_TYPES = {
-  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 1,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
+  knight:  { id: "knight",  name: "Savunucu", icon: "🛡️", cost: 100,  trainMinutes: 0.4,  attack: 2, defense: 5, hp: 7, olum: 1, power: 5,  level: 1, aile: "knight",  kademe: 1, role: "savunma", modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 6,  su: 2, demir: 9  } },
-  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 1.5,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
+  soldier: { id: "soldier", name: "Koruyucu", icon: "🪖", cost: 150,  trainMinutes: 0.6,  attack: 5, defense: 3, hp: 6, olum: 3, power: 7,  level: 1, aile: "soldier", kademe: 1, role: "guc",     modelScale: 0.80, /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { et: 12, su: 3, demir: 12 } },
-  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 2,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ /* görsel: KADEME_GORSEL tablosunda */
+  robot:   { id: "robot",   name: "Nişancı",  icon: "🤖", cost: 200,  trainMinutes: 0.8,  attack: 9, defense: 4, hp: 3, olum: 5, power: 10, level: 1, aile: "robot",   kademe: 1, role: "nisan",   modelScale: 0.60, /* robot 2D: bu değer işlemez, aşağıdaki CSS geçerli */ /* görsel: KADEME_GORSEL tablosunda */
              kaynak: { su: 5, demir: 15, enerji: 5 } },
 };
 
@@ -332,7 +332,12 @@ function unitAdi(x) {
 
 /* Dakikadan okunur metin — "4 sa 10 dk" / "25 dk" */
 function sureDk(dakika) {
-  const d = Math.max(0, Math.round(dakika));
+  /* Eğitim süreleri kısaldıktan sonra tek birlik bir dakikanın
+     ALTINA indi. Eskiden dakikaya yuvarlanıyordu ve "0 dk" ya da
+     yanlış "1 dk" yazıyordu; bir dakikanın altı artık saniye. */
+  const ham = Math.max(0, Number(dakika) || 0);
+  if (ham > 0 && ham < 1) return `${Math.max(1, Math.round(ham * 60))} sn`;
+  const d = Math.max(0, Math.round(ham));
   const sa = Math.floor(d / 60), kalan = d % 60;
   if (sa > 0) return kalan > 0 ? `${sa} sa ${kalan} dk` : `${sa} sa`;
   return `${d} dk`;
@@ -858,14 +863,21 @@ function updateTroopSelectSummary() {
 }
 
 function buildTroopRoster(selectedTroops) {
+  /* ── DONMA KÖKÜ (düzeltildi) ──
+     Buradan ASKER BAŞINA bir nesne dönüyordu: 185.000 birlikle
+     sefere çıkınca 185.000 nesne yaratılıyor, savaş motoru hepsini
+     tek tek sayıyordu. Ordu düğüme varınca oyunun 3-4 saniye
+     donmasının sebebi buydu.
+
+     Artık GRUPLU kayıt dönüyor: { unitId, adet }. pve.js `orduKur`
+     iki biçimi de okur (`adet` varsa grup, yoksa tek asker), yani
+     eski çağrı noktaları kırılmaz. */
   const roster = [];
   Object.keys(selectedTroops || {}).forEach(unitId => {
     const n = ensure(Math.min(selectedTroops[unitId] || 0, state.troops[unitId] || 0));
     const def = UNIT_TYPES[unitId];
     if (!def || n <= 0) return;
-    for (let i = 0; i < n; i++) {
-      roster.push({ unitId, hpEach: def.hp });
-    }
+    roster.push({ unitId, adet: n, hpEach: def.hp });
   });
   return roster;
 }

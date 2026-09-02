@@ -109,10 +109,17 @@
      = 100 eleman). Bunu tipe göre sayıya çeviriyoruz; savaş tip
      bazında hesaplanır, rapor yine tek tek verilir. */
   function orduKur(troopRoster, hpCarpani) {
+    /* Girdi İKİ BİÇİMDE gelebilir:
+         · GRUPLU  { unitId, adet }  — troops.js buildTroopRoster
+         · TEK TEK { unitId }        — eski çağrı noktaları
+       Grup biçimi 185.000 nesne yaratmayı önler (sefer varışındaki
+       donmanın kökü buydu); tek tek biçim geriye uyum için durur. */
     const sayim = {};
     (troopRoster || []).forEach(t => {
       if (!t || !t.unitId) return;
-      sayim[t.unitId] = (sayim[t.unitId] || 0) + 1;
+      const n = (typeof t.adet === "number") ? Math.max(0, Math.floor(t.adet)) : 1;
+      if (n <= 0) return;
+      sayim[t.unitId] = (sayim[t.unitId] || 0) + n;
     });
 
     const birimler = [];
@@ -777,18 +784,20 @@
       if (u.dusen > sinir) u.dusen = sinir;
     });
 
+    /* ── YARALILAR: DİZİ DEĞİL SAYI ──
+       Eskiden her yaralı asker için ayrı bir nesne yaratılıyordu:
+       81.400 yaralı = 81.400 nesne. Sefer varışındaki donmanın
+       ikinci yarısı buydu. Tüketicilerin hepsi `yaraliAdet()`
+       üzerinden okuyor ve o fonksiyon sayıyı da diziyi de kabul
+       ediyor (index.html:2801), bu yüzden sayı vermek güvenli. */
     const troopsWoundedByUnit = {};
     birimler.forEach(u => {
       if (u.dusen <= 0) return;
-      const liste = [];
-      for (let i = 0; i < u.dusen; i++) {
-        liste.push({ remainingHp: 0, maxHp: u.hpEach, severe: true });
-      }
-      troopsWoundedByUnit[u.unitId] = liste;
+      troopsWoundedByUnit[u.unitId] = u.dusen;
     });
 
-    let troopsWounded = Object.values(troopsWoundedByUnit)
-      .reduce((a, arr) => a + arr.length, 0);
+    let troopsWounded = Object.keys(troopsWoundedByUnit)
+      .reduce((a, k) => a + troopsWoundedByUnit[k], 0);
 
     /* İvanovna "Birliklerin Sevgilisi": yaralıların %v'si geri döner */
     let woundedReturned = 0;
@@ -797,12 +806,14 @@
       woundedReturned = troopsWounded - Math.round(troopsWounded * (1 - wr.v / 100));
       let kalan = woundedReturned;
       Object.keys(troopsWoundedByUnit).forEach(uid => {
-        const arr = troopsWoundedByUnit[uid];
-        while (kalan > 0 && arr.length > 0) { arr.shift(); kalan--; }
-        if (arr.length === 0) delete troopsWoundedByUnit[uid];
+        if (kalan <= 0) return;
+        const dus = Math.min(kalan, troopsWoundedByUnit[uid]);
+        troopsWoundedByUnit[uid] -= dus;
+        kalan -= dus;
+        if (troopsWoundedByUnit[uid] <= 0) delete troopsWoundedByUnit[uid];
       });
-      troopsWounded = Object.values(troopsWoundedByUnit)
-        .reduce((a, arr) => a + arr.length, 0);
+      troopsWounded = Object.keys(troopsWoundedByUnit)
+        .reduce((a, k) => a + troopsWoundedByUnit[k], 0);
     }
 
     const kalanCan = orduCanKalan(birimler);

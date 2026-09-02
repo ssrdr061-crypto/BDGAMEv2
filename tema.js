@@ -9460,23 +9460,61 @@ setTimeout(kur, 1200);
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   GÜNLÜK GİRİŞ — AÇILMIŞ SANDIK KARARSIN
+   SAĞ KENAR SİMGELERİ
 
-   index.html'de `.gunluk-kutu.kilitli` karartılıyor ama `.acik`
-   için hiçbir kural yok: alınmış gün ile bugünün sandığı yan yana
-   aynı parlaklıkta duruyordu. tema.js en son yüklendiği için kural
-   buraya yazılıyor, index.html'e dokunulmuyor.
+   1) GÜNLÜK ÖDÜL KUTUSU — ödül alındıysa kararır.
+      index.html (gunlukRozetTazele) düğmeye `gunluk-alindi` sınıfını
+      zaten koyuyor ve görseli açık sandığa çeviriyor; eksik olan tek
+      şey sönük görünmesiydi. Şeritteki 7 güne DOKUNULMAZ.
 
-   `!important` YOK: index.html'de `.gunluk-kutu.acik` yalnız
-   background-image veriyor, filter üzerinde çakışma yok. Bugünün
-   kutusu (`.bugun`) daha sonra geldiği için parlaklığını korur.
+   2) HASTANE — yaralı varken görünüyor; hafif nefes alsın.
+      CSS animasyonu KULLANILMAZ: bu cihazda `prefers-reduced-motion`
+      bütün CSS animasyonlarını kapatıyor (bkz. kalkan kubbesi,
+      ışınlanma efekti). O yüzden ölçek her karede JS ile yazılır.
+      Simge ekranda yokken döngü boşa dönmesin diye görünürlük
+      kontrol edilir.
    ═══════════════════════════════════════════════════════════════ */
-(function gunlukAcikKarart() {
+(function sagKenarSimgeleri() {
+  "use strict";
+
   const st = document.createElement("style");
-  st.id = "gunlukAcikKarartCss";
+  st.id = "sagKenarSimgeCss";
   st.textContent =
-    ".gunluk-kutu.acik{ filter:brightness(.55) saturate(.65); }" +
-    ".gunluk-hucre .gunluk-kutu.acik + .gk-gun,"                +
-    ".gunluk-hucre:has(.gunluk-kutu.acik) .gk-gun{ opacity:.60; }";
+    /* Alınmış günlük ödül: sönük ve doygunluğu düşük. */
+    "#floatingDailyBtn.gunluk-alindi .floating-daily-icon{" +
+      "filter:brightness(.55) saturate(.60);}" +
+    /* Ölçek JS'ten geliyor; geçiş yok ki her kare net otursun. */
+    "#floatingHospitalBtn{transform-origin:center center;}";
   document.head.appendChild(st);
+
+  /* ── HASTANE NABZI ──
+     3 saniyede bir tam tur, %6 küçülüp büyüme. Simge gizliyse
+     (yaralı yok) hesap yapılmaz, yalnız kare istenir. */
+  const DONGU_MS = 3000;
+  const GENLIK   = 0.06;
+
+  function baslat() {
+    const btn = document.getElementById("floatingHospitalBtn");
+    if (!btn) { setTimeout(baslat, 1000); return; }
+
+    let sonYazilan = -1;
+    function kare(t) {
+      /* Görünmüyorsa dokunma — gizli elemana yazmak boşuna iş. */
+      if (btn.offsetWidth > 0) {
+        const faz = (t % DONGU_MS) / DONGU_MS;
+        const olcek = 1 + Math.sin(faz * Math.PI * 2) * GENLIK;
+        /* Aynı değeri tekrar yazma: gereksiz düzen tetiklemesin. */
+        const yuv = Math.round(olcek * 1000) / 1000;
+        if (yuv !== sonYazilan) {
+          btn.style.transform = "scale(" + yuv + ")";
+          sonYazilan = yuv;
+        }
+      }
+      requestAnimationFrame(kare);
+    }
+    requestAnimationFrame(kare);
+  }
+
+  if (document.readyState === "complete") baslat();
+  else window.addEventListener("load", baslat);
 })();
