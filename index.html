@@ -347,7 +347,9 @@ body{
 .gunluk-parca-alindi img{ width:38px; height:38px; object-fit:contain; }
 
 .daily-reward-close-btn{
-  margin-top:18px; width:100%;
+  /* Genişlik YAZI KADAR — width:100% gereksiz geniş duruyordu.
+     Ortalamak için sarmalayıcı değil, auto kenar boşluğu. */
+  margin:18px auto 0; width:auto; display:block;
   background:#1fa3ea; border:none; color:#fff;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:700; font-size:12.5px;
   padding:10px; border-radius:9px; cursor:pointer;
@@ -590,6 +592,30 @@ body.world-active{padding:0; overflow:hidden;}
 .chat-send-btn:active{transform:scale(.96); filter:brightness(.93);}
 
 .chat-strip.chat-hidden{display:none;}
+
+/* ── ANA EKRAN ROZETLERİ ─────────────────────────────────────
+   Şans sandığı ve günlük giriş YALNIZ KALE İÇİNDE görünür; dünya
+   haritasında gizlidir. Yaralı rozeti her iki ekranda da durur.
+   Kale içi katmanı üstte olduğu için orada z-index yükseltilir. */
+.floating-chest-btn,
+.floating-daily-btn{ display:none; }
+body.kaleici-acik .floating-chest-btn,
+body.kaleici-acik .floating-daily-btn{ display:flex; z-index:41; }
+body.kaleici-acik .floating-chest-btn.is-hidden,
+body.kaleici-acik .floating-daily-btn.is-hidden{ display:none; }
+body.kaleici-acik .floating-hospital-btn{ z-index:41; }
+
+/* İNCE AYAR — her rozetin görseli kendi değişkenlerini kullanır,
+   biri diğerini etkilemez. Değerler ?rozetayar=1 ile ölçüldü. */
+.floating-chest-svg,
+.floating-daily-icon,
+.floating-hospital-icon{
+  transform:translate(var(--rz-x,0px), var(--rz-y,0px)) scale(var(--rz-o,1));
+  transform-origin:center;
+}
+.floating-chest-svg   { --rz-o:1.00; --rz-x:0px; --rz-y:0px; }
+.floating-daily-icon  { --rz-o:1.00; --rz-x:0px; --rz-y:0px; }
+.floating-hospital-icon{ --rz-o:1.00; --rz-x:0px; --rz-y:0px; }
 
 .floating-chest-btn{
   position:absolute; top:96px; right:10px; z-index:18;

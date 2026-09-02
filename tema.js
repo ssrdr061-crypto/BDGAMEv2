@@ -9253,3 +9253,206 @@ if (document.readyState === "complete") kur();
 else window.addEventListener("load", kur);
 setTimeout(kur, 1200);
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   GÜNLÜK ÖDÜL "KAPAT" DÜĞMESİ — DÜZ VE YAZI KADAR
+   Yukarıdaki toplu düğme kuralı ona da çerçeve ve kabartma
+   veriyordu; burada geri alınıyor. tema.js en son yüklendiği için
+   bu blok kazanır.
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+  var st = document.createElement("style");
+  st.textContent =
+    ".daily-reward-close-btn{" +
+      "display:block !important; width:auto !important; margin:18px auto 0 !important;" +
+      "border:none !important; background:#1fa3ea !important;" +
+      "font-size:17px !important; font-weight:900 !important;" +
+      "padding:11px 34px !important; border-radius:14px !important;" +
+      "box-shadow:0 2px 6px rgba(0,20,45,.30) !important;" +
+      "text-shadow:0 1px 2px rgba(0,20,45,.55) !important;}" +
+    ".daily-reward-close-btn:active{" +
+      "transform:scale(.96) !important; filter:brightness(.93) !important;}";
+  document.head.appendChild(st);
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ROZET İNCE AYAR PANELİ  —  ?rozetayar=1   (GEÇİCİ)
+
+   Ana ekrandaki üç rozetin görselini ayrı ayrı ölçekler ve kaydırır:
+   şans sandığı, günlük giriş, yaralı. Değerler yalnız GÖRSELE
+   uygulanır (düğmeye değil), çünkü şans sandığının düğmesinde nabız
+   animasyonu var ve transform çakışırdı.
+
+   Beğenilen değerler KOPYALA ile alınıp index.html'deki kalıcı
+   .floating-*-svg/icon kurallarına yazılır, sonra BU BLOK SİLİNİR.
+   ═══════════════════════════════════════════════════════════════ */
+(function rozetAyar() {
+  "use strict";
+  try { if (location.search.indexOf("rozetayar=1") < 0) return; }
+  catch (e) { return; }
+
+  var YERLER = [
+    { id: "chest",    ad: "Sandık",  sec: ".floating-chest-svg" },
+    { id: "daily",    ad: "Günlük",  sec: ".floating-daily-icon" },
+    { id: "hospital", ad: "Yaralı",  sec: ".floating-hospital-icon" }
+  ];
+  var VARSAYILAN = { o: 100, x: 0, y: 0 };   /* o: yüzde, x/y: piksel */
+  var A = {};
+  try { A = JSON.parse(localStorage.getItem("rozetAyar") || "{}") || {}; } catch (e) { A = {}; }
+  YERLER.forEach(function (y) {
+    if (!A[y.id]) A[y.id] = { o: VARSAYILAN.o, x: VARSAYILAN.x, y: VARSAYILAN.y };
+  });
+  var aktif = "chest";
+
+  function kaydet() { try { localStorage.setItem("rozetAyar", JSON.stringify(A)); } catch (e) {} }
+
+  var st = document.createElement("style");
+  document.head.appendChild(st);
+
+  function uygula() {
+    var css = "";
+    YERLER.forEach(function (y) {
+      var v = A[y.id];
+      css += "html body " + y.sec + "{" +
+             "--rz-o:" + (v.o / 100).toFixed(2) + ";" +
+             "--rz-x:" + v.x + "px;" +
+             "--rz-y:" + v.y + "px;}";
+    });
+    st.textContent = css;
+  }
+
+  function metin() {
+    var v = A[aktif];
+    return "--rz-o:" + (v.o / 100).toFixed(2) + "; --rz-x:" + v.x + "px; --rz-y:" + v.y + "px;";
+  }
+
+  function kopyaMetni() {
+    var out = "";
+    YERLER.forEach(function (y) {
+      var v = A[y.id];
+      out += y.sec + "{ --rz-o:" + (v.o / 100).toFixed(2) +
+             "; --rz-x:" + v.x + "px; --rz-y:" + v.y + "px; }\n";
+    });
+    return out;
+  }
+
+  var p = document.createElement("div");
+  var altPx = (typeof A._alt === "number") ? A._alt : 0;
+  p.style.cssText =
+    "position:fixed;left:0;right:0;bottom:" + altPx + "px;z-index:100000;" +
+    "background:#0d2137;color:#eaf6ff;font:600 11.5px/1.2 'Baloo 2',sans-serif;" +
+    "padding:6px 8px 7px;box-shadow:0 -2px 6px rgba(0,20,45,.3);";
+  document.body.appendChild(p);
+
+  /* position:fixed'de offsetParent null gelir; ölçü için innerHeight
+     ve offsetHeight kullanılır. */
+  function altAyarla(v) {
+    var tavan = Math.max(0, window.innerHeight - p.offsetHeight);
+    altPx = Math.max(0, Math.min(tavan, v));
+    p.style.bottom = altPx + "px";
+    A._alt = altPx; kaydet();
+  }
+
+  var SURGU = [
+    { k: "o", ad: "Boy",   min: 40,  max: 300, adim: 1 },
+    { k: "x", ad: "Sağ/Sol", min: -60, max: 60, adim: 1 },
+    { k: "y", ad: "Yuk/Aş",  min: -60, max: 60, adim: 1 }
+  ];
+
+  function ciz() {
+    var v = A[aktif];
+    var h =
+      '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<span id="rzTut" style="flex:0 0 auto;padding:2px 6px;border-radius:6px;' +
+          'background:#1d3f63;color:#7fe4ff;font-size:13px;line-height:1;' +
+          'touch-action:none;cursor:grab;">\u2195</span>' +
+        '<b style="font-size:12px;letter-spacing:.3px;">ROZET</b>' +
+        '<button id="rzSifirla" style="margin-left:auto;background:#1d3f63;color:#eaf6ff;' +
+          'border:none;border-radius:7px;padding:4px 8px;font:inherit;">SIFIRLA</button>' +
+        '<button id="rzKopya" style="background:#1d3f63;color:#eaf6ff;border:none;' +
+          'border-radius:7px;padding:4px 8px;font:inherit;">KOPYALA</button>' +
+        '<button id="rzTopla" style="background:#1d3f63;color:#eaf6ff;border:none;' +
+          'border-radius:7px;padding:4px 8px;font:inherit;">\u25be</button>' +
+      '</div>' +
+      '<div id="rzGovde">' +
+        '<div style="display:flex;gap:4px;margin:6px 0;">';
+    YERLER.forEach(function (y) {
+      h += '<button class="rz-sek" data-id="' + y.id + '" style="flex:1;padding:5px 2px;' +
+             'border:none;border-radius:7px;font:inherit;' +
+             'background:' + (y.id === aktif ? "#2f7fc4" : "#16324f") + ';color:#eaf6ff;">' +
+             y.ad + '</button>';
+    });
+    h += '</div>';
+    SURGU.forEach(function (sg) {
+      h += '<div style="display:flex;align-items:center;gap:7px;margin:3px 0;">' +
+             '<span style="flex:0 0 52px;">' + sg.ad + '</span>' +
+             '<input type="range" class="rz-srg" data-k="' + sg.k + '" min="' + sg.min +
+               '" max="' + sg.max + '" step="' + sg.adim + '" value="' + v[sg.k] +
+               '" style="flex:1;">' +
+             '<span class="rz-dg" data-k="' + sg.k + '" style="flex:0 0 42px;text-align:right;' +
+               'font-variant-numeric:tabular-nums;">' + v[sg.k] + '</span>' +
+           '</div>';
+    });
+    h += '<div id="rzMetin" style="margin-top:4px;opacity:.75;font-size:10.5px;' +
+           'word-break:break-all;">' + metin() + '</div></div>';
+    p.innerHTML = h;
+
+    (function () {
+      var tut = document.getElementById("rzTut");
+      if (!tut) return;
+      var by = 0, ba = 0, sur = false;
+      tut.addEventListener("pointerdown", function (e) {
+        sur = true; by = e.clientY; ba = altPx;
+        try { tut.setPointerCapture(e.pointerId); } catch (e2) {}
+        e.preventDefault();
+      });
+      tut.addEventListener("pointermove", function (e) {
+        if (!sur) return; altAyarla(ba + (by - e.clientY)); e.preventDefault();
+      });
+      function birak() { sur = false; }
+      tut.addEventListener("pointerup", birak);
+      tut.addEventListener("pointercancel", birak);
+    })();
+
+    p.querySelectorAll(".rz-sek").forEach(function (b) {
+      b.addEventListener("click", function () { aktif = b.dataset.id; ciz(); });
+    });
+
+    p.querySelectorAll(".rz-srg").forEach(function (sr) {
+      sr.addEventListener("input", function () {
+        A[aktif][sr.dataset.k] = parseInt(sr.value, 10) || 0;
+        var dg = p.querySelector('.rz-dg[data-k="' + sr.dataset.k + '"]');
+        if (dg) dg.textContent = A[aktif][sr.dataset.k];
+        var mt = document.getElementById("rzMetin");
+        if (mt) mt.textContent = metin();
+        uygula(); kaydet();
+      });
+    });
+
+    document.getElementById("rzSifirla").addEventListener("click", function () {
+      A[aktif] = { o: VARSAYILAN.o, x: VARSAYILAN.x, y: VARSAYILAN.y };
+      uygula(); kaydet(); ciz();
+    });
+
+    document.getElementById("rzKopya").addEventListener("click", function () {
+      var t = kopyaMetni();
+      try { navigator.clipboard.writeText(t); } catch (e) {}
+      var mt = document.getElementById("rzMetin");
+      if (mt) mt.textContent = t;
+    });
+
+    var kapali = false;
+    document.getElementById("rzTopla").addEventListener("click", function () {
+      kapali = !kapali;
+      var g = document.getElementById("rzGovde");
+      if (g) g.style.display = kapali ? "none" : "block";
+      this.textContent = kapali ? "\u25b4" : "\u25be";
+      altAyarla(altPx);
+    });
+  }
+
+  ciz();
+  uygula();
+})();
