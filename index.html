@@ -4238,8 +4238,28 @@ function gunlukOnizle(gun, alinmisMi) {
   const ad = (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES[uid])
     ? UNIT_TYPES[uid].name : "Savunucu";
 
+  /* Alınmış günde SADECE seçilen parça gösterilir. Kayıt yoksa
+     (bu özellikten önce alınmış gün) ya da gün henüz gelmediyse
+     üç seçenek birden gösterilir. */
+  const PARCA_ADI = {
+    celik_savasci: "STELLİN", ivanovna: "İVANOVNA", revolia: "REVOLİA",
+  };
+  const secilmis = (alinmisMi && state.gunlukParcaGecmisi)
+    ? state.gunlukParcaGecmisi[gun] : null;
+
+  let parcaHtml, parcaEtiket;
+  if (secilmis && PARCA_ADI[secilmis]) {
+    parcaHtml = gunlukParcaKutusu(secilmis, PARCA_ADI[secilmis]);
+    parcaEtiket = "Seçtiğin parça (" + o.parca + " adet)";
+  } else {
+    parcaHtml = gunlukParcaKutusu("celik_savasci", "STELLİN") +
+                gunlukParcaKutusu("ivanovna", "İVANOVNA") +
+                gunlukParcaKutusu("revolia", "REVOLİA");
+    parcaEtiket = "Kahraman parçası (" + o.parca + " adet)";
+  }
+
   const pop = document.createElement("div");
-  pop.className = "gunluk-pop gunluk-pop-onizleme";
+  pop.className = "gunluk-pop gunluk-pop-onizleme" + (secilmis ? " gps-tek" : "");
   pop.id = "gunlukPop";
   pop.innerHTML =
     '<div class="gunluk-pop-kutu">' +
@@ -4251,10 +4271,20 @@ function gunlukOnizle(gun, alinmisMi) {
         '<span>' + fmt(o.savunucu) + ' ' + ad + '</span></div>' +
       '<div class="gp-satir">' + ELMAS("gunluk") +
         '<span>' + fmt(o.elmas) + ' Elmas</span></div>' +
-      '<div class="gp-etiket">' + o.parca + ' kahraman parçası</div>' +
+      '<div class="gp-etiket">' + parcaEtiket + '</div>' +
+      /* Parça kutuları GERÇEK pencereyle aynı şablondan gelir
+         (gunlukParcaKutusu) — ikinci bir görsel listesi tutulmaz.
+         Fark yalnız tıklanamaz olmaları. */
+      '<div class="gunluk-parca-secim gps-onizleme">' + parcaHtml + '</div>' +
       '<button class="gp-al" id="gunlukOnizleKapat">Kapat</button>' +
     '</div>';
   document.body.appendChild(pop);
+
+  /* Seçim yok: kutular yalnız gösterim. `gunlukParcaSec`'e hiç
+     bağlanmadıkları için `gunlukSecilenParca` de kirlenmez. */
+  pop.querySelectorAll(".gps-onizleme .gunluk-parca-sec").forEach(b => {
+    b.disabled = true;
+  });
 
   const kapat = () => { const e = document.getElementById("gunlukPop"); if (e) e.remove(); };
   const btn = document.getElementById("gunlukOnizleKapat");
@@ -4353,6 +4383,13 @@ function gunlukOdulAl() {
   gunlukParcaBekliyor = false;
   gunlukParcaAdet = 0;
   gunlukSecilenParca = null;
+  /* HANGİ GÜN HANGİSİNİ SEÇTİ — önizleme bunu okur.
+     `gunlukSecilenParca` bu satırların üstünde sıfırlandığı için
+     anahtar YEREL değişkene alınmıştı; buraya onu yazıyoruz.
+     Kayıt yoksa (bu özellikten önce alınmış günler) önizleme üç
+     parçayı da gösterir — uydurma yapılmaz. */
+  if (!state.gunlukParcaGecmisi) state.gunlukParcaGecmisi = {};
+  state.gunlukParcaGecmisi[gunlukBugunGun()] = anahtar;
   /* Günlük giriş parçası da ÇANTAYA düşer (ödüller havuza yazmaz). */
   if (typeof parcaCantayaEkle === "function") parcaCantayaEkle(anahtar, adet);
   else if (typeof parcaEkle === "function") parcaEkle(anahtar, adet);
@@ -4900,6 +4937,8 @@ function compactStateForExport(s) {
   if (s.lastDailyRewardDate) out.ldr = s.lastDailyRewardDate;
   /* Seri yazılmazsa oyuncu her girişte 1. güne düşer. */
   if (s.gunlukSeri) out.gsr = s.gunlukSeri;
+  if (s.gunlukParcaGecmisi && Object.keys(s.gunlukParcaGecmisi).length)
+    out.gpg = s.gunlukParcaGecmisi;
   if (s.lastDailyExplore)    out.lde = s.lastDailyExplore;
   /* Kalkan bitişi — yazılmazsa oyuncu 10.000 elmasını çöpe atmış olur. */
   if (s.kalkanBitis)         out.kb  = s.kalkanBitis;
@@ -4954,6 +4993,7 @@ function expandCompactState(c) {
   if (c.wp)  s.welcomePending = true;
   if (c.ldr) s.lastDailyRewardDate = c.ldr;
   if (c.gsr) s.gunlukSeri = c.gsr;
+  if (c.gpg) s.gunlukParcaGecmisi = c.gpg;
   if (c.lde) s.lastDailyExplore = c.lde;
   if (c.kb)  s.kalkanBitis = c.kb;
   if (c.egt) s.egitim = { adim: c.egt[0] || 0, odulAlindi: !!c.egt[1], kaleAcildi: !!c.egt[2] };

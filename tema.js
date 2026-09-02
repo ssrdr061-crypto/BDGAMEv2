@@ -9575,3 +9575,25 @@ setTimeout(kur, 1200);
     ".gunluk-pop-onizleme .gp-etiket{opacity:.85;}";
   document.head.appendChild(st);
 })();
+
+/* Önizlemedeki parça kutuları tıklanamaz — imleç ve dokunma da
+   kapatılır ki oyuncu basıp "çalışmıyor" sanmasın. Görünüm gerçek
+   pencereyle aynı kalır. */
+(function gunlukOnizlemeParca() {
+  const st = document.createElement("style");
+  st.id = "gunlukOnizlemeParcaCss";
+  st.textContent =
+    ".gps-onizleme .gunluk-parca-sec{pointer-events:none;cursor:default;}" +
+    ".gps-onizleme .gunluk-parca-sec:disabled{opacity:1;}";
+  document.head.appendChild(st);
+})();
+
+/* Önizlemede TEK parça gösteriliyorsa (seçim kayıtlı geçmiş gün)
+   kutu ortalanır; üç kutuluk satırın solunda yapayalnız durmasın. */
+(function gunlukOnizlemeTek() {
+  const st = document.createElement("style");
+  st.id = "gunlukOnizlemeTekCss";
+  st.textContent =
+    ".gunluk-pop-onizleme.gps-tek .gunluk-parca-secim{justify-content:center;}";
+  document.head.appendChild(st);
+})();
