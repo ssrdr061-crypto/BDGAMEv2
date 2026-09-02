@@ -5877,6 +5877,42 @@ function unitFace(def) {
    ayrımdan gelir — eskiden konum da değer gibi kademeliydi.
 
    Parmak kalkınca çubuk en yakın tam değere oturur. */
+/* ── İYİLEŞTİRME BEDELİ ───────────────────────────────────────
+   Yaralıyı ayağa kaldırmak, o birliği sıfırdan üretmenin BEŞTE
+   BİRİ kadar kaynağa mal olur. Oran tek yerde: HASTANE_ORAN.
+   Maliyet tablosu troops.js `kaynakMaliyet` — burada ikinci bir
+   fiyat listesi tutulmaz. */
+const HASTANE_ORAN = 1 / 5;
+
+function iyilestirmeBedeli(unitId, adet) {
+  const n = Math.max(0, Math.floor(adet || 0));
+  const out = {};
+  if (n <= 0 || typeof kaynakMaliyet !== "function") return out;
+  const tam = kaynakMaliyet(unitId, n) || {};
+  Object.keys(tam).forEach(k => {
+    const v = Math.ceil((tam[k] || 0) * HASTANE_ORAN);
+    if (v > 0) out[k] = v;
+  });
+  return out;
+}
+
+/* Karttaki bedel satırını yazar. Adet 0 ise satır boş kalır. */
+function hospBedelYaz(card, unitId, adet) {
+  const el = card && card.querySelector(".hosp-bedel");
+  if (!el) return;
+  const bedel = iyilestirmeBedeli(unitId, adet);
+  const anahtar = Object.keys(bedel);
+  if (!anahtar.length) { el.innerHTML = ""; return; }
+  const kay = (state && state.kaynaklar) || {};
+  const kisa = (v) => (typeof kisaSayi === "function") ? kisaSayi(v) : String(v);
+  el.innerHTML = anahtar.map(k => {
+    const yetersiz = (kay[k] || 0) < bedel[k];
+    const em = (typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || "";
+    return '<span class="hb-oge' + (yetersiz ? " yok" : "") + '">' +
+           em + " " + kisa(bedel[k]) + "</span>";
+  }).join(" ");
+}
+
 function bindHospitalSlider(card) {
   const unitId  = card.dataset.unit;
   const enFazla = parseInt(card.dataset.max, 10) || 0;
@@ -5910,6 +5946,7 @@ function bindHospitalSlider(card) {
     if (kutu && document.activeElement !== kutu) kutu.value = String(v);
     hqBoyutla();
     if (oranDaCiz) ciz(enFazla > 0 ? v / enFazla : 0);
+    hospBedelYaz(card, unitId, v);
     /* İmzaya DOKUNULMAZ: seçilen miktar imzanın parçası değil.
        Miktarı zaten doğrudan DOM'a yazıyoruz; yeniden çizim
        gerekmediği gibi, parmak sürgüdeyken kartı yok ederdi. */
@@ -6036,7 +6073,7 @@ function renderHospitalPanel() {
           <div class="hospital-face" data-unit="${unitId}">${unitFace(def)}</div>
           <div class="hospital-heal-mid">
             <div class="hospital-heal-top">
-              <span class="t-count">${woundedCount}</span>
+              <span class="hosp-bedel" data-unit="${unitId}"></span>
             </div>
             <div class="hospital-qty">
               <div class="hospital-slider" data-unit="${unitId}">
@@ -6102,6 +6139,29 @@ function confirmHospitalSelection() {
     showToast("Önce tedaviye alınacak birlik sayısını seç.");
     return;
   }
+  /* ── BEDEL ÖNCE TOPLANIR, SONRA ÖDENİR ───────────────────────
+     Birlik birlik düşseydi, üçüncü birlikte kaynak bitince ilk
+     ikisinin parası alınmış ama iş yarım kalmış olurdu. Önce
+     tamamı hesaplanır; yetmiyorsa HİÇBİRİ yapılmaz. */
+  const _toplamBedel = {};
+  Object.keys(hospitalPendingSelection).forEach(unitId => {
+    const n2 = hospitalPendingSelection[unitId] || 0;
+    if (n2 <= 0) return;
+    const b = iyilestirmeBedeli(unitId, n2);
+    Object.keys(b).forEach(k => { _toplamBedel[k] = (_toplamBedel[k] || 0) + b[k]; });
+  });
+  if (!state.kaynaklar) state.kaynaklar = {};
+  const _eksik = Object.keys(_toplamBedel)
+    .filter(k => (state.kaynaklar[k] || 0) < _toplamBedel[k]);
+  if (_eksik.length) {
+    const ad = (k) => (typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || k;
+    showToast("Yetersiz kaynak: " + _eksik.map(ad).join(" "), 4000);
+    return;
+  }
+  Object.keys(_toplamBedel).forEach(k => {
+    state.kaynaklar[k] = Math.max(0, (state.kaynaklar[k] || 0) - _toplamBedel[k]);
+  });
+
   Object.keys(hospitalPendingSelection).forEach(unitId => {
     let wantCount = hospitalPendingSelection[unitId] || 0;
     if (wantCount <= 0) return;

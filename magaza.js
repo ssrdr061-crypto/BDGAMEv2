@@ -196,7 +196,11 @@ const SHOP_LIMITS = {
   "İVANOVNA Parçası": 10,
   "REVOLİA Parçası": 10,
 
-  /* Kaynak paketleri — haftada 50'şer. */
+  /* Kaynak paketleri — haftada 50'şer.
+     ODUN LİSTEDE YOKTU: bu tabloda adı geçmeyen ürün limitsiz
+     sayılıyor (kartta ∞), o yüzden Odun Sandığı sınırsız alınabiliyordu.
+     Diğer dördüyle aynı sayıya çekildi. */
+  "Odun Sandığı": 50,
   "Et Sandığı": 50,
   "Demir Sandığı": 50,
   "Su Sandığı": 50,
