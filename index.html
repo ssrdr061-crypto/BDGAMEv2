@@ -2156,7 +2156,7 @@ body.world-active{padding:0; overflow:hidden;}
 <!-- Koordinat çevrimi için tek kapı. DOM/harita bağımlılığı yok, en başta yüklenir. -->
 <script src="koordinat.js"></script>
 <style id="scEmojiStil">
-/* Mağaza kartındaki emoji simge — sarı kutuyu SVG gibi doldurur. */
+/* Mağaza kartındaki emoji simge — kap yok, kartın üstünde durur. */
 .shop-card2 .sc-emoji{
   font-size:34px; line-height:1; position:relative;
   filter:drop-shadow(0 2px 3px rgba(0,15,40,.5));
@@ -5405,6 +5405,16 @@ const RARITY_FILL = {
 };
 
 function itemIconSVG(item) {
+  /*  KAHRAMAN PARÇASI — çerçeve + parça görseli TEK KAYNAKTAN gelir:
+      gelistir.js PARCA.kutu(). Ürün tanımına `gorsel` yazılmaz. Bu dal
+      yokken parçalar aşağıdaki çizim dalına düşüyor, dördü de aynı
+      ◆ elmas şekli olarak görünüyordu.                               */
+  if (item && item.isParca) {
+    if (typeof PARCA !== "undefined" && PARCA && typeof PARCA.kutu === "function")
+      return PARCA.kutu(item.parcaKey);
+    if (typeof parcaGorseli === "function" && parcaGorseli(item.parcaKey))
+      return `<img class="sc-img" src="${parcaGorseli(item.parcaKey)}" alt="">`;
+  }
   /*  ÜRÜN GÖRSELİ — magaza.js'te bir ürüne `gorsel: "dosya.webp"`
       yazılırsa çizilen SVG yerine o görsel kullanılır. Sarı kutuyu
       komple doldurur. Yeni görsel eklemek için burada değişiklik
