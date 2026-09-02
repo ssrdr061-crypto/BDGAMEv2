@@ -392,7 +392,11 @@ function _klistKartHTML(id) {
   const portre = `<div class="klist-portre-kap ${KV.silik_bas < 100 ? "silik" : ""}">${icerik}</div>`;
 
   let yildiz = "";
-  if (KV.yildizGoster && cfg && cfg.stars) {
+  /*  SAHİPSİZ KAHRAMANDA YILDIZ YOK.
+      Eskiden sahiplik aranmıyordu: kilitli kartta 5 boş yıldız
+      çiziliyor, üstelik cfg.stars.filled değeri doluysa dolu yıldız
+      bile çıkıyordu. Oyuncu almadığı kahramanın seviyesini görmemeli. */
+  if (KV.yildizGoster && sahip && cfg && cfg.stars) {
     /* Dolu yıldız = SEVİYE (gelistir.js). cfg.stars.filled kullanılmaz. */
     const max = cfg.stars.max || 5;
     /* Geliştirme sistemi kapalıyken kartlar eski hâlinde kalır */

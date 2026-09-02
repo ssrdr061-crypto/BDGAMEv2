@@ -4953,120 +4953,14 @@ function hideLogoutConfirm() {
   document.getElementById("logoutConfirmOverlay").style.display = "none";
 }
 
-function compactStateForExport(s) {
-  const out = {};
-  if (s.diamonds) out.d = s.diamonds;
-  if (s.inventory && Object.keys(s.inventory).length) out.inv = s.inventory;
-  if (s.chestsOpened) out.co = s.chestsOpened;
-  if (s.chestResetAt) out.cr = s.chestResetAt;
-  out.h = [s.hero.attack, s.hero.defense, s.hero.maxHp, s.hero.ultiChance, s.hero.ultiMultiplier];
-  out.st = [s.stamina.current, s.stamina.max, s.stamina.lastRegenAt];
-  if (s.ownedHeroSkins && s.ownedHeroSkins.length) out.ohs = s.ownedHeroSkins;
-  if (s.selectedHeroSkin) out.shs = s.selectedHeroSkin;
-  if (s.selectedCommanders && s.selectedCommanders.length) out.sc = s.selectedCommanders;
-  /* Kadro yuvaları — yazılmazsa her girişte üç yuva da boşalır. */
-  if (s.orduKayit && Object.keys(s.orduKayit).length) out.okt = s.orduKayit;
-  /* ── ÖDÜL BAYRAKLARI — kaydedilmezse her girişte ödül tekrar verilir ── */
-  if (s.welcomeGiven)        out.wg  = true;
-  if (s.welcomePending)      out.wp  = true;
-  if (s.lastDailyRewardDate) out.ldr = s.lastDailyRewardDate;
-  /* Seri yazılmazsa oyuncu her girişte 1. güne düşer. */
-  if (s.gunlukSeri) out.gsr = s.gunlukSeri;
-  if (s.gunlukParcaGecmisi && Object.keys(s.gunlukParcaGecmisi).length)
-    out.gpg = s.gunlukParcaGecmisi;
-  if (s.lastDailyExplore)    out.lde = s.lastDailyExplore;
-  /* Kalkan bitişi — yazılmazsa oyuncu 10.000 elmasını çöpe atmış olur. */
-  if (s.kalkanBitis)         out.kb  = s.kalkanBitis;
-  /* Eğitim durumu — yazılmazsa yeni oyuncu her girişte eğitime döner. */
-  if (s.egitim) out.egt = [s.egitim.adim || 0, s.egitim.odulAlindi ? 1 : 0, s.egitim.kaleAcildi ? 1 : 0];
-  if (s.maxFrontierLevel) out.mfl = s.maxFrontierLevel;
-  if (s.kaynaklar) out.kyn = s.kaynaklar;
-  /* Üretim damgası kaydedilmezse her girişte "şimdi" olur ve
-     oyuncu yokken üretilen kaynak hiç verilmez. */
-  if (s.uretimAt) out.uat = s.uretimAt;
-  /* Bina seviyeleri ve inşaat kuyruğu — yazılmazsa her girişte
-     seviyeler 1'e döner ve süren inşaat kaybolur. */
-  if (s.binaSv) out.bsv = s.binaSv;
-  if (s.insaat && s.insaat.length) {
-    out.ins = s.insaat.map(i => [i.id, i.hedef, i.bitis]);
-  }
-  if (s.troops && (s.troops.knight || s.troops.soldier || s.troops.robot)) {
-    out.tr = [s.troops.knight || 0, s.troops.soldier || 0, s.troops.robot || 0];
-  }
-  /*  Sv2+ birlikler (knight2 … robot6). `tr` dizisi ESKİ KODLARLA
-      UYUMLU KALSIN diye olduğu gibi bırakıldı — üç Sv1 orada durur,
-      üst kademeler ayrı bir tabloda taşınır. Yazılmazsa hesap kodu
-      dışa aktarılırken Süvari, Savaş Fili gibi birlikler düşerdi.  */
-  if (s.troops) {
-    const ust = {};
-    Object.keys(s.troops).forEach(uid => {
-      if (uid === "knight" || uid === "soldier" || uid === "robot") return;
-      const n = s.troops[uid] || 0;
-      if (n > 0) ust[uid] = n;
-    });
-    if (Object.keys(ust).length) out.trx = ust;
-  }
-  if (s.trainingQueue && s.trainingQueue.length) {
-    out.tq = s.trainingQueue.map(j => [j.unitId, j.finishAt]);
-  }
-  return out;
-}
-
-function expandCompactState(c) {
-  const s = defaultState();
-  if (c.d) s.diamonds = c.d;
-  if (c.inv) s.inventory = c.inv;
-  if (c.co) s.chestsOpened = c.co;
-  if (c.cr) s.chestResetAt = c.cr;
-  if (c.h) {
-    s.hero = { attack: c.h[0], defense: c.h[1], maxHp: c.h[2], ultiChance: c.h[3], ultiMultiplier: c.h[4] };
-  }
-  if (c.st) s.stamina = { current: c.st[0], max: c.st[1], lastRegenAt: c.st[2] };
-  if (c.ohs) s.ownedHeroSkins = c.ohs;
-  if (c.shs) s.selectedHeroSkin = c.shs;
-  if (c.wg)  s.welcomeGiven = true;
-  if (c.wp)  s.welcomePending = true;
-  if (c.ldr) s.lastDailyRewardDate = c.ldr;
-  if (c.gsr) s.gunlukSeri = c.gsr;
-  if (c.gpg) s.gunlukParcaGecmisi = c.gpg;
-  if (c.lde) s.lastDailyExplore = c.lde;
-  if (c.kb)  s.kalkanBitis = c.kb;
-  if (c.egt) s.egitim = { adim: c.egt[0] || 0, odulAlindi: !!c.egt[1], kaleAcildi: !!c.egt[2] };
-  if (c.sc) s.selectedCommanders = c.sc;
-  if (c.okt) s.orduKayit = c.okt;
-  if (c.mfl) s.maxFrontierLevel = c.mfl;
-  if (c.kyn) s.kaynaklar = c.kyn;
-  if (c.uat) s.uretimAt = c.uat;
-  if (c.bsv) s.binaSv = c.bsv;
-  if (c.ins) s.insaat = c.ins.map(i => ({ id: i[0], hedef: i[1], bitis: i[2] }));
-  if (c.tr) s.troops = { knight: c.tr[0] || 0, soldier: c.tr[1] || 0, robot: c.tr[2] || 0 };
-  if (c.trx) Object.keys(c.trx).forEach(uid => { s.troops[uid] = c.trx[uid] || 0; });
-  if (c.tq) s.trainingQueue = c.tq.map(j => ({ unitId: j[0], finishAt: j[1] }));
-  return s;
-}
-
-function importAccountCode(code) {
-  try {
-    const parsed = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
-    let acc;
-    if (parsed && parsed.n && parsed.p && parsed.s) {
-
-      acc = { displayName: parsed.n, passwordHash: parsed.p, state: expandCompactState(parsed.s) };
-    } else if (parsed && parsed.displayName && parsed.passwordHash && parsed.state) {
-
-      acc = parsed;
-    } else {
-      return { ok: false, error: "Kod geçersiz görünüyor." };
-    }
-    const accounts = loadAccounts();
-    const key = acc.displayName.toLowerCase();
-    accounts[key] = acc;
-    saveAccounts(accounts);
-    return { ok: true, username: acc.displayName };
-  } catch (e) {
-    return { ok: false, error: "Kod okunamadı, doğru kopyaladığından emin ol." };
-  }
-}
+/*  ── ÖLÜ HESAP KODU KALDIRILDI ────────────────────────────────
+    Burada compactStateForExport / expandCompactState /
+    importAccountCode duruyordu: hesabı sıkıştırıp taşınabilir bir
+    metne çeviren ve geri okuyan üçlü. Projenin tamamı tarandı,
+    bu fonksiyonları çağıran HİÇBİR yer yoktu — ne düğme ne menü.
+    Firebase Email/Password auth'a geçildiğinde işlevsiz kalmışlar.
+    magaza.js ve buff.js içindeki sarmalayıcıları da kaldırıldı.
+    Hesap taşıma geri istenirse git geçmişinden alınabilir.        */
 
 const state = defaultState();
 

@@ -87,25 +87,11 @@ function haber(msg) {
   try { if (typeof showToast === "function") showToast(msg); } catch (e) {}
 }
 
-/* Dışa aktarma koduna da girsin (bulut zaten tam state'i yazıyor) */
-try {
-  if (typeof compactStateForExport === "function") {
-    const _eskiKisalt = compactStateForExport;
-    compactStateForExport = function (s) {
-      const out = _eskiKisalt(s);
-      if (s && Array.isArray(s.hazirBuff) && s.hazirBuff.length) out.hb = s.hazirBuff;
-      return out;
-    };
-  }
-  if (typeof expandCompactState === "function") {
-    const _eskiAc = expandCompactState;
-    expandCompactState = function (c) {
-      const st = _eskiAc(c);
-      if (c && Array.isArray(c.hb)) st.hazirBuff = c.hb.slice();
-      return st;
-    };
-  }
-} catch (e) { console.warn("[buff] kayıt sarmalama kurulamadı:", e); }
+/*  Hesap kodu sarmalayıcısı KALDIRILDI — index.html'deki ölü
+    compactStateForExport / expandCompactState ikilisi silindi.
+    (Buradaki typeof kontrolü çökmeyi zaten önlüyordu, ama kod
+    hiçbir işe yaramadan duruyordu.) Buff durumu buluta tam
+    state ile yazılıyor, kayıp yok.                               */
 
 /* ── 2) BUFF HAZIRLAMA / GERİ ALMA ───────────────────────────── */
 

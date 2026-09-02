@@ -128,7 +128,7 @@ const HERO_STATS = {
     desc: "Buz zırhı ile rakiplerin saldırılarını hafifletir.",
     bonuses: { aile: "knight", artis: 5, taban: { def: 5, hp: 9 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#4fd1e8",
-    price: 280000,          /* Satın alma bedeli (elmas) — buradan ayarla */
+    price: 500000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
 
     abilities: [
@@ -170,7 +170,7 @@ const HERO_STATS = {
     desc: "Saldırı ve savunmayı dengeli kullanan savaşçı.",
     bonuses: { aile: "knight", artis: 5, taban: { def: 9, hp: 6 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#e8c84f",
-    price: 840000,          /* Satın alma bedeli (elmas) — buradan ayarla */
+    price: 3000000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
 
     abilities: [
@@ -222,7 +222,7 @@ const HERO_STATS = {
     desc: "Alev büyüleriyle düşmanlara büyük hasar verir.",
     bonuses: { aile: "soldier", artis: 5, taban: { atk: 4, def: 5 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#e2585c",
-    price: 350000,          /* Satın alma bedeli (elmas) — buradan ayarla */
+    price: 500000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
 
     abilities: [
@@ -264,7 +264,7 @@ const HERO_STATS = {
     desc: "Disiplin ve istihbaratla orduyu savaşa hazırlayan komutan.",
     bonuses: { aile: "soldier", artis: 5, taban: { olum: 9, hp: 7, atk: 5 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     color: "#b06fe0",
-    price: 650000,          /* Satın alma bedeli (elmas) — buradan ayarla */
+    price: 3000000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
 
     abilities: [
@@ -316,7 +316,7 @@ const HERO_STATS = {
     specialtyIcon: "🤖",
     desc: "Elektriğin gücünü kuşanan komutan; rakibi zayıflatır, Nişancı birliklerini güçlendirir.",
     color: "#4fd1e8",
-    price: 400000,          /* Satın alma bedeli (elmas) — buradan ayarla */
+    price: 4000000,          /* Satın alma bedeli (elmas) — buradan ayarla */
     upgradeCosts: [0, 0, 0, 0],   /* Seviye 2-3-4-5 geliştirme bedelleri (sonra doldurulacak) */
     bonuses: { aile: "robot", artis: 5, taban: { olum: 7, atk: 5, def: 3 } },   /* Seviye başına +artis puan biner (gelistir.js) */
     abilities: [
@@ -370,7 +370,7 @@ const HERO_STATS = {
     desc: "Cephede yaşlanmış bir komutan; ağır silahlarla rakibin zırhını deler.",
     bonuses: { aile: "robot", artis: 5, taban: { atk: 7, olum: 4 } },
     color: "#c96a2a",
-    price: 450000,
+    price: 1000000,
     upgradeCosts: [0, 0, 0, 0],
 
     abilities: [
@@ -404,7 +404,7 @@ const HERO_STATS = {
     desc: "Savaş meydanını kitaptan okuyan yaşlı profesör; yaralıyı ayağa kaldırır.",
     bonuses: { aile: "soldier", artis: 5, taban: { hp: 8, def: 6 } },
     color: "#8a6a4a",
-    price: 420000,
+    price: 1000000,
     upgradeCosts: [0, 0, 0, 0],
 
     abilities: [
@@ -437,7 +437,7 @@ const HERO_STATS = {
     desc: "Havada asılı duran rahibe; duasıyla birliklerin etrafına kalkan örer.",
     bonuses: { aile: "knight", artis: 5, taban: { def: 8, hp: 7 } },
     color: "#d94f5c",
-    price: 460000,
+    price: 1000000,
     upgradeCosts: [0, 0, 0, 0],
 
     abilities: [

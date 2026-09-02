@@ -955,7 +955,13 @@
   function akisiBaslat() {
     var d = durum();
     if (!d || bittiMi()) { rehberligiKaldir(); return; }
-    elmasGaranti(300000);         /* zincir boyunca harcama garantisi */
+    /*  elmasGaranti(300000) KALDIRILDI.
+        Yeni oyuncuya rehber.js zaten 5.000.000 hoş geldin elması
+        veriyor (WELCOME_GIFT) ve bu, eğitim başlamadan önce
+        gerçekleşiyor. Garanti hem gereksizdi hem de oyuncunun
+        elmasını 300.000'e SABİTLEDİĞİ için, kahraman fiyatları
+        yükseldiğinde eğitimi parasızlıktan kilitleyecekti.
+        Fonksiyonun kendisi duruyor, çağrılmıyor. */
     kilitKur();
     if (!denetimKuruldu) {
       denetimKuruldu = true;

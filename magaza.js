@@ -285,23 +285,12 @@ setInterval(() => {
   }
 }, 1000);
 
-/* ── KAYIT SİSTEMİNE BAĞLANMA ─────────────────────────────────────
-   Oyuncunun haftalık alımları buluta ve hesap koduna da girsin diye
-   oyunun kayıt fonksiyonlarını sarmalıyoruz. */
-const _shopOrigCompact = compactStateForExport;
-compactStateForExport = function (s) {
-  const out = _shopOrigCompact(s);
-  if (s.shopWeek !== undefined && s.shopWeek !== null) out.sw = s.shopWeek;
-  if (s.shopBuys && Object.keys(s.shopBuys).length) out.sb = s.shopBuys;
-  return out;
-};
-const _shopOrigExpand = expandCompactState;
-expandCompactState = function (c) {
-  const st = _shopOrigExpand(c);
-  if (c.sw !== undefined) st.shopWeek = c.sw;
-  if (c.sb) st.shopBuys = c.sb;
-  return st;
-};
+/*  Hesap kodu sarmalayıcısı KALDIRILDI: index.html'deki
+    compactStateForExport / expandCompactState ölü kod olduğu için
+    silindi. Buradaki `const _shopOrigCompact = compactStateForExport;`
+    satırı, artık var olmayan bir isme baktığı için ReferenceError
+    atıp magaza.js'in tamamını çökertirdi. Haftalık alımlar buluta
+    zaten tam state ile yazılıyor, kayıp yok.                       */
 
 /* ── YENİLENME SAYACINI PANELE EKLE ───────────────────────────── */
 (function injectRefreshBand() {

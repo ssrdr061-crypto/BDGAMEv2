@@ -440,10 +440,17 @@
     const yeter = !sonSeviye && eldeki >= bedel;
     const oran = (sonSeviye || !bedel) ? 100 : Math.min(100, Math.round(eldeki / bedel * 100));
 
+    /*  YILDIZ YALNIZ SAHİPLİ KAHRAMANDA.
+        Eskiden sahiplik bakılmadan çiziliyordu: kilitli kahramanın
+        seviyesi varsayılan 1 olduğu için kartta bir yıldız DOLU
+        görünüyordu — oyuncu almadığı kahramanın seviyesini görüyordu.
+        Satın alınmadan yıldız hiç çıkmaz. */
     let yildiz = "";
-    for (let i = 0; i < MAX_SV; i++) {
-      yildiz += `<span style="color:${i < sv ? "#ffd257" : "rgba(255,255,255,.30)"};
-                   font-size:30px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
+    if (sahip(id)) {
+      for (let i = 0; i < MAX_SV; i++) {
+        yildiz += `<span style="color:${i < sv ? "#ffd257" : "rgba(255,255,255,.30)"};
+                     font-size:30px;filter:drop-shadow(0 1px 3px rgba(0,20,45,.8));">★</span>`;
+      }
     }
 
     /* ── SARI HAP MODELİ ──────────────────────────────────────
@@ -458,7 +465,8 @@
         iki düğme üst üste görünüyordu. Satın alma mantığı burada
         TEKRARLANMAZ — heroes.js'teki tek kopya çağrılır.            */
     const alt = !sahip(id)
-      ? `<button id="glsSatinAl" style="width:100%;height:38px;padding:0;
+      ? `<button id="glsSatinAl" style="display:block;margin:0 auto;
+              width:auto;height:38px;padding:0 26px;white-space:nowrap;
               border:none;border-radius:19px;font-family:${YAZI};
               font-size:14px;font-weight:800;color:#20140a;
               background:${TEMA.sari};box-shadow:0 2px 6px rgba(0,20,45,.3);
@@ -470,15 +478,18 @@
               background:${TEMA.sari};
               color:#20140a;font-weight:800;font-size:13.5px;
               font-family:${YAZI};">En yüksek seviye</div>`
-      : `<div style="display:flex;align-items:center;gap:9px;">
-           <button id="glsYukselt" style="flex:1;min-width:0;height:34px;padding:0;
+      : `<div style="display:flex;align-items:center;justify-content:center;gap:9px;">
+           <button id="glsYukselt" style="flex:0 1 auto;height:34px;padding:0 24px;
                    border:none;border-radius:17px;position:relative;overflow:hidden;
                    background:rgba(60,38,10,.55);cursor:pointer;">
              <span style="position:absolute;inset:0 auto 0 0;width:${oran}%;
                           background:${TEMA.sari};"></span>
-             <span style="position:absolute;inset:0;display:flex;align-items:center;
+             <!--  Metin AKIŞTA durur (position:absolute DEĞİL): düğmenin
+                   genişliğini yazının kendisi belirlesin diye. Dolgu şeridi
+                   absolute kalır, altta; metin z-index ile üstünde durur. -->
+             <span style="position:relative;z-index:1;display:flex;align-items:center;
                           justify-content:center;gap:8px;font-size:13.5px;font-weight:800;
-                          font-family:${YAZI};color:#20140a;white-space:nowrap;">
+                          font-family:${YAZI};color:#20140a;white-space:nowrap;height:100%;">
                GELİŞTİR ${Math.min(eldeki, bedel)} / ${bedel}
              </span>
            </button>
