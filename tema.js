@@ -9597,3 +9597,74 @@ setTimeout(kur, 1200);
     ".gunluk-pop-onizleme.gps-tek .gunluk-parca-secim{justify-content:center;}";
   document.head.appendChild(st);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   SANDIK İLERLEME ÇUBUĞU — PARLAK MAVİ + IŞIK HÜZMESİ
+
+   KÖK SEBEP: yukarıdaki (satır ~448)
+     #panel-chest [class*="progress"]{ background:rgba(0,10,26,.4) !important }
+   kuralı yalnız RAYI hedefliyor gibi duruyor ama `[class*="progress"]`
+   `.progress-fill`i de yakalıyor. Dolgu bu yüzden lacivere boyanıyor,
+   index.html'deki parlak mavi gradyan eziliyordu. Kural SİLİNMİYOR
+   (rayın rengi ondan geliyor); dolgu için daha özgül bir kural
+   yazılıyor ve tema.js en son yüklendiği için o kazanıyor.
+
+   HÜZME JS İLE: bu cihazda `prefers-reduced-motion` bütün CSS
+   animasyonlarını kapatıyor (kalkan kubbesi, ışınlanma, hastane
+   nabzı hep bu yüzden JS). Hüzme de her karede
+   `background-position` yazılarak yürütülüyor.
+   ═══════════════════════════════════════════════════════════════ */
+(function sandikCubuguParlat() {
+  "use strict";
+
+  const st = document.createElement("style");
+  st.id = "sandikCubukCss";
+  st.textContent =
+    /* Ray: içerideki ışığın taşmaması için kırpılır. */
+    "#panel-chest .progress-track{overflow:hidden !important;" +
+      "position:relative !important;}" +
+
+    /* Dolgu: parlak mavi. İki katman — altta gövde gradyanı,
+       üstte yürüyen hüzme. Hüzme `background-position` ile
+       kaydırıldığı için `background-size` sabitlenmeli. */
+    "#panel-chest .progress-fill,#chestProgress{" +
+      "background-image:" +
+        "linear-gradient(100deg," +
+          "rgba(255,255,255,0) 35%," +
+          "rgba(255,255,255,.75) 50%," +
+          "rgba(255,255,255,0) 65%)," +
+        "linear-gradient(90deg,#1fa3ea,#4fd8ff 55%,#9df0ff) !important;" +
+      "background-size:220% 100%,100% 100% !important;" +
+      "background-repeat:no-repeat !important;" +
+      "box-shadow:0 0 10px rgba(79,216,255,.75),"  +
+        "0 0 22px rgba(79,216,255,.45) !important;" +
+      "border-radius:inherit !important;}";
+  document.head.appendChild(st);
+
+  /* Hüzme: 2,2 saniyede bir soldan sağa geçer. */
+  const DONGU_MS = 2200;
+
+  function baslat() {
+    const el = document.getElementById("chestProgress");
+    if (!el) { setTimeout(baslat, 1000); return; }
+
+    let sonYazilan = -1;
+    function kare(t) {
+      /* Panel kapalıysa ya da çubuk boşsa hesap yapma. */
+      if (el.offsetWidth > 2) {
+        const faz = (t % DONGU_MS) / DONGU_MS;
+        /* -60 → 160: hüzme çubuğun dışından girip dışına çıkar. */
+        const yuzde = Math.round(-60 + faz * 220);
+        if (yuzde !== sonYazilan) {
+          el.style.backgroundPosition = yuzde + "% 0, 0 0";
+          sonYazilan = yuzde;
+        }
+      }
+      requestAnimationFrame(kare);
+    }
+    requestAnimationFrame(kare);
+  }
+
+  if (document.readyState === "complete") baslat();
+  else window.addEventListener("load", baslat);
+})();
