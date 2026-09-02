@@ -9668,3 +9668,28 @@ setTimeout(kur, 1200);
   if (document.readyState === "complete") baslat();
   else window.addEventListener("load", baslat);
 })();
+
+/* Sandık çubuğu — akıcı doluş + sayaç yazısı.
+   · Doluş: index.html'de `transition:width .3s ease` vardı; kısa ve
+     düz olduğu için basınca "zıplama" gibi duruyordu. 0,85 sn ve
+     sonu yavaşlayan eğri (ease-out) akıcı hissettirir.
+   · Sayaç: "5 / 10" büyüyüp kalınlaşıyor ama YÜKSEKLİĞİ SABİT
+     (height + line-height birlikte verildi), böylece altındaki
+     elmas satırını aşağı itmiyor. */
+(function sandikSayacVeAkis() {
+  const st = document.createElement("style");
+  st.id = "sandikSayacCss";
+  st.textContent =
+    "#panel-chest .progress-fill,#chestProgress{" +
+      "transition:width .85s cubic-bezier(.22,.61,.36,1) !important;}" +
+
+    "#panel-chest .chest-count,#chestCount{" +
+      "font-family:'Baloo 2',sans-serif !important;font-weight:800 !important;" +
+      "font-size:20px !important;color:#eaf7ff !important;" +
+      "font-variant-numeric:tabular-nums;" +
+      /* Sabit yükseklik: yazı büyüse de satır yüksekliği değişmez. */
+      "height:24px !important;line-height:24px !important;" +
+      "margin:0 !important;padding:0 !important;overflow:visible;" +
+      "text-shadow:0 1px 3px rgba(0,25,50,.55) !important;}";
+  document.head.appendChild(st);
+})();

@@ -5508,7 +5508,9 @@ function renderKaynaklar() {
 }
 
 function renderChestUI() {
-  document.getElementById("chestCount").textContent = `${state.chestsOpened} / ${state.maxChests} sandık açıldı`;
+  /* Yalnız RAKAM/RAKAM — "sandık açıldı" kalktı, çubuğun altında
+     zaten bağlamı belli. */
+  document.getElementById("chestCount").textContent = `${state.chestsOpened} / ${state.maxChests}`;
   const fillPct = (state.chestsOpened / state.maxChests) * 100;
   document.getElementById("chestProgress").style.width = fillPct + "%";
 
@@ -5807,10 +5809,29 @@ function openChest() {
       state.chestResetAt = Date.now() + CHEST_RESET_MS;
     }
 
-    resultEl.className = "chest-result " + diamondColorClass(reward);
+    /* ── RENK İLK KAREDE DOĞRU ──
+       Renk yalnız üst kaptaki sınıftan miras alınıyordu; rakam bir
+       an beyaz basılıp sonra renge dönüyordu. Artık renk RAKAMIN
+       KENDİSİNE satır içi yazılıyor, ilk boyamada doğru çıkıyor.
+       Eşikler TEK YERDE kalıyor: `diamondColorClass` çağrılıyor,
+       burada ikinci bir eşik tablosu tutulmuyor; sınıf → CSS
+       değişkeni eşlemesi yapılıyor sadece. */
+    const _renkVar = {
+      "col-red": "--diamond-red", "col-yellow": "--diamond-yellow",
+      "col-green": "--diamond-green", "col-cyan": "--diamond-cyan",
+    };
+    const _cls = diamondColorClass(reward);
+    let _renk = "";
+    try {
+      _renk = getComputedStyle(document.documentElement)
+                .getPropertyValue(_renkVar[_cls] || "").trim();
+    } catch (e) { _renk = ""; }
+    resultEl.className = "chest-result " + _cls;
     /* textContent DEĞİL: elmas görseli innerHTML ister. Değer ayrı
        span'de dursun ki ileride tazelenirse görsel silinmesin (Tuzak 23). */
-    resultEl.innerHTML = `<span class="chest-deger">${fmt(reward)}</span> ${ELMAS("sandik")}`;
+    resultEl.innerHTML = `<span class="chest-deger"` +
+      (_renk ? ` style="color:${_renk}"` : "") +
+      `>${fmt(reward)}</span> ${ELMAS("sandik")}`;
 
     renderDiamonds();
     renderChestUI();
