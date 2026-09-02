@@ -9051,23 +9051,10 @@ const TroopViewer = (function () {
     const gerek = (typeof kaynakMaliyet === "function") ? kaynakMaliyet(uid, n) : {};
     const kay = (state && state.kaynaklar) || {};
     const kisa = (v) => (typeof kisaSayi === "function") ? kisaSayi(v) : String(v);
-    /* KAYNAK GÖRSELLERİ — emoji değil, oyunun kendi ikonları.
-       Tablo insaat.js ve tema.js'tekiyle AYNI dosyaları kullanır;
-       burada üçüncü bir set uydurulmaz. Görsel yüklenmezse
-       `onerror` emojiye düşer, satır boş kalmaz. */
-    const K_GORSEL = {
-      odun: "10kodun.webp", et: "10ket.webp", demir: "5kdemir.webp",
-      su: "5ksu.webp", enerji: "enerji.webp",
-    };
     box.innerHTML = Object.keys(gerek).map(k => {
       const yetersiz = (kay[k] || 0) < gerek[k];
-      const em = (typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || "";
-      const g = K_GORSEL[k];
-      const ikon = g
-        ? `<img class="uvr-gorsel" src="${g}" alt="" onerror="this.replaceWith(document.createTextNode('${em}'))">`
-        : em;
       return `<div class="uv-res-oge${yetersiz ? " yok" : ""}">` +
-             `<span class="uvr-em">${ikon}</span>` +
+             `<span class="uvr-em">${(typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || ""}</span>` +
              `<span class="uvr-mik">${kisa(gerek[k])}</span></div>`;
     }).join("");
   }
@@ -9292,22 +9279,9 @@ const TroopViewer = (function () {
         const sr = el.querySelector(".utb-sure");
         if (sr) sr.textContent = (typeof sureDk === "function")
           ? sureDk(def.trainMinutes * v) : (def.trainMinutes * v) + " dk";
-        /* ── SÜRGÜ GECİKMESİ (düzeltildi) ──
-           `uvGereksinim` her `input` olayında .uv-res kutusunun
-           innerHTML'ini baştan yazıyordu. Sürgü sürüklenirken bu
-           saniyede onlarca kez oluyor; her yazma düzen + boyama
-           tetiklediği için topuz parmağı geriden takip ediyordu.
-           Artık kare başına EN FAZLA BİR kez yazılıyor; sayı,
-           süre ve fiyat yazıları eskisi gibi anında güncelleniyor. */
-        if (!_resBekleyen) {
-          _resBekleyen = true;
-          requestAnimationFrame(() => {
-            _resBekleyen = false;
-            uvGereksinim(kid, el, unitTrainQty[uid] || 1);
-          });
-        }
+        /* kaynak gereksinimi adetle birlikte anında değişir */
+        uvGereksinim(kid, el, v);
       };
-      let _resBekleyen = false;
       if (slider) slider.addEventListener("input", () => setQty(slider.value));
       if (numBox) numBox.addEventListener("input", () => setQty(numBox.value));
       const minus = el.querySelector(".uq-minus");
