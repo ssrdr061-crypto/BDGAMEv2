@@ -4031,9 +4031,10 @@ function todayDateStr() {
   return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,"0")}-${d.getDate().toString().padStart(2,"0")}`;
 }
 
-/* Günlük sandık döngüsü: her gün saat 13:00'te yenilenir.
-   13:00'ten önce girenler hâlâ dünkü döngüdedir. */
-const DAILY_CHEST_HOUR = 13;
+/* Günlük sandık döngüsü: her gün GECE YARISI (00:00) yenilenir.
+   Gün dönünce sandık yeniden açılır; saat kaydırması yok.
+   Saati değiştirmek istersen TEK YER burasıdır (0 = gece yarısı). */
+const DAILY_CHEST_HOUR = 0;
 function dailyChestCycleId() {
   const now = new Date();
   const b = new Date(now); b.setHours(DAILY_CHEST_HOUR, 0, 0, 0);
