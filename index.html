@@ -3675,6 +3675,22 @@ function defaultState() {
 
     ownedHeroSkins: [],
     selectedHeroSkin: null,
+    /* Savaşa götürülen komutanlar (en fazla 3). Burada TANIMLI olmak
+       zorunda: tanımsız kalırsa hesap değişiminde eski hesabın seçimi
+       yeni hesaba geçer ve kilitli kahraman seçili görünür. */
+    selectedCommanders: [],
+
+    /* ── KAHRAMAN GELİŞTİRME (gelistir.js) ───────────────────────
+       heroLevels: kahraman başına yıldız seviyesi (1–5).
+       heroShards: parça havuzu — `mor` ortak, turuncular kahramana özel.
+       Bu ikisi eskiden BURADA TANIMLI DEĞİLDİ; gelistir.js ihtiyaç
+       anında kendisi yaratıyordu. startSessionFor'daki Object.assign
+       yalnızca defaultState'te ADI GEÇEN alanları ezdiği için, aynı
+       sekmede hesap değiştirildiğinde bu iki nesne eski hesaptan yeni
+       hesaba SIZIYORDU: kahraman kilitli (ownedHeroSkins sıfırlanır)
+       ama yıldızı dolu (heroLevels sıfırlanmaz). */
+    heroLevels: {},
+    heroShards: {},
 
     /* Savaş panelindeki 1·2·3 kadro yuvaları (troops.js).
        { "1": { t:{unitId:adet}, c:[komutanId,…] }, … } */
@@ -4730,6 +4746,25 @@ function startSessionFor(username) {
   const key = username.toLowerCase();
   const acc = accounts[key];
   currentUsername = acc.displayName;
+
+  /* ── ÖNCE BOŞALT, SONRA DOLDUR (kritik) ──────────────────────
+     `state` sayfa ömrü boyunca TEK nesnedir. Object.assign
+     BİRLEŞTİRİR, SİLMEZ: defaultState() içinde adı geçmeyen bir
+     alan, önceki hesabın değeriyle olduğu yerde kalır ve yeni
+     hesap onu devralır. Aynı sekmede hesap değiştirmek yetiyordu;
+     başka telefonda görülmemesinin sebebi sayfanın taze açılması.
+
+     Sızan alanlar ölçüldü: heroLevels · heroShards ·
+     selectedCommanders · gunlukParcaGecmisi · lastDailyExplore ·
+     shopBuys · shopWeek · pvpCooldowns · friends · arastirma ·
+     birlikSv · kaleSeviye · kaleSv. Belirtisi "yeni hesapta
+     kahraman kilitli ama yıldızı dolu" idi.
+
+     Tek tek defaultState'e eklemek çözüm DEĞİL — yarın eklenecek
+     yeni bir alan aynı tuzağa düşer. Nesne baştan boşaltılır.
+     Nesnenin KENDİSİ korunur (const, dışarıda referansı tutuluyor);
+     yalnızca anahtarları silinir. */
+  Object.keys(state).forEach(k => { delete state[k]; });
   Object.assign(state, defaultState(), acc.state || {});
 
   /* ── KALEYİ TAZELE (kritik) ──
