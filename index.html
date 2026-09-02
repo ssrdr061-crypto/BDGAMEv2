@@ -4206,11 +4206,61 @@ function gunlukSeritCiz() {
   }
   kap.innerHTML = h;
 
-  /* Yalnız BUGÜNÜN sandığı basılabilir. Şerit her çizimde yeniden
-     kurulduğu için dinleyici de burada bağlanır. */
-  kap.querySelectorAll(".gunluk-kutu.bugun").forEach(k => {
-    k.addEventListener("click", openDailyRewardChest);
+  /* BUGÜNÜN sandığı ödülü VERİR. Diğer günler yalnız GÖSTERİR:
+     alınmışın içeriği hatırlatılır, alınmamışın içeriği önizlenir.
+     İkisi de hiçbir şey vermez — tamamen görsel.
+     Şerit her çizimde yeniden kurulduğu için dinleyici burada. */
+  kap.querySelectorAll(".gunluk-kutu").forEach(k => {
+    const g = parseInt(k.dataset.gun, 10) || 0;
+    if (k.classList.contains("bugun")) {
+      k.addEventListener("click", openDailyRewardChest);
+    } else {
+      k.addEventListener("click", () => gunlukOnizle(g, k.classList.contains("acik")));
+    }
   });
+}
+
+/* ── SALT GÖRÜNTÜ ÖDÜL PENCERESİ ──────────────────────────────
+   Geçmiş ve gelecek günlerin içeriğini gösterir. `claimDailyReward`
+   ÇAĞRILMAZ, `state` DEĞİŞMEZ, parça seçimi yoktur — bu yüzden
+   `gunlukParcaBekliyor` bayrağına da dokunulmaz; dokunsaydı panel
+   kapanmaz, oyuncu "önce ödülünü al" uyarısına kilitlenirdi.
+
+   Birlik sayısı bugünün ödülüyle aynı kuraldan gelir
+   (`gunlukSavunucuId` — açık en üst Savunucu kademesi), böylece
+   önizleme gerçekten alınacak şeyi gösterir. */
+function gunlukOnizle(gun, alinmisMi) {
+  if (document.getElementById("gunlukPop")) return;
+  const o = GUNLUK_ODUL[gun - 1];
+  if (!o) return;
+
+  const uid = gunlukSavunucuId();
+  const ad = (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES[uid])
+    ? UNIT_TYPES[uid].name : "Savunucu";
+
+  const pop = document.createElement("div");
+  pop.className = "gunluk-pop gunluk-pop-onizleme";
+  pop.id = "gunlukPop";
+  pop.innerHTML =
+    '<div class="gunluk-pop-kutu">' +
+      '<div class="gp-baslik">' + gun + '. GÜN ÖDÜLÜ</div>' +
+      '<div class="gp-durum">' +
+        (alinmisMi ? "Bu ödülü aldın." : "Bu gün henüz gelmedi.") +
+      '</div>' +
+      '<div class="gp-satir">' + gunlukBirlikYuzu(uid) +
+        '<span>' + fmt(o.savunucu) + ' ' + ad + '</span></div>' +
+      '<div class="gp-satir">' + ELMAS("gunluk") +
+        '<span>' + fmt(o.elmas) + ' Elmas</span></div>' +
+      '<div class="gp-etiket">' + o.parca + ' kahraman parçası</div>' +
+      '<button class="gp-al" id="gunlukOnizleKapat">Kapat</button>' +
+    '</div>';
+  document.body.appendChild(pop);
+
+  const kapat = () => { const e = document.getElementById("gunlukPop"); if (e) e.remove(); };
+  const btn = document.getElementById("gunlukOnizleKapat");
+  if (btn) btn.addEventListener("click", kapat);
+  /* Kutunun dışına basınca da kapansın. */
+  pop.addEventListener("click", (ev) => { if (ev.target === pop) kapat(); });
 }
 
 /* Ana ekrandaki günlük giriş rozetini tazeler. Ödül alınmış olsa da

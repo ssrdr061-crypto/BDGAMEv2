@@ -9559,3 +9559,19 @@ setTimeout(kur, 1200);
     ".hosp-bedel .hb-oge.yok .hb-sayi{color:#ff8f8f;}";
   document.head.appendChild(st);
 })();
+
+/* Günlük ödül ÖNİZLEME penceresi — geçmiş/gelecek günler.
+   Alma penceresiyle aynı kutuyu kullanır; tek farkı durum satırı
+   ve sönük duruşu, böylece oyuncu "bu alınabilir mi" diye
+   tereddüt etmez. */
+(function gunlukOnizlemeStili() {
+  const st = document.createElement("style");
+  st.id = "gunlukOnizlemeCss";
+  st.textContent =
+    ".gunluk-pop-onizleme .gp-durum{font-family:'Baloo 2',sans-serif;" +
+      "font-weight:700;font-size:13px;color:#cfe3ff;opacity:.85;" +
+      "text-align:center;margin:-2px 0 8px;}" +
+    ".gunluk-pop-onizleme .gp-satir{opacity:.85;}" +
+    ".gunluk-pop-onizleme .gp-etiket{opacity:.85;}";
+  document.head.appendChild(st);
+})();
