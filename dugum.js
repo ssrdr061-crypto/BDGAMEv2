@@ -174,9 +174,6 @@ const KAYNAK_IDLER = ["odun", "et", "demir", "su", "enerji"];
 /* Her seviyede kaç slot açılacak. */
 const SLOT_ADEDI = { 1: 10, 2: 7, 3: 5 };
 
-/* Canavar stat çarpanı — seviye arttıkça birlik başına güç. */
-const SEVIYE_CARPANI = { 1: 1.00, 2: 1.15, 3: 1.30 };
-
 /* ── KAYNAK ARAZİLERİ ──
    miktar[seviye] = arazide TOPLAM kaç birim var. Ordu kapasitesi
    dolunca döner, kalan arazide durur; sıfırlanınca arazi tükenir. */
@@ -196,32 +193,95 @@ const ARAZILER = [
 ];
 
 /* ── CANAVARLAR ──
-   birlik[seviye] = kaç birlik. stat = BİRLİK BAŞINA saldırı /
-   savunma / can — oyuncu birlikleriyle (troops.js) aynı ölçekte.
-   Bütçe hepsinde 18; fark ŞEKİLDE, güçte değil. Zorluğu birlik
-   SAYISI belirler, stat yalnız savaşın hissini değiştirir.
+   Canavarın kendi stat tablosu YOKTUR. Canavar, oyuncu ordusuyla
+   AYNI CİNSTEN bir ordudur: eşit sayıda Savunucu + Koruyucu +
+   Nişancı. İki kadran vardır:
+
+     kademe  → birlik KALİTESİ (troops.js UNIT_TYPES'tan okunur)
+     bilesim → AİLE BAŞINA adet; toplam birlik = 3 × bu sayı
+
+   Böylece "Goril Sv1 basit, Fil Sv3 son duvar" ölçütü somutlaşır:
+   Fil'in askeri senin en iyi askerinle aynı kalitededir (Sv6),
+   üstelik 45.000'er tanedir.
+
+   TAVAN: sefere çıkarılabilecek birlik sayısı sınırlıdır
+   (gelistir.js TABAN_KAPASITE 5.000 + en çok 3 komutan, tavan
+   ~206.000). Toplamlar bu tavana göre dengelendi — Fil Sv3
+   toplam 135.000. Bu sayıları büyütmeden önce tavana bak.
+
    odul[seviye] = tek vuruşta düşen kaynak (sabit rakam). */
+const CANAVAR_AILE_SIRA = ["knight", "soldier", "robot"];
+
 const CANAVARLAR = [
   { id: "goril", ad: "Goril", ikon: "🦍", kaynak: "demir",
-    stat: { attack: 3, defense: 7, hp: 8 },
-    birlik: { 1: 25,  2: 80,   3: 250 },
-    odul:   { 1: 1000, 2: 5000, 3: 15000 } },
+    kademe:  1,
+    bilesim: { 1: 50,   2: 300,  3: 700 },
+    odul:    { 1: 1000, 2: 5000, 3: 15000 } },
 
   { id: "ayi",   ad: "Ayı",   ikon: "🐻", kaynak: "et",
-    stat: { attack: 6, defense: 5, hp: 7 },
-    birlik: { 1: 50,   2: 150,  3: 450 },
-    odul:   { 1: 2500, 2: 5000, 3: 8000 } },
+    kademe:  2,
+    bilesim: { 1: 200,  2: 1200, 3: 2800 },
+    odul:    { 1: 2500, 2: 5000, 3: 8000 } },
 
   { id: "kurt",  ad: "Kurt",  ikon: "🐺", kaynak: "su",
-    stat: { attack: 9, defense: 3, hp: 6 },
-    birlik: { 1: 250, 2: 430, 3: 700 },
-    odul:   { 1: 200, 2: 900, 3: 1700 } },
+    kademe:  4,
+    bilesim: { 1: 800,  2: 4800, 3: 11000 },
+    odul:    { 1: 200,  2: 900,  3: 1700 } },
 
   { id: "fil",   ad: "Fil",   ikon: "🐘", kaynak: "enerji",
-    stat: { attack: 4, defense: 8, hp: 6 },
-    birlik: { 1: 500, 2: 1100, 3: 2500 },
-    odul:   { 1: 150, 2: 400,  3: 1300 } },
+    kademe:  6,
+    bilesim: { 1: 3200, 2: 19000, 3: 45000 },
+    odul:    { 1: 150,  2: 400,   3: 1300 } },
 ];
+
+/* Aile + kademe → birlik kimliği. Sv1'de kimlik ailenin kendisidir
+   (knight/soldier/robot — bunlar Firebase veri anahtarıdır, asla
+   değişmez), üstünde sayı eklenir: knight2 … robot6. */
+function canavarBirimId(aile, kademe) {
+  const kd = Math.max(1, Math.floor(Number(kademe) || 1));
+  return kd <= 1 ? aile : (aile + kd);
+}
+
+/* Bir birliğin savaş statı. TEK KAYNAK troops.js UNIT_TYPES.
+   Buraya rakam GÖMÜLMEZ; troops.js yüklenmemişse savaş zaten
+   yürümez, o yüzden sıfır dönmek yerine 1/0/1 ile ayakta tutulur. */
+function birimStat(unitId) {
+  const d = (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES)
+              ? UNIT_TYPES[unitId] : null;
+  if (!d) return { attack: 1, defense: 0, hp: 1 };
+  return {
+    attack:  Math.max(0, Number(d.attack)  || 0),
+    defense: Math.max(0, Number(d.defense) || 0),
+    hp:      Math.max(1, Number(d.hp)      || 1),
+  };
+}
+
+/* Üç ailenin ADET AĞIRLIKLI ortalaması. Adetler eşit olduğu için
+   bu düz ortalamadır, ama bileşim ileride eşitsiz olursa da
+   toplam güç doğru kalsın diye ağırlıklı yazıldı.
+
+   NEDEN ORTALAMA: pve.js şu an canavarı TEK HAVUZ olarak dövüşür
+   (tek atk/def/hp × adet). Ortalama alınca havuzun TOPLAM gücü
+   üç aileli ordununkiyle birebir aynı çıkar. Aile ayrımı (hedef
+   sırası, üstünlük çemberi) Adım 2'de pve.js'e taşınacak; o zaman
+   bu ortalama yalnız gösterim için kalır. */
+function bilesimOrtalamasi(bilesim) {
+  let n = 0, atk = 0, def = 0, hp = 0;
+  Object.keys(bilesim || {}).forEach(uid => {
+    const adet = Math.max(0, Math.floor(Number(bilesim[uid]) || 0));
+    if (adet <= 0) return;
+    const s = birimStat(uid);
+    n += adet; atk += s.attack * adet; def += s.defense * adet; hp += s.hp * adet;
+  });
+  if (n <= 0) return { adet: 0, attack: 1, defense: 0, hp: 1 };
+  const yuvarla = (x) => Math.round((x / n) * 10) / 10;
+  return {
+    adet: n,
+    attack:  Math.max(0, yuvarla(atk)),
+    defense: Math.max(0, yuvarla(def)),
+    hp:      Math.max(1, yuvarla(hp)),
+  };
+}
 
 /* Şablonları tek indekste toplar: "goril|2" → şablon + seviye */
 const _sablonlar = {};
@@ -238,27 +298,39 @@ const _sablonlar = {};
   });
   CANAVARLAR.forEach(c => {
     [1, 2, 3].forEach(sv => {
-      const carp = SEVIYE_CARPANI[sv];
+      const adet = Math.max(0, Math.floor(Number(c.bilesim[sv]) || 0));
+      const bilesim = {};
+      CANAVAR_AILE_SIRA.forEach(ai => {
+        bilesim[canavarBirimId(ai, c.kademe)] = adet;
+      });
       _sablonlar[c.id + "|" + sv] = {
         tur: "canavar", id: c.id, seviye: sv,
         ad: c.ad, ikon: c.ikon,
         kaynak: c.kaynak,
-        birlik: c.birlik[sv],
+        kademe: c.kademe,
+        bilesim: bilesim,
+        birlik: adet * CANAVAR_AILE_SIRA.length,
         odul: c.odul[sv],
-        /* Statlar seviye çarpanıyla YUVARLANARAK sabitlenir —
-           her okumada yeniden çarpılırsa savaş motoru ile
-           gösterim ayrışır. */
-        stat: {
-          attack:  Math.round(c.stat.attack  * carp * 10) / 10,
-          defense: Math.round(c.stat.defense * carp * 10) / 10,
-          hp:      Math.round(c.stat.hp      * carp * 10) / 10,
-        },
+        /* stat: kurulumda YAZILMAZ. troops.js'in yüklenmiş olmasına
+           bağlıdır ve bu dosya ondan sonra yükleniyor olsa da,
+           yükleme sırası değişirse sessizce 1/0/1'e düşerdi. İlk
+           okumada hesaplanıp donduruluyor (aşağıda sablon()). */
+        stat: null,
       };
     });
   });
 })();
 
-function sablon(id, seviye) { return _sablonlar[id + "|" + seviye] || null; }
+/* İlk erişimde statı hesaplar ve DONDURUR. Her okumada yeniden
+   hesaplanırsa savaş motoruyla gösterim ayrışabilir. */
+function sablon(id, seviye) {
+  const s = _sablonlar[id + "|" + seviye] || null;
+  if (s && s.tur === "canavar" && !s.stat) {
+    const o = bilesimOrtalamasi(s.bilesim);
+    s.stat = { attack: o.attack, defense: o.defense, hp: o.hp };
+  }
+  return s;
+}
 
 /* ═══════════════════════════════════════════════════════════
    4) TOHUMLU RASTGELE
@@ -662,9 +734,13 @@ function slotDurumu(s) {
   const k = konum(s.slotId);
   if (!k) return null;
 
+  /* TUZAK: canavar birlik sayıları 33'te yeniden ölçeklendi. Bulutta
+     duran `k` ESKİ ölçekte olabilir (örn. Fil Sv1'de 380, yeni toplam
+     9.600). Kelepçe olmazsa dolu görünen düğüm yarı ölü doğar. */
+  const tam = (sab.tur === "arazi" ? sab.miktar : sab.birlik);
   const kalan = (d && typeof d.k === "number" && typeof d.td !== "number")
-    ? d.k
-    : (sab.tur === "arazi" ? sab.miktar : sab.birlik);
+    ? Math.max(0, Math.min(d.k, tam))
+    : tam;
 
   return {
     slotId: s.slotId,
@@ -684,6 +760,12 @@ function slotDurumu(s) {
     miktar: sab.tur === "arazi" ? sab.miktar : 0,
     kalan: kalan,
     birlik: sab.tur === "canavar" ? sab.birlik : 0,
+    /* Canavarın TAM bileşimi: { knight4: 800, soldier4: 800, robot4: 800 }.
+       pve.js şu an bunu kullanmıyor (tek havuz), Adım 2'de üç aileli
+       orduya geçerken kaynak bu olacak. Kısmi hasarlı düğümde
+       oranlamak için `kalan / birlik` çarpanı kullanılmalı. */
+    bilesim: sab.tur === "canavar" ? Object.assign({}, sab.bilesim) : null,
+    kademe: sab.tur === "canavar" ? (sab.kademe || 1) : 0,
     stat: sab.stat || null,
     odul: sab.tur === "canavar" ? sab.odul : 0,
     /* İşgal — haritada YALNIZ kullanıcı adı gösterilir.
@@ -797,6 +879,8 @@ function isgalAl(slotId, varisMs) {
     d.ia = benAd();
     d.iat = simdi + gecikme;   /* ordunun VARACAĞI an — bkz. yukarı */
     if (typeof d.k !== "number") d.k = varsayilanKalan;
+    /* 33 ölçek değişimi kelepçesi — bkz. slotDurumu. */
+    else if (d.k > varsayilanKalan) d.k = varsayilanKalan;
     delete d.td;
     return d;
   }).catch(err => {
@@ -895,7 +979,10 @@ function tuket(slotId, miktar) {
       d = { n: (d.n || 0) + 1, k: varsayilanK };
     }
     if (!d) d = { n: nesilOf(slotId), k: varsayilanK };
-    const kalanOnce = typeof d.k === "number" ? d.k : varsayilanK;
+    /* 33 ölçek değişimi kelepçesi — bkz. slotDurumu. */
+    const kalanOnce = typeof d.k === "number"
+      ? Math.max(0, Math.min(d.k, varsayilanK))
+      : varsayilanK;
     /* MİKTAR SAYI DEĞİLSE tamamı istenmiş sayılır. Aksi halde
        Math.min(undefined, …) NaN üretir, kalan NaN olur, "tükendi"
        koşulu asla sağlanmaz ve kural da sayı olmayan `k` yüzünden
@@ -1269,7 +1356,7 @@ if (typeof window !== "undefined") {
    değişken doğrudan okunmaz — adres tek yerden değişsin.
    ═══════════════════════════════════════════════════════════ */
 window.DUGUM = {
-  SURUM: "canvas-4-varis",          /* rozet bunu gösterir; yükleme doğrulaması */
+  SURUM: "canavar-bilesim-33",      /* rozet bunu gösterir; yükleme doğrulaması */
 
   /* okuma */
   dugumler: dugumler,
