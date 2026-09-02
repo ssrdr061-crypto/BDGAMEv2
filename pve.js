@@ -59,11 +59,6 @@
        çarpanı kullan — pvp.js'e dokunmadan. */
     canavarAtkCarpani: 1.0,
     canavarDefCarpani: 1.0,
-
-    /* Canavarın ÜSTÜNLÜK ÇEMBERİ'ndeki ailesi (troops.js → CEMBER).
-       "robot" = Nişancı: Savunucu'ya güçlü, Koruyucu'ya zayıf.
-       Boş bırakılırsa ("") canavar çembersiz vurur. */
-    canavarAile: "robot",
   };
 
   /* Hedef önceliği — pvp.js'teki TARGET_ORDER ile AYNI olmalı.
@@ -154,27 +149,71 @@
   }
 
   /* ── CANAVAR ORDUSU ───────────────────────────────────────────
-     `enemy.stat` birim başına stat (seviye çarpanı düğüm şablonunda
-     zaten uygulanmış), `enemy.birlik` birlik sayısı. Eski çağrı
-     noktaları (stat taşımayan canavar nesnesi) için tek-gövde
-     yedeği korunur — o zaman adet 1'dir, davranış eskisi gibidir. */
+     Canavar artık TEK GÖVDE DEĞİL, oyuncu ordusuyla aynı cinsten
+     bir birlik listesidir. Kaynak `enemy.bilesim` (dugum.js):
+     { knight4: 800, soldier4: 800, robot4: 800 } gibi.
+
+     Statlar HAM `UNIT_TYPES`'tan okunur — `ISTATISTIK` katmanı
+     BİLEREK atlanır: o katman oyuncunun araştırma ve kale
+     bonuslarıdır, canavarın onlarla işi yoktur.
+
+     Kısmi hasarlı düğüm: `enemy.kalan / enemy.birlik` oranıyla her
+     aile ölçeklenir. Oran 0'a yaklaşsa bile var olan aile en az 1
+     birlikle durur, yoksa canavar sıfır orduyla doğar.
+
+     GERİYE UYUM: `bilesim` taşımayan eski çağrı noktaları için
+     (stat/attack/maxHp taşıyan düz nesne) tek birimlik sentetik
+     liste üretilir; davranış eskisi gibidir. */
   function canavarKur(enemy) {
-    const st = enemy && enemy.stat;
-    const n  = Math.max(1, Math.round(say(enemy.birlik, 0)));
-    if (st && say(st.hp, 0) > 0) {
-      return {
-        ordu: true, adet: n,
-        atkBir: Math.max(0, say(st.attack, 1)),
-        defBir: Math.max(0, say(st.defense, 0)),
-        hpBir:  Math.max(1, say(st.hp, 1)),
-      };
+    const bilesim = (enemy && enemy.bilesim) || null;
+    const toplam  = Math.max(0, Math.round(say(enemy && enemy.birlik, 0)));
+    const kalan   = (enemy && typeof enemy.kalan === "number")
+                      ? Math.max(0, enemy.kalan) : toplam;
+    const oran    = (toplam > 0) ? Math.min(1, kalan / toplam) : 1;
+
+    const birimler = [];
+    if (bilesim) {
+      SAF_SIRASI().forEach(uid => {
+        const tam = Math.max(0, Math.round(say(bilesim[uid], 0)));
+        if (tam <= 0) return;
+        const n = Math.max(1, Math.round(tam * oran));
+        const d = UT()[uid] || {};
+        birimler.push({
+          unitId: uid,
+          count: n,
+          start: n,
+          atk:   say(d.attack, 1),
+          def:   say(d.defense, 0),
+          olum:  say(d.olum, 0),
+          hpEach: Math.max(1, Math.round(say(d.hp, 1))),
+          artik: 0,
+          dusen: 0,
+        });
+      });
     }
-    return {
-      ordu: false, adet: 1,
-      atkBir: Math.max(1, say(enemy.attack, 1)),
-      defBir: Math.max(0, say(enemy.defense, 0)),
-      hpBir:  Math.max(1, say(enemy.maxHp, 1)),
-    };
+    if (birimler.length) return birimler;
+
+    /* ── ESKİ BİÇİM YEDEĞİ ── */
+    const st = enemy && enemy.stat;
+    const n  = Math.max(1, Math.round(say(enemy && enemy.birlik, 0)));
+    if (st && say(st.hp, 0) > 0) {
+      return [{
+        unitId: "canavar", count: n, start: n,
+        atk:  Math.max(0, say(st.attack, 1)),
+        def:  Math.max(0, say(st.defense, 0)),
+        olum: 0,
+        hpEach: Math.max(1, Math.round(say(st.hp, 1))),
+        artik: 0, dusen: 0,
+      }];
+    }
+    return [{
+      unitId: "canavar", count: 1, start: 1,
+      atk:  Math.max(1, say(enemy && enemy.attack, 1)),
+      def:  Math.max(0, say(enemy && enemy.defense, 0)),
+      olum: 0,
+      hpEach: Math.max(1, Math.round(say(enemy && enemy.maxHp, 1))),
+      artik: 0, dusen: 0,
+    }];
   }
 
   function orduSayi(b)   { return b.reduce((s, u) => s + u.count, 0); }
@@ -241,11 +280,12 @@
     const sira = HEDEF_SIRASI[AILE(srcKey)] || HEDEF_SIRASI[srcKey] || ON_SAF;
     let kalan = dmg, dusenToplam = 0;
 
-    /* Üstünlük çemberi (troops.js → CEMBER). Canavarın ailesi
-       PVE.canavarAile'den gelir; "front" gibi sınıfsız kaynaklar
-       çarpansız kalır. */
+    /* Üstünlük çemberi (troops.js → CEMBER). Kaynak artık HER İKİ
+       tarafta da gerçek bir birlik kimliğidir — canavarın da ailesi
+       vardır. "front" yalnız sahipsiz hasar içindir (yansıma, anında
+       yok etme); o çarpansız kalır. */
     const kaynak = (srcKey === "front" || srcKey === "enemy")
-      ? (PVE.canavarAile || "") : AILE(srcKey);
+      ? "" : AILE(srcKey);
     const carpani = (fam) => {
       try {
         if (typeof cemberCarpani === "function") return cemberCarpani(kaynak, fam);
@@ -359,12 +399,14 @@
        SAVUNAN TARAF BOŞ: canavarın ailesi yoktur, Savunucu/Koruyucu/
        Nişancı satırlarında sağ sütun "—" görünür. Nesne yine de
        verilir; `statKarsiHTML` iki taraf da yoksa hiç çizmiyor.    */
-    /* Canavar ordusu BURADA kurulur — `_statOzet` aşağıda `cv.adet`
-       okuyor. Tanım daha aşağıdaydı ve `const` ölü bölgesi yüzünden
-       her canavar savaşı burada "Cannot access 'cv' before
-       initialization" ile çöküyordu; sefer varışı bu istisnayla
-       askıda kalıyordu. Kullanımdan ÖNCE tanımlanmalı. */
-    const cv = canavarKur(enemy);
+    /* Canavar ordusu BURADA kurulur — `_statOzet` aşağıda hem
+       sayısını hem birlik dökümünü okuyor. Tanım daha aşağıdaydı ve
+       `const` ölü bölgesi yüzünden her canavar savaşı burada
+       "Cannot access ... before initialization" ile çöküyordu; sefer
+       varışı bu istisnayla askıda kalıyordu. Kullanımdan ÖNCE
+       tanımlanmalı. */
+    const cBirimler  = canavarKur(enemy);
+    const cBaslangic = orduSayi(cBirimler);
 
     const _statOzet = {
       attacker: {
@@ -387,7 +429,30 @@
           };
         })
       },
-      defender: { sayi: cv.adet, birimler: [] }
+      /* SAVUNAN TARAF ARTIK DOLU: canavarın da aileleri var, rapor
+         sağ sütunu çizebiliyor. Canavarda araştırma/kale bonusu
+         yoktur, o yüzden gerçek stat ile ham taban AYNIDIR —
+         yüzdeler doğal olarak "—" görünür. */
+      defender: {
+        sayi: cBaslangic,
+        birimler: cBirimler.filter(u => (u.start || 0) > 0).map(u => {
+          const d = UT()[u.unitId] || {};
+          return {
+            unitId: u.unitId,
+            aile: AILE(u.unitId),
+            ad: d.name || u.unitId,
+            sayi: u.start,
+            atk:  Math.round((u.atk    || 0) * 100) / 100,
+            def:  Math.round((u.def    || 0) * 100) / 100,
+            hp:   Math.round((u.hpEach || 0) * 100) / 100,
+            olum: Math.round((u.olum   || 0) * 100) / 100,
+            tatk:  d.attack  || 0,
+            tdef:  d.defense || 0,
+            thp:   d.hp      || 0,
+            tolum: d.olum    || 0
+          };
+        })
+      }
     };
 
     /*  KAHRAMAN YILDIZLARI — pvp.js ile BİREBİR AYNI BİÇİM.
@@ -416,38 +481,88 @@
     const bul = t => ab.find(a => a.type === t);
     let f;
 
-    /* Canavar ordusu. Yetenek etkileri BİRİM BAŞINA statlara
-       uygulanır; ordu değerleri her turda ayakta kalan birlikten
-       yeniden hesaplanır. */
-    let cAtkBir = cv.atkBir * PVE.canavarAtkCarpani;
-    let cDefBir = cv.defBir * PVE.canavarDefCarpani;
-    let cHpBir  = cv.hpBir;
+    /* Canavar ordusu. Denge çarpanları ve kahraman debuff'ları
+       BİRİM BAŞINA statlara uygulanır; ordu değerleri her turda
+       ayakta kalan birlikten yeniden hesaplanır. */
+    cBirimler.forEach(u => {
+      u.atk = Math.max(0, u.atk * PVE.canavarAtkCarpani);
+      u.def = Math.max(0, u.def * PVE.canavarDefCarpani);
+    });
 
     const debuffs = {};
     if ((f = bul("enemy_def_shred_pct")) && f.v
         && Math.random() * 100 < (((f.effect && f.effect.chance) != null) ? f.effect.chance
                                   : (f.chance != null ? f.chance : 100))) {
-      cDefBir *= (1 - f.v / 100);
+      cBirimler.forEach(u => { u.def *= (1 - f.v / 100); });
       debuffs.defShred = f.v;
     }
     if ((f = bul("enemy_hp_atk_reduce_pct"))) {
       const hpR = f.v || 0;
       const atkR = (f.v2 != null ? f.v2 : f.v) || 0;
-      cHpBir  *= (1 - hpR / 100);
-      cAtkBir *= (1 - atkR / 100);
+      cBirimler.forEach(u => {
+        u.hpEach *= (1 - hpR / 100);
+        u.atk    *= (1 - atkR / 100);
+      });
       debuffs.hpReduce = hpR; debuffs.atkReduce = atkR;
     }
-    cAtkBir = Math.max(cv.ordu ? 0 : 1, Math.round(cAtkBir));
-    cDefBir = sifirAlti(Math.round(cDefBir));
-    cHpBir  = Math.max(1, Math.round(cHpBir));
+    cBirimler.forEach(u => {
+      u.atk    = sifirAlti(Math.round(u.atk));
+      u.def    = sifirAlti(Math.round(u.def));
+      u.hpEach = Math.max(1, Math.round(u.hpEach));
+    });
 
-    const enemyMaxHp = Math.max(1, cv.adet * cHpBir);
+    const enemyMaxHp = Math.max(1, orduCan(cBirimler));
 
-    /* Ayakta kalan canavar birliği, kalan candan türer — ayrı sayaç
-       tutulmaz, böylece can çubuğu ile birlik sayısı ayrışamaz. */
-    const canavarAdet = () => Math.ceil(sifirAlti(enemyHp) / cHpBir);
-    const canavarAtk  = () => Math.max(1, canavarAdet() * cAtkBir);
-    const canavarDef  = () => canavarAdet() * cDefBir;
+    /* CANAVARIN DA YENİLGİ EŞİĞİ VAR — oyuncununkiyle aynı oran.
+       Ordusunun %55'i düşünce canavar bozulur; kalan birlik
+       haritadan kalkar (dugum.js canavarYen düğümü tümden tüketir,
+       kısmi kalıntı bırakmaz). */
+    const cTaban = Math.max(0, Math.ceil(cBaslangic * (1 - PVE.yenilgiEsigi)));
+
+    /* Ordu değerleri listeden türer — ayrı sayaç tutulmaz, böylece
+       can çubuğu ile birlik sayısı ayrışamaz. */
+    const canavarCan  = () => orduCanKalan(cBirimler);
+    const canavarAdet = () => orduSayi(cBirimler);
+    const canavarAtk  = () => Math.max(1, orduAtk(cBirimler));
+    const canavarDef  = () => orduDef(cBirimler);
+
+    /* ── ÖLDÜRME KAYDI ────────────────────────────────────────────
+       Hasar artık KAYNAK BİRLİK BAŞINA dağıtıldığı için kimin kaç
+       tane düşürdüğü tahmin edilmiyor, sayılıyor. */
+    const _attrib  = {};   /* oyuncu birliği → düşürdüğü canavar   */
+    const _attribD = {};   /* canavar birliği → düşürdüğü oyuncu   */
+
+    function _yaz(tablo, uid, alan, n) {
+      if (n <= 0) return;
+      if (!tablo[uid]) tablo[uid] = { killed: 0, wounded: 0 };
+      tablo[uid][alan] += n;
+    }
+
+    /* Bir orduyu, saldıran ordunun her birliği adına AYRI AYRI
+       vurur. Böylece hedef sırası (HEDEF_SIRASI) ve üstünlük
+       çemberi gerçekten işler, öldürme kaydı da kesin olur.
+       Pay dağıtımında yuvarlama artığı SON birliğe yazılır ki
+       toplam hasar birebir tutsun. */
+    function dagitKaynakli(hedefOrdu, kaynakOrdu, dmg, hedefTaban, kayit) {
+      if (dmg <= 0) return 0;
+      const liste = kaynakOrdu.filter(u => u.count > 0 && u.atk > 0);
+      const toplamPay = liste.reduce((s, u) => s + u.atk * u.count, 0);
+      if (!liste.length || toplamPay <= 0) {
+        return hasariDagit(hedefOrdu, "front", dmg, hedefTaban);
+      }
+      let kalanDmg = dmg, dusen = 0;
+      liste.forEach((u, i) => {
+        if (kalanDmg <= 0) return;
+        const pay = (i === liste.length - 1)
+          ? kalanDmg
+          : Math.min(kalanDmg, Math.round(dmg * (u.atk * u.count) / toplamPay));
+        if (pay <= 0) return;
+        kalanDmg -= pay;
+        const d = hasariDagit(hedefOrdu, u.unitId, pay, hedefTaban);
+        if (d > 0) { dusen += d; if (kayit) kayit(u.unitId, d); }
+      });
+      return dusen;
+    }
 
     /* Çelik Yansıması: belirli bir AİLENİN saldırısını arttırır.
        Aile adı yetenek tanımından okunur, burada sabit yazılmaz. */
@@ -458,8 +573,8 @@
       });
     }
 
-    /* Yasak Büyüler: canavarda ailesi olmadığı için can azaltma
-       doğrudan canavarın canına işler — ihtimalli, bir kez. */
+    /* Yasak Büyüler: can üzerinden hesaplanır, sahipsiz hasar olarak
+       canavar ordusuna dağıtılır (birlik düşürür, canı buharlaştırmaz). */
     let instantKilled = 0;
     if ((f = bul("enemy_instant_casualty")) && f.v) {
       instantKilled = Math.round(enemyMaxHp * f.v / 100);
@@ -498,12 +613,15 @@
       const benimGuc = orduAtk(birimler) + orduDef(birimler)
                      + say(hero.attack, 0) + say(hero.defense, 0)
                      + Math.round(combinedMaxHp / 4);
-      const onunGuc  = cv.adet * cAtkBir + cv.adet * cDefBir
+      const onunGuc  = orduAtk(cBirimler) + orduDef(cBirimler)
                      + Math.round(enemyMaxHp / 4);
       if (onunGuc >= benimGuc * (1 + gap / 100)) gucFarkiAzalt = f.v || 0;
     }
 
-    enemyHp = sifirAlti(enemyMaxHp - instantKilled);
+    if (instantKilled > 0) {
+      hasariDagit(cBirimler, "front", instantKilled, cTaban);
+    }
+    enemyHp = canavarCan();
 
     /* ── SAVAŞ DÖNGÜSÜ ── */
     const rounds = [];
@@ -511,11 +629,13 @@
     let toplamVerilen = instantKilled;
     let toplamAlinan = 0;
 
-    while (enemyHp > 0 && orduSayi(birimler) > taban && turn < PVE.maxTur) {
+    while (orduSayi(cBirimler) > cTaban
+           && orduSayi(birimler) > taban
+           && turn < PVE.maxTur) {
       turn++;
 
       if (perPct > 0 && turn % perHer === 0) {
-        cDefBir = sifirAlti(cDefBir * (1 - perPct / 100));
+        cBirimler.forEach(u => { u.def = sifirAlti(Math.round(u.def * (1 - perPct / 100))); });
         perSayi++;
       }
 
@@ -556,13 +676,15 @@
           if (rc !== 1) vurus.dmg = Math.max(1, Math.round(vurus.dmg * rc));
         }
       }
-      enemyHp = sifirAlti(enemyHp - vurus.dmg);
+      dagitKaynakli(cBirimler, birimler, vurus.dmg, cTaban,
+                    (uid, n) => _yaz(_attrib, uid, "killed", n));
+      enemyHp = canavarCan();
       toplamVerilen += vurus.dmg;
       rounds.push({
         side: "hero", dmg: vurus.dmg, isUlti: vurus.isUlti,
         enemyHpAfter: enemyHp, heroHpAfter: orduCanKalan(birimler),
       });
-      if (enemyHp <= 0) break;
+      if (orduSayi(cBirimler) <= cTaban) break;
 
       /* ── CANAVAR VURUŞU ── */
       if (donukTur > 0) {
@@ -574,11 +696,17 @@
         continue;
       }
 
-      /* Birliklerin savunması artık gerçekten sayılıyor */
+      /* Birliklerin savunması artık gerçekten sayılıyor.
+         CANAVARIN ÖLDÜRÜCÜLÜĞÜ: birim listesine geçtiği için artık
+         canavarın da `olum` değeri var — oyuncununkiyle aynı formül,
+         savunmanın bir kısmını yok sayar. */
+      const cHamAtk = canavarAtk();
+      const cDelme  = olumDelme(orduOlum(cBirimler, cHamAtk));
       const savunma = orduDef(birimler) + say(hero.defense, 0);
-      const gelen = hasarHesapla(canavarAtk(), savunma,
+      const gelen = hasarHesapla(cHamAtk, savunma,
                                  say(enemy.ultiChance, 0),
-                                 say(enemy.ultiMultiplier, 1.8));
+                                 say(enemy.ultiMultiplier, 1.8),
+                                 cDelme);
 
       let inc = gelen.dmg;
       if (gucFarkiAzalt > 0) inc = Math.round(inc * (1 - gucFarkiAzalt / 100));
@@ -601,8 +729,11 @@
         }
       }
 
-      /* Canavar sınıfsızdır → ön saf sırasıyla vurur */
-      hasariDagit(birimler, "front", inc, taban);
+      /* Canavarın her ailesi KENDİ hedef sırasıyla vurur — artık
+         sınıfsız "front" değil. PvE'de oyuncu birliği ölmez,
+         yaralanır; kayıt da `wounded` olarak tutulur. */
+      dagitKaynakli(birimler, cBirimler, inc, taban,
+                    (uid, n) => _yaz(_attribD, uid, "wounded", n));
       /* Can eski değerine dönerken biriken artık hasar da kırpılır.
          Kırpılmazsa `tavan = count*hpEach - artik` eksiye düşebilir
          ve hasar hesabı ters işler. */
@@ -614,7 +745,8 @@
 
       if (yansimaPct > 0 && inc > 0) {
         const y = Math.max(1, Math.round(inc * yansimaPct / 100));
-        enemyHp = sifirAlti(enemyHp - y);
+        hasariDagit(cBirimler, "front", y, cTaban);
+        enemyHp = canavarCan();
         yansimaToplam += y;
         toplamVerilen += y;
       }
@@ -627,11 +759,14 @@
     }
 
     /* ── SONUÇ ──
-       Zafer için İKİ şart: canavar ölecek VE ordunun %55'inden
-       fazlası düşmemiş olacak. */
+       Zafer için İKİ şart: canavar BOZULACAK (ordusunun %55'i
+       düşecek) VE senin ordunun %55'inden fazlası düşmemiş olacak.
+       Oyuncu önce vurduğu için ikisi aynı turda dolarsa zafer
+       oyuncunundur. */
     const dusenToplam = baslangicSayi - orduSayi(birimler);
     const kayipOrani = baslangicSayi > 0 ? dusenToplam / baslangicSayi : 0;
-    const win = (enemyHp <= 0) && (kayipOrani <= PVE.yenilgiEsigi);
+    const canavarBozuldu = orduSayi(cBirimler) <= cTaban;
+    const win = canavarBozuldu && (kayipOrani <= PVE.yenilgiEsigi);
 
     /* ── YARALILAR ──
        PvE'de ÖLÜM YOK: düşen her birlik hastaneye gider. */
@@ -672,35 +807,26 @@
 
     const kalanCan = orduCanKalan(birimler);
 
-    /* ── KİM KAÇ TANE ÖLDÜRDÜ ─────────────────────────────────────
-       pvp.js'teki `attribute()` ile aynı mantık. Fark şu: PvP'de her
-       vuruş kimin yaptığı biliniyor (`killsBy`), PvE'de hasar ordu
-       toplamı üzerinden hesaplanıyor ve canavar tek gövde. O yüzden
-       düşen canavar sayısı, birimlerin SALDIRI PAYINA göre dağıtılır
-       — hasarı kim verdiyse öldürme de ona yazılır. Bu, pvp.js'in
-       sahipsiz düşüşler için kullandığı yöntemin aynısıdır.
+    /* ── KİM KAÇ TANE DÜŞÜRDÜ ─────────────────────────────────────
+       ARTIK TAHMİN YOK. Hasar her tur kaynak birlik başına ayrı
+       dağıtıldığı için (`dagitKaynakli`), düşen sayısı doğrudan
+       `hasariDagit`in dönüşünden sayıldı. Eski sürümde bu, saldırı
+       payına göre ORANLANIYORDU — canavar tek gövde olduğu için
+       başka yolu yoktu.
 
-       Canavarın yaralısı yoktur (hastanesi yok), `wounded` hep 0.
-       Yuvarlama artığı son birime yazılır ki toplam tutsun.       */
-    const _canavarOlen = Math.max(0, cv.adet - canavarAdet());
-    const _attrib = {};
-    (function dagit() {
-      const liste = birimler.filter(u => (u.start || 0) > 0);
-      liste.forEach(u => { _attrib[u.unitId] = { killed: 0, wounded: 0 }; });
-      if (!liste.length || _canavarOlen <= 0) return;
+       Canavarın yaralısı yoktur (hastanesi yok): canavar tarafında
+       düşen birlik `killed`, oyuncu tarafında `wounded` sayılır. */
+    const _canavarOlen = Math.max(0, cBaslangic - orduSayi(cBirimler));
 
-      const toplamPay = liste.reduce((s, u) => s + (u.atk || 0) * (u.start || 0), 0);
-      let kalan = _canavarOlen;
-      liste.forEach((u, i) => {
-        if (i === liste.length - 1) { _attrib[u.unitId].killed += kalan; return; }
-        const pay = toplamPay > 0
-          ? ((u.atk || 0) * (u.start || 0)) / toplamPay
-          : 1 / liste.length;
-        const k = Math.min(Math.round(_canavarOlen * pay), kalan);
-        _attrib[u.unitId].killed += k;
-        kalan -= k;
-      });
-    })();
+    /* Savunanın (canavarın) birlik dökümü — rapor ekranı bunu
+       `defenderTroops` / `defenderLosses` üzerinden çizer. */
+    const _defTroops = {};
+    const _defLosses = { killed: {}, wounded: {} };
+    cBirimler.forEach(u => {
+      if ((u.start || 0) <= 0) return;
+      _defTroops[u.unitId] = (_defTroops[u.unitId] || 0) + u.start;
+      if (u.dusen > 0) _defLosses.killed[u.unitId] = u.dusen;
+    });
 
     /* Buff tek kullanımlıktır: savaş çözüldü, tüketildi. */
     if (BF) BF.savasBitti();
@@ -709,7 +835,13 @@
       /* ── RAPOR ALANLARI (pvp.js ile aynı adlar) ── */
       statlar: _statOzet,
       attackerAttribution: _attrib,
-      defenderAttribution: {},
+      defenderAttribution: _attribD,
+
+      /* Rapor ekranı (tema.js ozetHTML / unitDetailHTML) savunan
+         sütununu BUNLARDAN çizer. Eskiden hiç verilmiyordu; canavar
+         raporunda sağ sütun bu yüzden 0/0/0 görünüyordu. */
+      defenderTroops: _defTroops,
+      defenderLosses: _defLosses,
 
       rounds, win,
       heroHpLost: 0,                 /* kahramanın kendi canı yok */
@@ -740,13 +872,16 @@
 
       /* Rapor ekranı kullanmıyor ama hata ayıklarken çok işe yarar */
       pveInfo: {
-        canavarBirlik: cv.adet,
+        canavarBirlik: cBaslangic,
         canavarKalan: canavarAdet(),
-        canavarStatBir: { attack: cAtkBir, defense: cDefBir, hp: cHpBir },
+        canavarOlen: _canavarOlen,
+        canavarTaban: cTaban,
+        canavarBozuldu: canavarBozuldu,
+        canavarBilesim: _defTroops,
         baslangicSayi, dusenToplam,
         kayipYuzde: Math.round(kayipOrani * 100),
         yenilgiEsigi: Math.round(PVE.yenilgiEsigi * 100),
-        esikSebebi: (enemyHp <= 0 && !win) ? "kayip_esigi_asildi" : null,
+        esikSebebi: (canavarBozuldu && !win) ? "kayip_esigi_asildi" : null,
       },
     };
   }

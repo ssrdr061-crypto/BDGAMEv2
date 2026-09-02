@@ -8267,6 +8267,12 @@ async function startBattle() {
       enemyName: enemyForBattle.name,
       enemyIcon: enemyForBattle.avatar || "",
       enemyCount: enemyForBattle.birlik || 0,
+      /* Raporun SAVUNAN sütunu (tema.js ozetHTML / unitDetailHTML)
+         bu iki alandan çizilir. PvE'de hiç yazılmıyordu, o yüzden
+         canavar raporunda sağ sütun 0/0/0 görünüyordu. Veriyi
+         pve.js üretiyor (defenderTroops / defenderLosses). */
+      enemyTroops: Object.assign({}, result.defenderTroops || {}),
+      enemyLosses: result.defenderLosses || { killed: {}, wounded: {} },
       odul: odulKaydi,                  /* hediye kutusu bunu verir */
       win: result.win,
       turns: result.turns,
