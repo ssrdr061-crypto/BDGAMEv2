@@ -9518,3 +9518,44 @@ setTimeout(kur, 1200);
   if (document.readyState === "complete") baslat();
   else window.addEventListener("load", baslat);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   HASTANE — İYİLEŞTİRME BEDELİ SATIRI
+
+   Sorun: emoji + rakam yan yana akıyordu; rakam 719'dan 2,9K'ya
+   çıkınca yanındaki görseli itiyordu, satır her sürgü hareketinde
+   oynuyordu.
+
+   Çözüm: satır EŞİT GENİŞLİKTE üç yuvaya bölünüyor (`flex:1 1 0`).
+   Yuvanın genişliği içeriğe DEĞİL kabın enine bağlı, o yüzden
+   rakam kaç basamak olursa olsun görseller aynı x'te kalır.
+   Rakam da sabit genişlikli bir kutuda (`min-width`), kendi
+   yuvasının içinde bile kaymaz.
+   ═══════════════════════════════════════════════════════════════ */
+(function hastaneBedelStili() {
+  const st = document.createElement("style");
+  st.id = "hastaneBedelCss";
+  st.textContent =
+    ".hosp-bedel{display:flex;align-items:center;gap:6px;width:100%;}" +
+
+    /* Eşit yuvalar → görseller sabit x'te. */
+    ".hosp-bedel .hb-oge{flex:1 1 0;min-width:0;display:flex;" +
+      "align-items:center;gap:5px;}" +
+
+    /* Görsel asla esnemez, asla küçülmez. */
+    ".hosp-bedel .hb-gorsel{width:22px;height:22px;flex:0 0 22px;" +
+      "object-fit:contain;display:block;background:none;}" +
+    ".hosp-bedel .hb-em{flex:0 0 22px;font-size:17px;line-height:1;" +
+      "text-align:center;}" +
+
+    /* Rakam: kalın Baloo 2, beyaz. min-width basamak artınca
+       görseli itmesini engeller. */
+    ".hosp-bedel .hb-sayi{font-family:'Baloo 2',sans-serif;font-weight:800;" +
+      "font-size:15px;color:#fff;line-height:1;min-width:3.6ch;" +
+      "text-align:left;white-space:nowrap;" +
+      "text-shadow:0 1px 2px rgba(0,0,0,.45);}" +
+
+    /* Kaynak yetmiyorsa yalnız rakam kızarır, görsel bozulmaz. */
+    ".hosp-bedel .hb-oge.yok .hb-sayi{color:#ff8f8f;}";
+  document.head.appendChild(st);
+})();

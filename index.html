@@ -5905,12 +5905,22 @@ function hospBedelYaz(card, unitId, adet) {
   if (!anahtar.length) { el.innerHTML = ""; return; }
   const kay = (state && state.kaynaklar) || {};
   const kisa = (v) => (typeof kisaSayi === "function") ? kisaSayi(v) : String(v);
+  /* Görsel adları insaat.js ve tema.js'tekiyle AYNI — üçüncü bir
+     set uydurulmaz. Yüklenemezse emojiye düşer, satır boş kalmaz. */
+  const K_GORSEL = {
+    odun: "10kodun.webp", et: "10ket.webp", demir: "5kdemir.webp",
+    su: "5ksu.webp", enerji: "enerji.webp",
+  };
   el.innerHTML = anahtar.map(k => {
     const yetersiz = (kay[k] || 0) < bedel[k];
     const em = (typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || "";
+    const g = K_GORSEL[k];
+    const ikon = g
+      ? '<img class="hb-gorsel" src="' + g + '" alt="">'
+      : '<span class="hb-em">' + em + '</span>';
     return '<span class="hb-oge' + (yetersiz ? " yok" : "") + '">' +
-           em + " " + kisa(bedel[k]) + "</span>";
-  }).join(" ");
+           ikon + '<span class="hb-sayi">' + kisa(bedel[k]) + '</span></span>';
+  }).join("");
 }
 
 function bindHospitalSlider(card) {
