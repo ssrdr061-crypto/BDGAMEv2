@@ -605,42 +605,28 @@ body.world-active{padding:0; overflow:hidden;}
 }
 .floating-chest-btn.is-hidden{display:none;}
 .floating-chest-svg{width:45px; height:35px;}
-.floating-chest-count{
-  margin-top:-4px;
-  font-family:'Baloo 2','Nunito',sans-serif; font-size:11px; font-weight:700; color:var(--gold-soft);
-  font-variant-numeric:tabular-nums;
-  text-shadow:0 2px 4px rgba(0,0,0,.8);
-}
-/* Hak bitti: görsel kararır, sayının yerini ince fontlu geri sayım alır. */
+/* Kalan hak / geri sayım YAZISI YOK — düğmede yalnız görsel durur.
+   Hak bittiğinde görsel kararır, başka gösterge kullanılmaz. */
 .floating-chest-btn.chest-bekliyor{ animation:none; }
 .floating-chest-btn.chest-bekliyor .floating-chest-svg{
   filter:grayscale(1) brightness(.45);
-}
-.floating-chest-btn.chest-bekliyor .floating-chest-count{
-  font-weight:400; color:var(--ink-dim);
 }
 
 /* GÜNLÜK GİRİŞ — şans sandığının altında, hastanenin üstünde.
    Ödül alınmış olsa da durur; oyuncu şeridi istediği an açabilir. */
 .floating-daily-btn{
-  position:absolute; top:158px; right:10px; z-index:18;
+  position:absolute; top:138px; right:10px; z-index:18;
   display:flex; flex-direction:column; align-items:center; gap:0;
   width:45px; background:none; border:none; padding:0; cursor:pointer;
-  filter:drop-shadow(0 8px 12px rgba(0,0,0,.55));
 }
-.floating-daily-icon{ width:45px; height:38px; object-fit:contain; }
-.floating-daily-count{
-  margin-top:-2px;
-  font-family:'Baloo 2','Nunito',sans-serif; font-size:11px; font-weight:700;
-  color:var(--gold-soft); text-shadow:0 2px 4px rgba(0,0,0,.8);
-}
-/* Ödül bekliyorsa dikkat çeker, alındıysa sessizleşir. */
+/* Şans sandığıyla AYNI ölçü (.floating-chest-svg 45x35). Alınmış
+   olsa da karartılmaz — rozet her zaman aynı görünür, ödül durumu
+   yalnız açık/kapalı görselden ve nabızdan anlaşılır. */
+.floating-daily-icon{ width:45px; height:35px; object-fit:contain; }
 .floating-daily-btn.gunluk-hazir{ animation:floatingChestPulse 2.6s ease-in-out infinite; }
-.floating-daily-btn.gunluk-alindi .floating-daily-icon{ filter:brightness(.60) saturate(.70); }
-.floating-daily-btn.gunluk-alindi .floating-daily-count{ font-weight:400; color:var(--ink-dim); }
 
 .floating-hospital-btn{
-  position:absolute; top:220px; right:10px; z-index:18;
+  position:absolute; top:180px; right:10px; z-index:18;
   display:flex; flex-direction:column; align-items:center; gap:0;
   width:45px; background:none; border:none; padding:0;
   cursor:pointer;
@@ -2390,12 +2376,10 @@ body.world-active{padding:0; overflow:hidden;}
 
   <button class="floating-chest-btn" id="floatingChestBtn" data-panel="chest">
     <img src="gorsel3.webp" class="floating-chest-svg" style="object-fit:contain; background:none;"/>
-    <span class="floating-chest-count" id="floatingChestCount">10</span>
   </button>
 
   <button class="floating-daily-btn" id="floatingDailyBtn" type="button" title="Günlük giriş ödülü">
     <img src="gunlukkutukapali.webp" class="floating-daily-icon" id="floatingDailyIcon" alt="">
-    <span class="floating-daily-count" id="floatingDailyCount">1/7</span>
   </button>
 
   <button class="floating-hospital-btn" id="floatingHospitalBtn" data-panel="hospital">
@@ -4194,12 +4178,10 @@ function gunlukRozetTazele() {
   const btn = document.getElementById("floatingDailyBtn");
   if (!btn) return;
   const ikon = document.getElementById("floatingDailyIcon");
-  const say  = document.getElementById("floatingDailyCount");
   const bekliyor = hasUnclaimedDailyReward();
   btn.classList.toggle("gunluk-hazir", bekliyor);
   btn.classList.toggle("gunluk-alindi", !bekliyor);
   if (ikon) ikon.src = bekliyor ? "gunlukkutukapali.webp" : "gunlukkutuacik.webp";
-  if (say)  say.textContent = gunlukBugunGun() + "/7";
 }
 
 /* Rozetten açılış: ödül alınmış olsa bile şerit gösterilir. */
@@ -5389,7 +5371,6 @@ function renderChestUI() {
   const timerEl = document.getElementById("chestTimer");
   const remaining = state.maxChests - state.chestsOpened;
   const floatingBtn = document.getElementById("floatingChestBtn");
-  const floatingCount = document.getElementById("floatingChestCount");
 
   if (state.chestsOpened >= state.maxChests && state.chestResetAt) {
     chestEl.classList.add("disabled");
@@ -5401,19 +5382,9 @@ function renderChestUI() {
   }
 
   if (floatingBtn) {
-    /* Sandık bitince düğme KAYBOLMAZ: kararır, altında kalan süre sayar. */
+    /* Sandık bitince düğme KAYBOLMAZ, yalnız kararır. */
     floatingBtn.classList.remove("is-hidden");
-    if (remaining > 0) {
-      floatingBtn.classList.remove("chest-bekliyor");
-      if (floatingCount) floatingCount.textContent = remaining;
-    } else {
-      floatingBtn.classList.add("chest-bekliyor");
-      if (floatingCount) {
-        floatingCount.textContent = state.chestResetAt
-          ? formatTime(Math.max(0, state.chestResetAt - Date.now()))
-          : "";
-      }
-    }
+    floatingBtn.classList.toggle("chest-bekliyor", remaining <= 0);
   }
 
   persistCurrentState();
