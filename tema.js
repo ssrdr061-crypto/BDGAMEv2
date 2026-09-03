@@ -7704,7 +7704,7 @@ setTimeout(uygula, 2500);
      aynı olmak zorunda; ayrışırsa panel açılır açılmaz kale
      zıplıyor ve neyi ayarladığın belli olmuyor. */
   var AYAR = { 1:{boy:100,dy:0,dx:0}, 2:{boy:166,dy:22,dx:0}, 3:{boy:100,dy:0,dx:0},
-               4:{boy:184,dy:0,dx:0}, 5:{boy:100,dy:0,dx:0} };
+               4:{boy:184,dy:0,dx:0}, 5:{boy:176,dy:-11,dx:-8} };
   var aktif = 2;
 
   function svOku(node) {

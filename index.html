@@ -2116,6 +2116,12 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 .map-node.castle-node[data-sv="4"] .node-avatar{
   width:184px; height:184px;
 }
+/* Sv5 hem dikey hem YATAY kayiyor. translate() tek bildirimde yazilir;
+   translateY ile translateX ayri ayri yazilsaydi ikincisi birincisini
+   ezer ve dikey kaydirma kaybolurdu. */
+.map-node.castle-node[data-sv="5"] .node-avatar{
+  width:176px; height:176px; transform:translate(-8px, -11px);
+}
 .map-node.castle-node .castle-avatar img{
   width:100%; height:100%; object-fit:contain; border-radius:0; display:block;
   filter:drop-shadow(0 3px 6px rgba(0,0,0,.6));
