@@ -4855,7 +4855,7 @@ st.textContent = `
 #panel-hospital .hospital-queue-card{
   background:none !important; background-color:transparent !important;
   border:0 !important; box-shadow:none !important; border-radius:0 !important;
-  padding:6px 2px !important;
+  padding:var(--hs-kart-ic,6px) 2px !important;
   border-bottom:1px solid rgba(190,240,255,.14) !important;
 }
 #panel-hospital .hospital-heal-card:last-child,
@@ -9833,21 +9833,30 @@ document.head.appendChild(st);
   st.textContent =
     /* ── ŞERİT ── */
     "html body #panel-hospital .hosp-toplam{display:flex;align-items:center;" +
-      "gap:4px;margin:10px 2px 0;padding:7px 6px;border-radius:11px;" +
+      "gap:var(--hs-yuva-ara,10px);margin:0;" +
+      "padding:var(--hs-serit-ic,7px) 6px;border-radius:11px;" +
       "background:rgba(0,20,45,.28);}" +
+    /* justify-content:center DEĞİL flex-start: ortalanırsa sayı
+       büyüdükçe simge sola kayar. Yuvalar flex:1 1 0 olduğu için
+       soldan başlayan simge her zaman aynı x'te durur. */
     "html body #panel-hospital .hosp-toplam .ht-oge{flex:1 1 0;min-width:0;" +
-      "display:flex;align-items:center;gap:5px;justify-content:center;}" +
+      "display:flex;align-items:center;gap:var(--hs-ikon-sayi,6px);" +
+      "justify-content:flex-start;}" +
 
     /* Simge sabit kutuda — içerik ne olursa olsun esnemez. */
-    "html body #panel-hospital .hosp-toplam .ht-ikon{flex:0 0 26px;" +
-      "width:26px;height:26px;display:flex;align-items:center;" +
-      "justify-content:center;font-size:17px;line-height:1;}" +
-    "html body #panel-hospital .hosp-toplam .ht-ikon img{width:26px;" +
-      "height:26px;max-width:none;object-fit:contain;display:block;" +
+    "html body #panel-hospital .hosp-toplam .ht-ikon{" +
+      "flex:0 0 var(--hs-ikon,26px);" +
+      "width:var(--hs-ikon,26px);height:var(--hs-ikon,26px);display:flex;" +
+      "align-items:center;justify-content:center;font-size:17px;" +
+      "line-height:1;}" +
+    "html body #panel-hospital .hosp-toplam .ht-ikon img{" +
+      "width:var(--hs-ikon,26px);height:var(--hs-ikon,26px);" +
+      "max-width:none;object-fit:contain;display:block;" +
       "background:none;}" +
 
     "html body #panel-hospital .hosp-toplam .ht-sayi{" +
-      "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;" +
+      "font-family:'Baloo 2',sans-serif;font-weight:800;" +
+      "font-size:var(--hs-serit-fs,15px);" +
       "color:#fff;line-height:1;white-space:nowrap;" +
       "font-variant-numeric:tabular-nums;" +
       "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
@@ -9855,14 +9864,18 @@ document.head.appendChild(st);
 
     /* ── DÜĞME SATIRI ── */
     "html body #panel-hospital .hosp-btn-satir{display:flex;" +
-      "align-items:stretch;justify-content:center;gap:10px;" +
-      "margin:12px 2px 2px;}" +
+      "align-items:stretch;justify-content:center;" +
+      "gap:var(--hs-btn-ara,10px);" +
+      "margin:var(--hs-btn-ust,10px) 2px 0;}" +
     "html body #panel-hospital .hosp-btn-satir .hospital-confirm-btn," +
     "html body #panel-hospital .hosp-btn-satir .hospital-instant-btn{" +
       "display:flex;flex-direction:column;align-items:center;" +
-      "justify-content:center;gap:2px;margin:0;width:auto;min-width:126px;" +
-      "padding:7px 16px;font-family:'Baloo 2',sans-serif;font-weight:800;" +
-      "font-size:12px;border:none;border-radius:12px;color:#fff;" +
+      "justify-content:center;gap:2px;margin:0;width:auto;" +
+      "min-width:var(--hs-btn-en,126px);" +
+      "padding:var(--hs-btn-ic,7px) 16px;" +
+      "font-family:'Baloo 2',sans-serif;font-weight:800;" +
+      "font-size:var(--hs-btn-fs,12px);border:none;border-radius:12px;" +
+      "color:#fff;" +
       "box-shadow:0 2px 6px rgba(0,20,45,.3);" +
       "transition:transform .09s ease, filter .09s ease;}" +
 
@@ -9898,4 +9911,277 @@ document.head.appendChild(st);
     ".elmas-kutu.ey-hastane{--el-kutu:1.15em; --el-boy:3.25em; " +
     "--el-x:-0.74em; --el-y:0.28em; --el-hiza:-0.10em;}";
   document.head.appendChild(st);
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   HASTANE — SABİT ALT BÖLGE + ÇUBUKSUZ KAYDIRMA
+
+   Sorun: kaynak şeridi ve İYİLEŞTİR/DİREKT BİTİR düğmeleri
+   #hospitalPendingList'in innerHTML'i içinde üretiliyordu. Kart
+   sayısı artınca kaydırma alanının dibine iniyor ve ekrandan
+   çıkıyorlardı. Kök çözüm index.html'de: kart üç katmana bölündü
+   (üst doluluk · #hospitalScroll · #hospitalAlt) ve şerit artık
+   #hospitalAlt'a yazılıyor. Burada yalnız yerleşimi kuruyoruz.
+
+   Yükseklik JS ile ÖLÇÜLMÜYOR — panel kapalıyken ölçü 0 gelir
+   (Tuzak 14). Saf flex: kabuk flex:1, alt bölge flex:0 0 auto.
+
+   Kaydırma çubuğu gizli ama kaydırma açık: scrollbar-width:none +
+   ::-webkit-scrollbar{display:none}.
+
+   Ölçüler --hs-* değişkenlerinden okunur; ?hastaneayar=1 paneli
+   bu değişkenleri oynatır.
+   ═══════════════════════════════════════════════════════════════ */
+(function hastaneYerlesimBlogu() {
+  var st = document.createElement("style");
+  st.id = "hastaneYerlesimCss";
+  st.textContent =
+    /* Kart: dikey flex, kendi kaydırması KAPALI. .overlay-card'ın
+       overflow-y:auto'su burada iptal — kaydırma iç kabukta. */
+    "html body #panel-hospital .overlay-card.hospital-card{" +
+      "display:flex;flex-direction:column;" +
+      "max-height:88vh;overflow:hidden;" +
+      "padding-top:var(--hs-ust,52px);padding-bottom:12px;}" +
+
+    /* Doluluk yazısı sabit üstte kalır. */
+    "html body #panel-hospital .hospital-kap{flex:0 0 auto;}" +
+
+    /* KAYAN KABUK. overflow-y yatayda da kırpar (Tuzak 13); sürgü
+       topuzu kutunun içinde kaldığı için 2px yan boşluk yeter. */
+    "html body #panel-hospital .hosp-kaydir{" +
+      "flex:1 1 auto;min-height:0;" +
+      "overflow-y:auto;overflow-x:hidden;" +
+      "-webkit-overflow-scrolling:touch;" +
+      "overscroll-behavior:contain;" +
+      "scrollbar-width:none;-ms-overflow-style:none;" +
+      "padding:0 2px 4px;}" +
+    "html body #panel-hospital .hosp-kaydir::-webkit-scrollbar{" +
+      "display:none;width:0;height:0;}" +
+
+    /* SABİT ALT BÖLGE. Boşken hiç yer kaplamaz. */
+    "html body #panel-hospital .hosp-alt{" +
+      "flex:0 0 auto;" +
+      "padding:var(--hs-alt-ic,8px) 2px 0;" +
+      "border-top:1px solid rgba(190,240,255,.20);}" +
+    "html body #panel-hospital .hosp-alt:empty{display:none;}";
+  document.head.appendChild(st);
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   HASTANE İNCE AYAR PANELİ  —  ?hastaneayar=1   (GEÇİCİ)
+
+   Hastane penceresindeki bütün ölçüler --hs-* değişkenlerinden
+   okunuyor; bu panel onları canlı oynatır. Değerler localStorage'da
+   saklanır, KOPYALA çıktısı doğrudan kalıcı CSS'e yapıştırılır.
+
+   İş bitince: çıktıyı "hastaneOlcuVarsayilan" bloğuna yaz ve BU
+   BLOĞU SİL.
+   ═══════════════════════════════════════════════════════════════ */
+(function hastaneOlcuVarsayilan() {
+  /* Varsayılanlar tek yerde. Panel yoksa da bunlar geçerli. */
+  var st = document.createElement("style");
+  st.id = "hastaneOlcuCss";
+  st.textContent =
+    "html body #panel-hospital{" +
+      "--hs-ust:52px;--hs-kap-fs:13.5px;--hs-alt-ic:8px;" +
+      "--hs-yuz:52px;--hs-kart-ic:6px;" +
+      "--hs-ray:7px;--hs-top:19px;--hs-adet-fs:13.5px;--hs-max-fs:12.5px;" +
+      "--hs-ikon:26px;--hs-yuva-ara:10px;--hs-ikon-sayi:6px;" +
+      "--hs-serit-fs:15px;--hs-serit-ic:7px;" +
+      "--hs-btn-en:126px;--hs-btn-fs:12px;--hs-btn-ic:7px;" +
+      "--hs-btn-ara:10px;--hs-btn-ust:10px;" +
+      "--hs-kuyruk-yuz:38px;}";
+  document.head.appendChild(st);
+})();
+
+(function hastaneAyar() {
+  "use strict";
+  try { if (location.search.indexOf("hastaneayar=1") < 0) return; }
+  catch (e) { return; }
+
+  /* Gruplar sekme olur; her ölçü tek satır sürgü. */
+  var GRUP = [
+    { ad: "Üst", ler: [
+      { k: "--hs-ust",       ad: "Üst boşluk", v: 52,   min: 16, max: 96 },
+      { k: "--hs-kap-fs",    ad: "Yatak yazı", v: 13.5, min: 9,  max: 22 },
+      { k: "--hs-alt-ic",    ad: "Alt aralık", v: 8,    min: 0,  max: 26 }
+    ]},
+    { ad: "Kart", ler: [
+      { k: "--hs-yuz",       ad: "Görsel",     v: 52,   min: 30, max: 84 },
+      { k: "--hs-kart-ic",   ad: "Satır iç",   v: 6,    min: 0,  max: 20 }
+    ]},
+    { ad: "Sürgü", ler: [
+      { k: "--hs-ray",       ad: "Ray kalın",  v: 7,    min: 2,  max: 18 },
+      { k: "--hs-top",       ad: "Topuz",      v: 19,   min: 10, max: 36 },
+      { k: "--hs-adet-fs",   ad: "Adet yazı",  v: 13.5, min: 9,  max: 22 },
+      { k: "--hs-max-fs",    ad: "/ Max yazı", v: 12.5, min: 8,  max: 22 }
+    ]},
+    { ad: "Şerit", ler: [
+      { k: "--hs-ikon",      ad: "Simge",      v: 26,   min: 14, max: 44 },
+      { k: "--hs-yuva-ara",  ad: "Yuva arası", v: 10,   min: 0,  max: 30 },
+      { k: "--hs-ikon-sayi", ad: "Simge-sayı", v: 6,    min: 0,  max: 24 },
+      { k: "--hs-serit-fs",  ad: "Sayı yazı",  v: 15,   min: 9,  max: 24 },
+      { k: "--hs-serit-ic",  ad: "Şerit iç",   v: 7,    min: 1,  max: 20 }
+    ]},
+    { ad: "Düğme", ler: [
+      { k: "--hs-btn-en",    ad: "Genişlik",   v: 126,  min: 80, max: 220 },
+      { k: "--hs-btn-fs",    ad: "Yazı",       v: 12,   min: 8,  max: 20 },
+      { k: "--hs-btn-ic",    ad: "Yükseklik",  v: 7,    min: 2,  max: 20 },
+      { k: "--hs-btn-ara",   ad: "Arası",      v: 10,   min: 0,  max: 30 },
+      { k: "--hs-btn-ust",   ad: "Üst boşluk", v: 10,   min: 0,  max: 30 }
+    ]},
+    { ad: "Kuyruk", ler: [
+      { k: "--hs-kuyruk-yuz", ad: "Görsel",    v: 38,   min: 22, max: 64 }
+    ]}
+  ];
+
+  var VARSAYILAN = {};
+  GRUP.forEach(function (g) { g.ler.forEach(function (o) { VARSAYILAN[o.k] = o.v; }); });
+
+  var A = {};
+  try { A = JSON.parse(localStorage.getItem("hastaneAyar") || "{}") || {}; }
+  catch (e) { A = {}; }
+  Object.keys(VARSAYILAN).forEach(function (k) {
+    if (typeof A[k] !== "number") A[k] = VARSAYILAN[k];
+  });
+  var aktif = 0;
+
+  function kaydet() {
+    try { localStorage.setItem("hastaneAyar", JSON.stringify(A)); } catch (e) {}
+  }
+
+  var st = document.createElement("style");
+  st.id = "hastaneAyarCss";
+  document.head.appendChild(st);
+
+  function uygula() {
+    var c = "html body #panel-hospital{";
+    Object.keys(VARSAYILAN).forEach(function (k) { c += k + ":" + A[k] + "px;"; });
+    st.textContent = c + "}";
+  }
+
+  function kopyaMetni() {
+    var out = "html body #panel-hospital{\n";
+    GRUP.forEach(function (g) {
+      out += "  /* " + g.ad + " */ ";
+      g.ler.forEach(function (o) { out += o.k + ":" + A[o.k] + "px; "; });
+      out += "\n";
+    });
+    return out + "}";
+  }
+
+  var p = document.createElement("div");
+  var altPx = (typeof A._alt === "number") ? A._alt : 0;
+  p.style.cssText =
+    "position:fixed;left:0;right:0;bottom:" + altPx + "px;z-index:100000;" +
+    "background:#0d2137;color:#eaf6ff;font:600 11.5px/1.2 'Baloo 2',sans-serif;" +
+    "padding:6px 8px 7px;box-shadow:0 -2px 6px rgba(0,20,45,.3);";
+  document.body.appendChild(p);
+
+  /* position:fixed'de offsetParent null (Tuzak 19) — innerHeight ile ölç. */
+  function altAyarla(v) {
+    var tavan = Math.max(0, window.innerHeight - p.offsetHeight);
+    altPx = Math.max(0, Math.min(tavan, v));
+    p.style.bottom = altPx + "px";
+    A._alt = altPx; kaydet();
+  }
+
+  function ciz() {
+    var g = GRUP[aktif];
+    var h =
+      '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<span id="hsTut" style="flex:0 0 auto;padding:2px 6px;border-radius:6px;' +
+          'background:#1d3f63;color:#7fe4ff;font-size:13px;line-height:1;' +
+          'touch-action:none;cursor:grab;">\u2195</span>' +
+        '<b style="font-size:12px;letter-spacing:.3px;">HASTANE</b>' +
+        '<button id="hsSifirla" style="margin-left:auto;background:#1d3f63;' +
+          'color:#eaf6ff;border:none;border-radius:7px;padding:4px 8px;' +
+          'font:inherit;">SIFIRLA</button>' +
+        '<button id="hsKopya" style="background:#1d3f63;color:#eaf6ff;border:none;' +
+          'border-radius:7px;padding:4px 8px;font:inherit;">KOPYALA</button>' +
+        '<button id="hsTopla" style="background:#1d3f63;color:#eaf6ff;border:none;' +
+          'border-radius:7px;padding:4px 8px;font:inherit;">\u25be</button>' +
+      '</div>' +
+      '<div id="hsGovde">' +
+        '<div style="display:flex;gap:3px;margin:6px 0;">';
+    GRUP.forEach(function (gr, i) {
+      h += '<button class="hs-sek" data-i="' + i + '" style="flex:1;padding:5px 1px;' +
+             'border:none;border-radius:7px;font:inherit;font-size:10.5px;' +
+             'background:' + (i === aktif ? "#2f7fc4" : "#16324f") + ';color:#eaf6ff;">' +
+             gr.ad + '</button>';
+    });
+    h += '</div>';
+    g.ler.forEach(function (o) {
+      h += '<div style="display:flex;align-items:center;gap:7px;margin:3px 0;">' +
+             '<span style="flex:0 0 68px;font-size:10.5px;">' + o.ad + '</span>' +
+             '<input type="range" class="hs-srg" data-k="' + o.k + '" min="' + o.min +
+               '" max="' + o.max + '" step="0.5" value="' + A[o.k] + '" style="flex:1;">' +
+             '<span class="hs-dg" data-k="' + o.k + '" style="flex:0 0 44px;' +
+               'text-align:right;font-variant-numeric:tabular-nums;">' + A[o.k] + '</span>' +
+           '</div>';
+    });
+    h += '<div id="hsMetin" style="margin-top:4px;opacity:.75;font-size:10px;' +
+           'word-break:break-all;">?hastaneayar=1 — hastaneyi aç, oynat, KOPYALA.' +
+         '</div></div>';
+    p.innerHTML = h;
+
+    (function () {
+      var tut = document.getElementById("hsTut");
+      if (!tut) return;
+      var by = 0, ba = 0, sur = false;
+      tut.addEventListener("pointerdown", function (e) {
+        sur = true; by = e.clientY; ba = altPx;
+        try { tut.setPointerCapture(e.pointerId); } catch (e2) {}
+        e.preventDefault();
+      });
+      tut.addEventListener("pointermove", function (e) {
+        if (!sur) return; altAyarla(ba + (by - e.clientY)); e.preventDefault();
+      });
+      function birak() { sur = false; }
+      tut.addEventListener("pointerup", birak);
+      tut.addEventListener("pointercancel", birak);
+    })();
+
+    p.querySelectorAll(".hs-sek").forEach(function (b) {
+      b.addEventListener("click", function () {
+        aktif = parseInt(b.dataset.i, 10) || 0; ciz();
+      });
+    });
+
+    p.querySelectorAll(".hs-srg").forEach(function (sr) {
+      sr.addEventListener("input", function () {
+        var v = parseFloat(sr.value);
+        A[sr.dataset.k] = isNaN(v) ? VARSAYILAN[sr.dataset.k] : v;
+        var dg = p.querySelector('.hs-dg[data-k="' + sr.dataset.k + '"]');
+        if (dg) dg.textContent = A[sr.dataset.k];
+        uygula(); kaydet();
+      });
+    });
+
+    document.getElementById("hsSifirla").addEventListener("click", function () {
+      GRUP[aktif].ler.forEach(function (o) { A[o.k] = VARSAYILAN[o.k]; });
+      uygula(); kaydet(); ciz();
+    });
+
+    document.getElementById("hsKopya").addEventListener("click", function () {
+      var t = kopyaMetni();
+      try { navigator.clipboard.writeText(t); } catch (e) {}
+      var mt = document.getElementById("hsMetin");
+      if (mt) mt.textContent = t;
+    });
+
+    var kapali = false;
+    document.getElementById("hsTopla").addEventListener("click", function () {
+      kapali = !kapali;
+      var gv = document.getElementById("hsGovde");
+      if (gv) gv.style.display = kapali ? "none" : "block";
+      this.textContent = kapali ? "\u25b4" : "\u25be";
+      altAyarla(altPx);
+    });
+  }
+
+  uygula();
+  ciz();
 })();

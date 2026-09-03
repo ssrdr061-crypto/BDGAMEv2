@@ -1390,24 +1390,12 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
    oynar ve ekran titrer. */
 .hospital-card{ padding-top:6px; }
 
-/* DİKKAT: .overlay-card h2 display:flex tanımlı — o yüzden düz
-   text-align:center hiç işlemiyordu. Seçiciyi h2 ile birlikte
-   yazıp flex'i ortalıyoruz. */
-.overlay-card h2.hospital-title{
-  font-family:'Baloo 2',sans-serif; font-weight:800;
-  font-size:26px; letter-spacing:2px; text-transform:uppercase;
-  color:#fff;
-  display:flex; justify-content:center; align-items:center;
-  margin:2px 0 12px; padding:0;            /* ✕ mutlak konumlu, akışı bozmaz */
-  width:100%;
-  text-shadow:0 3px 0 rgba(0,10,30,.55);
-}
-
 /* Doluluk: başlığın hemen altında tek satır. Rakamlar sayaç olduğu
    için tabular-nums — yoksa her tazelemede satır oynuyor. */
 .hospital-kap{
-  text-align:center; margin:-8px 0 12px;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13.5px;
+  text-align:center; margin:0 0 10px;
+  font-family:'Baloo 2',sans-serif; font-weight:800;
+  font-size:var(--hs-kap-fs,13.5px);
   color:#dff2ff; font-variant-numeric:tabular-nums;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
@@ -1429,8 +1417,8 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
    değişkenlerden okunuyor; ayar panelinden orayı oynattığında
    hastane de aynı kadrajı alır. */
 .hospital-face{
-  position:relative; flex:0 0 52px;
-  width:52px; height:52px;
+  position:relative; flex:0 0 var(--hs-yuz,52px);
+  width:var(--hs-yuz,52px); height:var(--hs-yuz,52px);
   border-radius:14px; overflow:hidden;
   background:transparent;
   border:1px solid rgba(190,240,255,.45);
@@ -1472,14 +1460,16 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   margin-right:-2px;           /* "/" işaretine yaklaşsın */
   border-radius:7px; border:1px solid rgba(190,240,255,.4);
   background:rgba(3,16,38,.6); color:#fff;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13.5px;
+  font-family:'Baloo 2',sans-serif; font-weight:800;
+  font-size:var(--hs-adet-fs,13.5px);
   -moz-appearance:textfield;
 }
 .hospital-qty .hq-input::-webkit-outer-spin-button,
 .hospital-qty .hq-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
 .hospital-qty .hq-max{
   flex:0 0 auto;
-  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:12.5px;
+  font-family:'Baloo 2',sans-serif; font-weight:800;
+  font-size:var(--hs-max-fs,12.5px);
   color:#ffd257; white-space:nowrap;
 }
 .hospital-qty .hospital-slider{
@@ -1491,8 +1481,9 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
    DİKKAT: burada !important şart — .troop-icon ve tema.js kuralları
    aksi halde görseli kutunun dışına taşırıp dev gösteriyordu. */
 .hospital-face-sm{
-  flex:0 0 38px !important;
-  width:38px !important; height:38px !important;
+  flex:0 0 var(--hs-kuyruk-yuz,38px) !important;
+  width:var(--hs-kuyruk-yuz,38px) !important;
+  height:var(--hs-kuyruk-yuz,38px) !important;
   border-radius:11px !important;
   overflow:hidden !important;
   display:block !important;
@@ -1526,7 +1517,8 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 }
 .hospital-slider .sl-track{
   position:absolute; left:0; right:0; top:50%;
-  height:7px; margin-top:-3.5px; border-radius:99px;
+  height:var(--hs-ray,7px);
+  margin-top:calc(var(--hs-ray,7px) * -0.5); border-radius:99px;
   background:rgba(3,16,38,.65);
   box-shadow:none;
 }
@@ -1537,7 +1529,8 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 }
 .hospital-slider .sl-thumb{
   position:absolute; top:50%;
-  width:19px; height:19px; margin:-9.5px 0 0 -9.5px;
+  width:var(--hs-top,19px); height:var(--hs-top,19px);
+  margin:calc(var(--hs-top,19px) * -0.5) 0 0 calc(var(--hs-top,19px) * -0.5);
   border-radius:50%;
   background:radial-gradient(circle at 35% 30%, #fff, #fff 60%, #dfe8f5);
   box-shadow:none;
@@ -2615,13 +2608,20 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   <div class="overlay-panel" id="panel-hospital">
     <div class="overlay-card hospital-card">
       <button class="overlay-close" data-close>✕</button>
-      <h2 class="hospital-title">HASTANE</h2>
       <div class="hospital-kap" id="hospitalKap"></div>
-      <div id="hospitalPendingList"></div>
 
-      <h3 class="hero-subtitle hospital-queue-title" id="hospitalQueueTitle"
-          style="margin-top:14px;">⏳ TEDAVİDE OLANLAR</h3>
-      <div id="hospitalQueueList"></div>
+      <!-- KAYAN KISIM. Alt şerit ve düğmeler bunun DIŞINDA durur;
+           içeride olsalardı liste uzayınca ekrandan çıkıyorlardı. -->
+      <div class="hosp-kaydir" id="hospitalScroll">
+        <div id="hospitalPendingList"></div>
+
+        <h3 class="hero-subtitle hospital-queue-title" id="hospitalQueueTitle"
+            style="margin-top:14px;">⏳ TEDAVİDE OLANLAR</h3>
+        <div id="hospitalQueueList"></div>
+      </div>
+
+      <!-- SABİT ALT: kaynak şeridi + iki düğme (renderHospitalPanel yazar) -->
+      <div class="hosp-alt" id="hospitalAlt"></div>
     </div>
   </div>
 
@@ -6134,6 +6134,9 @@ function renderHospitalPanel() {
   applyFinishedHospitalRecoveries();
   const pendingEl = document.getElementById("hospitalPendingList");
   const queueEl = document.getElementById("hospitalQueueList");
+  /* Alt şerit + düğmeler artık listenin içinde değil, panelin
+     dibinde SABİT duran ayrı kutuda. */
+  const altEl = document.getElementById("hospitalAlt");
   const floatBtn = document.getElementById("floatingHospitalBtn");
   const patients = state.hospital || [];
   const toplamYarali = hastaneToplam(patients);
@@ -6157,6 +6160,7 @@ function renderHospitalPanel() {
   if (toplamYarali === 0) {
     pendingEl.innerHTML = `<div class="empty-state" style="padding:18px;"><span class="icon"><img src="gorsel18.webp" style="width:30px;height:30px;object-fit:contain;"/></span>Şu an hastanede yaralı birlik yok.</div>`;
     queueEl.innerHTML = "";
+    if (altEl) altEl.innerHTML = "";
     const qt = document.getElementById("hospitalQueueTitle");
     if (qt) qt.classList.add("is-hidden");
     _hospitalPendingKey = "";
@@ -6187,7 +6191,13 @@ function renderHospitalPanel() {
   _hospitalPendingKey = pendingKey;
 
   if (Object.keys(byUnitWaiting).length === 0) {
-    if (pendingDegisti) pendingEl.innerHTML = emptyState("✅", "Tüm yaralılar tedaviye alındı.", "14px");
+    if (pendingDegisti) {
+      pendingEl.innerHTML = emptyState("✅", "Tüm yaralılar tedaviye alındı.", "14px");
+      /* Bekleyen kalmadıysa dipteki şerit de gider; yoksa boş
+         seçimin bedelini gösteren düğmeler ekranda kalırdı. */
+      if (altEl) altEl.innerHTML = "";
+      _hospAltKey = "";
+    }
   } else if (pendingDegisti) {
     pendingEl.innerHTML = Object.keys(byUnitWaiting).map(unitId => {
       const def = UNIT_TYPES[unitId];
@@ -6208,7 +6218,11 @@ function renderHospitalPanel() {
             </div>
           </div>
         </div>`;
-    }).join("") + `
+    }).join("");
+
+    /* Şerit ve düğmeler kayan listeye DEĞİL, sabit alt kutuya yazılır. */
+    if (altEl) {
+      altEl.innerHTML = `
       <div class="hosp-toplam" id="hospitalTotalBar"></div>
       <div class="hosp-btn-satir">
         <button class="login-btn hospital-instant-btn" id="hospitalInstantBtn" type="button">
@@ -6216,8 +6230,8 @@ function renderHospitalPanel() {
           <span class="hib-fiyat">${ELMAS("hastane")}<span class="hib-sayi">0</span></span>
         </button>
         <button class="login-btn hospital-confirm-btn" id="hospitalConfirmBtn">İYİLEŞTİR</button>
-      </div>
-    `;
+      </div>`;
+    }
 
     pendingEl.querySelectorAll(".hospital-heal-card").forEach(card => {
       bindHospitalSlider(card);
