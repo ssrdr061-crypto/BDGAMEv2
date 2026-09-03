@@ -4874,7 +4874,6 @@ st.textContent = `
 
 /* yazılar tek font, kontursuz */
 #panel-hospital .hq-input,
-#panel-hospital .hq-max,
 #panel-hospital .hospital-queue-title,
 #panel-hospital .hospital-confirm-btn{
   font-family:'Baloo 2','Nunito',sans-serif !important;
@@ -9944,8 +9943,18 @@ document.head.appendChild(st);
       "max-height:88vh;overflow:hidden;" +
       "padding-top:var(--hs-ust,52px);padding-bottom:12px;}" +
 
-    /* Doluluk yazısı sabit üstte kalır. */
-    "html body #panel-hospital .hospital-kap{flex:0 0 auto;}" +
+    /* Üst sayaç artık AKIŞTA DEĞİL — ✕ hizasında mutlak konumlu
+       (index.html .hospital-kap). Burada yer ayırmasına gerek yok. */
+
+    /* Birlik görsellerinin YATAY ince ayarı. Tek değişken hem bekleyen
+       kartları hem tedavi kuyruğunu oynatır — ikisi ayrı ayarlanacak
+       olsaydı iki kutu satırı birbirinden kayardı. `left` kullanılıyor,
+       `transform` değil: transform dokunma alanını taşımaz (Tuzak 41),
+       ama burada zaten yalnız görsel kayması isteniyor ve `left`
+       kutunun akıştaki yerini de bozmadan taşır. */
+    "html body #panel-hospital .hospital-face,"                     +
+    "html body #panel-hospital .hospital-face-sm{"                  +
+      "left:var(--hs-ikon-x,0px) !important;}" +
 
     /* KAYAN KABUK. overflow-y yatayda da kırpar (Tuzak 13); sürgü
        topuzu kutunun içinde kaldığı için 2px yan boşluk yeter. */
@@ -9955,7 +9964,11 @@ document.head.appendChild(st);
       "-webkit-overflow-scrolling:touch;" +
       "overscroll-behavior:contain;" +
       "scrollbar-width:none;-ms-overflow-style:none;" +
-      "padding:0 2px 4px;}" +
+      /* Üst dolgu SADECE kayan kısmı iter; alt şerit ve düğmeler
+         kabuğun DIŞINDA olduğu için yerlerinde kalır. Kartın kendi
+         padding-top'u (--hs-ust) kullanılamazdı: o ikisini birden
+         aşağı iterdi. */
+      "padding:var(--hs-kaydir-ust,0px) 2px 4px;}" +
     "html body #panel-hospital .hosp-kaydir::-webkit-scrollbar{" +
       "display:none;width:0;height:0;}" +
 
@@ -9987,7 +10000,8 @@ document.head.appendChild(st);
     "html body #panel-hospital{" +
       "--hs-ust:52px;--hs-kap-fs:13.5px;--hs-alt-ic:8px;" +
       "--hs-yuz:52px;--hs-kart-ic:6px;" +
-      "--hs-ray:7px;--hs-top:19px;--hs-adet-fs:13.5px;--hs-max-fs:12.5px;" +
+      "--hs-kaydir-ust:26px;--hs-ikon-x:0px;" +
+      "--hs-ray:7px;--hs-top:19px;--hs-adet-fs:13.5px;--hs-adet-en:64px;" +
       "--hs-ikon:26px;--hs-yuva-ara:10px;--hs-ikon-sayi:6px;" +
       "--hs-serit-fs:15px;--hs-serit-ic:7px;" +
       "--hs-btn-en:126px;--hs-btn-fs:12px;--hs-btn-ic:7px;" +
@@ -10005,18 +10019,20 @@ document.head.appendChild(st);
   var GRUP = [
     { ad: "Üst", ler: [
       { k: "--hs-ust",       ad: "Üst boşluk", v: 52,   min: 16, max: 96 },
-      { k: "--hs-kap-fs",    ad: "Yatak yazı", v: 13.5, min: 9,  max: 22 },
-      { k: "--hs-alt-ic",    ad: "Alt aralık", v: 8,    min: 0,  max: 26 }
+      { k: "--hs-kap-fs",    ad: "Üst sayaç", v: 13.5, min: 9,  max: 22 },
+      { k: "--hs-alt-ic",    ad: "Alt aralık", v: 8,    min: 0,  max: 26 },
+      { k: "--hs-kaydir-ust", ad: "Liste üst", v: 26,   min: 0,  max: 70 }
     ]},
     { ad: "Kart", ler: [
       { k: "--hs-yuz",       ad: "Görsel",     v: 52,   min: 30, max: 84 },
-      { k: "--hs-kart-ic",   ad: "Satır iç",   v: 6,    min: 0,  max: 20 }
+      { k: "--hs-kart-ic",   ad: "Satır iç",   v: 6,    min: 0,  max: 20 },
+      { k: "--hs-ikon-x",    ad: "Görsel yatay", v: 0,  min: -40, max: 40 }
     ]},
     { ad: "Sürgü", ler: [
       { k: "--hs-ray",       ad: "Ray kalın",  v: 7,    min: 2,  max: 18 },
       { k: "--hs-top",       ad: "Topuz",      v: 19,   min: 10, max: 36 },
       { k: "--hs-adet-fs",   ad: "Adet yazı",  v: 13.5, min: 9,  max: 22 },
-      { k: "--hs-max-fs",    ad: "/ Max yazı", v: 12.5, min: 8,  max: 22 }
+      { k: "--hs-adet-en",   ad: "Adet kutu",  v: 64,   min: 34, max: 130 }
     ]},
     { ad: "Şerit", ler: [
       { k: "--hs-ikon",      ad: "Simge",      v: 26,   min: 14, max: 44 },
@@ -10096,6 +10112,9 @@ document.head.appendChild(st);
           'background:#1d3f63;color:#7fe4ff;font-size:13px;line-height:1;' +
           'touch-action:none;cursor:grab;">\u2195</span>' +
         '<b style="font-size:12px;letter-spacing:.3px;">HASTANE</b>' +
+        '<button id="hsYer" style="flex:0 0 auto;background:#1d3f63;' +
+          'color:#7fe4ff;border:none;border-radius:7px;padding:3px 7px;' +
+          'font:inherit;font-size:13px;line-height:1;">\u2912</button>' +
         '<button id="hsSifirla" style="margin-left:auto;background:#1d3f63;' +
           'color:#eaf6ff;border:none;border-radius:7px;padding:4px 8px;' +
           'font:inherit;">SIFIRLA</button>' +
@@ -10142,6 +10161,26 @@ document.head.appendChild(st);
       function birak() { sur = false; }
       tut.addEventListener("pointerup", birak);
       tut.addEventListener("pointercancel", birak);
+    })();
+
+    /* TEK DOKUNUŞ ÜST/ALT. Sürükleme tutamağı duruyor; bu düğme
+       paneli bir hamlede ekranın tepesine atıp geri getiriyor, çünkü
+       hastanenin alt şeridi ve düğmeleri ayarlanırken panel tam
+       oraya oturuyordu. Yükseklik position:fixed'de offsetParent
+       üzerinden okunamaz (Tuzak 19) — innerHeight ile ölçülüyor. */
+    (function () {
+      var yb = document.getElementById("hsYer");
+      if (!yb) return;
+      function tavan() { return Math.max(0, window.innerHeight - p.offsetHeight); }
+      function isaret() {
+        yb.textContent = (altPx > tavan() / 2) ? "\u2913" : "\u2912";
+      }
+      isaret();
+      yb.addEventListener("click", function () {
+        var t = tavan();
+        altAyarla(altPx > t / 2 ? 0 : t);
+        isaret();
+      });
     })();
 
     p.querySelectorAll(".hs-sek").forEach(function (b) {

@@ -1390,16 +1390,21 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
    oynar ve ekran titrer. */
 .hospital-card{ padding-top:6px; }
 
-/* Doluluk: başlığın hemen altında tek satır. Rakamlar sayaç olduğu
-   için tabular-nums — yoksa her tazelemede satır oynuyor. */
+/* ÜST SAYAÇ: "seçilen / toplam yaralı". ✕ düğmesiyle AYNI hizada
+   durması gerektiği için akıştan çıkarıldı — akışta kalsaydı kartları
+   aşağı iter ve --hs-ust ayarıyla çakışırdı. Sağ kenar 60px açık
+   bırakıldı: ✕ 38px + 14px kenar boşluğu. Rakamlar sayaç olduğu için
+   tabular-nums, yoksa her tazelemede satır oynuyor.
+   pointer-events:none — üstünden geçen dokunuş ✕'e ulaşsın. */
 .hospital-kap{
-  text-align:center; margin:0 0 10px;
+  position:absolute; top:14px; left:14px; right:60px; height:38px;
+  display:flex; align-items:center; justify-content:center;
+  margin:0; z-index:2; pointer-events:none;
   font-family:'Baloo 2',sans-serif; font-weight:800;
   font-size:var(--hs-kap-fs,13.5px);
   color:#dff2ff; font-variant-numeric:tabular-nums;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
-.hospital-kap.dolu{color:#ff8b8f;}
 .hospital-kap:empty{display:none;}
 
 .hospital-heal-card{
@@ -1451,13 +1456,13 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   display:flex; align-items:center; gap:6px; margin-top:3px;
 }
 /* Kutu, içindeki rakam kadar genişler. "ch" birimi yazı tipindeki
-   "0" genişliğidir; genişlik JS'te hqBoyutla ile yazılır. */
+   "0" genişliğidir. Genişlik artık SABİT: rakam uzadıkça kutu
+   büyüseydi sürgü rayı kısalır ve parmak altında oynardı (Tuzak 51). */
 .hospital-qty .hq-input{
-  flex:0 0 auto;
-  box-sizing:content-box;      /* genişlik SADECE rakamın yeri olsun */
-  width:1ch; min-width:1ch;
+  flex:0 0 var(--hs-adet-en,64px);
+  box-sizing:border-box;
+  width:var(--hs-adet-en,64px);
   height:22px; line-height:22px; text-align:center; padding:0 4px;
-  margin-right:-2px;           /* "/" işaretine yaklaşsın */
   border-radius:7px; border:1px solid rgba(190,240,255,.4);
   background:rgba(3,16,38,.6); color:#fff;
   font-family:'Baloo 2',sans-serif; font-weight:800;
@@ -1466,12 +1471,6 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 }
 .hospital-qty .hq-input::-webkit-outer-spin-button,
 .hospital-qty .hq-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
-.hospital-qty .hq-max{
-  flex:0 0 auto;
-  font-family:'Baloo 2',sans-serif; font-weight:800;
-  font-size:var(--hs-max-fs,12.5px);
-  color:#ffd257; white-space:nowrap;
-}
 .hospital-qty .hospital-slider{
   flex:1 1 auto; margin-top:0; height:24px;
   margin-right:6px;            /* bar çok az kısalsın */
@@ -5988,6 +5987,34 @@ function hastaneBitirElmasi() {
    parçasıdır — sürgüye dokunulmadan da kırmızıdan beyaza döner. */
 let _hospAltKey = "";
 
+/* ── ÜST SAYAÇ ──  "seçilen / toplam yaralı"
+   ✕ hizasındaki satırı yazar. Sürgü oynatılırken de değişmesi
+   gerektiği için ata() içinden DOĞRUDAN çağrılır; hastaneAltGuncelle
+   kullanılamaz, çünkü onun imza kilidi yalnız BEDEL değişince açılır
+   ve bedeli aynı kalan bir seçim değişikliğinde sayaç donardı. */
+function hastaneUstSayac() {
+  const el = document.getElementById("hospitalKap");
+  if (!el) return;
+  const hepsi = state.hospital || [];
+  const toplam = hastaneToplam(hepsi);
+  if (toplam <= 0) { el.textContent = ""; return; }
+
+  /* Seçim yalnız TEDAVİYE ALINMAMIŞ yaralılar için geçerli; onaylanmış
+     olanın seçimi zaten silinir. Yine de elde kalmış eski bir seçim
+     toplamı şişirmesin diye bekleyen adetle kırpılıyor. */
+  const bekleyen = {};
+  hepsi.forEach(p => {
+    if (p.confirmed) return;
+    bekleyen[p.unitId] = (bekleyen[p.unitId] || 0) + (p.adet || 0);
+  });
+  let secili = 0;
+  Object.keys(bekleyen).forEach(u => {
+    secili += Math.min(hospitalPendingSelection[u] || 0, bekleyen[u]);
+  });
+
+  el.textContent = fmt(secili) + " / " + fmt(toplam);
+}
+
 function hastaneAltGuncelle() {
   const bar = document.getElementById("hospitalTotalBar");
   const kay = (state && state.kaynaklar) || {};
@@ -6048,22 +6075,16 @@ function bindHospitalSlider(card) {
     if (top)   top.style.left    = p;
   }
 
-  /* Değeri tek yerden yaz: sürgü, kutu ve seçim hep aynı kalsın */
-  /* Kutu içindeki rakam kadar genişler — boşluk kalmaz.
-     "ch" birimi yazı tipindeki "0" genişliğidir, birebir oturur. */
-  function hqBoyutla() {
-    if (!kutu) return;
-    const n = Math.max(1, String(kutu.value || "").replace(/[^0-9]/g, "").length);
-    kutu.style.width = n + "ch";
-  }
-
+  /* Değeri tek yerden yaz: sürgü, kutu ve seçim hep aynı kalsın.
+     Kutu genişliği artık CSS'te sabit (--hs-adet-en); rakama göre
+     büyüten hqBoyutla silindi — ray kısalıyordu (Tuzak 51). */
   function ata(v, oranDaCiz) {
     v = Math.max(0, Math.min(enFazla, Math.round(v || 0)));
     deger = v;
     hospitalPendingSelection[unitId] = v;
     if (kutu && document.activeElement !== kutu) kutu.value = String(v);
-    hqBoyutla();
     if (oranDaCiz) ciz(enFazla > 0 ? v / enFazla : 0);
+    hastaneUstSayac();
     hastaneAltGuncelle();
     /* İmzaya DOKUNULMAZ: seçilen miktar imzanın parçası değil.
        Miktarı zaten doğrudan DOM'a yazıyoruz; yeniden çizim
@@ -6141,15 +6162,8 @@ function renderHospitalPanel() {
   const patients = state.hospital || [];
   const toplamYarali = hastaneToplam(patients);
 
-  /* Doluluk yazısı — boş hastanede de görünsün diye erken çıkıştan ÖNCE. */
-  const kapEl = document.getElementById("hospitalKap");
-  if (kapEl) {
-    const kap = hastaneKapasitesi();
-    kapEl.textContent = (kap === Infinity)
-      ? ""
-      : (fmt(toplamYarali) + " / " + fmt(kap) + " yatak");
-    kapEl.classList.toggle("dolu", kap !== Infinity && toplamYarali >= kap);
-  }
+  /* Üst sayaç — boş hastanede de doğru olsun diye erken çıkıştan ÖNCE. */
+  hastaneUstSayac();
 
   if (floatBtn) {
     /* Rozette SAYI YOK — yalnız görsel. Yaralı varsa görünür. */
@@ -6214,7 +6228,6 @@ function renderHospitalPanel() {
               </div>
               <input class="hq-input" type="number" inputmode="numeric"
                      min="0" max="${woundedCount}" value="${current}">
-              <span class="hq-max">/ ${woundedCount}</span>
             </div>
           </div>
         </div>`;
