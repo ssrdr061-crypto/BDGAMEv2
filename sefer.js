@@ -1870,6 +1870,12 @@ window.SEFER = {
   toplamaBaslat: toplamaBaslat,
   orduKapasitesi: orduKapasitesi,
   yoldakiBirlikler: yoldakiBirlikler,
+  /*  Onay penceresi oyunun ORTAK penceresidir; gövdesi burada ama
+      kullanan tek dosya sefer.js değil (troops.js terfi onayı).
+      Dosyanın tamamı bir IIFE içinde olduğu için dışarıdan
+      görünmüyordu — ikinci bir pencere yazmak yerine buradan
+      açılıyor. Stilleri zaten head'e global enjekte ediliyor.   */
+  onayPenceresi: onayPenceresi,
 };
 
 })();

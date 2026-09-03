@@ -9717,31 +9717,35 @@ html body .tf-kutu{
   gap:8px; padding:2px 0 0;
 }
 
-/*  Kafalar + ok. Kutucuk ölçüsü .rep-por'dan geliyor; burada
-    yalnız aralık ve hizalama var.                               */
+/*  Kafa + ad TEK SÜTUNDA. Ad ayrı bir satıra alınırsa uzun isim
+    ("Saldırı Helikopteri") kendi sütununu genişletip oku ve
+    kutucukları kaydırıyordu; sütun sabit genişlikte olunca ad
+    kutucuğunun altında kalıyor ve ok tam ortada duruyor.        */
 html body .tf-kafalar{
-  display:flex; align-items:center; justify-content:center; gap:12px;
+  display:flex; align-items:flex-start; justify-content:center; gap:10px;
+  width:100%;
+}
+html body .tf-sut{
+  flex:0 0 92px; max-width:92px;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+html body .tf-sut > span{
+  text-align:center; font-size:12px; font-weight:700;
+  color:#eaf7ff; line-height:1.2;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
 html body .tf-ok{
+  flex:0 0 auto; align-self:center; margin-top:-14px;
   font-size:22px; font-weight:700; color:#cfeeff; line-height:1;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
 
-/*  Adlar kafaların ALTINDA, her biri kendi kutucuğunun genişliğinde
-    ortalanır. Sabit genişlik veriliyor ki uzun ad ("Saldırı
-    Helikopteri") oku kaydırmasın.                                */
-html body .tf-adlar{
-  display:flex; align-items:flex-start; justify-content:center; gap:12px;
-  width:100%;
-}
-html body .tf-adlar span{
-  flex:0 0 96px; max-width:96px; text-align:center;
-  font-size:12px; font-weight:700; color:#eaf7ff; line-height:1.25;
-  text-shadow:0 1px 2px rgba(0,20,45,.55);
-}
-/*  Ok kadar boşluk — iki adın arası kafaların arasıyla hizalansın. */
-html body .tf-adlar::before{
-  content:""; flex:0 0 0px;
+/*  Kutucuk raporda 38px; pencerenin ortasında küçük kalıyor.
+    Görsel yüzde ölçüsünde olduğu için kutu büyüyünce birlik de
+    onunla ölçekleniyor, ayrıca bir kural gerekmiyor.            */
+html body .tf-sut .rep-por{
+  width:60px !important; height:60px !important;
+  border-radius:16px !important;
 }
 
 html body .tf-sayi{

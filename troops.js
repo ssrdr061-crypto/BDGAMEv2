@@ -1872,11 +1872,10 @@ const TroopTabs = (function () {
     const mesaj =
       `<div class="tf-kutu">` +
         `<div class="tf-kafalar">` +
-          terfiKafa(def) +
+          `<div class="tf-sut">${terfiKafa(def)}<span>${def.name}</span></div>` +
           `<span class="tf-ok">→</span>` +
-          terfiKafa(hedef) +
+          `<div class="tf-sut">${terfiKafa(hedef)}<span>${hedef.name}</span></div>` +
         `</div>` +
-        `<div class="tf-adlar"><span>${def.name}</span><span>${hedef.name}</span></div>` +
         `<div class="tf-sayi"><span id="tfAdet">${fmt(enFazla)}</span> birlik</div>` +
         `<div class="tf-bar">` +
           `<button class="tf-btn" type="button" data-tf="eksi">−</button>` +
@@ -1902,9 +1901,20 @@ const TroopTabs = (function () {
 
     const uygula = () => { terfiEt(unitId, secili); render(); };
 
-    if (typeof onayPenceresi !== "function") { uygula(); return; }
+    /*  Onay penceresi sefer.js'te tanımlı ama o dosyanın TAMAMI bir
+        IIFE içinde — düz `onayPenceresi` adı buradan GÖRÜNMEZ ve
+        sessizce yedek yola düşüp pencereyi hiç açmadan terfi ederdi.
+        SEFER üzerinden çağrılıyor.                                  */
+    const pencere = (window.SEFER && typeof window.SEFER.onayPenceresi === "function")
+      ? window.SEFER.onayPenceresi
+      : (typeof onayPenceresi === "function" ? onayPenceresi : null);
 
-    onayPenceresi("TERFİ", mesaj, "Terfi Et", uygula);
+    if (!pencere) {
+      if (typeof showToast === "function") showToast("Onay penceresi yüklenmedi.");
+      return;
+    }
+
+    pencere("TERFİ", mesaj, "Terfi Et", uygula);
 
     /* onayPenceresi gövdeyi hemen ekliyor, elemanlar şu an DOM'da. */
     const kok = document.getElementById("seferOnayModal");
