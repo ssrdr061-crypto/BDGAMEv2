@@ -5936,31 +5936,99 @@ function iyilestirmeBedeli(unitId, adet) {
   return out;
 }
 
-/* Karttaki bedel satırını yazar. Adet 0 ise satır boş kalır. */
-function hospBedelYaz(card, unitId, adet) {
-  const el = card && card.querySelector(".hosp-bedel");
-  if (!el) return;
-  const bedel = iyilestirmeBedeli(unitId, adet);
-  const anahtar = Object.keys(bedel);
-  if (!anahtar.length) { el.innerHTML = ""; return; }
+/* ── HASTANE ALT ŞERİDİ ───────────────────────────────────────
+   Bedel artık KART BAŞINA değil, listenin altında TEK yerde
+   yazılıyor. Sebep: her kartta ayrı şerit varken oyuncu toplamı
+   kafadan toplamak zorundaydı ve dört kart dört kez zıplıyordu.
+
+   Şeritteki dört kaynak HER ZAMAN görünür (adet 0 olsa bile) —
+   simgeler sabit kutuda durur, sayı büyüyünce yanındaki simge
+   kaymaz (Tuzak 51). Simge tek kaynaktan gelir:
+   DUGUM.kaynakSimge(); ikinci bir görsel listesi tutulmaz.
+   Sıra da tek kaynaktan: KAYNAK_IKON anahtarları.            */
+function hastaneSeciliToplam() {
+  return Object.keys(hospitalPendingSelection)
+    .reduce((t, u) => t + (hospitalPendingSelection[u] || 0), 0);
+}
+
+/* Seçimin TAMAMININ kaynak bedeli — birlik birlik toplanır. */
+function hastaneToplamBedel() {
+  const out = {};
+  Object.keys(hospitalPendingSelection).forEach(unitId => {
+    const n = hospitalPendingSelection[unitId] || 0;
+    if (n <= 0) return;
+    const b = iyilestirmeBedeli(unitId, n);
+    Object.keys(b).forEach(k => { out[k] = (out[k] || 0) + b[k]; });
+  });
+  return out;
+}
+
+/* Seçimin toplam iyileşme süresi (ms) → elmas bedeli.
+   Fiyat BITIR_ELMAS_DK'dan gelir; ikinci bir oran açılmaz. */
+function hastaneToplamSureMs() {
+  return Object.keys(hospitalPendingSelection).reduce((t, unitId) => {
+    const n = hospitalPendingSelection[unitId] || 0;
+    return n > 0 ? t + n * iyilesmeSuresiMs(unitId) : t;
+  }, 0);
+}
+
+function hastaneBitirElmasi() {
+  const ms = hastaneToplamSureMs();
+  if (ms <= 0) return 0;
+  return Math.max(1, Math.ceil(ms / 60000) * BITIR_ELMAS_DK);
+}
+
+/* Alt şeridi ve iki düğmeyi tazeler. Sürgü her oynadığında ve
+   panel her turunda çağrılır.
+
+   İÇERİK GERÇEKTEN DEĞİŞTİYSE yazılır: panel saniyede bir dönüyor,
+   her turda innerHTML'i baştan yazmak görselleri yeniden yükletip
+   şeridi titretirdi (bekleyen listesindeki imza kuralının aynısı).
+   Kaynak üretimi işlediği için "yetersiz" durumu da imzanın
+   parçasıdır — sürgüye dokunulmadan da kırmızıdan beyaza döner. */
+let _hospAltKey = "";
+
+function hastaneAltGuncelle() {
+  const bar = document.getElementById("hospitalTotalBar");
   const kay = (state && state.kaynaklar) || {};
   const kisa = (v) => (typeof kisaSayi === "function") ? kisaSayi(v) : String(v);
-  /* Görsel adları insaat.js ve tema.js'tekiyle AYNI — üçüncü bir
-     set uydurulmaz. Yüklenemezse emojiye düşer, satır boş kalmaz. */
-  const K_GORSEL = {
-    odun: "10kodun.webp", et: "10ket.webp", demir: "5kdemir.webp",
-    su: "5ksu.webp", enerji: "enerji.webp",
-  };
-  el.innerHTML = anahtar.map(k => {
-    const yetersiz = (kay[k] || 0) < bedel[k];
-    const em = (typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || "";
-    const g = K_GORSEL[k];
-    const ikon = g
-      ? '<img class="hb-gorsel" src="' + g + '" alt="">'
-      : '<span class="hb-em">' + em + '</span>';
-    return '<span class="hb-oge' + (yetersiz ? " yok" : "") + '">' +
-           ikon + '<span class="hb-sayi">' + kisa(bedel[k]) + '</span></span>';
-  }).join("");
+  const bedel = hastaneToplamBedel();
+  const elmasFiyat = hastaneBitirElmasi();
+
+  const idlerKey = (typeof KAYNAK_IKON !== "undefined")
+    ? Object.keys(KAYNAK_IKON) : ["et", "demir", "su", "enerji"];
+  const anahtar = idlerKey.map(k => {
+    const v = bedel[k] || 0;
+    return k + ":" + v + ":" + ((v > 0 && (kay[k] || 0) < v) ? 1 : 0);
+  }).join("|") + "|E:" + elmasFiyat + ":" +
+    ((elmasFiyat > 0 && (state.diamonds || 0) < elmasFiyat) ? 1 : 0);
+  if (anahtar === _hospAltKey) return;
+  _hospAltKey = anahtar;
+
+  if (bar) {
+    const idler = (typeof KAYNAK_IKON !== "undefined")
+      ? Object.keys(KAYNAK_IKON) : ["et", "demir", "su", "enerji"];
+    bar.innerHTML = idler.map(k => {
+      const v = bedel[k] || 0;
+      const yetersiz = v > 0 && (kay[k] || 0) < v;
+      const sim = (window.DUGUM && typeof DUGUM.kaynakSimge === "function")
+        ? DUGUM.kaynakSimge(k)
+        : ((typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || "");
+      return '<span class="ht-oge' + (yetersiz ? " yok" : "") + '">' +
+             '<span class="ht-ikon">' + sim + '</span>' +
+             '<span class="ht-sayi">' + kisa(v) + '</span></span>';
+    }).join("");
+  }
+
+  /* DİREKT BİTİR fiyatı + yeterlilik */
+  const elmasBtn = document.getElementById("hospitalInstantBtn");
+  if (elmasBtn) {
+    const fiyat = elmasFiyat;
+    const sayi = elmasBtn.querySelector(".hib-sayi");
+    if (sayi) sayi.textContent = kisa(fiyat);
+    const yetmez = fiyat > 0 && (state.diamonds || 0) < fiyat;
+    elmasBtn.classList.toggle("yok", yetmez);
+  }
 }
 
 function bindHospitalSlider(card) {
@@ -5996,7 +6064,7 @@ function bindHospitalSlider(card) {
     if (kutu && document.activeElement !== kutu) kutu.value = String(v);
     hqBoyutla();
     if (oranDaCiz) ciz(enFazla > 0 ? v / enFazla : 0);
-    hospBedelYaz(card, unitId, v);
+    hastaneAltGuncelle();
     /* İmzaya DOKUNULMAZ: seçilen miktar imzanın parçası değil.
        Miktarı zaten doğrudan DOM'a yazıyoruz; yeniden çizim
        gerekmediği gibi, parmak sürgüdeyken kartı yok ederdi. */
@@ -6092,6 +6160,7 @@ function renderHospitalPanel() {
     const qt = document.getElementById("hospitalQueueTitle");
     if (qt) qt.classList.add("is-hidden");
     _hospitalPendingKey = "";
+    _hospAltKey = "";
     return;
   }
 
@@ -6099,6 +6168,12 @@ function renderHospitalPanel() {
   const confirmed = patients.filter(p => p.confirmed);
 
   const byUnitWaiting = groupBy(waiting, p => p.unitId);
+  /* Bekleyeni kalmayan birliğin eski seçimi silinir; yoksa alt
+     şerit ekranda olmayan bir birliğin bedelini toplamaya devam
+     ederdi. Seçim tek yerde tutulduğu için burada temizlenir. */
+  Object.keys(hospitalPendingSelection).forEach(u => {
+    if (!byUnitWaiting[u]) delete hospitalPendingSelection[u];
+  });
   /* Grup satırları adet tutuyor: "kaç yaralı" = adetlerin toplamı */
   const bekleyenAdet = u => hastaneToplam(byUnitWaiting[u] || []);
 
@@ -6122,9 +6197,6 @@ function renderHospitalPanel() {
         <div class="hospital-heal-card" data-unit="${unitId}" data-max="${woundedCount}">
           <div class="hospital-face" data-unit="${unitId}">${unitFace(def)}</div>
           <div class="hospital-heal-mid">
-            <div class="hospital-heal-top">
-              <span class="hosp-bedel" data-unit="${unitId}"></span>
-            </div>
             <div class="hospital-qty">
               <div class="hospital-slider" data-unit="${unitId}">
                 <div class="sl-track"><i class="sl-fill"></i></div>
@@ -6137,13 +6209,25 @@ function renderHospitalPanel() {
           </div>
         </div>`;
     }).join("") + `
-      <button class="login-btn hospital-confirm-btn" id="hospitalConfirmBtn">İYİLEŞTİR</button>
+      <div class="hosp-toplam" id="hospitalTotalBar"></div>
+      <div class="hosp-btn-satir">
+        <button class="login-btn hospital-instant-btn" id="hospitalInstantBtn" type="button">
+          <span class="hib-yazi">DİREKT BİTİR</span>
+          <span class="hib-fiyat">${ELMAS("hastane")}<span class="hib-sayi">0</span></span>
+        </button>
+        <button class="login-btn hospital-confirm-btn" id="hospitalConfirmBtn">İYİLEŞTİR</button>
+      </div>
     `;
 
     pendingEl.querySelectorAll(".hospital-heal-card").forEach(card => {
       bindHospitalSlider(card);
     });
     safeBind("hospitalConfirmBtn", "click", confirmHospitalSelection);
+    safeBind("hospitalInstantBtn", "click", hastaneDirektBitir);
+    _hospAltKey = "";   /* şerit yeni DOM'a yeniden yazılsın */
+  }
+  if (document.getElementById("hospitalTotalBar")) {
+    hastaneAltGuncelle();
   }
 
   const queueTitle = document.getElementById("hospitalQueueTitle");
@@ -6257,8 +6341,85 @@ function confirmHospitalSelection() {
   /* İmzayı boşalt: onaylanan birlikler üstteki listeden ANINDA
      düşsün, alttaki tedavi kuyruğunda görünsün. */
   _hospitalPendingKey = "";
+  _hospAltKey = "";
   renderHospitalPanel();
   showToast("Seçilen birlikler tedaviye alındı.");
+}
+
+/* ── DİREKT BİTİR ──────────────────────────────────────────────
+   Seçili yaralıları kuyruğa hiç sokmadan ayağa kaldırır.
+   Bedel: normal iyileştirme kaynağı + süreye karşılık elmas.
+
+   İKİNCİ TESLİMAT YOLU AÇILMIYOR (Tuzak 8): asker orduya yine
+   applyFinishedHospitalRecoveries() üzerinden geçer. Buradaki tek
+   fark, kaydın finishAt'inin geçmişe yazılması — yani kayıt
+   yazıldığı anda bitmiş sayılır ve aynı fonksiyon onu teslim eder.
+
+   Bedel ÖNCE toplanır, sonra ödenir: kaynak ya da elmas yetmiyorsa
+   HİÇBİRİ yapılmaz, yarım kalmış ödeme olmaz.                 */
+function hastaneDirektBitir() {
+  const toplamSecili = hastaneSeciliToplam();
+  if (toplamSecili === 0) {
+    showToast("Önce anında iyileştirilecek birlik sayısını seç.");
+    return;
+  }
+
+  const bedel = hastaneToplamBedel();
+  const elmas = hastaneBitirElmasi();
+  if (!state.kaynaklar) state.kaynaklar = {};
+
+  const eksik = Object.keys(bedel).filter(k => (state.kaynaklar[k] || 0) < bedel[k]);
+  if (eksik.length) {
+    const ad = (k) => (typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || k;
+    showToast("Yetersiz kaynak: " + eksik.map(ad).join(" "), 4000);
+    return;
+  }
+  if ((state.diamonds || 0) < elmas) {
+    showToast("Yeterli elmasın yok. Gereken: 💎 " +
+      ((typeof elmasYaz === "function") ? elmasYaz(elmas) : elmas));
+    return;
+  }
+
+  Object.keys(bedel).forEach(k => {
+    state.kaynaklar[k] = Math.max(0, (state.kaynaklar[k] || 0) - bedel[k]);
+  });
+  state.diamonds -= elmas;
+
+  Object.keys(hospitalPendingSelection).forEach(unitId => {
+    let wantCount = hospitalPendingSelection[unitId] || 0;
+    if (wantCount <= 0) return;
+
+    const bekleyen = state.hospital.filter(p => p.unitId === unitId && !p.confirmed);
+    let alinan = 0;
+    for (const p of bekleyen) {
+      if (wantCount <= 0) break;
+      const n = Math.min(p.adet, wantCount);
+      p.adet -= n;
+      alinan += n;
+      wantCount -= n;
+    }
+    state.hospital = state.hospital.filter(p => (p.adet || 0) > 0);
+    if (alinan <= 0) return;
+
+    /* Bitmiş kayıt: teslimatı applyFinishedHospitalRecoveries yapar.
+       Tedavide zaten bir parti varsa ona KARIŞTIRILMAZ — ayrı satır
+       yazılır ve aynı turda tüketilir, kuyruk süresine dokunmaz. */
+    state.hospital.push({
+      unitId: unitId,
+      adet: alinan,
+      recoveryMs: iyilesmeSuresiMs(unitId),
+      finishAt: Date.now() - 1,
+      confirmed: true,
+    });
+  });
+
+  applyFinishedHospitalRecoveries();
+  hospitalPendingSelection = {};
+  _hospitalPendingKey = "";
+  _hospAltKey = "";
+  renderHospitalPanel();
+  if (typeof renderTroopsPanel === "function") renderTroopsPanel();
+  showToast("Seçilen birlikler anında iyileşti!");
 }
 
 function useSpeedUpOnGroup(group, afterFns) {

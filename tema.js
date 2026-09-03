@@ -9016,7 +9016,8 @@ var YERLER = [
   { id: "rehber",   ad: "Rehber",   not: "Revolia hediye kutusu" },
   { id: "canta",    ad: "Çanta",    not: "Özet kutusu (CSS ::before)" },
   { id: "sandik",   ad: "Sandık",   not: "Şans kutusu ödül satırı" },
-  { id: "kisla",    ad: "Kışla",    not: "⚡ Anında düğmesi (üç kışla)" }
+  { id: "kisla",    ad: "Kışla",    not: "⚡ Anında düğmesi (üç kışla)" },
+  { id: "hastane",  ad: "Hastane",  not: "DİREKT BİTİR düğmesi" }
 ];
 
 var ANAHTAR = "elmasAyar3";
@@ -9531,46 +9532,6 @@ setTimeout(kur, 1200);
   else window.addEventListener("load", baslat);
 })();
 
-/* ═══════════════════════════════════════════════════════════════
-   HASTANE — İYİLEŞTİRME BEDELİ SATIRI
-
-   Sorun: emoji + rakam yan yana akıyordu; rakam 719'dan 2,9K'ya
-   çıkınca yanındaki görseli itiyordu, satır her sürgü hareketinde
-   oynuyordu.
-
-   Çözüm: satır EŞİT GENİŞLİKTE üç yuvaya bölünüyor (`flex:1 1 0`).
-   Yuvanın genişliği içeriğe DEĞİL kabın enine bağlı, o yüzden
-   rakam kaç basamak olursa olsun görseller aynı x'te kalır.
-   Rakam da sabit genişlikli bir kutuda (`min-width`), kendi
-   yuvasının içinde bile kaymaz.
-   ═══════════════════════════════════════════════════════════════ */
-(function hastaneBedelStili() {
-  const st = document.createElement("style");
-  st.id = "hastaneBedelCss";
-  st.textContent =
-    ".hosp-bedel{display:flex;align-items:center;gap:6px;width:100%;}" +
-
-    /* Eşit yuvalar → görseller sabit x'te. */
-    ".hosp-bedel .hb-oge{flex:1 1 0;min-width:0;display:flex;" +
-      "align-items:center;gap:5px;}" +
-
-    /* Görsel asla esnemez, asla küçülmez. */
-    ".hosp-bedel .hb-gorsel{width:22px;height:22px;flex:0 0 22px;" +
-      "object-fit:contain;display:block;background:none;}" +
-    ".hosp-bedel .hb-em{flex:0 0 22px;font-size:17px;line-height:1;" +
-      "text-align:center;}" +
-
-    /* Rakam: kalın Baloo 2, beyaz. min-width basamak artınca
-       görseli itmesini engeller. */
-    ".hosp-bedel .hb-sayi{font-family:'Baloo 2',sans-serif;font-weight:800;" +
-      "font-size:15px;color:#fff;line-height:1;min-width:3.6ch;" +
-      "text-align:left;white-space:nowrap;" +
-      "text-shadow:0 1px 2px rgba(0,0,0,.45);}" +
-
-    /* Kaynak yetmiyorsa yalnız rakam kızarır, görsel bozulmaz. */
-    ".hosp-bedel .hb-oge.yok .hb-sayi{color:#ff8f8f;}";
-  document.head.appendChild(st);
-})();
 
 /* Günlük ödül ÖNİZLEME penceresi — geçmiş/gelecek günler.
    Alma penceresiyle aynı kutuyu kullanır; tek farkı durum satırı
@@ -9848,4 +9809,93 @@ html body .tf-kay.tf-sure .tf-sim{
 }
 `;
 document.head.appendChild(st);
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   HASTANE — ALT ŞERİT + İKİ DÜĞME
+
+   Bedel kart başına yazılmıyor artık; listenin altında tek şerit
+   var ve seçimin TOPLAMINI gösteriyor (index.html
+   hastaneAltGuncelle). Dört kaynak da her zaman görünür.
+
+   Simge kutusu SABİT (`flex:0 0 26px`), sayı `kisaSayi()` ile
+   kısaltılmış ve `tabular-nums`: sürgü oynatılırken ne simge kayar
+   ne satır zıplar (Tuzak 51). Yuvalar `flex:1 1 0` olduğu için
+   dört simge kaç basamak yazılırsa yazılsın aynı x'te kalır.
+
+   Düğme satırı: solda DİREKT BİTİR (altında elmas + fiyat), sağda
+   İYİLEŞTİR. Genişlik yazı kadar, `width:100%` değil.
+   ═══════════════════════════════════════════════════════════════ */
+(function hastaneAltSeritStili() {
+  const st = document.createElement("style");
+  st.id = "hastaneAltSeritCss";
+  st.textContent =
+    /* ── ŞERİT ── */
+    "html body #panel-hospital .hosp-toplam{display:flex;align-items:center;" +
+      "gap:4px;margin:10px 2px 0;padding:7px 6px;border-radius:11px;" +
+      "background:rgba(0,20,45,.28);}" +
+    "html body #panel-hospital .hosp-toplam .ht-oge{flex:1 1 0;min-width:0;" +
+      "display:flex;align-items:center;gap:5px;justify-content:center;}" +
+
+    /* Simge sabit kutuda — içerik ne olursa olsun esnemez. */
+    "html body #panel-hospital .hosp-toplam .ht-ikon{flex:0 0 26px;" +
+      "width:26px;height:26px;display:flex;align-items:center;" +
+      "justify-content:center;font-size:17px;line-height:1;}" +
+    "html body #panel-hospital .hosp-toplam .ht-ikon img{width:26px;" +
+      "height:26px;max-width:none;object-fit:contain;display:block;" +
+      "background:none;}" +
+
+    "html body #panel-hospital .hosp-toplam .ht-sayi{" +
+      "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;" +
+      "color:#fff;line-height:1;white-space:nowrap;" +
+      "font-variant-numeric:tabular-nums;" +
+      "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+    "html body #panel-hospital .hosp-toplam .ht-oge.yok .ht-sayi{color:#ff8f8f;}" +
+
+    /* ── DÜĞME SATIRI ── */
+    "html body #panel-hospital .hosp-btn-satir{display:flex;" +
+      "align-items:stretch;justify-content:center;gap:10px;" +
+      "margin:12px 2px 2px;}" +
+    "html body #panel-hospital .hosp-btn-satir .hospital-confirm-btn," +
+    "html body #panel-hospital .hosp-btn-satir .hospital-instant-btn{" +
+      "display:flex;flex-direction:column;align-items:center;" +
+      "justify-content:center;gap:2px;margin:0;width:auto;min-width:126px;" +
+      "padding:7px 16px;font-family:'Baloo 2',sans-serif;font-weight:800;" +
+      "font-size:12px;border:none;border-radius:12px;color:#fff;" +
+      "box-shadow:0 2px 6px rgba(0,20,45,.3);" +
+      "transition:transform .09s ease, filter .09s ease;}" +
+
+    /* DİREKT BİTİR: elmas işi olduğu için mor-mavi, İYİLEŞTİR'den ayrışsın. */
+    "html body #panel-hospital .hospital-instant-btn{" +
+      "background:linear-gradient(180deg,#7d5ce0,#4a2fa8);}" +
+    "html body #panel-hospital .hospital-instant-btn .hib-yazi{" +
+      "letter-spacing:.6px;line-height:1;}" +
+    "html body #panel-hospital .hospital-instant-btn .hib-fiyat{" +
+      "display:flex;align-items:center;gap:3px;line-height:1;}" +
+    "html body #panel-hospital .hospital-instant-btn .hib-sayi{" +
+      "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;" +
+      "color:#ffe9a8;font-variant-numeric:tabular-nums;}" +
+    /* Elmas yetmiyorsa yalnız fiyat kızarır; düğme kilitlenmez,
+       basınca hangi kaynağın eksik olduğunu toast söyler. */
+    "html body #panel-hospital .hospital-instant-btn.yok .hib-sayi{color:#ff8f8f;}" +
+
+    "html body #panel-hospital .hosp-btn-satir .hospital-confirm-btn:active," +
+    "html body #panel-hospital .hosp-btn-satir .hospital-instant-btn:active{" +
+      "transform:scale(.96);filter:brightness(.93);box-shadow:none;}";
+  document.head.appendChild(st);
+})();
+
+/* Elmas simgesi — hastane DİREKT BİTİR düğmesi.
+   Ölçü henüz oyunda ÖLÇÜLMEDİ: kışla değerleri taban alındı,
+   çünkü ikisi de koyu düğme üstünde yan yana rakamla duruyor.
+   ?elmasayar=1 panelinden ölçüldükten sonra buradaki satır
+   güncellenecek. */
+(function elmasHastaneOlcu() {
+  const st = document.createElement("style");
+  st.id = "elmasHastaneCss";
+  st.textContent =
+    ".elmas-kutu.ey-hastane{--el-kutu:1.15em; --el-boy:3.25em; " +
+    "--el-x:-0.74em; --el-y:0.28em; --el-hiza:-0.10em;}";
+  document.head.appendChild(st);
 })();
