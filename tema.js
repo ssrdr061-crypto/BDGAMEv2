@@ -1658,7 +1658,7 @@ function hookStaminaPill() {
       const st = (typeof state === "object" && state) ? state.stamina : null;
       const txt = document.getElementById("staminaText");
       if (st && txt && st.max > 0) {
-        txt.textContent = "❤️ %" + Math.round((st.current / st.max) * 100);
+        txt.textContent = "❤️ " + Math.round((st.current / st.max) * 100);
       }
     } catch (e) {}
     return r;
@@ -8706,6 +8706,18 @@ document.head.appendChild(st);
       if (n.classList.contains("castle-own")) {
         try { if (typeof state !== "undefined" && state) kb = Number(state.kalkanBitis || 0) || 0; }
         catch (e2) {}
+      } else {
+        /* FÜZEYLE KIRILAN KALKAN — kubbe hemen kalkmalı.
+           castles/{key}/kb ancak kurban çevrimiçi olunca temizlenir;
+           o ana kadar buradaki damga (pvp/{key}.kbKirik) tek gerçektir.
+           pvp.js kalkanKalan() da aynı damgaya bakar — kubbe ile
+           SALDIR kilidi ayrışmasın diye. */
+        try {
+          if (window.MISSILE_API && typeof window.MISSILE_API.kalkanKirikMi === "function") {
+            var kir = Number(window.MISSILE_API.kalkanKirikMi(n.dataset.cname)) || 0;
+            if (kb > 0 && kb <= kir) kb = 0;
+          }
+        } catch (e3) {}
       }
       var kalan = kb - now;
       if (kalan > 0) { kubbeTak(n); sayacYaz(n, kalan); }
