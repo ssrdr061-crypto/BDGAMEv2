@@ -2147,8 +2147,32 @@ async function sendRaidReport(enemy, R, saglamOrdu) {
        sonucu sessizce kaybolur. Satır başına `adet` tutulur. */
     if (totalLost > 0 && sumMap(wounded) > 0) {
       if (!Array.isArray(st.hospital)) st.hospital = [];
+
+      /* ── HASTANE KAPASİTESİ ──
+         Savunan çevrimdışı; kendi istemcisi bu kırpmayı yapamaz.
+         Kapasite SAVUNANIN hastane seviyesinden okunur (`st` geçilir) —
+         kendi seviyemiz geçilirse herkes kendi hastanesini karşı tarafa
+         dayatırdı.
+
+         Sıra SAF_SIRASI ile veriliyor, aşağıdaki döngüyle aynı sıra;
+         iki taraf aynı girdide aynı sonucu üretir.
+
+         Taşan yaralı ÖLÜR: `state.troops`'tan zaten düşülmüş durumda,
+         burada hastaneye alınmıyor, başka bir yere de yazılmıyor.
+         INSAAT yüklenmemişse kırpma yapılmaz ve oyun eski hâliyle
+         çalışır — sessiz yedek yol değil, ölçülebilir bir yokluk. */
+      let yatan = wounded;
+      if (window.INSAAT && typeof window.INSAAT.hastaneyeSigan === "function") {
+        const sirali = {};
+        SAF_SIRASI().forEach(uid => {
+          const n = Math.max(0, Math.round(num(wounded[uid], 0)));
+          if (n > 0) sirali[uid] = n;
+        });
+        yatan = window.INSAAT.hastaneyeSigan(st, sirali).alinan;
+      }
+
       SAF_SIRASI().forEach(uid => {
-        const n = Math.max(0, Math.round(num(wounded[uid], 0)));
+        const n = Math.max(0, Math.round(num(yatan[uid], 0)));
         if (n <= 0) return;
         const d = UT()[uid];
         const recMs = d ? Math.round(d.trainMinutes * 60 * 1000 / 3) : 10 * 60 * 1000;

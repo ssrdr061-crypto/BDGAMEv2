@@ -181,7 +181,7 @@
      Olcek notu: sefer kapasitesi tabani 5.000 ve kahramanlarla katlaniyor.
      Sv1 hastane 80.000 ile tek seferden donen ordunun yaralisini rahat
      alir; sinir orta oyunda ordu buyudukce isirmaya baslar. */
-  var HASTANE_KAPASITE = [
+  var HASTANE_KAP = [
     0,
     80000, 130000, 250000, 300000, 450000,
     600000, 850000, 900000, 950000, 1000000,
@@ -191,7 +191,7 @@
      kayit bozulsa bile 0 donup butun yaraliyi oldurmez. */
   function hastaneKapasite(sv) {
     var n = Math.max(1, Math.min(TAVAN, Math.floor(Number(sv) || 1)));
-    return HASTANE_KAPASITE[n] || HASTANE_KAPASITE[1];
+    return HASTANE_KAP[n] || HASTANE_KAP[1];
   }
 
   /* Bir HESABIN kapasitesi. Argumansiz kendi durumumuzu okur; bir state
@@ -211,6 +211,61 @@
       kaynak = state.binaSv;
     }
     return hastaneKapasite((kaynak && kaynak.hastane) || 1);
+  }
+
+  /* Hastanede SU AN kac yarali var.
+     Iki bicimi de sayar: yeni kayit satir basina {adet:N} tutar, eski
+     kayit her asker icin AYRI nesne acardi (temizle.js bunu duzeltiyor
+     ama eski hesaplarda hala olabilir). Eski satirda adet yoktur, 1
+     sayilir — yoksa eski hesaplarda hastane bos gorunur ve sinir hic
+     isirmaz. */
+  function hastaneDoluluk(st) {
+    var kaynak;
+    if (st && typeof st === "object") kaynak = st.hospital;
+    else if (hazir()) kaynak = state.hospital;
+    if (!Array.isArray(kaynak)) return 0;
+    var n = 0;
+    for (var i = 0; i < kaynak.length; i++) {
+      var r = kaynak[i];
+      if (!r) continue;
+      var a = Number(r.adet);
+      n += (isFinite(a) && a > 0) ? Math.round(a) : 1;
+    }
+    return n;
+  }
+
+  function hastaneBosYer(st) {
+    return Math.max(0, hastaneKapasiteHesap(st) - hastaneDoluluk(st));
+  }
+
+  /* ── TEK KAPI ──
+     Yaraliyi hastaneye yazan HER yol once buradan gecer. Sigan kismi
+     `alinan`, sigmayan kismi `tasan` olarak doner; tasan OLUR.
+
+     Neden tek kapi: yarali uc ayri yerden hastaneye giriyor (kendi
+     savasimiz, savunan cevrimdisiyken saldiranin istemcisi, seferden
+     donen ordu). Her biri kendi kirpmasini yazsaydi ikinci teslimat
+     yolu acilirdi — Tuzak 8'in aynisi.
+
+     Kirpma sirasi: haritanin ANAHTAR SIRASI. Cagiran taraf sirayi
+     belirler (pvp.js SAF_SIRASI ile gecer), boylece iki tarafta ayni
+     girdi ayni sonucu verir. Oranti hesabi yapilmiyor; kesirli asker
+     yuvarlanirken toplam kapasiteyi asabilirdi.
+
+     st verilmezse kendi hesabimiz okunur.                            */
+  function hastaneyeSigan(st, yaraliHarita) {
+    var bos = hastaneBosYer(st);
+    var alinan = {}, tasan = {}, tasanToplam = 0;
+    var ids = Object.keys(yaraliHarita || {});
+    for (var i = 0; i < ids.length; i++) {
+      var uid = ids[i];
+      var n = Math.max(0, Math.round(Number(yaraliHarita[uid]) || 0));
+      if (n <= 0) continue;
+      var yer = Math.min(n, bos);
+      if (yer > 0) { alinan[uid] = yer; bos -= yer; }
+      if (n > yer) { tasan[uid] = n - yer; tasanToplam += n - yer; }
+    }
+    return { alinan: alinan, tasan: tasan, tasanToplam: tasanToplam, kalanBos: bos };
   }
 
   /* ── KIŞLA MUAFİYETİ — SABİT ÜÇLÜ DÖNGÜ ──
@@ -1307,7 +1362,10 @@
        bir hesabın state'inden okur (argümansız = kendi hesabımız). */
     hastaneKapasite: hastaneKapasite,
     hastaneKapasitesi: hastaneKapasiteHesap,
-    HASTANE_KAPASITE: HASTANE_KAPASITE,
+    hastaneDoluluk: hastaneDoluluk,
+    hastaneBosYer: hastaneBosYer,
+    hastaneyeSigan: hastaneyeSigan,
+    HASTANE_KAP: HASTANE_KAP,
 
     gelistirilebilir: function (id) { return !!TIP[id]; },
     kurDurum: kurDurum,
