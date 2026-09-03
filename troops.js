@@ -105,6 +105,8 @@ const KADEME = {
     robot:   { attack: 6, defense: 3, hp: 3, olum: 6 },   /* toplam 18 */
   },
 
+  TERFI_INDIRIM: 0.9, /* terfi kaynağı: fark × bu. 1.0 = indirim yok    */
+
   MALIYET_KAT: 1.8,   /* elmas maliyeti her kademede bu katsayıyla artar  */
   SURE_KAT:    1.8,   /* eğitim süresi                                    */
   KAYNAK_KAT:  1.8,   /* et/su/demir/enerji                               */
@@ -188,7 +190,11 @@ const KADEME_ADI = {
       UNIT_TYPES[id] = {
         id, name: (KADEME_ADI[tid] || [])[lv - 1] || t.name, icon: t.icon,
         cost:         Math.round(t.cost * Math.pow(KADEME.MALIYET_KAT, k)),
-        trainMinutes: Math.round(t.trainMinutes * Math.pow(KADEME.SURE_KAT, k)),
+        /* YUVARLAMA YOK. Math.round burada Sv2'yi 0,72 → 1 dk,
+           Sv3'ü 1,30 → 1 dk yapıyordu; iki kademe aynı sürede
+           çıkıyordu. sureDk() bir dakikanın altını saniye olarak
+           yazdığı için ondalık değer ekranda sorun çıkarmaz. */
+        trainMinutes: t.trainMinutes * Math.pow(KADEME.SURE_KAT, k),
         attack:  (t.attack  || 0) + k * a.attack,
         defense: (t.defense || 0) + k * a.defense,
         hp:      (t.hp      || 0) + k * a.hp,
@@ -215,6 +221,158 @@ function aileKademeleri(aile) {
   return Object.values(UNIT_TYPES)
     .filter(d => d.aile === aile)
     .sort((a, b) => (a.kademe || 1) - (b.kademe || 1));
+}
+
+/*  ─────────────────────────────────────────────
+    1.a3) TERFİ — eski orduyu üst kademeye çevirme
+    Asker SAYISI değişmez: 1 Şövalye → 1 Süvari.
+    Bedel yalnız KAYNAK ve SÜREdir, elmas alınmaz.
+
+    Bedel FARKTAN hesaplanır:
+        kaynak = (hedefin kaynağı − eldekinin kaynağı) × TERFI_INDIRIM
+        süre   = (hedefin süresi  − eldekinin süresi)     [indirimsiz]
+
+    Bunun iki sonucu var, ikisi de kasıtlı:
+    1) Süre indirimsiz olduğu için "ucuz Sv1 basıp yükselteyim"
+       kısa yolu ZAMAN kazandırmaz — toplam süre doğrudan üretimle
+       birebir aynı çıkar. Sömürü yolu böyle kapanıyor.
+    2) Fark teleskopiktir: Sv1→Sv3→Sv5 adım adım terfi ile
+       Sv1→Sv5 tek hamlede terfi AYNI kaynağa mal olur. Ayrıca
+       bir koruma yazmak gerekmez.
+
+    HEDEF KADEME AİLEYE ÖZELDİR. Savunucu Sv5'te olsa bile
+    Nişancı Kışlası Sv7'de değilse nişancının hedefi Sv4'te kalır;
+    kademeAcikMi() zaten aile parametresi alıyor, ortak bir
+    "en üst kademe" değişkeni YOKTUR ve açılmamalıdır.
+    ───────────────────────────────────────────── */
+
+/*  Bu birliğin terfi edebileceği hedef. Yoksa null:
+      - aile kilitliyse (üstünde açık kademe yok)
+      - birlik zaten en üst açık kademedeyse                      */
+function terfiHedefi(unitId) {
+  const def = UNIT_TYPES[unitId];
+  if (!def) return null;
+  const ai = def.aile || unitId;
+  const su = def.kademe || 1;
+  let hedef = null;
+  for (let k = su + 1; k <= KADEME_SAYISI; k++) {
+    if (!kademeAcikMi(ai, k)) break;      /* ilk kapalıda dur */
+    const d = UNIT_TYPES[kademeKimlik(ai, k)];
+    if (d) hedef = d;
+  }
+  return hedef;
+}
+
+/*  aile + kademe → birlik kimliği. Sv1'in kimliği ailenin kendisidir
+    (knight), üstü sayı ekler (knight2). Bu kimlikler Firebase veri
+    anahtarıdır — biçim ASLA değişmez.                              */
+function kademeKimlik(aile, kademe) {
+  return (kademe <= 1) ? aile : (aile + kademe);
+}
+
+/*  Tek birlik için terfi kaynağı: fark × indirim.
+    Eksi çıkarsa 0 sayılır (olmaması gerekir, ama kademe tablosu
+    elle değiştirilirse diye).                                      */
+function terfiKaynakBirim(unitId, hedefId) {
+  const a = UNIT_TYPES[unitId], b = UNIT_TYPES[hedefId];
+  const out = {};
+  if (!a || !b) return out;
+  const ind = (typeof KADEME.TERFI_INDIRIM === "number") ? KADEME.TERFI_INDIRIM : 1;
+  Object.keys(b.kaynak || {}).forEach(r => {
+    const fark = (b.kaynak[r] || 0) - ((a.kaynak && a.kaynak[r]) || 0);
+    const v = Math.round(Math.max(0, fark) * ind);
+    if (v > 0) out[r] = v;
+  });
+  return out;
+}
+
+/* İstenen ADET için toplam terfi kaynağı. */
+function terfiKaynak(unitId, hedefId, adet) {
+  const birim = terfiKaynakBirim(unitId, hedefId);
+  const n = Math.max(1, adet || 1);
+  const out = {};
+  Object.keys(birim).forEach(r => { out[r] = birim[r] * n; });
+  return out;
+}
+
+/* Tek birliğin terfi süresi (dakika). İndirim uygulanmaz. */
+function terfiSureDk(unitId, hedefId) {
+  const a = UNIT_TYPES[unitId], b = UNIT_TYPES[hedefId];
+  if (!a || !b) return 0;
+  return Math.max(0, (b.trainMinutes || 0) - (a.trainMinutes || 0));
+}
+
+/*  En fazla kaç tane terfi edilebilir: elindeki asker ve kaynak,
+    hangisi önce biterse. Kaynak bedeli 0 ise yalnız askere bakar. */
+function maxTerfi(unitId, hedefId) {
+  const sahip = (typeof state !== "undefined" && state.troops && state.troops[unitId]) || 0;
+  if (sahip <= 0) return 0;
+  let en = sahip;
+  const birim = terfiKaynakBirim(unitId, hedefId);
+  const kay = (typeof state !== "undefined" && state.kaynaklar) || {};
+  Object.keys(birim).forEach(r => {
+    en = Math.min(en, Math.floor((kay[r] || 0) / birim[r]));
+  });
+  return Math.max(0, en);
+}
+
+/*  TERFİYİ UYGULA.
+    Alt kademe HEMEN düşülür (bitişte değil) — yoksa terfi sürerken
+    aynı asker sefere de çıkardı. Üst kademe eğitim kuyruğuna
+    hedefin kimliğiyle yazılır; teslimat, kayıt, bulut ve ekran
+    sayacı applyFinishedTraining üzerinden zaten çalışıyor,
+    ikinci bir teslimat yolu AÇILMAZ.                               */
+function terfiEt(unitId, adet) {
+  const def = UNIT_TYPES[unitId];
+  if (!def) return false;
+  const hedef = terfiHedefi(unitId);
+  if (!hedef) {
+    if (typeof showToast === "function") showToast(`${def.name} zaten en üst açık kademende.`);
+    return false;
+  }
+
+  const enFazla = maxTerfi(unitId, hedef.id);
+  let n = Math.max(1, Math.min(adet || 1, enFazla));
+  if (enFazla < 1) {
+    if (typeof showToast === "function") {
+      const sahip = (state.troops && state.troops[unitId]) || 0;
+      showToast(sahip <= 0
+        ? `Terfi edecek ${def.name} yok.`
+        : `Kaynağın yetmiyor.`);
+    }
+    return false;
+  }
+
+  /* Ödeme */
+  const gerek = terfiKaynak(unitId, hedef.id, n);
+  if (!state.kaynaklar) state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
+  Object.keys(gerek).forEach(r => {
+    state.kaynaklar[r] = Math.max(0, (state.kaynaklar[r] || 0) - gerek[r]);
+  });
+
+  /* Alt kademeyi hemen düş */
+  state.troops[unitId] = Math.max(0, (state.troops[unitId] || 0) - n);
+
+  /* Kuyruğa yaz — trainUnit ile aynı sıralı parti kuralı */
+  if (!state.trainingQueue) state.trainingQueue = [];
+  const birimMs = terfiSureDk(unitId, hedef.id) * 60 * 1000;
+  let sonBitis = Date.now();
+  state.trainingQueue.forEach(j => {
+    if (j.unitId === hedef.id && j.finishAt > sonBitis) sonBitis = j.finishAt;
+  });
+  for (let i = 0; i < n; i++) {
+    sonBitis += birimMs;
+    state.trainingQueue.push({ unitId: hedef.id, finishAt: sonBitis });
+  }
+
+  ["renderKaynaklar", "renderTroopsPanel", "persistCurrentState"].forEach(f => {
+    if (typeof window[f] === "function") { try { window[f](); } catch (e) {} }
+  });
+
+  if (typeof showToast === "function") {
+    showToast(`${fmt(n)} ${def.name} → ${hedef.name} terfi ediyor (${sureDk(terfiSureDk(unitId, hedef.id) * n)}).`);
+  }
+  return true;
 }
 
 /*  ─────────────────────────────────────────────
@@ -1640,16 +1798,60 @@ const TroopTabs = (function () {
     });
   }
 
-  /* ── GELİŞTİRME ──
-     Birliklerde henüz seviye sistemi yok (heroes.js'teki gibi).
-     Seviye/maliyet tablosu belirlenince gövdesi buraya yazılacak. */
+  /* ── GELİŞTİRME = TERFİ ──
+     Hedef, o AİLENİN açık en üst kademesidir (terfiHedefi).
+     Bu adımda adet seçimi yok: ödenebilen EN ÇOK sayı önerilir,
+     oyuncu onaylar ya da vazgeçer. Adet çubuğu 2. adımda gelecek. */
   function upgrade(unitId) {
     const def = UNIT_TYPES[unitId];
     if (!def) return;
-    if ((state.troops && state.troops[unitId]) > 0) {
-      if (typeof showToast === "function") showToast(`${def.name} geliştirme sistemi yakında!`);
-    } else {
+
+    const sahip = (state.troops && state.troops[unitId]) || 0;
+    if (sahip <= 0) {
       if (typeof showToast === "function") showToast(`Önce ${def.name} eğitmelisin.`);
+      return;
+    }
+
+    const hedef = terfiHedefi(unitId);
+    if (!hedef) {
+      if (typeof showToast === "function") {
+        showToast(`${def.name} zaten en üst açık kademende. Üstünü açmak için ${kislaAdi(def.aile)} yükselt.`);
+      }
+      return;
+    }
+
+    const n = maxTerfi(unitId, hedef.id);
+    if (n < 1) {
+      const b = terfiKaynakBirim(unitId, hedef.id);
+      const liste = Object.keys(b).map(r => `${KAYNAK_IKON[r] || ""} ${fmt(b[r])}`).join(" · ");
+      if (typeof showToast === "function") {
+        showToast(`Kaynağın yetmiyor. 1 ${hedef.name} için ${liste} gerekiyor.`);
+      }
+      return;
+    }
+
+    const gerek = terfiKaynak(unitId, hedef.id, n);
+    const satir = Object.keys(gerek)
+      .map(r => `<span>${KAYNAK_IKON[r] || ""} ${fmt(gerek[r])}</span>`)
+      .join(" &nbsp; ");
+    const sure = sureDk(terfiSureDk(unitId, hedef.id) * n);
+
+    const mesaj =
+      `<div style="text-align:center;line-height:1.7">` +
+        `<div>${fmt(n)} ${def.name} → ${fmt(n)} ${hedef.name}</div>` +
+        `<div>${satir || "bedelsiz"}</div>` +
+        `<div>⏳ ${sure}</div>` +
+      `</div>`;
+
+    if (typeof onayPenceresi === "function") {
+      onayPenceresi("TERFİ", mesaj, "Terfi Et", () => {
+        terfiEt(unitId, n);
+        render();
+      });
+    } else {
+      /* sefer.js yüklenmediyse pencere olmadan da çalışsın */
+      terfiEt(unitId, n);
+      render();
     }
   }
 
