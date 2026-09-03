@@ -5419,11 +5419,28 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
     return 0;
   }
 
-  /* ── 1) SÜRE: "5s 57d 7sn" ── */
+  /* ── 1) SÜRE: "2g 4s 57d" · "5s 57d 7sn" · "57d 7sn" · "7sn" ──
+     GÜN dalı eklendi. Öncesinde saat taşıyordu: 24 günlük bir tedavi
+     "597s 17d 19sn" diye yazılıyordu, oyuncu bunu okuyup gün hesabı
+     yapmak zorunda kalıyordu.
+
+     En çok ÜÇ birim yazılır ve en büyük birimden başlanır. Gün varken
+     saniye düşer: "2g 4s 57d 13sn" satıra sığmıyor ve gün ölçeğinde
+     saniyenin bilgi değeri yok. Saniye yalnız gün YOKKEN görünür,
+     böylece kısa tedavilerde sayacın işlediği yine belli olur.        */
   function sureKisa(ms) {
     var t = Math.max(0, Math.round(ms / 1000));
-    var sa = Math.floor(t / 3600), dk = Math.floor((t % 3600) / 60), sn = t % 60;
+    var g  = Math.floor(t / 86400);
+    var sa = Math.floor((t % 86400) / 3600);
+    var dk = Math.floor((t % 3600) / 60);
+    var sn = t % 60;
     var p = [];
+    if (g > 0) {
+      p.push(g + "g");
+      if (sa > 0) p.push(sa + "s");
+      if (dk > 0) p.push(dk + "d");
+      return p.join(" ");
+    }
     if (sa > 0) p.push(sa + "s");
     if (dk > 0) p.push(dk + "d");
     if (sn > 0 || !p.length) p.push(sn + "sn");

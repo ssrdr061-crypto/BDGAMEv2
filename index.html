@@ -1406,16 +1406,12 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
 .hospital-kap:empty{display:none;}
-/* Ust sayac iki parcali: solda secim, sagda hastane dolulugu.
-   Ayrilar `hk-ayr` ile; iki "x / y" yan yana etiketsiz karisiyordu.
-   Doluluk rengi doldukca degisir — oyuncu tasmayi savastan ONCE gorsun.
-   Nabiz/animasyon YOK: prefers-reduced-motion bu cihazda tum CSS
-   animasyonlarini olduruyor, renk tek basina guvenilir. */
-.hospital-kap{gap:7px;}
-.hospital-kap .hk-ayr{opacity:.45;}
+/* Ust sayac tek parcali: yarali / kapasite.
+   Kirmizi YALNIZ kapasite asildiginda; oyuncu tasmayi savastan ONCE
+   gorsun. Nabiz/animasyon YOK: prefers-reduced-motion bu cihazda tum
+   CSS animasyonlarini olduruyor, renk tek basina guvenilir. */
 .hospital-kap .hk-dol{color:#dff2ff;}
-.hospital-kap .hk-dol.hk-uyar{color:#ffd479;}
-.hospital-kap .hk-dol.hk-dolu{color:#ff9a9a;}
+.hospital-kap .hk-dol.hk-dolu{color:#ff5f5f;}
 
 .hospital-heal-card{
   position:relative;
@@ -6013,7 +6009,7 @@ function hastaneBitirElmasi() {
    parçasıdır — sürgüye dokunulmadan da kırmızıdan beyaza döner. */
 let _hospAltKey = "";
 
-/* ── ÜST SAYAÇ ──  "seçilen / toplam yaralı"
+/* ── ÜST SAYAÇ ──  "yaralı / kapasite"
    ✕ hizasındaki satırı yazar. Sürgü oynatılırken de değişmesi
    gerektiği için ata() içinden DOĞRUDAN çağrılır; hastaneAltGuncelle
    kullanılamaz, çünkü onun imza kilidi yalnız BEDEL değişince açılır
@@ -6024,43 +6020,30 @@ function hastaneUstSayac() {
   const hepsi = state.hospital || [];
   const toplam = hastaneToplam(hepsi);
 
-  /* ── SAG PARCA: HASTANE DOLULUGU ──
-     Tasmayi savastan SONRA toast ile ogrenmek gec; oyuncu doluma
-     yaklastigini burada gormeli. Kapasite Infinity ise (insaat.js
-     yuklenmemis) sinir zaten uygulanmiyor, sayi yerine "Sinirsiz"
-     yazilir — kullaniciya "∞ / ∞" gostermenin anlami yok.
-     Bu parca yarali YOKKEN de yazilir; kapasiteyi gormek icin once
-     yaralanmak gerekmemeli.                                        */
+  /* ── DOLULUK / KAPASİTE ──
+     Tek satır, etiketsiz, TAM SAYI. Kısaltma yok: 284K ile 250K yan
+     yana yazınca oyuncu taşmanın ne kadar olduğunu göremiyor.
+
+     Eski "seçili / toplam yaralı" sayacı KALDIRILDI, taşınmadı.
+     Toplam yaralı bu satırın solunda zaten duruyor; iki ayrı "x / y"
+     yan yana okunmuyordu.
+
+     Kapasite Infinity ise (insaat.js yüklenmemiş) sınır zaten
+     uygulanmıyor, sayı yerine "Sınırsız" yazılır.
+
+     Yaralı YOKKEN de yazılır — kapasiteyi görmek için yaralanmak
+     gerekmemeli.                                                     */
   const kap = hastaneKapasitesi();
-  const kisa = (v) => (typeof kisaSayi === "function") ? kisaSayi(v) : fmt(v);
-  let dolSinif = "hk-dol", dolMetin;
+  let sinif = "hk-dol", metin;
   if (!isFinite(kap)) {
-    dolMetin = "Hastane " + kisa(toplam) + " / Sınırsız";
+    metin = fmt(toplam) + " / Sınırsız";
   } else {
-    dolMetin = "Hastane " + kisa(toplam) + " / " + kisa(kap);
-    const oran = kap > 0 ? toplam / kap : 0;
-    if (oran >= 1)        dolSinif += " hk-dolu";
-    else if (oran >= .85) dolSinif += " hk-uyar";
+    metin = fmt(toplam) + " / " + fmt(kap);
+    /* Kırmızı YALNIZ kapasite aşıldığında. Ara uyarı rengi kaldırıldı:
+       iki kademeli renk, sayılar zaten görünürken gürültü yapıyordu. */
+    if (toplam >= kap) sinif += " hk-dolu";
   }
-  const sagHtml = '<span class="' + dolSinif + '">' + dolMetin + "</span>";
-
-  if (toplam <= 0) { el.innerHTML = sagHtml; return; }
-
-  /* Seçim yalnız TEDAVİYE ALINMAMIŞ yaralılar için geçerli; onaylanmış
-     olanın seçimi zaten silinir. Yine de elde kalmış eski bir seçim
-     toplamı şişirmesin diye bekleyen adetle kırpılıyor. */
-  const bekleyen = {};
-  hepsi.forEach(p => {
-    if (p.confirmed) return;
-    bekleyen[p.unitId] = (bekleyen[p.unitId] || 0) + (p.adet || 0);
-  });
-  let secili = 0;
-  Object.keys(bekleyen).forEach(u => {
-    secili += Math.min(hospitalPendingSelection[u] || 0, bekleyen[u]);
-  });
-
-  el.innerHTML = '<span class="hk-sec">' + fmt(secili) + " / " + fmt(toplam) +
-                 '</span><span class="hk-ayr">·</span>' + sagHtml;
+  el.innerHTML = '<span class="' + sinif + '">' + metin + "</span>";
 }
 
 function hastaneAltGuncelle() {
