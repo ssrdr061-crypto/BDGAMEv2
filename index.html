@@ -1406,12 +1406,17 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
 .hospital-kap:empty{display:none;}
-/* Ust sayac tek parcali: yarali / kapasite.
-   Kirmizi YALNIZ kapasite asildiginda; oyuncu tasmayi savastan ONCE
-   gorsun. Nabiz/animasyon YOK: prefers-reduced-motion bu cihazda tum
-   CSS animasyonlarini olduruyor, renk tek basina guvenilir. */
-.hospital-kap .hk-dol{color:#dff2ff;}
-.hospital-kap .hk-dol.hk-dolu{color:#ff5f5f;}
+/* Ust sayac: SOL = mevcut yarali, SAG = kapasite.
+   Renk yalniz SOL sayida degisir; kapasite sabit bir sinir oldugu icin
+   hep beyaz kalir, boylece kirmizi "sinir asildi" anlamini korur.
+   Kirmizi YALNIZ kapasite asildiginda cikar.
+   Golge YOK: bu satir duz sayi, golge rakamlari bulandiriyordu.
+   Nabiz/animasyon YOK: prefers-reduced-motion bu cihazda tum CSS
+   animasyonlarini olduruyor, renk tek basina guvenilir. */
+.hospital-kap{text-shadow:none;}
+.hospital-kap .hk-dol{color:#fff;}
+.hospital-kap .hk-dol.hk-dolu{color:#e01717;}
+.hospital-kap .hk-kap{color:#fff;}
 
 .hospital-heal-card{
   position:relative;
@@ -6034,16 +6039,13 @@ function hastaneUstSayac() {
      Yaralı YOKKEN de yazılır — kapasiteyi görmek için yaralanmak
      gerekmemeli.                                                     */
   const kap = hastaneKapasitesi();
-  let sinif = "hk-dol", metin;
-  if (!isFinite(kap)) {
-    metin = fmt(toplam) + " / Sınırsız";
-  } else {
-    metin = fmt(toplam) + " / " + fmt(kap);
-    /* Kırmızı YALNIZ kapasite aşıldığında. Ara uyarı rengi kaldırıldı:
-       iki kademeli renk, sayılar zaten görünürken gürültü yapıyordu. */
-    if (toplam >= kap) sinif += " hk-dolu";
-  }
-  el.innerHTML = '<span class="' + sinif + '">' + metin + "</span>";
+  const sinirsiz = !isFinite(kap);
+  /* Kırmızı YALNIZ kapasite aşıldığında. Ara uyarı rengi kaldırıldı:
+     iki kademeli renk, sayılar zaten görünürken gürültü yapıyordu. */
+  const sinif = "hk-dol" + ((!sinirsiz && toplam >= kap) ? " hk-dolu" : "");
+  el.innerHTML =
+    '<span class="' + sinif + '">' + fmt(toplam) + "</span>" +
+    '<span class="hk-kap"> / ' + (sinirsiz ? "Sınırsız" : fmt(kap)) + "</span>";
 }
 
 function hastaneAltGuncelle() {
