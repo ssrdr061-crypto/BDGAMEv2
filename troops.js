@@ -1885,18 +1885,40 @@ const TroopTabs = (function () {
         `<div class="tf-bedel" id="tfBedel"></div>` +
       `</div>`;
 
-    /* Kaynak + süre satırını seçili adede göre yazar. */
+    /*  Kaynak simgesi TEK KAPIDAN: dugum.js kaynakSimge() görsel
+        döndürür (et.webp …) ve dosya yoksa kendi emojisine düşer.
+        Burada ikinci bir görsel listesi TUTULMAZ.
+        Bu innerHTML bağlamı olduğu için görsel doğrudur; toast gibi
+        düz metin bağlamlarında emoji kalmak ZORUNDA (ham <img …>
+        yazılırdı) — SİMGE/GÖRSEL kuralı.                          */
+    function simge(r) {
+      try {
+        if (window.DUGUM && typeof DUGUM.kaynakSimge === "function") {
+          const s = DUGUM.kaynakSimge(r);
+          if (s) return s;
+        }
+      } catch (e) {}
+      return KAYNAK_IKON[r] || "";
+    }
+
+    /* Kaynak + süre satırını seçili adede göre yazar.
+       Sayı KISALTILIR (10200 → 10,2K): kutucuklar sabit genişlikte,
+       uzun rakam yazılırsa simgeleri iter ve çubuk oynadıkça satır
+       zıplardı. */
     function bedelYaz(n) {
       const kutu = document.getElementById("tfBedel");
       const say = document.getElementById("tfAdet");
       if (say) say.textContent = fmt(n);
       if (!kutu) return;
       const g = terfiKaynak(unitId, hedef.id, n);
+      const kisa = (v) => (typeof kisaSayi === "function") ? kisaSayi(v) : String(v);
       const satir = Object.keys(g)
-        .map(r => `<span class="tf-kay">${KAYNAK_IKON[r] || ""} ${fmt(g[r])}</span>`)
+        .map(r => `<span class="tf-kay"><span class="tf-sim">${simge(r)}</span>` +
+                  `<span class="tf-deg">${kisa(g[r])}</span></span>`)
         .join("");
-      kutu.innerHTML = (satir || `<span class="tf-kay">bedelsiz</span>`) +
-                       `<span class="tf-sure">⏳ ${sureDk(terfiSureDk(unitId, hedef.id) * n)}</span>`;
+      kutu.innerHTML = satir +
+        `<span class="tf-kay tf-sure"><span class="tf-sim">Süre</span>` +
+        `<span class="tf-deg">${sureDk(terfiSureDk(unitId, hedef.id) * n)}</span></span>`;
     }
 
     const uygula = () => { terfiEt(unitId, secili); render(); };

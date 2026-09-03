@@ -9802,18 +9802,49 @@ html body .tf-slider::-moz-range-thumb{
   background:#eaf7ff; box-shadow:0 2px 6px rgba(0,20,45,.3);
 }
 
-/*  Bedel satırı: kaynaklar + süre. Sarmalı (flex-wrap) çünkü
-    Nişancı'da üç kaynak birden çıkabiliyor ve dar ekranda taşıyor.
-    Son satır ortalanacağı için grid DEĞİL flex-wrap (Tuzak 42).  */
+/*  Bedel satırı: kaynaklar + süre.
+
+    KUTUCUKLAR SABİT GENİŞLİKTE. Adet çubuğu oynadıkça sayılar
+    büyüyor; kutular içeriğe göre esneseydi simgeler yana kayar ve
+    her sürüklemede satır zıplardı. Genişlik sabit, sayı KISALTILMIŞ
+    (10,2K) olarak geldiği için kutuyu taşmıyor.
+
+    Son satır ortalanacağı için grid DEĞİL flex-wrap (Tuzak 42):
+    Nişancı'da üç kaynak + süre = dört kutu, dar ekranda 2+2 sarıyor
+    ve alt satır ortada kalmalı.                                   */
 html body .tf-bedel{
   display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
-  gap:6px 12px; width:100%;
+  gap:6px 8px; width:100%;
 }
-html body .tf-kay,
-html body .tf-sure{
+html body .tf-kay{
+  flex:0 0 62px; max-width:62px;
+  display:flex; align-items:center; justify-content:center; gap:4px;
   font-size:13px; font-weight:700; color:#eaf7ff;
   font-variant-numeric:tabular-nums;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+/*  Simge kutusu da sabit — görsel yüklenene kadar emoji duruyor ve
+    ikisinin genişliği farklı; kutu sabit olmazsa görsel gelince
+    sayı yerinden oynardı (Tuzak 15 ile aynı aile).               */
+html body .tf-kay .tf-sim{
+  flex:0 0 18px; width:18px; height:18px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; line-height:1;
+}
+html body .tf-kay .tf-sim img,
+html body .tf-kay .tf-sim .kay-sim{
+  width:18px !important; height:18px !important;
+  object-fit:contain; display:block; vertical-align:baseline !important;
+}
+html body .tf-kay .tf-deg{
+  flex:1 1 auto; min-width:0; text-align:left;
+  overflow:hidden; white-space:nowrap;
+}
+/*  Süre kutusu biraz geniş: "11 sa 56 dk" sığmalı, ayrıca yazılı
+    etiketi ("Süre") simge yerine geçiyor.                        */
+html body .tf-kay.tf-sure{ flex:0 0 106px; max-width:106px; }
+html body .tf-kay.tf-sure .tf-sim{
+  flex:0 0 auto; width:auto; font-size:11px; opacity:.75;
 }
 `;
 document.head.appendChild(st);
