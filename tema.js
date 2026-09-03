@@ -4892,15 +4892,6 @@ st.textContent = `
   box-shadow:none !important;
   filter:brightness(.93) !important;
 }
-/* tedavide olanlar: adet kırmızı, isim yok */
-#panel-hospital .hosp-adet{
-  font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:800 !important; font-size:19px !important;
-  color:#ff6b6b !important; background:none !important;
-  border:0 !important; padding:0 !important; margin:0 !important;
-  -webkit-text-stroke:0 !important;
-  text-shadow:0 1px 3px rgba(0,20,45,.55) !important;
-}
 #panel-hospital .hospital-heal-total-time{
   font-family:'Baloo 2','Nunito',sans-serif !important;
   -webkit-text-stroke:0 !important;
@@ -10003,16 +9994,19 @@ document.head.appendChild(st);
   st.id = "hastaneOlcuCss";
   st.textContent =
     "html body #panel-hospital{" +
-      "--hs-ust:52px;--hs-kap-fs:13.5px;--hs-alt-ic:8px;" +
-      "--hs-yuz:52px;--hs-kart-ic:6px;" +
-      "--hs-kaydir-ust:26px;--hs-ikon-x:0px;" +
-      "--hs-yan:20px;--hs-kaydir-yan:20px;" +
-      "--hs-ray:7px;--hs-top:19px;--hs-adet-fs:13.5px;--hs-adet-en:64px;" +
-      "--hs-ikon:26px;--hs-yuva-ara:10px;--hs-ikon-sayi:6px;" +
-      "--hs-serit-fs:15px;--hs-serit-ic:7px;" +
-      "--hs-btn-en:126px;--hs-btn-fs:12px;--hs-btn-ic:7px;" +
-      "--hs-btn-ara:10px;--hs-btn-ust:10px;" +
-      "--hs-kuyruk-yuz:38px;}";
+      "--hs-ust:65px;--hs-kap-fs:16.5px;--hs-alt-ic:9.5px;" +
+      "--hs-kaydir-ust:47.5px;--hs-yan:2px;--hs-kaydir-yan:0px;" +
+      "--hs-yuz:47.5px;--hs-kart-ic:5px;--hs-ikon-x:0px;" +
+      "--hs-ray:9px;--hs-adet-fs:20px;--hs-adet-en:57px;" +
+      "--hs-ray-bas:0px;--hs-ray-bit:0px;" +
+      "--hs-top-bas:0px;--hs-top-bit:0px;--hs-top-en:13px;--hs-top-boy:25px;" +
+      "--hs-top-yuv:5px;--hs-top-cz-ara:5px;" +
+      "--hs-top-cz-en:1.5px;--hs-top-cz-boy:11px;" +
+      "--hs-ikon:21px;--hs-yuva-ara:22px;--hs-ikon-sayi:2.5px;" +
+      "--hs-serit-fs:12px;--hs-serit-ic:3.5px;" +
+      "--hs-btn-en:122px;--hs-btn-fs:13.5px;--hs-btn-ic:7px;" +
+      "--hs-btn-ara:30px;--hs-btn-ust:7.5px;" +
+      "--hs-kuyruk-yuz:42px;}";
   document.head.appendChild(st);
 })();
 
@@ -10024,40 +10018,51 @@ document.head.appendChild(st);
   /* Gruplar sekme olur; her ölçü tek satır sürgü. */
   var GRUP = [
     { ad: "Üst", ler: [
-      { k: "--hs-ust",       ad: "Üst boşluk", v: 52,   min: 16, max: 96 },
-      { k: "--hs-kap-fs",    ad: "Üst sayaç", v: 13.5, min: 9,  max: 22 },
-      { k: "--hs-alt-ic",    ad: "Alt aralık", v: 8,    min: 0,  max: 26 },
-      { k: "--hs-kaydir-ust", ad: "Liste üst", v: 26,   min: 0,  max: 70 },
-      { k: "--hs-yan",       ad: "Kart yanı",  v: 20,   min: 0,  max: 30 },
-      { k: "--hs-kaydir-yan", ad: "Liste yanı", v: 20,  min: 0,  max: 60 }
+      { k: "--hs-ust",       ad: "Üst boşluk", v: 65,   min: 16, max: 96 },
+      { k: "--hs-kap-fs",    ad: "Üst sayaç", v: 16.5, min: 9,  max: 22 },
+      { k: "--hs-alt-ic",    ad: "Alt aralık", v: 9.5,    min: 0,  max: 26 },
+      { k: "--hs-kaydir-ust", ad: "Liste üst", v: 47.5,   min: 0,  max: 70 },
+      { k: "--hs-yan",       ad: "Kart yanı",  v: 2,   min: 0,  max: 30 },
+      { k: "--hs-kaydir-yan", ad: "Liste yanı", v: 0,  min: 0,  max: 60 }
     ]},
     { ad: "Kart", ler: [
-      { k: "--hs-yuz",       ad: "Görsel",     v: 52,   min: 30, max: 84 },
-      { k: "--hs-kart-ic",   ad: "Satır iç",   v: 6,    min: 0,  max: 20 },
+      { k: "--hs-yuz",       ad: "Görsel",     v: 47.5,   min: 30, max: 84 },
+      { k: "--hs-kart-ic",   ad: "Satır iç",   v: 5,    min: 0,  max: 20 },
       { k: "--hs-ikon-x",    ad: "Görsel yatay", v: 0,  min: -60, max: 60 }
     ]},
     { ad: "Sürgü", ler: [
-      { k: "--hs-ray",       ad: "Ray kalın",  v: 7,    min: 2,  max: 18 },
-      { k: "--hs-top",       ad: "Topuz",      v: 19,   min: 10, max: 36 },
-      { k: "--hs-adet-fs",   ad: "Adet yazı",  v: 13.5, min: 9,  max: 22 },
-      { k: "--hs-adet-en",   ad: "Adet kutu",  v: 64,   min: 34, max: 130 }
+      { k: "--hs-ray",       ad: "Ray kalın",  v: 9,    min: 2,  max: 18 },
+      { k: "--hs-ray-bas",   ad: "Ray başı",   v: 0,    min: 0,  max: 60 },
+      { k: "--hs-ray-bit",   ad: "Ray sonu",   v: 0,    min: 0,  max: 60 },
+      { k: "--hs-adet-fs",   ad: "Adet yazı",  v: 20, min: 9,  max: 22 },
+      { k: "--hs-adet-en",   ad: "Adet kutu",  v: 57,   min: 34, max: 130 }
+    ]},
+    { ad: "Topuz", ler: [
+      { k: "--hs-top-en",     ad: "Genişlik",   v: 13,  min: 5,   max: 34 },
+      { k: "--hs-top-boy",    ad: "Yükseklik",  v: 25,  min: 10,  max: 44 },
+      { k: "--hs-top-yuv",    ad: "Köşe",       v: 5,   min: 0,   max: 16 },
+      { k: "--hs-top-bas",    ad: "Yol başı",   v: 0,   min: -20, max: 50 },
+      { k: "--hs-top-bit",    ad: "Yol sonu",   v: 0,   min: -20, max: 50 },
+      { k: "--hs-top-cz-ara", ad: "Çizgi ara",  v: 5,   min: 1,   max: 16 },
+      { k: "--hs-top-cz-en",  ad: "Çizgi kalın", v: 1.5, min: 0.5, max: 5 },
+      { k: "--hs-top-cz-boy", ad: "Çizgi boy",  v: 11,  min: 3,   max: 34 }
     ]},
     { ad: "Şerit", ler: [
-      { k: "--hs-ikon",      ad: "Simge",      v: 26,   min: 14, max: 44 },
-      { k: "--hs-yuva-ara",  ad: "Yuva arası", v: 10,   min: 0,  max: 30 },
-      { k: "--hs-ikon-sayi", ad: "Simge-sayı", v: 6,    min: 0,  max: 24 },
-      { k: "--hs-serit-fs",  ad: "Sayı yazı",  v: 15,   min: 9,  max: 24 },
-      { k: "--hs-serit-ic",  ad: "Şerit iç",   v: 7,    min: 1,  max: 20 }
+      { k: "--hs-ikon",      ad: "Simge",      v: 21,   min: 14, max: 44 },
+      { k: "--hs-yuva-ara",  ad: "Yuva arası", v: 22,   min: 0,  max: 30 },
+      { k: "--hs-ikon-sayi", ad: "Simge-sayı", v: 2.5,    min: 0,  max: 24 },
+      { k: "--hs-serit-fs",  ad: "Sayı yazı",  v: 12,   min: 9,  max: 24 },
+      { k: "--hs-serit-ic",  ad: "Şerit iç",   v: 3.5,    min: 1,  max: 20 }
     ]},
     { ad: "Düğme", ler: [
-      { k: "--hs-btn-en",    ad: "Genişlik",   v: 126,  min: 80, max: 220 },
-      { k: "--hs-btn-fs",    ad: "Yazı",       v: 12,   min: 8,  max: 20 },
+      { k: "--hs-btn-en",    ad: "Genişlik",   v: 122,  min: 80, max: 220 },
+      { k: "--hs-btn-fs",    ad: "Yazı",       v: 13.5,   min: 8,  max: 20 },
       { k: "--hs-btn-ic",    ad: "Yükseklik",  v: 7,    min: 2,  max: 20 },
-      { k: "--hs-btn-ara",   ad: "Arası",      v: 10,   min: 0,  max: 30 },
-      { k: "--hs-btn-ust",   ad: "Üst boşluk", v: 10,   min: 0,  max: 30 }
+      { k: "--hs-btn-ara",   ad: "Arası",      v: 30,   min: 0,  max: 30 },
+      { k: "--hs-btn-ust",   ad: "Üst boşluk", v: 7.5,   min: 0,  max: 30 }
     ]},
     { ad: "Kuyruk", ler: [
-      { k: "--hs-kuyruk-yuz", ad: "Görsel",    v: 38,   min: 22, max: 64 }
+      { k: "--hs-kuyruk-yuz", ad: "Görsel",    v: 42,   min: 22, max: 64 }
     ]}
   ];
 

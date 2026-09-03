@@ -1514,27 +1514,50 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   touch-action:none;         /* sürüklerken sayfa kaymasın */
   cursor:pointer; user-select:none;
 }
+/* Rayın iki ucu ayrı ayrı içeri çekilebilir: --hs-ray-bas soldan,
+   --hs-ray-bit sağdan. Sürgü kutusunun kendi genişliği sabit kaldığı
+   için ray boyu artık rakamdan da etkilenmiyor. */
 .hospital-slider .sl-track{
-  position:absolute; left:0; right:0; top:50%;
+  position:absolute; left:var(--hs-ray-bas,0px); right:var(--hs-ray-bit,0px); top:50%;
   height:var(--hs-ray,7px);
   margin-top:calc(var(--hs-ray,7px) * -0.5); border-radius:99px;
   background:rgba(3,16,38,.65);
   box-shadow:none;
 }
+/* Genişlik artık inline stil değil, --sl-oran değişkeninden. Böylece
+   ray ile topuz ayrı ayrı ayarlanabiliyor ama ikisi de TEK orandan
+   besleniyor; ikinci bir gerçek doğmuyor. */
 .hospital-slider .sl-fill{
   position:absolute; left:0; top:0; bottom:0; border-radius:99px;
+  width:calc(var(--sl-oran,0) * 100%);
   background:linear-gradient(180deg,#ff5a5a,#c81f2f);
   box-shadow:none;
 }
+/* TOPUZ — dik dikdörtgen, ortasında iki çizgi (tutamak izlenimi).
+   Yolun iki ucu ayrı ayarlanır: --hs-top-bas soldaki, --hs-top-bit
+   sağdaki durak. Yol yüzde değil calc ile kuruluyor, çünkü topuzun
+   kendi genişliği piksel; saf yüzdeyle uçlarda yarısı dışarı taşardı. */
 .hospital-slider .sl-thumb{
   position:absolute; top:50%;
-  width:var(--hs-top,19px); height:var(--hs-top,19px);
-  margin:calc(var(--hs-top,19px) * -0.5) 0 0 calc(var(--hs-top,19px) * -0.5);
-  border-radius:50%;
-  background:radial-gradient(circle at 35% 30%, #fff, #fff 60%, #dfe8f5);
+  left:calc(var(--hs-top-bas,0px) +
+            var(--sl-oran,0) *
+            (100% - var(--hs-top-bas,0px) - var(--hs-top-bit,0px)));
+  width:var(--hs-top-en,13px); height:var(--hs-top-boy,25px);
+  margin:calc(var(--hs-top-boy,25px) * -0.5) 0 0 calc(var(--hs-top-en,13px) * -0.5);
+  border-radius:var(--hs-top-yuv,5px);
+  background:linear-gradient(180deg,#ffffff,#dfe8f5);
   box-shadow:none;
   pointer-events:none;
   transition:transform .12s ease;
+}
+/* Ortadaki iki çizgi tek kutunun sol/sağ kenarlığı — iki ayrı öğe
+   kurmaya gerek yok, aralık kutunun genişliğinden geliyor. */
+.hospital-slider .sl-thumb::before{
+  content:""; position:absolute; left:50%; top:50%;
+  width:var(--hs-top-cz-ara,5px); height:var(--hs-top-cz-boy,11px);
+  transform:translate(-50%,-50%);
+  border-left:var(--hs-top-cz-en,1.5px) solid rgba(28,60,102,.55);
+  border-right:var(--hs-top-cz-en,1.5px) solid rgba(28,60,102,.55);
 }
 .hospital-slider.dragging .sl-thumb{ transform:scale(1.18); }
 
@@ -1583,13 +1606,6 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 }
 #panel-hospital .troop-queue-name-col{
   flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px;
-}
-/* Adet, isimle aynı satırda ama ayrı bir rozet olarak */
-#panel-hospital .hosp-adet{
-  display:inline-block; margin-left:8px;
-  font-size:12px; font-weight:800; color:#ffd257;
-  background:rgba(3,16,38,.45); border-radius:7px; padding:1px 7px;
-  vertical-align:middle;
 }
 /* "Tamamı için" ibaresi kalktı; süre tek başına ve daha büyük */
 #panel-hospital .hospital-heal-total-time{
@@ -6062,17 +6078,17 @@ function bindHospitalSlider(card) {
   const unitId  = card.dataset.unit;
   const enFazla = parseInt(card.dataset.max, 10) || 0;
   const ray     = card.querySelector(".hospital-slider");
-  const dolgu   = card.querySelector(".sl-fill");
-  const top     = card.querySelector(".sl-thumb");
   const kutu    = card.querySelector(".hq-input");
   if (!ray) return;
 
   let deger = Math.min(Math.max(0, hospitalPendingSelection[unitId] || 0), enFazla);
 
+  /* Konumu TEK yerden yaz: oran ray öğesine değişken olarak konur,
+     dolgu ve topuz onu CSS'te okur. Eskiden ikisine ayrı ayrı inline
+     genişlik/sol yazılıyordu; o yüzden topuzun yolunu ayarlamak
+     mümkün değildi. */
   function ciz(oran) {
-    const p = (oran * 100) + "%";
-    if (dolgu) dolgu.style.width = p;
-    if (top)   top.style.left    = p;
+    ray.style.setProperty("--sl-oran", String(oran));
   }
 
   /* Değeri tek yerden yaz: sürgü, kutu ve seçim hep aynı kalsın.
@@ -6094,8 +6110,11 @@ function bindHospitalSlider(card) {
   ata(deger, true);
 
   /* ── SÜRGÜ ── */
+  /* Ölçü görünen çubuktan alınır. Kapsayıcıdan alınsaydı, ray iki
+     ucundan içeri çekilince parmak ile dolgu birbirinden kayardı. */
   function oranHesapla(clientX) {
-    const r = ray.getBoundingClientRect();
+    const olcu = card.querySelector(".sl-track") || ray;
+    const r = olcu.getBoundingClientRect();
     if (r.width <= 0) return 0;
     return Math.max(0, Math.min(1, (clientX - r.left) / r.width));
   }
@@ -6275,7 +6294,6 @@ function renderHospitalPanel() {
     const group = byUnitConfirmed[unitId].sort((a, b) => a.finishAt - b.finishAt);
     const latest = group[group.length - 1];
     const totalRemaining = latest.finishAt - Date.now();
-    const grupAdet = hastaneToplam(group);
     /* Tek birlik sayacı yok: 20 şövalye sıralı iyileşirken
        sıradakinin süresini göstermek yanıltıcıydı. Yalnızca GRUBUN
        tamamı için kalan süre var. Hızlandırma düğmesi sağda. */
@@ -6283,9 +6301,6 @@ function renderHospitalPanel() {
       <div class="troop-queue-row hosp-queue-row">
         <span class="hospital-face hospital-face-sm" data-unit="${unitId}">${unitFace(def)}</span>
         <div class="troop-queue-name-col">
-          <span class="troop-queue-name">
-            <span class="hosp-adet">${fmt(grupAdet)}</span>
-          </span>
           <span class="hospital-heal-total-time">${formatRemaining(totalRemaining)}</span>
         </div>
         <button class="hosp-speed-btn" data-speedunit="${unitId}" type="button">⏩</button>
