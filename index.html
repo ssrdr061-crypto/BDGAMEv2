@@ -597,10 +597,19 @@ body.world-active{padding:0; overflow:hidden;}
    Şans sandığı ve günlük giriş YALNIZ KALE İÇİNDE görünür; dünya
    haritasında gizlidir. Yaralı rozeti her iki ekranda da durur.
    Kale içi katmanı üstte olduğu için orada z-index yükseltilir. */
-.floating-chest-btn,
-.floating-daily-btn{ display:none; }
+/* TUZAK: gizleme kurali `.floating-chest-btn{display:none}` idi — tek
+   sinif, ozgullugu (0,1,0). Asagida 626 ve 650. satirdaki asil kurallar
+   da tek sinif ve `display:flex` veriyor; esit ozgullukte SONRAKI
+   kazandigi icin gizleme hicbir zaman uygulanmadi ve rozetler haritada
+   da goruluyordu.
+
+   Cozum siraya degil OZGULLUGE dayaniyor: `body:not(...)` iki secimli
+   (0,2,0), asagidaki tek sinifi nerede olursa olsun yener. Dosya icinde
+   kural tasimak gerekmedi. */
+body:not(.kaleici-acik) .floating-chest-btn,
+body:not(.kaleici-acik) .floating-daily-btn{ display:none; }
 body.kaleici-acik .floating-chest-btn,
-body.kaleici-acik .floating-daily-btn{ display:flex; z-index:41; }
+body.kaleici-acik .floating-daily-btn{ z-index:41; }
 body.kaleici-acik .floating-chest-btn.is-hidden,
 body.kaleici-acik .floating-daily-btn.is-hidden{ display:none; }
 body.kaleici-acik .floating-hospital-btn{ z-index:41; }
@@ -8825,6 +8834,20 @@ function openOverlayPanel(panelKey) {
   const el = document.getElementById("panel-" + panelKey);
   if (!el) return;
   el.classList.add("active");
+
+  /* ── HAYALET DOKUNMA (Tuzak 21) ──
+     Rozetler `pointerup` ile baglaniyor (safeBind). Panel o anda
+     aciliyor, parmak hala ekranda; tarayici ayni dokunustan dogan
+     `click`/`pointerdown` olaylarini AYNI koordinata, artik ustte
+     duran panele gonderiyor. Hastane rozeti tam yaralı surgusunun
+     uzerinde durdugu icin dokunus surguye "sarkiyordu".
+
+     Bu her overlay panelde var; duzeltme tek kapiya, buraya yaziliyor.
+     Zamanlayici oge uzerinde tutuluyor — panel hizlica kapatilip
+     yeniden acilirsa eski zamanlayici yenisini erken acmasin. */
+  clearTimeout(el._hayaletZm);
+  el.style.pointerEvents = "none";
+  el._hayaletZm = setTimeout(() => { el.style.pointerEvents = ""; }, 350);
   if (panelKey === "troops") { renderTroopsPanel(); TroopViewer.show(); }
   if (panelKey === "battlelog") {
     renderBattleLogPanel();
