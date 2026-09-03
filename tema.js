@@ -1658,7 +1658,7 @@ function hookStaminaPill() {
       const st = (typeof state === "object" && state) ? state.stamina : null;
       const txt = document.getElementById("staminaText");
       if (st && txt && st.max > 0) {
-        txt.textContent = "❤️ " + Math.round((st.current / st.max) * 100);
+        txt.textContent = "❤️ %" + Math.round((st.current / st.max) * 100);
       }
     } catch (e) {}
     return r;
@@ -8706,18 +8706,6 @@ document.head.appendChild(st);
       if (n.classList.contains("castle-own")) {
         try { if (typeof state !== "undefined" && state) kb = Number(state.kalkanBitis || 0) || 0; }
         catch (e2) {}
-      } else {
-        /* FÜZEYLE KIRILAN KALKAN — kubbe hemen kalkmalı.
-           castles/{key}/kb ancak kurban çevrimiçi olunca temizlenir;
-           o ana kadar buradaki damga (pvp/{key}.kbKirik) tek gerçektir.
-           pvp.js kalkanKalan() da aynı damgaya bakar — kubbe ile
-           SALDIR kilidi ayrışmasın diye. */
-        try {
-          if (window.MISSILE_API && typeof window.MISSILE_API.kalkanKirikMi === "function") {
-            var kir = Number(window.MISSILE_API.kalkanKirikMi(n.dataset.cname)) || 0;
-            if (kb > 0 && kb <= kir) kb = 0;
-          }
-        } catch (e3) {}
       }
       var kalan = kb - now;
       if (kalan > 0) { kubbeTak(n); sayacYaz(n, kalan); }
@@ -9704,4 +9692,113 @@ setTimeout(kur, 1200);
       "margin:0 !important;padding:0 !important;overflow:visible;" +
       "text-shadow:0 1px 3px rgba(0,25,50,.55) !important;}";
   document.head.appendChild(st);
+})();
+
+/*  ══════════════════════════════════════════════════════════════
+    TERFİ PENCERESİ (.tf-*)  —  troops.js upgrade() üretiyor
+    Gövde oyunun kendi onay penceresidir (sefer.js onayPenceresi,
+    .som-card). Burada YALNIZ içerik düzeni var; kutu, başlık ve
+    düğmeler zaten som- kurallarından geliyor, ikinci bir pencere
+    teması AÇILMIYOR.
+
+    Kafa kutucukları .rep-por sınıfını kullanıyor — kademe arka
+    planı (birlikNarkaplan.webp) yukarıdaki birlikKutuArkaPlan
+    bloğundan geliyor, burada tekrar yazılmıyor.
+
+    3B yok: kalın alt kenar, inset kabartı, radial parlaklık yok.
+    ══════════════════════════════════════════════════════════════ */
+(function terfiPencereStil(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaTerfiPencere";
+st.textContent = `
+html body .tf-kutu{
+  display:flex; flex-direction:column; align-items:center;
+  gap:8px; padding:2px 0 0;
+}
+
+/*  Kafalar + ok. Kutucuk ölçüsü .rep-por'dan geliyor; burada
+    yalnız aralık ve hizalama var.                               */
+html body .tf-kafalar{
+  display:flex; align-items:center; justify-content:center; gap:12px;
+}
+html body .tf-ok{
+  font-size:22px; font-weight:700; color:#cfeeff; line-height:1;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+
+/*  Adlar kafaların ALTINDA, her biri kendi kutucuğunun genişliğinde
+    ortalanır. Sabit genişlik veriliyor ki uzun ad ("Saldırı
+    Helikopteri") oku kaydırmasın.                                */
+html body .tf-adlar{
+  display:flex; align-items:flex-start; justify-content:center; gap:12px;
+  width:100%;
+}
+html body .tf-adlar span{
+  flex:0 0 96px; max-width:96px; text-align:center;
+  font-size:12px; font-weight:700; color:#eaf7ff; line-height:1.25;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+/*  Ok kadar boşluk — iki adın arası kafaların arasıyla hizalansın. */
+html body .tf-adlar::before{
+  content:""; flex:0 0 0px;
+}
+
+html body .tf-sayi{
+  font-size:15px; font-weight:700; color:#fff;
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+
+/*  Adet çubuğu — eğitim ekranındaki .unit-qty-bar ile aynı dil. */
+html body .tf-bar{
+  display:flex; align-items:center; justify-content:center;
+  gap:10px; width:100%;
+}
+html body .tf-btn{
+  flex:0 0 34px; width:34px; height:34px;
+  border:none; border-radius:9px;
+  background:linear-gradient(180deg, var(--km-1) 0%, var(--km-2) 55%, var(--km-3) 100%);
+  color:#fff; font-size:20px; font-weight:700; line-height:1;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+  transition:transform .09s ease, filter .09s ease;
+}
+html body .tf-btn:active{ transform:scale(.96); filter:brightness(.93); }
+
+html body .tf-slider{
+  flex:1 1 auto; min-width:0; height:26px;
+  -webkit-appearance:none; appearance:none; background:transparent;
+}
+html body .tf-slider::-webkit-slider-runnable-track{
+  height:6px; border-radius:3px; background:rgba(0,25,50,.42);
+}
+html body .tf-slider::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:20px; height:20px; margin-top:-7px; border-radius:50%;
+  background:#eaf7ff; box-shadow:0 2px 6px rgba(0,20,45,.3);
+}
+html body .tf-slider::-moz-range-track{
+  height:6px; border-radius:3px; background:rgba(0,25,50,.42);
+}
+html body .tf-slider::-moz-range-thumb{
+  width:20px; height:20px; border:none; border-radius:50%;
+  background:#eaf7ff; box-shadow:0 2px 6px rgba(0,20,45,.3);
+}
+
+/*  Bedel satırı: kaynaklar + süre. Sarmalı (flex-wrap) çünkü
+    Nişancı'da üç kaynak birden çıkabiliyor ve dar ekranda taşıyor.
+    Son satır ortalanacağı için grid DEĞİL flex-wrap (Tuzak 42).  */
+html body .tf-bedel{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+  gap:6px 12px; width:100%;
+}
+html body .tf-kay,
+html body .tf-sure{
+  font-size:13px; font-weight:700; color:#eaf7ff;
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+`;
+document.head.appendChild(st);
 })();

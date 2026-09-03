@@ -106,6 +106,7 @@ const KADEME = {
   },
 
   TERFI_INDIRIM: 0.9, /* terfi kaynağı: fark × bu. 1.0 = indirim yok    */
+  TERFI_TAVAN:   500, /* tek seferde en çok kaç terfi — üretimle aynı   */
 
   MALIYET_KAT: 1.8,   /* elmas maliyeti her kademede bu katsayıyla artar  */
   SURE_KAT:    1.8,   /* eğitim süresi                                    */
@@ -307,7 +308,8 @@ function terfiSureDk(unitId, hedefId) {
 function maxTerfi(unitId, hedefId) {
   const sahip = (typeof state !== "undefined" && state.troops && state.troops[unitId]) || 0;
   if (sahip <= 0) return 0;
-  let en = sahip;
+  const tavan = (typeof KADEME.TERFI_TAVAN === "number") ? KADEME.TERFI_TAVAN : 500;
+  let en = Math.min(sahip, tavan);
   const birim = terfiKaynakBirim(unitId, hedefId);
   const kay = (typeof state !== "undefined" && state.kaynaklar) || {};
   Object.keys(birim).forEach(r => {
@@ -1758,12 +1760,31 @@ const TroopTabs = (function () {
     if (!list || typeof UNIT_TYPES === "undefined") return;
     if (typeof applyFinishedTraining === "function") applyFinishedTraining();
 
-    /* 18 birlik var ama hepsini listelemek anlamsız: sahip olunanlar
-       ve her ailenin Sv1'i görünür, boş kademeler gizlenir. */
-    const defs = Object.values(UNIT_TYPES).filter(def =>
-      (def.kademe || 1) === 1 ||
-      kademeAcikMi(def.aile, def.kademe || 1) ||
-      ((state.troops && state.troops[def.id]) || 0) > 0);
+    /*  HANGİ SATIRLAR GÖRÜNÜR?
+        Elinde hiç kalmamış ESKİ kademe listede durmamalı — Sv2'ye
+        geçmiş oyuncuya sıfır Şövalye göstermek hem anlamsız hem de
+        Geliştir düğmesini boşa dolduruyordu.
+
+        Kural: adedi olan HER kademe görünür. Adedi sıfır olanlardan
+        yalnız o AİLENİN açık en üst kademesi görünür — böylece hiç
+        askeri olmayan oyuncuda liste boşalmaz ve üç aile de temsil
+        edilir. Aile aile bakılır; Nişancı geride kalmışsa onun en
+        üstü kendi kışlasına göre bulunur.                          */
+    const enUstAcik = {};
+    ["knight", "soldier", "robot"].forEach(ai => {
+      let ust = 1;
+      for (let k = 2; k <= KADEME_SAYISI; k++) {
+        if (!kademeAcikMi(ai, k)) break;
+        ust = k;
+      }
+      enUstAcik[ai] = ust;
+    });
+
+    const defs = Object.values(UNIT_TYPES).filter(def => {
+      const n = (state.troops && state.troops[def.id]) || 0;
+      if (n > 0) return true;
+      return (def.kademe || 1) === enUstAcik[def.aile];
+    });
     if (!defs.length) { list.innerHTML = `<div class="tp-empty">Tanımlı birlik yok.</div>`; return; }
 
     list.innerHTML = defs.map((def, i) => {
@@ -1798,10 +1819,21 @@ const TroopTabs = (function () {
     });
   }
 
+  /*  Savaş raporundaki kafa kutucuğunun aynısı (.rep-por).
+      data-i = ailenin sırası, data-kad = kademe; kademe arka planı
+      (birlikNarkaplan.webp) tema.js'teki tek kuraldan gelir, burada
+      ikinci bir görsel listesi TUTULMAZ.                            */
+  const TP_AILE_YERI = { knight: 0, soldier: 1, robot: 2 };
+  function terfiKafa(def) {
+    if (!def) return "";
+    const im = def.img ? `<img src="${def.img}" alt="">` : `<span>${def.icon || "🪖"}</span>`;
+    return `<div class="rep-por" data-i="${TP_AILE_YERI[def.aile] ?? 0}" data-kad="${def.kademe || 1}">${im}</div>`;
+  }
+
   /* ── GELİŞTİRME = TERFİ ──
      Hedef, o AİLENİN açık en üst kademesidir (terfiHedefi).
-     Bu adımda adet seçimi yok: ödenebilen EN ÇOK sayı önerilir,
-     oyuncu onaylar ya da vazgeçer. Adet çubuğu 2. adımda gelecek. */
+     Adet çubuğunun üst sınırı maxTerfi(): elindeki asker, kaynağın
+     ve TERFI_TAVAN'dan hangisi önce biterse. */
   function upgrade(unitId) {
     const def = UNIT_TYPES[unitId];
     if (!def) return;
@@ -1820,8 +1852,8 @@ const TroopTabs = (function () {
       return;
     }
 
-    const n = maxTerfi(unitId, hedef.id);
-    if (n < 1) {
+    const enFazla = maxTerfi(unitId, hedef.id);
+    if (enFazla < 1) {
       const b = terfiKaynakBirim(unitId, hedef.id);
       const liste = Object.keys(b).map(r => `${KAYNAK_IKON[r] || ""} ${fmt(b[r])}`).join(" · ");
       if (typeof showToast === "function") {
@@ -1830,29 +1862,64 @@ const TroopTabs = (function () {
       return;
     }
 
-    const gerek = terfiKaynak(unitId, hedef.id, n);
-    const satir = Object.keys(gerek)
-      .map(r => `<span>${KAYNAK_IKON[r] || ""} ${fmt(gerek[r])}</span>`)
-      .join(" &nbsp; ");
-    const sure = sureDk(terfiSureDk(unitId, hedef.id) * n);
+    /*  Seçili adet KAPANIŞTAN ÖNCE okunmalı: onayPenceresi pencereyi
+        DOM'dan silip sonra geri çağırıyı çalıştırıyor. Geri çağırının
+        içinde alanı okumaya kalkarsak eleman çoktan yok olmuş olur —
+        bu yüzden değer burada, kapanışta değil, her değişiklikte
+        kapanış değişkenine yazılıyor. */
+    let secili = enFazla;
 
     const mesaj =
-      `<div style="text-align:center;line-height:1.7">` +
-        `<div>${fmt(n)} ${def.name} → ${fmt(n)} ${hedef.name}</div>` +
-        `<div>${satir || "bedelsiz"}</div>` +
-        `<div>⏳ ${sure}</div>` +
+      `<div class="tf-kutu">` +
+        `<div class="tf-kafalar">` +
+          terfiKafa(def) +
+          `<span class="tf-ok">→</span>` +
+          terfiKafa(hedef) +
+        `</div>` +
+        `<div class="tf-adlar"><span>${def.name}</span><span>${hedef.name}</span></div>` +
+        `<div class="tf-sayi"><span id="tfAdet">${fmt(enFazla)}</span> birlik</div>` +
+        `<div class="tf-bar">` +
+          `<button class="tf-btn" type="button" data-tf="eksi">−</button>` +
+          `<input type="range" class="tf-slider" min="1" max="${enFazla}" value="${enFazla}">` +
+          `<button class="tf-btn" type="button" data-tf="arti">+</button>` +
+        `</div>` +
+        `<div class="tf-bedel" id="tfBedel"></div>` +
       `</div>`;
 
-    if (typeof onayPenceresi === "function") {
-      onayPenceresi("TERFİ", mesaj, "Terfi Et", () => {
-        terfiEt(unitId, n);
-        render();
-      });
-    } else {
-      /* sefer.js yüklenmediyse pencere olmadan da çalışsın */
-      terfiEt(unitId, n);
-      render();
+    /* Kaynak + süre satırını seçili adede göre yazar. */
+    function bedelYaz(n) {
+      const kutu = document.getElementById("tfBedel");
+      const say = document.getElementById("tfAdet");
+      if (say) say.textContent = fmt(n);
+      if (!kutu) return;
+      const g = terfiKaynak(unitId, hedef.id, n);
+      const satir = Object.keys(g)
+        .map(r => `<span class="tf-kay">${KAYNAK_IKON[r] || ""} ${fmt(g[r])}</span>`)
+        .join("");
+      kutu.innerHTML = (satir || `<span class="tf-kay">bedelsiz</span>`) +
+                       `<span class="tf-sure">⏳ ${sureDk(terfiSureDk(unitId, hedef.id) * n)}</span>`;
     }
+
+    const uygula = () => { terfiEt(unitId, secili); render(); };
+
+    if (typeof onayPenceresi !== "function") { uygula(); return; }
+
+    onayPenceresi("TERFİ", mesaj, "Terfi Et", uygula);
+
+    /* onayPenceresi gövdeyi hemen ekliyor, elemanlar şu an DOM'da. */
+    const kok = document.getElementById("seferOnayModal");
+    if (!kok) return;
+    const slider = kok.querySelector(".tf-slider");
+    const ayarla = (n) => {
+      secili = Math.max(1, Math.min(enFazla, n));
+      if (slider) slider.value = secili;
+      bedelYaz(secili);
+    };
+    if (slider) slider.oninput = () => ayarla(parseInt(slider.value, 10) || 1);
+    kok.querySelectorAll("[data-tf]").forEach(b => {
+      b.onclick = () => ayarla(secili + (b.dataset.tf === "arti" ? 1 : -1));
+    });
+    bedelYaz(secili);
   }
 
   /* Panel nereden açıldıysa oraya düşer:
