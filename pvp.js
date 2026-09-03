@@ -508,12 +508,27 @@ function kalkanKalan(d) {
   const now = Date.now();
   let en = 0;
 
+  /* ── FÜZEYLE KIRILAN KALKAN ──
+     Kırılma savunanın hesabında DEĞİL, missile.js'in posta kutusunda
+     (pvp/{key}.kbKirik) durur — saldıran başkasının accounts/{ad}.state
+     alanına yazamaz (Tuzak 4). Damga "bu ana kadarki kalkanlar
+     geçersiz" demektir; kurban yeni kalkan alırsa kalkanBitis damgayı
+     aşar ve kalkan yine işler.
+     Kontrol BURADA duruyor ki rozet, SALDIR kilidi, sefer varışı ve
+     haritadaki kubbe aynı gerçeği görsün. */
+  let kirik = 0;
+  try {
+    if (window.MISSILE_API && typeof window.MISSILE_API.kalkanKirikMi === "function") {
+      kirik = Number(window.MISSILE_API.kalkanKirikMi(d.name)) || 0;
+    }
+  } catch (e) {}
+
   const b = num(d.kalkanBitis, 0);
-  if (b > now) en = b - now;
+  if (b > now && b > kirik) en = b - now;
 
   if (CFG.newbieShieldMs && d.registeredAt) {
     const y = d.registeredAt + CFG.newbieShieldMs;
-    if (y > now && (y - now) > en) en = y - now;
+    if (y > now && y > kirik && (y - now) > en) en = y - now;
   }
   return en;
 }
@@ -789,21 +804,23 @@ function fireMissileAt(name, gx, gy, isOwn) {
      gelinirse sessizce çık — uyarı yazısı kaldırıldı. */
   if (isOwn) return;
 
-  /* ── KALKAN FÜZEYİ DE DURDURUR ──
-     Füze yalnız buradan fırlatılıyor (missile.js kendi başına
-     hedef seçmiyor), o yüzden kapı TEK YER: burası. */
+  /* ── KALKAN ARTIK FÜZEYİ DURDURMUYOR, FÜZE KALKANI KIRIYOR ──
+     Kalkanlı hedefe atılan füze hasar vermez, patlama oynatılmaz;
+     yalnızca kalkanı düşürür. İkinci füze normal hasar verir.
+     Füze yalnız buradan fırlatılıyor (missile.js kendi başına hedef
+     seçmiyor), o yüzden kalkan hesabı TEK YER: burası. */
   const _d  = buildDefender(findAccountByName(name), name);
   const _ms = kalkanKalan(_d);
-  if (_ms > 0) {
-    closeCastlePopup();
-    pvpNot(`🛡️ ${name} kalkan açmış — füze işlemez. (${fmtLeft(_ms)})`);
-    return;
-  }
+  /* Kırılma damgası = kalkanın bitiş anı. Mağaza kalkanı ve yeni
+     oyuncu kalkanı ayrı alanlarda tutulduğu için ham kalkanBitis
+     değil, kalkanKalan()'ın verdiği KALAN süreden türetiliyor —
+     böylece hangi kalkan olursa olsun aynı damga kapsıyor. */
+  const _kirilacak = _ms > 0 ? (Date.now() + _ms) : 0;
 
   closeCastlePopup();
   const api = window.MISSILE_API;
   if (api && typeof api.open === "function") {
-    setTimeout(() => api.open(name, gx, gy), 60);
+    setTimeout(() => api.open(name, gx, gy, _kirilacak), 60);
     return;
   }
   toast("Füze sistemi bulunamadı (missile.js güncel mi?).");

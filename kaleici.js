@@ -2145,6 +2145,29 @@
     document.body.classList.remove('kaleici-acik');
     if (katman) katman.classList.remove('acik');
     tuvaliBosalt();
+    haritayiKaleyeOrtala();
+  }
+
+  /* ── HARİTAYA DÖNÜNCE KAMERA KENDİ KALENE OTURSUN ──────────────
+     Ortalama tek yerde, harita.js'in ortala()'sında yapılıyor ve o
+     yalnız açılışta BİR KEZ çalışıyordu (uygulaMod). Yeni hesapta
+     state.castle o an henüz atanmamış olabildiği için kamera harita
+     ortasında kalıyor, oyuncu kaleiçinden çıkınca kendi kalesini
+     göremiyordu. Burada ikinci bir hesap YAZILMIYOR — oyunun kendi
+     kapısı (scrollMapToBase, harita.js tarafından ortala()'ya
+     yönlendirilmiş) çağrılıyor.
+
+     İki kare beklemek şart: battleMapWrap kaleiçi kapanmadan önce
+     gizli olabiliyor ve gizli kapsayıcının ölçüsü 0'dır (Tuzak 14) —
+     o anda çağrılırsa ortala() clientWidth 0 görüp sessizce çıkar. */
+  function haritayiKaleyeOrtala() {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        try {
+          if (typeof window.scrollMapToBase === 'function') window.scrollMapToBase();
+        } catch (e) {}
+      });
+    });
   }
 
   /* ── BELLEK: tuvali gerçekten bırak ──

@@ -115,6 +115,8 @@
         // Biriken genel can hasarını tüket (çevrimiçiyken anında,
         // çevrimdışıyken bir sonraki girişte bu dinleyici zaten çalışır).
         if (mine.pendingStamina > 0) consumePendingStamina();
+        // Füze kalkanımızı kırdıysa kendi kaydımızdan da düşür.
+        if (mine.kbKirik) kendiKalkaniDusur(Number(mine.kbKirik) || 0);
       }
       decorateCastles(); // barları güncelle
       updateHudPill();
@@ -149,8 +151,14 @@
     return mine && typeof mine.missiles === "number" ? mine.missiles : 0;
   }
 
-  /* ---------- SALDIRI ---------- */
-  function fireMissile(targetName, tx, ty) {
+  /* ---------- SALDIRI ----------
+     kalkanBitis > 0 ise bu füze KALKAN KIRICIDIR: uçar, ama patlama
+     oynatılmaz, kale HP'si düşmez, genel can gitmez, 24 saatlik
+     saldırı kilidi kurulmaz. Tek yaptığı hedefin kalkanını düşürmek.
+     İkinci füze artık kalkansız kaleye normal hasar verir.
+     Değerin kendisi kırılan kalkanın BİTİŞ damgasıdır (bkz. kalkanKir). */
+  function fireMissile(targetName, tx, ty, kalkanBitis) {
+    kalkanBitis = Number(kalkanBitis) || 0;
     if (!fbReady() || !myKey) { showToast("Bağlantı yok, füze atılamaz."); return; }
     if (myMissiles() <= 0) { showToast("Füzen kalmadı! 🚀"); return; }
     const tKey = keyOf(targetName);
@@ -189,12 +197,18 @@
         flightMs: flightMs,
         at: Date.now(),
       };
+      /* Firebase undefined'ı SENKRON reddeder — alan yalnız değer
+         varken yazılır. sb = kırılacak kalkanın bitiş damgası; başka
+         oyuncuların istemcisi de bunu görüp patlamayı oynatmaz. */
+      if (kalkanBitis > 0) kayit.sb = kalkanBitis;
+
       const ref = firebaseDb.ref("pvp_launches").push();
       _yerelFuzeler[ref.key] = true;
 
       animateMissile(kayit.fx, kayit.fy, kayit.tx, kayit.ty, flightMs, () => {
-        applyDamage(tKey, targetName);
-      }, targetName, true);
+        if (kalkanBitis > 0) kalkanKir(tKey, targetName, kalkanBitis);
+        else                 applyDamage(tKey, targetName);
+      }, targetName, true, kalkanBitis > 0);
 
       ref.set(kayit).catch(() => {
         showToast("Füze fırlatılamadı (bağlantı hatası).");
@@ -222,6 +236,57 @@
     });
   }
 
+  /* ── KALKAN KIRMA ──────────────────────────────────────────────
+     Kalkanın gerçeği savunanın accounts/{ad}.state.kalkanBitis
+     alanındadır ve saldıran oraya YAZAMAZ (Tuzak 4). O yüzden kırılma
+     pendingStamina ile aynı posta kutusuna yazılır:
+
+       pvp/{hedefKey}.kbKirik = kırılan kalkanın BİTİŞ damgası
+
+     Damga "şu ana kadarki kalkanlar geçersiz" demektir; kurban sonra
+     yeni kalkan alırsa kalkanBitis > kbKirik olur ve kalkan yine
+     geçerlidir. Bu yüzden damga temizlenmez.
+
+     Okuyan tek kapı: MISSILE_API.kalkanKirikMi() → pvp.js kalkanKalan().
+     Kurban çevrimiçi olduğunda kendiKalkaniDusur() kendi state'ini
+     ve castles/{key}/kb'yi temizler.                                */
+  function kalkanKir(tKey, targetName, kalkanBitis) {
+    firebaseDb.ref("pvp/" + tKey).transaction(cur => {
+      cur = cur || { hp: CASTLE_MAX_HP, missiles: START_MISSILES, hitAt: null };
+      const eski = Number(cur.kbKirik || 0) || 0;
+      const yeni = Number(kalkanBitis) || 0;
+      cur.kbKirik = Math.max(eski, yeni);
+      return cur;
+    }, (err, committed) => {
+      if (err || !committed) {
+        showToast("Kalkan kırılamadı (bağlantı hatası).", 4000);
+        return;
+      }
+      showToast(`🛡️ ${targetName} oyuncusunun kalkanı kırıldı! Kale artık savunmasız.`, 5000);
+      if (typeof renderBattleMap === "function") renderBattleMap();
+    });
+  }
+
+  /* ── KURBAN TARAFI: kırılan kalkanı kendi kaydından da düşür ──
+     Damgayı yalnız kalkanın SAHİBİ silebilir; saldıran onun hesabına
+     yazamıyor. Kurban çevrimiçi olur olmaz (ya da bir sonraki
+     girişinde) bu çalışır ve castles/{key}/kb de temizlenir —
+     yoksa kubbe başkalarının haritasında sonsuza kadar durur. */
+  let _sonKirikDamga = 0;
+  function kendiKalkaniDusur(kirik) {
+    if (!kirik || _sonKirikDamga === kirik) return;
+    if (typeof state === "undefined" || !state) return;
+    const b = Number(state.kalkanBitis || 0) || 0;
+    if (b <= 0) return;        // zaten kalkan yok
+    if (b > kirik) return;     // kırılandan SONRA alınmış yeni kalkan — dokunma
+    _sonKirikDamga = kirik;
+    state.kalkanBitis = 0;
+    if (typeof persistCurrentState === "function") persistCurrentState();
+    if (typeof window.kalkaniYayinla === "function") window.kalkaniYayinla();
+    if (typeof renderBattleMap === "function") renderBattleMap();
+    showToast("🛡️ Kalkanın füzeyle kırıldı! Kalen saldırıya açık.", 5000);
+  }
+
   // Fırlatma olaylarını dinle: kim atarsa atsın roket herkeste uçar.
   /* Kendi ekranımızda ZATEN oynatılmış fırlatmaların anahtarları.
      fireMissile dolduruyor, dinleyici burayı görünce olayı atlıyor. */
@@ -241,8 +306,13 @@
       const remaining = m.flightMs - elapsed;
 
       // Füze çoktan varmışsa animasyonu atla; hasar atan tarafta yine uygulansın.
+      const sb = Number(m.sb) || 0;   // kalkan kırıcı füze mi
+
       if (remaining <= 0) {
-        if (m.from === myKey) applyDamage(m.target, m.targetName);
+        if (m.from === myKey) {
+          if (sb > 0) kalkanKir(m.target, m.targetName, sb);
+          else        applyDamage(m.target, m.targetName);
+        }
         cleanupLaunch(snap, m, 0);
         return;
       }
@@ -253,8 +323,11 @@
       const fy = m.fy + (m.ty - m.fy) * p;
 
       animateMissile(fx, fy, m.tx, m.ty, remaining, () => {
-        if (m.from === myKey) applyDamage(m.target, m.targetName);
-      }, m.targetName, m.from === myKey);
+        if (m.from === myKey) {
+          if (sb > 0) kalkanKir(m.target, m.targetName, sb);
+          else        applyDamage(m.target, m.targetName);
+        }
+      }, m.targetName, m.from === myKey, sb > 0);
 
       cleanupLaunch(snap, m, remaining);
     });
@@ -575,7 +648,7 @@
     };
   }
 
-  function animateMissile(fx, fy, tx, ty, durMs, onImpact, targetName, benimMi) {
+  function animateMissile(fx, fy, tx, ty, durMs, onImpact, targetName, benimMi, patlamasiz) {
     /* Kayıttaki eski -1 kaydırmasını GERİ SÖK. Bundan sonrası ham oyun
        koordinatıdır; yukarı kaydırma ekran uzayında (KALKIS_KALDIR_KARE)
        uygulanır. Böylece hem eski hem yeni sürümün yazdığı kayıt aynı
@@ -650,7 +723,10 @@
       } else {
         if (takip.temizle) takip.temizle();
         fly.remove();
-        patlat(tx, ty, targetName);
+        /* KALKAN KIRICI FÜZEDE PATLAMA OYNATILMAZ. Kalkan hasarı
+           yutuyor; ekranda patlama görünürse oyuncu kaleyi vurduğunu
+           sanır. Roket sessizce söner, kalkan düşer. */
+        if (!patlamasiz) patlat(tx, ty, targetName);
         onImpact();
       }
     }
@@ -695,7 +771,7 @@
   }
 
   /* ---------- ÖZEL ONAY PANELİ ---------- */
-  function showMissileConfirm(targetName, onConfirm) {
+  function showMissileConfirm(targetName, onConfirm, kalkanVar) {
     // Zaten açık panel varsa kapat
     const old = document.getElementById("mslConfirmOverlay");
     if (old) old.remove();
@@ -709,7 +785,11 @@
 
     const msg = document.createElement("p");
     msg.className = "msl-confirm-msg";
-    msg.textContent = "Başkanım! Teknolojik roket sistemlerini kullanmak acımasız bir şekilde rakibe zarar verecektir. Gerçekten kullanmak istiyor musunuz!";
+    msg.textContent = kalkanVar
+      ? ("Başkanım! " + targetName + " kalkanını açmış. Füzemiz kaleye zarar veremez, " +
+         "yalnızca kalkanı parçalar. Kaleyi vurmak için ikinci bir füze gerekecek. " +
+         "Yine de ateşleyelim mi?")
+      : "Başkanım! Teknolojik roket sistemlerini kullanmak acımasız bir şekilde rakibe zarar verecektir. Gerçekten kullanmak istiyor musunuz!";
 
     const btnRow = document.createElement("div");
     btnRow.className = "msl-confirm-btns";
@@ -744,15 +824,30 @@
        window.MISSILE_API.open(hedefAdı, tx, ty)
      open() önce onay panelini gösterir, onaylanırsa füzeyi fırlatır. */
   window.MISSILE_API = {
-    open: function (targetName, tx, ty) {
+    /* kalkanBitis: hedefin kalkanı VARSA bitiş damgası, yoksa 0.
+       Hesabı pvp.js yapar (kalkanKalan tek kapı), burada tekrarlanmaz. */
+    open: function (targetName, tx, ty, kalkanBitis) {
       if (!fbReady() || !myKey) { showToast("Bağlantı yok, füze atılamaz."); return; }
       if (myMissiles() <= 0) { showToast("Füzen kalmadı! 🚀"); return; }
+      kalkanBitis = Number(kalkanBitis) || 0;
       showMissileConfirm(targetName, function () {
-        fireMissile(targetName, tx, ty);
-      });
+        fireMissile(targetName, tx, ty, kalkanBitis);
+      }, kalkanBitis > 0);
     },
     // Onaysız doğrudan fırlatma (gerekirse)
-    fire: function (targetName, tx, ty) { fireMissile(targetName, tx, ty); },
+    fire: function (targetName, tx, ty, kalkanBitis) { fireMissile(targetName, tx, ty, kalkanBitis); },
+
+    /* ── KIRIK KALKAN DAMGASI ──
+       Döner: bu oyuncunun kalkanının füzeyle kırıldığı bitiş damgası
+       (ms), yoksa 0. pvp.js kalkanKalan() ve tema.js kubbe tarayıcısı
+       buradan sorar; ikinci bir okuma yolu AÇMA.
+       pvpData henüz yüklenmemişse 0 döner — yani kalkan AYAKTA sayılır,
+       güvenli taraf. */
+    kalkanKirikMi: function (name) {
+      if (!name) return 0;
+      const rec = pvpData[keyOf(name)];
+      return (rec && typeof rec.kbKirik === "number") ? rec.kbKirik : 0;
+    },
     // Kalan füze sayısı
     count: function () { return myMissiles(); },
     // Füze yiyince 24 saat saldırı kilidi biter zamanı (ms). 0 = kilit yok.

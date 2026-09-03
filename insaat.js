@@ -106,6 +106,20 @@
     { odun: 32760000, demir: 32760000, et: 21840000, su: 16380000, enerji: 5460000, dk: 8460 },
   ];
 
+  /* ── GENEL DENGE ÇARPANLARI ──
+     Tablolar (T_KAYNAK / T_KISLA / T_KALE) HAM değerlerdir; oyunda
+     görünen bedel bunlarla çarpılmış halidir. Tabloları elle çarpıp
+     yazmak dengeyi iki yerden ayarlamak olurdu: bir daha "hangi sayı
+     ham, hangisi ölçekli" diye bakmak gerekirdi.
+
+     Uygulandığı TEK yer bedel(). Tabloları okuyan başka kimse yok,
+     yükseltme paneli de zamanlayıcı da bedel()'den geçiyor.
+
+     MALIYET_CARPANI 6   = maliyetler %500 arttırıldı (1 + 5)
+     SURE_CARPANI    3.5 = süreler %250 uzatıldı      (1 + 2,5)      */
+  var MALIYET_CARPANI = 6;
+  var SURE_CARPANI    = 3.5;
+
   /* Her seviyede üretim bu kadar katlanır (Sv1 = 1.00) */
   var URETIM_ARTIS = 1.45;
 
@@ -277,7 +291,21 @@
      TABLO OKUMA
      ═══════════════════════════════════════════════════════════ */
 
-  /* Bir yükseltmenin bedeli: { kaynaklar:{...}, dk:N } */
+  /* Ham tablo degerini oyundaki bedele cevirir. Yuvarlama BURADA
+     yapilir; panelde 1.234,5 odun gostermemek icin tam sayiya cikilir. */
+  function olcekliKaynak(v) {
+    var n = Number(v) || 0;
+    if (n <= 0) return n;
+    return Math.round(n * MALIYET_CARPANI);
+  }
+  function olcekliDk(v) {
+    var n = Number(v) || 0;
+    if (n <= 0) return n;
+    return Math.max(1, Math.round(n * SURE_CARPANI));
+  }
+
+  /* Bir yükseltmenin bedeli: { kaynaklar:{...}, dk:N }
+     DONEN DEGERLER OLCEKLIDIR — cagiran taraf bir daha carpmaz. */
   function bedel(id, hedef) {
     var t = TIP[id];
     if (!t || hedef < 2 || hedef > TAVAN) return null;
@@ -287,9 +315,9 @@
       var o = ODEME[id];
       if (!s || !o) return null;
       var k = {};
-      k[o.ana] = s.ana;
-      k[o.yan] = (k[o.yan] || 0) + s.yan;
-      return { kaynaklar: k, dk: s.dk };
+      k[o.ana] = olcekliKaynak(s.ana);
+      k[o.yan] = (k[o.yan] || 0) + olcekliKaynak(s.yan);
+      return { kaynaklar: k, dk: olcekliDk(s.dk) };
     }
 
     /* kisla ve tesis ayni tabloyu kullanir; ayirmak icin ikinci bir
@@ -299,9 +327,13 @@
     if (!r) return null;
     return {
       kaynaklar: {
-        odun: r.odun, demir: r.demir, et: r.et, su: r.su, enerji: r.enerji,
+        odun:   olcekliKaynak(r.odun),
+        demir:  olcekliKaynak(r.demir),
+        et:     olcekliKaynak(r.et),
+        su:     olcekliKaynak(r.su),
+        enerji: olcekliKaynak(r.enerji),
       },
-      dk: r.dk,
+      dk: olcekliDk(r.dk),
     };
   }
 
