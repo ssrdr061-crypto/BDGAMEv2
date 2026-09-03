@@ -9994,19 +9994,13 @@ document.head.appendChild(st);
   st.id = "hastaneOlcuCss";
   st.textContent =
     "html body #panel-hospital{" +
-      "--hs-ust:65px;--hs-kap-fs:16.5px;--hs-alt-ic:9.5px;" +
-      "--hs-kaydir-ust:47.5px;--hs-yan:2px;--hs-kaydir-yan:0px;" +
-      "--hs-yuz:47.5px;--hs-kart-ic:5px;--hs-ikon-x:0px;" +
-      "--hs-ray:9px;--hs-adet-fs:20px;--hs-adet-en:57px;" +
-      "--hs-ray-bas:0px;--hs-ray-bit:0px;" +
-      "--hs-top-bas:0px;--hs-top-bit:0px;--hs-top-en:13px;--hs-top-boy:25px;" +
-      "--hs-top-yuv:5px;--hs-top-cz-ara:5px;" +
-      "--hs-top-cz-en:1.5px;--hs-top-cz-boy:11px;" +
-      "--hs-ikon:21px;--hs-yuva-ara:22px;--hs-ikon-sayi:2.5px;" +
-      "--hs-serit-fs:12px;--hs-serit-ic:3.5px;" +
-      "--hs-btn-en:122px;--hs-btn-fs:13.5px;--hs-btn-ic:7px;" +
-      "--hs-btn-ara:30px;--hs-btn-ust:7.5px;" +
-      "--hs-kuyruk-yuz:42px;}";
+      /* Üst */ "--hs-ust:71.5px;--hs-kap-fs:16.5px;--hs-alt-ic:14px;--hs-kaydir-ust:48.5px;--hs-yan:4.5px;--hs-kaydir-yan:4.5px;" +
+      /* Kart */ "--hs-yuz:45px;--hs-kart-ic:6px;--hs-ikon-x:1.5px;" +
+      /* Sürgü */ "--hs-ray:9px;--hs-ray-bas:12px;--hs-ray-bit:12.5px;--hs-adet-fs:15px;--hs-adet-en:78px;" +
+      /* Topuz */ "--hs-top-en:15px;--hs-top-boy:23.5px;--hs-top-yuv:3px;--hs-top-bas:19.5px;--hs-top-bit:16px;--hs-top-cz-ara:4px;--hs-top-cz-en:1.5px;--hs-top-cz-boy:12.5px;" +
+      /* Şerit */ "--hs-ikon:23px;--hs-yuva-ara:15.5px;--hs-ikon-sayi:4px;--hs-serit-fs:12px;--hs-serit-ic:6px;" +
+      /* Düğme */ "--hs-btn-en:125.5px;--hs-btn-fs:13px;--hs-btn-ic:7px;--hs-btn-ara:30px;--hs-btn-ust:3.5px;" +
+      /* Kuyruk */ "--hs-kuyruk-yuz:35.5px;}";
   document.head.appendChild(st);
 })();
 
@@ -10018,51 +10012,51 @@ document.head.appendChild(st);
   /* Gruplar sekme olur; her ölçü tek satır sürgü. */
   var GRUP = [
     { ad: "Üst", ler: [
-      { k: "--hs-ust",       ad: "Üst boşluk", v: 65,   min: 16, max: 96 },
+      { k: "--hs-ust",       ad: "Üst boşluk", v: 71.5,   min: 16, max: 96 },
       { k: "--hs-kap-fs",    ad: "Üst sayaç", v: 16.5, min: 9,  max: 22 },
-      { k: "--hs-alt-ic",    ad: "Alt aralık", v: 9.5,    min: 0,  max: 26 },
-      { k: "--hs-kaydir-ust", ad: "Liste üst", v: 47.5,   min: 0,  max: 70 },
-      { k: "--hs-yan",       ad: "Kart yanı",  v: 2,   min: 0,  max: 30 },
-      { k: "--hs-kaydir-yan", ad: "Liste yanı", v: 0,  min: 0,  max: 60 }
+      { k: "--hs-alt-ic",    ad: "Alt aralık", v: 14,    min: 0,  max: 26 },
+      { k: "--hs-kaydir-ust", ad: "Liste üst", v: 48.5,   min: 0,  max: 70 },
+      { k: "--hs-yan",       ad: "Kart yanı",  v: 4.5,   min: 0,  max: 30 },
+      { k: "--hs-kaydir-yan", ad: "Liste yanı", v: 4.5,  min: 0,  max: 60 }
     ]},
     { ad: "Kart", ler: [
-      { k: "--hs-yuz",       ad: "Görsel",     v: 47.5,   min: 30, max: 84 },
-      { k: "--hs-kart-ic",   ad: "Satır iç",   v: 5,    min: 0,  max: 20 },
-      { k: "--hs-ikon-x",    ad: "Görsel yatay", v: 0,  min: -60, max: 60 }
+      { k: "--hs-yuz",       ad: "Görsel",     v: 45,   min: 30, max: 84 },
+      { k: "--hs-kart-ic",   ad: "Satır iç",   v: 6,    min: 0,  max: 20 },
+      { k: "--hs-ikon-x",    ad: "Görsel yatay", v: 1.5,  min: -60, max: 60 }
     ]},
     { ad: "Sürgü", ler: [
       { k: "--hs-ray",       ad: "Ray kalın",  v: 9,    min: 2,  max: 18 },
-      { k: "--hs-ray-bas",   ad: "Ray başı",   v: 0,    min: 0,  max: 60 },
-      { k: "--hs-ray-bit",   ad: "Ray sonu",   v: 0,    min: 0,  max: 60 },
-      { k: "--hs-adet-fs",   ad: "Adet yazı",  v: 20, min: 9,  max: 22 },
-      { k: "--hs-adet-en",   ad: "Adet kutu",  v: 57,   min: 34, max: 130 }
+      { k: "--hs-ray-bas",   ad: "Ray başı",   v: 12,    min: 0,  max: 60 },
+      { k: "--hs-ray-bit",   ad: "Ray sonu",   v: 12.5,    min: 0,  max: 60 },
+      { k: "--hs-adet-fs",   ad: "Adet yazı",  v: 15, min: 9,  max: 22 },
+      { k: "--hs-adet-en",   ad: "Adet kutu",  v: 78,   min: 34, max: 130 }
     ]},
     { ad: "Topuz", ler: [
-      { k: "--hs-top-en",     ad: "Genişlik",   v: 13,  min: 5,   max: 34 },
-      { k: "--hs-top-boy",    ad: "Yükseklik",  v: 25,  min: 10,  max: 44 },
-      { k: "--hs-top-yuv",    ad: "Köşe",       v: 5,   min: 0,   max: 16 },
-      { k: "--hs-top-bas",    ad: "Yol başı",   v: 0,   min: -20, max: 50 },
-      { k: "--hs-top-bit",    ad: "Yol sonu",   v: 0,   min: -20, max: 50 },
-      { k: "--hs-top-cz-ara", ad: "Çizgi ara",  v: 5,   min: 1,   max: 16 },
+      { k: "--hs-top-en",     ad: "Genişlik",   v: 15,  min: 5,   max: 34 },
+      { k: "--hs-top-boy",    ad: "Yükseklik",  v: 23.5,  min: 10,  max: 44 },
+      { k: "--hs-top-yuv",    ad: "Köşe",       v: 3,   min: 0,   max: 16 },
+      { k: "--hs-top-bas",    ad: "Yol başı",   v: 19.5,   min: -20, max: 50 },
+      { k: "--hs-top-bit",    ad: "Yol sonu",   v: 16,   min: -20, max: 50 },
+      { k: "--hs-top-cz-ara", ad: "Çizgi ara",  v: 4,   min: 1,   max: 16 },
       { k: "--hs-top-cz-en",  ad: "Çizgi kalın", v: 1.5, min: 0.5, max: 5 },
-      { k: "--hs-top-cz-boy", ad: "Çizgi boy",  v: 11,  min: 3,   max: 34 }
+      { k: "--hs-top-cz-boy", ad: "Çizgi boy",  v: 12.5,  min: 3,   max: 34 }
     ]},
     { ad: "Şerit", ler: [
-      { k: "--hs-ikon",      ad: "Simge",      v: 21,   min: 14, max: 44 },
-      { k: "--hs-yuva-ara",  ad: "Yuva arası", v: 22,   min: 0,  max: 30 },
-      { k: "--hs-ikon-sayi", ad: "Simge-sayı", v: 2.5,    min: 0,  max: 24 },
+      { k: "--hs-ikon",      ad: "Simge",      v: 23,   min: 14, max: 44 },
+      { k: "--hs-yuva-ara",  ad: "Yuva arası", v: 15.5,   min: 0,  max: 30 },
+      { k: "--hs-ikon-sayi", ad: "Simge-sayı", v: 4,    min: 0,  max: 24 },
       { k: "--hs-serit-fs",  ad: "Sayı yazı",  v: 12,   min: 9,  max: 24 },
-      { k: "--hs-serit-ic",  ad: "Şerit iç",   v: 3.5,    min: 1,  max: 20 }
+      { k: "--hs-serit-ic",  ad: "Şerit iç",   v: 6,    min: 1,  max: 20 }
     ]},
     { ad: "Düğme", ler: [
-      { k: "--hs-btn-en",    ad: "Genişlik",   v: 122,  min: 80, max: 220 },
-      { k: "--hs-btn-fs",    ad: "Yazı",       v: 13.5,   min: 8,  max: 20 },
+      { k: "--hs-btn-en",    ad: "Genişlik",   v: 125.5,  min: 80, max: 220 },
+      { k: "--hs-btn-fs",    ad: "Yazı",       v: 13,   min: 8,  max: 20 },
       { k: "--hs-btn-ic",    ad: "Yükseklik",  v: 7,    min: 2,  max: 20 },
       { k: "--hs-btn-ara",   ad: "Arası",      v: 30,   min: 0,  max: 30 },
-      { k: "--hs-btn-ust",   ad: "Üst boşluk", v: 7.5,   min: 0,  max: 30 }
+      { k: "--hs-btn-ust",   ad: "Üst boşluk", v: 3.5,   min: 0,  max: 30 }
     ]},
     { ad: "Kuyruk", ler: [
-      { k: "--hs-kuyruk-yuz", ad: "Görsel",    v: 42,   min: 22, max: 64 }
+      { k: "--hs-kuyruk-yuz", ad: "Görsel",    v: 35.5,   min: 22, max: 64 }
     ]}
   ];
 
