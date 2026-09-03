@@ -5559,7 +5559,7 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
   st.textContent = `
 /* Hastane satırında dolan yeşil şerit — intikal kutucuğundaki ile
    aynı fikir, ayrı bir süre çubuğu koymamak için. */
-html body #panel-hospital .hosp-queue-row{ position:relative; overflow:hidden; }
+html body #panel-hospital .hosp-queue-row{ position:relative; }
 html body #panel-hospital .hosp-dolgu{
   position:absolute; left:0; top:0; bottom:0; z-index:0; width:0;
   background:linear-gradient(180deg, rgba(88,214,120,.55), rgba(38,158,84,.55));
@@ -9941,7 +9941,10 @@ document.head.appendChild(st);
     "html body #panel-hospital .overlay-card.hospital-card{" +
       "display:flex;flex-direction:column;" +
       "max-height:88vh;overflow:hidden;" +
-      "padding-top:var(--hs-ust,52px);padding-bottom:12px;}" +
+      /* Yan dolgu .overlay-card'tan 20px geliyordu; hastanede
+         ayarlanabilir olsun ki satırlar panelin tamamını kullansın. */
+      "padding-top:var(--hs-ust,52px);padding-bottom:12px;" +
+      "padding-left:var(--hs-yan,20px);padding-right:var(--hs-yan,20px);}" +
 
     /* Üst sayaç artık AKIŞTA DEĞİL — ✕ hizasında mutlak konumlu
        (index.html .hospital-kap). Burada yer ayırmasına gerek yok. */
@@ -9968,7 +9971,7 @@ document.head.appendChild(st);
          kabuğun DIŞINDA olduğu için yerlerinde kalır. Kartın kendi
          padding-top'u (--hs-ust) kullanılamazdı: o ikisini birden
          aşağı iterdi. */
-      "padding:var(--hs-kaydir-ust,0px) 2px 4px;}" +
+      "padding:var(--hs-kaydir-ust,0px) var(--hs-kaydir-yan,2px) 4px;}" +
     "html body #panel-hospital .hosp-kaydir::-webkit-scrollbar{" +
       "display:none;width:0;height:0;}" +
 
@@ -10001,6 +10004,7 @@ document.head.appendChild(st);
       "--hs-ust:52px;--hs-kap-fs:13.5px;--hs-alt-ic:8px;" +
       "--hs-yuz:52px;--hs-kart-ic:6px;" +
       "--hs-kaydir-ust:26px;--hs-ikon-x:0px;" +
+      "--hs-yan:20px;--hs-kaydir-yan:2px;" +
       "--hs-ray:7px;--hs-top:19px;--hs-adet-fs:13.5px;--hs-adet-en:64px;" +
       "--hs-ikon:26px;--hs-yuva-ara:10px;--hs-ikon-sayi:6px;" +
       "--hs-serit-fs:15px;--hs-serit-ic:7px;" +
@@ -10021,12 +10025,14 @@ document.head.appendChild(st);
       { k: "--hs-ust",       ad: "Üst boşluk", v: 52,   min: 16, max: 96 },
       { k: "--hs-kap-fs",    ad: "Üst sayaç", v: 13.5, min: 9,  max: 22 },
       { k: "--hs-alt-ic",    ad: "Alt aralık", v: 8,    min: 0,  max: 26 },
-      { k: "--hs-kaydir-ust", ad: "Liste üst", v: 26,   min: 0,  max: 70 }
+      { k: "--hs-kaydir-ust", ad: "Liste üst", v: 26,   min: 0,  max: 70 },
+      { k: "--hs-yan",       ad: "Kart yanı",  v: 20,   min: 0,  max: 30 },
+      { k: "--hs-kaydir-yan", ad: "Kayma payı", v: 2,   min: 0,  max: 60 }
     ]},
     { ad: "Kart", ler: [
       { k: "--hs-yuz",       ad: "Görsel",     v: 52,   min: 30, max: 84 },
       { k: "--hs-kart-ic",   ad: "Satır iç",   v: 6,    min: 0,  max: 20 },
-      { k: "--hs-ikon-x",    ad: "Görsel yatay", v: 0,  min: -40, max: 40 }
+      { k: "--hs-ikon-x",    ad: "Görsel yatay", v: 0,  min: -60, max: 60 }
     ]},
     { ad: "Sürgü", ler: [
       { k: "--hs-ray",       ad: "Ray kalın",  v: 7,    min: 2,  max: 18 },
