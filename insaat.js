@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  var SURUM = "insaat-15";
+  var SURUM = "insaat-16";
 
   var TAVAN     = 10;    /* en yüksek seviye */
   var SIRA_SAYI = 2;     /* aynı anda kaç inşaat sürebilir */
@@ -166,6 +166,51 @@
       g += binaGucu(id, sv);
     });
     return g;
+  }
+
+  /* ── HASTANE YARALI KAPASİTESİ ──
+     Hastanenin tutabilecegi EN COK yarali asker sayisi. Dizi indeksi
+     SEVIYEDIR: [1]=Sv1, [10]=Sv10. Kademe agirligi YOKTUR — Sv1 Sovalye
+     de Sv6 Suvari de bir yatak kaplar.
+
+     Bu tablo TEK YERDE burada durur. Yaraliyi hastaneye yazan uc yol
+     (index.html sendWoundedToHospital, pvp.js savunan yolu, sefer.js
+     donusu) buradan okur; ikinci bir tablo acilirsa bir sayi
+     degistiginde savasin iki tarafi farkli kapasite hesaplar.
+
+     Olcek notu: sefer kapasitesi tabani 5.000 ve kahramanlarla katlaniyor.
+     Sv1 hastane 80.000 ile tek seferden donen ordunun yaralisini rahat
+     alir; sinir orta oyunda ordu buyudukce isirmaya baslar. */
+  var HASTANE_KAPASITE = [
+    0,
+    80000, 130000, 250000, 300000, 450000,
+    600000, 850000, 900000, 950000, 1000000,
+  ];
+
+  /* Verilen seviyenin kapasitesi. Seviye tabloda yoksa uclara kirpilir —
+     kayit bozulsa bile 0 donup butun yaraliyi oldurmez. */
+  function hastaneKapasite(sv) {
+    var n = Math.max(1, Math.min(TAVAN, Math.floor(Number(sv) || 1)));
+    return HASTANE_KAPASITE[n] || HASTANE_KAPASITE[1];
+  }
+
+  /* Bir HESABIN kapasitesi. Argumansiz kendi durumumuzu okur; bir state
+     nesnesi verilirse onunkini. toplamGuc ile ayni desen: bulut kaydinda
+     anahtar kisaltilmistir (bsv), ikisine de bakilir.
+
+     Savunan cevrimdisiyken saldiranin istemcisi savunanin hastanesine
+     yaziyor (pvp.js). Orada KENDI binaSv'imiz degil, savunanin state'i
+     gecilmeli — yoksa herkes kendi hastane seviyesini karsi tarafa
+     dayatir. */
+  function hastaneKapasiteHesap(st) {
+    var kaynak;
+    if (st && typeof st === "object") {
+      kaynak = st.binaSv || st.bsv;
+    } else if (hazir()) {
+      kurDurum();
+      kaynak = state.binaSv;
+    }
+    return hastaneKapasite((kaynak && kaynak.hastane) || 1);
   }
 
   /* ── KIŞLA MUAFİYETİ — SABİT ÜÇLÜ DÖNGÜ ──
@@ -964,6 +1009,16 @@
     }
     /* Kale gücü her binada var — kışla, tesis ve Ana Kale'de bu bölüm
        eskiden bomboş açılmıyordu, artık tek satırla da olsa doluyor. */
+    /* Hastanenin OLCULEBILIR bonusu yarali kapasitesidir. Diger
+       binalarda boyle bir sayi olmadigi icin satir hic acilmaz. */
+    if (id === "hastane") {
+      var k0 = hastaneKapasite(sv), k1 = hastaneKapasite(hedef);
+      if (k1 > k0) {
+        h += satir("Yaralı kapasitesi",
+                   sayi(k0) + " <b>+" + sayi(k1 - k0) + "</b>");
+      }
+    }
+
     var g0 = binaGucu(id, sv), g1 = binaGucu(id, hedef);
     if (g1 > g0) {
       h += satir("Kale gücü", sayi(g0) + " <b>+" + sayi(g1 - g0) + "</b>");
@@ -1247,6 +1302,12 @@
     binaGucu: binaGucu,
     toplamGuc: toplamGuc,
     GUC_TABAN: GUC_TABAN,
+
+    /* Yaralı kapasitesi. hastaneKapasite(sv) seviyeden, hastaneKapasitesi(st)
+       bir hesabın state'inden okur (argümansız = kendi hesabımız). */
+    hastaneKapasite: hastaneKapasite,
+    hastaneKapasitesi: hastaneKapasiteHesap,
+    HASTANE_KAPASITE: HASTANE_KAPASITE,
 
     gelistirilebilir: function (id) { return !!TIP[id]; },
     kurDurum: kurDurum,
