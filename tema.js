@@ -9971,7 +9971,9 @@ document.head.appendChild(st);
          kabuğun DIŞINDA olduğu için yerlerinde kalır. Kartın kendi
          padding-top'u (--hs-ust) kullanılamazdı: o ikisini birden
          aşağı iterdi. */
-      "padding:var(--hs-kaydir-ust,0px) var(--hs-kaydir-yan,2px) 4px;}" +
+      "margin-left:calc(-1 * var(--hs-yan,20px));" +
+      "margin-right:calc(-1 * var(--hs-yan,20px));" +
+      "padding:var(--hs-kaydir-ust,0px) var(--hs-kaydir-yan,20px) 4px;}" +
     "html body #panel-hospital .hosp-kaydir::-webkit-scrollbar{" +
       "display:none;width:0;height:0;}" +
 
@@ -10004,7 +10006,7 @@ document.head.appendChild(st);
       "--hs-ust:52px;--hs-kap-fs:13.5px;--hs-alt-ic:8px;" +
       "--hs-yuz:52px;--hs-kart-ic:6px;" +
       "--hs-kaydir-ust:26px;--hs-ikon-x:0px;" +
-      "--hs-yan:20px;--hs-kaydir-yan:2px;" +
+      "--hs-yan:20px;--hs-kaydir-yan:20px;" +
       "--hs-ray:7px;--hs-top:19px;--hs-adet-fs:13.5px;--hs-adet-en:64px;" +
       "--hs-ikon:26px;--hs-yuva-ara:10px;--hs-ikon-sayi:6px;" +
       "--hs-serit-fs:15px;--hs-serit-ic:7px;" +
@@ -10027,7 +10029,7 @@ document.head.appendChild(st);
       { k: "--hs-alt-ic",    ad: "Alt aralık", v: 8,    min: 0,  max: 26 },
       { k: "--hs-kaydir-ust", ad: "Liste üst", v: 26,   min: 0,  max: 70 },
       { k: "--hs-yan",       ad: "Kart yanı",  v: 20,   min: 0,  max: 30 },
-      { k: "--hs-kaydir-yan", ad: "Kayma payı", v: 2,   min: 0,  max: 60 }
+      { k: "--hs-kaydir-yan", ad: "Liste yanı", v: 20,  min: 0,  max: 60 }
     ]},
     { ad: "Kart", ler: [
       { k: "--hs-yuz",       ad: "Görsel",     v: 52,   min: 30, max: 84 },
