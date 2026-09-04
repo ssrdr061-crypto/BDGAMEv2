@@ -255,6 +255,72 @@
        serilmiş gibi durur. Büyütürsen daha yatık, 1 = yuvarlak. */
     lekeYatay: 2.4,
 
+    /* ── KABARTMA (RÖLYEF) ──
+       Haritanın ısı haritası gibi durmasının kök sebebi: zeminde
+       hiçbir YÜKSEKLİK bilgisi yoktu. Göz eğimi ancak sabit yönlü bir
+       ışık bir yükseklik alanına vurduğunda okur. Burada görünmez bir
+       yükseklik alanı üretilir; renk, KOMŞU ÖRNEKLERİN FARKINDAN
+       çıkan eğime göre açılıp koyulaşır.
+
+       PERFORMANS: eğim yeni gürültü çağırarak değil, parça tamponunda
+       ZATEN yan yana duran örneklerden hesaplanır — ikinci geçiş saf
+       aritmetiktir. Zemin parça parça BİR KEZ pişer, kare başına
+       maliyet S I F I R artar.
+
+       KRİTİK: yükseklik yalnız BOYAMAYA girer. `biyomDeger()`'in ham
+       çıktısına dokunulmaz — dokunulsaydı hangi karonun lav olduğu
+       değişir, mevcut kaleler başka arazide kalırdı.
+
+       guc:       0 = KAPALI (ikinci geçiş hiç çalışmaz). 1 = normal.
+       yukseklik: eğim kazancı. Büyürse tepeler dikleşir. zeminAdim'a
+                  göre normalize edilir, örnekleme sıklığı değişse de
+                  görünüm aynı kalır.
+       siklik:    tepelerin büyüklüğü. KÜÇÜK sayı = BÜYÜK tepe.
+                  0.6 ≈ 3 karo boyu. 2.0 üstü tümüvar deseni olur.
+       gunesX/Y:  ışığın EKRAN uzayındaki yönü. (-0.55,-0.83) = sol üstten.
+                  Dünya uzayına konsaydı kaydırırken ışık zeminle beraber
+                  kayar, leke gibi okunurdu.
+       sertlik:   eğim karşıtlığı. 1 = yumuşak, 2 = sert.
+       egimYatay: yatay (çapraz) eğimin ağırlığı.
+       egimDikey: dikey (aşağı yukarı) eğimin ağırlığı.
+                  İkisi ayrı tutuluyor: eşitken izometrik zemin dik bir
+                  duvar gibi okunabiliyor, dikeyi kısınca yere serilir.
+       basamak:   0 = yumuşak. >0 ise yükseklik bu kadar kademeye
+                  yuvarlanır; düzlüklerde eğim sıfırlanır, kademe
+                  aralarında kontur çizgisi belirir.
+       tonlama:   yüksek yer hafif açık, alçak yer hafif koyu. Eğimden
+                  bağımsız, düz bir irtifa tonu. 0 = kapalı. */
+    kabartma: {
+      guc: 0.85,
+      yukseklik: 6,
+      siklik: 0.6,
+      gunesX: -0.55,
+      gunesY: -0.83,
+      sertlik: 1.0,
+      egimYatay: 1.0,
+      egimDikey: 1.0,
+      basamak: 0,
+      tonlama: 0.18,
+    },
+
+    /* ── KIYI ÇİZGİSİ ──
+       Biyom sınırında ince bir koyu kenar. Kar↔çimen ve çimen↔lav
+       geçişi "renk kesmesi" olmaktan çıkıp sahil gibi okunur.
+
+       Ek gürültü MALİYETİ YOK: biyom değeri (v) zaten zeminRengi
+       içinde hesaplanıyor, dışarı alınıp eşiğe uzaklığına bakılıyor.
+
+       guc:       0 = KAPALI. Çizginin genel gücü.
+       kalinlik:  biyom DEĞERİ cinsinden yarı en. 0.012 ≈ 3 karo.
+                  Piksel değil — zoom'la kalınlaşıp incelmez, arazinin
+                  kendi özelliğidir.
+       koyuluk:   kenarın ne kadar karardığı (0..1). */
+    kiyi: {
+      guc: 0.45,
+      kalinlik: 0.012,
+      koyuluk: 0.45,
+    },
+
     /* ── DÜĞÜM ETİKETİ İNCE AYAR ──
        Kaynak/canavar düğümünün altındaki "kutucuk + isim" şeridi.
        Sayılar ÇARPANDIR, piksel değil: düğüm yarıçapı (r) zoom ile
@@ -662,12 +728,39 @@
     return c;
   }
 
-  function zeminRengi(gx, gy) {
+  /* ── YÜKSEKLİK ALANI ──
+     Görünmez. Yalnız boyamada kullanılır; biyoma HİÇ girmez.
+
+     DÜNYA PİKSELİ uzayında örnekleniyor, ızgara koordinatında değil.
+     Sebep: ızgarada örneklenirse ekranda ezilir, tepe yuvarlak değil
+     eğri çıkar. x frekansı y'nin YARISI — izometride zeminde yuvarlak
+     olan şey ekranda 2:1 geniş görünür, tepe de öyle görünmeli.
+
+     İki katman: geniş tepeler + üzerine kırışıklık. Üçüncü katman
+     eklenmedi — zemin zaten zeminAdim (10 dünya piksel) aralıkla
+     örnekleniyor, daha ince desen örneklemeye takılıp pusa döner. */
+  function yukseklikDeger(wx, wy) {
+    const K = CFG.kabartma;
+    const f = (K.siklik || 0.6) * 0.01;
+    const x = wx * f * 0.5;
+    const y = wy * f;
+    let h = smoothNoise(x + 211,       y + 137)       * 0.62
+          + smoothNoise(x * 2.7 + 19,  y * 2.7 + 83)  * 0.38;
+    const b = K.basamak | 0;
+    if (b > 0) h = Math.round(h * b) / b;
+    return h;
+  }
+
+  /* cikti verilirse ham biyom değeri (serpme dahil) oraya yazılır.
+     Kıyı çizgisi bunu kullanır — yeniden hesaplanırsa serpmeSapma
+     ikinci kez çağrılır ve pişirme boşuna pahalılaşır. */
+  function zeminRengi(gx, gy, cikti) {
     const R = CFG.zeminRenk, A = CFG.lekeAyar;
     /* Serpme YALNIZ boyamada. biyom()/biyomKarisim() ham değeri
        okumaya devam eder — kale/düğüm arazisi kaymasın. */
     const v = biyomDeger(gx, gy) + serpmeSapma(gx, gy);
     const w = biyomAgirlik(v);
+    if (cikti) cikti.v = v;
 
     /* Saf çimen: kar/lav hesabına hiç girme */
     if (w[1] >= 0.999) return cimenKaleRengi(gx, gy);
@@ -773,30 +866,111 @@
 
     const w = maxX - minX, h = maxY - minY;
 
-    /* ── alçak çözünürlüklü tampon ── */
-    const A  = Math.max(4, CFG.zeminAdim);
+    /* ── alçak çözünürlüklü tampon ──
+       PADC: tamponun her yanında kaç HÜCRE fazladan örneklendiği.
+       1 değil 2 — kabartma eğimi merkezi farkla (i-1, i+1) hesaplanıyor,
+       yani kopyalanan bölgenin EN DIŞ sırasının da bir komşusu olmalı.
+       1 kalırsa parça kenarlarında gölgesiz bir çerçeve, dolayısıyla
+       komşu parçayla arasında ince çizgi kalır. */
+    const A    = Math.max(4, CFG.zeminAdim);
+    const PADC = 2;
     const LW = Math.ceil(w / A), LH = Math.ceil(h / A);
+    const BW = LW + PADC * 2, BH = LH + PADC * 2;
 
     const lo   = document.createElement("canvas");
-    lo.width   = LW + 2;
-    lo.height  = LH + 2;
+    lo.width   = BW;
+    lo.height  = BH;
     const lx   = lo.getContext("2d");
-    const veri = lx.createImageData(LW + 2, LH + 2);
+    const veri = lx.createImageData(BW, BH);
     const p    = veri.data;
 
-    for (let j = 0; j < LH + 2; j++) {
-      const wy = minY + (j - 1 + 0.5) * A;
-      for (let i = 0; i < LW + 2; i++) {
-        const wx = minX + (i - 1 + 0.5) * A;
+    const K  = CFG.kabartma || {};
+    const KY = CFG.kiyi || {};
+    const kabartmaAcik = (K.guc || 0) > 0;
+    const kiyiAcik     = (KY.guc || 0) > 0 && (KY.kalinlik || 0) > 0;
+
+    /* Yükseklik yalnız kabartma açıkken üretilir — kapalıyken iki
+       smoothNoise çağrısı başına hiç girilmez. */
+    const yuk = kabartmaAcik ? new Float32Array(BW * BH) : null;
+    const cik = kiyiAcik ? { v: 0 } : null;
+
+    /* ── 1. GEÇİŞ: renk + yükseklik + kıyı ── */
+    for (let j = 0; j < BH; j++) {
+      const wy = minY + (j - PADC + 0.5) * A;
+      for (let i = 0; i < BW; i++) {
+        const wx = minX + (i - PADC + 0.5) * A;
         const g  = worldToGrid(wx, wy);
-        const c  = zeminRengi(g.gx, g.gy);
-        const k  = (j * (LW + 2) + i) * 4;
+        let   c  = zeminRengi(g.gx, g.gy, cik);
+        const n  = j * BW + i;
+
+        if (yuk) yuk[n] = yukseklikDeger(wx, wy);
+
+        /* Kıyı: biyom değerinin eşiğe uzaklığı. Komşu gerektirmez,
+           bu yüzden burada, ikinci geçişte değil. */
+        if (cik) {
+          const kal = KY.kalinlik;
+          const d = Math.min(Math.abs(cik.v - CFG.esikKar),
+                             Math.abs(cik.v - CFG.esikCimen));
+          if (d < kal) {
+            const t = yumusat(1 - d / kal) * KY.guc;
+            c = renkKaris(c, renkKoy(c, KY.koyuluk), Math.min(1, t));
+          }
+        }
+
+        const k  = n * 4;
         p[k]     = c[0];
         p[k + 1] = c[1];
         p[k + 2] = c[2];
         p[k + 3] = 255;
       }
     }
+
+    /* ── 2. GEÇİŞ: kabartma ──
+       Saf aritmetik. Tek bir gürültü çağrısı yok — eğim, birinci
+       geçişte zaten doldurulmuş komşu örneklerin farkıdır. */
+    if (kabartmaAcik) {
+      /* zeminAdim'a göre normalize: örnekleme sıklaşınca komşu farkı
+         küçülür, kazanç aynı oranda büyür — görünüm sabit kalır. */
+      const kaz  = (K.yukseklik || 0) * (10 / A);
+      const sx   = (K.gunesX != null ? K.gunesX : -0.55) * (K.egimYatay != null ? K.egimYatay : 1);
+      const sy   = (K.gunesY != null ? K.gunesY : -0.83) * (K.egimDikey != null ? K.egimDikey : 1);
+      const sert = K.sertlik || 1;
+      const guc  = K.guc;
+      const ton  = K.tonlama || 0;
+
+      for (let j = 1; j < BH - 1; j++) {
+        for (let i = 1; i < BW - 1; i++) {
+          const n = j * BW + i;
+          const dx = yuk[n + 1]  - yuk[n - 1];
+          const dy = yuk[n + BW] - yuk[n - BW];
+
+          /* Yüzey normali ekranda kabaca (-dx, -dy); ışıkla nokta
+             çarpımı eğimin aydınlığını verir. */
+          let t = -(dx * sx + dy * sy) * kaz * sert;
+
+          /* İrtifa tonu: eğimden bağımsız düz yükseklik farkı */
+          if (ton) t += (yuk[n] - 0.5) * ton;
+
+          t *= guc;
+          if (t > 1) t = 1; else if (t < -1) t = -1;
+          if (t > -0.004 && t < 0.004) continue;
+
+          const k = n * 4;
+          if (t > 0) {
+            const m = t * 0.30;
+            p[k]     = p[k]     + (255 - p[k])     * m;
+            p[k + 1] = p[k + 1] + (255 - p[k + 1]) * m;
+            p[k + 2] = p[k + 2] + (255 - p[k + 2]) * m;
+          } else {
+            const m = 1 + t * 0.55;
+            p[k]     = p[k]     * m;
+            p[k + 1] = p[k + 1] * m;
+            p[k + 2] = p[k + 2] * m;
+          }
+        }
+      }
+    }
+
     lx.putImageData(veri, 0, 0);
 
     /* ── parça canvas'ına yumuşatarak büyüt ── */
@@ -807,7 +981,7 @@
     x2.imageSmoothingEnabled = true;
     x2.imageSmoothingQuality = "high";
     x2.setTransform(s, 0, 0, s, 0, 0);
-    x2.drawImage(lo, 1, 1, w / A, h / A, 0, 0, w, h);
+    x2.drawImage(lo, PADC, PADC, w / A, h / A, 0, 0, w, h);
 
     if (CFG.izgaraCizgisi) {
       x2.strokeStyle = "rgba(255,255,255,.18)";
