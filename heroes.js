@@ -817,7 +817,7 @@ function openHeroDetail(skinId) {
           gelistir.js glsYildizTazele() bu kutunun içeriğini
           günceller — kutu ile değer AYRI span'lardadır ki
           textContent tazelemesi kutuyu ezmesin. -->
-    <div id="hdGuc" style="position:absolute;top:46px;left:50%;transform:translateX(-50%);z-index:5;font-family:'Baloo 2','Nunito',sans-serif;font-size:15px;font-weight:800;letter-spacing:.5px;color:#ffd257;-webkit-text-stroke:3px #0b1c3a;paint-order:stroke fill;text-shadow:none;white-space:nowrap;font-variant-numeric:tabular-nums;"><span id="hdGucDeger">${
+    <div id="hdGuc" style="position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:5;font-family:'Baloo 2','Nunito',sans-serif;font-size:15px;font-weight:800;letter-spacing:.5px;color:#ffffff;-webkit-text-stroke:3px #ffd257;paint-order:stroke fill;text-shadow:none;white-space:nowrap;font-variant-numeric:tabular-nums;"><span id="hdGucDeger">${
       (typeof window.kahramanGucu === "function")
         ? (window.kahramanGucu(skinId) || 0).toLocaleString("tr-TR")
         : ""

@@ -504,18 +504,22 @@
               font-family:${YAZI};">En yüksek seviye</div>`
       : `<div id="glsGelisKap" style="display:${gelisAcik ? "flex" : "none"};
               align-items:center;justify-content:center;gap:9px;">
-           <button id="glsYukselt" style="flex:0 1 auto;height:34px;padding:0 24px;
-                   border:none;border-radius:17px;position:relative;overflow:hidden;
+           <button id="glsYukselt" style="flex:0 1 auto;height:26px;padding:0 22px;
+                   border:none;border-radius:13px;position:relative;overflow:hidden;
                    background:rgba(60,38,10,.55);cursor:pointer;">
              <span style="position:absolute;inset:0 auto 0 0;width:${oran}%;
                           background:${TEMA.sari};"></span>
              <!--  Metin AKIŞTA durur (position:absolute DEĞİL): düğmenin
                    genişliğini yazının kendisi belirlesin diye. Dolgu şeridi
-                   absolute kalır, altta; metin z-index ile üstünde durur. -->
+                   absolute kalır, altta; metin z-index ile üstünde durur.
+                   "GELİŞTİR" yazısı kaldırıldı, yalnız sayaç kaldı; yazı
+                   beyaz, sarı dolgu üstünde okunabilmesi için koyu gölge. -->
              <span style="position:relative;z-index:1;display:flex;align-items:center;
-                          justify-content:center;gap:8px;font-size:13.5px;font-weight:800;
-                          font-family:${YAZI};color:#20140a;white-space:nowrap;height:100%;">
-               GELİŞTİR ${Math.min(eldeki, bedel)} / ${bedel}
+                          justify-content:center;font-size:12.5px;font-weight:800;
+                          font-family:${YAZI};color:#ffffff;text-shadow:${TEMA.golge};
+                          white-space:nowrap;height:100%;
+                          font-variant-numeric:tabular-nums;">
+               ${Math.min(eldeki, bedel)} / ${bedel}
              </span>
            </button>
            <button id="glsArti" style="flex:0 0 auto;width:34px;height:34px;padding:0;
@@ -531,16 +535,18 @@
         halde altta satır boşluğu kalır ve kutu kare olmaz.
         Sahipsiz kahramanda çizilmez — orada Satın Al duruyor.      */
     const okKutu = !sahip(id) ? "" : `
-      <div style="display:flex;justify-content:center;margin-bottom:${gelisAcik ? "8px" : "0"};">
-        <button id="glsOkKutu" style="width:34px;height:34px;padding:0;border:none;
-                border-radius:10px;background:${TEMA.sari};cursor:pointer;
-                display:flex;align-items:center;justify-content:center;overflow:hidden;
-                font-family:${YAZI};font-size:16px;font-weight:800;color:#20140a;
-                line-height:1;">
-          <img id="glsOkGor" src="${OK_GORSEL}" alt=""
-               style="width:100%;height:100%;display:block;object-fit:contain;">
-        </button>
-      </div>`;
+      <button id="glsOkKutu" style="flex:0 0 auto;width:34px;height:34px;padding:0;
+              margin-left:8px;border:none;border-radius:10px;background:${TEMA.sari};
+              cursor:pointer;display:flex;align-items:center;justify-content:center;
+              overflow:hidden;font-family:${YAZI};font-size:16px;font-weight:800;
+              color:#20140a;line-height:1;letter-spacing:0;">
+        <!--  object-fit:cover — görsel kutuyu TAMAMEN kaplar, altta
+              sarı zemin görünmez. contain olsaydı kenarlarda sarı
+              şerit kalırdı. Zemin yalnız görsel yüklenene kadar
+              görünür. -->
+        <img id="glsOkGor" src="${OK_GORSEL}" alt=""
+             style="width:100%;height:100%;display:block;object-fit:cover;">
+      </button>`;
 
     /* ── TECRÜBE SATIRI — YILDIZDAN AYRI ──────────────────────
        Üstteki sarı hap parçayla YILDIZ yükseltir (savaş yüzdeleri).
@@ -569,28 +575,21 @@
                     background:rgba(10,40,70,.55);cursor:pointer;">
               <span style="position:absolute;inset:0 auto 0 0;width:${oranK}%;
                            background:#5bb9e6;"></span>
+              <!--  Gereken kitap sayısı ve görseli hapın İÇİNDE, yazının
+                    yanında. Görsel SABİT genişlikli kutuda durur: ölçüsü
+                    değişince yanındaki sayının yeri kaymasın diye. -->
               <span style="position:relative;z-index:1;display:flex;align-items:center;
-                           justify-content:center;font-size:13.5px;font-weight:800;
-                           font-family:${YAZI};color:#0d2036;white-space:nowrap;height:100%;">
-                YÜKSELT
+                           justify-content:center;gap:7px;font-size:13.5px;font-weight:800;
+                           font-family:${YAZI};color:#0d2036;white-space:nowrap;height:100%;
+                           font-variant-numeric:tabular-nums;">
+                YÜKSELT ${gerekenK}
+                <span style="flex:0 0 18px;width:18px;height:18px;display:flex;
+                             align-items:center;justify-content:center;font-size:13px;">
+                  <img id="glsKitapGor" src="${KITAP_GORSEL}" alt=""
+                       style="width:100%;height:100%;display:block;object-fit:contain;">
+                </span>
               </span>
             </button>
-          </div>
-          <!--  Gereken kitap sayısı ve görseli düğmenin ALTINDA.
-                Sayı ile görsel ayrı kutulardadır: görselin ölçüsü
-                değiştiğinde sayının yeri kaymasın diye görsel sabit
-                genişlikli bir kutuda durur. -->
-          <div style="display:flex;align-items:center;justify-content:center;
-                      gap:5px;margin-top:5px;">
-            <span style="font-family:${YAZI};font-size:13px;font-weight:800;
-                         color:#eaf6ff;text-shadow:${TEMA.golge};
-                         font-variant-numeric:tabular-nums;">${gerekenK}</span>
-            <span style="flex:0 0 18px;width:18px;height:18px;display:flex;
-                         align-items:center;justify-content:center;
-                         font-size:13px;color:#eaf6ff;">
-              <img id="glsKitapGor" src="${KITAP_GORSEL}" alt=""
-                   style="width:100%;height:100%;display:block;object-fit:contain;">
-            </span>
           </div>`;
       }
     }
@@ -607,10 +606,11 @@
                  ">Sv.${tecrubeSeviyesi(id)}</span>`
       : "";
 
+    /*  Ok kutusu yıldızlarla AYNI SATIRDA, sağ uçta. Ayrı satırdaysa
+        yıldızlarla hizası şaşıyordu. */
     p.innerHTML = `
       <div style="display:flex;justify-content:center;align-items:center;
-                  padding-bottom:8px;letter-spacing:2px;">${tecSv}${yildiz}</div>
-      ${okKutu}
+                  padding-bottom:8px;letter-spacing:2px;">${tecSv}${yildiz}${okKutu}</div>
       ${alt}
       ${tecrube}
     `;
