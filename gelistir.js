@@ -555,12 +555,57 @@
              style="width:100%;height:100%;display:block;object-fit:contain;">
       </button>`;
 
-    /* ── TECRÜBE SATIRI KALDIRILDI ────────────────────────────
-       Kitaplı "YÜKSELT" hapı yıldız çubuğuyla aynı ekranda duruyor,
-       ikisi ayrı kaynak harcadığı için kalabalık yapıyordu. Panelde
-       artık yalnız yıldız/parça satırı var. Tecrübe motoru
-       (tecrubeYukselt/tecrubeDurumu) yerinde duruyor, ekrana bağlı
-       değil — yeni yeri belirlenince oradan çağrılır.               */
+    /* ── TECRÜBE SATIRI — YILDIZDAN AYRI ──────────────────────
+       Kitapla TECRÜBE seviyesi yükseltir (kapasite+güç); üstteki sarı
+       hap parçayla YILDIZ yükseltir. İkisi ayrı kaynağı harcar.
+       YILDIZ ÇUBUĞU AÇIKKEN ÇİZİLMEZ (`gelisAcik`): iki hap alt alta
+       gelince ekran kalabalıklaşıyordu. Ok kapalıyken burada durur.
+       Sahipsiz kahramanda hiç çizilmez.                            */
+    let tecrube = "";
+    if (sahip(id) && !gelisAcik) {
+      const d = tecrubeDurumu(id);
+      if (d.sonSeviye) {
+        tecrube = `<div style="margin-top:8px;text-align:center;padding:9px;
+                        border-radius:14px;background:#5bb9e6;color:#0d2036;
+                        font-family:${YAZI};font-weight:800;font-size:13px;">
+                     Tecrübe Sv.${MAX_TSV} — en yüksek
+                   </div>`;
+      } else {
+        const gerekenK = Math.ceil((d.gereken - d.birikmis) / KITAP_EXP);
+        const eldeK    = kitapSayisi();
+        const oranK    = gerekenK > 0
+          ? Math.min(100, Math.round(eldeK / gerekenK * 100)) : 0;
+        tecrube = `
+          <div style="display:flex;align-items:center;justify-content:center;
+                      gap:9px;margin-top:8px;">
+            <button id="glsTecYukselt" style="flex:0 1 auto;height:40px;padding:0 16px;
+                    border:none;border-radius:20px;position:relative;overflow:hidden;
+                    background:rgba(10,40,70,.55);cursor:pointer;">
+              <span style="position:absolute;inset:0 auto 0 0;width:${oranK}%;
+                           background:#5bb9e6;"></span>
+              <!--  İki satır: üstte YÜKSELT, altta sayı + kitap görseli.
+                    Görsel SABİT genişlikli kutuda durur ki ölçüsü
+                    değişince yanındaki sayının yeri kaymasın. -->
+              <span style="position:relative;z-index:1;display:flex;
+                           flex-direction:column;align-items:center;justify-content:center;
+                           gap:2px;font-size:13.5px;font-weight:800;line-height:1;
+                           font-family:${YAZI};color:#0d2036;white-space:nowrap;height:100%;
+                           font-variant-numeric:tabular-nums;">
+                <span style="line-height:1;">YÜKSELT</span>
+                <span style="display:flex;align-items:center;justify-content:center;
+                             gap:5px;line-height:1;">
+                  ${gerekenK}
+                  <span style="flex:0 0 16px;width:16px;height:16px;display:flex;
+                               align-items:center;justify-content:center;font-size:12px;">
+                    <img id="glsKitapGor" src="${KITAP_GORSEL}" alt=""
+                         style="width:100%;height:100%;display:block;object-fit:contain;">
+                  </span>
+                </span>
+              </span>
+            </button>
+          </div>`;
+      }
+    }
 
     /* Üst satır: YALNIZ yıldızlar, ortada. Ad/parça/seviye ibaresi
        kaldırıldı — ekranın tepesinde kahraman adı zaten yazıyor. */
@@ -581,6 +626,7 @@
       <div style="display:flex;justify-content:center;align-items:center;
                   padding-bottom:8px;letter-spacing:2px;">${tecSv}${yildiz}${okKutu}</div>
       ${alt}
+      ${tecrube}
     `;
 
     const satBtn = p.querySelector("#glsSatinAl");
@@ -607,11 +653,24 @@
       okGor.remove();
       if (b) b.textContent = gelisAcik ? "▲" : "▼";
     };
+    const kitGor = p.querySelector("#glsKitapGor");
+    if (kitGor) kitGor.onerror = () => {
+      const b = kitGor.parentNode;
+      kitGor.remove();
+      if (b) b.textContent = "📘";
+    };
+
     const okBtn = p.querySelector("#glsOkKutu");
     if (okBtn) okBtn.onclick = e => {
       e.stopPropagation();
       gelisAcik = !gelisAcik;
       ciz(p, id);
+    };
+
+    const tec = p.querySelector("#glsTecYukselt");
+    if (tec) tec.onclick = e => {
+      e.stopPropagation();
+      if (tecrubeYukselt(id)) { ciz(p, id); yenile(); }
     };
   }
 
