@@ -362,9 +362,14 @@ function terfiEt(unitId, adet) {
   state.trainingQueue.forEach(j => {
     if (j.unitId === hedef.id && j.finishAt > sonBitis) sonBitis = j.finishAt;
   });
+  /*  `terfiden` = bu işin HANGİ kademeden yükseldiği. Teslimat ve
+      hızlandırma bu alana bakmaz (parti kuralı `unitId` üzerinden
+      işler, değişmedi); alan yalnızca EKRAN içindir: alt kademe
+      ekranında "TERFİ EDİLİYOR" satırını çizdiren işaret budur.
+      Normal üretim işlerinde bu alan hiç yoktur.                  */
   for (let i = 0; i < n; i++) {
     sonBitis += birimMs;
-    state.trainingQueue.push({ unitId: hedef.id, finishAt: sonBitis });
+    state.trainingQueue.push({ unitId: hedef.id, finishAt: sonBitis, terfiden: unitId });
   }
 
   ["renderKaynaklar", "renderTroopsPanel", "persistCurrentState"].forEach(f => {
