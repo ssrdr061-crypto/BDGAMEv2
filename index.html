@@ -5397,15 +5397,39 @@ function showToast(msg, ms = 2200) {
   showToastForce(msg, ms);
 }
 
+/*  TEK SÜRE BİÇİMİ — oyundaki bütün süreler buradan geçer.
+    Önceden dokuz ayrı fonksiyon yedi farklı biçim üretiyordu
+    ("586:00:37", "586 sa 00 dk", "120.00d", "6g 10:00:37"...).
+    Gün basamağı olmayanlarda uzun süre okunmuyordu.
+
+    Kural: en yüksek SIFIR OLMAYAN birimden başlar, ondan sonrası
+    sıfır olsa da yazılır.
+      2109637000 ms -> "24g 10s 0dk 37sn"
+          312000 ms -> "5dk 12sn"
+           37000 ms -> "37sn"
+
+    Saniyeye ÇIKARIRIZ (ceil): geri sayım henüz bitmemişken ekranda
+    "0sn" yazmasın. Bitmiş iş zaten sayaçtan düşer.
+
+    troops.js · sefer.js · insaat.js · magaza.js bu global adı
+    doğrudan çağırır — yedek yol YOK, bulunamazsa hata görünür.   */
+function sureBicim(ms) {
+  var t = Number(ms);
+  if (!isFinite(t) || t < 0) t = 0;
+  t = Math.ceil(t / 1000);
+  var g  = Math.floor(t / 86400);
+  var sa = Math.floor((t % 86400) / 3600);
+  var dk = Math.floor((t % 3600) / 60);
+  var sn = t % 60;
+  if (g > 0)  return g + "g " + sa + "s " + dk + "dk " + sn + "sn";
+  if (sa > 0) return sa + "s " + dk + "dk " + sn + "sn";
+  if (dk > 0) return dk + "dk " + sn + "sn";
+  return sn + "sn";
+}
+
+/* Kabuk — gövde sureBicim'e devredildi. */
 function formatTime(ms) {
-  const totalSec = ensure(Math.floor(ms / 1000));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0) {
-    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  }
-  return `${m}:${s.toString().padStart(2, "0")}`;
+  return sureBicim(ensure(ms));
 }
 
 function applyStaminaRegen() {
@@ -5834,17 +5858,9 @@ function useStaminaPotion() {
 /* Mağaza kartlarındaki slot etiketleri için kullanılıyor: */
 const SLOT_LABELS_SHORT = { weapon: "Silah", armor: "Zırh", accessory: "Aks." };
 
-/*  Kalan süre. Eskiden saat hiç kullanılmıyordu, 2 saat "120:00"
-    diye yazılıyordu. Artık 60 dakikayı geçince saat basamağı açılır:
-    "2:05:30". Bir saatin altında eski biçim korunur: "9:41".        */
+/* Kabuk — gövde sureBicim'e devredildi. */
 function formatRemaining(ms) {
-  const totalSec = ensure(Math.ceil(ms / 1000));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  const iki = (n) => n.toString().padStart(2, "0");
-  if (h > 0) return `${h}:${iki(m)}:${iki(s)}`;
-  return `${m}:${iki(s)}`;
+  return sureBicim(ensure(ms));
 }
 
 function formatLogTime(ts) {
@@ -6665,11 +6681,9 @@ function hizlandirmaPenceresi(unitId, tur) {
 
   const q = sel => kok.querySelector(sel);
 
+  /* Kabuk — gövde sureBicim'e devredildi. */
   function sureYaz(ms) {
-    const t = Math.max(0, Math.round(ms / 1000));
-    const sa = Math.floor(t / 3600), dk = Math.floor((t % 3600) / 60), sn = t % 60;
-    const iki = n => String(n).padStart(2, "0");
-    return sa > 0 ? `${sa}:${iki(dk)}:${iki(sn)}` : `${dk}:${iki(sn)}`;
+    return sureBicim(ms);
   }
 
   /*  Partinin TOPLAM süresi — çubuğun doluluğu buna göre hesaplanır.

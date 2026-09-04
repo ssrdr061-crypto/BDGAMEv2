@@ -491,26 +491,16 @@ function unitAdi(x) {
     ───────────────────────────────────────────── */
 
 /* Dakikadan okunur metin — "4 sa 10 dk" / "25 dk" */
+/* Kabuk — DAKİKA alır, milisaniyeye çevirip sureBicim'e verir
+   (index.html). Bir dakikanın altı kendiliğinden saniye çıkar. */
 function sureDk(dakika) {
-  /* Eğitim süreleri kısaldıktan sonra tek birlik bir dakikanın
-     ALTINA indi. Eskiden dakikaya yuvarlanıyordu ve "0 dk" ya da
-     yanlış "1 dk" yazıyordu; bir dakikanın altı artık saniye. */
   const ham = Math.max(0, Number(dakika) || 0);
-  if (ham > 0 && ham < 1) return `${Math.max(1, Math.round(ham * 60))} sn`;
-  const d = Math.max(0, Math.round(ham));
-  const sa = Math.floor(d / 60), kalan = d % 60;
-  if (sa > 0) return kalan > 0 ? `${sa} sa ${kalan} dk` : `${sa} sa`;
-  return `${d} dk`;
+  return sureBicim(ham * 60000);
 }
 
-/* Milisaniyeden geri sayım — "4 sa 09 dk" / "12:30" */
+/* Kabuk — gövde sureBicim'e devredildi (index.html). */
 function sureMs(ms) {
-  const top = Math.max(0, Math.ceil(ms / 1000));
-  const sa = Math.floor(top / 3600);
-  const dk = Math.floor((top % 3600) / 60);
-  const sn = top % 60;
-  if (sa > 0) return `${sa} sa ${dk.toString().padStart(2, "0")} dk`;
-  return `${dk}:${sn.toString().padStart(2, "0")}`;
+  return sureBicim(ms);
 }
 
 function unitImgFill(def){

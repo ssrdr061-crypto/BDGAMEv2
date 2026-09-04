@@ -723,26 +723,15 @@
     return Math.round(taban * Math.pow(URETIM_ARTIS, Math.max(0, sv - 1)));
   }
 
+  /* Kabuk — gövde sureBicim'e devredildi (index.html). */
   function sureYaz(ms) {
-    var t = Math.max(0, Math.round(ms / 1000));
-    var g = Math.floor(t / 86400);
-    var sa = Math.floor((t % 86400) / 3600);
-    var dk = Math.floor((t % 3600) / 60);
-    var sn = t % 60;
-    var iki = function (n) { return String(n).padStart(2, "0"); };
-    if (g > 0)  return g + "g " + sa + "s " + iki(dk) + "d";
-    if (sa > 0) return sa + ":" + iki(dk) + ":" + iki(sn);
-    return dk + ":" + iki(sn);
+    return sureBicim(ms);
   }
 
+  /* Kabuk — DAKİKA alır, milisaniyeye çevirir. */
   function dkYaz(dk) {
-    if (dk < 60) return dk + " dk";
-    if (dk < 1440) {
-      var sa = Math.floor(dk / 60), k = dk % 60;
-      return sa + " sa" + (k ? " " + k + " dk" : "");
-    }
-    var g = Math.floor(dk / 1440), ks = Math.round((dk % 1440) / 60);
-    return g + " gün" + (ks ? " " + ks + " sa" : "");
+    var ham = Math.max(0, Number(dk) || 0);
+    return sureBicim(ham * 60000);
   }
 
   /* Kaynak simgesi — HTML bağlamı olduğu için GÖRSEL basılır

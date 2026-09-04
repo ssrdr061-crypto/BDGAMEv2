@@ -263,13 +263,9 @@ function shopLeft(item) {
   return Math.max(0, lim - shopBought(item.name));
 }
 
+/* Kabuk — gövde sureBicim'e devredildi (index.html). */
 function shopResetText() {
-  const ms = SHOP_WEEK_ANCHOR + (shopWeekId() + 1) * SHOP_WEEK_MS - Date.now();
-  const t = Math.max(0, Math.floor(ms / 1000));
-  const d = Math.floor(t / 86400), h = Math.floor(t % 86400 / 3600),
-        m = Math.floor(t % 3600 / 60), sec = t % 60;
-  const p = n => String(n).padStart(2, "0");
-  return d + "g " + p(h) + ":" + p(m) + ":" + p(sec);
+  return sureBicim(SHOP_WEEK_ANCHOR + (shopWeekId() + 1) * SHOP_WEEK_MS - Date.now());
 }
 
 let _shopLastWeek = shopWeekId();

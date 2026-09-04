@@ -122,13 +122,11 @@ function izgara() { return (typeof COORD_GRID === "number") ? COORD_GRID : 30; }
 function bekle(ms) { return new Promise(r => setTimeout(r, ms)); }
 function toplam(b) { return BIRLIKLER.reduce((a, k) => a + ((b || {})[k] || 0), 0); }
 
+/* Kabuk — gövde sureBicim'e devredildi (index.html).
+   Bu dosyanın tamamı bir IIFE içinde; global ada erişmek serbest,
+   sorun yalnız DIŞARIDAN buraya erişmekteydi (Tuzak 50). */
 function fmtSure(ms) {
-  const t = Math.max(0, Math.ceil(ms / 1000));
-  /* Bir dakikanın altı SANİYE yazılır: 15 sn artık "00.15d" değil
-     "15s". Dakika üstü eskisi gibi dd.ss biçiminde. */
-  if (t < 60) return t + "s";
-  const dk = Math.floor(t / 60), sn = t % 60;
-  return String(dk).padStart(2, "0") + "." + String(sn).padStart(2, "0") + "d";
+  return sureBicim(ms);
 }
 /* Oyun ölçüsü (0–30) → görsel karo. harita.js dışa açıyor;
    yoksa aynı formülün yedeği (141/30). */
