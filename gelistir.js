@@ -193,6 +193,15 @@
     return true;
   }
 
+  /*  Çantada o parçadan kaç tane var. Ürün adı mağazadan gelir;
+      mağaza yüklü değilse 0 döner (düğme de çizilmez).            */
+  function cantadakiParca(anahtar) {
+    const s = S(); if (!s || !s.inventory) return 0;
+    const ad = parcaUrunAdi(anahtar);
+    if (!ad) return 0;
+    return Math.max(0, Math.floor(s.inventory[ad] || 0));
+  }
+
   /* Doğrudan anahtarla ekleme — havuza YAZAR. Ödüllerde kullanma;
      onlar için parcaCantayaEkle(). */
   function parcaEkleAnahtar(anahtar, adet) {
@@ -534,70 +543,24 @@
         düğmenin padding'i 0, görselin display'i block olmalı, aksi
         halde altta satır boşluğu kalır ve kutu kare olmaz.
         Sahipsiz kahramanda çizilmez — orada Satın Al duruyor.      */
+    /*  Sarı kutu KALDIRILDI: zemin yok, çerçeve yok, yalnız ok.
+        Görsel `contain` ile oturur (cover kırpardı), kutu 34→28px.  */
     const okKutu = !sahip(id) ? "" : `
-      <button id="glsOkKutu" style="flex:0 0 auto;width:34px;height:34px;padding:0;
-              margin-left:8px;border:none;border-radius:10px;background:${TEMA.sari};
+      <button id="glsOkKutu" style="flex:0 0 auto;width:28px;height:28px;padding:0;
+              margin-left:8px;border:none;border-radius:0;background:transparent;
               cursor:pointer;display:flex;align-items:center;justify-content:center;
-              overflow:hidden;font-family:${YAZI};font-size:16px;font-weight:800;
-              color:#20140a;line-height:1;letter-spacing:0;">
-        <!--  object-fit:cover — görsel kutuyu TAMAMEN kaplar, altta
-              sarı zemin görünmez. contain olsaydı kenarlarda sarı
-              şerit kalırdı. Zemin yalnız görsel yüklenene kadar
-              görünür. -->
+              overflow:visible;font-family:${YAZI};font-size:18px;font-weight:800;
+              color:${TEMA.sari};line-height:1;letter-spacing:0;">
         <img id="glsOkGor" src="${OK_GORSEL}" alt=""
-             style="width:100%;height:100%;display:block;object-fit:cover;">
+             style="width:100%;height:100%;display:block;object-fit:contain;">
       </button>`;
 
-    /* ── TECRÜBE SATIRI — YILDIZDAN AYRI ──────────────────────
-       Üstteki sarı hap parçayla YILDIZ yükseltir (savaş yüzdeleri).
-       Bu mavi hap kitapla TECRÜBE seviyesi yükseltir (kapasite+güç).
-       İkisi ayrı satırdır, ayrı kaynağı harcar, birbirine bakmaz.
-       Sahipsiz kahramanda hiç çizilmez.                            */
-    let tecrube = "";
-    if (sahip(id)) {
-      const d = tecrubeDurumu(id);
-      if (d.sonSeviye) {
-        tecrube = `<div style="margin-top:8px;text-align:center;padding:9px;
-                        border-radius:14px;background:#5bb9e6;color:#0d2036;
-                        font-family:${YAZI};font-weight:800;font-size:13px;">
-                     Tecrübe Sv.${MAX_TSV} — en yüksek
-                   </div>`;
-      } else {
-        const gerekenK = Math.ceil((d.gereken - d.birikmis) / KITAP_EXP);
-        const eldeK    = kitapSayisi();
-        const oranK    = gerekenK > 0
-          ? Math.min(100, Math.round(eldeK / gerekenK * 100)) : 0;
-        tecrube = `
-          <div style="display:flex;align-items:center;justify-content:center;
-                      gap:9px;margin-top:8px;">
-            <button id="glsTecYukselt" style="flex:0 1 auto;height:40px;padding:0 16px;
-                    border:none;border-radius:20px;position:relative;overflow:hidden;
-                    background:rgba(10,40,70,.55);cursor:pointer;">
-              <span style="position:absolute;inset:0 auto 0 0;width:${oranK}%;
-                           background:#5bb9e6;"></span>
-              <!--  Gereken kitap sayısı ve görseli hapın İÇİNDE, yazının
-                    yanında. Görsel SABİT genişlikli kutuda durur: ölçüsü
-                    değişince yanındaki sayının yeri kaymasın diye. -->
-              <span style="position:relative;z-index:1;display:flex;
-                           flex-direction:column;align-items:center;justify-content:center;
-                           gap:2px;font-size:13.5px;font-weight:800;line-height:1;
-                           font-family:${YAZI};color:#0d2036;white-space:nowrap;height:100%;
-                           font-variant-numeric:tabular-nums;">
-                <span style="line-height:1;">YÜKSELT</span>
-                <span style="display:flex;align-items:center;justify-content:center;
-                             gap:5px;line-height:1;">
-                  ${gerekenK}
-                  <span style="flex:0 0 16px;width:16px;height:16px;display:flex;
-                               align-items:center;justify-content:center;font-size:12px;">
-                    <img id="glsKitapGor" src="${KITAP_GORSEL}" alt=""
-                         style="width:100%;height:100%;display:block;object-fit:contain;">
-                  </span>
-                </span>
-              </span>
-            </button>
-          </div>`;
-      }
-    }
+    /* ── TECRÜBE SATIRI KALDIRILDI ────────────────────────────
+       Kitaplı "YÜKSELT" hapı yıldız çubuğuyla aynı ekranda duruyor,
+       ikisi ayrı kaynak harcadığı için kalabalık yapıyordu. Panelde
+       artık yalnız yıldız/parça satırı var. Tecrübe motoru
+       (tecrubeYukselt/tecrubeDurumu) yerinde duruyor, ekrana bağlı
+       değil — yeni yeri belirlenince oradan çağrılır.               */
 
     /* Üst satır: YALNIZ yıldızlar, ortada. Ad/parça/seviye ibaresi
        kaldırıldı — ekranın tepesinde kahraman adı zaten yazıyor. */
@@ -618,7 +581,6 @@
       <div style="display:flex;justify-content:center;align-items:center;
                   padding-bottom:8px;letter-spacing:2px;">${tecSv}${yildiz}${okKutu}</div>
       ${alt}
-      ${tecrube}
     `;
 
     const satBtn = p.querySelector("#glsSatinAl");
@@ -645,24 +607,11 @@
       okGor.remove();
       if (b) b.textContent = gelisAcik ? "▲" : "▼";
     };
-    const kitGor = p.querySelector("#glsKitapGor");
-    if (kitGor) kitGor.onerror = () => {
-      const b = kitGor.parentNode;
-      kitGor.remove();
-      if (b) b.textContent = "📘";
-    };
-
     const okBtn = p.querySelector("#glsOkKutu");
     if (okBtn) okBtn.onclick = e => {
       e.stopPropagation();
       gelisAcik = !gelisAcik;
       ciz(p, id);
-    };
-
-    const tec = p.querySelector("#glsTecYukselt");
-    if (tec) tec.onclick = e => {
-      e.stopPropagation();
-      if (tecrubeYukselt(id)) { ciz(p, id); yenile(); }
     };
   }
 
@@ -708,6 +657,8 @@
       const eldeki = parcaSayisi(id);
       const yeter = !sonSeviye && eldeki >= bedel;
       const eksik = Math.max(0, bedel - eldeki);
+
+      const cantada = cantadakiParca(parcaAnahtari(id));
 
       const sekmeler = [
         { k: "stat",    ad: "İstatistik" },
@@ -762,6 +713,14 @@
           ${sonSeviye ? "En yüksek seviye" : `Sv${sv + 1}'e Yükselt`}
         </button>
 
+        ${cantada ? `<button id="ppCanta" style="width:100%;margin-top:7px;padding:10px;
+                border:none;border-radius:11px;font-weight:800;font-size:13.5px;
+                font-family:${YAZI};text-shadow:${TEMA.golge};
+                background:linear-gradient(180deg,${TEMA.sari},${TEMA.sariKoyu});
+                color:#20140a;">
+          Çantandaki ${cantada} parçayı kullan
+        </button>` : ""}
+
         <button id="ppMagaza" style="width:100%;margin-top:7px;padding:10px;border:none;
                 border-radius:11px;font-weight:800;font-size:13.5px;font-family:inherit;
                 font-family:${YAZI};background:rgba(255,255,255,.10);color:${TEMA.yazi};">
@@ -782,6 +741,20 @@
           yenile();
         }
       };
+      /*  Çantadan havuza aktarım TEK YOLDAN geçer: parcaPaketiKullan.
+          İkinci bir aktarma kodu yazılmaz — çanta düşümü ve havuz
+          eklemesi orada birlikte kapanıyor.                        */
+      const c = kutu.querySelector("#ppCanta");
+      if (c) c.onclick = e => {
+        e.stopPropagation();
+        const ad = parcaUrunAdi(parcaAnahtari(id));
+        if (!ad) return;
+        parcaPaketiKullan(ad);
+        ciz2();
+        if (panel) ciz(panel, id);
+        yenile();
+      };
+
       const m = kutu.querySelector("#ppMagaza");
       if (m) m.onclick = e => {
         e.stopPropagation();
