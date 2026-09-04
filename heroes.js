@@ -81,16 +81,16 @@ const HERO_UI = {
 const HERO_UI_BY_HERO = {
   /* Her kahramanın görseli farklı boyda durduğu için kutuların
      dikey hizası kahraman başına ayarlandı (🎛 editöründen alındı). */
-  buz_savascisi: { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } } },
-  celik_savasci: { boxes: { box1: { dx: -5, dy: -80 }, box2: { dx: 5, dy: -80 }, box3: { dx: -5, dy: 40 } } },
+  buz_savascisi: { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: -5 } } },
+  celik_savasci: { boxes: { box1: { dx: -5, dy: -80 }, box2: { dx: 5, dy: -115 }, box3: { dx: -5, dy: -15 } } },
   ates_buyucusu: { boxes: { box1: { dx: -5, dy: -85 }, box2: { dx: 5, dy: -85 }, box3: { dx: -5, dy: 40 } } },
   ivanovna:      { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } } },
-  revolia:       { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } },
+  revolia:       { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 5 } },
                    panel: { dx: 0, dy: -15 } },
   /* Yeni üçlü — görseller yüklendikten sonra 🎛 editöründen ince ayar yapılır. */
-  robert:        { boxes: { box1: { dx: -5, dy: -70 }, box2: { dx: 5, dy: -90 }, box3: { dx: -5, dy: 40 } } },
-  frankly:       { boxes: { box1: { dx: -5, dy: -75 }, box2: { dx: 5, dy: -85 }, box3: { dx: -5, dy: 40 } } },
-  yuneeb:        { boxes: { box1: { dx: -5, dy: -70 }, box2: { dx: 5, dy: -90 }, box3: { dx: -5, dy: 40 } } }
+  robert:        { boxes: { box1: { dx: -5, dy: -90 }, box2: { dx: 5, dy: -90 }, box3: { dx: -5, dy: 40 } } },
+  frankly:       { boxes: { box1: { dx: -5, dy: -85 }, box2: { dx: 5, dy: -85 }, box3: { dx: -5, dy: 40 } } },
+  yuneeb:        { boxes: { box1: { dx: -5, dy: -90 }, box2: { dx: 5, dy: -90 }, box3: { dx: -5, dy: 40 } } }
 };
 
 
@@ -608,6 +608,21 @@ const HERO_3D = {
     stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
   }
 ,
+
+  robert: {
+    model: {
+      position: { x: 0, y: -0.1, z: 0.05 },
+      rotation: { x: 35, y: 0 },
+      scale: 0.80
+    },
+    lighting: {
+      main:    { intensity: 1.5, color: "#ffffff" },
+      ambient: { intensity: 0.6, color: "#b0b0d0" },
+      back:    { intensity: 1.0, color: "#ffffff" },
+      hemi:    { intensity: 1.2, color: "#ddeeff" }
+    },
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
+  },
 
   revolia: {
     model: {
