@@ -10244,3 +10244,191 @@ document.head.appendChild(st);
   uygula();
   ciz();
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   AİLE ROZETİ İNCE AYAR PANELİ  —  ?ailerozet=1   (GEÇİCİ)
+
+   Kahraman kartlarının sol üstündeki aile rozeti görselini AİLE BAŞINA
+   ayrı ölçekler ve kaydırır: Savunucu (knight) · Koruyucu (soldier) ·
+   Nişancı (robot).
+
+   Değerler .kspec-gor üstündeki --ar-b / --ar-x / --ar-y değişkenlerine
+   yazılır; kart yeniden çizilse de ayar kaybolmaz (CSS kuralı, satır içi
+   stil değil).
+
+   Beğenilen değerler KOPYALA ile alınıp kahramanlar.js'teki kalıcı
+   .kspec-gor.ar-* kurallarına yazılır, sonra BU BLOK SİLİNİR.
+
+   NOT: ana ekrandaki ?rozetayar=1 paneli BAŞKA şeydir (sandık/günlük/
+   yaralı simgeleri) — karıştırma.
+   ═══════════════════════════════════════════════════════════════ */
+(function aileRozetAyar() {
+  "use strict";
+  try { if (location.search.indexOf("ailerozet=1") < 0) return; }
+  catch (e) { return; }
+
+  var AILELER = [
+    { id: "knight",  ad: "Savunucu" },
+    { id: "soldier", ad: "Koruyucu" },
+    { id: "robot",   ad: "Nişancı"  }
+  ];
+  var VARSAYILAN = { b: 21, x: 4, y: 4 };   /* boy / sol / üst — piksel */
+  var A = {};
+  try { A = JSON.parse(localStorage.getItem("aileRozetAyar") || "{}") || {}; }
+  catch (e) { A = {}; }
+  AILELER.forEach(function (f) {
+    if (!A[f.id]) A[f.id] = { b: VARSAYILAN.b, x: VARSAYILAN.x, y: VARSAYILAN.y };
+  });
+  var aktif = "knight";
+
+  function kaydet() {
+    try { localStorage.setItem("aileRozetAyar", JSON.stringify(A)); } catch (e) {}
+  }
+
+  var st = document.createElement("style");
+  st.id = "aileRozetAyarCss";
+  document.head.appendChild(st);
+
+  function uygula() {
+    var css = "";
+    AILELER.forEach(function (f) {
+      var v = A[f.id];
+      css += "html body .kspec-gor.ar-" + f.id + "{" +
+             "--ar-b:" + v.b + "px;--ar-x:" + v.x + "px;--ar-y:" + v.y + "px;}";
+    });
+    st.textContent = css;
+  }
+
+  function metin() {
+    var v = A[aktif];
+    return "--ar-b:" + v.b + "px; --ar-x:" + v.x + "px; --ar-y:" + v.y + "px;";
+  }
+
+  function kopyaMetni() {
+    var out = "";
+    AILELER.forEach(function (f) {
+      var v = A[f.id];
+      out += ".kspec-gor.ar-" + f.id + "{ --ar-b:" + v.b + "px; --ar-x:" + v.x +
+             "px; --ar-y:" + v.y + "px; }   /* " + f.ad + " */\n";
+    });
+    return out;
+  }
+
+  var p = document.createElement("div");
+  var altPx = (typeof A._alt === "number") ? A._alt : 0;
+  p.style.cssText =
+    "position:fixed;left:0;right:0;bottom:" + altPx + "px;z-index:100000;" +
+    "background:#0d2137;color:#eaf6ff;font:600 11.5px/1.2 'Baloo 2',sans-serif;" +
+    "padding:6px 8px 7px;box-shadow:0 -2px 6px rgba(0,20,45,.3);";
+  document.body.appendChild(p);
+
+  /* position:fixed'de offsetParent null gelir; ölçü için innerHeight
+     ve offsetHeight kullanılır. */
+  function altAyarla(v) {
+    var tavan = Math.max(0, window.innerHeight - p.offsetHeight);
+    altPx = Math.max(0, Math.min(tavan, v));
+    p.style.bottom = altPx + "px";
+    A._alt = altPx; kaydet();
+  }
+
+  var SURGU = [
+    { k: "b", ad: "Boy",     min: 8,   max: 90, adim: 1 },
+    { k: "x", ad: "Sağ/Sol", min: -40, max: 90, adim: 1 },
+    { k: "y", ad: "Yuk/Aş",  min: -40, max: 90, adim: 1 }
+  ];
+
+  function ciz() {
+    var v = A[aktif];
+    var h =
+      '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<span id="arTut" style="flex:0 0 auto;padding:2px 6px;border-radius:6px;' +
+          'background:#1d3f63;color:#7fe4ff;font-size:13px;line-height:1;' +
+          'touch-action:none;cursor:grab;">\u2195</span>' +
+        '<b style="font-size:12px;letter-spacing:.3px;">AİLE ROZETİ</b>' +
+        '<button id="arSifirla" style="margin-left:auto;background:#1d3f63;color:#eaf6ff;' +
+          'border:none;border-radius:7px;padding:4px 8px;font:inherit;">SIFIRLA</button>' +
+        '<button id="arKopya" style="background:#1d3f63;color:#eaf6ff;border:none;' +
+          'border-radius:7px;padding:4px 8px;font:inherit;">KOPYALA</button>' +
+        '<button id="arTopla" style="background:#1d3f63;color:#eaf6ff;border:none;' +
+          'border-radius:7px;padding:4px 8px;font:inherit;">\u25be</button>' +
+      '</div>' +
+      '<div id="arGovde">' +
+        '<div style="display:flex;gap:4px;margin:6px 0;">';
+    AILELER.forEach(function (f) {
+      h += '<button class="ar-sek" data-id="' + f.id + '" style="flex:1;padding:5px 2px;' +
+             'border:none;border-radius:7px;font:inherit;' +
+             'background:' + (f.id === aktif ? "#2f7fc4" : "#16324f") + ';color:#eaf6ff;">' +
+             f.ad + '</button>';
+    });
+    h += '</div>';
+    SURGU.forEach(function (sg) {
+      h += '<div style="display:flex;align-items:center;gap:7px;margin:3px 0;">' +
+             '<span style="flex:0 0 52px;">' + sg.ad + '</span>' +
+             '<input type="range" class="ar-srg" data-k="' + sg.k + '" min="' + sg.min +
+               '" max="' + sg.max + '" step="' + sg.adim + '" value="' + v[sg.k] +
+               '" style="flex:1;">' +
+             '<span class="ar-dg" data-k="' + sg.k + '" style="flex:0 0 42px;text-align:right;' +
+               'font-variant-numeric:tabular-nums;">' + v[sg.k] + '</span>' +
+           '</div>';
+    });
+    h += '<div id="arMetin" style="margin-top:4px;opacity:.75;font-size:10.5px;' +
+           'word-break:break-all;">' + metin() + '</div></div>';
+    p.innerHTML = h;
+
+    (function () {
+      var tut = document.getElementById("arTut");
+      if (!tut) return;
+      var by = 0, ba = 0, sur = false;
+      tut.addEventListener("pointerdown", function (e) {
+        sur = true; by = e.clientY; ba = altPx;
+        try { tut.setPointerCapture(e.pointerId); } catch (e2) {}
+        e.preventDefault();
+      });
+      tut.addEventListener("pointermove", function (e) {
+        if (!sur) return; altAyarla(ba + (by - e.clientY)); e.preventDefault();
+      });
+      function birak() { sur = false; }
+      tut.addEventListener("pointerup", birak);
+      tut.addEventListener("pointercancel", birak);
+    })();
+
+    p.querySelectorAll(".ar-sek").forEach(function (b) {
+      b.addEventListener("click", function () { aktif = b.dataset.id; ciz(); });
+    });
+
+    p.querySelectorAll(".ar-srg").forEach(function (sr) {
+      sr.addEventListener("input", function () {
+        A[aktif][sr.dataset.k] = parseInt(sr.value, 10) || 0;
+        var dg = p.querySelector('.ar-dg[data-k="' + sr.dataset.k + '"]');
+        if (dg) dg.textContent = A[aktif][sr.dataset.k];
+        var mt = document.getElementById("arMetin");
+        if (mt) mt.textContent = metin();
+        uygula(); kaydet();
+      });
+    });
+
+    document.getElementById("arSifirla").addEventListener("click", function () {
+      A[aktif] = { b: VARSAYILAN.b, x: VARSAYILAN.x, y: VARSAYILAN.y };
+      uygula(); kaydet(); ciz();
+    });
+
+    document.getElementById("arKopya").addEventListener("click", function () {
+      var t = kopyaMetni();
+      try { navigator.clipboard.writeText(t); } catch (e) {}
+      var mt = document.getElementById("arMetin");
+      if (mt) mt.textContent = t;
+    });
+
+    var kapali = false;
+    document.getElementById("arTopla").addEventListener("click", function () {
+      kapali = !kapali;
+      var g = document.getElementById("arGovde");
+      if (g) g.style.display = kapali ? "none" : "block";
+      this.textContent = kapali ? "\u25b4" : "\u25be";
+      altAyarla(altPx);
+    });
+  }
+
+  uygula();
+  ciz();
+})();

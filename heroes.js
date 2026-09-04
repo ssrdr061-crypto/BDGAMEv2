@@ -698,9 +698,25 @@ const KOMUTAN_AILE_ADI = { knight: "Savunucu", soldier: "Koruyucu", robot: "Niş
 function komutanAilesi(id) { return KOMUTAN_AILESI[id] || null; }
 
 /* Kart üstündeki uygunluk rozeti — AİLEDEN gelir, TEK YER burasıdır.
-   Savunucu 🛡️ · Koruyucu ❤️ · Nişancı ⚔️ */
-const AILE_ROZETI = { knight: "🛡️", soldier: "❤️", robot: "⚔️" };
-function komutanRozeti(id) { return AILE_ROZETI[komutanAilesi(id)] || "⚔️"; }
+   Savunucu (mavi/duvar) · Koruyucu (yeşil/mızrak) · Nişancı (kırmızı/nişangâh).
+
+   Artık emoji değil GÖRSEL: dosyalar kökte, klasörsüz, diğer varlıklarla
+   aynı yerde. innerHTML'e basıldığı için <img> serbest (textContent olsaydı
+   olmazdı). Yedek yol YOK — dosya eksikse kutu boş görünür, bilerek böyle.
+
+   Boyut ve konum `.kspec-gor` üstündeki --ar-b/--ar-x/--ar-y değişkenlerinden
+   gelir; aile başına ayrı ayarlanır (bkz. kahramanlar.js .kspec-gor kuralı,
+   ince ayar `?ailerozet=1`). */
+const AILE_ROZETI = {
+  knight:  "rozet-savunucu.webp",
+  soldier: "rozet-koruyucu.webp",
+  robot:   "rozet-nisanci.webp"
+};
+function komutanRozeti(id) {
+  const aile = komutanAilesi(id) || "robot";
+  const dosya = AILE_ROZETI[aile] || AILE_ROZETI.robot;
+  return '<img class="kspec-gor ar-' + aile + '" src="' + dosya + '" alt="">';
+}
 window.komutanRozeti = komutanRozeti;
 
 /* Bu aileden listede zaten seçili olan komutan (varsa) döner.

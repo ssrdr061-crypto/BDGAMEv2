@@ -235,12 +235,27 @@ function _klistKartAyar(id) {
 .klist-portrait.klist-noimg{
   display:flex; align-items:center; justify-content:center; font-size:32px;
 }
+/* AILE ROZETI
+   Kutu artik yalniz DAYANAK: zemini, konturu, olcusu yok. Kartin sol ust
+   kosesine oturur, gorsel ona gore konumlanir. Zemin kaldirildi cunku
+   rozet gorselinin kendi kalkan cercevesi var; ikinci bir kutu ust uste
+   biniyordu.
+   Gorselin olcusu/konumu aile basina ayridir: --ar-b (boy), --ar-x (sol),
+   --ar-y (ust). Ince ayar: URL bayragi ailerozet=1 */
 .klist-spec{
-  position:absolute; top:4px; left:4px; z-index:3;
-  width:21px; height:21px; border-radius:7px;
-  background:rgba(4,16,36,.65); border:1px solid rgba(160,215,255,.45);
-  display:flex; align-items:center; justify-content:center; font-size:11px;
+  position:absolute; top:0; left:0; z-index:3;
+  width:0; height:0;
+  background:none; border:none; border-radius:0;
 }
+.klist-spec .kspec-gor{
+  position:absolute; display:block;
+  left:var(--ar-x,4px); top:var(--ar-y,4px);
+  width:var(--ar-b,21px); height:var(--ar-b,21px);
+  object-fit:contain; pointer-events:none;
+}
+.kspec-gor.ar-knight { --ar-b:21px; --ar-x:4px; --ar-y:4px; }
+.kspec-gor.ar-soldier{ --ar-b:21px; --ar-x:4px; --ar-y:4px; }
+.kspec-gor.ar-robot  { --ar-b:21px; --ar-x:4px; --ar-y:4px; }
 .klist-foot{
   position:absolute; left:0; right:0; bottom:0; z-index:3;
   padding:16px 3px 4px; text-align:center;
