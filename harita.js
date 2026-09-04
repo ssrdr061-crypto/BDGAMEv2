@@ -382,6 +382,35 @@
     izgaraCizgisi: false,   // true yaparsan karo kenarları çizilir
   };
 
+  /* ══ İNCE AYAR: VARSAYILAN ANLIK GÖRÜNTÜSÜ ══
+     `?haritaayar=1` panelindeki "SIFIRLA" bunu okur. Kayıt
+     UYGULANMADAN ÖNCE alınıyor — sonra alınsaydı "varsayılan",
+     geçen oturumda kaydedilen değer olurdu ve ilk haline bir daha
+     hiç dönülemezdi. CFG'de fonksiyon yok, JSON kopyası yeterli. */
+  const CFG_VARSAYILAN = JSON.parse(JSON.stringify(CFG));
+
+  /* ══ İNCE AYAR: KAYITLI DEĞERLERİ GERİ YÜKLE ══
+     Burası TÜRETİLMİŞ ÖLÇÜLERDEN ÖNCE çalışmak zorunda:
+     HALF_W / ORIGIN_X / WORLD_W aşağıda `const` olarak BİR KEZ
+     hesaplanıyor. tileW/tileH bu yüzden panelde canlı sürülemez,
+     "kaydet + yenile" ile çalışır.
+
+     Yalnız SAYI alanları yazılır ve hedefin kendisi de sayı olmalı —
+     böylece bozuk/eski bir kayıt CFG'nin yapısını kıramaz. Kayıt
+     yoksa hiçbir şey olmaz, oyun varsayılanlarla açılır. */
+  try {
+    const _kayit = JSON.parse(localStorage.getItem("bdHaritaAyar") || "null");
+    if (_kayit) for (const yol in _kayit) {
+      const par = yol.split(".");
+      let o = CFG;
+      for (let i = 0; i < par.length - 1 && o; i++) o = o[par[i]];
+      const son = par[par.length - 1];
+      if (o && typeof o[son] === "number" && typeof _kayit[yol] === "number") {
+        o[son] = _kayit[yol];
+      }
+    }
+  } catch (e) { /* bozuk kayıt oyunu durdurmaz */ }
+
   /* Türetilmiş ölçüler — elle yazma, hep buradan oku */
   const G = CFG.grid;
   const HALF_W = CFG.tileW / 2;
@@ -2466,6 +2495,284 @@
     document.addEventListener("DOMContentLoaded", baslat);
   } else {
     baslat();
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════
+     İNCE AYAR PANELİ — ?haritaayar=1
+
+     GEÇİCİ. Zemin oturunca KOPYALA çıktısı CFG'ye kalıcı yazılır ve bu
+     blok silinir (handoff kuralı: tanı panelleri iş bitince silinir).
+
+     Neden bu dosyada: harita.js kendi kendini bağlar, index.html'e
+     script etiketi eklemek gerekmiyor. tema.js'e de konamazdı —
+     tileW/tileH kaydı CFG kurulurken, yani bu dosya açılırken
+     okunmak zorunda.
+
+     Değer değişince zemin önbelleği boşaltılıp yeniden çizilir.
+     Kaydırma sırasında değil, YALNIZ kaydırıcı oynatılınca — o yüzden
+     panel açıkken de oyunun kare hızı düşmez.
+     ═════════════════════════════════════════════════════════════════════ */
+  const AYAR_GRUP = [
+    ["Kabartma", [
+      ["kabartma.guc",        "Güç (0 = kapalı)",   0,    2,    0.01],
+      ["kabartma.yukseklik",  "Yükseklik",          0,    20,   0.1 ],
+      ["kabartma.siklik",     "Tepe sıklığı",       0.05, 3,    0.01],
+      ["kabartma.sertlik",    "Sertlik",            0.2,  3,    0.01],
+      ["kabartma.aydinlik",   "Aydınlık gücü",      0,    1,    0.01],
+      ["kabartma.karanlik",   "Karanlık gücü",      0,    1,    0.01],
+      ["kabartma.tonlama",    "İrtifa tonu",        0,    0.6,  0.01],
+      ["kabartma.basamak",    "Basamak (0=yumuşak)",0,    12,   1   ],
+    ]],
+    ["Eğim", [
+      ["kabartma.egimYatay",  "Yatay (çapraz) eğim", 0,  3,  0.01],
+      ["kabartma.egimDikey",  "Dikey (aşağı yukarı)",0,  3,  0.01],
+      ["kabartma.gunesX",     "Güneş yönü X",       -1,  1,  0.01],
+      ["kabartma.gunesY",     "Güneş yönü Y",       -1,  1,  0.01],
+    ]],
+    ["Doku", [
+      ["leke",                 "Leke gücü",          0,   2,  0.01],
+      ["lekeYatay",            "Leke yataylığı",     1,   6,  0.05],
+      ["isik",                 "Işık dalgası",       0,   1,  0.01],
+      ["doygunluk",            "Doygunluk (kar/lav)",0.5, 2,  0.01],
+      ["cimenKale.siklik",     "Çimen deseni",       0.5, 8,  0.05],
+      ["cimenKale.isik",       "Çimen ışığı",        0,   1,  0.01],
+      ["cimenKale.doygunluk",  "Çimen doygunluğu",   0.5, 2,  0.01],
+    ]],
+    ["Geçiş", [
+      ["serpme.genislik", "Serpme genişliği", 0,    0.15, 0.001],
+      ["serpme.kaba",     "Kaba katman",      0.05, 1.5,  0.01 ],
+      ["serpme.orta",     "Orta katman",      0.1,  2,    0.01 ],
+      ["serpme.ince",     "İnce katman",      0.2,  2,    0.01 ],
+      ["sinirDalgasi",    "Sınır dalgası",    0,    0.30, 0.005],
+      ["gecisBandi",      "Yumuşama payı",    0,    0.05, 0.001],
+    ]],
+    ["Kıyı", [
+      ["kiyi.guc",      "Güç (0 = kapalı)", 0, 1,    0.01 ],
+      ["kiyi.kalinlik", "Kalınlık",         0, 0.05, 0.001],
+      ["kiyi.koyuluk",  "Koyuluk",          0, 1,    0.01 ],
+    ]],
+    ["Perspektif", [
+      ["tileW",     "Karo eni  (YENİLE)",  64, 256, 2],
+      ["tileH",     "Karo boyu (YENİLE)",  16, 160, 2],
+      ["zeminAdim", "Örnekleme adımı",      4,  20, 1],
+    ]],
+  ];
+
+  /* tileW/tileH canlı sürülemez: türetilmiş ölçüler dosya açılışında
+     `const` olarak hesaplanıyor, ayrıca DUGUM/KOORD/sefer hepsi buna
+     bağlı. Bu yollar değişince panel "YENİLE" uyarısı gösterir. */
+  const AYAR_YENILEME = { tileW: 1, tileH: 1 };
+
+  function ayarOku(kok, yol) {
+    const p = yol.split(".");
+    let o = kok;
+    for (let i = 0; i < p.length && o != null; i++) o = o[p[i]];
+    return o;
+  }
+  function ayarYaz(yol, v) {
+    const p = yol.split(".");
+    let o = CFG;
+    for (let i = 0; i < p.length - 1; i++) o = o[p[i]];
+    o[p[p.length - 1]] = v;
+  }
+
+  function ayarKayitOku() {
+    try { return JSON.parse(localStorage.getItem("bdHaritaAyar") || "{}") || {}; }
+    catch (e) { return {}; }
+  }
+  function ayarKayitYaz(k) {
+    try { localStorage.setItem("bdHaritaAyar", JSON.stringify(k)); } catch (e) {}
+  }
+
+  function haritaAyarPaneli() {
+    if (document.getElementById("hAyarPanel")) return;
+
+    const st = document.createElement("style");
+    st.id = "hAyarStil";
+    st.textContent = [
+      "#hAyarPanel{position:fixed;left:8px;top:96px;width:296px;z-index:99999;",
+        "background:#12263c;border:1px solid #2b4a6b;border-radius:10px;",
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);font-family:'Baloo 2',sans-serif;",
+        "color:#e8f4ff;}",
+      "#hAyarBas{display:flex;align-items:center;gap:8px;padding:8px 10px;",
+        "background:#1b3654;border-radius:9px 9px 0 0;cursor:move;touch-action:none;}",
+      "#hAyarBas b{flex:1;font-size:14px;font-weight:700;}",
+      "#hAyarBas span{width:26px;height:26px;line-height:26px;text-align:center;",
+        "background:#264a70;border-radius:6px;font-size:14px;font-weight:700;}",
+      "#hAyarSek{display:flex;flex-wrap:wrap;gap:4px;padding:8px 8px 4px;}",
+      "#hAyarSek button{flex:0 0 auto;padding:5px 9px;font-family:inherit;",
+        "font-size:11px;font-weight:700;color:#9fc4e6;background:#1b3654;",
+        "border:0;border-radius:6px;}",
+      "#hAyarSek button.acik{background:#3d7ab8;color:#fff;}",
+      "#hAyarGovde{max-height:46vh;overflow-y:auto;padding:2px 10px 8px;}",
+      "#hAyarGovde::-webkit-scrollbar{width:0;height:0;}",
+      ".hAyarSat{padding:5px 0;}",
+      ".hAyarEt{display:flex;justify-content:space-between;font-size:11px;",
+        "font-weight:700;color:#e8f4ff;margin-bottom:3px;}",
+      ".hAyarEt i{font-style:normal;font-variant-numeric:tabular-nums;color:#8fd0ff;}",
+      ".hAyarSat input{width:100%;height:22px;margin:0;background:transparent;}",
+      "#hAyarAlt{display:flex;gap:6px;padding:8px 10px;border-top:1px solid #24405e;}",
+      "#hAyarAlt button{flex:1;padding:8px 0;font-family:inherit;font-size:12px;",
+        "font-weight:700;color:#fff;background:#3d7ab8;border:0;border-radius:7px;}",
+      "#hAyarAlt button.sifir{background:#5a3b3b;}",
+      "#hAyarNot{padding:0 10px 8px;font-size:11px;font-weight:700;color:#ffca6b;}",
+      "#hAyarCik{width:100%;box-sizing:border-box;height:88px;margin:0 0 8px;",
+        "padding:6px;font-family:monospace;font-size:10px;color:#cfe6ff;",
+        "background:#0d1c2d;border:1px solid #2b4a6b;border-radius:6px;display:none;}",
+      "#hAyarPanel.kapali #hAyarSek,#hAyarPanel.kapali #hAyarGovde,",
+        "#hAyarPanel.kapali #hAyarAlt,#hAyarPanel.kapali #hAyarNot{display:none;}"
+    ].join("");
+    document.head.appendChild(st);
+
+    const kap = document.createElement("div");
+    kap.id = "hAyarPanel";
+    kap.innerHTML =
+      "<div id='hAyarBas'><b>Harita ince ayar</b><span id='hAyarKapa'>\u2013</span></div>" +
+      "<div id='hAyarSek'></div>" +
+      "<div id='hAyarNot'></div>" +
+      "<div id='hAyarGovde'></div>" +
+      "<textarea id='hAyarCik' readonly></textarea>" +
+      "<div id='hAyarAlt'>" +
+        "<button id='hAyarSif' class='sifir'>SIFIRLA</button>" +
+        "<button id='hAyarKop'>KOPYALA</button>" +
+      "</div>";
+    document.body.appendChild(kap);
+
+    const sekEl = kap.querySelector("#hAyarSek");
+    const govEl = kap.querySelector("#hAyarGovde");
+    const notEl = kap.querySelector("#hAyarNot");
+    const cikEl = kap.querySelector("#hAyarCik");
+    let aktif = 0;
+
+    /* Yeniden pişirme geciktirilir: parmak kaydırıcıyı sürerken her
+       ara değerde tüm parçalar yeniden pişerse panel takılır. */
+    let bekle = 0;
+    function tazele() {
+      clearTimeout(bekle);
+      bekle = setTimeout(function () {
+        onbellegiBosalt();
+        cizIste();
+      }, 90);
+    }
+
+    function sekmeCiz() {
+      sekEl.innerHTML = "";
+      AYAR_GRUP.forEach(function (g, i) {
+        const b = document.createElement("button");
+        b.textContent = g[0];
+        if (i === aktif) b.className = "acik";
+        b.addEventListener("click", function () { aktif = i; sekmeCiz(); govdeCiz(); });
+        sekEl.appendChild(b);
+      });
+    }
+
+    function govdeCiz() {
+      govEl.innerHTML = "";
+      notEl.textContent = "";
+      const alanlar = AYAR_GRUP[aktif][1];
+      let yenilemeVar = false;
+
+      alanlar.forEach(function (a) {
+        const yol = a[0], ad = a[1], alt = a[2], ust = a[3], adim = a[4];
+        if (AYAR_YENILEME[yol]) yenilemeVar = true;
+
+        const sat = document.createElement("div");
+        sat.className = "hAyarSat";
+        const et = document.createElement("div");
+        et.className = "hAyarEt";
+        const ai = document.createElement("span"); ai.textContent = ad;
+        const de = document.createElement("i");
+        et.appendChild(ai); et.appendChild(de);
+
+        const sl = document.createElement("input");
+        sl.type = "range";
+        sl.min = alt; sl.max = ust; sl.step = adim;
+        const su = ayarOku(CFG, yol);
+        sl.value = su;
+        de.textContent = (+su).toFixed(adim >= 1 ? 0 : 3);
+
+        sl.addEventListener("input", function () {
+          const v = parseFloat(sl.value);
+          de.textContent = v.toFixed(adim >= 1 ? 0 : 3);
+          ayarYaz(yol, v);
+          const k = ayarKayitOku(); k[yol] = v; ayarKayitYaz(k);
+          if (!AYAR_YENILEME[yol]) tazele();
+        });
+
+        sat.appendChild(et); sat.appendChild(sl);
+        govEl.appendChild(sat);
+      });
+
+      if (yenilemeVar) {
+        notEl.textContent = "YENİLE yazan alanlar sayfa yenilenince uygulanır. "
+                          + "Karo boyu, eninin yarısı olmalı (2:1).";
+      }
+    }
+
+    /* SIFIRLA: yalnız açık sekmeyi, dosyadaki ilk değerlere döndürür. */
+    kap.querySelector("#hAyarSif").addEventListener("click", function () {
+      const k = ayarKayitOku();
+      AYAR_GRUP[aktif][1].forEach(function (a) {
+        const v = ayarOku(CFG_VARSAYILAN, a[0]);
+        if (typeof v === "number") { ayarYaz(a[0], v); delete k[a[0]]; }
+      });
+      ayarKayitYaz(k);
+      govdeCiz();
+      tazele();
+    });
+
+    /* KOPYALA: yalnız DEĞİŞMİŞ alanları, CFG'ye elle yazılacak
+       biçimde döker. Değişmeyenler yazılmaz — dosyadaki açıklamalar
+       yerinde kalsın diye. */
+    kap.querySelector("#hAyarKop").addEventListener("click", function () {
+      const k = ayarKayitOku();
+      const sat = [];
+      for (const yol in k) {
+        const v0 = ayarOku(CFG_VARSAYILAN, yol);
+        if (typeof v0 === "number" && Math.abs(v0 - k[yol]) < 1e-9) continue;
+        sat.push("CFG." + yol + " = " + k[yol] + ";");
+      }
+      const met = sat.length ? sat.join("\n") : "(değişiklik yok)";
+      cikEl.style.display = "block";
+      cikEl.value = met;
+      cikEl.focus(); cikEl.select();
+      try { navigator.clipboard && navigator.clipboard.writeText(met); } catch (e) {}
+    });
+
+    kap.querySelector("#hAyarKapa").addEventListener("click", function () {
+      kap.classList.toggle("kapali");
+    });
+
+    /* Sürükleme. Kaydırıcının kendi dokunuşunu yutmasın diye yalnız
+       başlıktan tutulur. */
+    (function () {
+      const bas = kap.querySelector("#hAyarBas");
+      let sx = 0, sy = 0, bx = 0, by = 0, tut = false;
+      bas.addEventListener("pointerdown", function (e) {
+        tut = true; sx = e.clientX; sy = e.clientY;
+        const r = kap.getBoundingClientRect(); bx = r.left; by = r.top;
+        bas.setPointerCapture(e.pointerId); e.preventDefault();
+      });
+      bas.addEventListener("pointermove", function (e) {
+        if (!tut) return;
+        kap.style.left = (bx + e.clientX - sx) + "px";
+        kap.style.top  = (by + e.clientY - sy) + "px";
+      });
+      bas.addEventListener("pointerup", function () { tut = false; });
+    })();
+
+    /* Panel üstündeki dokunuş haritaya sızmasın */
+    ["pointerdown", "pointermove", "touchstart", "touchmove"].forEach(function (t) {
+      kap.addEventListener(t, function (e) { e.stopPropagation(); });
+    });
+
+    sekmeCiz();
+    govdeCiz();
+  }
+
+  if (/[?&]haritaayar=1/.test(location.search || "")) {
+    if (document.body) haritaAyarPaneli();
+    else document.addEventListener("DOMContentLoaded", haritaAyarPaneli);
   }
 
   /* Konsoldan ayar yapabilmek için dışarı aç.
