@@ -934,10 +934,9 @@ function openHeroDetail(skinId) {
         .replaceAll("{value}",  wrap(val))
         .replaceAll("{value2}", wrap(val2))
         .replaceAll("{chance}", wrap(chc));
-      panel.innerHTML = `<div style="font-weight:800;font-size:${U.panel.baslik};line-height:1.15;margin-bottom:2px;">${ab.title || "Yetenek " + (i + 1)}</div><div>${desc || "Açıklama henüz eklenmedi."}</div>`;
-      panel.style.display = "block";
-      panel.dataset.open = String(i);
-      panelKonumla(sarmal, i >= solAdet);
+      panelAc(sarmal, i >= solAdet,
+        `<div style="font-weight:800;font-size:${U.panel.baslik};line-height:1.15;margin-bottom:2px;">${ab.title || "Yetenek " + (i + 1)}</div><div>${desc || "Açıklama henüz eklenmedi."}</div>`,
+        String(i));
     };
     const svYazi = document.createElement("div");
     svYazi.className = "hdAbilitySv";
@@ -975,7 +974,8 @@ function openHeroDetail(skinId) {
     /* Panel, basılan kutunun bulunduğu YANA yaslanır. */
     const _yan = panel.dataset.yan === "sag"
       ? `right:${U.boxes.yan};` : `left:${U.boxes.yan};`;
-    panel.style.cssText = `display:${wasOpen ? "block" : "none"};position:absolute;` +
+    const _gor = panel.dataset.hazir === "0" ? "hidden" : "visible";
+    panel.style.cssText = `display:${wasOpen ? "block" : "none"};visibility:${_gor};position:absolute;` +
       `top:${_ust};${_yan}width:${U.panel.genislik};` +
       `transform:translate(${U.panel.dx}px,${U.panel.dy}px);z-index:6;` +
       `padding:7px 10px;border-radius:10px;background:${U.panel.bg};` +
@@ -1169,13 +1169,26 @@ ${modelTxt}`;
     } catch (e) {}
   }
 
+  /* Paneli AÇ: içerik → görünmez yerleştir → konumla → göster.
+     Eskiden `display:block` konum hesabından ÖNCE veriliyordu; panel
+     bir an eski yerinde (kartın sağ üstünde) görünüp sonra kutunun
+     altına oturuyordu. Artık ilk çizimde son yerindedir. */
+  function panelAc(kutu, sag, html, ad) {
+    panel.dataset.hazir = "0";
+    panel.innerHTML = html;
+    panel.style.display = "block";
+    panel.dataset.open = ad;
+    panelKonumla(kutu, sag);
+    panel.dataset.hazir = "1";
+    panel.style.visibility = "visible";
+  }
+
   const passBtn = ov.querySelector("#hdPassive");
   if (passBtn) passBtn.onclick = () => {
     if (panel.dataset.open === "passive") { panel.style.display = "none"; panel.dataset.open = ""; return; }
-    panel.innerHTML = `<div style="font-weight:800;font-size:${HERO_UI.panel.baslik};line-height:1.15;margin-bottom:2px;">${h.passive.title || "Pasif Yetenek"}</div><div>${h.passive.desc || ""}</div>`;
-    panel.style.display = "block";
-    panel.dataset.open = "passive";
-    panelKonumla(passBtn, true);
+    panelAc(passBtn, true,
+      `<div style="font-weight:800;font-size:${HERO_UI.panel.baslik};line-height:1.15;margin-bottom:2px;">${h.passive.title || "Pasif Yetenek"}</div><div>${h.passive.desc || ""}</div>`,
+      "passive");
   };
 
   /* ── SEKMELER: DETAY · STAT · EKİPMAN ───────────────────────
