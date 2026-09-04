@@ -300,7 +300,17 @@
       egimYatay: 1.0,
       egimDikey: 1.0,
       basamak: 0,
-      tonlama: 0.18,
+      tonlama: 0.12,
+
+      /* ── AYDINLIK / KARANLIK GÜCÜ ──
+         Aydınlık taraf BEYAZA KARIŞTIRILMAZ, parlaklık ÇARPILIR.
+         Beyaz karıştırma doygunluğu öldürür: lavda kırmızı pembeye
+         kayar ve zeminde "beyaz pus" olarak okunur. Çarpmada renk
+         açısı sabit kalır, yalnız parlaklık artar — lav lav kalır.
+         Kar zaten beyaza yakın olduğu için üst sınırı kendiliğinden
+         kırpılır, ayrı kural gerekmez. */
+      aydinlik: 0.20,
+      karanlik: 0.42,
     },
 
     /* ── KIYI ÇİZGİSİ ──
@@ -937,6 +947,8 @@
       const sert = K.sertlik || 1;
       const guc  = K.guc;
       const ton  = K.tonlama || 0;
+      const gA   = (K.aydinlik != null ? K.aydinlik : 0.20);
+      const gK   = (K.karanlik != null ? K.karanlik : 0.42);
 
       for (let j = 1; j < BH - 1; j++) {
         for (let i = 1; i < BW - 1; i++) {
@@ -955,18 +967,13 @@
           if (t > 1) t = 1; else if (t < -1) t = -1;
           if (t > -0.004 && t < 0.004) continue;
 
+          /* Tek kural, iki yön: parlaklık çarpanı. Karıştırma yok,
+             bu yüzden hiçbir bölgede renk gri/beyaz tarafa kaçmaz. */
           const k = n * 4;
-          if (t > 0) {
-            const m = t * 0.30;
-            p[k]     = p[k]     + (255 - p[k])     * m;
-            p[k + 1] = p[k + 1] + (255 - p[k + 1]) * m;
-            p[k + 2] = p[k + 2] + (255 - p[k + 2]) * m;
-          } else {
-            const m = 1 + t * 0.55;
-            p[k]     = p[k]     * m;
-            p[k + 1] = p[k + 1] * m;
-            p[k + 2] = p[k + 2] * m;
-          }
+          const m = t > 0 ? 1 + t * gA : 1 + t * gK;
+          p[k]     = p[k]     * m;
+          p[k + 1] = p[k + 1] * m;
+          p[k + 2] = p[k + 2] * m;
         }
       }
     }
