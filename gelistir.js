@@ -570,23 +570,28 @@
         tecrube = `
           <div style="display:flex;align-items:center;justify-content:center;
                       gap:9px;margin-top:8px;">
-            <button id="glsTecYukselt" style="flex:0 1 auto;height:34px;padding:0 22px;
-                    border:none;border-radius:17px;position:relative;overflow:hidden;
+            <button id="glsTecYukselt" style="flex:0 1 auto;height:40px;padding:0 16px;
+                    border:none;border-radius:20px;position:relative;overflow:hidden;
                     background:rgba(10,40,70,.55);cursor:pointer;">
               <span style="position:absolute;inset:0 auto 0 0;width:${oranK}%;
                            background:#5bb9e6;"></span>
               <!--  Gereken kitap sayısı ve görseli hapın İÇİNDE, yazının
                     yanında. Görsel SABİT genişlikli kutuda durur: ölçüsü
                     değişince yanındaki sayının yeri kaymasın diye. -->
-              <span style="position:relative;z-index:1;display:flex;align-items:center;
-                           justify-content:center;gap:7px;font-size:13.5px;font-weight:800;
+              <span style="position:relative;z-index:1;display:flex;
+                           flex-direction:column;align-items:center;justify-content:center;
+                           gap:2px;font-size:13.5px;font-weight:800;line-height:1;
                            font-family:${YAZI};color:#0d2036;white-space:nowrap;height:100%;
                            font-variant-numeric:tabular-nums;">
-                YÜKSELT ${gerekenK}
-                <span style="flex:0 0 18px;width:18px;height:18px;display:flex;
-                             align-items:center;justify-content:center;font-size:13px;">
-                  <img id="glsKitapGor" src="${KITAP_GORSEL}" alt=""
-                       style="width:100%;height:100%;display:block;object-fit:contain;">
+                <span style="line-height:1;">YÜKSELT</span>
+                <span style="display:flex;align-items:center;justify-content:center;
+                             gap:5px;line-height:1;">
+                  ${gerekenK}
+                  <span style="flex:0 0 16px;width:16px;height:16px;display:flex;
+                               align-items:center;justify-content:center;font-size:12px;">
+                    <img id="glsKitapGor" src="${KITAP_GORSEL}" alt=""
+                         style="width:100%;height:100%;display:block;object-fit:contain;">
+                  </span>
                 </span>
               </span>
             </button>
@@ -603,6 +608,7 @@
       ? `<span id="glsTecSv" style="font-family:${YAZI};font-size:15px;font-weight:800;
                  color:#eaf6ff;text-shadow:${TEMA.golge};letter-spacing:0;
                  margin-right:8px;font-variant-numeric:tabular-nums;
+                 position:relative;top:3px;
                  ">Sv.${tecrubeSeviyesi(id)}</span>`
       : "";
 
