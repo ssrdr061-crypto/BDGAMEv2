@@ -41,9 +41,11 @@ const HERO_UI = {
     radius: "12px",     /* Köşe yuvarlaklığı (0 = keskin köşe)                 */
     border: "1px solid rgba(255,255,255,.35)",  /* Kenarlık                    */
     bg:     "rgba(0,0,0,.35)",                  /* Kutu arkaplan rengi         */
-    box1: { dx: -5, dy: -65 },  /* 1. kutunun ek kaydırması (🎛 editörden)    */
-    box2: { dx:  5, dy: -65 },  /* 2. kutunun ek kaydırması                    */
-    box3: { dx: -5, dy:  40 }   /* 3. kutunun ek kaydırması                    */
+    /* HİZA TEK YERDEN: box1 (sol üst) ile box2 (sağ üst) AYNI dy'de,
+       box3 (sol alt) altta. Kahraman başına ezme YOK — hepsi bu hizada. */
+    box1: { dx: -5, dy: -85 },  /* sol üst  */
+    box2: { dx:  5, dy: -85 },  /* sağ üst — box1 ile aynı hizada */
+    box3: { dx: -5, dy:  40 }   /* sol alt  */
   },
 
   /* ── SATIN AL / GELİŞTİR BUTONU ──
@@ -79,18 +81,10 @@ const HERO_UI = {
     Burada olmayan bir kahraman global HERO_UI değerlerini kullanır.
     ───────────────────────────────────────────── */
 const HERO_UI_BY_HERO = {
-  /* Her kahramanın görseli farklı boyda durduğu için kutuların
-     dikey hizası kahraman başına ayarlandı (🎛 editöründen alındı). */
-  buz_savascisi: { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: -5 } } },
-  celik_savasci: { boxes: { box1: { dx: -5, dy: -80 }, box2: { dx: 5, dy: -115 }, box3: { dx: -5, dy: -15 } } },
-  ates_buyucusu: { boxes: { box1: { dx: -5, dy: -85 }, box2: { dx: 5, dy: -85 }, box3: { dx: -5, dy: 40 } } },
-  ivanovna:      { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 40 } } },
-  revolia:       { boxes: { box1: { dx: -5, dy: -65 }, box2: { dx: 5, dy: -95 }, box3: { dx: -5, dy: 5 } },
-                   panel: { dx: 0, dy: -15 } },
-  /* Yeni üçlü — görseller yüklendikten sonra 🎛 editöründen ince ayar yapılır. */
-  robert:        { boxes: { box1: { dx: -5, dy: -90 }, box2: { dx: 5, dy: -90 }, box3: { dx: -5, dy: 40 } } },
-  frankly:       { boxes: { box1: { dx: -5, dy: -85 }, box2: { dx: 5, dy: -85 }, box3: { dx: -5, dy: 40 } } },
-  yuneeb:        { boxes: { box1: { dx: -5, dy: -90 }, box2: { dx: 5, dy: -90 }, box3: { dx: -5, dy: 40 } } }
+  /* Kutu hizası artık BURADA ezilmez — hepsi HERO_UI.boxes değerini
+     kullanır, böylece kahramandan kahramana geçerken ikonlar
+     zıplamaz. Yalnız kutu DIŞI ince ayarlar burada kalır. */
+  revolia: { panel: { dx: 0, dy: -15 } }
 };
 
 
@@ -976,6 +970,7 @@ function openHeroDetail(skinId) {
       ? `right:${U.boxes.yan};` : `left:${U.boxes.yan};`;
     const _gor = panel.dataset.hazir === "0" ? "hidden" : "visible";
     panel.style.cssText = `display:${wasOpen ? "block" : "none"};visibility:${_gor};position:absolute;` +
+      `transition:none !important;animation:none !important;` +
       `top:${_ust};${_yan}width:${U.panel.genislik};` +
       `transform:translate(${U.panel.dx}px,${U.panel.dy}px);z-index:6;` +
       `padding:7px 10px;border-radius:10px;background:${U.panel.bg};` +
@@ -1918,3 +1913,184 @@ function heroArkaPlan(id) {
   return HERO_ARKA_TURUNCU.indexOf(id) !== -1
     ? "turuncuheroplan.webp" : "morheroplan.webp";
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   KART İNCE AYAR PANELİ  —  ?kartayar=1
+   Kahraman kartının (heroDetailOverlay) ekrandaki yerini ve
+   ölçüsünü CANLI ayarlar. Ekranı kaplamaz: dar bir şerittir,
+   başlığından tutup sürüklenir, "–" ile katlanır.
+   Değerler localStorage'da durur; KOPYALA çıktısı doğrudan
+   heroes.js → HERO_UI içine yazılacak biçimdedir.
+   İş bitince bu blok SİLİNİR.
+   ═══════════════════════════════════════════════════════════════ */
+(function kartAyarPaneli() {
+"use strict";
+if (location.search.indexOf("kartayar=1") === -1) return;
+
+const ANAHTAR = "bd_kartayar";
+const VARSAYILAN = {
+  kartUst: 60, kartAlt: 56, kartKenar: 12,
+  kartMaxGenislik: 420, kartRadius: 22
+};
+const ALAN = [
+  { k: "kartUst",         ad: "Üst",     adim: 2,  min: 0,   max: 400 },
+  { k: "kartAlt",         ad: "Alt",     adim: 2,  min: 0,   max: 400 },
+  { k: "kartKenar",       ad: "Yan",     adim: 1,  min: 0,   max: 80  },
+  { k: "kartMaxGenislik", ad: "En",      adim: 5,  min: 200, max: 900 },
+  { k: "kartRadius",      ad: "Köşe",    adim: 1,  min: 0,   max: 40  }
+];
+
+/* HERO_UI'daki kalıcı değerler başlangıç noktasıdır; kayıt varsa o kazanır. */
+const V = Object.assign({}, VARSAYILAN);
+try {
+  if (typeof HERO_UI !== "undefined") {
+    ALAN.forEach(a => {
+      const s = HERO_UI[a.k];
+      const n = parseInt(s, 10);
+      if (!isNaN(n)) V[a.k] = n;
+    });
+  }
+} catch (e) {}
+try {
+  const kayit = JSON.parse(localStorage.getItem(ANAHTAR) || "null");
+  if (kayit) Object.assign(V, kayit);
+} catch (e) {}
+
+function kaydet() { try { localStorage.setItem(ANAHTAR, JSON.stringify(V)); } catch (e) {} }
+
+/* Kartın stilini uygula. Kart her açılışta cssText'i baştan yazdığı
+   için düzenli aralıkla tekrar uygulanır — yoksa ayar kayboluyordu. */
+function uygula() {
+  const ov = document.getElementById("heroDetailOverlay");
+  if (!ov) return;
+  if (getComputedStyle(ov).display === "none") return;
+  if (typeof HERO_UI !== "undefined" && HERO_UI.kartTamEkran) return;
+  ov.style.top    = V.kartUst + "px";
+  ov.style.bottom = V.kartAlt + "px";
+  ov.style.width  = "calc(100% - " + (V.kartKenar * 2) + "px)";
+  ov.style.maxWidth = V.kartMaxGenislik + "px";
+  ov.style.borderRadius = V.kartRadius + "px";
+}
+
+/* ── Panel ── */
+const p = document.createElement("div");
+p.id = "kartAyarPanel";
+let ustPx = 90, solPx = 8;
+try {
+  const yer = JSON.parse(localStorage.getItem(ANAHTAR + "_yer") || "null");
+  if (yer) { ustPx = yer.t; solPx = yer.l; }
+} catch (e) {}
+p.style.cssText =
+  "position:fixed;z-index:900;top:" + ustPx + "px;left:" + solPx + "px;" +
+  "width:186px;box-sizing:border-box;padding:6px 7px 7px;" +
+  "background:rgba(6,18,40,.92);border:1px solid #2DC9FC;border-radius:10px;" +
+  "font-family:'Baloo 2',sans-serif;color:#e8f4ff;font-size:12px;font-weight:700;" +
+  "box-shadow:0 2px 6px rgba(0,20,45,.3);";
+
+let satirHtml = "";
+ALAN.forEach(a => {
+  satirHtml +=
+    '<div style="display:flex;align-items:center;gap:4px;margin-top:4px;">' +
+      '<span style="flex:0 0 34px;color:#a8c7e0;font-size:11px;">' + a.ad + '</span>' +
+      '<button class="kaBtn" data-k="' + a.k + '" data-y="-1" style="flex:0 0 30px;padding:5px 0;border:none;border-radius:7px;background:rgba(4,16,38,.75);color:#e8f4ff;font-family:inherit;font-weight:800;">−</button>' +
+      '<span id="kaV_' + a.k + '" style="flex:1;text-align:center;font-variant-numeric:tabular-nums;">' + V[a.k] + '</span>' +
+      '<button class="kaBtn" data-k="' + a.k + '" data-y="1" style="flex:0 0 30px;padding:5px 0;border:none;border-radius:7px;background:rgba(4,16,38,.75);color:#e8f4ff;font-family:inherit;font-weight:800;">+</button>' +
+    '</div>';
+});
+
+p.innerHTML =
+  '<div id="kaBas" style="display:flex;align-items:center;gap:6px;cursor:move;touch-action:none;">' +
+    '<span style="flex:1;font-size:12px;color:#ffd257;">KART AYAR</span>' +
+    '<button id="kaKat" style="flex:0 0 24px;padding:3px 0;border:none;border-radius:6px;background:rgba(4,16,38,.75);color:#e8f4ff;font-family:inherit;font-weight:800;">–</button>' +
+    '<button id="kaKapat" style="flex:0 0 24px;padding:3px 0;border:none;border-radius:6px;background:#8d2130;color:#fff;font-family:inherit;font-weight:800;">✕</button>' +
+  '</div>' +
+  '<div id="kaGovde">' + satirHtml +
+    '<div style="display:flex;gap:4px;margin-top:6px;">' +
+      '<button id="kaSifirla" style="flex:1;padding:6px 0;border:none;border-radius:7px;background:rgba(4,16,38,.75);color:#e8f4ff;font-family:inherit;font-weight:800;font-size:11px;">SIFIRLA</button>' +
+      '<button id="kaKopya" style="flex:1;padding:6px 0;border:none;border-radius:7px;background:#2DC9FC;color:#04122a;font-family:inherit;font-weight:800;font-size:11px;">KOPYALA</button>' +
+    '</div>' +
+    '<div id="kaCikti" style="margin-top:5px;font-family:monospace;font-size:10px;line-height:1.35;color:#2DC9FC;white-space:pre-wrap;user-select:text;-webkit-user-select:text;"></div>' +
+  '</div>';
+document.body.appendChild(p);
+
+function tazele() {
+  ALAN.forEach(a => {
+    const e = document.getElementById("kaV_" + a.k);
+    if (e) e.textContent = V[a.k];
+  });
+  uygula();
+}
+
+p.querySelectorAll(".kaBtn").forEach(b => {
+  b.addEventListener("click", () => {
+    const a = ALAN.find(x => x.k === b.dataset.k);
+    if (!a) return;
+    V[a.k] = Math.max(a.min, Math.min(a.max, V[a.k] + a.adim * (+b.dataset.y)));
+    kaydet(); tazele();
+  });
+});
+
+p.querySelector("#kaSifirla").addEventListener("click", () => {
+  Object.assign(V, VARSAYILAN); kaydet(); tazele();
+});
+
+p.querySelector("#kaKopya").addEventListener("click", () => {
+  const txt =
+    "── heroes.js → HERO_UI ──\n" +
+    'kartUst:        "' + V.kartUst + 'px",\n' +
+    'kartAlt:        "' + V.kartAlt + 'px",\n' +
+    'kartKenar:      "' + V.kartKenar + 'px",\n' +
+    'kartMaxGenislik:"' + V.kartMaxGenislik + 'px",\n' +
+    'kartRadius:     "' + V.kartRadius + 'px",';
+  const c = p.querySelector("#kaCikti");
+  c.textContent = txt;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).catch(() => {});
+  }
+});
+
+/* Katla / kapat */
+let acik = true;
+p.querySelector("#kaKat").addEventListener("click", () => {
+  acik = !acik;
+  p.querySelector("#kaGovde").style.display = acik ? "" : "none";
+  p.querySelector("#kaKat").textContent = acik ? "–" : "+";
+});
+p.querySelector("#kaKapat").addEventListener("click", () => { p.remove(); });
+
+/* Başlıktan tutup sürükle — yukarı/aşağı ve yana serbest */
+(function surukle() {
+  const bas = p.querySelector("#kaBas");
+  let x0 = 0, y0 = 0, t0 = 0, l0 = 0, tut = false;
+  bas.addEventListener("pointerdown", e => {
+    if (e.target.closest("button")) return;
+    tut = true; x0 = e.clientX; y0 = e.clientY;
+    t0 = parseInt(p.style.top, 10) || 0;
+    l0 = parseInt(p.style.left, 10) || 0;
+    try { bas.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  bas.addEventListener("pointermove", e => {
+    if (!tut) return;
+    const t = Math.max(0, Math.min(innerHeight - 40, t0 + (e.clientY - y0)));
+    const l = Math.max(0, Math.min(innerWidth - 60, l0 + (e.clientX - x0)));
+    p.style.top = t + "px"; p.style.left = l + "px";
+  });
+  const birak = () => {
+    if (!tut) return;
+    tut = false;
+    try {
+      localStorage.setItem(ANAHTAR + "_yer", JSON.stringify({
+        t: parseInt(p.style.top, 10) || 0,
+        l: parseInt(p.style.left, 10) || 0
+      }));
+    } catch (err) {}
+  };
+  bas.addEventListener("pointerup", birak);
+  bas.addEventListener("pointercancel", birak);
+})();
+
+/* Kart yeniden açılınca cssText sıfırlandığı için ayar tekrar basılır */
+setInterval(uygula, 400);
+tazele();
+})();
