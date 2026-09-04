@@ -547,7 +547,7 @@ const HERO_3D_VARSAYILAN = {
 const HERO_3D = {
   buz_savascisi: {
     model: {
-      position: { x: 0.04, y: -0.18, z: -0.32 },
+      position: { x: 0.04, y: -0.08, z: -0.32 },
       rotation: { x: 34, y: 0 },
       scale: 0.82
     },
@@ -561,7 +561,7 @@ const HERO_3D = {
   },
   ates_buyucusu: {
     model: {
-      position: { x: -0.02, y: 0.02, z: -0.4 },
+      position: { x: -0.02, y: 0.12, z: -0.4 },
       rotation: { x: 37, y: 0 },
       scale: 0.78
     },
@@ -575,9 +575,9 @@ const HERO_3D = {
   },
   celik_savasci: {
     model: {
-      position: { x: -0.02, y: 0.12, z: -0.4 },
+      position: { x: -0.04, y: 0.26, z: -0.4 },
       rotation: { x: 43, y: 0 },
-      scale: 0.88
+      scale: 0.84
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -589,9 +589,9 @@ const HERO_3D = {
   },
   ivanovna: {
     model: {
-      position: { x: -0.02, y: 0.02, z: -0.4 },
+      position: { x: -0.02, y: 0.12, z: -0.4 },
       rotation: { x: 34, y: 0 },
-      scale: 0.74
+      scale: 0.72
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -605,9 +605,9 @@ const HERO_3D = {
 
   robert: {
     model: {
-      position: { x: 0, y: -0.1, z: 0.05 },
+      position: { x: 0, y: 0.2, z: 0.05 },
       rotation: { x: 35, y: 0 },
-      scale: 0.80
+      scale: 0.68
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
@@ -620,15 +620,45 @@ const HERO_3D = {
 
   revolia: {
     model: {
-      position: { x: -0.02, y: -0.16, z: -0.4 },
+      position: { x: -0.02, y: -0.04, z: -0.4 },
       rotation: { x: 33, y: 0 },
-      scale: 1.02
+      scale: 1.00
     },
     lighting: {
       main:    { intensity: 1.5, color: "#ffffff" },
       ambient: { intensity: 0.8, color: "#b0b0d0" },
       back:    { intensity: 1.0, color: "#4fd1e8" },
       hemi:    { intensity: 0.5, color: "#ddeeff" }
+    },
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
+  },
+
+  frankly: {
+    model: {
+      position: { x: 0, y: 0.16, z: -0.35 },
+      rotation: { x: 35, y: 0 },
+      scale: 0.66
+    },
+    lighting: {
+      main:    { intensity: 1.5, color: "#ffffff" },
+      ambient: { intensity: 0.6, color: "#b0b0d0" },
+      back:    { intensity: 1.0, color: "#ffffff" },
+      hemi:    { intensity: 1.2, color: "#ddeeff" }
+    },
+    stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
+  },
+
+  yuneeb: {
+    model: {
+      position: { x: 0, y: 0.16, z: -0.35 },
+      rotation: { x: 35, y: 0 },
+      scale: 0.68
+    },
+    lighting: {
+      main:    { intensity: 1.5, color: "#ffffff" },
+      ambient: { intensity: 0.6, color: "#b0b0d0" },
+      back:    { intensity: 1.0, color: "#ffffff" },
+      hemi:    { intensity: 1.2, color: "#ddeeff" }
     },
     stars: { max: 5, filled: 0, size: "38px", color: "#ffd700", posY: "0.0%" }
   }
