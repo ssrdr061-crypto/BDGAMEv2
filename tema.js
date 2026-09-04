@@ -7405,7 +7405,8 @@ setTimeout(uygula, 2500);
    Veri: acc.state.ownedHeroSkins (sahip olunan) + acc.state.heroLevels
    (seviye, gelistir.js yazar). İkisi de queueCloudSave ile buluta
    gidiyor — state'in tamamı yazılıyor, compactState ölü kod.
-   Güç = taban × seviye (Sv5 = 5 kat).
+   Güç = gelistir.js kahramanGucu() — taban × tecrübe seviyesi
+   çarpanı (Sv50 = 5 kat). Burada hesap yapılmaz.
    ═══════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
@@ -7465,21 +7466,36 @@ setTimeout(uygula, 2500);
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  /* Bir hesabın EN GÜÇLÜ kahramanı: { id, ad, sv, guc } veya null */
+  /*  Bir hesabın EN GÜÇLÜ kahramanı: { id, ad, sv, guc } veya null
+
+      GÜÇ ARTIK YILDIZDAN DEĞİL TECRÜBEDEN. Burada `taban × yıldız`
+      hesaplanıyordu (Sv5 = 5 kat); index.html computePlayerPower ise
+      düz tabanı ekliyordu. Aynı kahraman iki ekranda farklı güç
+      veriyordu. Tek kaynak gelistir.js kahramanGucu(); burada hesap
+      YAPILMAZ. Seviye başka oyuncunun st.heroExp'inden türer. */
   function enGucluKahraman(st) {
     if (!st || typeof st !== "object") return null;
     var sahip = Array.isArray(st.ownedHeroSkins) ? st.ownedHeroSkins : [];
     if (!sahip.length) return null;
-    var sv = (st.heroLevels && typeof st.heroLevels === "object") ? st.heroLevels : {};
+    var hx = (st.heroExp && typeof st.heroExp === "object") ? st.heroExp : {};
+    var yl = (st.heroLevels && typeof st.heroLevels === "object") ? st.heroLevels : {};
     var en = null;
     for (var i = 0; i < sahip.length; i++) {
       var id = sahip[i];
       var taban = TABAN[id];
       if (!taban) continue;
-      var s2 = Math.floor(sv[id] || 1);
-      if (s2 < 1) s2 = 1;
-      if (s2 > MAX_SV) s2 = MAX_SV;
-      var g = taban * s2;
+      var s2 = 1, g = 0;
+      try {
+        if (typeof window.expSeviyesi === "function") s2 = window.expSeviyesi(hx[id] || 0);
+        if (typeof window.kahramanGucu === "function") g = window.kahramanGucu(id, s2) || 0;
+      } catch (e) { g = 0; }
+      if (!g) {
+        /* gelistir.js yüklenmemişse eski davranış: taban × yıldız */
+        s2 = Math.floor(yl[id] || 1);
+        if (s2 < 1) s2 = 1;
+        if (s2 > MAX_SV) s2 = MAX_SV;
+        g = taban * s2;
+      }
       if (!en || g > en.guc) en = { id: id, ad: ADLAR[id] || id, sv: s2, guc: g };
     }
     return en;

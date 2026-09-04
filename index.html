@@ -8816,8 +8816,26 @@ function computePlayerPower(st) {
   let p = 0;
   const t = st.troops || {};
   Object.keys(TROOP_POWER).forEach(k => { p += (t[k] || 0) * TROOP_POWER[k]; });
+  /*  KAHRAMAN GÜCÜ — TECRÜBE SEVİYESİNE BAĞLI.
+      Eskiden burada DÜZ taban güç ekleniyordu; sıralama ekranı
+      (tema.js) ise aynı kahraman için taban × yıldız hesaplıyordu.
+      Aynı kahraman iki ekranda farklı güç veriyordu. Artık ikisi de
+      gelistir.js'teki kahramanGucu() kapısından geçer, tek hesap.
+      Bu fonksiyon BAŞKA oyuncunun state'iyle de çağrılır, o yüzden
+      seviye kendi hesabımızdan değil verilen st.heroExp'ten türer. */
   const owned = Array.isArray(st.ownedHeroSkins) ? st.ownedHeroSkins : [];
-  owned.forEach(id => { p += (HERO_POWER[id] || 0); });
+  const _hx = (st.heroExp && typeof st.heroExp === "object") ? st.heroExp : {};
+  owned.forEach(id => {
+    let g = 0;
+    try {
+      if (typeof window.kahramanGucu === "function" &&
+          typeof window.expSeviyesi  === "function") {
+        g = window.kahramanGucu(id, window.expSeviyesi(_hx[id] || 0)) || 0;
+      }
+    } catch (e) { g = 0; }
+    /* gelistir.js yüklenmemişse eski davranış: düz taban güç. */
+    p += g || (HERO_POWER[id] || 0);
+  });
   /* Bina gucu: seviye basina puan, tek yer insaat.js -> GUC_TABAN.
      Dosya yuklenmemisse 0 eklenir, guc eski haliyle calisir. */
   try {
