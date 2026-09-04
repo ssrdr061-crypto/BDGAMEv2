@@ -591,3 +591,225 @@ document.addEventListener("click", e => {
     renderKahramanListesi();
   }, 0);
 }, true);
+
+
+/* ═══════════════════════════════════════════════════════════════
+   KART İNCE AYAR PANELİ  —  ?kartayar=1
+   Kahraman menüsündeki kartları KAHRAMAN BAŞINA ayarlar.
+   Panel ekranı kaplamaz: dar bir şerittir, başlığından tutup
+   yukarı/aşağı sürüklenir, "–" ile katlanır.
+   Ayarlanan kahraman: karta dokunarak seçilir (bu modda kart
+   kahraman ekranını AÇMAZ) ya da ‹ › ile gezilir.
+   KOPYALA çıktısı KLIST_KART içine satır satır yapıştırılır.
+   İş bitince bu blok SİLİNİR.
+   ═══════════════════════════════════════════════════════════════ */
+(function klistKartAyar() {
+"use strict";
+if (location.search.indexOf("kartayar=1") === -1) return;
+
+const ANAHTAR = "bd_klistkartayar";
+const ALAN = [
+  { k: "dx",  ad: "Portre X", adim: 1,    ond: 0 },
+  { k: "dy",  ad: "Portre Y", adim: 1,    ond: 0 },
+  { k: "s",   ad: "Büyüt",    adim: 0.02, ond: 2 },
+  { k: "gen", ad: "Kart En",  adim: 1,    ond: 0 },
+  { k: "yuk", ad: "Kart Boy", adim: 1,    ond: 0 },
+  { k: "kdx", ad: "Kart X",   adim: 1,    ond: 0 },
+  { k: "kdy", ad: "Kart Y",   adim: 1,    ond: 0 }
+];
+
+/* Kayıtlı ayarlar çalışma kopyasına (KVK) yüklenir — çizim oradan okur. */
+try {
+  const kayit = JSON.parse(localStorage.getItem(ANAHTAR) || "null");
+  if (kayit) Object.keys(kayit).forEach(id => {
+    Object.assign(_klistKartAyar(id), kayit[id]);
+  });
+} catch (e) {}
+
+function kaydet() {
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(KVK)); } catch (e) {}
+}
+
+function cizdir() {
+  const ov = document.getElementById("kahramanListesi");
+  if (ov && getComputedStyle(ov).display !== "none") renderKahramanListesi();
+  isaretle();
+}
+
+/* Seçili kahraman */
+const IDS = (KLIST_SIRA || []).filter(id => typeof HERO_STATS !== "undefined" && HERO_STATS[id]);
+let sec = IDS[0] || null;
+try {
+  const sk = localStorage.getItem(ANAHTAR + "_sec");
+  if (sk && IDS.indexOf(sk) !== -1) sec = sk;
+} catch (e) {}
+
+function isaretle() {
+  document.querySelectorAll(".klist-card[data-hero]").forEach(c => {
+    c.style.outline = (c.dataset.hero === sec) ? "2px solid #2DC9FC" : "";
+  });
+}
+
+/* Bu modda karta dokunmak kahraman ekranını açmaz, kartı SEÇER. */
+document.addEventListener("click", e => {
+  const c = e.target.closest && e.target.closest(".klist-card[data-hero]");
+  if (!c) return;
+  e.stopPropagation(); e.preventDefault();
+  sec = c.dataset.hero;
+  try { localStorage.setItem(ANAHTAR + "_sec", sec); } catch (err) {}
+  tazele();
+}, true);
+
+/* ── Panel ── */
+const p = document.createElement("div");
+p.id = "klistAyarPanel";
+let ustPx = 90, solPx = 8;
+try {
+  const yer = JSON.parse(localStorage.getItem(ANAHTAR + "_yer") || "null");
+  if (yer) { ustPx = yer.t; solPx = yer.l; }
+} catch (e) {}
+p.style.cssText =
+  "position:fixed;z-index:900;top:" + ustPx + "px;left:" + solPx + "px;" +
+  "width:196px;box-sizing:border-box;padding:6px 7px 7px;" +
+  "background:rgba(6,18,40,.93);border:1px solid #2DC9FC;border-radius:10px;" +
+  "font-family:'Baloo 2',sans-serif;color:#e8f4ff;font-size:12px;font-weight:700;" +
+  "box-shadow:0 2px 6px rgba(0,20,45,.3);";
+
+const dugme = "border:none;border-radius:7px;background:rgba(4,16,38,.75);color:#e8f4ff;font-family:inherit;font-weight:800;";
+let satirHtml = "";
+ALAN.forEach(a => {
+  satirHtml +=
+    '<div style="display:flex;align-items:center;gap:4px;margin-top:4px;">' +
+      '<span style="flex:0 0 54px;color:#a8c7e0;font-size:11px;">' + a.ad + '</span>' +
+      '<button class="kaBtn" data-k="' + a.k + '" data-y="-1" style="flex:0 0 28px;padding:5px 0;' + dugme + '">−</button>' +
+      '<span id="kaV_' + a.k + '" style="flex:1;text-align:center;font-variant-numeric:tabular-nums;">0</span>' +
+      '<button class="kaBtn" data-k="' + a.k + '" data-y="1" style="flex:0 0 28px;padding:5px 0;' + dugme + '">+</button>' +
+    '</div>';
+});
+
+p.innerHTML =
+  '<div id="kaBas" style="display:flex;align-items:center;gap:6px;cursor:move;touch-action:none;">' +
+    '<span style="flex:1;font-size:12px;color:#ffd257;">KART AYAR</span>' +
+    '<button id="kaKat" style="flex:0 0 24px;padding:3px 0;' + dugme + '">–</button>' +
+    '<button id="kaKapat" style="flex:0 0 24px;padding:3px 0;border:none;border-radius:6px;background:#8d2130;color:#fff;font-family:inherit;font-weight:800;">✕</button>' +
+  '</div>' +
+  '<div id="kaGovde">' +
+    '<div style="display:flex;align-items:center;gap:4px;margin-top:5px;">' +
+      '<button id="kaOnce" style="flex:0 0 28px;padding:4px 0;' + dugme + '">‹</button>' +
+      '<span id="kaAd" style="flex:1;text-align:center;color:#ffd257;font-size:12px;">—</span>' +
+      '<button id="kaSonra" style="flex:0 0 28px;padding:4px 0;' + dugme + '">›</button>' +
+    '</div>' +
+    satirHtml +
+    '<div style="display:flex;gap:4px;margin-top:6px;">' +
+      '<button id="kaSifirla" style="flex:1;padding:6px 0;' + dugme + 'font-size:11px;">SIFIRLA</button>' +
+      '<button id="kaKopya" style="flex:1;padding:6px 0;border:none;border-radius:7px;background:#2DC9FC;color:#04122a;font-family:inherit;font-weight:800;font-size:11px;">KOPYALA</button>' +
+    '</div>' +
+    '<div id="kaCikti" style="margin-top:5px;font-family:monospace;font-size:10px;line-height:1.35;color:#2DC9FC;white-space:pre-wrap;user-select:text;-webkit-user-select:text;"></div>' +
+  '</div>';
+document.body.appendChild(p);
+
+function tazele() {
+  const ad = p.querySelector("#kaAd");
+  if (ad) ad.textContent = sec ? ((HERO_STATS[sec] && HERO_STATS[sec].name) || sec) : "—";
+  const k = sec ? _klistKartAyar(sec) : null;
+  ALAN.forEach(a => {
+    const e = document.getElementById("kaV_" + a.k);
+    if (!e) return;
+    e.textContent = k ? Number(k[a.k]).toFixed(a.ond) : "—";
+  });
+  cizdir();
+}
+
+p.querySelectorAll(".kaBtn").forEach(b => {
+  b.addEventListener("click", () => {
+    if (!sec) return;
+    const a = ALAN.find(x => x.k === b.dataset.k);
+    if (!a) return;
+    const k = _klistKartAyar(sec);
+    const yeni = Number(k[a.k]) + a.adim * (+b.dataset.y);
+    k[a.k] = Math.round(yeni * 100) / 100;
+    kaydet(); tazele();
+  });
+});
+
+p.querySelector("#kaOnce").addEventListener("click", () => {
+  if (!IDS.length) return;
+  sec = IDS[(IDS.indexOf(sec) - 1 + IDS.length) % IDS.length];
+  try { localStorage.setItem(ANAHTAR + "_sec", sec); } catch (e) {}
+  tazele();
+});
+p.querySelector("#kaSonra").addEventListener("click", () => {
+  if (!IDS.length) return;
+  sec = IDS[(IDS.indexOf(sec) + 1) % IDS.length];
+  try { localStorage.setItem(ANAHTAR + "_sec", sec); } catch (e) {}
+  tazele();
+});
+
+/* SIFIRLA: yalnız SEÇİLİ kahramanı heroes dosyasındaki değerine döndürür */
+p.querySelector("#kaSifirla").addEventListener("click", () => {
+  if (!sec) return;
+  KVK[sec] = Object.assign({}, KLIST_KART_VARSAYILAN, KLIST_KART[sec] || {});
+  kaydet(); tazele();
+});
+
+/* KOPYALA: varsayılandan FARKLI olan her kahraman için bir satır */
+p.querySelector("#kaKopya").addEventListener("click", () => {
+  let out = "── kahramanlar.js → KLIST_KART ──\n";
+  IDS.forEach(id => {
+    const k = _klistKartAyar(id);
+    const parca = [];
+    ALAN.forEach(a => {
+      if (Number(k[a.k]) !== Number(KLIST_KART_VARSAYILAN[a.k]))
+        parca.push(a.k + ": " + Number(k[a.k]).toFixed(a.ond));
+    });
+    if (parca.length) out += "  " + id + ": { " + parca.join(", ") + " },\n";
+  });
+  const c = p.querySelector("#kaCikti");
+  c.textContent = out;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(out).catch(() => {});
+  }
+});
+
+/* Katla / kapat */
+let acik = true;
+p.querySelector("#kaKat").addEventListener("click", () => {
+  acik = !acik;
+  p.querySelector("#kaGovde").style.display = acik ? "" : "none";
+  p.querySelector("#kaKat").textContent = acik ? "–" : "+";
+});
+p.querySelector("#kaKapat").addEventListener("click", () => { p.remove(); });
+
+/* Başlıktan tutup sürükle */
+(function surukle() {
+  const bas = p.querySelector("#kaBas");
+  let x0 = 0, y0 = 0, t0 = 0, l0 = 0, tut = false;
+  bas.addEventListener("pointerdown", e => {
+    if (e.target.closest("button")) return;
+    tut = true; x0 = e.clientX; y0 = e.clientY;
+    t0 = parseInt(p.style.top, 10) || 0;
+    l0 = parseInt(p.style.left, 10) || 0;
+    try { bas.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  bas.addEventListener("pointermove", e => {
+    if (!tut) return;
+    const t = Math.max(0, Math.min(innerHeight - 40, t0 + (e.clientY - y0)));
+    const l = Math.max(0, Math.min(innerWidth - 60, l0 + (e.clientX - x0)));
+    p.style.top = t + "px"; p.style.left = l + "px";
+  });
+  const birak = () => {
+    if (!tut) return;
+    tut = false;
+    try {
+      localStorage.setItem(ANAHTAR + "_yer", JSON.stringify({
+        t: parseInt(p.style.top, 10) || 0,
+        l: parseInt(p.style.left, 10) || 0
+      }));
+    } catch (err) {}
+  };
+  bas.addEventListener("pointerup", birak);
+  bas.addEventListener("pointercancel", birak);
+})();
+
+tazele();
+})();
