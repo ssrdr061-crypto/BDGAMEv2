@@ -895,7 +895,14 @@ function openHeroDetail(skinId) {
   /* İlk yarısı SOLA, kalanı SAĞA. 3 yetenek → sol 2, sağ 1. */
   const solAdet = Math.ceil(abilities.length / 2);
   const boxEls = [];
+  /* Kutunun kendisi `overflow:hidden` ve sabit ölçülü — seviye yazısı
+     içine konulsa kırpılırdı. Bu yüzden her kutu bir sarmalayıcıya
+     girer, yazı sarmalayıcının altına düşer. Konum kaydırması
+     (transform) da sarmalayıcıya taşınır: kutuya kalırsa yazı kutuyla
+     birlikte kaymaz. */
+  const sarmalEls = [];
   abilities.forEach((ab, i) => {
+    const sarmal = document.createElement("div");
     const box = document.createElement("div");
     if (ab.icon && !ab.icon.includes("{{")) {
       box.innerHTML = `<img src="${ab.icon}" style="width:100%;height:100%;object-fit:cover;" alt="">`;
@@ -915,10 +922,16 @@ function openHeroDetail(skinId) {
       panel.innerHTML = `<div style="font-weight:800;font-size:${U.panel.baslik};line-height:1.15;margin-bottom:2px;">${ab.title || "Yetenek " + (i + 1)}</div><div>${desc || "Açıklama henüz eklenmedi."}</div>`;
       panel.style.display = "block";
       panel.dataset.open = String(i);
-      panelKonumla(box, i >= solAdet);
+      panelKonumla(sarmal, i >= solAdet);
     };
-    (i < solAdet ? bxL : bxR).appendChild(box);
+    const svYazi = document.createElement("div");
+    svYazi.className = "hdAbilitySv";
+    svYazi.textContent = "Sv." + heroLevel;
+    sarmal.appendChild(box);
+    sarmal.appendChild(svYazi);
+    (i < solAdet ? bxL : bxR).appendChild(sarmal);
     boxEls.push(box);
+    sarmalEls.push(sarmal);
   });
 
   // Tüm stilleri U'dan uygular — editör her değişiklikte bunu çağırır
@@ -930,7 +943,17 @@ function openHeroDetail(skinId) {
                         `gap:${U.boxes.gap};right:${U.boxes.yan};${_ortala}`;
     boxEls.forEach((box, i) => {
       const o = i === 0 ? U.boxes.box1 : (i === 1 && boxEls.length > 2 ? U.boxes.box3 : U.boxes.box2);
-      box.style.cssText = `width:${U.boxes.width};height:${U.boxes.height};border-radius:${U.boxes.radius};border:${U.boxes.border};background:${U.boxes.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transform:translate(${o.dx}px,${o.dy}px);`;
+      box.style.cssText = `width:${U.boxes.width};height:${U.boxes.height};border-radius:${U.boxes.radius};border:${U.boxes.border};background:${U.boxes.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;`;
+      const sarmal = sarmalEls[i];
+      if (sarmal) {
+        sarmal.style.cssText = `display:flex;flex-direction:column;align-items:center;` +
+          `gap:2px;transform:translate(${o.dx}px,${o.dy}px);`;
+        const y = sarmal.querySelector(".hdAbilitySv");
+        if (y) y.style.cssText = `font-family:'Baloo 2','Nunito',sans-serif;` +
+          `font-weight:700;font-size:11px;line-height:1;color:#e8f4ff;` +
+          `text-shadow:0 1px 2px rgba(0,20,45,.55);` +
+          `font-variant-numeric:tabular-nums;pointer-events:none;`;
+      }
     });
     const wasOpen = panel.style.display === "block";
     const _ust = panel.dataset.ust || "50%";

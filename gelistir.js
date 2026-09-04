@@ -367,8 +367,14 @@
   function sekmeYetenek(id) {
     const k = yetenekKiyas(id);
     if (!k.length) return `<div style="padding:16px 0;text-align:center;color:#9fb6c9;font-size:13px;">Yetenek yok.</div>`;
+    /* Yetenek seviyesi kahramanın seviyesiyle aynıdır — ayrı bir
+       yetenek seviyesi kavramı yok, `valuesByLevel` doğrudan kahraman
+       seviyesinden okunuyor. */
+    const svEtiket = `<span style="font-weight:700;font-size:11px;color:#e8f4ff;` +
+                     `text-shadow:0 1px 2px rgba(0,20,45,.55);` +
+                     `font-variant-numeric:tabular-nums;margin-left:6px;">Sv.${seviye(id)}</span>`;
     let out = "";
-    k.forEach(x => { if (x.simdi != null) out += satirHTML(x.ad + (x.ek || ""), x.simdi, x.sonra, true); });
+    k.forEach(x => { if (x.simdi != null) out += satirHTML(x.ad + (x.ek || "") + svEtiket, x.simdi, x.sonra, true); });
     return out;
   }
 
