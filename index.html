@@ -4855,9 +4855,13 @@ function startSessionFor(username) {
 
   let _castleJustAssigned = false;
   /* Karo biçimindeki kale de geçerli sayılmalı — yoksa yeni kale doğar. */
+  KTANI("A) acilistaki kale", kaletaniKonum(state.castle));
   if (!state.castle || !KOORD.kaleKaro(state.castle)) {
+    var _eskiA = state.castle;
     state.castle = generateRandomCastlePos();
     _castleJustAssigned = true;
+    KTANI("A) YENI KALE ATANDI (kale gecersizdi)",
+          { eski: _eskiA, yeni: state.castle });
   }
   /* Kaleler yüklendikten sonra çakışma varsa kendini taşı */
   setTimeout(() => {
@@ -5262,14 +5266,21 @@ function _enYakinBosKare(kx, ky, engel) {
 
 function kaleyiKaroyaGocur() {
   try {
-    if (!state || !state.castle || !KOORD.kaleKaro(state.castle)) return;
-    if (state.castle.kv >= 2) return;               /* zaten göç etmiş */
+    if (!state || !state.castle || !KOORD.kaleKaro(state.castle)) {
+      KTANI("B) atlandi: kale gecersiz"); return;
+    }
+    if (state.castle.kv >= 2) {
+      KTANI("B) atlandi: zaten gocmus (kv>=2)"); return;
+    }
 
     const kk = KOORD.kaleKaro(state.castle);
     if (!kk) return;
 
     const engel = _kaleEngelleri();
     const yer = _enYakinBosKare(kk.kx, kk.ky, engel);
+
+    KTANI("B) karo gocu", { eskiKaro: kk, yeniKaro: { kx: yer.kx, ky: yer.ky },
+                            kaydi: !!yer.kaydi, engelSayisi: (engel || []).length });
 
     state.castle = KOORD.kaleKayit(yer.kx, yer.ky);   /* assign DEĞİL: bkz. kaleKayit */
 
@@ -5307,14 +5318,16 @@ async function fixOverlappingCastle() {
       ? currentUsername.toLowerCase() : null;
     /* Kim olduğumuzu bilmiyorsak kendi kalemizi ayırt edemeyiz —
        taşımaktansa hiç dokunmamak doğrusu. */
-    if (!benim) return;
+    if (!benim) { KTANI("C) atlandi: currentUsername yok"); return; }
+    KTANI("C) cakisma denetimi basladi",
+          { ben: benim, benimKare: _benimKare, esik: KALE_MIN_MESAFE });
 
     const baskalari = [];
     const ekle = (ad, gx, gy) => {
       if (typeof gx !== "number" || typeof gy !== "number") return;
       if (!isFinite(gx) || !isFinite(gy)) return;
       if (ad && String(ad).toLowerCase() === benim) return;   /* kendi kalem */
-      baskalari.push({ gx: gx, gy: gy });
+      baskalari.push({ gx: gx, gy: gy, ad: ad || "(canavar/isimsiz)" });
     };
 
     /* canavarlar — sahipsiz, hepsi engel */
@@ -5346,11 +5359,21 @@ async function fixOverlappingCastle() {
       });
     } catch (e) {}
 
+    const _mesafeli = baskalari.map(t => ({
+      ad: t.ad,
+      d: Math.round(Math.hypot(t.gx - _benimKare.gx, t.gy - _benimKare.gy) * 1000) / 1000
+    })).sort((a, b) => a.d - b.d);
+    KTANI("C) en yakin 5 komsu",
+          { toplam: _mesafeli.length, ilk5: _mesafeli.slice(0, 5) });
+
     const cakisma = baskalari.some(t =>
       Math.hypot(t.gx - _benimKare.gx, t.gy - _benimKare.gy) < KALE_MIN_MESAFE);
-    if (!cakisma) return;
+    if (!cakisma) { KTANI("C) cakisma YOK — kale yerinde kaldi"); return; }
 
+    const _eskiC = state.castle;
     state.castle = await generateCastlePosLive();
+    KTANI("C) CAKISMA VARDI — KALE TASINDI",
+          { eski: _eskiC, yeni: state.castle, sucluAdaylari: _mesafeli.slice(0, 3) });
     if (typeof persistCurrentState === "function") persistCurrentState();
     if (typeof publishCastle === "function") publishCastle();
     if (typeof renderBattleMap === "function") renderBattleMap();
@@ -5395,6 +5418,59 @@ function showToastForce(msg, ms = 2200) {
 function showToast(msg, ms = 2200) {
   if (!BILDIRIMLER_ACIK) { console.log("[bildirim gizlendi]", msg); return; }
   showToastForce(msg, ms);
+}
+
+/*  ═══ GEÇİCİ TANI: KALE IŞINLANMASI  —  ?kaletani=1  ═══
+    Kaleyi kendiliğinden taşıyabilen ÜÇ yol var. Hangisinin
+    çalıştığını bilmeden kök sebep bulunamaz, konsol da yok.
+    Bu blok olayları toplar ve ekrana basar. İş bitince SİL.       */
+const KALETANI_ACIK = (function () {
+  try { return new URLSearchParams(location.search).get("kaletani") === "1"; }
+  catch (e) { return false; }
+})();
+const KALETANI_KAYIT = [];
+function KTANI(baslik, veri) {
+  if (!KALETANI_ACIK) return;
+  var t = new Date();
+  var sa = String(t.getHours()).padStart(2, "0") + ":" +
+           String(t.getMinutes()).padStart(2, "0") + ":" +
+           String(t.getSeconds()).padStart(2, "0");
+  var m = "";
+  try { m = (veri === undefined) ? "" : JSON.stringify(veri); }
+  catch (e) { m = "(yazilamadi)"; }
+  KALETANI_KAYIT.push(sa + "  " + baslik + (m ? "\n        " + m : ""));
+  kaletaniCiz();
+}
+function kaletaniCiz() {
+  if (!KALETANI_ACIK) return;
+  var k = document.getElementById("kaletaniPanel");
+  if (!k) {
+    k = document.createElement("div");
+    k.id = "kaletaniPanel";
+    k.style.cssText = "position:fixed;left:6px;right:6px;top:6px;z-index:99999;" +
+      "background:rgba(4,14,30,.96);color:#dff2ff;font:12px/1.45 monospace;" +
+      "padding:8px 8px 10px;border-radius:10px;max-height:62vh;overflow:auto;" +
+      "box-shadow:0 2px 6px rgba(0,20,45,.3);white-space:pre-wrap;word-break:break-all";
+    document.body.appendChild(k);
+  }
+  /* Tuzak 24: paneli DOM'dan silme, gövdesini boşalt. */
+  k.innerHTML =
+    '<div style="display:flex;gap:6px;margin-bottom:6px">' +
+    '<b style="flex:1">KALE TANI</b>' +
+    '<button id="kaletaniKapat" style="background:#7a1f2b;color:#fff;border:none;' +
+    'border-radius:6px;padding:2px 10px;font:700 12px monospace">✕</button></div>' +
+    '<div id="kaletaniGovde">' + KALETANI_KAYIT.join("\n") + '</div>';
+  var b = document.getElementById("kaletaniKapat");
+  if (b) b.onpointerup = function () {
+    var g = document.getElementById("kaletaniGovde");
+    if (g) g.textContent = "";
+  };
+}
+function kaletaniKonum(c) {
+  if (!c) return null;
+  var k = null;
+  try { k = KOORD.kaleKaro(c); } catch (e) {}
+  return { ham: c, karo: k };
 }
 
 /*  TEK SÜRE BİÇİMİ — oyundaki bütün süreler buradan geçer.
