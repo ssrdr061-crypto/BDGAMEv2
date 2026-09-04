@@ -3733,6 +3733,16 @@ function defaultState() {
     heroLevels: {},
     heroShards: {},
 
+    /*  heroExp: kahraman başına TOPLAM tecrübe (gelistir.js).
+        Yıldızdan AYRI ikinci ilerleme: yıldız parçayla artar ve
+        savaş yüzdelerini belirler, tecrübe Tecrübe Kitabı'yla artar
+        ve sefer kapasitesi ile gücü belirler. Seviye ayrıca
+        SAKLANMAZ, bu sayıdan hesaplanır.
+        Burada TANIMLI olmak zorunda: adı defaultState'te geçmezse
+        aynı sekmede hesap değiştirildiğinde eski hesabın tecrübesi
+        yeni hesaba sızar (heroLevels'ta yaşanan tuzağın aynısı). */
+    heroExp: {},
+
     /* Savaş panelindeki 1·2·3 kadro yuvaları (troops.js).
        { "1": { t:{unitId:adet}, c:[komutanId,…] }, … } */
     orduKayit: {},
@@ -5621,7 +5631,9 @@ function renderInventory() {
 
         return `<div class="inv-row"><span>${k}</span><span class="qty">x${qty}</span></div>`;
       }
-      const bonusText = def.isParca
+      const bonusText = def.isExpKitap
+        ? "Kahraman ekranındaki YÜKSELT düğmesiyle harcanır"
+        : def.isParca
         ? "Kullanınca kahraman parçası havuzuna eklenir"
         : def.isKaynak
         ? `Kullanınca +${fmt(def.miktar)} ${def.name.replace(/ (Sandığı|Hücresi)$/, "")} verir`

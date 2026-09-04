@@ -405,10 +405,14 @@
       out += satirHTML(x.ad, x.yuzde, (s2 != null ? s2 : null), true);
     });
 
-    /* Sefer kapasitesi de seviyeye bağlıdır — aynı yerde gösterilir. */
-    const kSimdi = kapasite(id, sv);
-    const kSonra = artar ? kapasite(id, ileri) : null;
-    out += satirHTML("Sefer Kapasitesi",
+    /*  Sefer kapasitesi YILDIZA DEĞİL tecrübe seviyesine bağlıdır.
+        `sv` bu fonksiyonda yıldızdır; buraya geçirilirse kapasite
+        yanlış çıkar — ayrı okunur. */
+    const tsv    = tecrubeSeviyesi(id);
+    const tIleri = Math.min(MAX_TSV, tsv + 1);
+    const kSimdi = kapasite(id, tsv);
+    const kSonra = (tIleri > tsv) ? kapasite(id, tIleri) : null;
+    out += satirHTML(`Sefer Kapasitesi <span style="color:#9fb6c9;">(Tecrübe Sv.${tsv})</span>`,
                      kSimdi.toLocaleString("tr-TR"),
                      (kSonra != null ? kSonra.toLocaleString("tr-TR") : null),
                      false);
@@ -506,12 +510,51 @@
                    background:${TEMA.sari};">↑</button>
          </div>`;
 
+    /* ── TECRÜBE SATIRI — YILDIZDAN AYRI ──────────────────────
+       Üstteki sarı hap parçayla YILDIZ yükseltir (savaş yüzdeleri).
+       Bu mavi hap kitapla TECRÜBE seviyesi yükseltir (kapasite+güç).
+       İkisi ayrı satırdır, ayrı kaynağı harcar, birbirine bakmaz.
+       Sahipsiz kahramanda hiç çizilmez.                            */
+    let tecrube = "";
+    if (sahip(id)) {
+      const d = tecrubeDurumu(id);
+      if (d.sonSeviye) {
+        tecrube = `<div style="margin-top:8px;text-align:center;padding:9px;
+                        border-radius:14px;background:#5bb9e6;color:#0d2036;
+                        font-family:${YAZI};font-weight:800;font-size:13px;">
+                     Tecrübe Sv.${MAX_TSV} — en yüksek
+                   </div>`;
+      } else {
+        const gerekenK = Math.ceil((d.gereken - d.birikmis) / KITAP_EXP);
+        const eldeK    = kitapSayisi();
+        const oranK    = gerekenK > 0
+          ? Math.min(100, Math.round(eldeK / gerekenK * 100)) : 0;
+        tecrube = `
+          <div style="display:flex;align-items:center;justify-content:center;
+                      gap:9px;margin-top:8px;">
+            <button id="glsTecYukselt" style="flex:0 1 auto;height:34px;padding:0 22px;
+                    border:none;border-radius:17px;position:relative;overflow:hidden;
+                    background:rgba(10,40,70,.55);cursor:pointer;">
+              <span style="position:absolute;inset:0 auto 0 0;width:${oranK}%;
+                           background:#5bb9e6;"></span>
+              <span style="position:relative;z-index:1;display:flex;align-items:center;
+                           justify-content:center;gap:8px;font-size:13.5px;font-weight:800;
+                           font-family:${YAZI};color:#0d2036;white-space:nowrap;height:100%;
+                           font-variant-numeric:tabular-nums;">
+                YÜKSELT Sv.${d.sv} &nbsp;${Math.min(eldeK, gerekenK)} / ${gerekenK} 📘
+              </span>
+            </button>
+          </div>`;
+      }
+    }
+
     /* Üst satır: YALNIZ yıldızlar, ortada. Ad/parça/seviye ibaresi
        kaldırıldı — ekranın tepesinde kahraman adı zaten yazıyor. */
     p.innerHTML = `
       <div style="display:flex;justify-content:center;align-items:center;
                   padding-bottom:8px;letter-spacing:2px;">${yildiz}</div>
       ${alt}
+      ${tecrube}
     `;
 
     const satBtn = p.querySelector("#glsSatinAl");
@@ -528,6 +571,12 @@
 
     const arti = p.querySelector("#glsArti");
     if (arti) arti.onclick = e => { e.stopPropagation(); parcaPenceresi(id, p); };
+
+    const tec = p.querySelector("#glsTecYukselt");
+    if (tec) tec.onclick = e => {
+      e.stopPropagation();
+      if (tecrubeYukselt(id)) { ciz(p, id); yenile(); }
+    };
   }
 
   /* ── PARÇA PENCERESİ — "+" düğmesi açar ─────────────────────
@@ -686,7 +735,23 @@
     });
   }
 
-  /* ── TEST HİLESİ — ?parca=1 ─────────────────────────────────── */
+  /* ── TEST HİLESİ — ?parca=1 · ?kitap=1 ──────────────────────
+     İŞ BİTİNCE SİLİNİR. ?kitap=1 çantaya 200 Tecrübe Kitabı koyar. */
+  function kitapHilesi() {
+    try {
+      if (location.search.indexOf("kitap=1") === -1) return;
+      const s = S(); if (!s) return;
+      const ad = kitapUrunAdi();
+      if (!ad) { toast("Test: Tecrübe Kitabı ürünü bulunamadı."); return; }
+      if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
+      s.inventory[ad] = Math.floor((s.inventory[ad] || 0) + 200);
+      kaydet();
+      if (typeof renderInventory === "function") renderInventory();
+      toast("Test: 200 Tecrübe Kitabı eklendi.");
+    } catch (e) {}
+  }
+  window.addEventListener("load", () => setTimeout(kitapHilesi, 1600));
+
   function hile() {
     try {
       if (location.search.indexOf("parca=1") === -1) return;
@@ -733,15 +798,150 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     TECRÜBE (EXP) — YILDIZDAN AYRI İKİNCİ İLERLEME
+     Yıldız (heroLevels, 1–5) parçadan gelir ve SAVAŞ YÜZDELERİNİ
+     belirler. Tecrübe seviyesi (heroExp'ten türer, 1–50) Tecrübe
+     Kitabı'ndan gelir ve SEFER KAPASİTESİ ile GÜCÜ belirler.
+     İkisi birbirine karışmaz.
+
+     TEK DOĞRULUK KAYNAĞI: state.heroExp[id] — kahramanın toplam
+     tecrübesi. Seviye ayrıca SAKLANMAZ, her seferinde bu sayıdan
+     hesaplanır; iki alan tutulsaydı zamanla birbirinden ayrışırdı.
+
+     Bir seviyeden diğerine gereken kitap sayısı artar:
+       Sv1→2 = 2 · Sv10→11 = 15 · Sv35→36 = 50 · Sv49→50 = 69
+     Tepeye kadar toplam 1.744 kitap.
+     ══════════════════════════════════════════════════════════════ */
+  const MAX_TSV       = 50;    /* tecrübe seviyesi tavanı        */
+  const KITAP_EXP     = 500;   /* bir kitabın verdiği tecrübe    */
+  const KITAP_TABAN   = 2;     /* Sv1→2 için kitap sayısı        */
+  const KITAP_ARTIS   = 1.4;   /* her seviyede eklenen kitap     */
+
+  /* sv → sv+1 için gereken kitap. Tavanda 0. */
+  function gerekliKitap(sv) {
+    if (!(sv >= 1) || sv >= MAX_TSV) return 0;
+    return KITAP_TABAN + Math.round((sv - 1) * KITAP_ARTIS);
+  }
+
+  /* sv → sv+1 için gereken tecrübe. Tavanda 0. */
+  function gerekliExp(sv) { return gerekliKitap(sv) * KITAP_EXP; }
+
+  function expHavuzu() {
+    const s = S(); if (!s) return {};
+    if (!s.heroExp || typeof s.heroExp !== "object") s.heroExp = {};
+    return s.heroExp;
+  }
+
+  function toplamExp(id) {
+    const v = Math.floor(expHavuzu()[id] || 0);
+    return v > 0 ? v : 0;
+  }
+
+  /* Verilen tecrübe sayısının karşılığı olan seviye. SAF fonksiyon:
+     başka oyuncunun verisi için de kullanılır (sıralama ekranı). */
+  function expSeviyesi(exp) {
+    let kalan = Math.floor(exp || 0);
+    if (!(kalan > 0)) return 1;
+    let sv = 1;
+    while (sv < MAX_TSV) {
+      const g = gerekliExp(sv);
+      if (g <= 0 || kalan < g) break;
+      kalan -= g; sv++;
+    }
+    return sv;
+  }
+
+  /* Kahramanın tecrübe durumu: { sv, birikmis, gereken, sonSeviye } */
+  function tecrubeDurumu(id) {
+    let kalan = toplamExp(id), sv = 1;
+    while (sv < MAX_TSV) {
+      const g = gerekliExp(sv);
+      if (g <= 0 || kalan < g) break;
+      kalan -= g; sv++;
+    }
+    return { sv: sv, birikmis: kalan, gereken: gerekliExp(sv),
+             sonSeviye: sv >= MAX_TSV };
+  }
+
+  function tecrubeSeviyesi(id) { return tecrubeDurumu(id).sv; }
+
+  /* ── TECRÜBE KİTABI ─────────────────────────────────────────
+     Kitap ÇANTADA durur (state.inventory), havuza girmez. Ürün adı
+     mağazadan `isExpKitap` bayrağıyla bulunur; burada ikinci bir
+     tablo tutulmaz. Mağaza yüklü değilse kitap yok sayılır. */
+  function kitapUrunAdi() {
+    try {
+      if (typeof shopItems === "undefined" || !Array.isArray(shopItems)) return null;
+      const it = shopItems.find(x => x && x.isExpKitap);
+      return it ? it.name : null;
+    } catch (e) { return null; }
+  }
+
+  function kitapSayisi() {
+    const s = S(); if (!s) return 0;
+    const ad = kitapUrunAdi(); if (!ad) return 0;
+    return Math.max(0, Math.floor((s.inventory && s.inventory[ad]) || 0));
+  }
+
+  /* Bir seviye atlatır. Tam yetecek kadar kitap harcanır, fazlası
+     çantada kalır. Yetmiyorsa hiç harcanmaz. */
+  function tecrubeYukselt(id) {
+    const s = S(); if (!s) return false;
+    if (!sahip(id)) { toast("Bu kahraman senin değil."); return false; }
+
+    const d = tecrubeDurumu(id);
+    if (d.sonSeviye) { toast("Bu kahraman en yüksek tecrübe seviyesinde."); return false; }
+
+    const ad = kitapUrunAdi();
+    if (!ad) { toast("Tecrübe Kitabı bulunamadı."); return false; }
+
+    const gereken = Math.ceil((d.gereken - d.birikmis) / KITAP_EXP);
+    const eldeki  = kitapSayisi();
+    if (eldeki < gereken) {
+      toast(`Yeterli kitabın yok. ${gereken} gerekiyor, elinde ${eldeki} var.`);
+      return false;
+    }
+
+    if (!s.inventory || typeof s.inventory !== "object") s.inventory = {};
+    s.inventory[ad] = eldeki - gereken;
+    if (s.inventory[ad] <= 0) delete s.inventory[ad];
+
+    const h = expHavuzu();
+    h[id] = toplamExp(id) + gereken * KITAP_EXP;
+    kaydet();
+
+    if (typeof renderInventory === "function") renderInventory();
+    const hh = (typeof HERO_STATS !== "undefined") ? HERO_STATS[id] : null;
+    toast(`${(hh && hh.name) || "Kahraman"} tecrübe Sv${d.sv + 1} oldu!`);
+    return true;
+  }
+
+  /* Kahramanın gösterilen gücü. Taban güç heroes.js'te, seviye
+     çarpanı burada: Sv50'de taban × 5. */
+  const GUC_KAT = 4;
+  function kahramanGucu(id, sv) {
+    let taban = 0;
+    try { if (typeof KAHRAMAN !== "undefined") taban = KAHRAMAN.guc(id) || 0; } catch (e) {}
+    if (!taban) return 0;
+    let s2 = Math.floor(sv || tecrubeSeviyesi(id) || 1);
+    if (s2 < 1) s2 = 1;
+    if (s2 > MAX_TSV) s2 = MAX_TSV;
+    return Math.round(taban * (1 + (s2 - 1) / (MAX_TSV - 1) * GUC_KAT));
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      BİRLİK KAPASİTESİ — SEFER TAVANI
      Oyuncu artık ordusunun tamamını tek seferde süremez. Savaşa
      götürülebilecek birlik sayısının tavanı:
 
          TABAN_KAPASITE + seçili kahramanların kapasiteleri
 
-     Kahraman kapasitesi nadirlik + seviyeden gelir:
-       mor  : 20.000, her seviye +8.000     → Sv1 20.000 · Sv5 52.000
-       ssr  : 25.000, her seviye +10.500    → Sv1 25.000 · Sv5 67.000
+     Kahraman kapasitesi nadirlik + TECRÜBE SEVİYESİNDEN gelir
+     (yıldızdan DEĞİL — yıldız yalnız savaş yüzdelerini belirler):
+       mor  : 20.000, her seviye +653   → Sv1 20.000 · Sv50 51.997
+       ssr  : 25.000, her seviye +858   → Sv1 25.000 · Sv50 67.042
+     Tavan bilerek eskisiyle aynı bırakıldı; değişen tek şey, aynı
+     tavana 5 basamak yerine 50 basamakta çıkılması.
 
      KADEME FARK ETMEZ: Sv1 şövalye de Sv6 dev robot da 1 yer kaplar.
      (Kademeye göre yer maliyeti istenirse birimYeri() içi değişir,
@@ -753,14 +953,16 @@
   const TABAN_KAPASITE = 5000;      /* herkeste var, kahramansız da */
 
   const KAPASITE = {
-    mor: { taban: 20000, artis:  8000 },
-    ssr: { taban: 25000, artis: 10500 }
+    mor: { taban: 20000, artis: 653 },
+    ssr: { taban: 25000, artis: 858 }
   };
 
-  /* Tek kahramanın açtığı kapasite. */
+  /* Tek kahramanın açtığı kapasite. `sv` TECRÜBE seviyesidir (1–50);
+     verilmezse kahramanın kendi tecrübe seviyesi okunur. Buraya
+     yıldız seviyesi geçirilirse kapasite olduğundan düşük çıkar. */
   function kapasite(id, sv) {
     const k = KAPASITE[nadirlik(id)] || KAPASITE.mor;
-    const seviyeNo = Math.max(1, Math.min(MAX_SV, sv || seviye(id) || 1));
+    const seviyeNo = Math.max(1, Math.min(MAX_TSV, sv || tecrubeSeviyesi(id) || 1));
     return k.taban + (seviyeNo - 1) * k.artis;
   }
 
@@ -867,6 +1069,16 @@
   window.parcaPaketiKullan = parcaPaketiKullan; /* günlük giriş / mağaza / canavar */
   window.glsYildizTazele   = glsYildizTazele;
   window.kahramanKapasitesi = kapasite;      /* heroes.js STAT sekmesi   */
+  /* ── TECRÜBE KAPILARI ────────────────────────────────────────
+     `kahramanTecrubeSeviyesi(id)` KENDİ hesabımızı okur.
+     `expSeviyesi(exp)` saf hesaptır — başka oyuncunun verisi için
+     (sıralama ekranı) bu kullanılır.                              */
+  window.kahramanTecrubeSeviyesi = tecrubeSeviyesi;
+  window.kahramanTecrubeDurumu   = tecrubeDurumu;
+  window.expSeviyesi             = expSeviyesi;
+  window.kahramanGucu            = kahramanGucu;
+  window.GELISTIR_MAX_TSV        = MAX_TSV;
+  window.GELISTIR_KITAP_EXP      = KITAP_EXP;
   window.savasKapasitesi    = savasKapasitesi; /* troops.js birlik seçici */
   window.kullanilanYer      = kullanilanYer;
   window.birimYeri          = birimYeri;

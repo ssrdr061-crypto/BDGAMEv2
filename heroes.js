@@ -1252,9 +1252,15 @@ ${modelTxt}`;
         ? window.kahramanSeviyesi(skinId) : 1;
       /*  KAPASİTE — bu kahramanı sefere alınca açılan birlik yeri.
           Diğer satırlar yüzdedir, bu DÜZ SAYIDIR; en alta konur.
-          Kaynak gelistir.js (nadirlik + seviye), burada hesap yok. */
+          Kaynak gelistir.js (nadirlik + TECRÜBE seviyesi), burada
+          hesap yok. `sv` YILDIZ seviyesidir (1–5); eskiden buraya
+          o geçiriliyordu ve kapasite 1–50'lik tecrübe yerine 1–5'ten
+          hesaplanıyordu. Parametre VERİLMEZ: gelistir.js kahramanın
+          kendi tecrübe seviyesini okur. */
       const kap = (typeof window.kahramanKapasitesi === "function")
-        ? window.kahramanKapasitesi(skinId, sv) : 0;
+        ? window.kahramanKapasitesi(skinId) : 0;
+      const tsv = (typeof window.kahramanTecrubeSeviyesi === "function")
+        ? window.kahramanTecrubeSeviyesi(skinId) : 1;
 
       if (!sat.length && !kap) {
         return `<div style="opacity:.8;">Bu kahramanın stat bonusu tanımlı değil.</div>`;
@@ -1271,7 +1277,7 @@ ${modelTxt}`;
       if (kap) {
         out += `<div style="display:flex;justify-content:space-between;gap:8px;
                     padding:6px 0;border-bottom:1px solid rgba(255,255,255,.22);">
-                  <span>Kapasite</span>
+                  <span>Kapasite <span style="opacity:.7;">(Tecrübe Sv.${tsv})</span></span>
                   <span style="color:#ffffff;font-weight:800;
                         font-variant-numeric:tabular-nums;">+${kap.toLocaleString("tr-TR")}</span>
                 </div>`;

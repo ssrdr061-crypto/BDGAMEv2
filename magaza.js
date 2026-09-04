@@ -106,6 +106,19 @@ const shopItems = [
     icon: "◆",
     parcaDesc: "Yalnız REVOLİA'nın seviyesini yükseltmekte kullanılır." },
 
+  /* ── TECRÜBE KİTABI ──
+     Çantaya düşer ama çantadan KULLANILMAZ: kahraman ekranındaki
+     YÜKSELT düğmesi harcar. Kaç tecrübe verdiği BURADA YAZMAZ —
+     tek kaynak gelistir.js KITAP_EXP'tir; iki yerde durursa
+     kaçınılmaz olarak ayrışır.
+     `isExpKitap` bayrağını gelistir.js kitapUrunAdi() arar; ürünün
+     adı değişse bile bağ kopmaz. Bayrağı başka ürüne kopyalama.
+     GÖRSEL BEKLENİYOR: `gorsel` satırı eklenmeden önce dosya
+     sunucuya yüklenmeli — dosya yokken kart kırık resim gösterir,
+     emojiye DÜŞMEZ (index.html:5644). */
+  { name: "Tecrübe Kitabı", price: 200, isExpKitap: true, icon: "📘",
+    expDesc: "Çantana düşer. Kahraman ekranındaki YÜKSELT düğmesiyle harcanır: kahramanın tecrübe seviyesini yükseltir, sefer kapasitesini ve gücünü artırır. Yıldızla ilgisi yoktur, yıldız parçayla yükselir." },
+
   /* MAĞAZA GÖRSELİ BEKLENİYOR: `missile.js`teki fuze_Fuze-roket.webp
      HARİTADA UÇAN füzedir, kart görseli değil. Kart için ayrı
      asset üretilince buraya `gorsel: "fuzemagaza.webp"` eklenecek.
@@ -314,8 +327,10 @@ function renderShop() {
   const tierLabels = { entry: "🔹 Giriş Seviyesi", mid: "🔷 Orta Seviye", elite: "🟠 Elit Seviye" };
 
   const filtered = shopItems.filter(item => {
-    /* Geliştirme sistemi kapalıyken parçalar mağazada GÖRÜNMEZ */
-    if (item.isParca && !(typeof window.GELISTIR_ACIK === "function" && window.GELISTIR_ACIK()))
+    /* Geliştirme sistemi kapalıyken parçalar ve tecrübe kitabı
+       mağazada GÖRÜNMEZ — ikisi de o sistemin parçasıdır. */
+    if ((item.isParca || item.isExpKitap) &&
+        !(typeof window.GELISTIR_ACIK === "function" && window.GELISTIR_ACIK()))
       return false;
     if (activeShopCategory === "all") return true;
     if (activeShopCategory === "potion") return !!(item.isStaminaPotion || item.isSpeedUpItem || item.isSeferHiz || item.isKalkan);
@@ -411,6 +426,7 @@ function shopItemDesc(item) {
                                     " saat saldırıya kapanır: kimse ordu gönderemez, füze atamaz. " +
                                     "Sen saldırırsan kalkanın anında düşer. Tekrar kullanınca süre başa sarar.";
   if (item.isStaminaPotion)  return "Genel Canı doldurur (envanterine düşer).";
+  if (item.isExpKitap)       return item.expDesc || "";
   if (item.isParca)          return item.parcaDesc || "";
   if (item.isKaynak)         return item.kaynakDesc || "";
   if (item.isBoost)          return item.boostDesc || "";
