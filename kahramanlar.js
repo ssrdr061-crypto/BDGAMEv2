@@ -253,9 +253,9 @@ function _klistKartAyar(id) {
   width:var(--ar-b,21px); height:var(--ar-b,21px);
   object-fit:contain; pointer-events:none;
 }
-.kspec-gor.ar-knight { --ar-b:21px; --ar-x:4px; --ar-y:4px; }
-.kspec-gor.ar-soldier{ --ar-b:21px; --ar-x:4px; --ar-y:4px; }
-.kspec-gor.ar-robot  { --ar-b:21px; --ar-x:4px; --ar-y:4px; }
+.kspec-gor.ar-knight { --ar-b:38px; --ar-x:-6px; --ar-y:-6px; }
+.kspec-gor.ar-soldier{ --ar-b:37px; --ar-x:-3px; --ar-y:-6px; }
+.kspec-gor.ar-robot  { --ar-b:34px; --ar-x:-2px; --ar-y:-4px; }
 .klist-foot{
   position:absolute; left:0; right:0; bottom:0; z-index:3;
   padding:16px 3px 4px; text-align:center;
