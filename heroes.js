@@ -811,6 +811,17 @@ function openHeroDetail(skinId) {
     <button id="hdPrev" style="position:absolute;top:50%;left:8px;transform:translateY(-50%);z-index:10;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:20px;">‹</button>
     <button id="hdNext" style="position:absolute;top:50%;right:8px;transform:translateY(-50%);z-index:10;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #555;color:#fff;font-size:20px;">›</button>
     <div id="hdName" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:5;font-family:'Baloo 2','Nunito',sans-serif;font-size:26px;font-weight:800;letter-spacing:1.5px;color:#ffffff;-webkit-text-stroke:4px #0b1c3a;paint-order:stroke fill;text-shadow:none;white-space:nowrap;">${h.name}</div>
+    <!--  KAHRAMANIN TOPLAM GÜCÜ — adın hemen altında.
+          Değer BURADA HESAPLANMAZ: tek kaynak gelistir.js
+          kahramanGucu(), tecrübe seviyesine göre. Seviye değişince
+          gelistir.js glsYildizTazele() bu kutunun içeriğini
+          günceller — kutu ile değer AYRI span'lardadır ki
+          textContent tazelemesi kutuyu ezmesin. -->
+    <div id="hdGuc" style="position:absolute;top:46px;left:50%;transform:translateX(-50%);z-index:5;font-family:'Baloo 2','Nunito',sans-serif;font-size:15px;font-weight:800;letter-spacing:.5px;color:#ffd257;-webkit-text-stroke:3px #0b1c3a;paint-order:stroke fill;text-shadow:none;white-space:nowrap;font-variant-numeric:tabular-nums;"><span id="hdGucDeger">${
+      (typeof window.kahramanGucu === "function")
+        ? (window.kahramanGucu(skinId) || 0).toLocaleString("tr-TR")
+        : ""
+    }</span></div>
     <div id="hdBoxL" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
     <div id="hdBoxR" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
     <div id="hdStatPanel" style="display:none;position:absolute;top:56px;bottom:74px;right:0;width:44%;z-index:6;box-sizing:border-box;padding:10px 11px;border:none;border-top-left-radius:12px;border-bottom-left-radius:12px;background:rgba(255,255,255,.22);color:#ffffff;font-family:'Baloo 2','Nunito',sans-serif;font-size:12px;font-weight:700;overflow-y:auto;-webkit-overflow-scrolling:touch;text-shadow:0 1px 2px rgba(0,20,45,.55);"></div>

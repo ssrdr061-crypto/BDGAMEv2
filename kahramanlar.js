@@ -346,9 +346,23 @@ function _klistCerceveStili() {
     "animation:klistPop .18s cubic-bezier(.2,.9,.3,1.3);";
 }
 
+/*  YILDIZ seviyesi (1–5) — parçadan gelir. DOLU YILDIZ SAYISI bunu
+    kullanır, başka bir şey kullanmaz. */
 function _klistSeviye(id) {
   const s = (typeof state !== "undefined" && state) ? state : {};
   return (s.heroLevels && s.heroLevels[id]) || 1;
+}
+
+/*  TECRÜBE seviyesi (1–50) — kitaptan gelir. Karttaki "Sv." yazısı
+    artık bunu gösterir. İKİSİ AYRI: bu sayı yıldız çizimine
+    girerse Sv.11 kahramanın 11 yıldızı dolu görünür, kart bozulur.
+    Tek kaynak gelistir.js; burada hesap yapılmaz. */
+function _klistTecrube(id) {
+  try {
+    if (typeof window.kahramanTecrubeSeviyesi === "function")
+      return window.kahramanTecrubeSeviyesi(id) || 1;
+  } catch (e) {}
+  return 1;
 }
 
 function _klistSahip(id) {
@@ -412,7 +426,7 @@ function _klistKartHTML(id) {
   }
 
   const seviye = (KV.seviyeGoster && sahip)
-    ? `<div class="klist-lv" style="font-size:${KV.sv_bs}px;">Sv. ${_klistSeviye(id)}</div>` : "";
+    ? `<div class="klist-lv" style="font-size:${KV.sv_bs}px;">Sv. ${_klistTecrube(id)}</div>` : "";
 
   const isim = KV.isimGoster
     ? `<div class="klist-name" style="font-size:${KV.isim_bs}px;">${h.name}</div>` : "";

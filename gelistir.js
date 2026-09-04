@@ -295,6 +295,18 @@
   const PANEL_ID = "glsPanel";
   let aktifSekme = "yetenek";      /* "stat" | "yetenek" | "taki" */
 
+  /*  Yıldız (parça) geliştirme çubuğu VARSAYILAN OLARAK KAPALI.
+      Yerinde yalnız küçük bir ok kutusu durur; basılınca çubuk ve
+      yanındaki ↑ açılır. Ekran kalabalık görünmesin diye.
+      Panel her açıldığında kapalıya döner. */
+  let gelisAcik = false;
+
+  /*  Ok ve kitap görselleri. Dosya yoksa `onerror` yedeği devreye
+      girer ve kırık resim yerine yazı işareti görünür — bu yüzden
+      dosya yüklenmeden de ekran bozulmaz. */
+  const OK_GORSEL    = "ok.webp";
+  const KITAP_GORSEL = "kitap.webp";
+
   function kutucuklar(gizle) {
     /* Yetenek kutucukları ve üstteki yıldız şeridi panelle birlikte
        gösterilmez — bilgileri artık panelde duruyor. */
@@ -324,6 +336,7 @@
     if (!ov) { toast("Kahraman ekranı açık değil."); return; }
 
     aktifSekme = "yetenek";
+    gelisAcik = false;
     kutucuklar(true);
 
     const p = document.createElement("div");
@@ -484,11 +497,13 @@
            Satın Al  ${ELMAS("gelistir")} ${(h.price || 0).toLocaleString("tr-TR")}
          </button>`
       : sonSeviye
-      ? `<div style="text-align:center;padding:10px;border-radius:14px;
+      ? `<div id="glsGelisKap" style="display:${gelisAcik ? "block" : "none"};
+              text-align:center;padding:10px;border-radius:14px;
               background:${TEMA.sari};
               color:#20140a;font-weight:800;font-size:13.5px;
               font-family:${YAZI};">En yüksek seviye</div>`
-      : `<div style="display:flex;align-items:center;justify-content:center;gap:9px;">
+      : `<div id="glsGelisKap" style="display:${gelisAcik ? "flex" : "none"};
+              align-items:center;justify-content:center;gap:9px;">
            <button id="glsYukselt" style="flex:0 1 auto;height:34px;padding:0 24px;
                    border:none;border-radius:17px;position:relative;overflow:hidden;
                    background:rgba(60,38,10,.55);cursor:pointer;">
@@ -509,6 +524,23 @@
                    display:flex;align-items:center;justify-content:center;cursor:pointer;
                    background:${TEMA.sari};">↑</button>
          </div>`;
+
+    /*  ── OK KUTUSU ────────────────────────────────────────────
+        GELİŞTİR çubuğunu açıp kapatır. Görsel `<button>` içinde:
+        düğmenin padding'i 0, görselin display'i block olmalı, aksi
+        halde altta satır boşluğu kalır ve kutu kare olmaz.
+        Sahipsiz kahramanda çizilmez — orada Satın Al duruyor.      */
+    const okKutu = !sahip(id) ? "" : `
+      <div style="display:flex;justify-content:center;margin-bottom:${gelisAcik ? "8px" : "0"};">
+        <button id="glsOkKutu" style="width:34px;height:34px;padding:0;border:none;
+                border-radius:10px;background:${TEMA.sari};cursor:pointer;
+                display:flex;align-items:center;justify-content:center;overflow:hidden;
+                font-family:${YAZI};font-size:16px;font-weight:800;color:#20140a;
+                line-height:1;">
+          <img id="glsOkGor" src="${OK_GORSEL}" alt=""
+               style="width:100%;height:100%;display:block;object-fit:contain;">
+        </button>
+      </div>`;
 
     /* ── TECRÜBE SATIRI — YILDIZDAN AYRI ──────────────────────
        Üstteki sarı hap parçayla YILDIZ yükseltir (savaş yüzdeleri).
@@ -538,21 +570,47 @@
               <span style="position:absolute;inset:0 auto 0 0;width:${oranK}%;
                            background:#5bb9e6;"></span>
               <span style="position:relative;z-index:1;display:flex;align-items:center;
-                           justify-content:center;gap:8px;font-size:13.5px;font-weight:800;
-                           font-family:${YAZI};color:#0d2036;white-space:nowrap;height:100%;
-                           font-variant-numeric:tabular-nums;">
-                YÜKSELT Sv.${d.sv} &nbsp;${Math.min(eldeK, gerekenK)} / ${gerekenK} 📘
+                           justify-content:center;font-size:13.5px;font-weight:800;
+                           font-family:${YAZI};color:#0d2036;white-space:nowrap;height:100%;">
+                YÜKSELT
               </span>
             </button>
+          </div>
+          <!--  Gereken kitap sayısı ve görseli düğmenin ALTINDA.
+                Sayı ile görsel ayrı kutulardadır: görselin ölçüsü
+                değiştiğinde sayının yeri kaymasın diye görsel sabit
+                genişlikli bir kutuda durur. -->
+          <div style="display:flex;align-items:center;justify-content:center;
+                      gap:5px;margin-top:5px;">
+            <span style="font-family:${YAZI};font-size:13px;font-weight:800;
+                         color:#eaf6ff;text-shadow:${TEMA.golge};
+                         font-variant-numeric:tabular-nums;">${gerekenK}</span>
+            <span style="flex:0 0 18px;width:18px;height:18px;display:flex;
+                         align-items:center;justify-content:center;
+                         font-size:13px;color:#eaf6ff;">
+              <img id="glsKitapGor" src="${KITAP_GORSEL}" alt=""
+                   style="width:100%;height:100%;display:block;object-fit:contain;">
+            </span>
           </div>`;
       }
     }
 
     /* Üst satır: YALNIZ yıldızlar, ortada. Ad/parça/seviye ibaresi
        kaldırıldı — ekranın tepesinde kahraman adı zaten yazıyor. */
+    /*  Yıldızların SOLUNDA tecrübe seviyesi. Yıldız sayısı parçadan,
+        bu sayı kitaptan gelir — ikisi ayrı ilerlemedir, yan yana
+        durmaları karışıklık değil, bilerek. */
+    const tecSv = sahip(id)
+      ? `<span id="glsTecSv" style="font-family:${YAZI};font-size:15px;font-weight:800;
+                 color:#eaf6ff;text-shadow:${TEMA.golge};letter-spacing:0;
+                 margin-right:8px;font-variant-numeric:tabular-nums;
+                 ">Sv.${tecrubeSeviyesi(id)}</span>`
+      : "";
+
     p.innerHTML = `
       <div style="display:flex;justify-content:center;align-items:center;
-                  padding-bottom:8px;letter-spacing:2px;">${yildiz}</div>
+                  padding-bottom:8px;letter-spacing:2px;">${tecSv}${yildiz}</div>
+      ${okKutu}
       ${alt}
       ${tecrube}
     `;
@@ -571,6 +629,29 @@
 
     const arti = p.querySelector("#glsArti");
     if (arti) arti.onclick = e => { e.stopPropagation(); parcaPenceresi(id, p); };
+
+    /*  Görsel yedekleri: dosya sunucuda yoksa `onerror` çalışır ve
+        kırık resim yerine yazı işareti kalır. `src` çalışma anında
+        DEĞİŞTİRİLMEZ — bir kare eski görsel gösterme tuzağı. */
+    const okGor = p.querySelector("#glsOkGor");
+    if (okGor) okGor.onerror = () => {
+      const b = okGor.parentNode;
+      okGor.remove();
+      if (b) b.textContent = gelisAcik ? "▲" : "▼";
+    };
+    const kitGor = p.querySelector("#glsKitapGor");
+    if (kitGor) kitGor.onerror = () => {
+      const b = kitGor.parentNode;
+      kitGor.remove();
+      if (b) b.textContent = "📘";
+    };
+
+    const okBtn = p.querySelector("#glsOkKutu");
+    if (okBtn) okBtn.onclick = e => {
+      e.stopPropagation();
+      gelisAcik = !gelisAcik;
+      ciz(p, id);
+    };
 
     const tec = p.querySelector("#glsTecYukselt");
     if (tec) tec.onclick = e => {
@@ -725,10 +806,17 @@
   function glsYildizTazele() {
     const hd = document.getElementById("heroDetailOverlay");
     if (!hd) return;
-    const st = hd.querySelector("#hdStars");
-    if (!st) return;
     const id = hd.dataset.hero;
     if (!id) return;
+
+    /*  GÜÇ YAZISI — heroes.js çiziyor, seviye burada değişiyor.
+        Yıldız şeridi kontrolünden ÖNCE yapılır: #hdStars her ekranda
+        yok, oraya takılıp erken dönersek güç hiç tazelenmez. */
+    const gd = hd.querySelector("#hdGucDeger");
+    if (gd) gd.textContent = (kahramanGucu(id) || 0).toLocaleString("tr-TR");
+
+    const st = hd.querySelector("#hdStars");
+    if (!st) return;
     const sv = seviye(id);
     Array.prototype.forEach.call(st.children, (s, i) => {
       s.style.color = i < sv ? "#ffd700" : "#444";
