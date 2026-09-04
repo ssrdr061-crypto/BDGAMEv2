@@ -5419,32 +5419,14 @@ html body #welcomeBack .wc-hero{ filter:none !important; }
     return 0;
   }
 
-  /* ── 1) SÜRE: "2g 4s 57d" · "5s 57d 7sn" · "57d 7sn" · "7sn" ──
-     GÜN dalı eklendi. Öncesinde saat taşıyordu: 24 günlük bir tedavi
-     "597s 17d 19sn" diye yazılıyordu, oyuncu bunu okuyup gün hesabı
-     yapmak zorunda kalıyordu.
-
-     En çok ÜÇ birim yazılır ve en büyük birimden başlanır. Gün varken
-     saniye düşer: "2g 4s 57d 13sn" satıra sığmıyor ve gün ölçeğinde
-     saniyenin bilgi değeri yok. Saniye yalnız gün YOKKEN görünür,
-     böylece kısa tedavilerde sayacın işlediği yine belli olur.        */
+  /* ── 1) SÜRE ──
+     Kabuk. Gövde index.html'deki sureBicim'e devredildi; oyundaki
+     bütün süreler tek elden yazılıyor: "24g 10s 0dk 37sn".
+     Eskiden burası gün varken saniyeyi düşürüyordu (satıra sığsın
+     diye). Artık düşürmüyor — yazı uzadı, hastane satırında taşarsa
+     çözüm yeri BU FONKSİYON DEĞİL, satırın CSS'idir.               */
   function sureKisa(ms) {
-    var t = Math.max(0, Math.round(ms / 1000));
-    var g  = Math.floor(t / 86400);
-    var sa = Math.floor((t % 86400) / 3600);
-    var dk = Math.floor((t % 3600) / 60);
-    var sn = t % 60;
-    var p = [];
-    if (g > 0) {
-      p.push(g + "g");
-      if (sa > 0) p.push(sa + "s");
-      if (dk > 0) p.push(dk + "d");
-      return p.join(" ");
-    }
-    if (sa > 0) p.push(sa + "s");
-    if (dk > 0) p.push(dk + "d");
-    if (sn > 0 || !p.length) p.push(sn + "sn");
-    return p.join(" ");
+    return sureBicim(ms);
   }
 
   /* ── 2) SAYI: 10.3K · 100.2K · 1.5M ── */
@@ -8651,12 +8633,10 @@ document.head.appendChild(st);
     requestAnimationFrame(kare);
   }
 
+  /* Kabuk — gövde sureBicim'e devredildi (index.html).
+     Kalkan etiketi; tavan 6 saat olduğu için gün basamağı açılmaz. */
   function sureYaz(ms) {
-    var t = Math.max(0, Math.floor(ms / 1000));
-    var sa = Math.floor(t / 3600), dk = Math.floor((t % 3600) / 60), sn = t % 60;
-    if (sa > 0) return sa + "sa " + dk + "dk";
-    if (dk > 0) return dk + "dk " + sn + "sn";
-    return sn + "sn";
+    return sureBicim(ms);
   }
 
   function kubbeTak(node) {

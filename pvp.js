@@ -346,7 +346,9 @@ function cooldownLeft(name) {
   const s = pvpState(); if (!s) return 0;
   return Math.max(0, CFG.attackCooldownMs - (Date.now() - (s.pvpCooldowns[String(name).toLowerCase()] || 0)));
 }
-function fmtLeft(ms) { const m = Math.ceil(ms/60000); return m >= 60 ? Math.ceil(m/60)+" saat" : m+" dk"; }
+/* Kabuk — gövde sureBicim'e devredildi (index.html).
+   Eskiden çok kabaydı: 61 dakika "2 saat" yazılıyordu. */
+function fmtLeft(ms) { return sureBicim(ms); }
 
 /* ═══════════════════════════════════════════════════════════════
    3) FIREBASE DİNLEYİCİLERİ

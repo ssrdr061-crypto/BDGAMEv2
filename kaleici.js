@@ -1436,19 +1436,11 @@
     ctx.restore();
   }
 
-  /* Tam süre: en büyük iki birim yazılır, saniye hep görünür ki
-     sayacın işlediği belli olsun.
-     2g 5s · 1s 45dk 23sn · 45dk 13sn · 13sn */
+  /* Kabuk — gövde sureBicim'e devredildi (index.html).
+     Canvas'a çizilir; gün dalında yazı uzadı, taşarsa punto
+     düşürülür — biçim değiştirilmez.                            */
   function tamSure(ms) {
-    var t = Math.max(0, Math.round(ms / 1000));
-    var g  = Math.floor(t / 86400);
-    var sa = Math.floor((t % 86400) / 3600);
-    var dk = Math.floor((t % 3600) / 60);
-    var sn = t % 60;
-    if (g  > 0) return g + 'g ' + sa + 's ' + dk + 'dk';
-    if (sa > 0) return sa + 's ' + dk + 'dk ' + sn + 'sn';
-    if (dk > 0) return dk + 'dk ' + sn + 'sn';
-    return sn + 'sn';
+    return sureBicim(ms);
   }
 
   function gelistirdeMi(px, py) {
