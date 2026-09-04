@@ -9600,6 +9600,31 @@ const TroopViewer = (function () {
          artık `kid` üzerinden gider — üç aile için birden. */
       const trainQueueForUnit = (state.trainingQueue || []).filter(j2 => j2.unitId === kid);
       const isTraining = trainQueueForUnit.length > 0;
+      /* ── TERFİ ──
+         Terfi işi kuyruğa HEDEF kademenin kimliğiyle giriyor
+         (knight → knight2 terfisinde iş `knight2` adına açılır), bu
+         yüzden alt kademe ekranında hiçbir iz kalmıyordu. `terfiden`
+         alanı (troops.js terfiEt) o boşluğu kapatır: burada SEÇİLİ
+         kademeden yükselen işler süzülür.
+         Terfi sürerken o kademede ÜRETİM YAPILAMAZ — adet çubuğu ve
+         Anında/Üret düğmeleri hiç basılmaz, yerlerine terfi çubuğu
+         ve Hızlandır gelir.
+         Hızlandırma kuyruğu `unitId` ile süzer, o yüzden düğmeye
+         HEDEF kademenin kimliği verilir (terfiHedefId).            */
+      const terfiKuyruk = (state.trainingQueue || []).filter(j3 => j3.terfiden === kid);
+      const terfiVar = terfiKuyruk.length > 0;
+      const terfiHedefId = terfiVar ? terfiKuyruk[0].unitId : "";
+      const terfiCubugu = () => {
+        const sonTerfi = terfiKuyruk.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
+        const terfiKalan = sonTerfi.finishAt - Date.now();
+        const terfiBicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
+        return `<div class="unit-train-bar">
+            <div class="utb-training">⬆️ Terfi Ediliyor
+              <span class="unit-terfi-timer" data-terfi="${kid}">x${terfiKuyruk.length} · ${terfiBicim(terfiKalan)}</span>
+            </div>
+            <button class="speedup-trigger unit-speedup-btn" data-unit="${terfiHedefId}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
+          </div>`;
+      };
       const speedUpCount = Object.keys(state.inventory || {})
         .filter(ad => /Hızlandırma/i.test(ad) && /\d+\s*(Dakika|Saat|Gün)/i.test(ad))
         .reduce((t, ad) => t + (state.inventory[ad] || 0), 0);
@@ -9649,6 +9674,11 @@ const TroopViewer = (function () {
             </div>
             <button class="speedup-trigger unit-speedup-btn" data-unit="${kid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
           </div>`;
+        /* Üretim VE terfi aynı anda sürüyorsa (terfiden önce başlamış
+           bir üretim partisi varsa) terfi çubuğu da altına eklenir. */
+        if (terfiVar) html += terfiCubugu();
+      } else if (terfiVar) {
+        html += terfiCubugu();
       } else {
         html += `<div class="unit-qty-bar">
             <button class="uq-btn uq-minus" data-unit="${uid}">−</button>
@@ -9666,29 +9696,6 @@ const TroopViewer = (function () {
               <span class="utb-top">Üret ×<span class="utb-qty">${qty}</span></span>
               <span class="utb-sub">⏱ <span class="utb-sure">${(typeof sureDk === "function") ? sureDk(def.trainMinutes * qty) : (def.trainMinutes * qty) + " dk"}</span></span>
             </button>
-          </div>`;
-      }
-
-      /* ── TERFİ SATIRI ──
-         Terfi işi kuyruğa HEDEF kademenin kimliğiyle giriyor
-         (knight → knight2 terfisinde iş `knight2` adına açılır).
-         Bu yüzden alt kademe ekranında hiçbir iz kalmıyordu: asker
-         düşülüyor, ekranda hiçbir şey görünmüyordu.
-
-         `terfiden` alanı (troops.js terfiEt) o boşluğu kapatır:
-         burada SEÇİLİ kademeden yükselen işler sayılır ve ayrı bir
-         satır olarak basılır. Üretim çubuğunun YERİNE geçmez, altına
-         eklenir — terfi Sv1 kışlasını meşgul etmiyor, iş üst kademe
-         adına açık; alt kademede üretime devam edilebilmeli.       */
-      const terfiKuyruk = (state.trainingQueue || []).filter(j3 => j3.terfiden === kid);
-      if (terfiKuyruk.length > 0) {
-        const sonTerfi = terfiKuyruk.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
-        const terfiKalan = sonTerfi.finishAt - Date.now();
-        const terfiBicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
-        html += `<div class="unit-train-bar">
-            <div class="utb-training">⬆️ Terfi Ediliyor
-              <span class="unit-terfi-timer" data-terfi="${kid}">x${terfiKuyruk.length} · ${terfiBicim(terfiKalan)}</span>
-            </div>
           </div>`;
       }
 
