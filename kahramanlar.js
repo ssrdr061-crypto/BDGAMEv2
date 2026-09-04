@@ -92,7 +92,10 @@ const KLIST_KART = {
   celik_savasci: {         dy: 11, s: 1.70 },
   ates_buyucusu: { dx: -3, dy: 62, s: 2.08, gen: 98 },
   ivanovna:      { dx: -1, dy: 61, s: 1.98 },
-  revolia:       { dx: 2,  dy: 69, s: 2.46 }
+  revolia:       { dx: 2,  dy: 69, s: 2.46 },
+  robert:        { dx: -3, dy: 55, s: 1.74 },
+  frankly:       { dx: 4,  dy: 36, s: 1.42 },
+  yuneeb:        {         dy: 31, s: 1.46 }
 };
 
 

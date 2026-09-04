@@ -43,9 +43,9 @@ const HERO_UI = {
     bg:     "rgba(0,0,0,.35)",                  /* Kutu arkaplan rengi         */
     /* HİZA TEK YERDEN: box1 (sol üst) ile box2 (sağ üst) AYNI dy'de,
        box3 (sol alt) altta. Kahraman başına ezme YOK — hepsi bu hizada. */
-    box1: { dx: -5, dy: -85 },  /* sol üst  */
-    box2: { dx:  5, dy: -85 },  /* sağ üst — box1 ile aynı hizada */
-    box3: { dx: -5, dy:  40 }   /* sol alt  */
+    box1: { dx: -5, dy: -150 },  /* sol üst  */
+    box2: { dx:  5, dy: -150 },  /* sağ üst — box1 ile AYNI hizada */
+    box3: { dx: -5, dy:  -30 }   /* sol alt  */
   },
 
   /* ── SATIN AL / GELİŞTİR BUTONU ──
@@ -944,7 +944,12 @@ function openHeroDetail(skinId) {
 
   // Tüm stilleri U'dan uygular — editör her değişiklikte bunu çağırır
   function applyUi() {
-    const _ortala = `top:50%;transform:translateY(calc(-50% + ${U.boxes.dy}px));`;
+    /* HİZA: iki sütun da kartın dikey ORTASINDAN başlar; ortalama YOK.
+       Eskiden `translateY(-50%)` vardı ve sütun yüksekliği kutu
+       sayısına göre değiştiği için sol/sağ kutular farklı yüksekliğe
+       oturuyordu (sol 2 kutu, sağ 1 kutu). Artık başlangıç çizgisi
+       ortaktır; dikey yeri box1/box2/box3 dy değerleri belirler. */
+    const _ortala = `top:50%;transform:translateY(${U.boxes.dy}px);`;
     bxL.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
                         `gap:${U.boxes.gap};left:${U.boxes.yan};${_ortala}`;
     bxR.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
@@ -1157,8 +1162,20 @@ ${modelTxt}`;
       applyUi();
       const yuk = panel.offsetHeight || 0;
       const dip = ov.clientHeight - 74;          /* sekme şeridi payı */
-      let ust = rb.bottom - ro.top + 6;
-      if (ust + yuk > dip) ust = Math.max(6, rb.top - ro.top - yuk - 6);
+      /* Kutu kartın alt yarısındaysa panel ÜSTÜNE açılır — böylece
+         alttaki yeteneğin kutucuğu 1. kutu ile kendi arasına düşer,
+         yıldızların/geliştir şeridinin üstüne binmez. Panel mutlak
+         konumludur; hiçbir durumda kutuları itmez. */
+      const altta = (rb.top + rb.bottom) / 2 - ro.top > ov.clientHeight / 2;
+      let ust;
+      if (altta) {
+        ust = rb.top - ro.top - yuk - 6;
+        if (ust < 6) ust = Math.min(dip - yuk, rb.bottom - ro.top + 6);
+      } else {
+        ust = rb.bottom - ro.top + 6;
+        if (ust + yuk > dip) ust = Math.max(6, rb.top - ro.top - yuk - 6);
+      }
+      if (ust < 6) ust = 6;
       panel.dataset.ust = ust + "px";
       panel.style.top = ust + "px";
     } catch (e) {}
