@@ -259,8 +259,17 @@
     s.heroLevels[id] = sv + 1;
     kaydet();
 
-    const h = (typeof HERO_STATS !== "undefined") ? HERO_STATS[id] : null;
-    toast(`${(h && h.name) || "Kahraman"} Sv${sv + 1} oldu!`);
+    /* Seviye atlama efekti. Efekt oynarsa toast BASILMAZ — ikisi
+       üst üste binerse iki ayrı bildirim görünür. Efekt açılamazsa
+       (THREE yoksa) eski toast yolu aynen çalışır. */
+    let efektOynadi = false;
+    if (window.YILDIZ_EFEKTI && typeof YILDIZ_EFEKTI.oynat === "function") {
+      efektOynadi = YILDIZ_EFEKTI.oynat(id, sv, sv + 1) === true;
+    }
+    if (!efektOynadi) {
+      const h = (typeof HERO_STATS !== "undefined") ? HERO_STATS[id] : null;
+      toast(`${(h && h.name) || "Kahraman"} Sv${sv + 1} oldu!`);
+    }
     return true;
   }
 
@@ -1210,4 +1219,446 @@
   window.birimYeri          = birimYeri;
   window.TABAN_KAPASITE     = TABAN_KAPASITE;
   window.GELISTIR_MAX_SV   = MAX_SV;
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   YILDIZ SEVİYE ATLAMA EFEKTİ
+
+   Kapı:  YILDIZ_EFEKTI.oynat(id, eskiSv, yeniSv) → true / false
+          false dönerse çağıran eski toast yolunu kullanır.
+
+   · Yıldız sayısı, kadraj ve zamanlama SEVİYEDEN türer. Elle sayı yok.
+   · Stat adı ve formülü burada YAZILMAZ; kahramanStatSatirlari(id, sv)
+     eski ve yeni seviye için iki kez okunur, yalnız DEĞİŞENLER çizilir.
+     Kapasite listede yoktur — o tecrübe seviyesine bağlı.
+   · Tüm hareket rAF ile. @keyframes yok: prefers-reduced-motion
+     cihazda CSS animasyonunu öldürüyor.
+   · THREE bu dosyadan SONRA yükleniyor, bu yüzden sahne ilk oynatışta
+     kurulur, dosya yüklenirken değil.
+   ═══════════════════════════════════════════════════════════════ */
+window.YILDIZ_EFEKTI = (function () {
+
+  const MAX_SV_EF = 5;
+  const FOV = 34, UCUS_SURE = 1040;
+  const OLCEK = 0.82, YENI_OLCEK = OLCEK * 1.55;
+
+  let kuruldu = false, calisiyor = false;
+  let katman, akisTuval, actx, cv, ren, sah, kam, grup, yer, kutu, flas, adEl, statKap;
+  let GEO = null, ENV = null, halka = null, halkaMat = null;
+  let ARALIK = 2.35, GORUS_GENISLIK = 10.2, GORUS_YUKSEK = 10, BASLANGIC_Y = -10;
+  let yildizlar = [], YENI = null, satir = [];
+  let AG = 0, AY = 0;
+  let T = {}, STAT_AR = [], SON = 3400, t0 = 0, oncekiZaman = 0;
+  let gosterilen = 3, yeniSira = 3;
+  const SERIT = [];
+
+  /* ── Biçim ──────────────────────────────────────────────────── */
+  function stilKur() {
+    if (document.getElementById("yeStil")) return;
+    const st = document.createElement("style");
+    st.id = "yeStil";                       /* benzersiz — tema.js kuralı */
+    st.textContent =
+      "#yeKatman{position:fixed;left:0;top:0;width:100%;height:100%;" +
+        "z-index:2147482500;display:none}" +
+      "#yeAkis,#yeSahne{position:absolute;left:0;top:0;display:block}" +
+      "#yeSahne{pointer-events:none}" +
+      "#yeZemin{position:absolute;left:0;top:0;width:100%;height:100%;" +
+        "background:radial-gradient(circle at 50% 40%,#2a1c10 0%,#0d0803 78%)}" +
+      "#yePerde{position:absolute;left:0;top:0;width:100%;height:100%;display:flex;" +
+        "align-items:center;justify-content:center;pointer-events:none}" +
+      "#yeFlas{position:absolute;left:0;top:0;width:100%;height:100%;" +
+        "background:#fff6dc;opacity:0;pointer-events:none}" +
+      "#yeKutu{width:min(92vw,420px);text-align:center;opacity:0;" +
+        "font-family:'Baloo 2',system-ui,sans-serif}" +
+      "#yeBaslik{font-weight:800;font-size:13px;letter-spacing:2.4px;color:#e8c88a;margin-bottom:4px}" +
+      "#yeAd{font-weight:800;font-size:31px;line-height:1.1;margin-bottom:10px;" +
+        "background:linear-gradient(180deg,#ffffff 0%,#ffdc9a 100%);" +
+        "-webkit-background-clip:text;background-clip:text;color:transparent;" +
+        "filter:drop-shadow(0 2px 6px rgba(40,18,0,.75))}" +
+      "#yeYer{height:150px}" +
+      "#yeStatlar{margin-top:12px;display:flex;flex-direction:column;gap:9px;align-items:center}" +
+      "#yeStatlar .ye-s{display:grid;grid-template-columns:1fr 78px 22px 78px;align-items:center;" +
+        "gap:6px;width:min(82vw,336px);opacity:0}" +
+      "#yeStatlar .ye-ad{text-align:left;font-weight:600;font-size:15px;color:#d8c3a4;" +
+        "text-shadow:0 1px 2px rgba(30,14,0,.7)}" +
+      "#yeStatlar .ye-eski{font-weight:700;font-size:19px;color:#fff;" +
+        "font-variant-numeric:tabular-nums;text-shadow:0 1px 3px rgba(30,14,0,.8)}" +
+      "#yeStatlar .ye-ok{font-weight:700;font-size:17px;color:#a08765}" +
+      "#yeStatlar .ye-yeni{font-weight:800;font-size:21px;font-variant-numeric:tabular-nums;" +
+        "background:linear-gradient(180deg,#b6ffc6 0%,#2fd968 100%);" +
+        "-webkit-background-clip:text;background-clip:text;color:transparent;" +
+        "filter:drop-shadow(0 1px 4px rgba(0,45,15,.85))}";
+    document.head.appendChild(st);
+  }
+
+  function dugumKur() {
+    katman = document.createElement("div");
+    katman.id = "yeKatman";
+    katman.innerHTML =
+      '<div id="yeZemin"></div><canvas id="yeAkis"></canvas><canvas id="yeSahne"></canvas>' +
+      '<div id="yePerde"><div id="yeKutu">' +
+        '<div id="yeBaslik">SEVİYE ATLADI</div><div id="yeAd"></div>' +
+        '<div id="yeYer"></div><div id="yeStatlar"></div>' +
+      '</div></div><div id="yeFlas"></div>';
+    document.body.appendChild(katman);
+
+    akisTuval = katman.querySelector("#yeAkis");
+    actx      = akisTuval.getContext("2d");
+    cv        = katman.querySelector("#yeSahne");
+    yer       = katman.querySelector("#yeYer");
+    kutu      = katman.querySelector("#yeKutu");
+    flas      = katman.querySelector("#yeFlas");
+    adEl      = katman.querySelector("#yeAd");
+    statKap   = katman.querySelector("#yeStatlar");
+
+    /* Dokununca atlanır. Oyuncu bu ekranı yüzlerce kez görecek. */
+    katman.addEventListener("pointerdown", bitir);
+  }
+
+  /* ── Ölçü: tek kaynak documentElement ────────────────────────
+     innerHeight uygulama içi tarayıcıda şişik geliyor,
+     getBoundingClientRect ise tuvalin kendi ölçüsünü verdiği için
+     geri besleme döngüsü kuruyor. */
+  function ekranOlcu() {
+    const d = document.documentElement;
+    return { g: Math.max(1, d.clientWidth), y: Math.max(1, d.clientHeight) };
+  }
+
+  function akisOlcule() {
+    const o = Math.min(devicePixelRatio, 2), e = ekranOlcu();
+    AG = e.g; AY = e.y;
+    akisTuval.style.width = AG + "px"; akisTuval.style.height = AY + "px";
+    akisTuval.width = AG * o; akisTuval.height = AY * o;
+    actx.setTransform(o, 0, 0, o, 0, 0);
+  }
+
+  function seritKur() {
+    SERIT.length = 0;
+    const adet = AG < 420 ? 46 : 64;
+    for (let i = 0; i < adet; i++) {
+      SERIT.push({ x: Math.random(), y: Math.random() * 1.4,
+                   boy: 0.10 + Math.random() * 0.30, kal: 1.2 + Math.random() * 4.6,
+                   hiz: 0.30 + Math.random() * 0.95, sic: Math.random() });
+    }
+  }
+
+  function akisCiz(guc, dt) {
+    actx.clearRect(0, 0, AG, AY);
+    if (guc <= 0.002) return;
+    actx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < SERIT.length; i++) {
+      const s = SERIT[i];
+      s.y -= s.hiz * dt * (0.35 + guc * 1.15);
+      if (s.y + s.boy < 0) { s.y = 1 + Math.random() * 0.35; s.x = Math.random(); }
+      const px = s.x * AG, py = s.y * AY, pb = s.boy * AY;
+      const g = actx.createLinearGradient(0, py, 0, py + pb);
+      const renk = "rgba(255," + Math.round(205 + s.sic * 50) + "," +
+                   Math.round(150 + s.sic * 105) + ",";
+      const yog = (0.30 * guc).toFixed(3);
+      g.addColorStop(0, renk + "0)");
+      g.addColorStop(0.42, renk + yog + ")");
+      g.addColorStop(0.62, renk + yog + ")");
+      g.addColorStop(1, renk + "0)");
+      actx.strokeStyle = g; actx.lineWidth = s.kal; actx.lineCap = "round";
+      actx.beginPath(); actx.moveTo(px, py); actx.lineTo(px, py + pb); actx.stroke();
+    }
+    actx.globalCompositeOperation = "source-over";
+  }
+
+  /* ── Ortam yansıması: altın hissini veren şey ışık değil bu ── */
+  function ortamDoku() {
+    const c = document.createElement("canvas"); c.width = 16; c.height = 128;
+    const x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 128);
+    g.addColorStop(0.00, "#ffffff"); g.addColorStop(0.32, "#fff0c8");
+    g.addColorStop(0.52, "#c08f3e"); g.addColorStop(0.74, "#3a2a16");
+    g.addColorStop(1.00, "#0d0803");
+    x.fillStyle = g; x.fillRect(0, 0, 16, 128);
+    const t = new THREE.CanvasTexture(c);
+    t.mapping = THREE.EquirectangularReflectionMapping;
+    return t;
+  }
+
+  /* İlk uç TEPEDE (+PI/2). Eksi olursa yıldız baş aşağı durur. */
+  function yildizGeo() {
+    const dis = 1.0, ic = 0.455, uc = 5, sh = new THREE.Shape();
+    for (let i = 0; i < uc * 2; i++) {
+      const r = (i % 2 === 0) ? dis : ic;
+      const a = (Math.PI / uc) * i + Math.PI / 2;
+      const px = Math.cos(a) * r, py = Math.sin(a) * r;
+      if (i === 0) sh.moveTo(px, py); else sh.lineTo(px, py);
+    }
+    sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, {
+      depth: 0.18, bevelEnabled: true, bevelThickness: 0.17,
+      bevelSize: 0.125, bevelSegments: 4, curveSegments: 2
+    });
+    g.center();
+    return g;
+  }
+
+  function malzeme() {
+    return new THREE.MeshStandardMaterial({
+      color: 0xffc233, metalness: 1.0, roughness: 0.23,
+      envMap: ENV, envMapIntensity: 1.7,
+      emissive: 0x4a2600, emissiveIntensity: 0.38
+    });
+  }
+
+  function sahneKur() {
+    ren = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+    ren.setPixelRatio(Math.min(devicePixelRatio, 2));
+    sah = new THREE.Scene();
+    kam = new THREE.PerspectiveCamera(FOV, 1, 0.1, 200);
+    grup = new THREE.Group(); sah.add(grup);
+
+    ENV = ortamDoku();
+    GEO = yildizGeo();
+
+    sah.add(new THREE.AmbientLight(0xd8c0a0, 0.55));
+    const ana = new THREE.DirectionalLight(0xffffff, 2.0);
+    ana.position.set(2.4, 3.2, 6.0); sah.add(ana);
+    const ark = new THREE.DirectionalLight(0xffb44d, 1.5);
+    ark.position.set(-3, -1.4, -2.6); sah.add(ark);
+    sah.add(new THREE.HemisphereLight(0xfff0d0, 0x1a0f04, 0.9));
+
+    halkaMat = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true,
+                 opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+    halka = new THREE.Mesh(new THREE.RingGeometry(0.60, 0.80, 52), halkaMat);
+    halka.position.set(0, 0, -0.5);
+    grup.add(halka);
+  }
+
+  /* Kadraj yıldız sayısından: en dıştaki kenara değmesin. */
+  function kadrajKur() {
+    ARALIK = (gosterilen >= 5) ? 2.15 : 2.35;
+    GORUS_GENISLIK = 2 * (((gosterilen - 1) / 2) * ARALIK + YENI_OLCEK) + 1.2;
+  }
+
+  function olcule() {
+    const e = ekranOlcu(), g = e.g, y = e.y;
+    cv.style.width = g + "px"; cv.style.height = y + "px";
+    ren.setSize(g, y, false);
+    kam.aspect = g / y;
+    const yari = Math.tan(FOV * Math.PI / 360);
+    kam.position.set(0, 0, GORUS_GENISLIK / (2 * yari * kam.aspect));
+    kam.updateProjectionMatrix();
+
+    GORUS_YUKSEK = GORUS_GENISLIK / kam.aspect;
+    const bpp = GORUS_YUKSEK / y;
+    const r = yer.getBoundingClientRect();
+    grup.position.y = (y / 2 - (r.top + r.height / 2)) * bpp;
+    BASLANGIC_Y = -GORUS_YUKSEK / 2 - grup.position.y - 1.6;
+  }
+
+  function siraKur() {
+    yildizlar.forEach(function (m) { grup.remove(m); m.material.dispose(); });
+    yildizlar = [];
+    kadrajKur();
+    for (let i = 0; i < gosterilen; i++) {
+      const m = new THREE.Mesh(GEO, malzeme());
+      m.position.x = (i - (gosterilen - 1) / 2) * ARALIK;
+      m.userData.temelX = m.position.x;
+      m.userData.yeni = (i === yeniSira - 1);
+      m.userData.girisAr = [340 + i * 160, 600 + i * 160];
+      m.scale.setScalar(0.0001);
+      grup.add(m);
+      yildizlar.push(m);
+    }
+    YENI = yildizlar[yeniSira - 1];
+    halka.position.x = YENI.userData.temelX;
+    zamanKur(Math.max(1060, (600 + (gosterilen - 2) * 160) + 140));
+  }
+
+  function zamanKur(bas) {
+    const ob = bas + UCUS_SURE;
+    T = { akisAc: [0, 620], ad: [160, 520], ucus: [bas, ob],
+          otur: [ob, ob + 300], sarsinti: [ob, ob + 580],
+          flas: [ob - 5, ob + 320], halka: [ob + 5, ob + 600],
+          akisKis: [ob + 300, ob + 1180] };
+    STAT_AR = [];
+    const sb = ob + 460;
+    for (let i = 0; i < satir.length; i++) STAT_AR.push([sb + i * 90, sb + i * 90 + 250]);
+    SON = Math.max(ob + 1240, sb + satir.length * 90 + 360);
+  }
+
+  /* ── Statlar: adı ve formülü burada yazılmaz, kapıdan okunur ── */
+  function degisenStatlar(id, eskiSv, yeniSv) {
+    if (typeof window.kahramanStatSatirlari !== "function") return [];
+    const a = window.kahramanStatSatirlari(id, eskiSv) || [];
+    const b = window.kahramanStatSatirlari(id, yeniSv) || [];
+    const eskiHarita = {};
+    a.forEach(function (r) { eskiHarita[r.anahtar] = r.yuzde; });
+    return b.filter(function (r) {
+        return typeof eskiHarita[r.anahtar] === "number" && eskiHarita[r.anahtar] !== r.yuzde;
+      }).map(function (r) {
+        return { ad: r.ad, eski: eskiHarita[r.anahtar], yeni: r.yuzde };
+      });
+  }
+
+  function statlariCiz(liste) {
+    statKap.innerHTML = "";
+    liste.forEach(function (d) {
+      const el = document.createElement("div");
+      el.className = "ye-s";
+      el.innerHTML = '<span class="ye-ad"></span><span class="ye-eski"></span>' +
+                     '<span class="ye-ok">&#8594;</span><span class="ye-yeni"></span>';
+      el.querySelector(".ye-ad").textContent   = d.ad;
+      el.querySelector(".ye-eski").textContent = "+%" + d.eski;
+      el.querySelector(".ye-yeni").textContent = "+%" + d.yeni;
+      statKap.appendChild(el);
+    });
+    satir = [].slice.call(statKap.querySelectorAll(".ye-s"));
+    satir.forEach(function (s) { s.style.opacity = 0; });
+  }
+
+  /* ── Eğriler ────────────────────────────────────────────────── */
+  const yumusa = function (t) { return 1 - Math.pow(1 - t, 3); };
+  const suzul  = function (t) { return 1 - Math.pow(1 - t, 2.1); };
+  const geriSicra = function (t) { const c = 2.6;
+    return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  const dinSicra  = function (t) { const c = 1.5;
+    return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  function aralik(now, ar) {
+    if (!ar) return 0;
+    if (now <= ar[0]) return 0;
+    if (now >= ar[1]) return 1;
+    return (now - ar[0]) / (ar[1] - ar[0]);
+  }
+
+  function bitir() {
+    if (!calisiyor) return;
+    calisiyor = false;
+    katman.style.display = "none";
+    if (actx) actx.clearRect(0, 0, AG, AY);
+  }
+
+  function kare(zaman) {
+    if (!calisiyor) return;
+    if (!t0) { t0 = zaman; oncekiZaman = zaman; }
+    const n = zaman - t0;
+    const dt = Math.min((zaman - oncekiZaman) / 1000, 0.05);
+    oncekiZaman = zaman;
+
+    const guc = yumusa(aralik(n, T.akisAc)) * (1 - yumusa(aralik(n, T.akisKis)) * 0.72);
+    akisCiz(guc, dt);
+
+    const a = yumusa(aralik(n, T.ad));
+
+    yildizlar.forEach(function (m) {
+      if (m.userData.yeni) return;
+      const gv = aralik(n, m.userData.girisAr);
+      if (gv <= 0) { m.scale.setScalar(0.0001); }
+      else if (gv < 1) {
+        m.scale.setScalar(OLCEK * dinSicra(gv));
+        m.position.y = Math.sin(gv * Math.PI) * 0.11;
+        m.rotation.y = (1 - gv) * 0.7;
+      } else { m.scale.setScalar(OLCEK); m.rotation.y = 0; m.position.y = 0; }
+    });
+
+    const u = aralik(n, T.ucus);
+    if (u > 0 && u < 1) {
+      const e = suzul(u);
+      YENI.position.y = BASLANGIC_Y * (1 - e);
+      YENI.scale.setScalar(0.10 + e * (YENI_OLCEK * 1.28 - 0.10));
+      YENI.rotation.y = (1 - u) * Math.PI * 9.0;
+      YENI.rotation.z = (1 - u) * 0.30;
+    }
+
+    const o = aralik(n, T.otur);
+    if (o > 0) {
+      const e = geriSicra(o);
+      YENI.position.y = 0;
+      YENI.rotation.y = (1 - o) * 0.22;
+      YENI.rotation.z = 0;
+      YENI.scale.setScalar(YENI_OLCEK * 1.28 + (YENI_OLCEK - YENI_OLCEK * 1.28) * e);
+    }
+
+    const s = aralik(n, T.sarsinti);
+    let kutuSars = 0;
+    if (s > 0 && s < 1) {
+      const sonme = Math.pow(1 - s, 1.7);
+      kutuSars = Math.sin(s * 27) * 10.5 * sonme;
+      yildizlar.forEach(function (m, i) {
+        if (m === YENI) return;
+        const mesafe = Math.abs(i - (yeniSira - 1));
+        const kat = 1 / mesafe;
+        const gec = Math.max(0, s - (mesafe - 1) * 0.09);
+        m.position.y = Math.sin(gec * 24) * -0.20 * sonme * kat;
+        m.position.x = m.userData.temelX + Math.sin(gec * 19) * -0.12 * sonme * kat;
+        m.rotation.z = Math.sin(gec * 22) * -0.12 * sonme * kat;
+      });
+    } else if (s >= 1) {
+      yildizlar.forEach(function (m) {
+        if (m !== YENI) { m.position.y = 0; m.position.x = m.userData.temelX; m.rotation.z = 0; }
+      });
+    }
+
+    kutu.style.opacity = a.toFixed(3);
+    kutu.style.transform = "translateY(" + ((1 - a) * 16 + kutuSars).toFixed(2) + "px)";
+
+    const f = aralik(n, T.flas);
+    flas.style.opacity = (f > 0 && f < 1) ? (Math.pow(1 - f, 3) * 0.55).toFixed(3) : 0;
+
+    const h = aralik(n, T.halka);
+    if (h > 0 && h < 1) {
+      const e = yumusa(h);
+      halka.scale.setScalar(0.30 + e * 3.6);
+      halkaMat.opacity = (1 - e) * 0.85;
+    } else { halkaMat.opacity = 0; }
+
+    STAT_AR.forEach(function (ar, i) {
+      const v = yumusa(aralik(n, ar));
+      satir[i].style.opacity = v.toFixed(3);
+      satir[i].style.transform = "translateY(" + ((1 - v) * 10).toFixed(2) + "px)";
+    });
+
+    ren.render(sah, kam);
+    if (n < SON) requestAnimationFrame(kare); else bitir();
+  }
+
+  function oynat(id, eskiSv, yeniSv) {
+    if (typeof THREE === "undefined") return false;   /* sessiz yedek yol yok */
+    if (calisiyor) return false;
+
+    yeniSv = Math.max(1, Math.min(MAX_SV_EF, Number(yeniSv) || 0));
+    eskiSv = Math.max(1, Math.min(MAX_SV_EF, Number(eskiSv) || (yeniSv - 1)));
+    if (yeniSv <= eskiSv) return false;
+
+    try {
+      if (!kuruldu) { stilKur(); dugumKur(); sahneKur(); kuruldu = true; }
+
+      adEl.textContent = (window.KAHRAMAN && KAHRAMAN.ad) ? KAHRAMAN.ad(id) : String(id);
+      statlariCiz(degisenStatlar(id, eskiSv, yeniSv));
+
+      gosterilen = yeniSv; yeniSira = yeniSv;
+      katman.style.display = "block";
+      akisOlcule(); seritKur();
+      siraKur();
+      olcule();
+
+      yildizlar.forEach(function (m) {
+        m.scale.setScalar(0.0001); m.position.y = 0;
+        m.position.x = m.userData.temelX; m.rotation.z = 0;
+      });
+      YENI.position.y = BASLANGIC_Y;
+      kutu.style.opacity = 0;
+      flas.style.opacity = 0;
+
+      calisiyor = true; t0 = 0;
+      requestAnimationFrame(kare);
+      return true;
+    } catch (e) {
+      calisiyor = false;
+      if (katman) katman.style.display = "none";
+      return false;
+    }
+  }
+
+  addEventListener("resize", function () {
+    if (!calisiyor) return;
+    akisOlcule(); seritKur(); olcule();
+  });
+
+  return { oynat: oynat, kapat: bitir };
 })();
