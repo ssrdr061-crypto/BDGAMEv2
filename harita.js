@@ -179,13 +179,7 @@
     zeminRenk: {
       kar:   [224, 234, 245],
       cimen: [ 82, 192,  58],
-      /* LAV — doygunluk düşürüldü, taban biraz açıldı.
-         Eski [186,60,36] tam doygun tuğla kırmızısıydı; zemin
-         nesnelerden daha yüksek sesli çıkıyor, üstündeki kale
-         "yapıştırılmış" görünüyordu. Referans oyunlarda zemin
-         GERİ ÇEKİLİR, doygun renk yalnız nesnelerde olur.
-         `?zeminayar=1` bu üç sayıyı canlı sürer. */
-      lav:   [162,  96,  84],
+      lav:   [186,  60,  36],
     },
 
     /* ── ÇİMEN = KALEİÇİ DOKUSU ──
@@ -206,22 +200,6 @@
        ayrı ayar aşağıda (lekeAyar); bu sayı hepsini birden kısar. */
     leke: 1.0,
 
-    /* ── LEKE SIKLIĞI ──
-       Gürültü frekanslarının GENEL çarpanı. 1 = eski hâli.
-
-       NEDEN EKLENDİ: eski frekanslar (0.070 / 0.175 / 0.430) karo
-       cinsindendi, yani en kaba katmanın bir dalgası ~14 karo.
-       Telefon ekranında aynı anda ~10 karo görünüyor — ekranın
-       tamamı TEK lekenin içinde kalıyordu. Leke gücünü sonuna
-       kadar açmak desen çıkarmıyor, yalnız o tek lekenin tonunu
-       koyultup açıyordu ("zemin dümdüz" belirtisi).
-
-       Büyütmek deseni SIKLAŞTIRIR (daha çok, daha küçük leke).
-       3'ün üstünde benek benek olup titremeye başlar; önce 2
-       civarını dene. zeminAdim=10 örnekleme adımı yüzünden çok
-       yüksek sıklık zaten yumuşayıp kaybolur. */
-    lekeSiklik: 1.0,
-
     /* ── DOYGUNLUK ──
        Işık dalgası beyaza, leke katmanı griye karıştırıyor; ikisi
        birden zemini soluklaştırıyordu. Taban renkleri doyurulsaydı
@@ -231,7 +209,7 @@
        YALNIZ kar ve lav için geçerli — çimenin kendi doygunluğu
        cimenKale.doygunluk. Yansıma kapandıktan sonra kar/lav soluk
        kaldığı için 1.22 → 1.34. */
-    doygunluk: 1.10,
+    doygunluk: 1.34,
 
     /* ── BÖLGE BAŞINA LEKE KARAKTERİ ──
        koyu = koyu parçaların gücü · acik = açık parçaların gücü
@@ -240,10 +218,7 @@
     lekeAyar: {
       kar:   { koyu: 0.34, acik: 0.10 },
       cimen: { koyu: 0.24, acik: 0.24 },
-      /* Lav lekesi artık ÇİFT YÖNLÜ. Yalnız kararırken zemin
-         "boyanmış düzlem" gibi okunuyordu; aydınlanan parçalar
-         olmadan hacim çıkmıyor. */
-      lav:   { koyu: 0.30, acik: 0.20 },
+      lav:   { koyu: 0.38, acik: 0.08 },
     },
 
     /* Kar bölgesinin koyu lekelerinin rengi. Beyazın grisi yerine
@@ -712,15 +687,10 @@
     const eu = (gx - gy) / CFG.lekeYatay;
     const ev = (gx + gy);
 
-    /* Sıklık çarpanı — ışık ve leke katmanlarının ikisine de aynı
-       uygulanır, yoksa desen sıklaşırken ışık dalgası geride kalıp
-       ikisi birbirinden kopuyor. */
-    const F = CFG.lekeSiklik || 1;
-
     /* 2. Işık — geniş, yumuşak dalga */
     if (CFG.isik > 0) {
-      const sh = smoothNoise(eu * 0.075 * F + 41, ev * 0.075 * F + 17) * 0.65
-               + smoothNoise(eu * 0.022 * F + 5,  ev * 0.022 * F + 29) * 0.35;
+      const sh = smoothNoise(eu * 0.075 + 41, ev * 0.075 + 17) * 0.65
+               + smoothNoise(eu * 0.022 + 5,  ev * 0.022 + 29) * 0.35;
       const t = (sh - 0.5) * 1.35 * CFG.isik * 1.8;
       c = t < 0 ? renkKaris(c, renkKoy(c, 0.52), Math.min(0.70, -t))
                 : renkKaris(c, [255, 255, 255], Math.min(0.28, t * 0.50));
@@ -728,9 +698,9 @@
 
     /* 3. Leke — parça parça koyu/açık, bölgeye göre karakter */
     if (CFG.leke > 0) {
-      let pk = smoothNoise(eu * 0.070 * F + 77, ev * 0.070 * F + 13) * 0.50
-             + smoothNoise(eu * 0.175 * F + 5,  ev * 0.175 * F + 91) * 0.32
-             + smoothNoise(eu * 0.430 * F + 31, ev * 0.430 * F + 53) * 0.18;
+      let pk = smoothNoise(eu * 0.070 + 77, ev * 0.070 + 13) * 0.50
+             + smoothNoise(eu * 0.175 + 5,  ev * 0.175 + 91) * 0.32
+             + smoothNoise(eu * 0.430 + 31, ev * 0.430 + 53) * 0.18;
       pk = yumusat(pk);
       /* Kısmi basamaklama: "parça" olarak okunsun, düz gradyan olmasın */
       pk = pk * 0.68 + (Math.round(pk * 3) / 3) * 0.32;
