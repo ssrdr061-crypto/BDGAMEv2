@@ -10244,3 +10244,200 @@ document.head.appendChild(st);
   uygula();
   ciz();
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   ZEMİN AYAR PANELİ  —  ?zeminayar=1
+   ------------------------------------------------------------
+   Adres satırına ?zeminayar=1 eklenmedikçe HİÇBİR ŞEY yapmaz.
+
+   Neyi sürer: harita.js CFG'sindeki LAV bölgesi sayıları.
+     · Kırmızı / Yeşil / Mavi → CFG.zeminRenk.lav (taban renk)
+     · Doygunluk              → CFG.doygunluk   (kar + lav ortak)
+     · Leke koyu / Leke açık  → CFG.lekeAyar.lav
+     · Işık                   → CFG.isik        (geniş dalga)
+
+   NEDEN ÖNBELLEK BOŞALTILIYOR: zemin CHUNK'lar hâlinde BİR KEZ
+   boyanıp saklanıyor. Sayıyı değiştirmek yetmez, saklanan
+   parçalar atılmazsa ekranda eski renk durur.
+
+   KOPYALA, harita.js'e yapıştırılacak satırları yazar. İş bitince
+   sayılar dosyaya sabitlenir ve BU BLOK SİLİNİR.
+   ══════════════════════════════════════════════════════════════ */
+(function zeminAyarPaneli(){
+"use strict";
+
+if (!/[?&]zeminayar=1(&|$)/.test(location.search)) return;
+
+var ANAHTAR = "bdZeminAyar1";
+
+/* Varsayılanlar harita.js'teki YENİ değerlerle birebir aynı olmalı;
+   panel açılınca ekran değişmesin diye. */
+var VARSAYILAN = {
+  lavR: 162, lavG: 96, lavB: 84,
+  doygunluk: 110,   /* yüzde, /100 uygulanır */
+  lekeKoyu: 30,
+  lekeAcik: 20,
+  isik: 32
+};
+
+var A = Object.assign({}, VARSAYILAN);
+try {
+  var kayit = JSON.parse(localStorage.getItem(ANAHTAR) || "null");
+  if (kayit) A = Object.assign(A, kayit);
+} catch (e) {}
+
+function cfg(){
+  return (window.HARITA && HARITA.CFG) ? HARITA.CFG : null;
+}
+
+function uygula(tazele){
+  var C = cfg();
+  if (!C) return;
+
+  C.zeminRenk.lav = [A.lavR, A.lavG, A.lavB];
+  C.doygunluk     = A.doygunluk / 100;
+  C.lekeAyar.lav  = { koyu: A.lekeKoyu / 100, acik: A.lekeAcik / 100 };
+  C.isik          = A.isik / 100;
+
+  var ku = document.getElementById("zaKutu");
+  if (ku) ku.style.background = "rgb(" + A.lavR + "," + A.lavG + "," + A.lavB + ")";
+
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
+
+  if (tazele !== false) {
+    try { if (HARITA.onbellegiBosalt) HARITA.onbellegiBosalt(); } catch (e) {}
+    try { if (HARITA.cizIste) HARITA.cizIste(); } catch (e) {}
+  }
+}
+
+var SURGU = [
+  { ad: "lavR",      etiket: "Kırmızı",    alt: 0,  ust: 255 },
+  { ad: "lavG",      etiket: "Yeşil",      alt: 0,  ust: 255 },
+  { ad: "lavB",      etiket: "Mavi",       alt: 0,  ust: 255 },
+  { ad: "doygunluk", etiket: "Doygunluk",  alt: 50, ust: 160 },
+  { ad: "lekeKoyu",  etiket: "Leke koyu",  alt: 0,  ust: 70  },
+  { ad: "lekeAcik",  etiket: "Leke açık",  alt: 0,  ust: 70  },
+  { ad: "isik",      etiket: "Işık",       alt: 0,  ust: 70  }
+];
+
+function kopyaMetni(){
+  return "harita.js CFG:\n" +
+    "lav:   [" + A.lavR + ", " + A.lavG + ", " + A.lavB + "],\n" +
+    "doygunluk: " + (A.doygunluk / 100).toFixed(2) + ",\n" +
+    "lav:   { koyu: " + (A.lekeKoyu / 100).toFixed(2) +
+      ", acik: " + (A.lekeAcik / 100).toFixed(2) + " },\n" +
+    "isik: " + (A.isik / 100).toFixed(2) + ",";
+}
+
+function ciz(){
+  var st = document.createElement("style");
+  st.id = "temaZeminAyarStil";
+  st.textContent =
+    "#zaPanel{position:fixed;left:8px;top:120px;z-index:99999;width:210px;" +
+     "font-family:'Baloo 2',system-ui,sans-serif;color:#e8f4ff;" +
+     "background:rgba(10,22,40,.94);border-radius:10px;padding:8px 10px 10px;" +
+     "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+    "#zaPanel .zaBas{display:flex;align-items:center;gap:6px;font-weight:700;" +
+     "font-size:13px;margin-bottom:6px;touch-action:none;}" +
+    "#zaKutu{width:18px;height:18px;border-radius:4px;flex:0 0 18px;}" +
+    "#zaPanel .zaSat{margin-bottom:5px;}" +
+    "#zaPanel .zaEt{font-weight:700;font-size:11px;color:#e8f4ff;" +
+     "display:flex;justify-content:space-between;}" +
+    "#zaPanel .zaEt b{font-variant-numeric:tabular-nums;}" +
+    "#zaPanel input[type=range]{width:100%;margin:0;}" +
+    "#zaPanel button{font-family:inherit;font-weight:700;font-size:12px;" +
+     "color:#e8f4ff;background:rgba(255,255,255,.12);border:none;" +
+     "border-radius:6px;padding:5px 8px;margin-right:5px;}" +
+    "#zaPanel button:active{transform:scale(.96);filter:brightness(.93);}" +
+    "#zaMetin{font-size:10px;white-space:pre-wrap;margin-top:6px;" +
+     "color:#bcd6f2;line-height:1.35;}";
+  document.head.appendChild(st);
+
+  var p = document.createElement("div");
+  p.id = "zaPanel";
+
+  var html = "<div class='zaBas' id='zaTut'><span id='zaKutu'></span>" +
+             "<span>ZEMİN</span><span style='flex:1'></span>" +
+             "<span id='zaTopla'>▾</span></div><div id='zaGovde'>";
+  for (var i = 0; i < SURGU.length; i++) {
+    var s = SURGU[i];
+    html += "<div class='zaSat'><div class='zaEt'><span>" + s.etiket +
+            "</span><b id='zaD-" + s.ad + "'>" + A[s.ad] + "</b></div>" +
+            "<input type='range' id='za-" + s.ad + "' min='" + s.alt +
+            "' max='" + s.ust + "' step='1' value='" + A[s.ad] + "'></div>";
+  }
+  html += "<button id='zaKopya'>KOPYALA</button>" +
+          "<button id='zaSifir'>SIFIRLA</button>" +
+          "<div id='zaMetin'></div></div>";
+  p.innerHTML = html;
+  document.body.appendChild(p);
+
+  SURGU.forEach(function (s) {
+    var el = document.getElementById("za-" + s.ad);
+    el.addEventListener("input", function () {
+      A[s.ad] = parseInt(el.value, 10);
+      document.getElementById("zaD-" + s.ad).textContent = A[s.ad];
+      uygula();
+    });
+  });
+
+  document.getElementById("zaKopya").addEventListener("click", function () {
+    var t = kopyaMetni();
+    try { navigator.clipboard.writeText(t); } catch (e) {}
+    document.getElementById("zaMetin").textContent = t;
+  });
+
+  document.getElementById("zaSifir").addEventListener("click", function () {
+    A = Object.assign({}, VARSAYILAN);
+    SURGU.forEach(function (s) {
+      document.getElementById("za-" + s.ad).value = A[s.ad];
+      document.getElementById("zaD-" + s.ad).textContent = A[s.ad];
+    });
+    uygula();
+  });
+
+  var kapali = false;
+  document.getElementById("zaTopla").addEventListener("click", function () {
+    kapali = !kapali;
+    document.getElementById("zaGovde").style.display = kapali ? "none" : "block";
+    this.textContent = kapali ? "▴" : "▾";
+  });
+
+  /* Sürükle. transform kullanılmıyor — dokunma alanı gerçek
+     konumla aynı kalsın diye left/top yazılıyor. */
+  (function surukle(){
+    var tut = document.getElementById("zaTut");
+    var bx = 0, by = 0, sx = 0, sy = 0, aktif = false;
+    tut.addEventListener("pointerdown", function (e) {
+      if (e.target.id === "zaTopla") return;
+      aktif = true;
+      var r = p.getBoundingClientRect();
+      bx = r.left; by = r.top; sx = e.clientX; sy = e.clientY;
+      try { tut.setPointerCapture(e.pointerId); } catch (er) {}
+    });
+    tut.addEventListener("pointermove", function (e) {
+      if (!aktif) return;
+      p.style.left = (bx + e.clientX - sx) + "px";
+      p.style.top  = (by + e.clientY - sy) + "px";
+    });
+    tut.addEventListener("pointerup", function () { aktif = false; });
+  })();
+}
+
+function baslat(){
+  ciz();
+  /* HARITA henüz hazır olmayabilir; hazır olana kadar dene. */
+  var dene = 0;
+  (function bekle(){
+    if (cfg()) { uygula(); return; }
+    if (++dene > 40) return;
+    setTimeout(bekle, 150);
+  })();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", baslat);
+} else {
+  baslat();
+}
+})();

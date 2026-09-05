@@ -179,7 +179,13 @@
     zeminRenk: {
       kar:   [224, 234, 245],
       cimen: [ 82, 192,  58],
-      lav:   [186,  60,  36],
+      /* LAV — doygunluk düşürüldü, taban biraz açıldı.
+         Eski [186,60,36] tam doygun tuğla kırmızısıydı; zemin
+         nesnelerden daha yüksek sesli çıkıyor, üstündeki kale
+         "yapıştırılmış" görünüyordu. Referans oyunlarda zemin
+         GERİ ÇEKİLİR, doygun renk yalnız nesnelerde olur.
+         `?zeminayar=1` bu üç sayıyı canlı sürer. */
+      lav:   [162,  96,  84],
     },
 
     /* ── ÇİMEN = KALEİÇİ DOKUSU ──
@@ -209,7 +215,7 @@
        YALNIZ kar ve lav için geçerli — çimenin kendi doygunluğu
        cimenKale.doygunluk. Yansıma kapandıktan sonra kar/lav soluk
        kaldığı için 1.22 → 1.34. */
-    doygunluk: 1.34,
+    doygunluk: 1.10,
 
     /* ── BÖLGE BAŞINA LEKE KARAKTERİ ──
        koyu = koyu parçaların gücü · acik = açık parçaların gücü
@@ -218,7 +224,10 @@
     lekeAyar: {
       kar:   { koyu: 0.34, acik: 0.10 },
       cimen: { koyu: 0.24, acik: 0.24 },
-      lav:   { koyu: 0.38, acik: 0.08 },
+      /* Lav lekesi artık ÇİFT YÖNLÜ. Yalnız kararırken zemin
+         "boyanmış düzlem" gibi okunuyordu; aydınlanan parçalar
+         olmadan hacim çıkmıyor. */
+      lav:   { koyu: 0.30, acik: 0.20 },
     },
 
     /* Kar bölgesinin koyu lekelerinin rengi. Beyazın grisi yerine
