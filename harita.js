@@ -255,115 +255,6 @@
        serilmiş gibi durur. Büyütürsen daha yatık, 1 = yuvarlak. */
     lekeYatay: 2.4,
 
-    /* ── KABARTMA (RÖLYEF) ──
-       Haritanın ısı haritası gibi durmasının kök sebebi: zeminde
-       hiçbir YÜKSEKLİK bilgisi yoktu. Göz eğimi ancak sabit yönlü bir
-       ışık bir yükseklik alanına vurduğunda okur. Burada görünmez bir
-       yükseklik alanı üretilir; renk, KOMŞU ÖRNEKLERİN FARKINDAN
-       çıkan eğime göre açılıp koyulaşır.
-
-       PERFORMANS: eğim yeni gürültü çağırarak değil, parça tamponunda
-       ZATEN yan yana duran örneklerden hesaplanır — ikinci geçiş saf
-       aritmetiktir. Zemin parça parça BİR KEZ pişer, kare başına
-       maliyet S I F I R artar.
-
-       KRİTİK: yükseklik yalnız BOYAMAYA girer. `biyomDeger()`'in ham
-       çıktısına dokunulmaz — dokunulsaydı hangi karonun lav olduğu
-       değişir, mevcut kaleler başka arazide kalırdı.
-
-       guc:       0 = KAPALI (ikinci geçiş hiç çalışmaz). 1 = normal.
-       yukseklik: eğim kazancı. Büyürse tepeler dikleşir. zeminAdim'a
-                  göre normalize edilir, örnekleme sıklığı değişse de
-                  görünüm aynı kalır.
-       siklik:    tepelerin büyüklüğü. KÜÇÜK sayı = BÜYÜK tepe.
-                  0.6 ≈ 3 karo boyu. 2.0 üstü tümüvar deseni olur.
-       gunesX/Y:  ışığın EKRAN uzayındaki yönü. (-0.55,-0.83) = sol üstten.
-                  Dünya uzayına konsaydı kaydırırken ışık zeminle beraber
-                  kayar, leke gibi okunurdu.
-       sertlik:   eğim karşıtlığı. 1 = yumuşak, 2 = sert.
-       egimYatay: yatay (çapraz) eğimin ağırlığı.
-       egimDikey: dikey (aşağı yukarı) eğimin ağırlığı.
-                  İkisi ayrı tutuluyor: eşitken izometrik zemin dik bir
-                  duvar gibi okunabiliyor, dikeyi kısınca yere serilir.
-       basamak:   0 = yumuşak. >0 ise yükseklik bu kadar kademeye
-                  yuvarlanır; düzlüklerde eğim sıfırlanır, kademe
-                  aralarında kontur çizgisi belirir.
-       tonlama:   yüksek yer hafif açık, alçak yer hafif koyu. Eğimden
-                  bağımsız, düz bir irtifa tonu. 0 = kapalı. */
-    kabartma: {
-      guc: 0.55,
-      yukseklik: 6,
-      siklik: 0.6,
-      gunesX: -0.55,
-      gunesY: -0.83,
-      sertlik: 1.0,
-      egimYatay: 1.0,
-      egimDikey: 1.0,
-      basamak: 0,
-      tonlama: 0.12,
-
-      /* ── AYDINLIK / KARANLIK GÜCÜ ──
-         Aydınlık taraf BEYAZA KARIŞTIRILMAZ, parlaklık ÇARPILIR.
-         Beyaz karıştırma doygunluğu öldürür: lavda kırmızı pembeye
-         kayar ve zeminde "beyaz pus" olarak okunur. Çarpmada renk
-         açısı sabit kalır, yalnız parlaklık artar — lav lav kalır.
-         Kar zaten beyaza yakın olduğu için üst sınırı kendiliğinden
-         kırpılır, ayrı kural gerekmez. */
-      aydinlik: 0.20,
-      karanlik: 0.42,
-    },
-
-    /* ── KIYI ÇİZGİSİ ──
-       Biyom sınırında ince bir koyu kenar. Kar↔çimen ve çimen↔lav
-       geçişi "renk kesmesi" olmaktan çıkıp sahil gibi okunur.
-
-       Ek gürültü MALİYETİ YOK: biyom değeri (v) zaten zeminRengi
-       içinde hesaplanıyor, dışarı alınıp eşiğe uzaklığına bakılıyor.
-
-       guc:       0 = KAPALI. Çizginin genel gücü.
-       kalinlik:  biyom DEĞERİ cinsinden yarı en. 0.012 ≈ 3 karo.
-                  Piksel değil — zoom'la kalınlaşıp incelmez, arazinin
-                  kendi özelliğidir.
-       koyuluk:   kenarın ne kadar karardığı (0..1). */
-    kiyi: {
-      guc: 0.45,
-      kalinlik: 0.012,
-      koyuluk: 0.45,
-    },
-
-    /* ── KARO TONU ──
-       "Harita açısı kalelere uymuyor" şikayetinin KÖKÜ burasıydı.
-       Zemin karo karo çizilmiyordu: parçanın dünya dikdörtgeni
-       gürültüyle boyanıp bulanıklaştırılarak büyütülüyordu. Yani
-       zeminde tek bir düz çizgi, tek bir 2:1 eğimli kenar, tek bir
-       köşe yoktu — her şey yuvarlak lekeydi. Kaleler ise keskin
-       kenarlı ve fasetalı. Göz kalede izometri görüyor, zeminde
-       hiçbir geometri görmüyordu. Açı yanlış değildi; açı YOKTU.
-
-       Çözüm: her karo, eşkenar dörtgeni kadar bir alanı kendi sabit
-       ton farkıyla kaplıyor. KENAR ÇİZGİSİ YOK — sadece ton. Göz
-       kafes düzenini çizgisiz de yakalar, zemin pürüzsüz kalır.
-
-       Kare başına maliyeti SIFIR: parça önbelleği aynen duruyor,
-       dolgu yalnız pişirme sırasında bir kez yapılıyor.
-
-       guc:        ton farkının şiddeti. 0 = KAPALI (eski düz zemin).
-                   0.30 üstü mozaik gibi durur, pürüzsüzlük kaçar.
-       kumeSiklik: tonların öbekleşmesi. KÜÇÜK sayı = GENİŞ öbek.
-                   Öbekleşme olmasaydı tuz-biber deseni çıkardı.
-       karisim:    komdan karoya sıçrama payı (0..1). 0 = tamamen
-                   yumuşak öbek, 1 = her karo bağımsız zıplar.
-       tasma:      komşu karolar arasında saç teli boşluk kalmasın
-                   diye her dörtgen bu kadar dünya pikseli büyütülür.
-                   Kenar yumuşatması yüzünden şart; 0 yapılırsa karo
-                   aralarında ince ağ çıkar. */
-    karoTon: {
-      guc: 0.16,
-      kumeSiklik: 0.22,
-      karisim: 0.45,
-      tasma: 0.8,
-    },
-
     /* ── DÜĞÜM ETİKETİ İNCE AYAR ──
        Kaynak/canavar düğümünün altındaki "kutucuk + isim" şeridi.
        Sayılar ÇARPANDIR, piksel değil: düğüm yarıçapı (r) zoom ile
@@ -414,35 +305,6 @@
     fpsGoster: /[?&]fps=1/.test(location.search || ""),
     izgaraCizgisi: false,   // true yaparsan karo kenarları çizilir
   };
-
-  /* ══ İNCE AYAR: VARSAYILAN ANLIK GÖRÜNTÜSÜ ══
-     `?haritaayar=1` panelindeki "SIFIRLA" bunu okur. Kayıt
-     UYGULANMADAN ÖNCE alınıyor — sonra alınsaydı "varsayılan",
-     geçen oturumda kaydedilen değer olurdu ve ilk haline bir daha
-     hiç dönülemezdi. CFG'de fonksiyon yok, JSON kopyası yeterli. */
-  const CFG_VARSAYILAN = JSON.parse(JSON.stringify(CFG));
-
-  /* ══ İNCE AYAR: KAYITLI DEĞERLERİ GERİ YÜKLE ══
-     Burası TÜRETİLMİŞ ÖLÇÜLERDEN ÖNCE çalışmak zorunda:
-     HALF_W / ORIGIN_X / WORLD_W aşağıda `const` olarak BİR KEZ
-     hesaplanıyor. tileW/tileH bu yüzden panelde canlı sürülemez,
-     "kaydet + yenile" ile çalışır.
-
-     Yalnız SAYI alanları yazılır ve hedefin kendisi de sayı olmalı —
-     böylece bozuk/eski bir kayıt CFG'nin yapısını kıramaz. Kayıt
-     yoksa hiçbir şey olmaz, oyun varsayılanlarla açılır. */
-  try {
-    const _kayit = JSON.parse(localStorage.getItem("bdHaritaAyar") || "null");
-    if (_kayit) for (const yol in _kayit) {
-      const par = yol.split(".");
-      let o = CFG;
-      for (let i = 0; i < par.length - 1 && o; i++) o = o[par[i]];
-      const son = par[par.length - 1];
-      if (o && typeof o[son] === "number" && typeof _kayit[yol] === "number") {
-        o[son] = _kayit[yol];
-      }
-    }
-  } catch (e) { /* bozuk kayıt oyunu durdurmaz */ }
 
   /* Türetilmiş ölçüler — elle yazma, hep buradan oku */
   const G = CFG.grid;
@@ -800,57 +662,12 @@
     return c;
   }
 
-  /* ── KARO TONU ──
-     Karo koordinatının SAF fonksiyonu. Bu şart: parça canvas'ları
-     dikdörtgen ve birbirinin üstüne binerek çiziliyor. Ton karonun
-     kendisinden değil de parçadan türetilseydi, binen bölgelerde iki
-     parça farklı ton üretir ve dikdörtgen sınırları görünürdü.
-
-     İki bileşen: geniş öbekler (smoothNoise) + karodan karoya
-     sıçrama (hash2). Yalnız öbek olsaydı kafes seçilmez, yalnız
-     sıçrama olsaydı tuz-biber deseni çıkardı. */
-  function karoTonDeger(gx, gy) {
-    const T = CFG.karoTon;
-    const f = T.kumeSiklik || 0.22;
-    const k = smoothNoise(gx * f + 53, gy * f + 11);
-    const j = hash2(gx * 1.7 + 9, gy * 1.7 + 23);
-    const m = T.karisim != null ? T.karisim : 0.45;
-    return k * (1 - m) + j * m;
-  }
-
-  /* ── YÜKSEKLİK ALANI ──
-     Görünmez. Yalnız boyamada kullanılır; biyoma HİÇ girmez.
-
-     DÜNYA PİKSELİ uzayında örnekleniyor, ızgara koordinatında değil.
-     Sebep: ızgarada örneklenirse ekranda ezilir, tepe yuvarlak değil
-     eğri çıkar. x frekansı y'nin YARISI — izometride zeminde yuvarlak
-     olan şey ekranda 2:1 geniş görünür, tepe de öyle görünmeli.
-
-     İki katman: geniş tepeler + üzerine kırışıklık. Üçüncü katman
-     eklenmedi — zemin zaten zeminAdim (10 dünya piksel) aralıkla
-     örnekleniyor, daha ince desen örneklemeye takılıp pusa döner. */
-  function yukseklikDeger(wx, wy) {
-    const K = CFG.kabartma;
-    const f = (K.siklik || 0.6) * 0.01;
-    const x = wx * f * 0.5;
-    const y = wy * f;
-    let h = smoothNoise(x + 211,       y + 137)       * 0.62
-          + smoothNoise(x * 2.7 + 19,  y * 2.7 + 83)  * 0.38;
-    const b = K.basamak | 0;
-    if (b > 0) h = Math.round(h * b) / b;
-    return h;
-  }
-
-  /* cikti verilirse ham biyom değeri (serpme dahil) oraya yazılır.
-     Kıyı çizgisi bunu kullanır — yeniden hesaplanırsa serpmeSapma
-     ikinci kez çağrılır ve pişirme boşuna pahalılaşır. */
-  function zeminRengi(gx, gy, cikti) {
+  function zeminRengi(gx, gy) {
     const R = CFG.zeminRenk, A = CFG.lekeAyar;
     /* Serpme YALNIZ boyamada. biyom()/biyomKarisim() ham değeri
        okumaya devam eder — kale/düğüm arazisi kaymasın. */
     const v = biyomDeger(gx, gy) + serpmeSapma(gx, gy);
     const w = biyomAgirlik(v);
-    if (cikti) cikti.v = v;
 
     /* Saf çimen: kar/lav hesabına hiç girme */
     if (w[1] >= 0.999) return cimenKaleRengi(gx, gy);
@@ -956,108 +773,30 @@
 
     const w = maxX - minX, h = maxY - minY;
 
-    /* ── alçak çözünürlüklü tampon ──
-       PADC: tamponun her yanında kaç HÜCRE fazladan örneklendiği.
-       1 değil 2 — kabartma eğimi merkezi farkla (i-1, i+1) hesaplanıyor,
-       yani kopyalanan bölgenin EN DIŞ sırasının da bir komşusu olmalı.
-       1 kalırsa parça kenarlarında gölgesiz bir çerçeve, dolayısıyla
-       komşu parçayla arasında ince çizgi kalır. */
-    const A    = Math.max(4, CFG.zeminAdim);
-    const PADC = 2;
+    /* ── alçak çözünürlüklü tampon ── */
+    const A  = Math.max(4, CFG.zeminAdim);
     const LW = Math.ceil(w / A), LH = Math.ceil(h / A);
-    const BW = LW + PADC * 2, BH = LH + PADC * 2;
 
     const lo   = document.createElement("canvas");
-    lo.width   = BW;
-    lo.height  = BH;
+    lo.width   = LW + 2;
+    lo.height  = LH + 2;
     const lx   = lo.getContext("2d");
-    const veri = lx.createImageData(BW, BH);
+    const veri = lx.createImageData(LW + 2, LH + 2);
     const p    = veri.data;
 
-    const K  = CFG.kabartma || {};
-    const KY = CFG.kiyi || {};
-    const kabartmaAcik = (K.guc || 0) > 0;
-    const kiyiAcik     = (KY.guc || 0) > 0 && (KY.kalinlik || 0) > 0;
-
-    /* Yükseklik yalnız kabartma açıkken üretilir — kapalıyken iki
-       smoothNoise çağrısı başına hiç girilmez. */
-    const yuk = kabartmaAcik ? new Float32Array(BW * BH) : null;
-    const cik = kiyiAcik ? { v: 0 } : null;
-
-    /* ── 1. GEÇİŞ: renk + yükseklik + kıyı ── */
-    for (let j = 0; j < BH; j++) {
-      const wy = minY + (j - PADC + 0.5) * A;
-      for (let i = 0; i < BW; i++) {
-        const wx = minX + (i - PADC + 0.5) * A;
+    for (let j = 0; j < LH + 2; j++) {
+      const wy = minY + (j - 1 + 0.5) * A;
+      for (let i = 0; i < LW + 2; i++) {
+        const wx = minX + (i - 1 + 0.5) * A;
         const g  = worldToGrid(wx, wy);
-        let   c  = zeminRengi(g.gx, g.gy, cik);
-        const n  = j * BW + i;
-
-        if (yuk) yuk[n] = yukseklikDeger(wx, wy);
-
-        /* Kıyı: biyom değerinin eşiğe uzaklığı. Komşu gerektirmez,
-           bu yüzden burada, ikinci geçişte değil. */
-        if (cik) {
-          const kal = KY.kalinlik;
-          const d = Math.min(Math.abs(cik.v - CFG.esikKar),
-                             Math.abs(cik.v - CFG.esikCimen));
-          if (d < kal) {
-            const t = yumusat(1 - d / kal) * KY.guc;
-            c = renkKaris(c, renkKoy(c, KY.koyuluk), Math.min(1, t));
-          }
-        }
-
-        const k  = n * 4;
+        const c  = zeminRengi(g.gx, g.gy);
+        const k  = (j * (LW + 2) + i) * 4;
         p[k]     = c[0];
         p[k + 1] = c[1];
         p[k + 2] = c[2];
         p[k + 3] = 255;
       }
     }
-
-    /* ── 2. GEÇİŞ: kabartma ──
-       Saf aritmetik. Tek bir gürültü çağrısı yok — eğim, birinci
-       geçişte zaten doldurulmuş komşu örneklerin farkıdır. */
-    if (kabartmaAcik) {
-      /* zeminAdim'a göre normalize: örnekleme sıklaşınca komşu farkı
-         küçülür, kazanç aynı oranda büyür — görünüm sabit kalır. */
-      const kaz  = (K.yukseklik || 0) * (10 / A);
-      const sx   = (K.gunesX != null ? K.gunesX : -0.55) * (K.egimYatay != null ? K.egimYatay : 1);
-      const sy   = (K.gunesY != null ? K.gunesY : -0.83) * (K.egimDikey != null ? K.egimDikey : 1);
-      const sert = K.sertlik || 1;
-      const guc  = K.guc;
-      const ton  = K.tonlama || 0;
-      const gA   = (K.aydinlik != null ? K.aydinlik : 0.20);
-      const gK   = (K.karanlik != null ? K.karanlik : 0.42);
-
-      for (let j = 1; j < BH - 1; j++) {
-        for (let i = 1; i < BW - 1; i++) {
-          const n = j * BW + i;
-          const dx = yuk[n + 1]  - yuk[n - 1];
-          const dy = yuk[n + BW] - yuk[n - BW];
-
-          /* Yüzey normali ekranda kabaca (-dx, -dy); ışıkla nokta
-             çarpımı eğimin aydınlığını verir. */
-          let t = -(dx * sx + dy * sy) * kaz * sert;
-
-          /* İrtifa tonu: eğimden bağımsız düz yükseklik farkı */
-          if (ton) t += (yuk[n] - 0.5) * ton;
-
-          t *= guc;
-          if (t > 1) t = 1; else if (t < -1) t = -1;
-          if (t > -0.004 && t < 0.004) continue;
-
-          /* Tek kural, iki yön: parlaklık çarpanı. Karıştırma yok,
-             bu yüzden hiçbir bölgede renk gri/beyaz tarafa kaçmaz. */
-          const k = n * 4;
-          const m = t > 0 ? 1 + t * gA : 1 + t * gK;
-          p[k]     = p[k]     * m;
-          p[k + 1] = p[k + 1] * m;
-          p[k + 2] = p[k + 2] * m;
-        }
-      }
-    }
-
     lx.putImageData(veri, 0, 0);
 
     /* ── parça canvas'ına yumuşatarak büyüt ── */
@@ -1068,62 +807,7 @@
     x2.imageSmoothingEnabled = true;
     x2.imageSmoothingQuality = "high";
     x2.setTransform(s, 0, 0, s, 0, 0);
-    x2.drawImage(lo, PADC, PADC, w / A, h / A, 0, 0, w, h);
-
-    /* ── KARO TONU ──
-       Zemin yıkamasının ÜSTÜNE, karo karo. Çizgi yok, yalnız dolgu.
-
-       NEDEN GENİŞ ARALIK: parça canvas'ı DİKDÖRTGEN, içindeki karo
-       bölgesi ise eşkenar dörtgen. Dikdörtgenin dört köşe üçgeni
-       KOMŞU parçaların karolarına denk gelir ve parçalar üst üste
-       binıyor. Yalnız kendi karolarını tonlasaydık binen bölgede
-       tonlu/tonsuz farkı çıkar, parça sınırları dikdörtgen olarak
-       görünürdü. Bu yüzden dikdörtgene değen TÜM karolar çizilir;
-       ton karonun saf fonksiyonu olduğu için binen yerler birebir
-       aynı çıkar. */
-    const T = CFG.karoTon;
-    if (T && T.guc > 0) {
-      const k1 = worldToGrid(minX, minY), k2 = worldToGrid(maxX, minY);
-      const k3 = worldToGrid(minX, maxY), k4 = worldToGrid(maxX, maxY);
-      const tgx0 = Math.floor(Math.min(k1.gx, k2.gx, k3.gx, k4.gx)) - 1;
-      const tgx1 = Math.ceil (Math.max(k1.gx, k2.gx, k3.gx, k4.gx)) + 1;
-      const tgy0 = Math.floor(Math.min(k1.gy, k2.gy, k3.gy, k4.gy)) - 1;
-      const tgy1 = Math.ceil (Math.max(k1.gy, k2.gy, k3.gy, k4.gy)) + 1;
-
-      /* Taşma: kenar yumuşatması yüzünden yan yana iki dolgunun
-         arasında yarım piksellik boşluk kalır ve zeminde ince ağ
-         görünür. Dörtgen merkezinden dışa doğru büyütülüyor. */
-      const ta = T.tasma != null ? T.tasma : 0.8;
-      const olx = 1 + (2 * ta) / tw;
-      const oly = 1 + (2 * ta) / th;
-
-      for (let gy = tgy0; gy <= tgy1; gy++) {
-        for (let gx = tgx0; gx <= tgx1; gx++) {
-          const q  = gridToWorld(gx, gy);
-          const px = q.x - minX, py = q.y - minY;
-          /* Dikdörtgene değmeyeni ele — tarama kutusu geniş, çoğu boşa */
-          if (px + tw < 0 || py + th < 0 || px > w || py > h) continue;
-
-          const t = (karoTonDeger(gx, gy) - 0.5) * 2 * T.guc;
-          const a = Math.abs(t);
-          if (a < 0.004) continue;
-
-          x2.fillStyle = t > 0
-            ? "rgba(255,255,255," + a.toFixed(4) + ")"
-            : "rgba(0,0,0,"       + a.toFixed(4) + ")";
-
-          const cxp = px + tw / 2, cyp = py + th / 2;
-          const hw  = (tw / 2) * olx, hh = (th / 2) * oly;
-          x2.beginPath();
-          x2.moveTo(cxp,      cyp - hh);
-          x2.lineTo(cxp + hw, cyp);
-          x2.lineTo(cxp,      cyp + hh);
-          x2.lineTo(cxp - hw, cyp);
-          x2.closePath();
-          x2.fill();
-        }
-      }
-    }
+    x2.drawImage(lo, 1, 1, w / A, h / A, 0, 0, w, h);
 
     if (CFG.izgaraCizgisi) {
       x2.strokeStyle = "rgba(255,255,255,.18)";
@@ -2601,290 +2285,6 @@
     document.addEventListener("DOMContentLoaded", baslat);
   } else {
     baslat();
-  }
-
-  /* ═════════════════════════════════════════════════════════════════════
-     İNCE AYAR PANELİ — ?haritaayar=1
-
-     GEÇİCİ. Zemin oturunca KOPYALA çıktısı CFG'ye kalıcı yazılır ve bu
-     blok silinir (handoff kuralı: tanı panelleri iş bitince silinir).
-
-     Neden bu dosyada: harita.js kendi kendini bağlar, index.html'e
-     script etiketi eklemek gerekmiyor. tema.js'e de konamazdı —
-     tileW/tileH kaydı CFG kurulurken, yani bu dosya açılırken
-     okunmak zorunda.
-
-     Değer değişince zemin önbelleği boşaltılıp yeniden çizilir.
-     Kaydırma sırasında değil, YALNIZ kaydırıcı oynatılınca — o yüzden
-     panel açıkken de oyunun kare hızı düşmez.
-     ═════════════════════════════════════════════════════════════════════ */
-  const AYAR_GRUP = [
-    ["Karo", [
-      ["karoTon.guc",        "Ton g\u00fcc\u00fc (0 = kapal\u0131)", 0, 0.40, 0.005],
-      ["karoTon.kumeSiklik", "\u00d6bek geni\u015fli\u011fi",        0.03, 1.2, 0.01],
-      ["karoTon.karisim",    "Karodan karoya s\u0131\u00e7rama", 0, 1, 0.01],
-      ["karoTon.tasma",      "Ta\u015fma (a\u011f \u00e7\u0131karsa art\u0131r)", 0, 2.5, 0.1],
-    ]],
-    ["Kabartma", [
-      ["kabartma.guc",        "Güç (0 = kapalı)",   0,    2,    0.01],
-      ["kabartma.yukseklik",  "Yükseklik",          0,    20,   0.1 ],
-      ["kabartma.siklik",     "Tepe sıklığı",       0.05, 3,    0.01],
-      ["kabartma.sertlik",    "Sertlik",            0.2,  3,    0.01],
-      ["kabartma.aydinlik",   "Aydınlık gücü",      0,    1,    0.01],
-      ["kabartma.karanlik",   "Karanlık gücü",      0,    1,    0.01],
-      ["kabartma.tonlama",    "İrtifa tonu",        0,    0.6,  0.01],
-      ["kabartma.basamak",    "Basamak (0=yumuşak)",0,    12,   1   ],
-    ]],
-    ["Eğim", [
-      ["kabartma.egimYatay",  "Yatay (çapraz) eğim", 0,  3,  0.01],
-      ["kabartma.egimDikey",  "Dikey (aşağı yukarı)",0,  3,  0.01],
-      ["kabartma.gunesX",     "Güneş yönü X",       -1,  1,  0.01],
-      ["kabartma.gunesY",     "Güneş yönü Y",       -1,  1,  0.01],
-    ]],
-    ["Doku", [
-      ["leke",                 "Leke gücü",          0,   2,  0.01],
-      ["lekeYatay",            "Leke yataylığı",     1,   6,  0.05],
-      ["isik",                 "Işık dalgası",       0,   1,  0.01],
-      ["doygunluk",            "Doygunluk (kar/lav)",0.5, 2,  0.01],
-      ["cimenKale.siklik",     "Çimen deseni",       0.5, 8,  0.05],
-      ["cimenKale.isik",       "Çimen ışığı",        0,   1,  0.01],
-      ["cimenKale.doygunluk",  "Çimen doygunluğu",   0.5, 2,  0.01],
-    ]],
-    ["Geçiş", [
-      ["serpme.genislik", "Serpme genişliği", 0,    0.15, 0.001],
-      ["serpme.kaba",     "Kaba katman",      0.05, 1.5,  0.01 ],
-      ["serpme.orta",     "Orta katman",      0.1,  2,    0.01 ],
-      ["serpme.ince",     "İnce katman",      0.2,  2,    0.01 ],
-      ["sinirDalgasi",    "Sınır dalgası",    0,    0.30, 0.005],
-      ["gecisBandi",      "Yumuşama payı",    0,    0.05, 0.001],
-    ]],
-    ["Kıyı", [
-      ["kiyi.guc",      "Güç (0 = kapalı)", 0, 1,    0.01 ],
-      ["kiyi.kalinlik", "Kalınlık",         0, 0.05, 0.001],
-      ["kiyi.koyuluk",  "Koyuluk",          0, 1,    0.01 ],
-    ]],
-    ["Perspektif", [
-      ["tileW",     "Karo eni  (YENİLE)",  64, 256, 2],
-      ["tileH",     "Karo boyu (YENİLE)",  16, 160, 2],
-      ["zeminAdim", "Örnekleme adımı",      4,  20, 1],
-    ]],
-  ];
-
-  /* tileW/tileH canlı sürülemez: türetilmiş ölçüler dosya açılışında
-     `const` olarak hesaplanıyor, ayrıca DUGUM/KOORD/sefer hepsi buna
-     bağlı. Bu yollar değişince panel "YENİLE" uyarısı gösterir. */
-  const AYAR_YENILEME = { tileW: 1, tileH: 1 };
-
-  function ayarOku(kok, yol) {
-    const p = yol.split(".");
-    let o = kok;
-    for (let i = 0; i < p.length && o != null; i++) o = o[p[i]];
-    return o;
-  }
-  function ayarYaz(yol, v) {
-    const p = yol.split(".");
-    let o = CFG;
-    for (let i = 0; i < p.length - 1; i++) o = o[p[i]];
-    o[p[p.length - 1]] = v;
-  }
-
-  function ayarKayitOku() {
-    try { return JSON.parse(localStorage.getItem("bdHaritaAyar") || "{}") || {}; }
-    catch (e) { return {}; }
-  }
-  function ayarKayitYaz(k) {
-    try { localStorage.setItem("bdHaritaAyar", JSON.stringify(k)); } catch (e) {}
-  }
-
-  function haritaAyarPaneli() {
-    if (document.getElementById("hAyarPanel")) return;
-
-    const st = document.createElement("style");
-    st.id = "hAyarStil";
-    st.textContent = [
-      "#hAyarPanel{position:fixed;left:8px;top:96px;width:296px;z-index:99999;",
-        "background:#12263c;border:1px solid #2b4a6b;border-radius:10px;",
-        "box-shadow:0 2px 6px rgba(0,20,45,.3);font-family:'Baloo 2',sans-serif;",
-        "color:#e8f4ff;}",
-      "#hAyarBas{display:flex;align-items:center;gap:8px;padding:8px 10px;",
-        "background:#1b3654;border-radius:9px 9px 0 0;cursor:move;touch-action:none;}",
-      "#hAyarBas b{flex:1;font-size:14px;font-weight:700;}",
-      "#hAyarBas span{width:26px;height:26px;line-height:26px;text-align:center;",
-        "background:#264a70;border-radius:6px;font-size:14px;font-weight:700;}",
-      "#hAyarSek{display:flex;flex-wrap:wrap;gap:4px;padding:8px 8px 4px;}",
-      "#hAyarSek button{flex:0 0 auto;padding:5px 9px;font-family:inherit;",
-        "font-size:11px;font-weight:700;color:#9fc4e6;background:#1b3654;",
-        "border:0;border-radius:6px;}",
-      "#hAyarSek button.acik{background:#3d7ab8;color:#fff;}",
-      "#hAyarGovde{max-height:46vh;overflow-y:auto;padding:2px 10px 8px;}",
-      "#hAyarGovde::-webkit-scrollbar{width:0;height:0;}",
-      ".hAyarSat{padding:5px 0;}",
-      ".hAyarEt{display:flex;justify-content:space-between;font-size:11px;",
-        "font-weight:700;color:#e8f4ff;margin-bottom:3px;}",
-      ".hAyarEt i{font-style:normal;font-variant-numeric:tabular-nums;color:#8fd0ff;}",
-      ".hAyarSat input{width:100%;height:22px;margin:0;background:transparent;}",
-      "#hAyarAlt{display:flex;gap:6px;padding:8px 10px;border-top:1px solid #24405e;}",
-      "#hAyarAlt button{flex:1;padding:8px 0;font-family:inherit;font-size:12px;",
-        "font-weight:700;color:#fff;background:#3d7ab8;border:0;border-radius:7px;}",
-      "#hAyarAlt button.sifir{background:#5a3b3b;}",
-      "#hAyarNot{padding:0 10px 8px;font-size:11px;font-weight:700;color:#ffca6b;}",
-      "#hAyarCik{width:100%;box-sizing:border-box;height:88px;margin:0 0 8px;",
-        "padding:6px;font-family:monospace;font-size:10px;color:#cfe6ff;",
-        "background:#0d1c2d;border:1px solid #2b4a6b;border-radius:6px;display:none;}",
-      "#hAyarPanel.kapali #hAyarSek,#hAyarPanel.kapali #hAyarGovde,",
-        "#hAyarPanel.kapali #hAyarAlt,#hAyarPanel.kapali #hAyarNot{display:none;}"
-    ].join("");
-    document.head.appendChild(st);
-
-    const kap = document.createElement("div");
-    kap.id = "hAyarPanel";
-    kap.innerHTML =
-      "<div id='hAyarBas'><b>Harita ince ayar</b><span id='hAyarKapa'>\u2013</span></div>" +
-      "<div id='hAyarSek'></div>" +
-      "<div id='hAyarNot'></div>" +
-      "<div id='hAyarGovde'></div>" +
-      "<textarea id='hAyarCik' readonly></textarea>" +
-      "<div id='hAyarAlt'>" +
-        "<button id='hAyarSif' class='sifir'>SIFIRLA</button>" +
-        "<button id='hAyarKop'>KOPYALA</button>" +
-      "</div>";
-    document.body.appendChild(kap);
-
-    const sekEl = kap.querySelector("#hAyarSek");
-    const govEl = kap.querySelector("#hAyarGovde");
-    const notEl = kap.querySelector("#hAyarNot");
-    const cikEl = kap.querySelector("#hAyarCik");
-    let aktif = 0;
-
-    /* Yeniden pişirme geciktirilir: parmak kaydırıcıyı sürerken her
-       ara değerde tüm parçalar yeniden pişerse panel takılır. */
-    let bekle = 0;
-    function tazele() {
-      clearTimeout(bekle);
-      bekle = setTimeout(function () {
-        onbellegiBosalt();
-        cizIste();
-      }, 90);
-    }
-
-    function sekmeCiz() {
-      sekEl.innerHTML = "";
-      AYAR_GRUP.forEach(function (g, i) {
-        const b = document.createElement("button");
-        b.textContent = g[0];
-        if (i === aktif) b.className = "acik";
-        b.addEventListener("click", function () { aktif = i; sekmeCiz(); govdeCiz(); });
-        sekEl.appendChild(b);
-      });
-    }
-
-    function govdeCiz() {
-      govEl.innerHTML = "";
-      notEl.textContent = "";
-      const alanlar = AYAR_GRUP[aktif][1];
-      let yenilemeVar = false;
-
-      alanlar.forEach(function (a) {
-        const yol = a[0], ad = a[1], alt = a[2], ust = a[3], adim = a[4];
-        if (AYAR_YENILEME[yol]) yenilemeVar = true;
-
-        const sat = document.createElement("div");
-        sat.className = "hAyarSat";
-        const et = document.createElement("div");
-        et.className = "hAyarEt";
-        const ai = document.createElement("span"); ai.textContent = ad;
-        const de = document.createElement("i");
-        et.appendChild(ai); et.appendChild(de);
-
-        const sl = document.createElement("input");
-        sl.type = "range";
-        sl.min = alt; sl.max = ust; sl.step = adim;
-        const su = ayarOku(CFG, yol);
-        sl.value = su;
-        de.textContent = (+su).toFixed(adim >= 1 ? 0 : 3);
-
-        sl.addEventListener("input", function () {
-          const v = parseFloat(sl.value);
-          de.textContent = v.toFixed(adim >= 1 ? 0 : 3);
-          ayarYaz(yol, v);
-          const k = ayarKayitOku(); k[yol] = v; ayarKayitYaz(k);
-          if (!AYAR_YENILEME[yol]) tazele();
-        });
-
-        sat.appendChild(et); sat.appendChild(sl);
-        govEl.appendChild(sat);
-      });
-
-      if (yenilemeVar) {
-        notEl.textContent = "YENİLE yazan alanlar sayfa yenilenince uygulanır. "
-                          + "Karo boyu, eninin yarısı olmalı (2:1).";
-      }
-    }
-
-    /* SIFIRLA: yalnız açık sekmeyi, dosyadaki ilk değerlere döndürür. */
-    kap.querySelector("#hAyarSif").addEventListener("click", function () {
-      const k = ayarKayitOku();
-      AYAR_GRUP[aktif][1].forEach(function (a) {
-        const v = ayarOku(CFG_VARSAYILAN, a[0]);
-        if (typeof v === "number") { ayarYaz(a[0], v); delete k[a[0]]; }
-      });
-      ayarKayitYaz(k);
-      govdeCiz();
-      tazele();
-    });
-
-    /* KOPYALA: yalnız DEĞİŞMİŞ alanları, CFG'ye elle yazılacak
-       biçimde döker. Değişmeyenler yazılmaz — dosyadaki açıklamalar
-       yerinde kalsın diye. */
-    kap.querySelector("#hAyarKop").addEventListener("click", function () {
-      const k = ayarKayitOku();
-      const sat = [];
-      for (const yol in k) {
-        const v0 = ayarOku(CFG_VARSAYILAN, yol);
-        if (typeof v0 === "number" && Math.abs(v0 - k[yol]) < 1e-9) continue;
-        sat.push("CFG." + yol + " = " + k[yol] + ";");
-      }
-      const met = sat.length ? sat.join("\n") : "(değişiklik yok)";
-      cikEl.style.display = "block";
-      cikEl.value = met;
-      cikEl.focus(); cikEl.select();
-      try { navigator.clipboard && navigator.clipboard.writeText(met); } catch (e) {}
-    });
-
-    kap.querySelector("#hAyarKapa").addEventListener("click", function () {
-      kap.classList.toggle("kapali");
-    });
-
-    /* Sürükleme. Kaydırıcının kendi dokunuşunu yutmasın diye yalnız
-       başlıktan tutulur. */
-    (function () {
-      const bas = kap.querySelector("#hAyarBas");
-      let sx = 0, sy = 0, bx = 0, by = 0, tut = false;
-      bas.addEventListener("pointerdown", function (e) {
-        tut = true; sx = e.clientX; sy = e.clientY;
-        const r = kap.getBoundingClientRect(); bx = r.left; by = r.top;
-        bas.setPointerCapture(e.pointerId); e.preventDefault();
-      });
-      bas.addEventListener("pointermove", function (e) {
-        if (!tut) return;
-        kap.style.left = (bx + e.clientX - sx) + "px";
-        kap.style.top  = (by + e.clientY - sy) + "px";
-      });
-      bas.addEventListener("pointerup", function () { tut = false; });
-    })();
-
-    /* Panel üstündeki dokunuş haritaya sızmasın */
-    ["pointerdown", "pointermove", "touchstart", "touchmove"].forEach(function (t) {
-      kap.addEventListener(t, function (e) { e.stopPropagation(); });
-    });
-
-    sekmeCiz();
-    govdeCiz();
-  }
-
-  if (/[?&]haritaayar=1/.test(location.search || "")) {
-    if (document.body) haritaAyarPaneli();
-    else document.addEventListener("DOMContentLoaded", haritaAyarPaneli);
   }
 
   /* Konsoldan ayar yapabilmek için dışarı aç.
