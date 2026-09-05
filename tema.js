@@ -10268,7 +10268,10 @@ document.head.appendChild(st);
 
 if (!/[?&]zeminayar=1(&|$)/.test(location.search)) return;
 
-var ANAHTAR = "bdZeminAyar1";
+/* Anahtar 1 → 2: sıklık sürgüsü eklendi ve varsayılanlar değişti.
+   Eski anahtar kalsaydı telefonda kayıtlı eski (sonuna kadar açık)
+   sayılar geri yüklenip yeni varsayılanları ezerdi. */
+var ANAHTAR = "bdZeminAyar2";
 
 /* Varsayılanlar harita.js'teki YENİ değerlerle birebir aynı olmalı;
    panel açılınca ekran değişmesin diye. */
@@ -10277,7 +10280,8 @@ var VARSAYILAN = {
   doygunluk: 110,   /* yüzde, /100 uygulanır */
   lekeKoyu: 30,
   lekeAcik: 20,
-  isik: 32
+  isik: 32,
+  siklik: 100      /* yüzde; 100 = CFG.lekeSiklik 1.0 */
 };
 
 var A = Object.assign({}, VARSAYILAN);
@@ -10298,6 +10302,7 @@ function uygula(tazele){
   C.doygunluk     = A.doygunluk / 100;
   C.lekeAyar.lav  = { koyu: A.lekeKoyu / 100, acik: A.lekeAcik / 100 };
   C.isik          = A.isik / 100;
+  C.lekeSiklik    = A.siklik / 100;
 
   var ku = document.getElementById("zaKutu");
   if (ku) ku.style.background = "rgb(" + A.lavR + "," + A.lavG + "," + A.lavB + ")";
@@ -10317,7 +10322,11 @@ var SURGU = [
   { ad: "doygunluk", etiket: "Doygunluk",  alt: 50, ust: 160 },
   { ad: "lekeKoyu",  etiket: "Leke koyu",  alt: 0,  ust: 70  },
   { ad: "lekeAcik",  etiket: "Leke açık",  alt: 0,  ust: 70  },
-  { ad: "isik",      etiket: "Işık",       alt: 0,  ust: 70  }
+  { ad: "isik",      etiket: "Işık",       alt: 0,  ust: 70  },
+  /* Deseni sıklaştırır. Asıl işe yarayan sürgü bu — güç sürgüleri
+     sıklık düşükken ekranı bütün olarak koyultup açmaktan başka
+     bir şey yapmıyor. */
+  { ad: "siklik",    etiket: "Leke sıklığı", alt: 50, ust: 400 }
 ];
 
 function kopyaMetni(){
@@ -10326,7 +10335,8 @@ function kopyaMetni(){
     "doygunluk: " + (A.doygunluk / 100).toFixed(2) + ",\n" +
     "lav:   { koyu: " + (A.lekeKoyu / 100).toFixed(2) +
       ", acik: " + (A.lekeAcik / 100).toFixed(2) + " },\n" +
-    "isik: " + (A.isik / 100).toFixed(2) + ",";
+    "isik: " + (A.isik / 100).toFixed(2) + ",\n" +
+    "lekeSiklik: " + (A.siklik / 100).toFixed(2) + ",";
 }
 
 function ciz(){
