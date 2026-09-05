@@ -291,7 +291,7 @@
        tonlama:   yüksek yer hafif açık, alçak yer hafif koyu. Eğimden
                   bağımsız, düz bir irtifa tonu. 0 = kapalı. */
     kabartma: {
-      guc: 0.85,
+      guc: 0.55,
       yukseklik: 6,
       siklik: 0.6,
       gunesX: -0.55,
@@ -329,6 +329,39 @@
       guc: 0.45,
       kalinlik: 0.012,
       koyuluk: 0.45,
+    },
+
+    /* ── KARO TONU ──
+       "Harita açısı kalelere uymuyor" şikayetinin KÖKÜ burasıydı.
+       Zemin karo karo çizilmiyordu: parçanın dünya dikdörtgeni
+       gürültüyle boyanıp bulanıklaştırılarak büyütülüyordu. Yani
+       zeminde tek bir düz çizgi, tek bir 2:1 eğimli kenar, tek bir
+       köşe yoktu — her şey yuvarlak lekeydi. Kaleler ise keskin
+       kenarlı ve fasetalı. Göz kalede izometri görüyor, zeminde
+       hiçbir geometri görmüyordu. Açı yanlış değildi; açı YOKTU.
+
+       Çözüm: her karo, eşkenar dörtgeni kadar bir alanı kendi sabit
+       ton farkıyla kaplıyor. KENAR ÇİZGİSİ YOK — sadece ton. Göz
+       kafes düzenini çizgisiz de yakalar, zemin pürüzsüz kalır.
+
+       Kare başına maliyeti SIFIR: parça önbelleği aynen duruyor,
+       dolgu yalnız pişirme sırasında bir kez yapılıyor.
+
+       guc:        ton farkının şiddeti. 0 = KAPALI (eski düz zemin).
+                   0.30 üstü mozaik gibi durur, pürüzsüzlük kaçar.
+       kumeSiklik: tonların öbekleşmesi. KÜÇÜK sayı = GENİŞ öbek.
+                   Öbekleşme olmasaydı tuz-biber deseni çıkardı.
+       karisim:    komdan karoya sıçrama payı (0..1). 0 = tamamen
+                   yumuşak öbek, 1 = her karo bağımsız zıplar.
+       tasma:      komşu karolar arasında saç teli boşluk kalmasın
+                   diye her dörtgen bu kadar dünya pikseli büyütülür.
+                   Kenar yumuşatması yüzünden şart; 0 yapılırsa karo
+                   aralarında ince ağ çıkar. */
+    karoTon: {
+      guc: 0.16,
+      kumeSiklik: 0.22,
+      karisim: 0.45,
+      tasma: 0.8,
     },
 
     /* ── DÜĞÜM ETİKETİ İNCE AYAR ──
@@ -767,6 +800,24 @@
     return c;
   }
 
+  /* ── KARO TONU ──
+     Karo koordinatının SAF fonksiyonu. Bu şart: parça canvas'ları
+     dikdörtgen ve birbirinin üstüne binerek çiziliyor. Ton karonun
+     kendisinden değil de parçadan türetilseydi, binen bölgelerde iki
+     parça farklı ton üretir ve dikdörtgen sınırları görünürdü.
+
+     İki bileşen: geniş öbekler (smoothNoise) + karodan karoya
+     sıçrama (hash2). Yalnız öbek olsaydı kafes seçilmez, yalnız
+     sıçrama olsaydı tuz-biber deseni çıkardı. */
+  function karoTonDeger(gx, gy) {
+    const T = CFG.karoTon;
+    const f = T.kumeSiklik || 0.22;
+    const k = smoothNoise(gx * f + 53, gy * f + 11);
+    const j = hash2(gx * 1.7 + 9, gy * 1.7 + 23);
+    const m = T.karisim != null ? T.karisim : 0.45;
+    return k * (1 - m) + j * m;
+  }
+
   /* ── YÜKSEKLİK ALANI ──
      Görünmez. Yalnız boyamada kullanılır; biyoma HİÇ girmez.
 
@@ -1018,6 +1069,61 @@
     x2.imageSmoothingQuality = "high";
     x2.setTransform(s, 0, 0, s, 0, 0);
     x2.drawImage(lo, PADC, PADC, w / A, h / A, 0, 0, w, h);
+
+    /* ── KARO TONU ──
+       Zemin yıkamasının ÜSTÜNE, karo karo. Çizgi yok, yalnız dolgu.
+
+       NEDEN GENİŞ ARALIK: parça canvas'ı DİKDÖRTGEN, içindeki karo
+       bölgesi ise eşkenar dörtgen. Dikdörtgenin dört köşe üçgeni
+       KOMŞU parçaların karolarına denk gelir ve parçalar üst üste
+       binıyor. Yalnız kendi karolarını tonlasaydık binen bölgede
+       tonlu/tonsuz farkı çıkar, parça sınırları dikdörtgen olarak
+       görünürdü. Bu yüzden dikdörtgene değen TÜM karolar çizilir;
+       ton karonun saf fonksiyonu olduğu için binen yerler birebir
+       aynı çıkar. */
+    const T = CFG.karoTon;
+    if (T && T.guc > 0) {
+      const k1 = worldToGrid(minX, minY), k2 = worldToGrid(maxX, minY);
+      const k3 = worldToGrid(minX, maxY), k4 = worldToGrid(maxX, maxY);
+      const tgx0 = Math.floor(Math.min(k1.gx, k2.gx, k3.gx, k4.gx)) - 1;
+      const tgx1 = Math.ceil (Math.max(k1.gx, k2.gx, k3.gx, k4.gx)) + 1;
+      const tgy0 = Math.floor(Math.min(k1.gy, k2.gy, k3.gy, k4.gy)) - 1;
+      const tgy1 = Math.ceil (Math.max(k1.gy, k2.gy, k3.gy, k4.gy)) + 1;
+
+      /* Taşma: kenar yumuşatması yüzünden yan yana iki dolgunun
+         arasında yarım piksellik boşluk kalır ve zeminde ince ağ
+         görünür. Dörtgen merkezinden dışa doğru büyütülüyor. */
+      const ta = T.tasma != null ? T.tasma : 0.8;
+      const olx = 1 + (2 * ta) / tw;
+      const oly = 1 + (2 * ta) / th;
+
+      for (let gy = tgy0; gy <= tgy1; gy++) {
+        for (let gx = tgx0; gx <= tgx1; gx++) {
+          const q  = gridToWorld(gx, gy);
+          const px = q.x - minX, py = q.y - minY;
+          /* Dikdörtgene değmeyeni ele — tarama kutusu geniş, çoğu boşa */
+          if (px + tw < 0 || py + th < 0 || px > w || py > h) continue;
+
+          const t = (karoTonDeger(gx, gy) - 0.5) * 2 * T.guc;
+          const a = Math.abs(t);
+          if (a < 0.004) continue;
+
+          x2.fillStyle = t > 0
+            ? "rgba(255,255,255," + a.toFixed(4) + ")"
+            : "rgba(0,0,0,"       + a.toFixed(4) + ")";
+
+          const cxp = px + tw / 2, cyp = py + th / 2;
+          const hw  = (tw / 2) * olx, hh = (th / 2) * oly;
+          x2.beginPath();
+          x2.moveTo(cxp,      cyp - hh);
+          x2.lineTo(cxp + hw, cyp);
+          x2.lineTo(cxp,      cyp + hh);
+          x2.lineTo(cxp - hw, cyp);
+          x2.closePath();
+          x2.fill();
+        }
+      }
+    }
 
     if (CFG.izgaraCizgisi) {
       x2.strokeStyle = "rgba(255,255,255,.18)";
@@ -2513,6 +2619,12 @@
      panel açıkken de oyunun kare hızı düşmez.
      ═════════════════════════════════════════════════════════════════════ */
   const AYAR_GRUP = [
+    ["Karo", [
+      ["karoTon.guc",        "Ton g\u00fcc\u00fc (0 = kapal\u0131)", 0, 0.40, 0.005],
+      ["karoTon.kumeSiklik", "\u00d6bek geni\u015fli\u011fi",        0.03, 1.2, 0.01],
+      ["karoTon.karisim",    "Karodan karoya s\u0131\u00e7rama", 0, 1, 0.01],
+      ["karoTon.tasma",      "Ta\u015fma (a\u011f \u00e7\u0131karsa art\u0131r)", 0, 2.5, 0.1],
+    ]],
     ["Kabartma", [
       ["kabartma.guc",        "Güç (0 = kapalı)",   0,    2,    0.01],
       ["kabartma.yukseklik",  "Yükseklik",          0,    20,   0.1 ],
