@@ -120,11 +120,26 @@ var OdulEfekt = (function () {
   function parcacik(kaynakDugum, gorsel, boyut, k) {
     var p;
     if (gorsel) {
-      p = document.createElement('img');
-      p.src = (/^(https?:|\/|data:)/.test(gorsel) ? '' : AYAR.klasor) + gorsel;
-      p.alt = '';
+      /* KAP + İÇERİK ayrı: animasyon KABA uygulanır, görsel içeride
+         durur. Dosya sunucuda yoksa (elmas.webp gibi) eskiden
+         yükseklik 0 kalıyor, parçacık uçuyor ama GÖRÜNMÜYORDU;
+         artık oyunun kendi kuralına düşüyor: düz metin → emoji. */
+      p = document.createElement('div');
       p.style.width = boyut + 'px';
-      p.style.height = 'auto';
+      p.style.height = boyut + 'px';
+      p.style.lineHeight = boyut + 'px';
+      p.style.textAlign = 'center';
+      p.style.fontSize = Math.round(boyut * 0.92) + 'px';
+      var im = document.createElement('img');
+      im.src = (/^(https?:|\/|data:)/.test(gorsel) ? '' : AYAR.klasor) + gorsel;
+      im.alt = '';
+      im.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
+      im.onerror = function () {
+        this.onerror = null;
+        this.remove();
+        p.textContent = /parca/i.test(gorsel) ? '🔷' : '💎';
+      };
+      p.appendChild(im);
     } else if (kaynakDugum) {
       p = kaynakDugum.cloneNode(true);
       p.style.width = boyut + 'px';
@@ -161,7 +176,7 @@ var OdulEfekt = (function () {
 
     if (!kc || !hc || !gorunur(kc) || !gorunur(hc)) return Promise.resolve();
 
-    if (yavas()) {                       // hareket azaltma açık: yalnız sonuç
+    if (yavas() && !o.zorla) {           // hareket azaltma açık: yalnız sonuç
       if (sayac && artis) sayac.textContent = bicimle(sayiyaCevir(sayac.textContent) + artis);
       return Promise.resolve();
     }
@@ -479,7 +494,9 @@ var ODUL_AYAR = {
     setTimeout(function () {
       elmasUcusu(elmasNok, artis);
       if (parcaNok && parcaGor) parcaUcusu(parcaNok, parcaGor, 3, 420);
-      tani('günlük Al · parça ' + (parcaGor || 'yok'));
+      tani('günlük Al · artış ' + artis + ' · elmas nok ' +
+           (elmasNok ? Math.round(elmasNok.x) + ',' + Math.round(elmasNok.y) : 'YOK') +
+           ' · parça ' + (parcaGor || 'yok'));
     }, 0);
   }, true);
 
@@ -525,14 +542,14 @@ var ODUL_AYAR = {
         if (!hud) { tani('once giris yap'); return; }
         var r = b.getBoundingClientRect();
         var nok = { x: r.left + r.width / 2, y: r.top };
-        OdulEfekt.ucur(nok, S.hudElmas, { gorsel: A.elmasGorsel, adet: 12, boyut: A.elmasBoyut });
-        if (canta) OdulEfekt.ucur(nok, S.hudCanta, { gorsel: 'morparca.webp', adet: 4, boyut: A.parcaBoyut, gecikme: 400 });
+        OdulEfekt.ucur(nok, S.hudElmas, { gorsel: A.elmasGorsel, adet: 12, boyut: A.elmasBoyut, zorla: true });
+        if (canta) OdulEfekt.ucur(nok, S.hudCanta, { gorsel: 'morparca.webp', adet: 4, boyut: A.parcaBoyut, gecikme: 400, zorla: true });
       });
       document.body.appendChild(b);
       tani('test dugmesi hazir');
     });
   }
 
-  tani('odul-efekt.js hazır');
+  tani('odul-efekt.js hazır · hareket azaltma: ' + (OdulEfekt.yavas() ? 'ACIK (efektler kapali)' : 'kapali'));
   console.log('[odul-efekt.js] Ödül animasyon katmani yuklendi ✔');
 })();
