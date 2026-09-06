@@ -509,6 +509,74 @@
     );
   }
 
+  /* ═══════════════════════════════════════════════════════════════════
+     GÜNLÜK ÖDÜL PENCERESİ (index.html) — aynı motor
+     ───────────────────────────────────────────────────────────────────
+     index.html'e DOKUNULMAZ. "Al" düğmesinin kendi dinleyicisi doğrudan
+     gunlukOdulAl referansına bağlı olduğu için sarmalama işe yaramaz;
+     bunun yerine belge üzerinde YAKALAMA evresinde dinlenir — bizim kod
+     önce çalışıp konumları alır, ardından asıl işleyici pencereyi kapatır.
+     Elmas ZATEN sandığa dokunulduğunda verilmiştir; sayaç geri sarılıp
+     uçuşla birlikte yeniden işlenir.
+     ═══════════════════════════════════════════════════════════════════ */
+  function sayiOku(metin) {
+    var s = String(metin || "").replace(/[^0-9]/g, "");
+    return s ? parseInt(s, 10) : 0;
+  }
+
+  function gunlukUcusBagla() {
+    document.addEventListener("click", function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest("#gunlukPopAl") : null;
+      if (!btn || btn.disabled) return;
+      var pop = document.getElementById("gunlukPop");
+      if (!pop) return;
+
+      /* Konumlar pencere kapanmadan alınır. */
+      var elmasKutu = pop.querySelector(".elmas-kutu");
+      var elmasSatir = elmasKutu && elmasKutu.closest ? elmasKutu.closest(".gp-satir") : null;
+      var elmasAdet = elmasSatir ? sayiOku(elmasSatir.textContent) : 0;
+      var elmasNk = ODUL_UCUS.nokta(elmasKutu);
+
+      var secili = pop.querySelector(".gunluk-parca-sec.secili");
+      var parcaImg = secili ? secili.querySelector("img") : null;
+      var parcaNk = ODUL_UCUS.nokta(parcaImg || secili);
+      var parcaSrc = parcaImg ? (parcaImg.getAttribute("src") || "") : "";
+      var etiket = pop.querySelector(".gp-etiket");
+      var parcaAdet = etiket ? (sayiOku(etiket.textContent) || 1) : 1;
+
+      /* Asıl işleyici (gunlukOdulAl) bu turdan sonra çalışır. */
+      setTimeout(function () {
+        /* 7 günlük şerit HUD'ı kapattığı için uçuşun ineceği yer
+           görünmez kalıyordu — ödül alındıktan sonra şerit kapatılır. */
+        try {
+          if (typeof window.closeDailyRewardModal === "function") window.closeDailyRewardModal();
+          else {
+            var ov = document.getElementById("dailyRewardOverlay");
+            if (ov) ov.style.display = "none";
+          }
+        } catch (e) {}
+
+        setTimeout(function () {
+          if (elmasNk && elmasAdet > 0) {
+            var sayac = document.getElementById("diamondAmount");
+            var bitis = sayac ? sayiOku(sayac.textContent) : 0;
+            ODUL_UCUS.elmaslar(elmasNk, Math.max(0, bitis - elmasAdet), bitis,
+              function (n) { return (typeof window.fmt === "function") ? window.fmt(n) : String(n); });
+          }
+          if (parcaNk) {
+            setTimeout(function () {
+              ODUL_UCUS.parcalar(parcaNk, parcaSrc, parcaAdet, "rgba(160,106,216,.75)");
+            }, 260);
+          }
+        }, 140);
+      }, 0);
+    }, true);
+  }
+
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", gunlukUcusBagla);
+  else gunlukUcusBagla();
+
   window.REHBER = {
     maybeWelcome: maybeWelcome,
     maybeDaily: maybeDaily,
