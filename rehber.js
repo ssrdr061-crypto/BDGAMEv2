@@ -385,7 +385,7 @@
       try { if (parcaEl && parcaEl.tagName === "IMG") parcaSrc = parcaEl.getAttribute("src") || ""; } catch (e) {}
       return {
         elmas: ODUL_UCUS.nokta(elmasEl),
-        parca: ODUL_UCUS.nokta(parcaEl),
+        parca: ODUL_UCUS.nokta(bodyEl.querySelector(".wc-parca") || parcaEl),
         parcaSrc: parcaSrc
       };
     }
@@ -539,7 +539,9 @@
 
       var secili = pop.querySelector(".gunluk-parca-sec.secili");
       var parcaImg = secili ? secili.querySelector("img") : null;
-      var parcaNk = ODUL_UCUS.nokta(parcaImg || secili);
+      /* KIRPMA TUZAĞI: parça görseli kutusunun dışına taşıyor, resmin
+         kendi rect'i ekran dışına düşebiliyor. Konum KUTUDAN alınır. */
+      var parcaNk = ODUL_UCUS.nokta(secili || parcaImg);
       var parcaSrc = parcaImg ? (parcaImg.getAttribute("src") || "") : "";
       var etiket = pop.querySelector(".gp-etiket");
       var parcaAdet = etiket ? (sayiOku(etiket.textContent) || 1) : 1;
