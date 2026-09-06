@@ -2102,25 +2102,30 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 
 .map-node.castle-node .node-ring{ width:auto; height:auto; }
 .map-node.castle-node .node-avatar{
-  width:100px; height:100px;
+  width:88px; height:88px;
   border:none; box-shadow:none; background:transparent;
   border-radius:0; overflow:visible; padding:0;
 }
 /* SEVİYE BAŞINA ÖLÇÜ — her seviyenin görselindeki şeffaf boşluk farklı,
    tek ölçü hepsine oturmuyor. Değerler ?kaleayar=1 paneliyle ölçüldü.
-   Sv1 varsayılanı yukarıdaki 100px/kaydırmasız kural.
-   Yeni seviye görseli eklendikçe buraya bir satır eklenir. */
+   Sv1 varsayılanı yukarıdaki 88px/kaydırmasız kural.
+   Yeni seviye görseli eklendikçe buraya bir satır eklenir.
+   GÜNCEL SET: Sv1 88 · Sv2 166 dy22 · Sv3 170 · Sv4 226 dy-2 · Sv5 252 dy-11 dx-8 */
 .map-node.castle-node[data-sv="2"] .node-avatar{
   width:166px; height:166px; transform:translateY(22px);
 }
+/* Sv3 artık kendi ölçüsünde; eskiden satırı yoktu ve Sv1 kuralına düşüyordu. */
+.map-node.castle-node[data-sv="3"] .node-avatar{
+  width:170px; height:170px;
+}
 .map-node.castle-node[data-sv="4"] .node-avatar{
-  width:184px; height:184px;
+  width:226px; height:226px; transform:translateY(-2px);
 }
 /* Sv5 hem dikey hem YATAY kayiyor. translate() tek bildirimde yazilir;
    translateY ile translateX ayri ayri yazilsaydi ikincisi birincisini
    ezer ve dikey kaydirma kaybolurdu. */
 .map-node.castle-node[data-sv="5"] .node-avatar{
-  width:176px; height:176px; transform:translate(-8px, -11px);
+  width:252px; height:252px; transform:translate(-8px, -11px);
 }
 .map-node.castle-node .castle-avatar img{
   width:100%; height:100%; object-fit:contain; border-radius:0; display:block;
@@ -2355,6 +2360,22 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 
 /* GİRİŞ EKRANI kopyası buradan KALDIRILDI (18).
    Tek tanım yukarıda ~105. satırda. tema.js'teki altı kopya da silindi. */
+
+/* ── EĞİTİM MENÜSÜ: KAYNAK GÖRSELİ ──
+   Simge kutusu SABİT genişlikte (flex:0 0 18px). Kutu içeriğe göre
+   esnerse sayı büyüdükçe simge kayar ve sürgü oynatılırken satır
+   zıplar; emoji ile .webp genişliği farklı olduğu için görsel
+   yüklendiği anda da zıplardı. Sabit kutu ikisini de çözer.
+   tema.js'in .uvr-em kuralı yalnız yazı tipi/zemin veriyor,
+   bu kuralla çakışmıyor — !important gerekmez. */
+#panel-troops .uv-res .uvr-em{
+  flex:0 0 18px;
+  display:flex; align-items:center; justify-content:center;
+}
+#panel-troops .uv-res .uvr-gorsel{
+  width:18px; height:18px; object-fit:contain;
+  display:block; background:none; border:0;
+}
 </style>
 </head>
 <body>
@@ -9500,10 +9521,31 @@ const TroopViewer = (function () {
     const gerek = (typeof kaynakMaliyet === "function") ? kaynakMaliyet(uid, n) : {};
     const kay = (state && state.kaynaklar) || {};
     const kisa = (v) => (typeof kisaSayi === "function") ? kisaSayi(v) : String(v);
+
+    /*  KAYNAK GÖRSELİ — üst kaynak şeridiyle AYNI dosyalar.
+        Tablo tema.js'te duruyor (window.KAYGORSEL.GORSEL);
+        burada dördüncü bir set TUTULMAZ. Anahtar biçimi
+        "kay" + baş harfi büyük kaynak adı: et -> kayEt.
+        Bu innerHTML bağlamı, o yüzden görsel doğru; dosya
+        açılmazsa `onerror` emojiye döner, satır boş kalmaz. */
+    function kaynakGorseli(id) {
+      try {
+        const t = window.KAYGORSEL && window.KAYGORSEL.GORSEL;
+        if (!t) return "";
+        return t["kay" + id.charAt(0).toUpperCase() + id.slice(1)] || "";
+      } catch (e) { return ""; }
+    }
+
     box.innerHTML = Object.keys(gerek).map(k => {
       const yetersiz = (kay[k] || 0) < gerek[k];
+      const em = (typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || "";
+      const g = kaynakGorseli(k);
+      const ikon = g
+        ? `<img class="uvr-gorsel" src="${g}" alt="" ` +
+          `onerror="this.onerror=null;this.replaceWith(document.createTextNode('${em}'))">`
+        : em;
       return `<div class="uv-res-oge${yetersiz ? " yok" : ""}">` +
-             `<span class="uvr-em">${(typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || ""}</span>` +
+             `<span class="uvr-em">${ikon}</span>` +
              `<span class="uvr-mik">${kisa(gerek[k])}</span></div>`;
     }).join("");
   }
@@ -9600,6 +9642,31 @@ const TroopViewer = (function () {
          artık `kid` üzerinden gider — üç aile için birden. */
       const trainQueueForUnit = (state.trainingQueue || []).filter(j2 => j2.unitId === kid);
       const isTraining = trainQueueForUnit.length > 0;
+      /* ── TERFİ ──
+         Terfi işi kuyruğa HEDEF kademenin kimliğiyle giriyor
+         (knight → knight2 terfisinde iş `knight2` adına açılır), bu
+         yüzden alt kademe ekranında hiçbir iz kalmıyordu. `terfiden`
+         alanı (troops.js terfiEt) o boşluğu kapatır: burada SEÇİLİ
+         kademeden yükselen işler süzülür.
+         Terfi sürerken o kademede ÜRETİM YAPILAMAZ — adet çubuğu ve
+         Anında/Üret düğmeleri hiç basılmaz, yerlerine terfi çubuğu
+         ve Hızlandır gelir.
+         Hızlandırma kuyruğu `unitId` ile süzer, o yüzden düğmeye
+         HEDEF kademenin kimliği verilir (terfiHedefId).            */
+      const terfiKuyruk = (state.trainingQueue || []).filter(j3 => j3.terfiden === kid);
+      const terfiVar = terfiKuyruk.length > 0;
+      const terfiHedefId = terfiVar ? terfiKuyruk[0].unitId : "";
+      const terfiCubugu = () => {
+        const sonTerfi = terfiKuyruk.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
+        const terfiKalan = sonTerfi.finishAt - Date.now();
+        const terfiBicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
+        return `<div class="unit-train-bar">
+            <div class="utb-training">⬆️ Terfi Ediliyor
+              <span class="unit-terfi-timer" data-terfi="${kid}">x${terfiKuyruk.length} · ${terfiBicim(terfiKalan)}</span>
+            </div>
+            <button class="speedup-trigger unit-speedup-btn" data-unit="${terfiHedefId}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
+          </div>`;
+      };
       const speedUpCount = Object.keys(state.inventory || {})
         .filter(ad => /Hızlandırma/i.test(ad) && /\d+\s*(Dakika|Saat|Gün)/i.test(ad))
         .reduce((t, ad) => t + (state.inventory[ad] || 0), 0);
@@ -9649,6 +9716,11 @@ const TroopViewer = (function () {
             </div>
             <button class="speedup-trigger unit-speedup-btn" data-unit="${kid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
           </div>`;
+        /* Üretim VE terfi aynı anda sürüyorsa (terfiden önce başlamış
+           bir üretim partisi varsa) terfi çubuğu da altına eklenir. */
+        if (terfiVar) html += terfiCubugu();
+      } else if (terfiVar) {
+        html += terfiCubugu();
       } else {
         html += `<div class="unit-qty-bar">
             <button class="uq-btn uq-minus" data-unit="${uid}">−</button>
@@ -9666,29 +9738,6 @@ const TroopViewer = (function () {
               <span class="utb-top">Üret ×<span class="utb-qty">${qty}</span></span>
               <span class="utb-sub">⏱ <span class="utb-sure">${(typeof sureDk === "function") ? sureDk(def.trainMinutes * qty) : (def.trainMinutes * qty) + " dk"}</span></span>
             </button>
-          </div>`;
-      }
-
-      /* ── TERFİ SATIRI ──
-         Terfi işi kuyruğa HEDEF kademenin kimliğiyle giriyor
-         (knight → knight2 terfisinde iş `knight2` adına açılır).
-         Bu yüzden alt kademe ekranında hiçbir iz kalmıyordu: asker
-         düşülüyor, ekranda hiçbir şey görünmüyordu.
-
-         `terfiden` alanı (troops.js terfiEt) o boşluğu kapatır:
-         burada SEÇİLİ kademeden yükselen işler sayılır ve ayrı bir
-         satır olarak basılır. Üretim çubuğunun YERİNE geçmez, altına
-         eklenir — terfi Sv1 kışlasını meşgul etmiyor, iş üst kademe
-         adına açık; alt kademede üretime devam edilebilmeli.       */
-      const terfiKuyruk = (state.trainingQueue || []).filter(j3 => j3.terfiden === kid);
-      if (terfiKuyruk.length > 0) {
-        const sonTerfi = terfiKuyruk.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
-        const terfiKalan = sonTerfi.finishAt - Date.now();
-        const terfiBicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
-        html += `<div class="unit-train-bar">
-            <div class="utb-training">⬆️ Terfi Ediliyor
-              <span class="unit-terfi-timer" data-terfi="${kid}">x${terfiKuyruk.length} · ${terfiBicim(terfiKalan)}</span>
-            </div>
           </div>`;
       }
 
