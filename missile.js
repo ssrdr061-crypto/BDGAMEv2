@@ -174,6 +174,9 @@
       return cur - 1;
     }, (err, committed) => {
       if (err || !committed) { showToast("Füze atılamadı."); return; }
+      /* SALDIRAN KALKANINI KAYBEDER. Buraya konuldu, guard'ların
+         yanına değil: füze gerçekten düşülmeden kalkan gitmesin. */
+      kalkanimiDusur();
       const dist = Math.hypot(tx - state.castle.gx, ty - state.castle.gy);
       const flightMs = Math.max(800, dist * SECONDS_PER_CELL * 1000);
 
@@ -285,6 +288,34 @@
     if (typeof window.kalkaniYayinla === "function") window.kalkaniYayinla();
     if (typeof renderBattleMap === "function") renderBattleMap();
     showToast("🛡️ Kalkanın füzeyle kırıldı! Kalen saldırıya açık.", 5000);
+  }
+
+  /* ── SALDIRAN TARAFI: saldıran KENDİ kalkanını kaybeder ────────
+     Kural: füze atan ya da orduyla saldıran oyuncunun kalkanı anında
+     düşer. Mağaza metni (magaza.js "Sen saldırırsan kalkanın anında
+     düşer") bunu zaten vaat ediyordu, kod tarafı yoktu.
+     TEK KAPI burasıdır — füze bu dosyadan, ordu saldırısı pvp.js'ten
+     MISSILE_API.kalkanimiDusur() ile çağırır; ikinci bir düşürme yolu
+     AÇMA.
+     Kurbanın kalkanını kıran kendiKalkaniDusur() ile karıştırma: o
+     dışarıdan gelen kbKirik damgasını işler, bu kendi eylemimizdir.
+     SINIR: yalnız mağaza kalkanını (state.kalkanBitis) düşürür. Yeni
+     oyuncu kalkanı registeredAt + CFG.newbieShieldMs'ten türediği için
+     ayrı bir iptal damgası ister; CFG.newbieShieldMs bugün 0 (kapalı),
+     açılırsa burası ve pvp.js kalkanKalan() birlikte genişletilmeli. */
+  function kalkanimVar() {
+    if (typeof state === "undefined" || !state) return false;
+    return (Number(state.kalkanBitis || 0) || 0) > Date.now();
+  }
+
+  function kalkanimiDusur() {
+    if (!kalkanimVar()) return false;
+    state.kalkanBitis = 0;
+    if (typeof persistCurrentState === "function") persistCurrentState();
+    if (typeof window.kalkaniYayinla === "function") window.kalkaniYayinla();
+    if (typeof renderBattleMap === "function") renderBattleMap();
+    showToast("🛡️ Saldırdığın için kalkanın düştü! Kalen artık savunmasız.", 5000);
+    return true;
   }
 
   // Fırlatma olaylarını dinle: kim atarsa atsın roket herkeste uçar.
@@ -771,7 +802,9 @@
   }
 
   /* ---------- ÖZEL ONAY PANELİ ---------- */
-  function showMissileConfirm(targetName, onConfirm, kalkanVar) {
+  /* kalkanVar     = HEDEFİN kalkanı açık mı (füze yalnız kalkanı kırar)
+     benimKalkanim = BİZİM kalkanımız açık mı (saldırınca düşecek)   */
+  function showMissileConfirm(targetName, onConfirm, kalkanVar, benimKalkanim) {
     // Zaten açık panel varsa kapat
     const old = document.getElementById("mslConfirmOverlay");
     if (old) old.remove();
@@ -790,6 +823,12 @@
          "yalnızca kalkanı parçalar. Kaleyi vurmak için ikinci bir füze gerekecek. " +
          "Yine de ateşleyelim mi?")
       : "Başkanım! Teknolojik roket sistemlerini kullanmak acımasız bir şekilde rakibe zarar verecektir. Gerçekten kullanmak istiyor musunuz!";
+
+    /* Kendi kalkanımız açıksa uyarı metnin SONUNA eklenir; hedefin
+       kalkanı olsun olmasın aynı bedel geçerli. */
+    if (benimKalkanim) {
+      msg.textContent += " Saldırı yaparsanız kalkanınız düşecektir!";
+    }
 
     const btnRow = document.createElement("div");
     btnRow.className = "msl-confirm-btns";
@@ -832,8 +871,16 @@
       kalkanBitis = Number(kalkanBitis) || 0;
       showMissileConfirm(targetName, function () {
         fireMissile(targetName, tx, ty, kalkanBitis);
-      }, kalkanBitis > 0);
+      }, kalkanBitis > 0, kalkanimVar());
     },
+
+    /* ── SALDIRANIN KALKANI ──
+       kalkanimVar()   : kendi kalkanımız şu an açık mı
+       kalkanimiDusur(): kalkanı düşür, buluta yaz, haritayı tazele.
+       pvp.js SALDIR akışı da bu iki kapıyı kullanır — kalkanı başka
+       yerde elle sıfırlama. */
+    kalkanimVar: function () { return kalkanimVar(); },
+    kalkanimiDusur: function () { return kalkanimiDusur(); },
     // Onaysız doğrudan fırlatma (gerekirse)
     fire: function (targetName, tx, ty, kalkanBitis) { fireMissile(targetName, tx, ty, kalkanBitis); },
 
