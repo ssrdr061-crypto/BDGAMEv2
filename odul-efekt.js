@@ -508,6 +508,31 @@ var ODUL_AYAR = {
     }, 0);
   }, true);
 
+  /* ── TEST DÜĞMESİ (?odulefekt=1) ────────────────────────────────
+     Ödüle, state'e, sayaca DOKUNMAZ (artis 0). Yalnız "uçuş katmanı
+     çalışıyor mu" sorusunu yanıtlar. İş bitince bu blok silinir. */
+  if (TANI) {
+    window.addEventListener('load', function () {
+      var b = document.createElement('button');
+      b.textContent = 'EFEKT TEST';
+      b.style.cssText = 'position:fixed;left:8px;bottom:96px;z-index:100000;' +
+        'font:900 12px/1 sans-serif;color:#fff;background:#1fa3ea;border:1px solid #bef0ff;' +
+        'border-radius:10px;padding:9px 12px;';
+      b.addEventListener('click', function () {
+        var hud = document.querySelector(S.hudElmas);
+        var canta = document.querySelector(S.hudCanta);
+        tani('HUD elmas: ' + (hud ? 'VAR' : 'YOK') + ' · çanta: ' + (canta ? 'VAR' : 'YOK'));
+        if (!hud) { tani('once giris yap'); return; }
+        var r = b.getBoundingClientRect();
+        var nok = { x: r.left + r.width / 2, y: r.top };
+        OdulEfekt.ucur(nok, S.hudElmas, { gorsel: A.elmasGorsel, adet: 12, boyut: A.elmasBoyut });
+        if (canta) OdulEfekt.ucur(nok, S.hudCanta, { gorsel: 'morparca.webp', adet: 4, boyut: A.parcaBoyut, gecikme: 400 });
+      });
+      document.body.appendChild(b);
+      tani('test dugmesi hazir');
+    });
+  }
+
   tani('odul-efekt.js hazır');
   console.log('[odul-efekt.js] Ödül animasyon katmani yuklendi ✔');
 })();
