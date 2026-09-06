@@ -7062,6 +7062,27 @@ html body #battleMap .map-node.castle-node .node-label[data-sv="2"]::before{ bac
 html body #battleMap .map-node.castle-node .node-label[data-sv="3"]::before{ background-image:url("seviye3.webp"); }
 html body #battleMap .map-node.castle-node .node-label[data-sv="4"]::before{ background-image:url("seviye4.webp"); }
 html body #battleMap .map-node.castle-node .node-label[data-sv="5"]::before{ background-image:url("seviye5.webp"); }
+
+/* ── SEVİYE BAŞINA HİZA ──
+   Kale görselinin ölçüsü seviyeye göre 88px'den 252px'e çıkıyor ve
+   etiket o görselin ALTINDAN başlayan akışta duruyor; tek kaydırma
+   sayısı bu yüzden her seviyede aynı yere düşmüyor. Aşağıdaki
+   satırlar yukarıdaki ORTAK kuralın yalnız FARKLI olan alanlarını
+   ezer — Sv1/2/3 hâlâ ortak kuralda, ölçülmediler.
+
+   Sayılar ?etiket=1 paneliyle ekranda ölçüldü. Yeni bir seviye
+   hizasını değiştirirsen paneli aç, DEĞERLER'e bas ve buraya yaz. */
+html body #battleMap .map-node.castle-node .node-label[data-sv="4"]{
+  transform:translate(0px, -19px) scale(var(--et-k, 1));
+}
+html body #battleMap .map-node.castle-node .node-label[data-sv="5"]{
+  max-width:400px;
+  padding:0 30px;
+  transform:translate(0px, -34px) scale(var(--et-k, 1));
+}
+html body #battleMap .map-node.castle-node .node-label[data-sv="5"]::before{
+  margin-right:-47px;
+}
 `;
 document.head.appendChild(st);
 })();
