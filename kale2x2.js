@@ -43,14 +43,28 @@
 
      DİKKAT: harita.js her karede düğümün transform'unu baştan
      yazıyor. Bu yüzden kaydırma düğümün KENDİSİNE değil,
-     İÇİNDEKİ iki parçaya veriliyor. */
+     İÇİNDEKİ parçaya veriliyor.
+
+     NEDEN 25 DEĞİL 12: isim etiketi artık akıştan çıkarıldı
+     (tema.js kaleEtiketi, position:absolute). Etiket flex çocuğuyken
+     düğüm kutusunu ~26px uzatıyordu ve kutunun merkezi — yani
+     translate(-50%,-50%) ile karo merkezine oturan nokta — resmi
+     13px YUKARI itiyordu. Etiket akıştan çıkınca o itme kalktı;
+     resmin ekrandaki yeri aynen kalsın diye 25 − 13 = 12 yazılıyor.
+     Kale görsellerinin seviye başına ölçüleri (?kaleayar=1 ile
+     ölçülen 88/166/170/226/252) bu sayede geçerli kalıyor.
+
+     ETİKET SATIRI BURADAN KALDIRILDI: tema.js `temaKaleEtiket`
+     bloğu daha özgül bir seçiciyle (html body #battleMap …) etiketin
+     transform'unu tamamen yazıyor, buradaki satır zaten hiçbir zaman
+     uygulanmıyordu. İki yerde durması "etiketi kim kaydırıyor"
+     sorusunu yanlış yere götürüyordu. */
   (function stil() {
     if (document.getElementById("kale2x2Stil")) return;
     const st = document.createElement("style");
     st.id = "kale2x2Stil";
     st.textContent = `
-.map-node.castle-node .node-ring{  transform:translateY(25px); }
-.map-node.castle-node .node-label{ transform:translateY(25px); }
+.map-node.castle-node .node-ring{ transform:translateY(12px); }
 `;
     document.head.appendChild(st);
   })();
