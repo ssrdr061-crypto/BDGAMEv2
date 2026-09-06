@@ -382,7 +382,12 @@
       var elmasEl = bodyEl.querySelector(".wc-gift .elmas-kutu") || bodyEl.querySelector(".wc-gift");
       var parcaEl = bodyEl.querySelector(".wc-parca img") || bodyEl.querySelector(".wc-parca");
       var parcaSrc = "";
-      try { if (parcaEl && parcaEl.tagName === "IMG") parcaSrc = parcaEl.getAttribute("src") || ""; } catch (e) {}
+      try {
+        if (cfg.parca && typeof window.parcaGorseli === "function")
+          parcaSrc = window.parcaGorseli(cfg.parca.anahtar) || "";
+        if (!parcaSrc && parcaEl && parcaEl.tagName === "IMG")
+          parcaSrc = parcaEl.getAttribute("src") || "";
+      } catch (e) {}
       return {
         elmas: ODUL_UCUS.nokta(elmasEl),
         parca: ODUL_UCUS.nokta(bodyEl.querySelector(".wc-parca") || parcaEl),
@@ -538,11 +543,18 @@
       var elmasNk = ODUL_UCUS.nokta(elmasKutu);
 
       var secili = pop.querySelector(".gunluk-parca-sec.secili");
-      var parcaImg = secili ? secili.querySelector("img") : null;
-      /* KIRPMA TUZAĞI: parça görseli kutusunun dışına taşıyor, resmin
-         kendi rect'i ekran dışına düşebiliyor. Konum KUTUDAN alınır. */
-      var parcaNk = ODUL_UCUS.nokta(secili || parcaImg);
-      var parcaSrc = parcaImg ? (parcaImg.getAttribute("src") || "") : "";
+      /* KIRPMA TUZAĞI: konum KUTUDAN alınır, resimden değil.
+         GÖRSEL TUZAĞI: kutuda iki img var — ilki nadirlik ÇERÇEVESİ
+         (turuncu/mor arka), ikincisi parçanın kendisi. querySelector
+         çerçeveyi verir, o yüzden görsel tek doğruluk kaynağından
+         okunur: gelistir.js parcaGorseli(anahtar). */
+      var parcaNk = ODUL_UCUS.nokta(secili);
+      var parcaSrc = "";
+      try {
+        var anahtar = secili ? secili.dataset.parca : "";
+        if (anahtar && typeof window.parcaGorseli === "function")
+          parcaSrc = window.parcaGorseli(anahtar) || "";
+      } catch (e) {}
       var etiket = pop.querySelector(".gp-etiket");
       var parcaAdet = etiket ? (sayiOku(etiket.textContent) || 1) : 1;
 
