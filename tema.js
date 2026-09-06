@@ -7075,28 +7075,28 @@ document.head.appendChild(st);
    88px'den 252px'e çıkıyor (index.html .castle-node .node-avatar).
    Etiket o görselin ALTINDAN başlayan akışta durduğu için, tek bir
    kaydırma sayısı Sv1'de doğru olurken Sv4'te kalenin göbeğinde
-   kalıyordu. Artık her seviyenin kendi sayıları var; panelin
-   üstündeki 1-5 düğmeleri hangi seviyeyi sürdüğünü seçer.
+   kalıyordu. Artık her seviyenin kendi sayıları var.
 
    Yazılan kural [data-sv="N"] taşır, yani kaleEtiketi bloğundaki
    ortak kuraldan DAHA ÖZGÜLDÜR ve onu ezer. Ortak blok yerinde
    duruyor: panel kapalıyken görünüm eskisi gibi.
 
-   İki ayrı şeyi tek panelden sürer, çünkü ikisi ekranda yan yana
-   duruyor ve göz onları birlikte kıyaslıyor:
+   İKİ SIRA SEKME, tek ekranda kaydırma yok:
+     üst sıra  → hangi SEVİYE sürülüyor (1-5)
+     alt sıra  → hangi BÖLÜM görünüyor (Çerçeve / Görsel / Düğüm)
+   Düğüm bölümü kaynak/canavar etiketidir (harita.js CFG.etiket),
+   ORTAKTIR — düğümün seviyesi yok, seviye sekmesi onu etkilemez.
 
-     KALE    → DOM etiketi (.node-label), CSS ile, SEVİYE BAŞINA
-     DÜĞÜM   → canvas etiketi (harita.js CFG.etiket), çarpanlarla,
-               ORTAK (kaynak/canavar düğümünün seviyesi yok)
+   SINIR YOK: her sayının yanındaki kutuya elle de yazılabilir.
+   Sürgünün aralığı sadece parmakla sürerken rahat etsin diye
+   geniş tutuldu (±280); kutuya ondan büyüğünü de yazabilirsin.
 
-   İkisinin birimleri AYRI. Kale piksel yazar (DOM zaten düğümle
-   birlikte ölçekleniyor); düğüm çarpan yazar (canvas her karede
-   zoom'a göre yeniden hesaplıyor, piksel yazılsa uzaklaşınca şerit
-   düğümden kopardı). Panelde bu yüzden düğüm sayıları YÜZDE
-   cinsinden gösteriliyor — sürgü tam sayı olmak zorunda.
+   Kale piksel yazar (DOM zaten düğümle birlikte ölçekleniyor);
+   düğüm çarpan yazar (canvas her karede zoom'a göre yeniden
+   hesaplıyor, piksel yazılsa uzaklaşınca şerit düğümden kopardı).
+   Düğüm sayıları bu yüzden YÜZDE cinsinden gösteriliyor.
 
-   HEPSİNE: seçili seviyenin KALE sayılarını beşine birden kopyalar,
-   tek seviyeyi beğenip diğerlerine taban yapmak için.
+   HEPSİNE: seçili seviyenin KALE sayılarını beşine birden kopyalar.
    DEĞERLER: beş seviyenin son sayılarını yazdırır; beğendiğini
    dosyalara sabitleriz, panel gitse de kalır.
    ══════════════════════════════════════════════════════════════ */
@@ -7125,22 +7125,15 @@ var KALE_VARSAYILAN = {
   kGY:      -1    /* görselin dikey kayması, px       */
 };
 
-/* DÜĞÜM — çarpanların 100 katı (sürgü tam sayı ister).
-   Hepsi r (düğüm yarıçapı) üzerinden; yazı ve görsel BİRBİRİNDEN
-   BAĞIMSIZ, biri büyüyünce diğeri kıpırdamaz. */
+/* DÜĞÜM — çarpanların 100 katı. Hepsi r (düğüm yarıçapı)
+   üzerinden; yazı ve görsel BİRBİRİNDEN BAĞIMSIZ. */
 var DUGUM_VARSAYILAN = {
-  dPunto:   54,   /* yazı boyu    = r × 0.54     */
-  dYaziX:   -2,   /* isim yatay   = r × -0.02    */
-  dYaziY:  133,   /* isim dikey   = r × 1.33     */
-  dGEn:    267,   /* görsel en    = r × 2.67     */
-  dGBoy:   134,   /* görsel boy   = r × 1.34     */
-  dGX:     -69,   /* görsel–isim  = r × -0.69    */
-  dGY:     -26    /* görsel dikey = r × -0.26    */
+  dPunto:   54, dYaziX: -2, dYaziY: 133,
+  dGEn:    267, dGBoy: 134, dGX:  -69, dGY: -26
 };
 
 function kopya(o){ return JSON.parse(JSON.stringify(o)); }
 
-/* K[1..5] kale sayıları, D düğüm sayıları. */
 var K = {}, D = Object.assign({}, DUGUM_VARSAYILAN);
 SEVIYELER.forEach(function(n){ K[n] = Object.assign({}, KALE_VARSAYILAN); });
 
@@ -7154,7 +7147,8 @@ try {
   if (kayit && kayit.D) D = Object.assign(D, kayit.D);
 } catch (e) {}
 
-var sv = 1;   /* panelde seçili seviye */
+var sv = 1;            /* seçili seviye */
+var bolum = "cerceve"; /* cerceve | gorsel | dugum */
 function A(){ return K[sv]; }
 
 var stil = document.createElement("style");
@@ -7188,7 +7182,6 @@ function uygula(){
   });
   stil.textContent = css;
 
-  /* ── DÜĞÜM ── */
   try {
     var E = window.HARITA && HARITA.CFG && HARITA.CFG.etiket;
     if (E) {
@@ -7216,67 +7209,87 @@ pstil.textContent =
  "font-size:15px;line-height:34px;text-align:center;font-weight:800;" +
  "box-shadow:0 2px 6px rgba(0,20,45,.3);transition:.09s;}" +
 "#bdET .kapak:active{transform:scale(.96);filter:brightness(.93);}" +
-"#bdET .govde{display:none;width:232px;margin-top:6px;padding:9px 10px 10px;" +
+"#bdET .govde{display:none;width:244px;margin-top:6px;padding:9px 10px 10px;" +
  "border-radius:12px;background:linear-gradient(180deg,#22488f,#152e5e);" +
- "box-shadow:0 2px 6px rgba(0,20,45,.3);" +
- "max-height:72vh;overflow-y:auto;}" +
+ "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
 "#bdET.acik .govde{display:block;}" +
-"#bdET .bas{font-size:11px;font-weight:700;color:#9fc4f5;letter-spacing:.4px;margin:7px 0 3px;}" +
-"#bdET .bas:first-child{margin-top:0;}" +
-"#bdET .sv{display:flex;gap:4px;margin-bottom:7px;}" +
-"#bdET .sv button{flex:1;padding:6px 0;border:none;border-radius:8px;" +
+
+/* SEKME SIRALARI — üst sıra seviye, alt sıra bölüm. */
+"#bdET .sekme{display:flex;gap:4px;}" +
+"#bdET .sekme.sv{margin-bottom:5px;}" +
+"#bdET .sekme.bl{margin-bottom:8px;}" +
+"#bdET .sekme button{flex:1;padding:7px 0;border:none;border-radius:8px;" +
  "font:800 12px/1 'Baloo 2',system-ui,sans-serif;color:#cfe0f7;" +
  "background:rgba(255,255,255,.10);transition:.09s;}" +
-"#bdET .sv button:active{transform:scale(.96);filter:brightness(.93);}" +
-"#bdET .sv button.secili{background:#ffd84d;color:#1b3a6b;}" +
-"#bdET .sat{display:flex;align-items:center;gap:7px;margin:3px 0;}" +
-"#bdET .ad{font-size:11px;flex:1;white-space:nowrap;opacity:.9;}" +
-"#bdET .dg{font-size:11px;font-weight:700;color:#ffd84d;width:34px;" +
- "text-align:right;font-variant-numeric:tabular-nums;}" +
+"#bdET .sekme.bl button{font-size:10.5px;letter-spacing:.3px;}" +
+"#bdET .sekme button:active{transform:scale(.96);filter:brightness(.93);}" +
+"#bdET .sekme button.secili{background:#ffd84d;color:#1b3a6b;" +
+ "text-shadow:none;}" +
+"#bdET .sekme.bl button.secili{background:#3d7ccc;color:#ffffff;}" +
+
+/* Yalnız seçili bölümün satırları görünür — kaydırma yok. */
+"#bdET .grup{display:none;}" +
+"#bdET .grup.acik{display:block;}" +
+"#bdET .sat{display:flex;align-items:center;gap:7px;margin:4px 0;}" +
+"#bdET .ad{font:700 11px/1 'Baloo 2',system-ui,sans-serif;flex:1;" +
+ "white-space:nowrap;color:#e8f4ff;}" +
 "#bdET input[type=range]{-webkit-appearance:none;appearance:none;" +
- "flex:0 0 92px;height:16px;background:transparent;margin:0;}" +
+ "flex:0 0 88px;height:18px;background:transparent;margin:0;}" +
 "#bdET input[type=range]::-webkit-slider-runnable-track{height:3px;" +
  "border-radius:2px;background:rgba(255,255,255,.22);}" +
 "#bdET input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;" +
- "width:13px;height:13px;margin-top:-5px;border-radius:50%;background:#ffd84d;border:none;}" +
+ "width:14px;height:14px;margin-top:-5.5px;border-radius:50%;background:#ffd84d;border:none;}" +
 "#bdET input[type=range]::-moz-range-track{height:3px;border-radius:2px;" +
  "background:rgba(255,255,255,.22);}" +
-"#bdET input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;" +
+"#bdET input[type=range]::-moz-range-thumb{width:14px;height:14px;border:none;" +
  "border-radius:50%;background:#ffd84d;}" +
-"#bdET .dgm{display:flex;gap:6px;margin-top:8px;}" +
+
+/* SAYI KUTUSU — sürgünün aralığı bağlamaz, buraya elle yazılır. */
+"#bdET input.dg{flex:0 0 46px;width:46px;padding:4px 0;border:none;" +
+ "border-radius:6px;background:rgba(4,12,28,.45);color:#ffd84d;" +
+ "font:700 11px/1 'Baloo 2',system-ui,sans-serif;text-align:center;" +
+ "font-variant-numeric:tabular-nums;-moz-appearance:textfield;}" +
+"#bdET input.dg::-webkit-outer-spin-button," +
+"#bdET input.dg::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}" +
+
+"#bdET .dgm{display:flex;gap:6px;margin-top:9px;}" +
 "#bdET .dgm button{flex:1;padding:7px 4px;border:none;border-radius:8px;" +
  "font:700 10px/1 'Baloo 2',system-ui,sans-serif;color:#eaf3ff;background:#3d7ccc;transition:.09s;}" +
 "#bdET .dgm button:active{transform:scale(.96);filter:brightness(.93);}" +
 "#bdET .dgm .kirmizi{background:#c0392b;}" +
 "#bdET .cikti{display:none;margin-top:7px;padding:7px;border-radius:8px;" +
  "background:rgba(4,12,28,.55);font:600 10px/1.5 ui-monospace,monospace;" +
- "color:#cfe4ff;white-space:pre-wrap;word-break:break-all;}";
+ "color:#cfe4ff;white-space:pre-wrap;word-break:break-all;" +
+ "max-height:40vh;overflow-y:auto;}";
 document.head.appendChild(pstil);
 
-/* [anahtar, ad, en az, en çok, küme]  küme: "k" = seviyeye özel, "d" = ortak */
-var ALANLAR = [
-  ["bas", "KALE — ÇERÇEVE"],
-  ["kPunto",    "Yazı boyu",     5,  40, "k"],
-  ["kGenis",    "En çok genişlik", 20, 300, "k"],
-  ["kDolguY",   "Yatay dolgu",   0,  40, "k"],
-  ["kDolguD",   "Dikey dolgu",   0,  30, "k"],
-  ["kKose",     "Köşe",          0,  30, "k"],
-  ["kDx",       "Yatay kayma",-140, 140, "k"],
-  ["kDy",       "Dikey kayma", -80, 160, "k"],
-  ["bas", "KALE — SEVİYE GÖRSELİ"],
-  ["kGEn",      "Genişlik",      4, 200, "k"],
-  ["kGBoy",     "Yükseklik",     4, 200, "k"],
-  ["kGX",       "Yatay boşluk",-120, 120, "k"],
-  ["kGY",       "Dikey kayma", -80,  80, "k"],
-  ["bas", "DÜĞÜM — YAZI (%) · ORTAK"],
-  ["dPunto",    "Yazı boyu",    10, 200, "d"],
-  ["dYaziX",    "Yatay kayma",-300, 300, "d"],
-  ["dYaziY",    "Dikey kayma",   0, 500, "d"],
-  ["bas", "DÜĞÜM — GÖRSEL (%) · ORTAK"],
-  ["dGEn",      "Genişlik",     10, 600, "d"],
-  ["dGBoy",     "Yükseklik",    10, 600, "d"],
-  ["dGX",       "Yatay boşluk",-200, 300, "d"],
-  ["dGY",       "Dikey kayma",-300, 300, "d"]
+/* [anahtar, ad, sürgü en az, sürgü en çok] — sınır yalnız sürgüye
+   aittir, sayı kutusu bağlı değildir. */
+var BOLUMLER = [
+  ["cerceve", "ÇERÇEVE", [
+    ["kPunto",  "Yazı boyu",        5,   80],
+    ["kGenis",  "En çok genişlik", 20,  400],
+    ["kDolguY", "Yatay dolgu",      0,   60],
+    ["kDolguD", "Dikey dolgu",      0,   40],
+    ["kKose",   "Köşe",             0,   40],
+    ["kDx",     "Yatay kayma",   -280,  280],
+    ["kDy",     "Dikey kayma",   -280,  280]
+  ]],
+  ["gorsel", "SEVİYE GÖRSELİ", [
+    ["kGEn",    "Genişlik",         4,  400],
+    ["kGBoy",   "Yükseklik",        4,  400],
+    ["kGX",     "Yatay boşluk",  -280,  280],
+    ["kGY",     "Dikey kayma",   -280,  280]
+  ]],
+  ["dugum", "DÜĞÜM (%)", [
+    ["dPunto",  "Yazı boyu",       10,  200],
+    ["dYaziX",  "Yatay kayma",   -300,  300],
+    ["dYaziY",  "Dikey kayma",   -300,  500],
+    ["dGEn",    "Görsel en",       10,  600],
+    ["dGBoy",   "Görsel boy",      10,  600],
+    ["dGX",     "Görsel yatay",  -300,  300],
+    ["dGY",     "Görsel dikey",  -300,  300]
+  ]]
 ];
 
 function deger(k){ return (k.charAt(0) === "d") ? D[k] : A()[k]; }
@@ -7285,36 +7298,53 @@ function degerYaz(k, v){ if (k.charAt(0) === "d") D[k] = v; else A()[k] = v; }
 var kutu = document.createElement("div");
 kutu.id = "bdET";
 var ic = '<div class="kapak">Aa</div><div class="govde">';
-ic += '<div class="sv">';
+
+ic += '<div class="sekme sv">';
 SEVIYELER.forEach(function(n){
   ic += '<button data-sv="' + n + '"' + (n === sv ? ' class="secili"' : '') + '>' + n + '</button>';
 });
+ic += '</div><div class="sekme bl">';
+BOLUMLER.forEach(function(b){
+  ic += '<button data-bl="' + b[0] + '"' + (b[0] === bolum ? ' class="secili"' : '') + '>' + b[1] + '</button>';
+});
 ic += '</div>';
-for (var i = 0; i < ALANLAR.length; i++) {
-  var f = ALANLAR[i];
-  if (f[0] === "bas") { ic += '<div class="bas">' + f[1] + '</div>'; continue; }
-  ic += '<div class="sat"><span class="ad">' + f[1] + '</span>' +
-        '<input type="range" data-k="' + f[0] + '" min="' + f[2] + '" max="' + f[3] +
-        '" step="1" value="' + deger(f[0]) + '">' +
-        '<span class="dg" data-d="' + f[0] + '">' + deger(f[0]) + '</span></div>';
-}
+
+BOLUMLER.forEach(function(b){
+  ic += '<div class="grup' + (b[0] === bolum ? ' acik' : '') + '" data-grup="' + b[0] + '">';
+  b[2].forEach(function(f){
+    ic += '<div class="sat"><span class="ad">' + f[1] + '</span>' +
+          '<input type="range" data-k="' + f[0] + '" min="' + f[2] + '" max="' + f[3] +
+          '" step="1" value="' + deger(f[0]) + '">' +
+          '<input type="number" class="dg" data-k="' + f[0] + '" value="' + deger(f[0]) + '"></div>';
+  });
+  ic += '</div>';
+});
+
 ic += '<div class="dgm"><button data-i="deger">DE\u011EERLER</button>' +
       '<button data-i="hepsine">HEPS\u0130NE</button>' +
       '<button data-i="sifirla" class="kirmizi">SIFIRLA</button></div>' +
       '<div class="cikti"></div></div>';
 kutu.innerHTML = ic;
 
-function tazele(){
-  var girisler = kutu.querySelectorAll("input[type=range]");
+/* Sayı kutusuna sürgü aralığının DIŞINDA bir değer yazılabilir.
+   O durumda sürgü uca dayanır ama gerçek değer korunur — sürgüye
+   dokunulmadıkça kutudaki sayı geçerlidir. */
+function tazele(kaynak){
+  var girisler = kutu.querySelectorAll("input[data-k]");
   for (var i = 0; i < girisler.length; i++) {
     var el = girisler[i], k = el.dataset.k, v = deger(k);
+    if (el === kaynak) continue;
     if (+el.value !== v) el.value = v;
-    var d = kutu.querySelector('[data-d="' + k + '"]');
-    if (d) d.textContent = v;
   }
-  var dugmeler = kutu.querySelectorAll(".sv button");
-  for (var j = 0; j < dugmeler.length; j++) {
-    dugmeler[j].classList.toggle("secili", +dugmeler[j].dataset.sv === sv);
+  var dgm = kutu.querySelectorAll(".sekme button");
+  for (var j = 0; j < dgm.length; j++) {
+    var b = dgm[j];
+    if (b.dataset.sv) b.classList.toggle("secili", +b.dataset.sv === sv);
+    else b.classList.toggle("secili", b.dataset.bl === bolum);
+  }
+  var gruplar = kutu.querySelectorAll(".grup");
+  for (var g = 0; g < gruplar.length; g++) {
+    gruplar[g].classList.toggle("acik", gruplar[g].dataset.grup === bolum);
   }
 }
 
@@ -7328,23 +7358,21 @@ function yerlestir(){
   });
 
   kutu.addEventListener("input", function(ev){
-    var k = ev.target.dataset && ev.target.dataset.k;
+    var el = ev.target, k = el.dataset && el.dataset.k;
     if (!k) return;
-    degerYaz(k, +ev.target.value);
-    uygula(); tazele();
+    /* Kutu boşaltılırken (silip yeniden yazarken) 0'a düşürme. */
+    if (el.value === "" || el.value === "-") return;
+    degerYaz(k, +el.value);
+    uygula(); tazele(el);
   });
 
   kutu.addEventListener("pointerup", function(ev){
     var t = ev.target;
 
-    /* Seviye seçimi — yalnız panelde sürülen sayı kümesi değişir,
-       ekrandaki hiçbir şey kıpırdamaz. */
-    if (t.dataset && t.dataset.sv) {
-      sv = +t.dataset.sv;
-      tazele();
-      cikti.style.display = "none";
-      return;
-    }
+    /* Sekme geçişi — ekranda hiçbir şey kıpırdamaz, yalnız panelin
+       sürdüğü sayı kümesi ya da görünen bölüm değişir. */
+    if (t.dataset && t.dataset.sv) { sv = +t.dataset.sv; tazele(); cikti.style.display = "none"; return; }
+    if (t.dataset && t.dataset.bl) { bolum = t.dataset.bl; tazele(); return; }
 
     var i = t.dataset && t.dataset.i;
 
