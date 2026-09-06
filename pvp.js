@@ -793,7 +793,15 @@ function openCastlePopup(name, gx, gy, isOwn) {
   const fBtn = back.querySelector("#pvpFriendBtn");
   if (aBtn) {
     aBtn.disabled = friend || shield || cdLeft > 0;
-    tap(aBtn, () => { if (!aBtn.disabled) { closeCastlePopup(); beginPvpBattle(defender); } });
+    tap(aBtn, () => {
+      if (aBtn.disabled) return;
+      /* KALKANIN VARSA ÖNCE UYAR — onaylanmadan birlik seçme
+         ekranına geçilmez. Kalkanın yoksa hiç pencere çıkmaz;
+         kaybedecek bir şey olmadığı için fazladan tık olmaz. */
+      if (!kendiKalkanimVar()) { closeCastlePopup(); beginPvpBattle(defender); return; }
+      closeCastlePopup();
+      saldiriKalkanOnayi(() => beginPvpBattle(defender));
+    });
   }
   if (fBtn) tap(fBtn, () => { closeCastlePopup(); friend ? breakFriendship(name) : sendFriendRequest(name); });
 }
@@ -826,6 +834,69 @@ function fireMissileAt(name, gx, gy, isOwn) {
     return;
   }
   toast("Füze sistemi bulunamadı (missile.js güncel mi?).");
+}
+
+/* ── SALDIRANIN KENDİ KALKANI ────────────────────────────────────
+   Kalkan gerçeğinin ve düşürme işleminin TEK KAPISI missile.js:
+     MISSILE_API.kalkanimVar()    → kalkanım açık mı
+     MISSILE_API.kalkanimiDusur() → düşür, buluta yaz, haritayı tazele
+   Burada state.kalkanBitis'e elle dokunma; ikinci bir yol açmak
+   füze tarafıyla pvp tarafını ayrı gerçeklere böler.
+   missile.js yüklenmemişse false döner — yani uyarı çıkmaz ve
+   saldırı eskisi gibi işler (sessiz yedek yol değil, kapının yokluğu). */
+function kendiKalkanimVar() {
+  try {
+    const M = window.MISSILE_API;
+    return !!(M && typeof M.kalkanimVar === "function" && M.kalkanimVar());
+  } catch (e) { return false; }
+}
+
+/* Kalkan uyarısı. Panel biçimi missile.js'in enjekte ettiği
+   .msl-confirm-* sınıflarından gelir — ikinci bir stil bloğu
+   yazılmadı ki iki pencere birbirinden ayrışmasın. */
+function saldiriKalkanOnayi(onConfirm) {
+  const eski = document.getElementById("pvpKalkanOnay");
+  if (eski) eski.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "pvpKalkanOnay";
+  overlay.className = "msl-confirm-overlay";
+
+  const panel = document.createElement("div");
+  panel.className = "msl-confirm-panel";
+
+  const msg = document.createElement("p");
+  msg.className = "msl-confirm-msg";
+  msg.textContent = "Saldırı yaparsanız kalkanınız düşecektir. Saldırmak istiyor musun?";
+
+  const btnRow = document.createElement("div");
+  btnRow.className = "msl-confirm-btns";
+
+  const btnOk = document.createElement("button");
+  btnOk.className = "msl-cbtn msl-cbtn-ok";
+  btnOk.textContent = "Saldır ⚔️";
+
+  const btnNo = document.createElement("button");
+  btnNo.className = "msl-cbtn msl-cbtn-cancel";
+  btnNo.textContent = "Vazgeç ❌";
+
+  btnRow.appendChild(btnOk);
+  btnRow.appendChild(btnNo);
+  panel.appendChild(msg);
+  panel.appendChild(btnRow);
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  requestAnimationFrame(() => overlay.classList.add("msl-confirm-show"));
+
+  function kapat() {
+    overlay.classList.remove("msl-confirm-show");
+    setTimeout(() => overlay.remove(), 250);
+  }
+
+  tap(btnOk, () => { kapat(); if (typeof onConfirm === "function") onConfirm(); });
+  tap(btnNo, kapat);
+  tap(overlay, (e) => { if (e && e.target === overlay) kapat(); });
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1913,6 +1984,16 @@ async function runPvpBattle() {
     sel[uid] = Math.max(0, Math.floor(n)); selTotal += sel[uid];
   });
   if (selTotal <= 0) { toast("Yanına en az 1 birlik almalısın!"); return; }
+
+  /* ── KALKAN BURADA DÜŞER ──
+     Uyarı SALDIR'da çıkar, bedel ise savaş GERÇEKTEN başlarken
+     ödenir: oyuncu birlik seçme ekranından geri dönerse kalkanını
+     kaybetmez. Düşürme kapısı missile.js'te (füze de aynısını
+     çağırır), burada state.kalkanBitis'e dokunulmaz. */
+  try {
+    const M = window.MISSILE_API;
+    if (M && typeof M.kalkanimiDusur === "function") M.kalkanimiDusur();
+  } catch (e) {}
 
   _running = true;
   btn.disabled = true;
