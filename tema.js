@@ -7701,8 +7701,8 @@ setTimeout(uygula, 2500);
      Başlangıç değerleri index.html'deki KALICI kurallarla birebir
      aynı olmak zorunda; ayrışırsa panel açılır açılmaz kale
      zıplıyor ve neyi ayarladığın belli olmuyor. */
-  var AYAR = { 1:{boy:100,dy:0,dx:0}, 2:{boy:166,dy:22,dx:0}, 3:{boy:100,dy:0,dx:0},
-               4:{boy:184,dy:0,dx:0}, 5:{boy:176,dy:-11,dx:-8} };
+  var AYAR = { 1:{boy:88,dy:0,dx:0}, 2:{boy:166,dy:22,dx:0}, 3:{boy:170,dy:0,dx:0},
+               4:{boy:226,dy:-2,dx:0}, 5:{boy:252,dy:-11,dx:-8} };
   var aktif = 2;
 
   function svOku(node) {
@@ -8505,7 +8505,8 @@ document.head.appendChild(st);
    yol izlenmişti.
 
    ── ÖLÇÜLER YÜZDEYLE ──
-   Kale kutusu seviyeye göre 100px, 166px ya da 184px (?kaleayar=1).
+   Kale kutusu seviyeye göre 88px ile 252px arasında değişir
+   (?kaleayar=1; güncel set: 88 · 166 · 170 · 226 · 252).
    Piksel yazılırsa Sv2 kalesi kubbeden taşar.
 
    ── calc İÇİNDE İŞARET ──
