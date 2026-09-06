@@ -6988,19 +6988,7 @@ html body #battleMap .map-node.castle-node .node-label{
      Flex çocuğu olsaydı görseli büyütmek çerçeveyi de büyütürdü;
      ikisi ayrı ayarlanamazdı. Artık çerçevenin ölçüsü yalnız
      yazıya ve dolgulara bağlı, görsel onun soluna asılı duruyor. */
-  /* ── KONUM ARTIK AKIŞTA DEĞİL ──
-     Etiket flex çocuğuyken kale görselinin ALTINDAN başlıyordu ve
-     görselin ölçüsü seviyeye göre 88px'den 252px'e çıkıyor. Aynı
-     kaydırma sayısı bu yüzden Sv1'de doğru, Sv4'te kalenin göbeğinde
-     duruyordu — tek panelle hepsini birden hizalamak imkânsızdı.
-
-     Mutlak konumda referans artık KARO: `.map-node` translate(-50%,-50%)
-     ile kutusunun merkezini kalenin SOL ÜST karosunun merkezine
-     oturtuyor, dolayısıyla düğümün içinde top:50% tam olarak o
-     karonun merkezidir ve kale görselinin ölçüsünden bağımsızdır. */
-  position:absolute;
-  left:50%;
-  top:50%;
+  position:relative;
   display:inline-block;
   font-family:'Baloo 2','Nunito',sans-serif;
   font-weight:800;
@@ -7023,33 +7011,19 @@ html body #battleMap .map-node.castle-node .node-label{
      Buraya overflow:hidden yazılırsa seviye görseli de kırpılır:
      görsel ::before ile ve kutunun DIŞINA (right:100%) asılı. */
   overflow:visible;
-  /* ── DİKEY YER: 2×2 ALANIN EN ALT KÖŞESİNİN BİR TIK ÜSTÜ ──
-     Kale dört karo kaplıyor (kale2x2.js); sol üst karonun
-     merkezinden alanın en alt köşesine 3 yarım karo boyu, yani
-     3 × 16 = 48 dünya pikseli var. Düğümün kendi ölçeği 0.64
-     olduğu için düğümün İÇİNDE bu 48 ÷ 0.64 = 75px eder.
+  /* kale2x2.js etikete translateY(25px) yazıyor; buradaki kayma
+     ONUN YERİNE geçer, o yüzden taban 61px olarak içine toplandı.
+     Ayrı yazılsaydı biri diğerini ezerdi.
 
-     --et-dy etiketin MERKEZİNİ oraya göre koyar: 62px, alt köşenin
-     yaklaşık bir satır yüksekliği kadar üstü. Tek sayı bütün
-     seviyelerde aynı sonucu verir, çünkü kale görselinin ölçüsü
-     artık hesaba girmiyor.
-
-     --et-dx yatay ince ayar. 0 = YAZI ÇERÇEVESİ karoya ortalı.
-     Seviye rozeti (::before) çerçevenin soluna asılı ve ~33px dışarı
-     taşıyor; rozetiyle birlikte ortalamak istersen 17px civarı ver.
+     KALENİN ÜSTÜNE BİNMEME: 61px, kale kutusunun (100px) alt
+     kenarının altına düşen değer. 10px'te yazı kale resminin
+     eteğine biniyordu.
 
      scale(--et-k) düğümün kendi büyütmesini geri alır (harita.js
-     dugumleriYerlestir). Origin artık MERKEZ: konumu etiketin
-     merkezinden verdiğimiz için küçülürken etiket kendi yerinde
-     kalır, yukarı toplanmaz.
-
-     SIRA: translate(-50%,-50%) etiketi kendi merkezine oturtur,
-     sonraki translate karo referansına taşır, scale en sonda gelir
-     ki kaydırma sayıları zoom ile şişmesin. */
-  transform-origin:50% 50%;
-  transform:translate(-50%,-50%)
-            translate(var(--et-dx, 0px), var(--et-dy, 62px))
-            scale(var(--et-k, 1));
+     dugumleriYerlestir). transform-origin ÜST ORTA: küçülürken
+     etiket kalenin altına yapışık kalır, ortasına kaymaz. */
+  transform-origin:50% 0;
+  transform:translate(0px, 17px) scale(var(--et-k, 1));
 }
 
 /* Uzun kullanıcı adı çerçeveden taşmaz: kırpılır ve sonuna üç nokta
@@ -7117,7 +7091,7 @@ document.head.appendChild(st);
 
 if (!/[?&]etiket=1(&|$)/.test(location.search)) return;
 
-const ANAHTAR = "bdEtiket7";   /* 7: kayma artık karo referanslı, eski kayıt geçersiz */
+const ANAHTAR = "bdEtiket6";
 const VARSAYILAN = {
   /* KALE — piksel, doğrudan CSS'e gider */
   kPunto:   17,   /* yazı boyu, px                    */
@@ -7125,8 +7099,8 @@ const VARSAYILAN = {
   kDolguY:  19,   /* yatay dolgu, px                  */
   kDolguD:   0,   /* dikey dolgu, px                  */
   kKose:    30,   /* köşe yuvarlaklığı, px            */
-  kDx:       0,   /* yatay kayma (0 = çerçeve karoya ortalı) */
-  kDy:      62,   /* dikey kayma (karo alt köşesi 75px)      */
+  kDx:       0,   /* çerçevenin yatay kayması         */
+  kDy:     -44,   /* dikey kayma (taban 61px)         */
   kGEn:     67,   /* görsel genişliği, px             */
   kGBoy:   123,   /* görsel yüksekliği, px            */
   kGX:     -34,   /* görsel–çerçeve boşluğu, px       */
@@ -7156,17 +7130,16 @@ document.head.appendChild(stil);
 
 function uygula(){
   /* ── KALE ──
-     Kayma artık transform yazarak değil, kaleEtiketi bloğunun okuduğu
-     --et-dx / --et-dy değişkenlerine yazarak veriliyor. Transform'un
-     kendisi orada duruyor; buradan ezseydik translate(-50%,-50%)
-     merkezlemesi de silinir ve etiket karodan kayardı. */
+     kale2x2.js etikete translateY(25px) yazıyor; buradaki kayma
+     ONUN ÜSTÜNE eklenmeli, yoksa etiket kalenin içine sıçrar. */
   stil.textContent =
     "html body #battleMap .map-node.castle-node .node-label{" +
       "font-size:" + A.kPunto + "px;" +
       "width:auto;max-width:" + A.kGenis + "px;" +
       "padding:" + A.kDolguD + "px " + A.kDolguY + "px;" +
       "border-radius:" + A.kKose + "px;" +
-      "--et-dx:" + A.kDx + "px;--et-dy:" + A.kDy + "px;" +
+      "transform:translate(" + A.kDx + "px," + (61 + A.kDy) + "px)" +
+        " scale(var(--et-k, 1));" +
     "}" +
     "html body #battleMap .map-node.castle-node .node-label::before{" +
       "width:"  + A.kGEn  + "px;" +
@@ -7242,7 +7215,7 @@ const ALANLAR = [
   ["kDolguD",   "Dikey dolgu",   0,  30],
   ["kKose",     "Köşe",          0,  30],
   ["kDx",       "Yatay kayma",-140, 140],
-  ["kDy",       "Dikey kayma", -40, 160],
+  ["kDy",       "Dikey kayma", -80, 120],
   ["bas", "KALE — GÖRSEL"],
   ["kGEn",      "Genişlik",      4, 200],
   ["kGBoy",     "Yükseklik",     4, 200],
@@ -7309,8 +7282,7 @@ function yerlestir(){
         "  max-width: " + A.kGenis + "px\n" +
         "  padding: " + A.kDolguD + "px " + A.kDolguY + "px\n" +
         "  border-radius: " + A.kKose + "px\n" +
-        "  --et-dx: " + A.kDx + "px\n" +
-        "  --et-dy: " + A.kDy + "px   (karo alt kosesi 75)\n" +
+        "  translate: " + A.kDx + "px / " + (61 + A.kDy) + "px\n" +
         "  ::before " + A.kGEn + "x" + A.kGBoy + "px\n" +
         "  margin-right: " + A.kGX + "px · dy " + A.kGY + "px\n\n" +
         "harita.js CFG.etiket\n" +
