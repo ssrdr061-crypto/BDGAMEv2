@@ -171,9 +171,9 @@
 
         par.push({
           el: el, sacil: sacil, kum: kum,
-          bek: i * (az ? 40 : (o.gecikme || 115)),
-          sac: az ? 90 : (o.sac || 320),
-          ucus: (az ? 640 : (o.sure || 2400)) + Math.random() * 250,
+          bek: i * (az ? 20 : (o.gecikme || 30)),
+          sac: az ? 90 : (o.sac || 160),
+          ucus: (az ? 500 : (o.sure || 800)) + Math.random() * 150,
           don: (Math.random() - 0.5) * 520,
           vardi: false
         });
@@ -237,7 +237,7 @@
 
       ucur({
         kaynak: kaynak, hedef: hedef, adet: 14, boy: 30, yukari: 130,
-        sure: 3600, sac: 520, us: 4.6, gecikme: 115,
+        sure: 900, sac: 160, us: 4.6, gecikme: 25,
         icerik: function () {
           return '<img src="' + gorselSrc + '" alt="" ' +
                  'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'💎\'))">';
