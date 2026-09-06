@@ -17,7 +17,7 @@
    bitince renderDiamonds bir kez daha çağrılır — son rakam her hâlükârda
    state'ten gelir, animasyondan değil.
 
-   Tanı: adres satırına ?efekttani=1  → sağ üstte kutu, ekrana basar.
+   Tanı: adres satırına ?odulefekt=1  → sağ üstte kutu, ekrana basar.
    ═══════════════════════════════════════════════════════════════════════ */
 
 var OdulEfekt = (function () {
@@ -336,14 +336,14 @@ var ODUL_AYAR = {
   var S = ODUL_SECICI, A = ODUL_AYAR;
   OdulEfekt.ayarla({ klasor: A.klasor });
 
-  /* ── tanı (?efekttani=1) — ekrana basar, showToast'a değil ───────── */
-  var TANI = /[?&]efekttani=1/.test(location.search);
+  /* ── tanı (?odulefekt=1) — ekrana basar, showToast'a değil ───────── */
+  var TANI = /[?&]odulefekt=1/.test(location.search);
   var taniKutu = null;
   function tani(satir) {
     if (!TANI) return;
     if (!taniKutu) {
       taniKutu = document.createElement('div');
-      taniKutu.id = 'efektTaniKutu';
+      taniKutu.id = 'odulEfektTani';
       taniKutu.style.cssText = 'position:fixed;top:6px;right:6px;z-index:100000;max-width:62vw;' +
         'background:rgba(2,8,22,.85);color:#e8f4ff;font:700 11px/1.35 monospace;' +
         'padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre-wrap;';
