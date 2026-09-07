@@ -720,7 +720,7 @@
       kap = document.createElement("div");
       kap.className = "s3b-kap";
       /* Tuval yukarı doğru uzar (hüzmeye yer), aşağıda kısa kalır. */
-      kap.style.cssText = "position:absolute;left:-32%;right:-32%;top:-62%;bottom:-4%;" +
+      kap.style.cssText = "position:absolute;left:-18%;right:-18%;top:-55%;bottom:-2%;" +
                           "pointer-events:none;z-index:2";
       chestEl.style.position = chestEl.style.position || "relative";
       chestEl.appendChild(kap);
@@ -737,9 +737,9 @@
 
       sahne = new THREE.Scene();
       kamera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
-      /* Sandık alt-ortada dursun, üstte hüzmeye boşluk kalsın. */
+      /* Konum olcule() içinde en-boy oranına göre hesaplanır. */
       kamera.position.set(0, 2.5, 7.0);
-      kamera.lookAt(0, 1.05, 0);
+      kamera.lookAt(0, 0.95, 0);
 
       cizer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       cizer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -1017,6 +1017,17 @@
       rtA.setSize(Math.max(2, Math.floor(g * pr / 2)), Math.max(2, Math.floor(y * pr / 2)));
       rtB.setSize(Math.max(2, Math.floor(g * pr / 2)), Math.max(2, Math.floor(y * pr / 2)));
       kamera.aspect = g / y;
+
+      /* ÇERÇEVELEME: tuval dar olunca yatay görüş açısı daralır ve
+         sandık ekranı doldurur. Kamera mesafesi en-boy oranına göre
+         hesaplanır — sandığın yarı genişliği (1.45) + pay sığsın. */
+      var yariFov = THREE.MathUtils.degToRad(kamera.fov) / 2;
+      var yatay = 2.15 / (Math.tan(yariFov) * kamera.aspect);
+      var dikey = 2.60 / Math.tan(yariFov);
+      var mesafe = Math.max(6.4, Math.min(16, Math.max(yatay, dikey)));
+      kamera.position.set(0, mesafe * 0.34, mesafe);
+      kamera.lookAt(0, 0.95, 0);
+
       kamera.updateProjectionMatrix();
     }
 
@@ -1182,7 +1193,7 @@
           "#panel-chest .overlay-card{overflow:visible !important;" +
             "padding-bottom:14px !important}" +
           "#panel-chest .chest-zone{padding-top:4px !important;gap:6px !important}" +
-          "#panel-chest #chestEl{height:238px !important;margin:10px 0 2px !important;" +
+          "#panel-chest #chestEl{height:200px !important;margin:8px 0 2px !important;" +
             "position:relative !important;overflow:visible !important}" +
           "#panel-chest .chest-meta{margin-bottom:0 !important}" +
           "#panel-chest .chest-result{margin:0 !important}";
