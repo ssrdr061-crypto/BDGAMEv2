@@ -1060,15 +1060,36 @@
       return 1 + Math.sin(v * Math.PI) * 0.055 * (1 - v);
     }
 
-    function ac(tutar) {
-      /* Ne halde olursa olsun sıfırdan başlar — üst üste binme olmasın. */
+    /* Kapağı ve gövdeyi ANINDA kapalı hâle döndürür. */
+    function hemenKapat() {
       if (kapak) kapak.rotation.x = 0;
-      if (sandik) { sandik.scale.set(1, 1, 1); sandik.position.x = 0; }
-      huzmeT = -1;
+      if (sandik) { sandik.scale.set(1, 1, 1); sandik.position.x = 0; sandik.rotation.z = 0; }
+      if (icIsik) icIsik.intensity = 0;
+      huzmeT = -1; sacildi = false;
+      elmaslar.forEach(function (e) { sahne.remove(e.m); });
+      elmaslar.length = 0;
+      durum = "kapali";
+    }
+
+    /* Dokunma anı: ödül 850 ms sonra geliyor, ama sandık HEMEN
+       titremeye başlar — bekleme hissi buradan doğuyordu. */
+    function tetikle() {
+      hemenKapat();
+      durum = "bekliyor";
+      t0 = performance.now();
+      window.__s3bTutar = 0;
+    }
+
+    /* Tutar geldi: titreme zaten sürüyorsa doğrudan açılışa geçilir. */
+    function ac(tutar) {
       kademe = kademeSec(tutar);
       icDoldur();
-      durum = "aciliyor"; sacildi = false; t0 = performance.now();
       window.__s3bTutar = tutar;
+      var now = performance.now();
+      /* Titreme yeterince sürdüyse baştan sarma yok — kapak hemen kalkar. */
+      t0 = (durum === "bekliyor" && now - t0 >= SARS) ? now - SARS : now;
+      durum = "aciliyor";
+      sacildi = false;
     }
 
     function sifirla() {
@@ -1128,6 +1149,13 @@
       var dt = Math.min(0.05, (now - sonKare) / 1000);
       sonKare = now;
       sandik.rotation.y = -0.28;
+
+      if (durum === "bekliyor") {
+        /* Ödül gelene kadar titremeye devam — en fazla 2 sn. */
+        var b = now - t0;
+        sandik.position.x = Math.sin(b / 22) * 0.045 * Math.max(0.35, 1 - b / 1200);
+        if (b > 2000) { sandik.position.x = 0; durum = "kapali"; }
+      }
 
       if (durum === "aciliyor") {
         var gec = now - t0;
@@ -1292,7 +1320,7 @@
       document.addEventListener("click", function (ev) {
         var t = ev.target && ev.target.closest ? ev.target.closest("#chestEl") : null;
         if (!t || !calisiyor) return;
-        if (durum === "aciliyor") return;   /* açılış sürüyorsa yoksay */
+        tetikle();                          /* her basışta anında sıfırla */
         var r0 = document.getElementById("chestResult");
         var onceki = r0 ? r0.textContent : "";
         var dene = 0;
@@ -1306,6 +1334,17 @@
           } else if (++dene > 25) clearInterval(bak);   /* ~2 sn sonra vazgeç */
         }, 80);
       }, true);
+
+      /* Eski sandık herhangi bir yolla DOM'a geri eklenirse anında
+         silinir — hangi kodun eklediğini beklemeye gerek kalmaz. */
+      var chestEl0 = document.getElementById("chestEl");
+      if (chestEl0 && window.MutationObserver) {
+        new MutationObserver(function () {
+          if (document.getElementById("chestSvg") ||
+              document.getElementById("chestSparkle") ||
+              chestEl0.querySelector("svg")) eskiyiKaldir();
+        }).observe(chestEl0, { childList: true });
+      }
 
       addEventListener("resize", function () { if (calisiyor) olcule(); });
     }
