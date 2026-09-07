@@ -719,7 +719,8 @@
     function kurulum(chestEl) {
       kap = document.createElement("div");
       kap.className = "s3b-kap";
-      kap.style.cssText = "position:absolute;left:-45%;right:-45%;top:-95%;bottom:-12%;" +
+      /* Tuval yukarı doğru uzar (hüzmeye yer), aşağıda kısa kalır. */
+      kap.style.cssText = "position:absolute;left:-32%;right:-32%;top:-62%;bottom:-4%;" +
                           "pointer-events:none;z-index:2";
       chestEl.style.position = chestEl.style.position || "relative";
       chestEl.appendChild(kap);
@@ -736,8 +737,9 @@
 
       sahne = new THREE.Scene();
       kamera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
-      kamera.position.set(0, 2.1, 7.2);
-      kamera.lookAt(0, 0.25, 0);
+      /* Sandık alt-ortada dursun, üstte hüzmeye boşluk kalsın. */
+      kamera.position.set(0, 2.5, 7.0);
+      kamera.lookAt(0, 1.05, 0);
 
       cizer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       cizer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -1170,6 +1172,23 @@
       }
       /* gorsel4.webp ve eski efektler kalkar; tutar satırı GİZLİ ama
          DOLU kalır — kademeyi oradan okuyoruz. */
+      /* Panel ölçüleri: sandık büyür, yukarı taşabilsin diye kart
+         kırpması açılır, alttaki boşluk kısalır. tema.js sonradan
+         yüklendiği için blok BENZERSİZ id ile en sona eklenir. */
+      if (!document.getElementById("s3bStil")) {
+        var st = document.createElement("style");
+        st.id = "s3bStil";
+        st.textContent =
+          "#panel-chest .overlay-card{overflow:visible !important;" +
+            "padding-bottom:14px !important}" +
+          "#panel-chest .chest-zone{padding-top:4px !important;gap:6px !important}" +
+          "#panel-chest #chestEl{height:238px !important;margin:10px 0 2px !important;" +
+            "position:relative !important;overflow:visible !important}" +
+          "#panel-chest .chest-meta{margin-bottom:0 !important}" +
+          "#panel-chest .chest-result{margin:0 !important}";
+        document.head.appendChild(st);
+      }
+
       gizle("chestSvg");
       gizle("chestGlow");
       gizle("chestSparkle");
