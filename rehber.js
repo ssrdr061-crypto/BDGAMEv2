@@ -1169,69 +1169,68 @@
     }
 
     /* ── Panelin devralınması ──────────────────────────────────── */
-    function gizle(id) {
-      var el = document.getElementById(id);
-      if (el) el.style.display = "none";
+    function sil(el) { if (el && el.parentNode) el.parentNode.removeChild(el); }
+
+    /* ESKİ SANDIĞIN TEMİZLİĞİ — THREE'den BAĞIMSIZ.
+       Eskiden temizlik WebGL kurulumunun içindeydi; THREE hazır
+       değilken kurulum yarıda kalıyor, eski sandık ekranda kalıyordu.
+       Artık ayrı ve her çağrıda güvenle tekrarlanabilir. */
+    function eskiyiKaldir() {
+      var chestEl = document.getElementById("chestEl");
+      if (!chestEl) return false;
+
+      sil(document.getElementById("chestSvg"));
+      sil(document.getElementById("chestSparkle"));
+      var glow = document.getElementById("chestGlow");
+      if (glow) sil(glow.ownerSVGElement || glow);
+      /* Kutunun içinde bizim tuvalimiz dışında ne varsa gider —
+         panel yeniden çizilirse de aynı sonuç. */
+      Array.prototype.slice.call(chestEl.children).forEach(function (c) {
+        if (!c.classList || !c.classList.contains("s3b-kap")) sil(c);
+      });
+      return true;
+    }
+
+    function stilEkle() {
+      if (document.getElementById("s3bStil")) return;
+      var st = document.createElement("style");
+      st.id = "s3bStil";
+      st.textContent =
+        "#panel-chest .overlay-card{overflow:visible !important;padding-bottom:14px !important}" +
+        "#panel-chest .chest-zone{padding-top:4px !important;gap:6px !important}" +
+        "#panel-chest #chestEl{width:70% !important;max-width:260px !important;" +
+          "height:200px !important;margin:8px auto 2px !important;position:relative !important;" +
+          "overflow:visible !important;filter:none !important;animation:none !important;" +
+          "background:none !important}" +
+        "#panel-chest .chest-meta{margin-bottom:0 !important}" +
+        "#panel-chest .chest-result{margin:0 !important;visibility:hidden !important;" +
+          "height:0 !important;overflow:hidden !important}" +
+        "#panel-chest #chestSvg,#panel-chest .chest-svg," +
+        "#panel-chest #chestGlow,#panel-chest .chest-glow-burst," +
+        "#panel-chest #chestSparkle,#panel-chest .chest-sparkle{display:none !important}";
+      document.head.appendChild(st);
     }
 
     function devral() {
+      stilEkle();
+      if (!eskiyiKaldir()) return false;          /* panel henüz yok */
+      if (typeof THREE === "undefined") return false;  /* WebGL sonra */
       var chestEl = document.getElementById("chestEl");
-      if (!chestEl || typeof THREE === "undefined") return false;
       if (!kuruldu) {
+        /* Artık kalmış bir tuval varsa yenisini üstüne koyma. */
+        var eskiKap = chestEl.querySelector(".s3b-kap");
+        if (eskiKap) sil(eskiKap);
         kurulum(chestEl);
         kuruldu = true;
+      } else if (kap && kap.parentNode !== chestEl) {
+        chestEl.appendChild(kap);                 /* panel yeniden çizilmişse */
       }
-      /* gorsel4.webp ve eski efektler kalkar; tutar satırı GİZLİ ama
-         DOLU kalır — kademeyi oradan okuyoruz. */
-      /* Panel ölçüleri: sandık büyür, yukarı taşabilsin diye kart
-         kırpması açılır, alttaki boşluk kısalır. tema.js sonradan
-         yüklendiği için blok BENZERSİZ id ile en sona eklenir. */
-      if (!document.getElementById("s3bStil")) {
-        var st = document.createElement("style");
-        st.id = "s3bStil";
-        st.textContent =
-          "#panel-chest .overlay-card{overflow:visible !important;" +
-            "padding-bottom:14px !important}" +
-          "#panel-chest .chest-zone{padding-top:4px !important;gap:6px !important}" +
-          "#panel-chest #chestEl{height:200px !important;margin:8px 0 2px !important;" +
-            "position:relative !important;overflow:visible !important}" +
-          "#panel-chest .chest-meta{margin-bottom:0 !important}" +
-          "#panel-chest .chest-result{margin:0 !important}" +
-          /* ESKİ SANDIK: gorsel4.webp, svg parlaması ve ✨ tamamen kapanır.
-             display:none tek başına yetmediği için sınıf + kimlik + !important. */
-          "#panel-chest #chestSvg,#panel-chest .chest-svg," +
-          "#panel-chest #chestGlow,#panel-chest .chest-glow-burst," +
-          "#panel-chest #chestSparkle,#panel-chest .chest-sparkle," +
-          "#panel-chest .chest > svg{display:none !important;opacity:0 !important;" +
-            "visibility:hidden !important}" +
-          /* Kutunun kendi gölgesi ve süzülme animasyonu da kalksın:
-             3B sandığın kendi gölgesi var, ikisi üst üste binmesin. */
-          "#panel-chest .chest{filter:none !important;animation:none !important;" +
-            "background:none !important}";
-        document.head.appendChild(st);
-      }
-
-      gizle("chestSvg");
-      gizle("chestGlow");
-      gizle("chestSparkle");
-      /* Görsel kaynağı da boşaltılır — stil ezilse bile basacak bir şey kalmaz. */
-      var eski = document.getElementById("chestSvg");
-      if (eski) {
-        eski.removeAttribute("src");
-        if (eski.parentNode) eski.parentNode.removeChild(eski);
-      }
-      var esvg = document.querySelector("#chestEl > svg");
-      if (esvg && esvg.parentNode) esvg.parentNode.removeChild(esvg);
-      var espark = document.getElementById("chestSparkle");
-      if (espark && espark.parentNode) espark.parentNode.removeChild(espark);
-      var r = document.getElementById("chestResult");
-      if (r) { r.style.visibility = "hidden"; r.style.height = "0"; r.style.margin = "0"; }
       return true;
     }
 
     function basla() {
-      if (calisiyor) return;
       if (!devral()) return;
+      if (calisiyor) return;
       calisiyor = true;
       olcule();
       sonKare = performance.now();
@@ -1246,17 +1245,24 @@
     }
 
     /* Panel görünürlüğü izlenir: açıkken çizer, kapanınca durur —
-       kapalı panelde WebGL döngüsü pil yakmasın. */
+       kapalı panelde WebGL döngüsü pil yakmasın. Devralma BAŞARISIZ
+       olursa (THREE henüz yok) her turda yeniden denenir. */
     function gozle() {
-      var acikti = false;
+      eskiyiKaldir();      /* açılışta, panel açılmadan da temizle */
+      stilEkle();
+
       setInterval(function () {
         var p = document.getElementById("panel-chest");
         if (!p) return;
-        var acik = getComputedStyle(p).display !== "none" &&
-                   getComputedStyle(p).visibility !== "hidden";
-        if (acik && !acikti) { acikti = true; basla(); }
-        else if (!acik && acikti) { acikti = false; dur(); }
-      }, 400);
+        var g = getComputedStyle(p);
+        var acik = g.display !== "none" && g.visibility !== "hidden";
+        if (acik) {
+          if (!calisiyor) basla();               /* başarısızsa tekrar dener */
+          else if (document.getElementById("chestSvg")) eskiyiKaldir();
+        } else if (calisiyor) {
+          dur();
+        }
+      }, 300);
 
       /* Sandığa dokunulunca: oyunun openChest'i ödülü verir, biz
          yalnız görsel katmanı sürüyoruz. Tutar 880 ms sonra
@@ -1264,14 +1270,18 @@
       document.addEventListener("click", function (ev) {
         var t = ev.target && ev.target.closest ? ev.target.closest("#chestEl") : null;
         if (!t || !calisiyor || durum !== "kapali") return;
-        var oncekiMetin = (document.getElementById("chestResult") || {}).textContent || "";
-        setTimeout(function () {
+        var r0 = document.getElementById("chestResult");
+        var onceki = r0 ? r0.textContent : "";
+        var dene = 0;
+        var bak = setInterval(function () {
           var r = document.getElementById("chestResult");
           var metin = r ? r.textContent : "";
-          if (!metin || metin === oncekiMetin) return;   /* limit dolu → açılmadı */
-          var tutar = parseInt(String(metin).replace(/[^0-9]/g, ""), 10) || 0;
-          if (tutar > 0) ac(tutar);
-        }, 60);
+          if (metin && metin !== onceki) {
+            clearInterval(bak);
+            var tutar = parseInt(String(metin).replace(/[^0-9]/g, ""), 10) || 0;
+            if (tutar > 0) ac(tutar);
+          } else if (++dene > 25) clearInterval(bak);   /* ~2 sn sonra vazgeç */
+        }, 80);
       }, true);
 
       addEventListener("resize", function () { if (calisiyor) olcule(); });
