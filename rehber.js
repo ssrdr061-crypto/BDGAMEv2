@@ -591,6 +591,650 @@
     document.addEventListener("DOMContentLoaded", gunlukUcusBagla);
   else gunlukUcusBagla();
 
+
+  /* ═══════════════════════════════════════════════════════════════════
+     ŞANS SANDIĞI — GERÇEK 3B (three.js)
+     ───────────────────────────────────────────────────────────────────
+     index.html'e DOKUNULMAZ. Panel açılınca #chestEl içine kendi tuvali
+     kurulur; gorsel4.webp (#chestSvg), svg parlaması (#chestGlow),
+     ✨ (#chestSparkle) ve alttaki tutar satırı (#chestResult) gizlenir —
+     tutarı artık efektin kendi yazısı gösterir.
+     Ödül mantığı openChest()'te; buraya dokunulmaz. Tutar, oyunun
+     yazdığı #chestResult metninden OKUNUR (gizli ama dolu kalır).
+     Yükleme sırası: three.js rehber.js'ten SONRA gelir — bu yüzden
+     THREE'ye yalnız panel açıldığında, çalışma anında bakılır.
+     ═══════════════════════════════════════════════════════════════════ */
+  var SANDIK3B = (function () {
+    var kuruldu = false, calisiyor = false, rafId = 0;
+    var cizer, sahne, kamera, kap, tuval, yaziEl;
+    var sandik, govde, kapak, huzmeKap, anaHuzme, yanHuzmeler = [];
+    var icIsik, mHuzme, mHale, elmaslar = [], icElmaslar = [];
+    var rtSahne, rtA, rtB, kareSahne, kareKamera, kareMesh;
+    var shParlak, shBulanik, shBirlestir;
+    var durum = "kapali", t0 = 0, sacildi = false;
+    var huzmeT = -1, huzmeGuc = 0, vurusGuc = 1, huzmeVurus = -9999;
+    var kademe = "orta", elmasDoku = null;
+    var ELMAS_RENK = 0x7fe3ff;
+    var SARS = 300, ACILMA = 560, KAPAK_ACI = -2.05;
+
+    var KADEME = {
+      dusuk:  { adet: 8,  guc: 4.2, ic: 5,  huzme: 0.16, yan: 0, punto: 34 },
+      orta:   { adet: 20, guc: 5.4, ic: 11, huzme: 0.36, yan: 4, punto: 44 },
+      yuksek: { adet: 40, guc: 6.9, ic: 18, huzme: 0.62, yan: 9, punto: 60 }
+    };
+    function kademeSec(tutar) {
+      if (tutar >= 10000) return "yuksek";
+      if (tutar >= 3000) return "orta";
+      return "dusuk";
+    }
+
+    /* ── Dokular: kodla çizilir, dosya gerekmez ────────────────── */
+    function ahsapDoku(taban) {
+      var c = document.createElement("canvas"); c.width = c.height = 512;
+      var x = c.getContext("2d");
+      x.fillStyle = taban; x.fillRect(0, 0, 512, 512);
+      for (var i = 0; i < 190; i++) {
+        var y = Math.random() * 512;
+        x.strokeStyle = "rgba(" + (Math.random() < 0.5 ? "88,52,22," : "224,182,126,") +
+                        (0.04 + Math.random() * 0.10) + ")";
+        x.lineWidth = 0.4 + Math.random() * 1.3;
+        x.beginPath(); x.moveTo(0, y);
+        for (var px = 0; px <= 512; px += 16)
+          x.lineTo(px, y + Math.sin((px + i * 20) / 34) * 3.5 + (Math.random() - 0.5) * 1.6);
+        x.stroke();
+      }
+      var t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+      return t;
+    }
+
+    function metalDoku(taban, koyu) {
+      var c = document.createElement("canvas"); c.width = c.height = 256;
+      var x = c.getContext("2d");
+      var g = x.createLinearGradient(0, 0, 0, 256);
+      g.addColorStop(0, koyu); g.addColorStop(0.18, taban);
+      g.addColorStop(0.45, "#cfd6db"); g.addColorStop(0.72, taban);
+      g.addColorStop(1, koyu);
+      x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+      for (var i = 0; i < 260; i++) {
+        var y = Math.random() * 256;
+        x.strokeStyle = "rgba(" + (Math.random() < 0.5 ? "40,52,62," : "232,240,246,") +
+                        (0.03 + Math.random() * 0.10) + ")";
+        x.lineWidth = 0.4 + Math.random() * 1.1;
+        x.beginPath(); x.moveTo(0, y); x.lineTo(256, y + (Math.random() - 0.5) * 2); x.stroke();
+      }
+      x.fillStyle = "rgba(120,160,190,.10)"; x.fillRect(0, 0, 256, 256);
+      var t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+      return t;
+    }
+
+    function huzmeDoku() {
+      var c = document.createElement("canvas"); c.width = 16; c.height = 256;
+      var x = c.getContext("2d");
+      var g = x.createLinearGradient(0, 256, 0, 0);
+      g.addColorStop(0, "rgba(190,240,255,.55)");
+      g.addColorStop(0.30, "rgba(150,225,255,.30)");
+      g.addColorStop(0.70, "rgba(120,215,255,.10)");
+      g.addColorStop(1, "rgba(120,215,255,0)");
+      x.fillStyle = g; x.fillRect(0, 0, 16, 256);
+      var yan = x.createLinearGradient(0, 0, 16, 0);
+      yan.addColorStop(0, "rgba(0,0,0,1)"); yan.addColorStop(0.5, "rgba(0,0,0,0)");
+      yan.addColorStop(1, "rgba(0,0,0,1)");
+      x.globalCompositeOperation = "destination-out";
+      x.fillStyle = yan; x.fillRect(0, 0, 16, 256);
+      return new THREE.CanvasTexture(c);
+    }
+
+    function haleDoku() {
+      var c = document.createElement("canvas"); c.width = c.height = 128;
+      var x = c.getContext("2d");
+      var g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, "rgba(255,255,255,1)");
+      g.addColorStop(0.25, "rgba(190,240,255,.65)");
+      g.addColorStop(1, "rgba(120,220,255,0)");
+      x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+      return new THREE.CanvasTexture(c);
+    }
+
+    function yedekElmasDoku() {
+      var c = document.createElement("canvas"); c.width = c.height = 128;
+      var x = c.getContext("2d");
+      var g = x.createLinearGradient(0, 0, 0, 128);
+      g.addColorStop(0, "#cdf6ff"); g.addColorStop(1, "#3aa8e0");
+      x.fillStyle = g;
+      x.beginPath(); x.moveTo(26, 20); x.lineTo(102, 20); x.lineTo(124, 48);
+      x.lineTo(64, 112); x.lineTo(4, 48); x.closePath(); x.fill();
+      return new THREE.CanvasTexture(c);
+    }
+
+    /* ── Sahne ─────────────────────────────────────────────────── */
+    function kutu(g, y, d, mat, x, yy, z) {
+      var m = new THREE.Mesh(new THREE.BoxGeometry(g, y, d), mat);
+      m.position.set(x, yy, z);
+      m.castShadow = true; m.receiveShadow = true;
+      return m;
+    }
+
+    function kurulum(chestEl) {
+      kap = document.createElement("div");
+      kap.className = "s3b-kap";
+      kap.style.cssText = "position:absolute;left:-45%;right:-45%;top:-95%;bottom:-12%;" +
+                          "pointer-events:none;z-index:2";
+      chestEl.style.position = chestEl.style.position || "relative";
+      chestEl.appendChild(kap);
+
+      yaziEl = document.createElement("div");
+      yaziEl.className = "s3b-yazi";
+      yaziEl.style.cssText = "position:absolute;left:0;right:0;top:16%;display:flex;" +
+        "align-items:center;justify-content:center;gap:8px;opacity:0;pointer-events:none;" +
+        "font-family:'Baloo 2','Nunito',sans-serif;font-weight:800;color:#8ce3ff;" +
+        "font-variant-numeric:tabular-nums;z-index:3;" +
+        "text-shadow:0 0 14px rgba(140,227,255,.9),0 0 38px rgba(90,200,255,.55)," +
+        "0 2px 4px rgba(0,20,45,.6)";
+      kap.appendChild(yaziEl);
+
+      sahne = new THREE.Scene();
+      kamera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+      kamera.position.set(0, 2.1, 7.2);
+      kamera.lookAt(0, 0.25, 0);
+
+      cizer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      cizer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      cizer.toneMapping = THREE.ACESFilmicToneMapping;
+      cizer.toneMappingExposure = 1.12;
+      cizer.shadowMap.enabled = true;
+      cizer.shadowMap.type = THREE.PCFSoftShadowMap;
+      tuval = cizer.domElement;
+      tuval.style.cssText = "width:100%;height:100%;display:block";
+      kap.appendChild(tuval);
+
+      sahne.add(new THREE.AmbientLight(0xffffff, 0.85));
+      sahne.add(new THREE.HemisphereLight(0xbcd8f0, 0x3a2410, 0.5));
+      var ana = new THREE.DirectionalLight(0xfff4e2, 0.55);
+      ana.position.set(2.4, 5.2, 3.4);
+      ana.castShadow = true;
+      ana.shadow.mapSize.set(1024, 1024);
+      ana.shadow.camera.near = 1; ana.shadow.camera.far = 20;
+      ana.shadow.camera.left = -4; ana.shadow.camera.right = 4;
+      ana.shadow.camera.top = 4; ana.shadow.camera.bottom = -4;
+      ana.shadow.bias = -0.0016;
+      sahne.add(ana);
+
+      var zemin = new THREE.Mesh(new THREE.PlaneGeometry(14, 14),
+                                 new THREE.ShadowMaterial({ opacity: 0.34 }));
+      zemin.rotation.x = -Math.PI / 2;
+      zemin.position.y = -0.92;
+      zemin.receiveShadow = true;
+      sahne.add(zemin);
+
+      var dokuAcik = ahsapDoku("#8a5424"), dokuKoyu = ahsapDoku("#64381a");
+      var mAhsap = new THREE.MeshStandardMaterial({ map: dokuAcik, roughness: 1, metalness: 0 });
+      var mAhsapK = new THREE.MeshStandardMaterial({ map: dokuKoyu, roughness: 1, metalness: 0 });
+      var mMetal = new THREE.MeshStandardMaterial({
+        map: metalDoku("#9aa3aa", "#5d666d"), roughness: 0.62, metalness: 0 });
+      var mMetalK = new THREE.MeshStandardMaterial({
+        map: metalDoku("#7c858c", "#454d54"), roughness: 0.7, metalness: 0 });
+
+      sandik = new THREE.Group();
+      sahne.add(sandik);
+
+      var EN = 2.6, YU = 1.15, DE = 1.6, KAL = 0.13, tahtaY = YU / 3;
+      govde = new THREE.Group();
+      for (var i = 0; i < 3; i++) {
+        var y = -YU / 2 + tahtaY * (i + 0.5);
+        var mt = i % 2 ? mAhsapK : mAhsap;
+        govde.add(kutu(EN, tahtaY * 0.9, KAL, mt, 0, y, DE / 2 - KAL / 2));
+        govde.add(kutu(EN, tahtaY * 0.9, KAL, mt, 0, y, -DE / 2 + KAL / 2));
+        govde.add(kutu(KAL, tahtaY * 0.9, DE - KAL * 2, mt, EN / 2 - KAL / 2, y, 0));
+        govde.add(kutu(KAL, tahtaY * 0.9, DE - KAL * 2, mt, -EN / 2 + KAL / 2, y, 0));
+      }
+      govde.add(kutu(EN - KAL * 2, KAL, DE - KAL * 2, mAhsapK, 0, -YU / 2 + KAL / 2, 0));
+      [-1, 1].forEach(function (sx) {
+        [-1, 1].forEach(function (sz) {
+          govde.add(kutu(0.15, YU * 0.98, 0.15, mAhsapK, sx * (EN / 2 - 0.07), 0, sz * (DE / 2 - 0.07)));
+          govde.add(kutu(0.32, 0.14, 0.32, mAhsapK, sx * (EN / 2 - 0.22), -YU / 2 - 0.05, sz * (DE / 2 - 0.22)));
+        });
+      });
+      govde.add(kutu(EN * 1.05, 0.11, DE * 1.05, mAhsapK, 0, -YU / 2 + 0.015, 0));
+      govde.add(kutu(EN * 1.03, 0.09, DE * 1.03, mAhsapK, 0, YU / 2 - 0.03, 0));
+      govde.position.y = -0.3;
+      sandik.add(govde);
+
+      [-0.72, 0.72].forEach(function (x) {
+        [1, -1].forEach(function (sz) {
+          sandik.add(kutu(0.2, YU * 1.02, 0.05, mMetal, x, govde.position.y, sz * (DE / 2 + 0.025)));
+        });
+        [-0.32, 0.32].forEach(function (yy) {
+          var pp = new THREE.Mesh(new THREE.SphereGeometry(0.05, 18, 14), mMetalK);
+          pp.position.set(x, govde.position.y + yy, DE / 2 + 0.05);
+          pp.castShadow = true;
+          sandik.add(pp);
+        });
+      });
+
+      var KAPAK_R = DE / 2;
+      var mentese = new THREE.Group();
+      mentese.position.set(0, govde.position.y + YU / 2, -DE / 2);
+      sandik.add(mentese);
+      kapak = new THREE.Group();
+      mentese.add(kapak);
+
+      var mKapak = new THREE.MeshStandardMaterial({
+        map: dokuAcik, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+      var kubbe = new THREE.Mesh(
+        new THREE.CylinderGeometry(KAPAK_R, KAPAK_R, EN, 56, 1, true, 0, Math.PI), mKapak);
+      kubbe.rotation.z = Math.PI / 2;
+      kubbe.position.set(0, 0, KAPAK_R);
+      kubbe.castShadow = true; kubbe.receiveShadow = true;
+      kapak.add(kubbe);
+      kapak.add(kutu(EN, 0.1, KAPAK_R * 2, mAhsapK, 0, -0.02, KAPAK_R));
+      [-1, 1].forEach(function (s2) {
+        var mUc = new THREE.MeshStandardMaterial({
+          map: dokuKoyu, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+        var k = new THREE.Mesh(new THREE.CircleGeometry(KAPAK_R, 48, 0, Math.PI), mUc);
+        k.rotation.y = s2 > 0 ? Math.PI / 2 : -Math.PI / 2;
+        k.position.set(s2 * EN / 2, 0, KAPAK_R);
+        k.castShadow = true;
+        kapak.add(k);
+      });
+      [-0.72, 0.72].forEach(function (x) {
+        var mb = new THREE.MeshStandardMaterial({
+          map: metalDoku("#9aa3aa", "#5d666d"), roughness: 0.62, metalness: 0,
+          side: THREE.DoubleSide });
+        var b = new THREE.Mesh(
+          new THREE.CylinderGeometry(KAPAK_R + 0.03, KAPAK_R + 0.03, 0.2, 56, 1, true, 0, Math.PI), mb);
+        b.rotation.z = Math.PI / 2;
+        b.position.set(x, 0, KAPAK_R);
+        b.castShadow = true;
+        kapak.add(b);
+      });
+      kapak.add(kutu(EN, 0.14, 0.14, mAhsapK, 0, 0.02, KAPAK_R * 2 - 0.02));
+      var boru = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, EN * 0.96, 22), mMetalK);
+      boru.rotation.z = Math.PI / 2;
+      boru.castShadow = true;
+      kapak.add(boru);
+
+      icIsik = new THREE.PointLight(ELMAS_RENK, 0, 8);
+      icIsik.position.set(0, govde.position.y + 0.2, 0);
+      sahne.add(icIsik);
+
+      /* Hüzmeler — sandığın ağzının ÜSTÜNDEN başlar, sprite olarak. */
+      mHuzme = new THREE.SpriteMaterial({
+        map: huzmeDoku(), color: ELMAS_RENK, transparent: true, toneMapped: false,
+        blending: THREE.AdditiveBlending, depthWrite: false });
+      mHale = new THREE.SpriteMaterial({
+        map: haleDoku(), transparent: true, blending: THREE.AdditiveBlending,
+        depthWrite: false, toneMapped: false, opacity: 0.45 });
+
+      huzmeKap = new THREE.Group();
+      huzmeKap.position.set(0, govde.position.y + YU / 2 + 0.05, 0);
+      sandik.add(huzmeKap);
+
+      function huzmeSprite(gen, boy, don) {
+        var m = mHuzme.clone();
+        m.rotation = don || 0;
+        var sp = new THREE.Sprite(m);
+        sp.center.set(0.5, 0);
+        sp.scale.set(gen, boy, 1);
+        return sp;
+      }
+      anaHuzme = huzmeSprite(1.5, 6.4, 0);
+      huzmeKap.add(anaHuzme);
+      for (var j = 0; j < 9; j++) {
+        var tt = (j - 4) / 4;
+        var h = huzmeSprite(0.42, 4.6 + Math.random() * 1.4, tt * 0.55);
+        h.position.x = tt * 0.28;
+        h.userData.faz = Math.random() * 6.28;
+        h.userData.gen = 0.42;
+        h.userData.boy = h.scale.y;
+        h.visible = false;
+        huzmeKap.add(h);
+        yanHuzmeler.push(h);
+      }
+
+      /* Elmas görseli: oyunun kendi dosyası. */
+      elmasDoku = yedekElmasDoku();
+      var mSp = new THREE.SpriteMaterial({ map: elmasDoku, transparent: true, depthWrite: false });
+      new THREE.TextureLoader().load("elmas.webp",
+        function (t) { mSp.map = t; mSp.needsUpdate = true; }, undefined, function () {});
+      window.__s3bElmasMat = mSp;
+
+      icDoldur();
+      bloomKur();
+      olcule();
+    }
+
+    function elmasSprite(boy) {
+      var sp = new THREE.Sprite(window.__s3bElmasMat);
+      sp.scale.setScalar(boy);
+      return sp;
+    }
+
+    function icDoldur() {
+      icElmaslar.forEach(function (e) { sandik.remove(e); });
+      icElmaslar.length = 0;
+      var n = (KADEME[kademe] || KADEME.orta).ic;
+      var tabanY = govde.position.y - 1.15 / 2 + 0.22;
+      for (var i = 0; i < n; i++) {
+        var sp = elmasSprite(0.34 + Math.random() * 0.16);
+        sp.position.set((Math.random() - 0.5) * 1.9, tabanY + Math.random() * 0.16,
+                        (Math.random() - 0.5) * 1.0);
+        sandik.add(sp);
+        icElmaslar.push(sp);
+      }
+    }
+
+    function elmasSac() {
+      var k = KADEME[kademe] || KADEME.orta;
+      for (var i = 0; i < k.adet; i++) {
+        var sp = elmasSprite(0.32 + Math.random() * 0.18);
+        sp.position.set((Math.random() - 0.5) * 0.9, govde.position.y + 0.3,
+                        (Math.random() - 0.5) * 0.6);
+        sahne.add(sp);
+        elmaslar.push({
+          m: sp, donHiz: (Math.random() - 0.5) * 9,
+          hiz: new THREE.Vector3((Math.random() - 0.5) * 3.9, k.guc + Math.random() * 3.3,
+                                 (Math.random() - 0.5) * 2.4),
+          omur: 0
+        });
+      }
+    }
+
+    /* ── Bloom ─────────────────────────────────────────────────── */
+    function bloomKur() {
+      rtSahne = new THREE.WebGLRenderTarget(1, 1);
+      rtA = new THREE.WebGLRenderTarget(1, 1);
+      rtB = new THREE.WebGLRenderTarget(1, 1);
+      kareSahne = new THREE.Scene();
+      kareKamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+      var vs = "varying vec2 v; void main(){ v=uv; gl_Position=vec4(position.xy,0.,1.); }";
+      shParlak = new THREE.ShaderMaterial({
+        uniforms: { t: { value: null }, esik: { value: 0.88 } },
+        vertexShader: vs,
+        fragmentShader: "uniform sampler2D t; uniform float esik; varying vec2 v;" +
+          "void main(){ vec4 c=texture2D(t,v); float l=dot(c.rgb,vec3(.2126,.7152,.0722));" +
+          "float k=smoothstep(esik,esik+.35,l); gl_FragColor=vec4(c.rgb*k,1.); }"
+      });
+      shBulanik = new THREE.ShaderMaterial({
+        uniforms: { t: { value: null }, yon: { value: new THREE.Vector2(1, 0) } },
+        vertexShader: vs,
+        fragmentShader: "uniform sampler2D t; uniform vec2 yon; varying vec2 v;" +
+          "void main(){ vec4 s=vec4(0.);" +
+          "s+=texture2D(t,v-yon*4.)*.05; s+=texture2D(t,v-yon*3.)*.09;" +
+          "s+=texture2D(t,v-yon*2.)*.12; s+=texture2D(t,v-yon)*.15;" +
+          "s+=texture2D(t,v)*.18; s+=texture2D(t,v+yon)*.15;" +
+          "s+=texture2D(t,v+yon*2.)*.12; s+=texture2D(t,v+yon*3.)*.09;" +
+          "s+=texture2D(t,v+yon*4.)*.05; gl_FragColor=s; }"
+      });
+      shBirlestir = new THREE.ShaderMaterial({
+        uniforms: { taban: { value: null }, hale: { value: null }, guc: { value: 0.5 } },
+        vertexShader: vs,
+        fragmentShader: "uniform sampler2D taban; uniform sampler2D hale; uniform float guc;" +
+          "varying vec2 v; void main(){ vec4 a=texture2D(taban,v); vec4 b=texture2D(hale,v);" +
+          "gl_FragColor=vec4(a.rgb+b.rgb*guc, a.a); }",
+        transparent: true
+      });
+      kareMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), shParlak);
+      kareSahne.add(kareMesh);
+    }
+
+    function kareCiz(mat, hedef) {
+      kareMesh.material = mat;
+      cizer.setRenderTarget(hedef || null);
+      cizer.render(kareSahne, kareKamera);
+    }
+
+    function bloomCiz() {
+      cizer.setRenderTarget(rtSahne);
+      cizer.clear();
+      cizer.render(sahne, kamera);
+      shParlak.uniforms.t.value = rtSahne.texture;
+      kareCiz(shParlak, rtA);
+      var g = rtA.width, y = rtA.height;
+      shBulanik.uniforms.t.value = rtA.texture;
+      shBulanik.uniforms.yon.value.set(1.7 / g, 0); kareCiz(shBulanik, rtB);
+      shBulanik.uniforms.t.value = rtB.texture;
+      shBulanik.uniforms.yon.value.set(0, 1.7 / y); kareCiz(shBulanik, rtA);
+      shBulanik.uniforms.t.value = rtA.texture;
+      shBulanik.uniforms.yon.value.set(3.4 / g, 0); kareCiz(shBulanik, rtB);
+      shBulanik.uniforms.t.value = rtB.texture;
+      shBulanik.uniforms.yon.value.set(0, 3.4 / y); kareCiz(shBulanik, rtA);
+      shBirlestir.uniforms.taban.value = rtSahne.texture;
+      shBirlestir.uniforms.hale.value = rtA.texture;
+      cizer.setRenderTarget(null);
+      kareCiz(shBirlestir, null);
+    }
+
+    function olcule() {
+      if (!kap || !cizer) return;
+      var g = kap.clientWidth || 300, y = kap.clientHeight || 300;
+      cizer.setSize(g, y, false);
+      var pr = Math.min(devicePixelRatio, 2);
+      rtSahne.setSize(Math.max(2, g * pr), Math.max(2, y * pr));
+      rtA.setSize(Math.max(2, Math.floor(g * pr / 2)), Math.max(2, Math.floor(y * pr / 2)));
+      rtB.setSize(Math.max(2, Math.floor(g * pr / 2)), Math.max(2, Math.floor(y * pr / 2)));
+      kamera.aspect = g / y;
+      kamera.updateProjectionMatrix();
+    }
+
+    /* ── Ödül yazısı ───────────────────────────────────────────── */
+    function yaziGoster(tutar) {
+      var k = KADEME[kademe] || KADEME.orta;
+      var elmasHtml = "";
+      try { if (typeof window.ELMAS === "function") elmasHtml = window.ELMAS("sandik3b"); } catch (e) {}
+      var sayi = (typeof window.fmt === "function") ? window.fmt(tutar) : String(tutar);
+      yaziEl.innerHTML = '<span>' + sayi + '</span>' +
+        (elmasHtml || '<img src="elmas.webp" alt="" style="width:1em;height:1em">');
+      yaziEl.style.fontSize = k.punto + "px";
+
+      var gel = 380, dur = 1000, git = 520, top = gel + dur + git;
+      var o1 = gel / top, o2 = (gel + dur) / top;
+      yaziEl.getAnimations().forEach(function (a) { a.cancel(); });
+      yaziEl.animate(
+        [{ opacity: 0, transform: "translateY(30px) scale(.5)", offset: 0 },
+         { opacity: 1, transform: "translateY(-2px) scale(1.2)", offset: o1 * 0.62 },
+         { opacity: 1, transform: "translateY(0) scale(1)", offset: o1 },
+         { opacity: 1, transform: "translateY(0) scale(1)", offset: o2 },
+         { opacity: 0, transform: "translateY(-46px) scale(.92)", offset: 1 }],
+        { duration: top, easing: "cubic-bezier(.2,.9,.25,1)" });
+    }
+
+    /* ── Açılış ────────────────────────────────────────────────── */
+    function agirlikli(t) {
+      if (t < 0.72) { var u = t / 0.72; return 1 - Math.pow(1 - u, 3); }
+      var v = (t - 0.72) / 0.28;
+      return 1 + Math.sin(v * Math.PI) * 0.055 * (1 - v);
+    }
+
+    function ac(tutar) {
+      kademe = kademeSec(tutar);
+      icDoldur();
+      durum = "aciliyor"; sacildi = false; t0 = performance.now();
+      window.__s3bTutar = tutar;
+    }
+
+    function sifirla() {
+      durum = "kapali"; sacildi = false; huzmeT = -1;
+      if (!kapak) return;
+      kapak.rotation.x = 0;
+      sandik.position.x = 0; sandik.rotation.z = 0; sandik.scale.set(1, 1, 1);
+      icIsik.intensity = 0;
+      elmaslar.forEach(function (e) { sahne.remove(e.m); });
+      elmaslar.length = 0;
+    }
+
+    function huzmeGuncelle(dt, now) {
+      var k = KADEME[kademe] || KADEME.orta;
+      huzmeGuc = k.huzme;
+      if (huzmeT < 0) {
+        anaHuzme.visible = false;
+        yanHuzmeler.forEach(function (h) { h.visible = false; });
+        return;
+      }
+      huzmeT += dt;
+      var yuksek = kademe === "yuksek";
+      var sure = yuksek ? 2.8 : 0.95;
+      var u = Math.min(1, huzmeT / sure);
+      var siddet = u < 0.06 ? (u / 0.06) : Math.pow(1 - (u - 0.06) / 0.94, 1.4);
+
+      anaHuzme.visible = siddet > 0.01;
+      mHuzme.opacity = Math.min(1, siddet * (0.35 + huzmeGuc) *
+        (yuksek ? (0.75 + Math.abs(Math.sin(now / 120)) * 0.35) : 1));
+      var gen = 1.5 * (0.55 + huzmeGuc) * vurusGuc * (yuksek ? 1.35 : 1);
+      anaHuzme.scale.set(gen, 6.4 * (0.75 + huzmeGuc * 0.5), 1);
+      anaHuzme.material.opacity = mHuzme.opacity;
+
+      yanHuzmeler.forEach(function (h, i) {
+        h.visible = i < k.yan && siddet > 0.02;
+        if (!h.visible) return;
+        var f = (0.5 + Math.abs(Math.sin(now / 260 + h.userData.faz)) * 0.9) * vurusGuc;
+        h.scale.set(h.userData.gen * f, h.userData.boy * (0.8 + f * 0.3), 1);
+        h.material.opacity = mHuzme.opacity * 0.8;
+      });
+
+      if (yuksek) {
+        if (now > (window.__s3bSonraki || 0) && u < 0.93) {
+          huzmeVurus = now;
+          window.__s3bSonraki = now + 220 + Math.random() * 320;
+        }
+        var vv = Math.max(0, 1 - (now - huzmeVurus) / 340);
+        vurusGuc = 1 + vv * vv * 1.9;
+      } else vurusGuc = 1;
+
+      if (u >= 1) huzmeT = -1;
+    }
+
+    var sonKare = 0;
+    function dongu(now) {
+      if (!calisiyor) return;
+      var dt = Math.min(0.05, (now - sonKare) / 1000);
+      sonKare = now;
+      sandik.rotation.y = -0.28;
+
+      if (durum === "aciliyor") {
+        var gec = now - t0;
+        if (gec < SARS) {
+          sandik.position.x = Math.sin(gec / 22) * 0.045 * (1 - gec / SARS);
+        } else {
+          sandik.position.x = 0;
+          var es = Math.max(0, 1 - (gec - SARS) / 420);
+          var q = Math.sin((1 - es) * Math.PI) * 0.06 * es;
+          sandik.scale.set(1 - q, 1 + q * 1.6, 1 - q);
+          var u = Math.min(1, (gec - SARS) / ACILMA);
+          kapak.rotation.x = KAPAK_ACI * agirlikli(u);
+          icIsik.intensity = huzmeGuc * 2.2 * Math.min(1, u * 2.2);
+          if (!sacildi && u > 0.18) {
+            sacildi = true;
+            elmasSac();
+            huzmeT = 0; window.__s3bSonraki = 0;
+            yaziGoster(window.__s3bTutar || 0);
+            if (kademe === "yuksek")
+              [170, 360, 620, 980, 1400].forEach(function (ms) {
+                setTimeout(function () { if (durum !== "kapali") elmasSac(); }, ms);
+              });
+          }
+          if (u >= 1) durum = "acik";
+        }
+      }
+      if (durum === "acik")
+        icIsik.intensity = huzmeGuc * (1.1 + Math.sin(now / 140) * 0.25);
+
+      for (var i = elmaslar.length - 1; i >= 0; i--) {
+        var e = elmaslar[i];
+        e.hiz.y -= 21.4 * dt;
+        e.m.position.addScaledVector(e.hiz, dt);
+        e.m.material.rotation += e.donHiz * dt;
+        if (e.m.position.y < -0.78) { e.m.position.y = -0.78; e.hiz.y *= -0.42; e.hiz.multiplyScalar(0.82); }
+        e.omur += dt;
+        if (e.omur > 4) { sahne.remove(e.m); elmaslar.splice(i, 1); }
+      }
+
+      huzmeGuncelle(dt, now);
+      bloomCiz();
+      rafId = requestAnimationFrame(dongu);
+    }
+
+    /* ── Panelin devralınması ──────────────────────────────────── */
+    function gizle(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    }
+
+    function devral() {
+      var chestEl = document.getElementById("chestEl");
+      if (!chestEl || typeof THREE === "undefined") return false;
+      if (!kuruldu) {
+        kurulum(chestEl);
+        kuruldu = true;
+      }
+      /* gorsel4.webp ve eski efektler kalkar; tutar satırı GİZLİ ama
+         DOLU kalır — kademeyi oradan okuyoruz. */
+      gizle("chestSvg");
+      gizle("chestGlow");
+      gizle("chestSparkle");
+      var r = document.getElementById("chestResult");
+      if (r) { r.style.visibility = "hidden"; r.style.height = "0"; r.style.margin = "0"; }
+      return true;
+    }
+
+    function basla() {
+      if (calisiyor) return;
+      if (!devral()) return;
+      calisiyor = true;
+      olcule();
+      sonKare = performance.now();
+      rafId = requestAnimationFrame(dongu);
+    }
+
+    function dur() {
+      calisiyor = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+      sifirla();
+    }
+
+    /* Panel görünürlüğü izlenir: açıkken çizer, kapanınca durur —
+       kapalı panelde WebGL döngüsü pil yakmasın. */
+    function gozle() {
+      var acikti = false;
+      setInterval(function () {
+        var p = document.getElementById("panel-chest");
+        if (!p) return;
+        var acik = getComputedStyle(p).display !== "none" &&
+                   getComputedStyle(p).visibility !== "hidden";
+        if (acik && !acikti) { acikti = true; basla(); }
+        else if (!acik && acikti) { acikti = false; dur(); }
+      }, 400);
+
+      /* Sandığa dokunulunca: oyunun openChest'i ödülü verir, biz
+         yalnız görsel katmanı sürüyoruz. Tutar 880 ms sonra
+         #chestResult'a yazılıyor, oradan okunur. */
+      document.addEventListener("click", function (ev) {
+        var t = ev.target && ev.target.closest ? ev.target.closest("#chestEl") : null;
+        if (!t || !calisiyor || durum !== "kapali") return;
+        var oncekiMetin = (document.getElementById("chestResult") || {}).textContent || "";
+        setTimeout(function () {
+          var r = document.getElementById("chestResult");
+          var metin = r ? r.textContent : "";
+          if (!metin || metin === oncekiMetin) return;   /* limit dolu → açılmadı */
+          var tutar = parseInt(String(metin).replace(/[^0-9]/g, ""), 10) || 0;
+          if (tutar > 0) ac(tutar);
+        }, 60);
+      }, true);
+
+      addEventListener("resize", function () { if (calisiyor) olcule(); });
+    }
+
+    if (document.readyState === "loading")
+      document.addEventListener("DOMContentLoaded", gozle);
+    else gozle();
+
+    return { basla: basla, dur: dur, ac: ac, sifirla: sifirla };
+  })();
+
+  window.SANDIK3B = SANDIK3B;
+
   window.REHBER = {
     maybeWelcome: maybeWelcome,
     maybeDaily: maybeDaily,
