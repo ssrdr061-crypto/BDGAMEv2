@@ -1061,6 +1061,10 @@
     }
 
     function ac(tutar) {
+      /* Ne halde olursa olsun sıfırdan başlar — üst üste binme olmasın. */
+      if (kapak) kapak.rotation.x = 0;
+      if (sandik) { sandik.scale.set(1, 1, 1); sandik.position.x = 0; }
+      huzmeT = -1;
       kademe = kademeSec(tutar);
       icDoldur();
       durum = "aciliyor"; sacildi = false; t0 = performance.now();
@@ -1147,11 +1151,30 @@
                 setTimeout(function () { if (durum !== "kapali") elmasSac(); }, ms);
               });
           }
-          if (u >= 1) durum = "acik";
+          if (u >= 1) { durum = "acik"; window.__s3bAcikT = now; }
         }
       }
-      if (durum === "acik")
+      if (durum === "acik") {
         icIsik.intensity = huzmeGuc * (1.1 + Math.sin(now / 140) * 0.25);
+        /* Gösteri bitince kapak KENDİ KAPANIR — eskiden açık kalıyor
+           ve ikinci dokunuş hiçbir şey yapmıyordu. */
+        if (now - (window.__s3bAcikT || now) > 2000) {
+          durum = "kapaniyor"; window.__s3bKapatT = now;
+        }
+      }
+
+      if (durum === "kapaniyor") {
+        var ku = Math.min(1, (now - (window.__s3bKapatT || now)) / 480);
+        var e2 = 1 - Math.pow(1 - ku, 3);
+        kapak.rotation.x = KAPAK_ACI * (1 - e2);
+        icIsik.intensity = huzmeGuc * 1.1 * (1 - e2);
+        if (ku >= 1) {
+          kapak.rotation.x = 0;
+          icIsik.intensity = 0;
+          durum = "kapali";
+          sandik.scale.set(1, 1, 1);
+        }
+      }
 
       for (var i = elmaslar.length - 1; i >= 0; i--) {
         var e = elmaslar[i];
@@ -1249,7 +1272,6 @@
        olursa (THREE henüz yok) her turda yeniden denenir. */
     function gozle() {
       eskiyiKaldir();      /* açılışta, panel açılmadan da temizle */
-      stilEkle();
 
       setInterval(function () {
         var p = document.getElementById("panel-chest");
@@ -1269,7 +1291,8 @@
          #chestResult'a yazılıyor, oradan okunur. */
       document.addEventListener("click", function (ev) {
         var t = ev.target && ev.target.closest ? ev.target.closest("#chestEl") : null;
-        if (!t || !calisiyor || durum !== "kapali") return;
+        if (!t || !calisiyor) return;
+        if (durum === "aciliyor") return;   /* açılış sürüyorsa yoksay */
         var r0 = document.getElementById("chestResult");
         var onceki = r0 ? r0.textContent : "";
         var dene = 0;
@@ -1286,6 +1309,11 @@
 
       addEventListener("resize", function () { if (calisiyor) olcule(); });
     }
+
+    /* Stil HEMEN basılır — DOM hazır olmasını beklersek eski sandık
+       yarım saniye ekranda kalıyor. CSS önce gelirse hiç boyanmaz. */
+    if (document.head) stilEkle();
+    else document.addEventListener("DOMContentLoaded", stilEkle);
 
     if (document.readyState === "loading")
       document.addEventListener("DOMContentLoaded", gozle);
