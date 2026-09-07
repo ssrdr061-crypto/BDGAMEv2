@@ -1196,13 +1196,34 @@
           "#panel-chest #chestEl{height:200px !important;margin:8px 0 2px !important;" +
             "position:relative !important;overflow:visible !important}" +
           "#panel-chest .chest-meta{margin-bottom:0 !important}" +
-          "#panel-chest .chest-result{margin:0 !important}";
+          "#panel-chest .chest-result{margin:0 !important}" +
+          /* ESKİ SANDIK: gorsel4.webp, svg parlaması ve ✨ tamamen kapanır.
+             display:none tek başına yetmediği için sınıf + kimlik + !important. */
+          "#panel-chest #chestSvg,#panel-chest .chest-svg," +
+          "#panel-chest #chestGlow,#panel-chest .chest-glow-burst," +
+          "#panel-chest #chestSparkle,#panel-chest .chest-sparkle," +
+          "#panel-chest .chest > svg{display:none !important;opacity:0 !important;" +
+            "visibility:hidden !important}" +
+          /* Kutunun kendi gölgesi ve süzülme animasyonu da kalksın:
+             3B sandığın kendi gölgesi var, ikisi üst üste binmesin. */
+          "#panel-chest .chest{filter:none !important;animation:none !important;" +
+            "background:none !important}";
         document.head.appendChild(st);
       }
 
       gizle("chestSvg");
       gizle("chestGlow");
       gizle("chestSparkle");
+      /* Görsel kaynağı da boşaltılır — stil ezilse bile basacak bir şey kalmaz. */
+      var eski = document.getElementById("chestSvg");
+      if (eski) {
+        eski.removeAttribute("src");
+        if (eski.parentNode) eski.parentNode.removeChild(eski);
+      }
+      var esvg = document.querySelector("#chestEl > svg");
+      if (esvg && esvg.parentNode) esvg.parentNode.removeChild(esvg);
+      var espark = document.getElementById("chestSparkle");
+      if (espark && espark.parentNode) espark.parentNode.removeChild(espark);
       var r = document.getElementById("chestResult");
       if (r) { r.style.visibility = "hidden"; r.style.height = "0"; r.style.margin = "0"; }
       return true;
