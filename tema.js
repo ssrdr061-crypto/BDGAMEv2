@@ -7068,10 +7068,16 @@ html body #battleMap .map-node.castle-node .node-label[data-sv="5"]::before{ bac
    etiket o görselin ALTINDAN başlayan akışta duruyor; tek kaydırma
    sayısı bu yüzden her seviyede aynı yere düşmüyor. Aşağıdaki
    satırlar yukarıdaki ORTAK kuralın yalnız FARKLI olan alanlarını
-   ezer — Sv1/2/3 hâlâ ortak kuralda, ölçülmediler.
+   ezer — Sv2/3 hâlâ ortak kuralda, ölçülmediler.
 
    Sayılar ?etiket=1 paneliyle ekranda ölçüldü. Yeni bir seviye
    hizasını değiştirirsen paneli aç, DEĞERLER'e bas ve buraya yaz. */
+/* Sv1 dikey kayma -63 (panel tabanı 61 → 61-63 = -2px). Ortak
+   kuraldaki 17px yalnız Sv2/3'e kalıyor. Diğer alanlar (dolgu,
+   genişlik, köşe, görsel) ortak kuralla aynı, tekrar yazılmıyor. */
+html body #battleMap .map-node.castle-node .node-label[data-sv="1"]{
+  transform:translate(0px, -2px) scale(var(--et-k, 1));
+}
 html body #battleMap .map-node.castle-node .node-label[data-sv="4"]{
   transform:translate(0px, -19px) scale(var(--et-k, 1));
 }
