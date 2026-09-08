@@ -585,7 +585,7 @@
         tecrube = `<div style="margin-top:8px;text-align:center;padding:9px;
                         border-radius:14px;background:#5bb9e6;color:#0d2036;
                         font-family:${YAZI};font-weight:800;font-size:13px;">
-                     Tecrübe Sv.${MAX_TSV} — en yüksek
+                     MAX
                    </div>`;
       } else {
         const gerekenK = Math.ceil((d.gereken - d.birikmis) / KITAP_EXP);
@@ -898,25 +898,14 @@
     });
   }
 
-  function gucSarmal(gd) {
-    let k = gd.parentNode;
-    if (k && k.classList && k.classList.contains("guc-sarmal")) return k;
-    k = document.createElement("span");
-    k.className = "guc-sarmal";
-    k.style.cssText = "position:relative;display:inline-block;";
-    gd.parentNode.insertBefore(k, gd);
-    k.appendChild(gd);
-    return k;
-  }
-
-  function gucKatman(gd, metin, sinif) {
+  function gucKatman(gd, metin, sinif, ol) {
     const k = gd.cloneNode(false);
     k.removeAttribute("id");
     k.className        = sinif;
     k.textContent      = metin;
     k.style.position   = "absolute";
-    k.style.top        = "0";
-    k.style.left       = "50%";
+    k.style.top        = ol.ust + "px";
+    k.style.left       = ol.merkez + "px";
     k.style.transform  = "translateX(-50%)";
     k.style.whiteSpace = "nowrap";
     k.style.pointerEvents = "none";
@@ -957,24 +946,30 @@
       return;
     }
 
-    /*  Katmanlar yazının KENDİ kutusuna göre konur. Güç yazısı ortalı
-        bir kutunun içinde, "Sv." yazısı ise yıldızlarla aynı satırda
-        duruyor; ortak zemin olsun diye yazı kendi sarmalına alınır.  */
-    const kutu = gucSarmal(gd);
+    const kutu = gd.parentNode;
 
     gucEfektTemizle(gd);                 /* üst üste binen geçiş yok */
-    gd.style.display = "inline-block";
 
-    const kopya = gucKatman(gd, eski, "guc-esk");
+    /*  Yazıya DOKUNULMAZ: ne sarmal, ne display, ne transform. Yazının
+        satır içindeki yeri bozulmasın diye katmanlar üst kutuya konur,
+        yerleri de yazının ölçülen merkezinden hesaplanır. Böylece
+        "Sv." yazısı efekt sırasında yukarı kaymaz, büyümez.          */
+    if (getComputedStyle(kutu).position === "static") kutu.style.position = "relative";
+
+    const rk = kutu.getBoundingClientRect();
+    const rg = gd.getBoundingClientRect();
+    const ol = { merkez: (rg.left - rk.left) + rg.width / 2,
+                 ust   : rg.top - rk.top };
+
+    const kopya = gucKatman(gd, eski, "guc-esk", ol);
     gd.textContent = yeni;               /* ölçü/ortalama yeniye göre */
     kutu.appendChild(kopya);
 
-    const yesil = gucKatman(gd, yeni, "guc-yesil");
+    const yesil = gucKatman(gd, yeni, "guc-yesil", ol);
     yesil.style.color = GUC_RENK;
     kutu.appendChild(yesil);
 
-    const r   = kutu.getBoundingClientRect();
-    const W   = Math.max(r.width, 40), H = Math.max(r.height, 18);
+    const W   = Math.max(rg.width, 40), H = Math.max(rg.height, 18);
     const PY  = 26, PX = 18;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -983,7 +978,7 @@
     cv.width  = Math.round((W + PX * 2) * dpr);
     cv.height = Math.round((H + PY * 2) * dpr);
     cv.style.cssText =
-      "position:absolute;left:50%;top:" + (-PY) + "px;" +
+      "position:absolute;left:" + ol.merkez + "px;top:" + (ol.ust - PY) + "px;" +
       "width:" + (W + PX * 2) + "px;height:" + (H + PY * 2) + "px;" +
       "transform:translateX(-50%);pointer-events:none;";
     kutu.appendChild(cv);
