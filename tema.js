@@ -10594,3 +10594,47 @@ if (document.readyState === "loading") {
   baslat();
 }
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   AYAK İZİ TANI — GEÇİCİ  (?ayakizi=1)
+   Kalenin GERÇEKTEN kapladığı 2×2 karo alanı, kale görselinin
+   altına sarı bir eşkenar dörtgen olarak çizer. "Kaleler neden dip
+   dibe görünüyor" sorusu gözle görülür: görsel bu dörtgenin dışına
+   taşıyorsa sıkışıklık ölçüden, dörtgenler bitişikse yerleşimden.
+
+   ÖLÇÜ NEDEN SABİT 200×100:
+   Düğüm kutusu harita.js'te scale(zoom × 0.64) ile ölçekleniyor.
+   Ayak izi ekranda 128×64 px (2 karo = 2×64 / 2×32) × zoom. Düğümün
+   İÇİNDE yazılan sayı bu yüzden 128 ÷ 0.64 = 200 ve 64 ÷ 0.64 = 100
+   olur; zoom kendiliğinden gelir, burada zoom'a bakmaya gerek yok.
+
+   KAYMA EKLENMİYOR: kale2x2.js zaten .node-ring'e translateY(25px)
+   yazıyor (düğüm SOL ÜST karonun üstünde, alan merkezi yarım karo
+   aşağıda). Dörtgen o ring'in İÇİNDE durduğu için kaymayı hazır
+   devralır; burada bir 25px daha yazılsaydı ayak izi görselin yarım
+   karo altına düşerdi.
+
+   İş bitince BU BLOK SİLİNİR.
+   ═══════════════════════════════════════════════════════════════════ */
+(function ayakiziTani(){
+"use strict";
+
+try {
+  if (!/[?&]ayakizi=1(&|$)/.test(location.search)) return;
+} catch (e) { return; }
+
+var st = document.createElement("style");
+st.id = "temaAyakIziTani";
+st.textContent =
+  /* ::before kullanılmıyor — node-avatar'ın ::after'ı kale gölgesi
+     (temaKaleGolge) tarafından zaten kullanılıyor, ezmemek için
+     dörtgen node-ring'e asılıyor. */
+  "html body #battleMap .map-node.castle-node .node-ring::after{" +
+    "content:'';position:absolute;left:50%;top:50%;" +
+    "width:200px;height:100px;margin-left:-100px;margin-top:-50px;" +
+    "background:rgba(255,216,77,.22);" +
+    "clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);" +
+    "pointer-events:none;z-index:-1;}";
+document.head.appendChild(st);
+})();
