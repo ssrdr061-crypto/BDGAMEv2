@@ -7843,8 +7843,8 @@ setTimeout(uygula, 2500);
      Başlangıç değerleri index.html'deki KALICI kurallarla birebir
      aynı olmak zorunda; ayrışırsa panel açılır açılmaz kale
      zıplıyor ve neyi ayarladığın belli olmuyor. */
-  var AYAR = { 1:{boy:122,dy:-12,dx:0}, 2:{boy:166,dy:22,dx:0}, 3:{boy:176,dy:0,dx:0},
-               4:{boy:186,dy:-21,dx:-2}, 5:{boy:198,dy:-25,dx:-2} };
+  var AYAR = { 1:{boy:122,dy:-75,dx:0}, 2:{boy:166,dy:22,dx:0}, 3:{boy:176,dy:0,dx:0},
+               4:{boy:186,dy:-21,dx:-2}, 5:{boy:198,dy:-102,dx:-2} };
   var aktif = 2;
 
   function svOku(node) {
