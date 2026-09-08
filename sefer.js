@@ -1907,9 +1907,19 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   color:#e9cf7c; border-color:rgba(212,175,55,.65);
 }
 
+/* ── ÖLÇÜLERİN TEK YERİ ───────────────────────────────────────
+   Bütün ölçüler değişken; ince ayar paneli (?seferayar=1) bunları
+   #seferHud üzerinde değiştirir. Kalıcı değer buraya yazılır. */
 #seferHud{
-  position:fixed; left:8px; top:96px; z-index:40;
-  display:flex; flex-direction:column; align-items:flex-start; gap:5px;
+  --sf-sol:8px; --sf-ust:96px; --sf-ara:5px;
+  --sf-en:158px; --sf-boy:40px; --sf-yuv:12px;
+  --sf-ic-ara:7px; --sf-sol-bosluk:5px; --sf-sag-bosluk:6px;
+  --sf-gorsel:30px; --sf-gorsel-ic:24px; --sf-gorsel-emoji:16px;
+  --sf-ad:11px; --sf-ad-satir:12px;
+  --sf-cubuk:14px; --sf-sure:10px;
+  --sf-dugme:26px; --sf-dugme-yazi:14px;
+  position:fixed; left:var(--sf-sol); top:var(--sf-ust); z-index:40;
+  display:flex; flex-direction:column; align-items:flex-start; gap:var(--sf-ara);
 }
 /* TEK SATIR ve İNCE — oyunun mavi teması (mağaza/panel şablonu).
    Eski hâli üç satırdı, koyu laciverttti ve haritanın köşesini
@@ -1923,12 +1933,11 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
    olsa da kutu kıpırdamaz; süre çubuğun içinde ve tabular-nums.
    3B YOK: çerçeve, inset kabartı, radial parlaklık yok. */
 .sefer-satir{
-  --sefer-en:158px;
-  width:var(--sefer-en); box-sizing:border-box;
-  height:40px; white-space:nowrap;
+  width:var(--sf-en); box-sizing:border-box;
+  height:var(--sf-boy); white-space:nowrap;
   position:relative; overflow:hidden;
-  display:flex; align-items:center; gap:7px;
-  padding:0 6px 0 5px; border-radius:12px;
+  display:flex; align-items:center; gap:var(--sf-ic-ara);
+  padding:0 var(--sf-sag-bosluk) 0 var(--sf-sol-bosluk); border-radius:var(--sf-yuv);
   background:linear-gradient(180deg, rgba(47,176,238,.5), rgba(14,111,192,.5));
   border:none;
   box-shadow:0 2px 6px rgba(0,20,45,.3);
@@ -1943,13 +1952,13 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
    kale görseli. Kutusu SABİT (flex:0 0), içerik ne olursa olsun
    yanındaki yazıyı itmez. */
 .sefer-gorsel{
-  flex:0 0 30px; width:30px; height:30px;
+  flex:0 0 var(--sf-gorsel); width:var(--sf-gorsel); height:var(--sf-gorsel);
   display:flex; align-items:center; justify-content:center;
   border-radius:50%; overflow:hidden;
   background:rgba(6,26,48,.5);
-  font-size:16px; line-height:1;
+  font-size:var(--sf-gorsel-emoji); line-height:1;
 }
-.sefer-gorsel img{ width:24px; height:24px; object-fit:contain; display:block; }
+.sefer-gorsel img{ width:var(--sf-gorsel-ic); height:var(--sf-gorsel-ic); object-fit:contain; display:block; }
 
 /* Yazı + çubuk sütunu. min-width:0 olmadan uzun yazı kutuyu şişirir. */
 .sefer-govde{
@@ -1957,14 +1966,14 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   display:flex; flex-direction:column; justify-content:center; gap:2px;
 }
 .sefer-ad{
-  font-size:11px; font-weight:700; letter-spacing:.2px;
-  line-height:12px; color:#e8f4ff;
+  font-size:var(--sf-ad); font-weight:700; letter-spacing:.2px;
+  line-height:var(--sf-ad-satir); color:#e8f4ff;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 /* İÇİ KOYU çubuk; yeşil soldan dolar, süre ortasında durur. */
 .sefer-cubuk{
   position:relative; display:block;
-  height:14px; border-radius:7px; overflow:hidden;
+  height:var(--sf-cubuk); border-radius:calc(var(--sf-cubuk) / 2); overflow:hidden;
   background:rgba(4,16,30,.72);
 }
 .sefer-dolgu{
@@ -1974,18 +1983,18 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 }
 .sefer-sure{
   position:relative; z-index:1; display:block;
-  text-align:center; font-size:10px; font-weight:800;
-  line-height:14px; font-variant-numeric:tabular-nums;
+  text-align:center; font-size:var(--sf-sure); font-weight:800;
+  line-height:var(--sf-cubuk); font-variant-numeric:tabular-nums;
   font-feature-settings:"tnum" 1;
 }
 /* DÜĞME YERİ — evre değişse de yer ayrılır, kutu oynamaz.
    ⏩ hızlandırma penceresini, ↩ geri çağırmayı açar; kutunun
    GÖVDESİ ekranı orduya kilitler. */
 .sefer-dugme{
-  flex:0 0 26px; height:26px;
+  flex:0 0 var(--sf-dugme); height:var(--sf-dugme);
   display:flex; align-items:center; justify-content:center;
   border-radius:50%;
-  font-size:14px; line-height:1; opacity:.95;
+  font-size:var(--sf-dugme-yazi); line-height:1; opacity:.95;
   pointer-events:auto; cursor:pointer;
   transition:filter .09s ease;
 }
@@ -2082,6 +2091,71 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 .sefer-onay-modal .som-btn-kirmizi{ background:linear-gradient(180deg,#f0645c,#c0342c); }
 .sefer-onay-modal .som-btn-yes{ background:linear-gradient(180deg,#4fd8ff,#1fa3ea); }
 .sefer-onay-modal .som-btn:hover{ filter:brightness(1.08); }
+
+/* ── İNCE AYAR PANELİ (?seferayar=1) — geçici tanı arayüzü ──
+   Küçük ve taşınabilir; ekranın küçük bir köşesini kaplar, gövdesi
+   kendi içinde kayar. Başlıktaki – ile gövde katlanır. */
+#seferAyarPanel{
+  position:fixed; left:10px; top:150px; z-index:9998;
+  width:214px; box-sizing:border-box;
+  border-radius:12px; overflow:hidden;
+  background:rgba(6,20,38,.93);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  font-family:'Baloo 2','Nunito',sans-serif; color:#eaf6ff;
+  -webkit-tap-highlight-color:transparent;
+}
+#seferAyarPanel .sap-bas{
+  display:flex; align-items:center; gap:4px;
+  padding:0 4px 0 9px; height:28px;
+  font-size:11px; font-weight:800; letter-spacing:.3px;
+  background:linear-gradient(180deg,#2fb0ee,#0e6fc0);
+  cursor:move; touch-action:none; user-select:none;
+}
+#seferAyarPanel .sap-bas button{
+  margin-left:auto; width:22px; height:22px; padding:0;
+  border:none; border-radius:7px; background:rgba(4,16,30,.4);
+  color:#eaf6ff; font-family:inherit; font-weight:800; font-size:12px;
+  line-height:22px; cursor:pointer;
+}
+#seferAyarPanel .sap-bas .sap-kapat{ margin-left:0; }
+#seferAyarPanel .sap-govde{
+  max-height:52vh; overflow-y:auto; padding:6px 8px 8px;
+}
+#seferAyarPanel.sap-kapali .sap-govde{ display:none; }
+#seferAyarPanel .sap-satir{ padding:3px 0; }
+#seferAyarPanel .sap-ust{
+  display:flex; align-items:baseline; justify-content:space-between;
+  font-size:10px; font-weight:700; color:#e8f4ff;
+}
+#seferAyarPanel .sap-deger{
+  font-size:10px; font-weight:800; color:#8fe3ff;
+  font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+}
+#seferAyarPanel .sap-alt{ display:flex; align-items:center; gap:5px; }
+#seferAyarPanel .sap-btn{
+  flex:0 0 22px; height:22px; padding:0;
+  border:none; border-radius:7px; background:rgba(47,176,238,.55);
+  color:#fff; font-family:inherit; font-weight:800; font-size:14px;
+  line-height:22px; cursor:pointer; touch-action:none;
+}
+#seferAyarPanel .sap-btn:active{ filter:brightness(.9); }
+#seferAyarPanel .sap-surgu{
+  flex:1 1 auto; min-width:0; height:22px; margin:0;
+  accent-color:#4fd8ff; background:transparent;
+}
+#seferAyarPanel .sap-son{ display:flex; gap:6px; margin-top:8px; }
+#seferAyarPanel .sap-eylem{
+  flex:1 1 0; height:26px; padding:0;
+  border:none; border-radius:8px; cursor:pointer;
+  background:linear-gradient(180deg,#5a6b80,#3b4859);
+  color:#eaf6ff; font-family:inherit; font-weight:800; font-size:10px;
+}
+#seferAyarPanel .sap-cikti{
+  width:100%; box-sizing:border-box; margin-top:6px;
+  border:none; border-radius:8px; padding:6px;
+  background:rgba(4,16,30,.75); color:#cfeaff;
+  font-family:monospace; font-size:10px; resize:none;
+}
 `;
   document.head.appendChild(st);
 })();
@@ -2134,6 +2208,214 @@ function yoldakiBirlikler() {
   } catch (e) {}
   return o;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   İNCE AYAR PANELİ — ?seferayar=1
+   ------------------------------------------------------------
+   İntikal kutucuğunun BÜTÜN ölçüleri #seferHud üzerindeki CSS
+   değişkenlerinden okunur; panel yalnız o değişkenleri yazar,
+   kutucuk kodu değişmez. Değerler localStorage'da tutulur, sayfa
+   yenilense de durur — panel kapalıyken de UYGULANIR, böylece
+   ayarı bitirdikten sonra bayraksız açıp sonuca bakabilirsin.
+   "Sıfırla" kaydı siler, ölçüler CSS'teki varsayılana döner.
+
+   İş bitince: son değerleri bana söyle, CSS'e kalıcı yazayım,
+   sonra bu blok SİLİNİR (tanı paneli kalıcı değildir).
+
+   Panel taşınabilir: başlığından sürüklenir, konumu top/left ile
+   verilir (transform dokunma alanını taşımaz). Sürükleme rAF
+   kullanmaz — tek pointermove, kare başına tek yazma zaten. */
+const SEFERAYAR_DEPO = "seferAyar_v1";
+const SEFERAYAR_ALANLAR = [
+  { k: "--sf-en",          ad: "Kutu genişliği",   min: 90,  max: 320, adim: 1 },
+  { k: "--sf-boy",         ad: "Kutu yüksekliği",  min: 22,  max: 80,  adim: 1 },
+  { k: "--sf-yuv",         ad: "Köşe yuvarlaklığı",min: 0,   max: 30,  adim: 1 },
+  { k: "--sf-ara",         ad: "Kutular arası",    min: 0,   max: 24,  adim: 1 },
+  { k: "--sf-sol",         ad: "Soldan uzaklık",   min: 0,   max: 200, adim: 1 },
+  { k: "--sf-ust",         ad: "Üstten uzaklık",   min: 0,   max: 400, adim: 1 },
+  { k: "--sf-ic-ara",      ad: "İç boşluk (gap)",  min: 0,   max: 20,  adim: .5 },
+  { k: "--sf-sol-bosluk",  ad: "Sol kenar payı",   min: 0,   max: 20,  adim: .5 },
+  { k: "--sf-sag-bosluk",  ad: "Sağ kenar payı",   min: 0,   max: 20,  adim: .5 },
+  { k: "--sf-gorsel",      ad: "Görsel çapı",      min: 12,  max: 60,  adim: .5 },
+  { k: "--sf-gorsel-ic",   ad: "Görsel içi (webp)",min: 8,   max: 56,  adim: .5 },
+  { k: "--sf-gorsel-emoji",ad: "Görsel içi (emoji)",min: 8,  max: 46,  adim: .5 },
+  { k: "--sf-ad",          ad: "Yazı boyutu",      min: 6,   max: 22,  adim: .5 },
+  { k: "--sf-ad-satir",    ad: "Yazı satır yük.",  min: 6,   max: 28,  adim: .5 },
+  { k: "--sf-cubuk",       ad: "Süre barı yük.",   min: 6,   max: 32,  adim: .5 },
+  { k: "--sf-sure",        ad: "Süre yazısı",      min: 5,   max: 20,  adim: .5 },
+  { k: "--sf-dugme",       ad: "Düğme kutusu",     min: 12,  max: 48,  adim: .5 },
+  { k: "--sf-dugme-yazi",  ad: "Düğme simgesi",    min: 6,   max: 30,  adim: .5 },
+];
+
+function seferAyarOku() {
+  try { return JSON.parse(localStorage.getItem(SEFERAYAR_DEPO) || "{}") || {}; }
+  catch (e) { return {}; }
+}
+function seferAyarYaz(o) {
+  try { localStorage.setItem(SEFERAYAR_DEPO, JSON.stringify(o)); } catch (e) {}
+}
+/* Kaydedilmiş değerleri kutuya uygular. hudEl() her çağrıda kutuyu
+   verdiği için burada da ondan istenir — kutu henüz yoksa kurulur. */
+function seferAyarUygula() {
+  const o = seferAyarOku();
+  const el = document.getElementById("seferHud");
+  if (!el) return;
+  SEFERAYAR_ALANLAR.forEach(a => {
+    if (typeof o[a.k] === "number") el.style.setProperty(a.k, o[a.k] + "px");
+    else el.style.removeProperty(a.k);
+  });
+}
+/* Şu anki değer: önce kayıt, yoksa CSS'ten HESAPLANMIŞ değer.
+   getComputedStyle(el).getPropertyValue ile okunur; kutu gizliyse
+   bile değişken okunur (display:none ölçüyü değil, yerleşimi keser). */
+function seferAyarDeger(k) {
+  const o = seferAyarOku();
+  if (typeof o[k] === "number") return o[k];
+  const el = document.getElementById("seferHud");
+  if (!el) return 0;
+  const ham = getComputedStyle(el).getPropertyValue(k).trim();
+  const n = parseFloat(ham);
+  return isNaN(n) ? 0 : n;
+}
+
+function seferAyarPaneli() {
+  if (document.getElementById("seferAyarPanel")) return;
+
+  const kok = document.createElement("div");
+  kok.id = "seferAyarPanel";
+  kok.innerHTML =
+    '<div class="sap-bas">İNTİKAL İNCE AYAR' +
+      '<button class="sap-kucult" type="button">–</button>' +
+      '<button class="sap-kapat" type="button">✕</button>' +
+    '</div>' +
+    '<div class="sap-govde">' +
+      SEFERAYAR_ALANLAR.map(a =>
+        '<div class="sap-satir" data-k="' + a.k + '">' +
+          '<div class="sap-ust"><span class="sap-ad">' + a.ad + '</span>' +
+          '<span class="sap-deger">0</span></div>' +
+          '<div class="sap-alt">' +
+            '<button class="sap-btn" data-yon="-1" type="button">−</button>' +
+            '<input class="sap-surgu" type="range" min="' + a.min + '" max="' + a.max +
+              '" step="' + a.adim + '">' +
+            '<button class="sap-btn" data-yon="1" type="button">+</button>' +
+          '</div>' +
+        '</div>').join("") +
+      '<div class="sap-son">' +
+        '<button class="sap-eylem sap-sifirla" type="button">Sıfırla</button>' +
+        '<button class="sap-eylem sap-goster" type="button">Değerleri göster</button>' +
+      '</div>' +
+      '<textarea class="sap-cikti" readonly rows="6" hidden></textarea>' +
+    '</div>';
+  (document.getElementById("appScreen") || document.body).appendChild(kok);
+
+  /* Satırları kur */
+  const kaydet = (k, v) => {
+    const o = seferAyarOku();
+    o[k] = v;
+    seferAyarYaz(o);
+    seferAyarUygula();
+    yenile();
+  };
+  function yenile() {
+    kok.querySelectorAll(".sap-satir").forEach(row => {
+      const k = row.dataset.k;
+      const v = seferAyarDeger(k);
+      const s = row.querySelector(".sap-surgu");
+      const d = row.querySelector(".sap-deger");
+      if (s && document.activeElement !== s) s.value = String(v);
+      if (d) d.textContent = (Math.round(v * 10) / 10) + "px";
+    });
+  }
+
+  kok.querySelectorAll(".sap-satir").forEach(row => {
+    const k = row.dataset.k;
+    const tanim = SEFERAYAR_ALANLAR.find(a => a.k === k);
+    const s = row.querySelector(".sap-surgu");
+    s.addEventListener("input", () => kaydet(k, parseFloat(s.value)));
+
+    /* −/+ : bir dokunuş bir adım; BASILI TUTUNCA hızlanarak yürür.
+       Tekrar zamanlayıcıyla değil rAF ile döner (CSS/timer karışımı
+       telefonda takılıyor), pointerup/leave/cancel'da durur. */
+    row.querySelectorAll(".sap-btn").forEach(b => {
+      const yon = parseFloat(b.dataset.yon);
+      let raf = null, bas = 0, son = 0;
+      const adimAt = () => {
+        const v = Math.min(tanim.max, Math.max(tanim.min,
+          Math.round((seferAyarDeger(k) + yon * tanim.adim) / tanim.adim) * tanim.adim));
+        kaydet(k, Math.round(v * 100) / 100);
+      };
+      const kare = () => {
+        const t = performance.now();
+        if (t - bas > 380) {
+          const ara = (t - bas > 1600) ? 45 : 110;   /* uzun basışta hızlanır */
+          if (t - son >= ara) { adimAt(); son = t; }
+        }
+        raf = requestAnimationFrame(kare);
+      };
+      const dur = () => { if (raf !== null) { cancelAnimationFrame(raf); raf = null; } };
+      b.addEventListener("pointerdown", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        adimAt();
+        bas = son = performance.now();
+        dur(); raf = requestAnimationFrame(kare);
+      });
+      ["pointerup", "pointercancel", "pointerleave"].forEach(t =>
+        b.addEventListener(t, dur));
+    });
+  });
+
+  kok.querySelector(".sap-sifirla").addEventListener("click", () => {
+    seferAyarYaz({}); seferAyarUygula(); yenile();
+  });
+  const cikti = kok.querySelector(".sap-cikti");
+  kok.querySelector(".sap-goster").addEventListener("click", () => {
+    cikti.hidden = !cikti.hidden;
+    if (!cikti.hidden) {
+      cikti.value = "#seferHud{\n" + SEFERAYAR_ALANLAR
+        .map(a => "  " + a.k + ":" + (Math.round(seferAyarDeger(a.k) * 10) / 10) + "px;")
+        .join("\n") + "\n}";
+      cikti.select();
+    }
+  });
+  kok.querySelector(".sap-kapat").addEventListener("click", () => kok.remove());
+  kok.querySelector(".sap-kucult").addEventListener("click", () => {
+    kok.classList.toggle("sap-kapali");
+  });
+
+  /* SÜRÜKLEME — başlıktan. Konum top/left ile verilir. */
+  const bas = kok.querySelector(".sap-bas");
+  let sur = null;
+  bas.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("button")) return;
+    const r = kok.getBoundingClientRect();
+    sur = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    try { bas.setPointerCapture(e.pointerId); } catch (x) {}
+  });
+  bas.addEventListener("pointermove", (e) => {
+    if (!sur) return;
+    const g = kok.offsetWidth, y = kok.offsetHeight;   /* fixed → offsetParent null */
+    const x = Math.max(0, Math.min(window.innerWidth  - g, e.clientX - sur.dx));
+    const t = Math.max(0, Math.min(window.innerHeight - y, e.clientY - sur.dy));
+    kok.style.left = x + "px"; kok.style.top = t + "px";
+  });
+  ["pointerup", "pointercancel"].forEach(t =>
+    bas.addEventListener(t, () => { sur = null; }));
+
+  yenile();
+}
+
+/* Bayrak varsa panel açılır; kayıtlı ölçüler HER durumda uygulanır. */
+try {
+  const bayrak = /[?&]seferayar=1/.test(location.search);
+  const kur = () => {
+    hudEl();                 /* kutu yoksa kurulsun ki değişken yazılabilsin */
+    seferAyarUygula();
+    if (bayrak) seferAyarPaneli();
+  };
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", kur);
+  else kur();
+} catch (e) { console.error("[sefer] ince ayar:", e); }
 
 window.SEFER = {
   SURUM: "canvas-11",          /* rozet bunu gösterir; yükleme doğrulaması */
