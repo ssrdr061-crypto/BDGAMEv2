@@ -1314,20 +1314,20 @@ function hudCiz() {
      mantık, ayrı kod gerekmez.
      Numara LİSTE SIRASIDIR: bir sefer bitince alttaki yukarı kayar.
 
-     TOPLAMA EVRESİ: ordu araziye varıp toplamaya başlayınca yazı
-     "Toplanıyor N" olur ve ⏩ hiç BASILMAZ — toplama süresi
-     hızlandırma ürünüyle kısaltılmıyor, düğmeyi bırakmak boş vaat
-     olurdu. Genişlik CSS'te sabit olduğu için yazı değişse de kutu
-     kıpırdamaz. */
+     TOPLAMA EVRESİ: yazı "Toplanıyor" olur ve ⏩ ÇALIŞMAZ — toplama
+     süresi hızlandırma ürünüyle kısaltılmıyor.
+     KUTU UZAMAZ: "İntikal N" yazısı ve ⏩ yuvası HTML'de yerinde
+     kalır (CSS'te yalnız görünmez olur), genişliği hep onlar
+     belirler; "Toplanıyor" mutlak konumlu ayrı katmandır. */
   el.innerHTML = liste.map((x, i) => {
     const ev = evre(x.s);
     const yuzde = Math.round(Math.max(0, Math.min(1, ev.p)) * 100);
     const topluyor = (ev.ad === "topla");
-    const ad = (topluyor ? "Toplanıyor " : "İntikal ") + (i + 1);
     return `<div class="sefer-satir${topluyor ? " sefer-topla" : ""}" data-sefer="${x.id}">
       <span class="sefer-dolgu" style="width:${yuzde}%"></span>
-      <span class="sefer-ad">${ad}</span>
-      ${topluyor ? "" : `<span class="sefer-hiz" aria-hidden="true">⏩</span>`}
+      <span class="sefer-ad">İntikal ${i + 1}</span>
+      <span class="sefer-hiz" aria-hidden="true">⏩</span>
+      ${topluyor ? `<span class="sefer-durum">Toplanıyor</span>` : ""}
     </div>`;
   }).join("");
 
@@ -1820,14 +1820,14 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   /* DAİMA İNCE: yükseklik sabit, içerik tek satır.
      Eski hâlde süre metni ("1dk 11sn") sabit 42px'lik alana sığmayıp
      alt satıra kayıyor, kutu iki satır olup kalınlaşıyordu. Artık
-     yazı sabit ("İntikal N" / "Toplanıyor N") ve sarma her ihtimale
-     karşı kapalı.
-     GENİŞLİK SABİT: eski width:auto yazıya göre oturuyordu, yazı
-     evre değişince ("İntikal 1" → "Toplanıyor 1") kutu büyüyordu.
-     Ölçü en uzun hâle göre verildi ("Toplanıyor 1" + ⏩ + iç
-     boşluk); ⏩ kalkınca da kutu aynı kalır, küçülmez.
+     yazı sabit ("İntikal N") ve sarma her ihtimale karşı kapalı;
+     genişlik yazıya göre oturur, satırlar birbiriyle aynı olur.
+     GENİŞLİĞİ HER ZAMAN "İntikal N" BELİRLER: toplama evresinde de
+     bu yazı ve ⏩ yuvası akışta DURUR (yalnız görünmez olur), üstteki
+     "Toplanıyor" yazısı mutlak konumludur ve genişliğe hiç katılmaz.
+     Böyle olmasının sebebi: sabit piksel vermek kutuyu uzatıyordu.
      3B YOK: çerçeve ve inset parlaklık kaldırıldı, tek yumuşak gölge. */
-  width:132px; box-sizing:border-box;
+  width:auto; box-sizing:border-box;
   height:24px; white-space:nowrap;
   position:relative; overflow:hidden;
   display:flex; align-items:center; gap:6px;
@@ -1867,9 +1867,20 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 .sefer-hiz:active{ filter:brightness(.93); }
 /* Takipteki kutu: çerçeve/parlaklık eklenmez, yalnız biraz aydınlanır. */
 .sefer-satir.sefer-takipte{ filter:brightness(1.18); }
-/* Toplama satırında ⏩ hiç basılmaz; kutu sabit genişlikte olduğu
-   için sağda kalan boşluk dolgu şeridinin ilerlediği yerdir. */
-.sefer-satir.sefer-topla .sefer-ad{ flex:1 1 auto; }
+/* ── TOPLAMA EVRESİ ──
+   Kutu UZAMAZ: akıştaki iki öğe ("İntikal N" ve ⏩ yuvası) yerinde
+   kalır, yalnız görünmez olur — genişliği hâlâ onlar belirler.
+   "Toplanıyor" yazısı mutlak konumlu, yani akışta yer kaplamaz;
+   sığması için puntosu küçültüldü, taşarsa kutu büyümez, kırpılır
+   (satırda overflow:hidden var). */
+.sefer-satir.sefer-topla .sefer-ad,
+.sefer-satir.sefer-topla .sefer-hiz{ visibility:hidden; pointer-events:none; }
+.sefer-durum{
+  position:absolute; z-index:1; left:8px; right:8px; top:0; bottom:0;
+  display:flex; align-items:center;
+  font-size:9.5px; font-weight:800; letter-spacing:.2px;
+  white-space:nowrap; pointer-events:none;
+}
 
 .sefer-onay-modal{
   /* Ekranın ALTINDA açılır, arka plan KARARMAZ. */
