@@ -1305,19 +1305,29 @@ function hudCiz() {
 
   el.style.display = hudGorunur() ? "flex" : "none";
 
-  /* TEK SATIR ve SABİT: yalnız "İntikal N" + hızlandırma simgesi.
-     Süre ve hedef adı KALDIRILDI — metin her saniye değiştiği için
-     kutu bir kalın bir ince oluyordu ("1dk 11sn" sığmayıp alt satıra
-     kayıyordu). Yazı artık sabit, kutu da öyle. Kalan süre yeşil
-     dolgu şeridinden okunur.
-     Numara LİSTE SIRASIDIR: bir sefer bitince alttaki yukarı kayar. */
+  /* TEK SATIR ve SABİT: yalnız durum yazısı + hızlandırma simgesi.
+     Süre METNİ yok — her saniye değiştiği için kutu bir kalın bir
+     ince oluyordu ("1dk 11sn" sığmayıp alt satıra kayıyordu). Kalan
+     süre TEK işaret olarak yeşil dolgu şeridinden okunur; şerit
+     ev.p'ye bağlı olduğu için yol evresinde alınan yolu, toplama
+     evresinde geçen toplama süresini gösterir — ikisi de aynı
+     mantık, ayrı kod gerekmez.
+     Numara LİSTE SIRASIDIR: bir sefer bitince alttaki yukarı kayar.
+
+     TOPLAMA EVRESİ: ordu araziye varıp toplamaya başlayınca yazı
+     "Toplanıyor N" olur ve ⏩ hiç BASILMAZ — toplama süresi
+     hızlandırma ürünüyle kısaltılmıyor, düğmeyi bırakmak boş vaat
+     olurdu. Genişlik CSS'te sabit olduğu için yazı değişse de kutu
+     kıpırdamaz. */
   el.innerHTML = liste.map((x, i) => {
     const ev = evre(x.s);
     const yuzde = Math.round(Math.max(0, Math.min(1, ev.p)) * 100);
-    return `<div class="sefer-satir" data-sefer="${x.id}">
+    const topluyor = (ev.ad === "topla");
+    const ad = (topluyor ? "Toplanıyor " : "İntikal ") + (i + 1);
+    return `<div class="sefer-satir${topluyor ? " sefer-topla" : ""}" data-sefer="${x.id}">
       <span class="sefer-dolgu" style="width:${yuzde}%"></span>
-      <span class="sefer-ad">İntikal ${i + 1}</span>
-      <span class="sefer-hiz" aria-hidden="true">⏩</span>
+      <span class="sefer-ad">${ad}</span>
+      ${topluyor ? "" : `<span class="sefer-hiz" aria-hidden="true">⏩</span>`}
     </div>`;
   }).join("");
 
@@ -1337,8 +1347,12 @@ function hudCiz() {
    pointerup + click ikilisinde çift ateşlemeye yol açar. */
 function satirTiklandi(id, e) {
   if (!_yerel[id]) return;
+  /* Toplama evresinde ⏩ zaten basılmıyor; burada da kapatılır ki
+     satır evre değiştirirken araya giren tek dokunuş pencereyi
+     açmasın (hudCiz saniyede bir çizer, dokunuş arada kalabilir). */
+  const topluyor = evre(_yerel[id]).ad === "topla";
   const t = e && e.target;
-  if (t && t.closest && t.closest(".sefer-hiz")) { hizlandirSor(id); return; }
+  if (!topluyor && t && t.closest && t.closest(".sefer-hiz")) { hizlandirSor(id); return; }
   takipBaslat(id);
 }
 
@@ -1806,10 +1820,14 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   /* DAİMA İNCE: yükseklik sabit, içerik tek satır.
      Eski hâlde süre metni ("1dk 11sn") sabit 42px'lik alana sığmayıp
      alt satıra kayıyor, kutu iki satır olup kalınlaşıyordu. Artık
-     yazı sabit ("İntikal N") ve sarma her ihtimale karşı kapalı;
-     genişlik yazıya göre oturur, satırlar birbiriyle aynı olur.
+     yazı sabit ("İntikal N" / "Toplanıyor N") ve sarma her ihtimale
+     karşı kapalı.
+     GENİŞLİK SABİT: eski width:auto yazıya göre oturuyordu, yazı
+     evre değişince ("İntikal 1" → "Toplanıyor 1") kutu büyüyordu.
+     Ölçü en uzun hâle göre verildi ("Toplanıyor 1" + ⏩ + iç
+     boşluk); ⏩ kalkınca da kutu aynı kalır, küçülmez.
      3B YOK: çerçeve ve inset parlaklık kaldırıldı, tek yumuşak gölge. */
-  width:auto; box-sizing:border-box;
+  width:132px; box-sizing:border-box;
   height:24px; white-space:nowrap;
   position:relative; overflow:hidden;
   display:flex; align-items:center; gap:6px;
@@ -1849,6 +1867,9 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 .sefer-hiz:active{ filter:brightness(.93); }
 /* Takipteki kutu: çerçeve/parlaklık eklenmez, yalnız biraz aydınlanır. */
 .sefer-satir.sefer-takipte{ filter:brightness(1.18); }
+/* Toplama satırında ⏩ hiç basılmaz; kutu sabit genişlikte olduğu
+   için sağda kalan boşluk dolgu şeridinin ilerlediği yerdir. */
+.sefer-satir.sefer-topla .sefer-ad{ flex:1 1 auto; }
 
 .sefer-onay-modal{
   /* Ekranın ALTINDA açılır, arka plan KARARMAZ. */
