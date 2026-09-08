@@ -2228,6 +2228,42 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:800;
   font-size:12.5px; color:var(--diamond-yellow); font-variant-numeric:tabular-nums;
 }
+/* ── DETAYLAR PENCERESİ ──
+   Küçük pencerenin kabuğu; yalnız kart biraz geniş ve içerik
+   uzun olabildiği için dikey kaydırma açık. overflow-y:auto
+   yatayda da kırptığı için (Tuzak) yan boşluk bırakıldı. */
+.arazi-bilgi-modal .abm-card-genis{
+  max-width:330px; width:100%;
+  max-height:calc(100vh - 120px); overflow-y:auto; overflow-x:hidden;
+}
+.arazi-bilgi-modal .abm-stat{
+  background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.14);
+  border-radius:13px; padding:8px 12px; margin-bottom:14px;
+}
+.arazi-bilgi-modal .abm-satir{
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  font-family:'Baloo 2','Nunito',sans-serif; font-size:13px;
+  padding:4px 0;
+}
+.arazi-bilgi-modal .abm-satir span{ opacity:.8; }
+.arazi-bilgi-modal .abm-satir b{
+  font-size:14.5px; color:var(--diamond-yellow);
+  font-variant-numeric:tabular-nums; text-align:right;
+}
+.arazi-bilgi-modal .abm-satir .abm-hiz{ color:#7de29a; }
+.arazi-bilgi-modal .abm-sonuc{ opacity:.7; font-size:12px; color:#e8f4ff; }
+/* Bölüm başlığı — referanstaki mavi şerit, oyunun kendi mavisiyle. */
+.arazi-bilgi-modal .abm-bolum{
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:13px;
+  color:#eaf6ff; text-align:center; letter-spacing:.3px;
+  background:linear-gradient(180deg, rgba(47,176,238,.5), rgba(14,111,192,.5));
+  border-radius:11px; padding:6px 10px; margin-bottom:10px;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+}
+.arazi-bilgi-modal .abo-bos{
+  font-family:'Baloo 2','Nunito',sans-serif; font-size:12px;
+  color:#e8f4ff; opacity:.65; text-align:center; margin-bottom:16px;
+}
 .arazi-bilgi-modal .abm-btn-yes{ background:linear-gradient(180deg,#f0a234,#c0700d); }
 /* Canavar penceresine özel: kırmızı saldırı düğmesi (arazi penceresi turuncu kalır) */
 .arazi-bilgi-modal .abm-btn-kirmizi{ background:linear-gradient(180deg,#ef4b4b,#a81616); }
@@ -7308,10 +7344,9 @@ function _araziSeferim(slotId) {
    yazılmadı; dosya adı değişirse orayı düzeltmek yeter.
    Liste bir kez çizilir: sefer boyunca ordu değişmez, saniyelik
    tazeleme yalnız sayaç satırına dokunur. */
-function _seferOrduHTML(s) {
+function _seferKomutanHTML(s) {
   if (!s) return "";
-
-  const kom = (Array.isArray(s.komutanlar) ? s.komutanlar : [])
+  const kutular = (Array.isArray(s.komutanlar) ? s.komutanlar : [])
     .filter(Boolean)
     .map(id => {
       const im = (typeof HERO_IMG !== "undefined") ? HERO_IMG[id] : null;
@@ -7323,9 +7358,14 @@ function _seferOrduHTML(s) {
         <div class="abo-ad">${escapeHtml(ad)}</div>
       </div>`;
     });
+  if (!kutular.length) return `<div class="abo-bos">Komutan gönderilmedi</div>`;
+  return `<div class="abo-grid">${kutular.join("")}</div>`;
+}
 
+function _seferBirlikHTML(s) {
+  if (!s) return "";
   const b = s.birlikler || {};
-  const birlik = Object.keys(b)
+  const kutular = Object.keys(b)
     .filter(k => (b[k] || 0) > 0)
     .map(k => {
       const def = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[k] : null;
@@ -7338,9 +7378,8 @@ function _seferOrduHTML(s) {
         <div class="abo-adet">${fmt(b[k] || 0)}</div>
       </div>`;
     });
-
-  if (!kom.length && !birlik.length) return "";
-  return `<div class="abo-grid">${kom.join("")}${birlik.join("")}</div>`;
+  if (!kutular.length) return "";
+  return `<div class="abo-grid">${kutular.join("")}</div>`;
 }
 
 /* ── ORDUM ARAZİDE: DURUM PENCERESİ ──
@@ -7366,9 +7405,9 @@ function araziDurumAc(d, sefer) {
         <b id="araziDurumDeger">-</b>
       </div>
       <div class="abm-alt abm-alt-kalin" id="araziDurumSure"></div>
-      <div class="abm-ordu">${_seferOrduHTML(sefer.s)}</div>
       <div class="abm-actions abm-actions-orta">
-        <button class="abm-btn abm-btn-no abm-btn-dar abm-btn-geri" type="button">Geri Çağır</button>
+        <button class="abm-btn abm-btn-kirmizi abm-btn-dar abm-btn-geri" type="button">Geri Çağır</button>
+        <button class="abm-btn abm-btn-yes abm-btn-dar abm-btn-detay" type="button">Detaylar</button>
       </div>
     </div>`;
   document.body.appendChild(kok);
@@ -7424,6 +7463,94 @@ function araziDurumAc(d, sefer) {
       SEFER.geriCagir(guncel.id);
     }
   };
+  kok.querySelector(".abm-btn-detay").onclick = () => {
+    const guncel = _araziSeferim(d.slotId);
+    if (!guncel) { kapat(); return; }
+    kapat();
+    araziDetayAc(d, guncel);
+  };
+  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
+}
+
+/* ── DETAYLAR PENCERESİ ──
+   Küçük pencerenin "Detaylar" düğmesinden açılır. Üstte arazinin
+   ve toplamanın sayıları, altta ordunun kendisi: komutanlar ve
+   birlikler. Sayılar saniyede bir tazelenir; ORDU bölümü bir kez
+   çizilir (sefer boyunca değişmez) — her tikte innerHTML yazmak
+   <img>'leri yeniden çözdürürdü.
+   Kabuk küçük pencereyle AYNI (.arazi-bilgi-modal / .abm-*); ikinci
+   bir tema yazılmadı. */
+function araziDetayAc(d, sefer) {
+  const eski = document.getElementById("araziBilgiModal");
+  if (eski) eski.remove();
+
+  const s = sefer.s;
+  const asker = Object.keys(s.birlikler || {})
+    .reduce((t, k) => t + (Math.max(0, (s.birlikler || {})[k] || 0)), 0);
+  /* d.hiz saniyeliktir; ekranda saatlik gösterilir. */
+  const saatlik = Math.round((d.hiz || 0) * 3600);
+
+  const kok = document.createElement("div");
+  kok.id = "araziBilgiModal";
+  kok.className = "arazi-bilgi-modal";
+  kok.innerHTML = `
+    <div class="overlay-card abm-card abm-card-genis">
+      <button class="overlay-close abm-close" type="button">✕</button>
+      <h2 class="abm-title">${d.ikon} Sv.${d.seviye} ${escapeHtml(d.ad)}</h2>
+
+      <div class="abm-stat">
+        <div class="abm-satir"><span>Toplam Kaynak</span>
+          <b>${d.kaynakIkon} ${fmt(d.kalan || 0)}</b></div>
+        <div class="abm-satir"><span>Toplandı</span>
+          <b id="araziDetayToplandi">-</b></div>
+        <div class="abm-satir"><span>Bitmesine</span>
+          <b id="araziDetaySure">-</b></div>
+        <div class="abm-satir"><span>Toplama Hızı</span>
+          <b class="abm-hiz">${fmt(saatlik)}/sa</b></div>
+      </div>
+
+      <div class="abm-bolum">Birlik Sayısı: ${fmt(asker)}</div>
+      <div class="abm-ordu">${_seferKomutanHTML(s)}</div>
+
+      <div class="abm-bolum">Birlik Detayları</div>
+      <div class="abm-ordu">${_seferBirlikHTML(s)}</div>
+
+      <div class="abm-actions abm-actions-orta">
+        <button class="abm-btn abm-btn-no abm-btn-dar abm-btn-kapat" type="button">Kapat</button>
+      </div>
+    </div>`;
+  document.body.appendChild(kok);
+
+  /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu. */
+  kok.style.pointerEvents = "none";
+  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
+
+  let sayac = null;
+  const kapat = () => { if (sayac) clearInterval(sayac); kok.remove(); };
+
+  function tazele() {
+    const guncel = _araziSeferim(d.slotId);
+    if (!guncel) { kapat(); return; }
+    const ev = (window.SEFER && SEFER.evre) ? SEFER.evre(guncel.s) : null;
+    const topEl = document.getElementById("araziDetayToplandi");
+    const surEl = document.getElementById("araziDetaySure");
+    if (!ev || !topEl || !surEl) return;
+
+    if (ev.ad === "topla") {
+      /* Toplanan oranı sefer.js'teki geri çağırmayla AYNI formül. */
+      const toplanan = Math.floor((guncel.s.hedefMiktar || 0) * ev.p);
+      topEl.innerHTML = `${d.kaynakIkon} ${fmt(toplanan)} <span class="abm-sonuc">/ ${fmt(guncel.s.hedefMiktar || 0)}</span>`;
+      surEl.textContent = SEFER.fmtSure ? SEFER.fmtSure(ev.kalanMs) : "";
+    } else {
+      topEl.textContent = "—";
+      surEl.textContent = "Varışa " + (SEFER.fmtSure ? SEFER.fmtSure(ev.kalanMs) : "");
+    }
+  }
+  tazele();
+  sayac = setInterval(tazele, 1000);
+
+  kok.querySelector(".abm-close").onclick = kapat;
+  kok.querySelector(".abm-btn-kapat").onclick = kapat;
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
 
