@@ -7514,10 +7514,6 @@ function araziDetayAc(d, sefer) {
 
       <div class="abm-bolum">Birlik Detayları</div>
       <div class="abm-ordu">${_seferBirlikHTML(s)}</div>
-
-      <div class="abm-actions abm-actions-orta">
-        <button class="abm-btn abm-btn-no abm-btn-dar abm-btn-kapat" type="button">Kapat</button>
-      </div>
     </div>`;
   document.body.appendChild(kok);
 
@@ -7550,7 +7546,6 @@ function araziDetayAc(d, sefer) {
   sayac = setInterval(tazele, 1000);
 
   kok.querySelector(".abm-close").onclick = kapat;
-  kok.querySelector(".abm-btn-kapat").onclick = kapat;
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
 
