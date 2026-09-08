@@ -848,6 +848,184 @@
     } catch (e) {}
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     GÜÇ YAZISI — YEŞİL GEÇİŞ
+     Değer değişince yeni sayı kutuya hemen yazılır (ölçü/ortalama
+     yeniye göre oturur), eskisi üstüne kopyalanır. Soldan sağa tek
+     bir kenar yürür: kenarın SOLU yeni, SAĞI eski değerdir — ikisi
+     hiçbir an üst üste binmez. Kenarın üstünde dar bir yeşil pencere
+     gider; rakam tam yeşilin altından geçerken yenilenmiş olur.
+     Kenarın arkasında canvas üstünde yeşil yıldızlar savrulur.
+
+     - Web Animations + tek rAF döngüsü (CSS keyframe yok).
+     - Kopyalar #hdGucDeger klonudur: yazı biçimi üst kutudan miras.
+     - Yeşil pencere sağ kenarın DIŞINA sürülür, `fill` yok: sonda
+       asılı kalan yeşil kırıntı olmaz.
+     - Kutu fixed zincirinde olduğu için ölçü getBoundingClientRect.
+     - İlk çizimde (eski metin boş) efekt yoktur, sessizce yazar.
+     ══════════════════════════════════════════════════════════════ */
+  const GUC_EFEKT_MS  = 900;   /* geçiş süresi                      */
+  const GUC_YILDIZ    = 1.12;  /* yıldız yoğunluğu çarpanı          */
+  const GUC_PENCERE   = 11;    /* yeşil pencerenin genişliği (%)    */
+  const GUC_RENK      = "#5cff5c";
+  const GUC_YILDIZ_RK = ["#4dff4d", "#7cff5c", "#2fe84f"];
+
+  function gucEfektTemizle(gd) {
+    const kutu = gd.parentNode;
+    if (!kutu) return;
+    Array.prototype.slice.call(
+      kutu.querySelectorAll(".guc-esk, .guc-yesil, .guc-cv")
+    ).forEach(el => {
+      try { el.getAnimations().forEach(a => a.cancel()); } catch (e) {}
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+  }
+
+  function gucKatman(gd, metin, sinif) {
+    const k = gd.cloneNode(false);
+    k.removeAttribute("id");
+    k.className        = sinif;
+    k.textContent      = metin;
+    k.style.position   = "absolute";
+    k.style.top        = "0";
+    k.style.left       = "50%";
+    k.style.transform  = "translateX(-50%)";
+    k.style.whiteSpace = "nowrap";
+    k.style.pointerEvents = "none";
+    return k;
+  }
+
+  function gucYesilKareler() {
+    const kf = [], B = GUC_PENCERE, bas = -B, bit = 100 + B, N = 14;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, m = bas + (bit - bas) * t;
+      const sol = Math.min(100, Math.max(0, m - B));
+      const sag = Math.min(100, Math.max(0, 100 - (m + B)));
+      const v = `inset(0 ${sag}% 0 ${sol}%)`;
+      kf.push({ clipPath: v, WebkitClipPath: v, offset: t });
+    }
+    return kf;
+  }
+
+  function gucYildizCiz(g, x, y, rr, don, alfa, renk) {
+    g.save(); g.translate(x, y); g.rotate(don);
+    g.globalAlpha = alfa; g.fillStyle = renk;
+    g.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = Math.PI / 5 * i - Math.PI / 2;
+      const rad = (i % 2 === 0) ? rr : rr * 0.42;
+      const px = Math.cos(a) * rad, py = Math.sin(a) * rad;
+      if (i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+    }
+    g.closePath(); g.fill(); g.restore();
+  }
+
+  function gucYaz(gd, yeni) {
+    const eski = gd.textContent;
+    if (eski === yeni) return;
+
+    const kutu = gd.parentNode;
+    if (!eski || !kutu || typeof gd.animate !== "function") {
+      gd.textContent = yeni;
+      return;
+    }
+
+    gucEfektTemizle(gd);                 /* üst üste binen geçiş yok */
+    if (getComputedStyle(kutu).position === "static") kutu.style.position = "relative";
+    gd.style.display = "inline-block";
+
+    const kopya = gucKatman(gd, eski, "guc-esk");
+    gd.textContent = yeni;               /* ölçü/ortalama yeniye göre */
+    kutu.appendChild(kopya);
+
+    const yesil = gucKatman(gd, yeni, "guc-yesil");
+    yesil.style.color = GUC_RENK;
+    kutu.appendChild(yesil);
+
+    const r   = kutu.getBoundingClientRect();
+    const W   = Math.max(r.width, 40), H = Math.max(r.height, 18);
+    const PY  = 26, PX = 18;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const cv = document.createElement("canvas");
+    cv.className = "guc-cv";
+    cv.width  = Math.round((W + PX * 2) * dpr);
+    cv.height = Math.round((H + PY * 2) * dpr);
+    cv.style.cssText =
+      "position:absolute;left:50%;top:" + (-PY) + "px;" +
+      "width:" + (W + PX * 2) + "px;height:" + (H + PY * 2) + "px;" +
+      "transform:translateX(-50%);pointer-events:none;";
+    kutu.appendChild(cv);
+    const cx = cv.getContext("2d");
+    cx.scale(dpr, dpr);
+
+    /* Kenar: solu yeni, sağı eski. */
+    const a1 = kopya.animate(
+      [{ clipPath: "inset(0 0 0 0)",    WebkitClipPath: "inset(0 0 0 0)" },
+       { clipPath: "inset(0 0 0 100%)", WebkitClipPath: "inset(0 0 0 100%)" }],
+      { duration: GUC_EFEKT_MS, easing: "linear", fill: "forwards" });
+
+    const a2 = gd.animate(
+      [{ clipPath: "inset(0 100% 0 0)", WebkitClipPath: "inset(0 100% 0 0)" },
+       { clipPath: "inset(0 0 0 0)",    WebkitClipPath: "inset(0 0 0 0)" }],
+      { duration: GUC_EFEKT_MS, easing: "linear", fill: "backwards" });
+
+    const a3 = yesil.animate(gucYesilKareler(),
+      { duration: GUC_EFEKT_MS, easing: "linear" });
+    a3.onfinish = () => { if (yesil.parentNode) yesil.parentNode.removeChild(yesil); };
+
+    const par = [];
+    let t0 = performance.now(), son = t0, id = 0, bitti = false;
+
+    function sonTemizlik() {
+      cancelAnimationFrame(id);
+      try { a1.cancel(); } catch (e) {}
+      try { a2.cancel(); } catch (e) {}
+      try { a3.cancel(); } catch (e) {}
+      gucEfektTemizle(gd);
+    }
+
+    function gucKare(now) {
+      const dt = Math.min((now - son) / 1000, 0.05); son = now;
+      const n  = (now - t0) / GUC_EFEKT_MS;
+      cx.clearRect(0, 0, cv.width, cv.height);
+
+      if (n < 1) {
+        const ex  = PX + n * W;
+        const say = Math.round(GUC_YILDIZ * 3);
+        for (let i = 0; i < say; i++) {
+          par.push({
+            x : ex + (Math.random() - 0.5) * 5,
+            y : PY + H * 0.5 + (Math.random() - 0.5) * H * 1.15,
+            vx: -34 - Math.random() * 80,
+            vy: (Math.random() - 0.5) * 50,
+            r : 1.4 + Math.random() * 2.6,
+            don: Math.random() * Math.PI,
+            dv : (Math.random() - 0.5) * 7,
+            om : 0, sure: 0.34 + Math.random() * 0.4,
+            renk: GUC_YILDIZ_RK[(Math.random() * GUC_YILDIZ_RK.length) | 0]
+          });
+        }
+      }
+
+      for (let j = par.length - 1; j >= 0; j--) {
+        const p = par[j];
+        p.om += dt;
+        if (p.om > p.sure) { par.splice(j, 1); continue; }
+        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 26 * dt; p.don += p.dv * dt;
+        const k = 1 - p.om / p.sure;
+        gucYildizCiz(cx, p.x, p.y, p.r * (0.4 + k * 0.85), p.don, k * k, p.renk);
+      }
+
+      if (n < 1 || par.length) id = requestAnimationFrame(gucKare);
+      else if (!bitti) { bitti = true; sonTemizlik(); }
+    }
+
+    id = requestAnimationFrame(gucKare);
+    setTimeout(() => { if (!bitti) { bitti = true; sonTemizlik(); } },
+               GUC_EFEKT_MS + 1200);          /* sekme arkaplandaysa  */
+  }
+
   /* Detay ekranındaki yıldız şeridini yeniden boyar
      (heroes.js açılışta çizer, seviye değişince buradan güncellenir) */
   function glsYildizTazele() {
@@ -860,7 +1038,7 @@
         Yıldız şeridi kontrolünden ÖNCE yapılır: #hdStars her ekranda
         yok, oraya takılıp erken dönersek güç hiç tazelenmez. */
     const gd = hd.querySelector("#hdGucDeger");
-    if (gd) gd.textContent = (kahramanGucu(id) || 0).toLocaleString("tr-TR");
+    if (gd) gucYaz(gd, (kahramanGucu(id) || 0).toLocaleString("tr-TR"));
 
     const st = hd.querySelector("#hdStars");
     if (!st) return;
