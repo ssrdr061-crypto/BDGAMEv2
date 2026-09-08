@@ -7706,18 +7706,21 @@ function araziIdIade() {
    "tüm orduyu gönder"dir. */
 function araziSecimHazirla() {
   if (typeof selectedTroopsForBattle === "undefined") return;
-  let toplamSecili = 0;
-  ["knight", "soldier", "robot"].forEach(u => {
-    const varOlan = (state.troops || {})[u] || 0;
-    const s = Math.min(selectedTroopsForBattle[u] || 0, varOlan);
-    selectedTroopsForBattle[u] = s;
-    toplamSecili += s;
-  });
-  if (toplamSecili <= 0) {
-    ["knight", "soldier", "robot"].forEach(u => {
-      selectedTroopsForBattle[u] = (state.troops || {})[u] || 0;
-    });
-  }
+  /*  ARAZİ PANELİ SIFIRDAN AÇILIR.
+      Eski hâl: seçim boşsa knight/soldier/robot ELDEKİNİN TAMAMI
+      kadar ön-doldurulurdu. Ön-doldurma yalnız bu üç taban birliğe
+      bakıyordu, gönderme (araziSecimOku) ise UNIT_TYPES'ın HEPSİNİ
+      okuyordu; oyuncu tek bir üst kademe sürgüsünü çekip TOPLA'ya
+      basınca dokunmadığı Şövalye ve Mızrakçı da tam kadro gidiyordu.
+      Ayrıca savaştan ya da başka bir seferden kalan seçim burada
+      asılı kalabiliyordu. Artık her açılışta hepsi sıfırlanır:
+      giden tek birlik, oyuncunun sürgüyle seçtiğidir.
+      selectedTroopsForBattle SAVAŞLA ORTAK olduğu için tek tek
+      sıfırlanıyor; yeni nesne atamak globali koparırdı. */
+  const idler = (typeof UNIT_TYPES !== "undefined" && UNIT_TYPES)
+    ? Object.keys(UNIT_TYPES) : ["knight", "soldier", "robot"];
+  idler.forEach(u => { selectedTroopsForBattle[u] = 0; });
+  Object.keys(selectedTroopsForBattle).forEach(u => { selectedTroopsForBattle[u] = 0; });
 }
 
 /* Panelin okuduğu tek yer: savaş seçimi. Ayrı bir _araziSecim
