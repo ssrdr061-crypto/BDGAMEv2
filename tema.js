@@ -7064,7 +7064,7 @@ html body #battleMap .map-node.castle-node .node-label[data-sv="4"]::before{ bac
 html body #battleMap .map-node.castle-node .node-label[data-sv="5"]::before{ background-image:url("seviye5.webp"); }
 
 /* ── SEVİYE BAŞINA HİZA ──
-   Kale görselinin ölçüsü seviyeye göre 88px'den 252px'e çıkıyor ve
+   Kale görselinin ölçüsü seviyeye göre 132px'den 228px'e çıkıyor ve
    etiket o görselin ALTINDAN başlayan akışta duruyor; tek kaydırma
    sayısı bu yüzden her seviyede aynı yere düşmüyor. Aşağıdaki
    satırlar yukarıdaki ORTAK kuralın yalnız FARKLI olan alanlarını
@@ -7093,7 +7093,7 @@ document.head.appendChild(st);
    Adres satırına ?etiket=1 eklenmedikçe HİÇBİR ŞEY yapmaz.
 
    NEDEN SEVİYE BAŞINA: kale görselinin ölçüsü seviyeye göre
-   88px'den 252px'e çıkıyor (index.html .castle-node .node-avatar).
+   132px'den 228px'e çıkıyor (index.html .castle-node .node-avatar).
    Etiket o görselin ALTINDAN başlayan akışta durduğu için, tek bir
    kaydırma sayısı Sv1'de doğru olurken Sv4'te kalenin göbeğinde
    kalıyordu. Artık her seviyenin kendi sayıları var.
@@ -7837,8 +7837,8 @@ setTimeout(uygula, 2500);
      Başlangıç değerleri index.html'deki KALICI kurallarla birebir
      aynı olmak zorunda; ayrışırsa panel açılır açılmaz kale
      zıplıyor ve neyi ayarladığın belli olmuyor. */
-  var AYAR = { 1:{boy:88,dy:0,dx:0}, 2:{boy:166,dy:22,dx:0}, 3:{boy:170,dy:0,dx:0},
-               4:{boy:226,dy:-2,dx:0}, 5:{boy:252,dy:-11,dx:-8} };
+  var AYAR = { 1:{boy:132,dy:0,dx:0}, 2:{boy:166,dy:22,dx:0}, 3:{boy:176,dy:0,dx:0},
+               4:{boy:210,dy:-2,dx:0}, 5:{boy:228,dy:-11,dx:-8} };
   var aktif = 2;
 
   function svOku(node) {
@@ -8641,8 +8641,8 @@ document.head.appendChild(st);
    yol izlenmişti.
 
    ── ÖLÇÜLER YÜZDEYLE ──
-   Kale kutusu seviyeye göre 88px ile 252px arasında değişir
-   (?kaleayar=1; güncel set: 88 · 166 · 170 · 226 · 252).
+   Kale kutusu seviyeye göre 132px ile 228px arasında değişir
+   (?kaleayar=1; güncel set: 132 · 166 · 176 · 210 · 228).
    Piksel yazılırsa Sv2 kalesi kubbeden taşar.
 
    ── calc İÇİNDE İŞARET ──

@@ -2102,30 +2102,30 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 
 .map-node.castle-node .node-ring{ width:auto; height:auto; }
 .map-node.castle-node .node-avatar{
-  width:88px; height:88px;
+  width:132px; height:132px;
   border:none; box-shadow:none; background:transparent;
   border-radius:0; overflow:visible; padding:0;
 }
 /* SEVİYE BAŞINA ÖLÇÜ — her seviyenin görselindeki şeffaf boşluk farklı,
    tek ölçü hepsine oturmuyor. Değerler ?kaleayar=1 paneliyle ölçüldü.
-   Sv1 varsayılanı yukarıdaki 88px/kaydırmasız kural.
+   Sv1 varsayılanı yukarıdaki 132px/kaydırmasız kural.
    Yeni seviye görseli eklendikçe buraya bir satır eklenir.
-   GÜNCEL SET: Sv1 88 · Sv2 166 dy22 · Sv3 170 · Sv4 226 dy-2 · Sv5 252 dy-11 dx-8 */
+   GÜNCEL SET: Sv1 132 · Sv2 166 dy22 · Sv3 176 · Sv4 210 dy-2 · Sv5 228 dy-11 dx-8 */
 .map-node.castle-node[data-sv="2"] .node-avatar{
   width:166px; height:166px; transform:translateY(22px);
 }
 /* Sv3 artık kendi ölçüsünde; eskiden satırı yoktu ve Sv1 kuralına düşüyordu. */
 .map-node.castle-node[data-sv="3"] .node-avatar{
-  width:170px; height:170px;
+  width:176px; height:176px;
 }
 .map-node.castle-node[data-sv="4"] .node-avatar{
-  width:226px; height:226px; transform:translateY(-2px);
+  width:210px; height:210px; transform:translateY(-2px);
 }
 /* Sv5 hem dikey hem YATAY kayiyor. translate() tek bildirimde yazilir;
    translateY ile translateX ayri ayri yazilsaydi ikincisi birincisini
    ezer ve dikey kaydirma kaybolurdu. */
 .map-node.castle-node[data-sv="5"] .node-avatar{
-  width:252px; height:252px; transform:translate(-8px, -11px);
+  width:228px; height:228px; transform:translate(-8px, -11px);
 }
 .map-node.castle-node .castle-avatar img{
   width:100%; height:100%; object-fit:contain; border-radius:0; display:block;
