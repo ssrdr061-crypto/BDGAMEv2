@@ -1276,16 +1276,18 @@ function hudCiz() {
   const wrap = document.getElementById("battleMapWrap");
   el.style.display = (wrap && wrap.style.display !== "none") ? "flex" : "none";
 
-  /* TEK SATIR: süre · hedef · hızlandırma simgesi.
-     Kutu BÜTÜN olarak tek bağlantıdır — içindeki ⏩ bir DÜĞME DEĞİL,
-     sadece simge. Nereye dokunulursa dokunulsun aynı pencere açılır. */
+  /* TEK SATIR ve SABİT: yalnız "İntikal N" + hızlandırma simgesi.
+     Süre ve hedef adı KALDIRILDI — metin her saniye değiştiği için
+     kutu bir kalın bir ince oluyordu ("1dk 11sn" sığmayıp alt satıra
+     kayıyordu). Yazı artık sabit, kutu da öyle. Kalan süre yeşil
+     dolgu şeridinden okunur.
+     Numara LİSTE SIRASIDIR: bir sefer bitince alttaki yukarı kayar. */
   el.innerHTML = liste.map((x, i) => {
     const ev = evre(x.s);
     const yuzde = Math.round(Math.max(0, Math.min(1, ev.p)) * 100);
     return `<div class="sefer-satir" data-sefer="${x.id}">
       <span class="sefer-dolgu" style="width:${yuzde}%"></span>
-      <span class="sefer-sure">${fmtSure(ev.kalanMs)}</span>
-      <span class="sefer-hedef">${String(x.s.hedefAd || "").slice(0, 10)}</span>
+      <span class="sefer-ad">İntikal ${i + 1}</span>
       <span class="sefer-hiz" aria-hidden="true">⏩</span>
     </div>`;
   }).join("");
@@ -1675,7 +1677,7 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 
 #seferHud{
   position:fixed; left:8px; top:96px; z-index:40;
-  display:flex; flex-direction:column; gap:5px;
+  display:flex; flex-direction:column; align-items:flex-start; gap:5px;
 }
 /* TEK SATIR ve İNCE — oyunun mavi teması (mağaza/panel şablonu).
    Eski hâli üç satırdı, koyu laciverttti ve haritanın köşesini
@@ -1684,13 +1686,17 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
    #2fb0ee → #0e6fc0 geçişi, sadece alfası düşük. Böylece harita
    altından görünür, kutu haritayı boğmaz. */
 .sefer-satir{
-  /* SABİT GENİŞLİK: süre "15s" ile "02.05d" arasında gidip gelirken
-     kutunun her saniye büyüyüp küçülmesini engeller.
+  /* DAİMA İNCE: yükseklik sabit, içerik tek satır.
+     Eski hâlde süre metni ("1dk 11sn") sabit 42px'lik alana sığmayıp
+     alt satıra kayıyor, kutu iki satır olup kalınlaşıyordu. Artık
+     yazı sabit ("İntikal N") ve sarma her ihtimale karşı kapalı;
+     genişlik yazıya göre oturur, satırlar birbiriyle aynı olur.
      3B YOK: çerçeve ve inset parlaklık kaldırıldı, tek yumuşak gölge. */
-  width:124px; box-sizing:border-box;
+  width:auto; box-sizing:border-box;
+  height:24px; white-space:nowrap;
   position:relative; overflow:hidden;
-  display:flex; align-items:center; gap:5px;
-  padding:3px 7px; border-radius:9px;
+  display:flex; align-items:center; gap:6px;
+  padding:0 8px; border-radius:9px;
   background:linear-gradient(180deg, rgba(47,176,238,.5), rgba(14,111,192,.5));
   border:none;
   box-shadow:none;
@@ -1701,16 +1707,19 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 }
 .sefer-satir:active{ transform:scale(.96); filter:brightness(.93); }
 /* Yol alındıkça soldan sağa dolan yeşil şerit — ayrı süre çubuğu
-   koymamak için kutunun KENDİ zemininde. Metinler üstünde kalır. */
+   koymamak için kutunun KENDİ zemininde. Metinler üstünde kalır.
+   Süre yazısı kalktığı için kalan yolu gösteren TEK işaret budur. */
 .sefer-dolgu{
   position:absolute; left:0; top:0; bottom:0; z-index:0;
   background:linear-gradient(180deg, rgba(88,214,120,.75), rgba(38,158,84,.75));
   pointer-events:none;
 }
-.sefer-sure, .sefer-hedef, .sefer-hiz{ position:relative; z-index:1; }
-.sefer-sure{ flex:0 0 42px; font-size:12px; font-weight:800; letter-spacing:.2px; }
-.sefer-hedef{ flex:1 1 auto; min-width:0; font-size:12px; font-weight:700; opacity:.85;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sefer-ad, .sefer-hiz{ position:relative; z-index:1; }
+/* Sabit metin — büyüyüp küçülmediği için genişlik ölçüsü gerekmez. */
+.sefer-ad{
+  flex:0 0 auto; font-size:12px; font-weight:800; letter-spacing:.2px;
+  line-height:24px; white-space:nowrap;
+}
 /* Hızlandırma SİMGESİ — düğme değil, zemini/çerçevesi yok. */
 .sefer-hiz{
   flex:0 0 auto; font-size:13px; line-height:1; opacity:.95;
