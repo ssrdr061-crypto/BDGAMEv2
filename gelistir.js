@@ -471,6 +471,14 @@
 
   /* İçerik YERİNDE tazelenir → kaydırma korunur */
   function ciz(p, id) {
+    /*  Yıldız satırındaki "Sv." yazısı panelle birlikte baştan
+        çizildiği için yerinde güncellenmiyor. Eski değeri çizimden
+        ÖNCE alıp yeni elemana geçişi kendimiz oynatıyoruz.          */
+    const tecSvEski = (() => {
+      const el = p.querySelector("#glsTecSv");
+      return el ? el.textContent : "";
+    })();
+
     const h = HERO_STATS[id];
     const n = nadirlik(id);
     const r = RENK[n];
@@ -637,6 +645,15 @@
       ${alt}
       ${tecrube}
     `;
+
+    /*  Yeni "Sv." yazısı geçici olarak eskiye alınır, gucYaz aradaki
+        yeşil geçişi oynatıp yenisini bırakır. Değer aynıysa sessiz. */
+    const tecSvEl = p.querySelector("#glsTecSv");
+    if (tecSvEl && tecSvEski && tecSvEl.textContent !== tecSvEski) {
+      const tecSvYeni = tecSvEl.textContent;
+      tecSvEl.textContent = tecSvEski;
+      gucYaz(tecSvEl, tecSvYeni);
+    }
 
     const satBtn = p.querySelector("#glsSatinAl");
     if (satBtn) satBtn.onclick = e => {
@@ -881,6 +898,17 @@
     });
   }
 
+  function gucSarmal(gd) {
+    let k = gd.parentNode;
+    if (k && k.classList && k.classList.contains("guc-sarmal")) return k;
+    k = document.createElement("span");
+    k.className = "guc-sarmal";
+    k.style.cssText = "position:relative;display:inline-block;";
+    gd.parentNode.insertBefore(k, gd);
+    k.appendChild(gd);
+    return k;
+  }
+
   function gucKatman(gd, metin, sinif) {
     const k = gd.cloneNode(false);
     k.removeAttribute("id");
@@ -924,14 +952,17 @@
     const eski = gd.textContent;
     if (eski === yeni) return;
 
-    const kutu = gd.parentNode;
-    if (!eski || !kutu || typeof gd.animate !== "function") {
+    if (!eski || !gd.parentNode || typeof gd.animate !== "function") {
       gd.textContent = yeni;
       return;
     }
 
+    /*  Katmanlar yazının KENDİ kutusuna göre konur. Güç yazısı ortalı
+        bir kutunun içinde, "Sv." yazısı ise yıldızlarla aynı satırda
+        duruyor; ortak zemin olsun diye yazı kendi sarmalına alınır.  */
+    const kutu = gucSarmal(gd);
+
     gucEfektTemizle(gd);                 /* üst üste binen geçiş yok */
-    if (getComputedStyle(kutu).position === "static") kutu.style.position = "relative";
     gd.style.display = "inline-block";
 
     const kopya = gucKatman(gd, eski, "guc-esk");
