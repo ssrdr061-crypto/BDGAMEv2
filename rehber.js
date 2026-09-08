@@ -1295,24 +1295,79 @@
       sifirla();
     }
 
+    /* ── ISITMA — sahne panel AÇILMADAN ÖNCE kurulur ────────────
+       Kurulum eskiden ilk açılışta yapılıyordu: ahşap/metal
+       dokularının çizimi, WebGLRenderer + gölge haritası + bloom
+       hedefleri ve gölgeci derlemesi panel açıldıktan SONRA
+       çalışıyor, sandık yarım saniye geç geliyordu. Artık oyun
+       boştayken kurulur ve gizliyken bir kare çizilerek gölgeciler
+       derlenir; panel açıldığında ilk karede hazırdır.
+       three.js rehber.js'ten SONRA yüklendiği için THREE gelene
+       kadar tekrar denenir. */
+    var isindi = false, isitmaDeneme = 0;
+    function isit() {
+      if (isindi) return;
+      if (typeof THREE === "undefined" || !document.getElementById("chestEl") || !devral()) {
+        if (++isitmaDeneme < 40) setTimeout(isit, 250);   /* ~10 sn boyunca dener */
+        return;
+      }
+      isindi = true;
+      /* Panel gizliyken kutu 0 ölçülür (gizli kapsayıcı 0). Isıtma
+         karesi sabit ölçüyle çizilir; gerçek ölçü açılışta
+         olcule() ile verilir. */
+      try {
+        cizer.setSize(300, 300, false);
+        rtSahne.setSize(300, 300);
+        rtA.setSize(150, 150);
+        rtB.setSize(150, 150);
+        kamera.aspect = 1;
+        kamera.updateProjectionMatrix();
+        bloomCiz();
+        sifirla();
+      } catch (e) {}
+    }
+
+    function isitmaPlanla() {
+      if (window.requestIdleCallback) requestIdleCallback(isit, { timeout: 3000 });
+      else setTimeout(isit, 1200);
+    }
+
     /* Panel görünürlüğü izlenir: açıkken çizer, kapanınca durur —
        kapalı panelde WebGL döngüsü pil yakmasın. Devralma BAŞARISIZ
        olursa (THREE henüz yok) her turda yeniden denenir. */
+    function panelAcikMi() {
+      var p = document.getElementById("panel-chest");
+      if (!p) return false;
+      var g = getComputedStyle(p);
+      return g.display !== "none" && g.visibility !== "hidden";
+    }
+
+    function panelDurum() {
+      if (panelAcikMi()) {
+        if (!calisiyor) basla();                 /* başarısızsa tekrar dener */
+        else if (document.getElementById("chestSvg")) eskiyiKaldir();
+      } else if (calisiyor) {
+        dur();
+      }
+    }
+
     function gozle() {
       eskiyiKaldir();      /* açılışta, panel açılmadan da temizle */
 
-      setInterval(function () {
-        var p = document.getElementById("panel-chest");
-        if (!p) return;
-        var g = getComputedStyle(p);
-        var acik = g.display !== "none" && g.visibility !== "hidden";
-        if (acik) {
-          if (!calisiyor) basla();               /* başarısızsa tekrar dener */
-          else if (document.getElementById("chestSvg")) eskiyiKaldir();
-        } else if (calisiyor) {
-          dur();
-        }
-      }, 300);
+      /* PANEL AÇILIŞI ANINDA YAKALANIR.
+         Eskiden yalnız 300 ms'lik yoklama vardı: panel açıldıktan
+         sonra bir tur beklenip ANCAK ONDAN SONRA kurulum başlıyordu.
+         Panel `.active` sınıfıyla açıldığı için sınıf değişimi
+         doğrudan dinlenir; yoklama yalnız yedek olarak kalır.
+         (Panelin kendi sınıfına burada DOKUNULMUYOR — sonsuz döngü
+         riski yok.) */
+      var panelEl = document.getElementById("panel-chest");
+      if (panelEl && window.MutationObserver) {
+        new MutationObserver(panelDurum)
+          .observe(panelEl, { attributes: true, attributeFilter: ["class", "style"] });
+      }
+
+      setInterval(panelDurum, 300);
 
       /* Sandığa dokunulunca: oyunun openChest'i ödülü verir, biz
          yalnız görsel katmanı sürüyoruz. Tutar 880 ms sonra
@@ -1358,7 +1413,12 @@
       document.addEventListener("DOMContentLoaded", gozle);
     else gozle();
 
-    return { basla: basla, dur: dur, ac: ac, sifirla: sifirla };
+    /* Isıtma sayfa yükü bittikten sonra, boşta başlar — açılış
+       akışını yavaşlatmasın. */
+    if (document.readyState === "complete") isitmaPlanla();
+    else addEventListener("load", isitmaPlanla);
+
+    return { basla: basla, dur: dur, ac: ac, sifirla: sifirla, isit: isit };
   })();
 
   window.SANDIK3B = SANDIK3B;
