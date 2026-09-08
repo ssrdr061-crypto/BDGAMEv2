@@ -614,6 +614,9 @@
     var durum = "kapali", t0 = 0, sacildi = false;
     var huzmeT = -1, huzmeGuc = 0, vurusGuc = 1, huzmeVurus = -9999;
     var kademe = "orta", elmasDoku = null;
+    /* İNCE AYAR için tutulan canlı referanslar (?sandikayar=1 paneli
+       bunlara yazar; panel yokken hiçbir etkisi olmaz). */
+    var isikOrtam, isikYari, isikAna, matAhsap = [], matMetal = [];
     var ELMAS_RENK = 0x7fe3ff;
     var SARS = 300, ACILMA = 560, KAPAK_ACI = -2.05;
 
@@ -751,9 +754,12 @@
       tuval.style.cssText = "width:100%;height:100%;display:block";
       kap.appendChild(tuval);
 
-      sahne.add(new THREE.AmbientLight(0xffffff, 0.85));
-      sahne.add(new THREE.HemisphereLight(0xbcd8f0, 0x3a2410, 0.5));
+      isikOrtam = new THREE.AmbientLight(0xffffff, 0.85);
+      sahne.add(isikOrtam);
+      isikYari = new THREE.HemisphereLight(0xbcd8f0, 0x3a2410, 0.5);
+      sahne.add(isikYari);
       var ana = new THREE.DirectionalLight(0xfff4e2, 0.55);
+      isikAna = ana;
       ana.position.set(2.4, 5.2, 3.4);
       ana.castShadow = true;
       ana.shadow.mapSize.set(1024, 1024);
@@ -777,6 +783,10 @@
         map: metalDoku("#9aa3aa", "#5d666d"), roughness: 0.62, metalness: 0 });
       var mMetalK = new THREE.MeshStandardMaterial({
         map: metalDoku("#7c858c", "#454d54"), roughness: 0.7, metalness: 0 });
+
+      matAhsap.length = 0; matMetal.length = 0;
+      matAhsap.push(mAhsap, mAhsapK);
+      matMetal.push(mMetal, mMetalK);
 
       sandik = new THREE.Group();
       sahne.add(sandik);
@@ -824,6 +834,7 @@
 
       var mKapak = new THREE.MeshStandardMaterial({
         map: dokuAcik, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+      matAhsap.push(mKapak);
       var kubbe = new THREE.Mesh(
         new THREE.CylinderGeometry(KAPAK_R, KAPAK_R, EN, 56, 1, true, 0, Math.PI), mKapak);
       kubbe.rotation.z = Math.PI / 2;
@@ -834,6 +845,7 @@
       [-1, 1].forEach(function (s2) {
         var mUc = new THREE.MeshStandardMaterial({
           map: dokuKoyu, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+        matAhsap.push(mUc);
         var k = new THREE.Mesh(new THREE.CircleGeometry(KAPAK_R, 48, 0, Math.PI), mUc);
         k.rotation.y = s2 > 0 ? Math.PI / 2 : -Math.PI / 2;
         k.position.set(s2 * EN / 2, 0, KAPAK_R);
@@ -844,6 +856,7 @@
         var mb = new THREE.MeshStandardMaterial({
           map: metalDoku("#9aa3aa", "#5d666d"), roughness: 0.62, metalness: 0,
           side: THREE.DoubleSide });
+        matMetal.push(mb);
         var b = new THREE.Mesh(
           new THREE.CylinderGeometry(KAPAK_R + 0.03, KAPAK_R + 0.03, 0.2, 56, 1, true, 0, Math.PI), mb);
         b.rotation.z = Math.PI / 2;
@@ -1008,6 +1021,44 @@
       kareCiz(shBirlestir, null);
     }
 
+    /* ── İNCE AYAR ──────────────────────────────────────────────
+       Varsayılanlar mevcut görünümün BİREBİR aynısıdır; panel
+       açılmazsa hiçbir şey değişmez. `?sandikayar=1` paneli bu
+       nesneye yazar, `uygula()` sahneye işler. */
+    var AYAR = {
+      kamYatay: 0,          /* derece — sağa/sola dönüş */
+      kamYukseklik: 0.34,   /* mesafenin katı — yukarı/aşağı bakış */
+      kamMesafe: 1.00,      /* hesaplanan mesafenin katı — yakın/uzak */
+      kamBakis: 0.95,       /* kameranın baktığı yükseklik */
+      isikAci: 35.2,        /* derece — ana ışığın yönü */
+      isikYuk: 5.20,
+      isikUzak: 4.16,
+      isikGuc: 0.55,
+      ortamGuc: 0.85,
+      yariGuc: 0.50,
+      pozlama: 1.12,        /* toneMappingExposure */
+      ahsapRenk: "#ffffff", /* doku ÜZERİNE çarpan ton */
+      metalRenk: "#ffffff",
+      icRenk: "#7fe3ff"
+    };
+
+    function uygula() {
+      if (!cizer) return;
+      cizer.toneMappingExposure = AYAR.pozlama;
+      if (isikAna) {
+        var ia = THREE.MathUtils.degToRad(AYAR.isikAci);
+        isikAna.position.set(Math.sin(ia) * AYAR.isikUzak, AYAR.isikYuk,
+                             Math.cos(ia) * AYAR.isikUzak);
+        isikAna.intensity = AYAR.isikGuc;
+      }
+      if (isikOrtam) isikOrtam.intensity = AYAR.ortamGuc;
+      if (isikYari) isikYari.intensity = AYAR.yariGuc;
+      matAhsap.forEach(function (m) { if (m) m.color.set(AYAR.ahsapRenk); });
+      matMetal.forEach(function (m) { if (m) m.color.set(AYAR.metalRenk); });
+      if (icIsik) icIsik.color.set(AYAR.icRenk);
+      olcule();                       /* kamera ayarları burada işler */
+    }
+
     function olcule() {
       if (!kap || !cizer) return;
       var g = kap.clientWidth || 300, y = kap.clientHeight || 300;
@@ -1024,9 +1075,11 @@
       var yariFov = THREE.MathUtils.degToRad(kamera.fov) / 2;
       var yatay = 2.15 / (Math.tan(yariFov) * kamera.aspect);
       var dikey = 2.60 / Math.tan(yariFov);
-      var mesafe = Math.max(6.4, Math.min(16, Math.max(yatay, dikey)));
-      kamera.position.set(0, mesafe * 0.34, mesafe);
-      kamera.lookAt(0, 0.95, 0);
+      var mesafe = Math.max(6.4, Math.min(16, Math.max(yatay, dikey))) * AYAR.kamMesafe;
+      var ka = THREE.MathUtils.degToRad(AYAR.kamYatay);
+      kamera.position.set(Math.sin(ka) * mesafe, mesafe * AYAR.kamYukseklik,
+                          Math.cos(ka) * mesafe);
+      kamera.lookAt(0, AYAR.kamBakis, 0);
 
       kamera.updateProjectionMatrix();
     }
@@ -1418,10 +1471,209 @@
     if (document.readyState === "complete") isitmaPlanla();
     else addEventListener("load", isitmaPlanla);
 
-    return { basla: basla, dur: dur, ac: ac, sifirla: sifirla, isit: isit };
+    return { basla: basla, dur: dur, ac: ac, sifirla: sifirla, isit: isit,
+             AYAR: AYAR, uygula: uygula, kuruldumu: function () { return kuruldu; } };
   })();
 
   window.SANDIK3B = SANDIK3B;
+
+  /* ═══════════════════════════════════════════════════════════════════
+     SANDIK İNCE AYAR PANELİ — yalnız ?sandikayar=1 ile açılır.
+     Sürgüler SANDIK3B.AYAR'a yazar, her harekette uygula() çağrılır;
+     model canlı değişir. Alttaki kutuda güncel değerler kod olarak
+     durur — kopyalanıp bana verilir, sabitler dosyaya işlenir.
+     TANI PANELİ: iş bitince bu blok SİLİNİR.
+     ═══════════════════════════════════════════════════════════════════ */
+  (function sandikAyarPaneli() {
+    if (!/[?&]sandikayar=1/.test(location.search)) return;
+
+    var A = SANDIK3B.AYAR;
+    var VARSAYILAN = JSON.parse(JSON.stringify(A));
+
+    var SURGU = {
+      kamera: [
+        ["kamYatay", "Sağ / Sol", -180, 180, 1],
+        ["kamYukseklik", "Yukarı / Aşağı", -0.6, 1.6, 0.01],
+        ["kamMesafe", "Yakın / Uzak", 0.5, 2.0, 0.01],
+        ["kamBakis", "Bakış yüksekliği", -1, 3, 0.01]
+      ],
+      isik: [
+        ["isikAci", "Işık yönü", -180, 180, 1],
+        ["isikYuk", "Işık yüksekliği", -2, 12, 0.1],
+        ["isikUzak", "Işık uzaklığı", 0.5, 12, 0.1],
+        ["isikGuc", "Ana ışık gücü", 0, 3, 0.01],
+        ["ortamGuc", "Ortam ışığı", 0, 3, 0.01],
+        ["yariGuc", "Gök/yer ışığı", 0, 3, 0.01],
+        ["pozlama", "Pozlama", 0.3, 2.5, 0.01]
+      ],
+      renk: [
+        ["ahsapRenk", "Ahşap tonu", "renk"],
+        ["metalRenk", "Metal tonu", "renk"],
+        ["icRenk", "İç ışık", "renk"]
+      ]
+    };
+
+    function el(t, s, ic) {
+      var e = document.createElement(t);
+      if (s) e.style.cssText = s;
+      if (ic != null) e.textContent = ic;
+      return e;
+    }
+
+    var kutu = el("div",
+      "position:fixed;left:6px;top:56px;width:186px;z-index:99999;" +
+      "background:rgba(4,16,34,.93);border:1px solid #2f6da8;border-radius:10px;" +
+      "padding:6px 7px 7px;font-family:'Baloo 2',sans-serif;color:#e8f4ff;" +
+      "font-size:11px;font-weight:700;box-shadow:0 2px 6px rgba(0,20,45,.3);" +
+      "user-select:none");
+
+    var bas = el("div", "display:flex;align-items:center;gap:4px;margin-bottom:4px");
+    var basYazi = el("span", "flex:1;font-size:11px;color:#8ce3ff", "SANDIK AYAR");
+    var kucult = el("button",
+      "background:#12406e;color:#e8f4ff;border:0;border-radius:6px;width:22px;height:20px;" +
+      "font-weight:800;line-height:1", "–");
+    bas.appendChild(basYazi); bas.appendChild(kucult);
+    kutu.appendChild(bas);
+
+    var govde = el("div", "");
+    kutu.appendChild(govde);
+
+    var sekmeSatir = el("div", "display:flex;gap:3px;margin-bottom:5px");
+    var alan = el("div", "max-height:44vh;overflow-y:auto");
+    govde.appendChild(sekmeSatir);
+    govde.appendChild(alan);
+
+    var cikti = el("textarea",
+      "width:100%;height:74px;margin-top:5px;background:#03101f;color:#8ce3ff;" +
+      "border:1px solid #235e94;border-radius:6px;font-size:9px;font-family:monospace;" +
+      "font-variant-numeric:tabular-nums;padding:4px;box-sizing:border-box");
+    cikti.readOnly = true;
+    govde.appendChild(cikti);
+
+    var altSatir = el("div", "display:flex;gap:4px;margin-top:4px");
+    function dugme(yazi, renk) {
+      var b = el("button",
+        "flex:1;background:" + renk + ";color:#fff;border:0;border-radius:6px;" +
+        "padding:5px 0;font-weight:800;font-size:10px;font-family:inherit", yazi);
+      b.addEventListener("touchstart", function () {
+        b.style.transform = "scale(.96)"; b.style.filter = "brightness(.93)";
+      });
+      ["touchend", "touchcancel", "mouseup", "mouseleave"].forEach(function (o) {
+        b.addEventListener(o, function () { b.style.transform = ""; b.style.filter = ""; });
+      });
+      return b;
+    }
+    var kopyaBtn = dugme("Kopyala", "#1d7a3f");
+    var sifirBtn = dugme("Sıfırla", "#8a3030");
+    altSatir.appendChild(kopyaBtn); altSatir.appendChild(sifirBtn);
+    govde.appendChild(altSatir);
+
+    var uyari = el("div", "margin-top:4px;font-size:9px;color:#ffcf7a;line-height:1.25", "");
+    govde.appendChild(uyari);
+
+    function ciktiYaz() {
+      var satir = [];
+      Object.keys(VARSAYILAN).forEach(function (k) {
+        var v = A[k];
+        satir.push("  " + k + ": " + (typeof v === "number" ? (Math.round(v * 100) / 100) : '"' + v + '"'));
+      });
+      cikti.value = "AYAR = {\n" + satir.join(",\n") + "\n};";
+    }
+
+    function degisti() {
+      SANDIK3B.uygula();
+      ciktiYaz();
+      uyari.textContent = SANDIK3B.kuruldumu()
+        ? "" : "Sandık panelini aç — model orada çizilir.";
+    }
+
+    function sekmeCiz(ad) {
+      alan.innerHTML = "";
+      SURGU[ad].forEach(function (s) {
+        var anahtar = s[0], etiket = s[1];
+        var satir = el("div", "margin-bottom:6px");
+        var basl = el("div",
+          "display:flex;justify-content:space-between;font-size:10px;color:#e8f4ff;" +
+          "font-variant-numeric:tabular-nums");
+        var ad2 = el("span", "", etiket);
+        var deg = el("span", "color:#8ce3ff", "");
+        basl.appendChild(ad2); basl.appendChild(deg);
+        satir.appendChild(basl);
+
+        if (s[2] === "renk") {
+          var ci = document.createElement("input");
+          ci.type = "color"; ci.value = A[anahtar];
+          ci.style.cssText = "width:100%;height:24px;border:0;background:none;padding:0";
+          deg.textContent = A[anahtar];
+          ci.addEventListener("input", function () {
+            A[anahtar] = ci.value; deg.textContent = ci.value; degisti();
+          });
+          satir.appendChild(ci);
+        } else {
+          var r = document.createElement("input");
+          r.type = "range"; r.min = s[2]; r.max = s[3]; r.step = s[4];
+          r.value = A[anahtar];
+          r.style.cssText = "width:100%;margin:2px 0 0";
+          deg.textContent = A[anahtar];
+          r.addEventListener("input", function () {
+            A[anahtar] = parseFloat(r.value);
+            deg.textContent = r.value;
+            degisti();
+          });
+          satir.appendChild(r);
+        }
+        alan.appendChild(satir);
+      });
+    }
+
+    [["kamera", "Kamera"], ["isik", "Işık"], ["renk", "Renk"]].forEach(function (s, i) {
+      var b = el("button",
+        "flex:1;border:0;border-radius:6px;padding:4px 0;font-size:10px;font-weight:800;" +
+        "font-family:inherit;background:#12406e;color:#9fc6ea", s[1]);
+      b.dataset.ad = s[0];
+      b.addEventListener("click", function () {
+        Array.prototype.forEach.call(sekmeSatir.children, function (o) {
+          o.style.background = "#12406e"; o.style.color = "#9fc6ea";
+        });
+        b.style.background = "#1f6fb0"; b.style.color = "#fff";
+        sekmeCiz(s[0]);
+      });
+      sekmeSatir.appendChild(b);
+      if (i === 0) setTimeout(function () { b.click(); }, 0);
+    });
+
+    kopyaBtn.addEventListener("click", function () {
+      cikti.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      if (!ok && navigator.clipboard) navigator.clipboard.writeText(cikti.value);
+      kopyaBtn.textContent = "Kopyalandı";
+      setTimeout(function () { kopyaBtn.textContent = "Kopyala"; }, 1200);
+    });
+
+    sifirBtn.addEventListener("click", function () {
+      Object.keys(VARSAYILAN).forEach(function (k) { A[k] = VARSAYILAN[k]; });
+      var acik = sekmeSatir.querySelector("button[style*='1f6fb0']");
+      sekmeCiz(acik ? acik.dataset.ad : "kamera");
+      degisti();
+    });
+
+    var kapali = false;
+    kucult.addEventListener("click", function () {
+      kapali = !kapali;
+      govde.style.display = kapali ? "none" : "";
+      kucult.textContent = kapali ? "+" : "–";
+      kutu.style.width = kapali ? "auto" : "186px";
+    });
+
+    function tak() {
+      document.body.appendChild(kutu);
+      ciktiYaz();
+      uyari.textContent = "Sandık panelini aç — model orada çizilir.";
+    }
+    if (document.body) tak();
+    else document.addEventListener("DOMContentLoaded", tak);
+  })();
 
   window.REHBER = {
     maybeWelcome: maybeWelcome,
