@@ -2189,6 +2189,45 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   color:#fff; border:1px solid rgba(255,255,255,.35);
 }
 .arazi-bilgi-modal .abm-btn-no{ background:linear-gradient(180deg,#5a6b80,#3b4859); }
+/* Tek düğme kalınca `flex:1` onu kartın tamamına yayıyordu; bu
+   pencerede düğme YAZISI kadar olsun ve ortada dursun. */
+.arazi-bilgi-modal .abm-actions-orta{ justify-content:center; }
+.arazi-bilgi-modal .abm-btn-dar{ flex:0 0 auto; width:auto; padding:11px 24px; }
+/* ── GİDEN ORDU ──
+   Birlikler menüsündeki kutucuğun aynısı: üstte görsel, altta ad,
+   en altta adet. Kahraman portresi kırpılır (tam boy görsel),
+   birlik görseli kırpılmaz. */
+.arazi-bilgi-modal .abm-ordu:empty{ display:none; }
+.arazi-bilgi-modal .abo-grid{
+  display:flex; flex-wrap:wrap; justify-content:center; gap:8px;
+  background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.14);
+  border-radius:13px; padding:10px 8px; margin-bottom:16px;
+}
+.arazi-bilgi-modal .abo-kutu{
+  flex:0 0 64px; width:64px;
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+}
+.arazi-bilgi-modal .abo-img{
+  width:44px; height:44px; flex:0 0 44px;
+  display:flex; align-items:center; justify-content:center;
+}
+.arazi-bilgi-modal .abo-img img{
+  display:block; width:100%; height:100%; object-fit:contain;
+  filter:drop-shadow(0 3px 4px rgba(0,10,30,.55));
+}
+.arazi-bilgi-modal .abo-kahraman .abo-img img{
+  object-fit:cover; object-position:top center; border-radius:10px;
+}
+.arazi-bilgi-modal .abo-emoji{ font-size:26px; }
+.arazi-bilgi-modal .abo-ad{
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:700;
+  font-size:10px; color:#e8f4ff; line-height:1.15; text-align:center;
+  max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.arazi-bilgi-modal .abo-adet{
+  font-family:'Baloo 2','Nunito',sans-serif; font-weight:800;
+  font-size:12.5px; color:var(--diamond-yellow); font-variant-numeric:tabular-nums;
+}
 .arazi-bilgi-modal .abm-btn-yes{ background:linear-gradient(180deg,#f0a234,#c0700d); }
 /* Canavar penceresine özel: kırmızı saldırı düğmesi (arazi penceresi turuncu kalır) */
 .arazi-bilgi-modal .abm-btn-kirmizi{ background:linear-gradient(180deg,#ef4b4b,#a81616); }
@@ -7260,6 +7299,50 @@ function _araziSeferim(slotId) {
   } catch (e) { return null; }
 }
 
+/* ── SEFERDEKİ ORDU: GÖRSEL LİSTE ──
+   Kaydın KENDİ alanlarından okunur (s.birlikler / s.komutanlar);
+   state.troops'a bakılmaz, çünkü giden askerler kaleden zaten
+   düşülmüştür — oradan okunsaydı ekranda kalan ordu görünürdü.
+   Görsel ve ad tek kaynaktan: UNIT_TYPES (troops.js) ve
+   HERO_IMG / KAHRAMAN (heroes.js). Buraya ikinci bir liste
+   yazılmadı; dosya adı değişirse orayı düzeltmek yeter.
+   Liste bir kez çizilir: sefer boyunca ordu değişmez, saniyelik
+   tazeleme yalnız sayaç satırına dokunur. */
+function _seferOrduHTML(s) {
+  if (!s) return "";
+
+  const kom = (Array.isArray(s.komutanlar) ? s.komutanlar : [])
+    .filter(Boolean)
+    .map(id => {
+      const im = (typeof HERO_IMG !== "undefined") ? HERO_IMG[id] : null;
+      const ad = (window.KAHRAMAN && typeof KAHRAMAN.ad === "function") ? KAHRAMAN.ad(id) : id;
+      /* onerror yedeği yok: dosya yoksa kutu boş görünür (bilinen sınır) */
+      const pic = im ? `<img src="${im}" alt="">` : `<span class="abo-emoji">🦸</span>`;
+      return `<div class="abo-kutu abo-kahraman">
+        <div class="abo-img">${pic}</div>
+        <div class="abo-ad">${escapeHtml(ad)}</div>
+      </div>`;
+    });
+
+  const b = s.birlikler || {};
+  const birlik = Object.keys(b)
+    .filter(k => (b[k] || 0) > 0)
+    .map(k => {
+      const def = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[k] : null;
+      const pic = (def && def.img)
+        ? `<img src="${def.img}" alt="">`
+        : `<span class="abo-emoji">${(def && def.icon) || "🪖"}</span>`;
+      return `<div class="abo-kutu">
+        <div class="abo-img">${pic}</div>
+        <div class="abo-ad">${escapeHtml(def ? def.name : k)}</div>
+        <div class="abo-adet">${fmt(b[k] || 0)}</div>
+      </div>`;
+    });
+
+  if (!kom.length && !birlik.length) return "";
+  return `<div class="abo-grid">${kom.join("")}${birlik.join("")}</div>`;
+}
+
 /* ── ORDUM ARAZİDE: DURUM PENCERESİ ──
    Yolda ise kalan süreyi, topluyorsa o ana kadar toplanan miktarı
    gösterir. Sayaç saniyede bir tazelenir; pencere kapanınca
@@ -7283,8 +7366,9 @@ function araziDurumAc(d, sefer) {
         <b id="araziDurumDeger">-</b>
       </div>
       <div class="abm-alt abm-alt-kalin" id="araziDurumSure"></div>
-      <div class="abm-actions">
-        <button class="abm-btn abm-btn-no" type="button">Kapat</button>
+      <div class="abm-ordu">${_seferOrduHTML(sefer.s)}</div>
+      <div class="abm-actions abm-actions-orta">
+        <button class="abm-btn abm-btn-no abm-btn-dar abm-btn-geri" type="button">Geri Çağır</button>
       </div>
     </div>`;
   document.body.appendChild(kok);
@@ -7325,8 +7409,21 @@ function araziDurumAc(d, sefer) {
   tazele();
   sayac = setInterval(tazele, 1000);
 
-  kok.querySelector(".abm-close").onclick  = kapat;
-  kok.querySelector(".abm-btn-no").onclick = kapat;
+  kok.querySelector(".abm-close").onclick = kapat;
+  /* GERİ ÇAĞIR — onay penceresi sefer.js'in ORTAK penceresidir
+     (SEFER.onayPenceresi), ikinci bir onay kutusu yazılmadı.
+     Kayıt tıklama anında yeniden okunur: pencere açıkken sefer
+     bitmiş olabilir. */
+  kok.querySelector(".abm-btn-geri").onclick = () => {
+    const guncel = _araziSeferim(d.slotId);
+    if (!guncel) { kapat(); return; }
+    kapat();
+    if (window.SEFER && typeof SEFER.onayPenceresi === "function") {
+      SEFER.onayPenceresi("GERİ ÇAĞIR", "", "Geri Çağır", () => SEFER.geriCagir(guncel.id));
+    } else if (window.SEFER) {
+      SEFER.geriCagir(guncel.id);
+    }
+  };
   kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
 }
 
