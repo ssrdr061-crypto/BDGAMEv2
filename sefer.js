@@ -1245,6 +1245,36 @@ function _eskiSvgCizimi(liste) {
    Çözüm: kutuyu da #appScreen'in içine koy. Artık panellerle aynı
    dalda ve z-index:40 < 50 olduğu için panel açılınca kendiliğinden
    arkada kalır. Kutu GİZLENMEZ, sadece arkaya düşer. */
+/* ── NEREDE GÖRÜNÜR ──────────────────────────────────────────────
+   Haritada görünür, KALEİÇİNDE gizlenir. Panel açılması (başka
+   oyuncunun kalesi, mağaza, kahraman…) kutuyu KAPATMAZ: kutu
+   #appScreen içinde z-index:40 ile durduğu için panelin arkasına
+   düşer, o kadar — rahatsız edecek düzeyde değil.
+
+   Kaleiçi battleMapWrap'i display:none YAPMAZ; body'ye
+   'kaleici-acik' sınıfı ekler (kaleici.js/ac). Eski denetim yalnız
+   wrap'e baktığı için kutu kaleiçinin üstünde asılı kalıyordu. */
+function hudGorunur() {
+  const wrap = document.getElementById("battleMapWrap");
+  if (!wrap || wrap.style.display === "none") return false;
+  if (document.body && document.body.classList.contains("kaleici-acik")) return false;
+  return true;
+}
+
+/* Kaleiçi açılışı tik()'i beklemesin — hudCiz saniyede bir çalıştığı
+   için kutu bir saniye boyunca kaleiçinin üstünde kalıyordu.
+   Gözlemci yalnız body'nin SINIFINI dinler ve yalnız #seferHud'un
+   style'ını değiştirir; sınıfa dokunmadığı için kendini tetiklemez. */
+try {
+  new MutationObserver(function () {
+    const el = document.getElementById("seferHud");
+    if (!el) return;
+    const gor = hudGorunur() && benimkiler().length > 0;
+    el.style.display = gor ? "flex" : "none";
+    if (!gor && _takip) takipDurdur();
+  }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+} catch (e) {}
+
 function hudEl() {
   const kap = document.getElementById("appScreen") || document.body;
   let el = document.getElementById("seferHud");
@@ -1273,8 +1303,7 @@ function hudCiz() {
 
   if (!liste.length) { el.style.display = "none"; el.innerHTML = ""; return; }
 
-  const wrap = document.getElementById("battleMapWrap");
-  el.style.display = (wrap && wrap.style.display !== "none") ? "flex" : "none";
+  el.style.display = hudGorunur() ? "flex" : "none";
 
   /* TEK SATIR ve SABİT: yalnız "İntikal N" + hızlandırma simgesi.
      Süre ve hedef adı KALDIRILDI — metin her saniye değiştiği için
@@ -1293,16 +1322,104 @@ function hudCiz() {
   }).join("");
 
   el.querySelectorAll(".sefer-satir").forEach(row => {
-    const f = () => satirTiklandi(row.dataset.sefer);
+    const f = (e) => satirTiklandi(row.dataset.sefer, e);
     if (typeof bindTap === "function") bindTap(row, f); else row.onclick = f;
+  });
+  hudIsaretle();
+}
+
+/* Kutucuğun İKİ ayrı bağlantısı var:
+     · gövde → ekranı orduya kilitler (takip)
+     · sondaki ⏩ → hızlandırma penceresi
+   Eskiden kutunun tamamı hızlandırmaya gidiyordu, ⏩ da
+   pointer-events:none olduğu için ayrım yapılamıyordu. Ayrım
+   dokunulan öğeye bakılarak yapılır; iki ayrı dinleyici bağlamak
+   pointerup + click ikilisinde çift ateşlemeye yol açar. */
+function satirTiklandi(id, e) {
+  if (!_yerel[id]) return;
+  const t = e && e.target;
+  if (t && t.closest && t.closest(".sefer-hiz")) { hizlandirSor(id); return; }
+  takipBaslat(id);
+}
+
+/* ── EKRANI ORDUYA KİLİTLE ──────────────────────────────────────
+   Kutucuğa basılınca harita ordunun O ANKİ yerine gider ve ordu
+   varana kadar onu izler. Konum canvas çiziminin kullandığı formülün
+   AYNISI (harita.js/cizSeferler): yol üzerinde ilerleme oranı kadar
+   doğrusal ara değer — ızgara ölçüsünde, çünkü HARITA.merkezle
+   ızgara (0–30) bekler.
+
+   rAF ile döner, CSS animasyonu yok. merkezle() zemini yeniden
+   çizdirdiği için her karede değil, konum gerçekten kaydıysa ve en
+   çok 200 ms'de bir çağrılır — ordu karo başına 5,3 sn gittiği için
+   bu göze akıcı gelir, telefonu da yormaz.
+
+   Kilit üç şeyle bırakılır: aynı kutuya tekrar basmak, haritaya elle
+   dokunmak (oyuncu kamerayı geri alır), evrenin bitmesi (ordu vardı). */
+let _takip = null, _takipRaf = null, _takipSon = 0, _takipNokta = null;
+
+function takipKonumu(s) {
+  const ev = evre(s);
+  if (typeof ev.ax !== "number" || typeof ev.bx !== "number") return null;
+  const t = (ev.ad === "topla") ? 1 : ev.p;
+  return { x: ev.ax + (ev.bx - ev.ax) * t, y: ev.ay + (ev.by - ev.ay) * t, ev };
+}
+
+function takipBaslat(id) {
+  if (!_yerel[id]) return;
+  if (_takip === id) { takipDurdur(); return; }   /* ikinci dokunuş bırakır */
+  _takip = id; _takipSon = 0; _takipNokta = null;
+  hudIsaretle();
+  takipKare();
+}
+
+function takipDurdur() {
+  _takip = null; _takipNokta = null;
+  if (_takipRaf !== null) { cancelAnimationFrame(_takipRaf); _takipRaf = null; }
+  hudIsaretle();
+}
+
+function takipKare() {
+  _takipRaf = null;
+  const id = _takip;
+  if (!id) return;
+  const s = _yerel[id];
+  const H = window.HARITA;
+  if (!s || !H || typeof H.merkezle !== "function" || !hudGorunur()) { takipDurdur(); return; }
+
+  const k = takipKonumu(s);
+  if (!k || k.ev.bitti) { takipDurdur(); return; }   /* ordu vardı */
+
+  const simdi = (typeof performance !== "undefined") ? performance.now() : Date.now();
+  if (simdi - _takipSon >= 200) {
+    const kaydi = !_takipNokta ||
+      Math.hypot(k.x - _takipNokta.x, k.y - _takipNokta.y) > 0.008;
+    if (kaydi) {
+      _takipNokta = { x: k.x, y: k.y };
+      try { H.merkezle(k.x, k.y); } catch (e) {}
+    }
+    _takipSon = simdi;
+  }
+  _takipRaf = requestAnimationFrame(takipKare);
+}
+
+/* Hangi kutunun takipte olduğu görünsün. hudCiz her saniye innerHTML'i
+   baştan yazdığı için işaret oradan da çağrılır. */
+function hudIsaretle() {
+  document.querySelectorAll("#seferHud .sefer-satir").forEach(row => {
+    row.classList.toggle("sefer-takipte", !!_takip && row.dataset.sefer === _takip);
   });
 }
 
-/* Kutucuğun TEK bağlantısı: her zaman HIZLANDIR penceresi. */
-function satirTiklandi(id) {
-  if (!_yerel[id]) return;
-  hizlandirSor(id);
-}
+/* Haritaya elle dokunma kilidi bırakır. Kutucuğun kendisi hariç —
+   yoksa aynı dokunuş hem kilidi kurar hem bozar. */
+document.addEventListener("pointerdown", function (e) {
+  if (!_takip) return;
+  const t = e.target;
+  if (!t || !t.closest) return;
+  if (t.closest("#seferHud")) return;
+  if (t.closest("#battleMapWrap")) takipDurdur();
+}, true);
 
 function geriCagirSor(id) {
   const s = _yerel[id];
@@ -1720,11 +1837,18 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   flex:0 0 auto; font-size:12px; font-weight:800; letter-spacing:.2px;
   line-height:24px; white-space:nowrap;
 }
-/* Hızlandırma SİMGESİ — düğme değil, zemini/çerçevesi yok. */
+/* Hızlandırma DÜĞMESİ — zemini/çerçevesi yok ama kendi dokunma
+   alanı var: hızlandırma penceresi YALNIZ buradan açılır, kutunun
+   gövdesi ekranı orduya kilitler. */
 .sefer-hiz{
-  flex:0 0 auto; font-size:13px; line-height:1; opacity:.95;
-  pointer-events:none;
+  flex:0 0 24px; height:100%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; line-height:1; opacity:.95;
+  pointer-events:auto; cursor:pointer;
 }
+.sefer-hiz:active{ filter:brightness(.93); }
+/* Takipteki kutu: çerçeve/parlaklık eklenmez, yalnız biraz aydınlanır. */
+.sefer-satir.sefer-takipte{ filter:brightness(1.18); }
 
 .sefer-onay-modal{
   /* Ekranın ALTINDA açılır, arka plan KARARMAZ. */
