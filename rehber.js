@@ -1022,21 +1022,21 @@
     }
 
     /* ── İNCE AYAR ──────────────────────────────────────────────
-       Varsayılanlar mevcut görünümün BİREBİR aynısıdır; panel
-       açılmazsa hiçbir şey değişmez. `?sandikayar=1` paneli bu
-       nesneye yazar, `uygula()` sahneye işler. */
+       Değerler ?sandikayar=1 panelinde canlı ayarlanıp buraya
+       işlendi (8 Eyl). Panel bu nesneye yazar, `uygula()` sahneye
+       işler; panelin "Sıfırla"sı bu değerlere döner. */
     var AYAR = {
-      kamYatay: 0,          /* derece — sağa/sola dönüş */
-      kamYukseklik: 0.34,   /* mesafenin katı — yukarı/aşağı bakış */
-      kamMesafe: 1.00,      /* hesaplanan mesafenin katı — yakın/uzak */
-      kamBakis: 0.95,       /* kameranın baktığı yükseklik */
-      isikAci: 35.2,        /* derece — ana ışığın yönü */
-      isikYuk: 5.20,
-      isikUzak: 4.16,
-      isikGuc: 0.55,
-      ortamGuc: 0.85,
-      yariGuc: 0.50,
-      pozlama: 1.12,        /* toneMappingExposure */
+      kamYatay: -16,        /* derece — sağa/sola dönüş */
+      kamYukseklik: 0.26,   /* mesafenin katı — yukarı/aşağı bakış */
+      kamMesafe: 1.20,      /* hesaplanan mesafenin katı — yakın/uzak */
+      kamBakis: 1.14,       /* kameranın baktığı yükseklik */
+      isikAci: 46,          /* derece — ana ışığın yönü */
+      isikYuk: -0.60,       /* eksi = ışık sandığın ALTINDAN gelir */
+      isikUzak: 4.00,
+      isikGuc: 0.40,
+      ortamGuc: 0.91,
+      yariGuc: 0.07,
+      pozlama: 0.91,        /* toneMappingExposure */
       ahsapRenk: "#ffffff", /* doku ÜZERİNE çarpan ton */
       metalRenk: "#ffffff",
       icRenk: "#7fe3ff"
