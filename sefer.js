@@ -1301,41 +1301,141 @@ function hudCiz() {
     }
   }
 
-  if (!liste.length) { el.style.display = "none"; el.innerHTML = ""; return; }
+  if (!liste.length) { el.style.display = "none"; el.innerHTML = ""; el.dataset.imza = ""; return; }
 
   el.style.display = hudGorunur() ? "flex" : "none";
 
-  /* TEK SATIR ve SABİT: yalnız durum yazısı + hızlandırma simgesi.
-     Süre METNİ yok — her saniye değiştiği için kutu bir kalın bir
-     ince oluyordu ("1dk 11sn" sığmayıp alt satıra kayıyordu). Kalan
-     süre TEK işaret olarak yeşil dolgu şeridinden okunur; şerit
-     ev.p'ye bağlı olduğu için yol evresinde alınan yolu, toplama
-     evresinde geçen toplama süresini gösterir — ikisi de aynı
-     mantık, ayrı kod gerekmez.
+  /* İKİ KATLI KUTUCUK — solda yuvarlak hedef görseli, sağda üstte
+     durum yazısı, altta içinde süre yazan koyu çubuk (yeşil dolar).
+     Kutunun GENİŞLİĞİ SABİT (--sefer-en): yazı da süre de büyüyüp
+     küçülse kutu kıpırdamaz. Süre çubuğun İÇİNDE ve tabular-nums,
+     yani rakam değişimi genişliği oynatmaz.
+
      Numara LİSTE SIRASIDIR: bir sefer bitince alttaki yukarı kayar.
 
-     TOPLAMA EVRESİ: yazı "Toplanıyor" olur ve ⏩ ÇALIŞMAZ — toplama
-     süresi hızlandırma ürünüyle kısaltılmıyor.
-     KUTU UZAMAZ: "İntikal N" yazısı ve ⏩ yuvası HTML'de yerinde
-     kalır (CSS'te yalnız görünmez olur), genişliği hep onlar
-     belirler; "Toplanıyor" mutlak konumlu ayrı katmandır. */
-  el.innerHTML = liste.map((x, i) => {
-    const ev = evre(x.s);
-    const yuzde = Math.round(Math.max(0, Math.min(1, ev.p)) * 100);
-    const topluyor = (ev.ad === "topla");
-    return `<div class="sefer-satir${topluyor ? " sefer-topla" : ""}" data-sefer="${x.id}">
-      <span class="sefer-dolgu" style="width:${yuzde}%"></span>
-      <span class="sefer-ad">İntikal ${i + 1}</span>
-      <span class="sefer-hiz" aria-hidden="true">⏩</span>
-      ${topluyor ? `<span class="sefer-durum">Toplanıyor</span>` : ""}
-    </div>`;
-  }).join("");
+     innerHTML her saniye baştan yazılmaz — içinde <img> var, her
+     yazımda görsel yeniden yüklenip titrerdi. Yalnız İSKELET
+     değişince (sefer eklendi/bitti, evre değişti) yeniden kurulur;
+     dolgu ve süre `hudTazele` ile yerinde güncellenir. */
+  const imza = liste.map((x, i) => x.id + "|" + evre(x.s).ad + "|" + i).join(";");
+  if (el.dataset.imza !== imza) {
+    el.dataset.imza = imza;
+    el.innerHTML = liste.map((x, i) => {
+      const ev = evre(x.s);
+      return `<div class="sefer-satir" data-sefer="${x.id}" data-evre="${ev.ad}">
+        <span class="sefer-gorsel">${hedefSimgesi(x.s, ev)}</span>
+        <span class="sefer-govde">
+          <span class="sefer-ad">${satirYazisi(x.s, ev, i)}</span>
+          <span class="sefer-cubuk">
+            <span class="sefer-dolgu"></span>
+            <span class="sefer-sure"></span>
+          </span>
+        </span>
+        ${dugmeIsareti(ev)}
+      </div>`;
+    }).join("");
 
+    el.querySelectorAll(".sefer-satir").forEach(row => {
+      const f = (e) => satirTiklandi(row.dataset.sefer, e);
+      if (typeof bindTap === "function") bindTap(row, f); else row.onclick = f;
+    });
+    hudIsaretle();
+  }
+  hudTazele();
+  hudAkisBaslat();
+}
+
+/* Sağdaki düğme evreye göre değişir:
+     gidiş  → ⏩ hızlandırma penceresi
+     toplama→ ↩ geri çağır (hızlandırma YOK, süre kaynağa bağlı)
+     dönüş  → düğme yok. geriCagir() dönüşteki orduyu zaten geri
+              çevirmez ("Ordu zaten dönüş yolunda"), hızlandırma da
+              dönüşe işlemiyor; hep uyarı veren düğme koymuyoruz.
+   Yer her üç durumda da ayrılır (.sefer-dugme boş da olsa),
+   böylece kutu genişliği evre değişince oynamaz. */
+function dugmeIsareti(ev) {
+  if (ev.ad === "gidis") return '<span class="sefer-dugme sefer-hiz" data-eylem="hiz" aria-hidden="true">⏩</span>';
+  if (ev.ad === "topla") return '<span class="sefer-dugme sefer-geri" data-eylem="geri" aria-hidden="true">↩</span>';
+  return '<span class="sefer-dugme sefer-bos" aria-hidden="true"></span>';
+}
+
+/* Yuvarlak görsel:
+     toplama → toplanan kaynağın görseli (DUGUM.kaynakSimge, webp;
+               dosya yoksa kendi onerror'u emojiye döner)
+     canavar → düğümün EMOJİSİ (canavarların webp görseli yok —
+               uydurma dosya adı yazılmaz, bkz. dugum.js CANAVARLAR)
+     kale    → anakale.webp, açılmazsa 🏰
+   Dönüşte de gidilen hedefin simgesi kalır: ordu oradan geliyor. */
+function hedefSimgesi(s, ev) {
+  const D = window.DUGUM;
+  if (s.tur === "topla") {
+    const k = (ev.ad === "topla" || s.durum === "donus") ? s.kaynak : null;
+    if (k && D && typeof D.kaynakSimge === "function") return D.kaynakSimge(k);
+    return "⛏️";
+  }
+  if (s.tur === "canavar") {
+    let ikon = "";
+    try { const d = s.slotId && D && D.dugum(s.slotId); if (d && d.ikon) ikon = d.ikon; } catch (e) {}
+    return ikon || "⚔️";
+  }
+  if (s.tur === "kale") {
+    return '<img class="kay-sim" src="anakale.webp" alt="" ' +
+           'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'🏰\'))">';
+  }
+  return "⚔️";
+}
+
+function satirYazisi(s, ev, i) {
+  if (ev.ad === "topla") return "Toplanıyor";
+  if (ev.ad === "donus") return "Dönüyor";
+  return "İntikal " + (i + 1);
+}
+
+/* Saat:dakika:saniye — bir saatin altında dk:sn. tabular-nums
+   olduğu için rakam değişimi genişliği oynatmaz. */
+function hudSure(ms) {
+  let sn = Math.max(0, Math.round(ms / 1000));
+  const sa = Math.floor(sn / 3600); sn -= sa * 3600;
+  const dk = Math.floor(sn / 60);   sn -= dk * 60;
+  const ik = (n) => (n < 10 ? "0" + n : String(n));
+  return (sa > 0 ? ik(sa) + ":" : "") + ik(dk) + ":" + ik(sn);
+}
+
+/* Dolgu ve süreyi YERİNDE günceller — innerHTML'e dokunmaz.
+   Dolgu her karede, süre yazısı yalnız saniye değişince yazılır
+   (textContent'i boşuna değiştirmek telefonda pahalı). */
+function hudTazele() {
+  const el = document.getElementById("seferHud");
+  if (!el) return;
   el.querySelectorAll(".sefer-satir").forEach(row => {
-    const f = (e) => satirTiklandi(row.dataset.sefer, e);
-    if (typeof bindTap === "function") bindTap(row, f); else row.onclick = f;
+    const s = _yerel[row.dataset.sefer];
+    if (!s) return;
+    const ev = evre(s);
+    const dolgu = row.querySelector(".sefer-dolgu");
+    if (dolgu) dolgu.style.width = (Math.max(0, Math.min(1, ev.p)) * 100).toFixed(2) + "%";
+    const sure = row.querySelector(".sefer-sure");
+    if (sure) {
+      const y = hudSure(ev.kalanMs);
+      if (sure.textContent !== y) sure.textContent = y;
+    }
   });
-  hudIsaretle();
+}
+
+/* Dolgu AKAR: hudCiz saniyede bir çalıştığı için çubuk saniyede bir
+   zıplıyordu. CSS geçişi kullanılmaz (prefers-reduced-motion onu
+   öldürür) — rAF ile her kare yazılır. Kutu görünmezse ya da satır
+   kalmazsa döngü kendini kapatır. */
+let _hudRaf = null;
+function hudAkisBaslat() {
+  if (_hudRaf !== null) return;
+  _hudRaf = requestAnimationFrame(hudAkisKare);
+}
+function hudAkisKare() {
+  _hudRaf = null;
+  const el = document.getElementById("seferHud");
+  if (!el || el.style.display === "none" || !el.querySelector(".sefer-satir")) return;
+  hudTazele();
+  _hudRaf = requestAnimationFrame(hudAkisKare);
 }
 
 /* Kutucuğun İKİ ayrı bağlantısı var:
@@ -1347,12 +1447,13 @@ function hudCiz() {
    pointerup + click ikilisinde çift ateşlemeye yol açar. */
 function satirTiklandi(id, e) {
   if (!_yerel[id]) return;
-  /* Toplama evresinde ⏩ zaten basılmıyor; burada da kapatılır ki
-     satır evre değiştirirken araya giren tek dokunuş pencereyi
-     açmasın (hudCiz saniyede bir çizer, dokunuş arada kalabilir). */
-  const topluyor = evre(_yerel[id]).ad === "topla";
   const t = e && e.target;
-  if (!topluyor && t && t.closest && t.closest(".sefer-hiz")) { hizlandirSor(id); return; }
+  const d = t && t.closest && t.closest(".sefer-dugme");
+  if (d) {
+    if (d.dataset.eylem === "hiz")  { hizlandirSor(id);  return; }
+    if (d.dataset.eylem === "geri") { geriCagirSor(id);  return; }
+    return;                                   /* boş yer: hiçbir şey */
+  }
   takipBaslat(id);
 }
 
@@ -1816,71 +1917,83 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 /* Zemin YARI SAYDAM (%50) ama renk oyunun kendi mavisi — aynı
    #2fb0ee → #0e6fc0 geçişi, sadece alfası düşük. Böylece harita
    altından görünür, kutu haritayı boğmaz. */
+/* İKİ KATLI ve SABİT ÖLÇÜLÜ: solda yuvarlak hedef görseli, ortada
+   üstte durum yazısı / altta süreli çubuk, sağda düğme yeri.
+   GENİŞLİK SABİT — "İntikal 1" ile "Toplanıyor" farklı uzunlukta
+   olsa da kutu kıpırdamaz; süre çubuğun içinde ve tabular-nums.
+   3B YOK: çerçeve, inset kabartı, radial parlaklık yok. */
 .sefer-satir{
-  /* DAİMA İNCE: yükseklik sabit, içerik tek satır.
-     Eski hâlde süre metni ("1dk 11sn") sabit 42px'lik alana sığmayıp
-     alt satıra kayıyor, kutu iki satır olup kalınlaşıyordu. Artık
-     yazı sabit ("İntikal N") ve sarma her ihtimale karşı kapalı;
-     genişlik yazıya göre oturur, satırlar birbiriyle aynı olur.
-     GENİŞLİĞİ HER ZAMAN "İntikal N" BELİRLER: toplama evresinde de
-     bu yazı ve ⏩ yuvası akışta DURUR (yalnız görünmez olur), üstteki
-     "Toplanıyor" yazısı mutlak konumludur ve genişliğe hiç katılmaz.
-     Böyle olmasının sebebi: sabit piksel vermek kutuyu uzatıyordu.
-     3B YOK: çerçeve ve inset parlaklık kaldırıldı, tek yumuşak gölge. */
-  width:auto; box-sizing:border-box;
-  height:24px; white-space:nowrap;
+  --sefer-en:158px;
+  width:var(--sefer-en); box-sizing:border-box;
+  height:40px; white-space:nowrap;
   position:relative; overflow:hidden;
-  display:flex; align-items:center; gap:6px;
-  padding:0 8px; border-radius:9px;
+  display:flex; align-items:center; gap:7px;
+  padding:0 6px 0 5px; border-radius:12px;
   background:linear-gradient(180deg, rgba(47,176,238,.5), rgba(14,111,192,.5));
   border:none;
-  box-shadow:none;
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
   font-family:'Baloo 2','Nunito',sans-serif; color:#fff; cursor:pointer;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
   -webkit-tap-highlight-color:transparent;
   transition:transform .09s ease, filter .09s ease;
 }
 .sefer-satir:active{ transform:scale(.96); filter:brightness(.93); }
-/* Yol alındıkça soldan sağa dolan yeşil şerit — ayrı süre çubuğu
-   koymamak için kutunun KENDİ zemininde. Metinler üstünde kalır.
-   Süre yazısı kalktığı için kalan yolu gösteren TEK işaret budur. */
+
+/* Yuvarlak hedef görseli — kaynak webp'i, canavar emojisi ya da
+   kale görseli. Kutusu SABİT (flex:0 0), içerik ne olursa olsun
+   yanındaki yazıyı itmez. */
+.sefer-gorsel{
+  flex:0 0 30px; width:30px; height:30px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%; overflow:hidden;
+  background:rgba(6,26,48,.5);
+  font-size:16px; line-height:1;
+}
+.sefer-gorsel img{ width:24px; height:24px; object-fit:contain; display:block; }
+
+/* Yazı + çubuk sütunu. min-width:0 olmadan uzun yazı kutuyu şişirir. */
+.sefer-govde{
+  flex:1 1 auto; min-width:0;
+  display:flex; flex-direction:column; justify-content:center; gap:2px;
+}
+.sefer-ad{
+  font-size:11px; font-weight:700; letter-spacing:.2px;
+  line-height:12px; color:#e8f4ff;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+/* İÇİ KOYU çubuk; yeşil soldan dolar, süre ortasında durur. */
+.sefer-cubuk{
+  position:relative; display:block;
+  height:14px; border-radius:7px; overflow:hidden;
+  background:rgba(4,16,30,.72);
+}
 .sefer-dolgu{
-  position:absolute; left:0; top:0; bottom:0; z-index:0;
-  background:linear-gradient(180deg, rgba(88,214,120,.75), rgba(38,158,84,.75));
+  position:absolute; left:0; top:0; bottom:0; width:0; z-index:0;
+  background:linear-gradient(180deg, #63dd82, #24a057);
   pointer-events:none;
 }
-.sefer-ad, .sefer-hiz{ position:relative; z-index:1; }
-/* Sabit metin — büyüyüp küçülmediği için genişlik ölçüsü gerekmez. */
-.sefer-ad{
-  flex:0 0 auto; font-size:12px; font-weight:800; letter-spacing:.2px;
-  line-height:24px; white-space:nowrap;
+.sefer-sure{
+  position:relative; z-index:1; display:block;
+  text-align:center; font-size:10px; font-weight:800;
+  line-height:14px; font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;
 }
-/* Hızlandırma DÜĞMESİ — zemini/çerçevesi yok ama kendi dokunma
-   alanı var: hızlandırma penceresi YALNIZ buradan açılır, kutunun
-   gövdesi ekranı orduya kilitler. */
-.sefer-hiz{
-  flex:0 0 24px; height:100%;
+/* DÜĞME YERİ — evre değişse de yer ayrılır, kutu oynamaz.
+   ⏩ hızlandırma penceresini, ↩ geri çağırmayı açar; kutunun
+   GÖVDESİ ekranı orduya kilitler. */
+.sefer-dugme{
+  flex:0 0 26px; height:26px;
   display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
   font-size:14px; line-height:1; opacity:.95;
   pointer-events:auto; cursor:pointer;
+  transition:filter .09s ease;
 }
-.sefer-hiz:active{ filter:brightness(.93); }
+.sefer-geri{ background:rgba(6,26,48,.45); }
+.sefer-bos{ pointer-events:none; opacity:0; cursor:default; }
+.sefer-dugme:active{ filter:brightness(.93); }
 /* Takipteki kutu: çerçeve/parlaklık eklenmez, yalnız biraz aydınlanır. */
 .sefer-satir.sefer-takipte{ filter:brightness(1.18); }
-/* ── TOPLAMA EVRESİ ──
-   Kutu UZAMAZ: akıştaki iki öğe ("İntikal N" ve ⏩ yuvası) yerinde
-   kalır, yalnız görünmez olur — genişliği hâlâ onlar belirler.
-   "Toplanıyor" yazısı mutlak konumlu, yani akışta yer kaplamaz;
-   sığması için puntosu küçültüldü, taşarsa kutu büyümez, kırpılır
-   (satırda overflow:hidden var). */
-.sefer-satir.sefer-topla .sefer-ad,
-.sefer-satir.sefer-topla .sefer-hiz{ visibility:hidden; pointer-events:none; }
-.sefer-durum{
-  position:absolute; z-index:1; left:8px; right:8px; top:0; bottom:0;
-  display:flex; align-items:center;
-  font-size:9.5px; font-weight:800; letter-spacing:.2px;
-  white-space:nowrap; pointer-events:none;
-}
 
 .sefer-onay-modal{
   /* Ekranın ALTINDA açılır, arka plan KARARMAZ. */
