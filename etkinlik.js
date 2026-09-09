@@ -226,51 +226,77 @@
       "#etkEkran .etk-cubuk .etk-c-ikon{font-size:17px;}",
       "#etkEkran .etk-dip{color:#bcd6ef; font-size:11.5px; font-weight:700; text-align:center; padding:12px 6px 0;}",
 
-      /* ── GÖREV EKRANI ── */
-      "#etkGorev .etk-g-yenile{display:flex; align-items:center; justify-content:center; gap:7px;",
-      "  padding:7px 10px; background:rgba(255,255,255,.10);",
-      "  border-bottom:1px solid rgba(160,215,255,.25);",
-      "  color:#eaf4ff; font-size:13.5px; font-weight:800; font-variant-numeric:tabular-nums;}",
-      "#etkGorev .etk-g-alan{flex:1; overflow-y:auto; padding:12px 10px 20px;}",
+      /* ── GÖREV EKRANI ──────────────────────────────────────
+         Takvim koyu, görev ekranı AÇIK zemin: referanstaki gibi
+         beyaz-mavi kart üstünde okunur yazı. Ölçüler tek ailede:
+         başlık 14.5, yardımcı 12, rakamlar tabular. */
+      "#etkGorev{background:linear-gradient(180deg,#e6f1fb 0%,#c3dcf1 100%) !important;}",
+      "#etkGorev .etk-g-yenile{display:flex; align-items:center; gap:6px;",
+      "  padding:8px 12px; background:#bcd8ee;",
+      "  border-bottom:1px solid rgba(30,70,120,.18);}",
+      "#etkGorev .etk-g-yenile .etk-y-pil{display:inline-flex; align-items:center; gap:6px;",
+      "  padding:4px 11px; border-radius:999px;",
+      "  background:linear-gradient(180deg,#4d95d8,#2f6fb4);",
+      "  color:#f2fbff; font-size:12.5px; font-weight:700;",
+      "  font-variant-numeric:tabular-nums;}",
+      "#etkGorev .etk-g-alan{flex:1; overflow-y:auto; padding:14px 12px 22px;}",
 
-      /* Coin çubuğu + kutular */
-      "#etkGorev .etk-kutular{display:flex; justify-content:space-between; align-items:flex-end; gap:4px;}",
-      "#etkGorev .etk-kutu{flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;",
+      /* ── Kutu yolu ── */
+      "#etkGorev .etk-yol{position:relative; display:grid; grid-template-columns:repeat(5,1fr);",
+      "  grid-template-rows:auto 22px auto; align-items:center;",
+      "  padding:6px 4px 4px; margin-bottom:14px;}",
+      "#etkGorev .etk-kutu{display:flex; flex-direction:column; align-items:center; gap:1px;",
       "  background:none; border:none; padding:0; cursor:pointer; font-family:inherit;}",
-      "#etkGorev .etk-kutu img{width:44px; height:44px; object-fit:contain; display:block;}",
-      "#etkGorev .etk-kutu.kilitli img{filter:brightness(.60) saturate(.70);}",
-      "#etkGorev .etk-kutu .etk-k-esik{color:#eaf4ff; font-size:12px; font-weight:800;",
+      "#etkGorev .etk-kutu img{width:42px; height:42px; object-fit:contain; display:block;}",
+      "#etkGorev .etk-kutu.kilitli img{filter:brightness(.72) saturate(.65);}",
+      "#etkGorev .etk-kutu .etk-k-esik{color:#1d3f6e; font-size:12px; font-weight:700;",
       "  font-variant-numeric:tabular-nums;}",
-      "#etkGorev .etk-kutu.acilabilir .etk-k-esik{color:#ffe07a;}",
+      "#etkGorev .etk-kutu .etk-k-ok{color:#7ea6cd; font-size:9px; line-height:1;}",
+      "#etkGorev .etk-kutu.acilabilir .etk-k-esik{color:#b8730a;}",
+      "#etkGorev .etk-kutu.acilmis .etk-k-esik{color:#2fa563;}",
       "#etkGorev .etk-kutu:active{transform:scale(.96); filter:brightness(.93);}",
-      "#etkGorev .etk-cizgi{position:relative; height:14px; border-radius:7px; margin:8px 2px 4px;",
-      "  background:rgba(255,255,255,.16); overflow:hidden;}",
-      "#etkGorev .etk-cizgi-dolu{position:absolute; left:0; top:0; bottom:0; width:0;",
-      "  background:linear-gradient(180deg,#f7c948,#e09b12);}",
-      "#etkGorev .etk-coin{display:flex; align-items:center; justify-content:center; gap:6px;",
-      "  color:#ffe07a; font-size:15px; font-weight:800; padding:2px 0 12px;",
+      "#etkGorev .etk-ray{grid-column:1 / -1; grid-row:2; position:relative;",
+      "  height:13px; border-radius:999px; background:#a9c6e0;",
+      "  box-shadow:inset 0 1px 2px rgba(20,50,90,.28);}",
+      "#etkGorev .etk-ray i{position:absolute; left:0; top:0; bottom:0; width:0;",
+      "  border-radius:999px; background:linear-gradient(180deg,#f7c948,#e09b12);}",
+      "#etkGorev .etk-coin-pil{display:flex; align-items:center; justify-content:center; gap:6px;",
+      "  margin:0 auto 16px; padding:5px 14px; border-radius:999px; width:max-content;",
+      "  background:linear-gradient(180deg,#ffffff,#dfecf8);",
+      "  border:1px solid rgba(30,70,120,.18);",
+      "  color:#1d3f6e; font-size:13.5px; font-weight:700;",
       "  font-variant-numeric:tabular-nums;}",
 
-      /* Görev satırı */
-      "#etkGorev .etk-satir{border-radius:14px; padding:11px 12px; margin-bottom:10px;",
-      "  background:rgba(255,255,255,.10); border:1px solid rgba(160,215,255,.22);",
-      "  display:flex; align-items:center; gap:10px;}",
-      "#etkGorev .etk-s-sol{flex:1; min-width:0;}",
-      "#etkGorev .etk-s-ad{color:#f2fbff; font-size:14px; font-weight:800;",
-      "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
-      "#etkGorev .etk-s-ilerleme{color:#cfe4f7; font-size:12px; font-weight:700; margin-top:3px;",
+      /* ── Görev kartı ── */
+      "#etkGorev .etk-satir{border-radius:14px; padding:11px 12px 12px; margin-bottom:10px;",
+      "  background:linear-gradient(180deg,#ffffff,#e2eefa);",
+      "  border:1px solid rgba(30,70,120,.14);",
+      "  box-shadow:0 2px 6px rgba(0,20,45,.12);}",
+      "#etkGorev .etk-s-ad{color:#1d3f6e; font-size:14.5px; font-weight:700; line-height:1.3;}",
+      "#etkGorev .etk-s-ad em{font-style:normal; color:#5a7fa8; font-weight:700;",
       "  font-variant-numeric:tabular-nums;}",
-      "#etkGorev .etk-s-odul{color:#ffe07a; font-size:12px; font-weight:800; margin-top:2px;}",
-      "#etkGorev .etk-s-bar{height:8px; border-radius:4px; margin-top:6px;",
-      "  background:rgba(255,255,255,.16); overflow:hidden;}",
+      "#etkGorev .etk-s-alt{display:flex; align-items:center; gap:10px; margin-top:9px;}",
+      "#etkGorev .etk-s-oduller{display:flex; gap:7px; flex:1; min-width:0;}",
+      "#etkGorev .etk-oduc{position:relative; width:42px; height:42px; border-radius:10px;",
+      "  display:flex; align-items:center; justify-content:center; font-size:20px;",
+      "  background:linear-gradient(180deg,#f7fbff,#d9e7f5);",
+      "  border:1px solid rgba(30,70,120,.16);}",
+      "#etkGorev .etk-oduc b{position:absolute; right:2px; bottom:1px;",
+      "  font-size:10.5px; font-weight:700; color:#1d3f6e;",
+      "  text-shadow:0 1px 0 #fff; font-variant-numeric:tabular-nums;}",
+      "#etkGorev .etk-s-btn{flex:0 0 auto; min-width:96px; padding:9px 14px; border:none;",
+      "  border-radius:12px; font-family:inherit; font-size:14.5px; font-weight:700; cursor:pointer;",
+      "  background:linear-gradient(180deg,#8ce07f,#3ba648); color:#0e3315;",
+      "  box-shadow:0 2px 0 #2b7c35;}",
+      "#etkGorev .etk-s-btn:active{transform:translateY(1px) scale(.99); filter:brightness(.95);",
+      "  box-shadow:0 1px 0 #2b7c35;}",
+      "#etkGorev .etk-s-btn[disabled]{background:linear-gradient(180deg,#dfe9f3,#c3d4e4);",
+      "  color:#7d95ad; box-shadow:none; cursor:default;}",
+      "#etkGorev .etk-s-bar{height:6px; border-radius:3px; margin-top:9px;",
+      "  background:#c8d9e9; overflow:hidden;}",
       "#etkGorev .etk-s-bar i{display:block; height:100%; width:0;",
-      "  background:linear-gradient(180deg,#7fe0a0,#2fa563);}",
-      "#etkGorev .etk-s-btn{flex:0 0 auto; min-width:84px; padding:9px 12px; border:none; border-radius:11px;",
-      "  font-family:inherit; font-size:14px; font-weight:800; cursor:pointer;",
-      "  background:linear-gradient(180deg,#7fe0a0,#2fa563); color:#0b2a17;}",
-      "#etkGorev .etk-s-btn:active{transform:scale(.96); filter:brightness(.93);}",
-      "#etkGorev .etk-s-btn[disabled]{background:rgba(255,255,255,.18); color:#c3d8ee; cursor:default;}",
-      "#etkGorev .etk-g-uyari{color:#ffd0d0; font-size:13px; font-weight:700; text-align:center; padding:20px 8px;}",
+      "  background:linear-gradient(180deg,#8ce07f,#3ba648);}",
+      "#etkGorev .etk-g-uyari{color:#9b2f2f; font-size:13px; font-weight:700; text-align:center; padding:20px 8px;}",
 
       /* ── Ortak açılır pencere ── */
       "#etkPop{position:fixed; inset:0; z-index:978; display:none;",
@@ -335,7 +361,8 @@
     gorevEkran.innerHTML =
       '<div class="etk-baslik"><button class="etk-geri" type="button" id="etkGGeri">←</button>' +
       '<span id="etkGAd">Etkinlik</span></div>' +
-      '<div class="etk-g-yenile">🕗 Yenilenme: <b id="etkGSayac">--:--:--</b></div>' +
+      '<div class="etk-g-yenile"><span class="etk-y-pil">🕗 Yenilenme: ' +
+        '<b id="etkGSayac">--:--:--</b></span></div>' +
       '<div class="etk-g-alan" id="etkGAlan"></div>';
     document.body.appendChild(gorevEkran);
     gorevEkran.querySelector("#etkGGeri").addEventListener("click", gorevKapat);
@@ -445,45 +472,59 @@
     }
     alan.innerHTML = "";
 
-    /* ── Kutular + coin çubuğu ── */
+    /* ── KUTU YOLU ──
+       Referanstaki gibi: kutular rayın bir üstünde bir altında,
+       her biri kendi eşiğini gösterir. Izgara 5 sütun, 3 satır:
+       üst kutular 1. satır, ray 2., alt kutular 3. satır. */
     var enBuyuk = KUTULAR[KUTULAR.length - 1].esik || 1;
-    var kutuKap = document.createElement("div");
-    kutuKap.className = "etk-kutular";
+    var yol = document.createElement("div");
+    yol.className = "etk-yol";
+
+    var ray = document.createElement("div");
+    ray.className = "etk-ray";
+    ray.innerHTML = "<i></i>";
+    yol.appendChild(ray);
+
     KUTULAR.forEach(function (k, i) {
       var acildi = !!d.kutular[i];
       var acilabilir = !acildi && d.coin >= k.esik;
+      var ust = (i % 2 === 0);
+
       var b = document.createElement("button");
       b.type = "button";
-      b.className = "etk-kutu" + (acildi ? " acilmis" : (acilabilir ? " acilabilir" : " kilitli"));
-      b.innerHTML = '<img alt=""><span class="etk-k-esik"></span>';
+      b.className = "etk-kutu " + (ust ? "ust " : "alt ") +
+                    (acildi ? "acilmis" : (acilabilir ? "acilabilir" : "kilitli"));
+      b.style.gridColumn = (i + 1);
+      b.style.gridRow = ust ? 1 : 3;
+      b.innerHTML = ust
+        ? '<img alt=""><span class="etk-k-esik"></span><span class="etk-k-ok">▼</span>'
+        : '<span class="etk-k-ok">▲</span><img alt=""><span class="etk-k-esik"></span>';
       b.querySelector("img").src = acildi ? KUTU_ACIK : KUTU_KAPALI;
       b.querySelector(".etk-k-esik").textContent = k.esik;
       b.addEventListener("click", function () { kutuyaBas(i); });
-      kutuKap.appendChild(b);
+      yol.appendChild(b);
 
       if (acilabilir && b.animate) {
         b.animate(
-          [{ transform: "translateY(0)" }, { transform: "translateY(-5px)" }, { transform: "translateY(0)" }],
-          { duration: 1400, iterations: Infinity, easing: "ease-in-out" }
+          [{ transform: "translateY(0)" }, { transform: "translateY(-4px)" },
+           { transform: "translateY(0)" }],
+          { duration: 1500, iterations: Infinity, easing: "ease-in-out" }
         );
       }
     });
-    alan.appendChild(kutuKap);
+    alan.appendChild(yol);
 
-    var cizgi = document.createElement("div");
-    cizgi.className = "etk-cizgi";
-    cizgi.innerHTML = '<div class="etk-cizgi-dolu"></div>';
-    alan.appendChild(cizgi);
-    var dolu = cizgi.querySelector(".etk-cizgi-dolu");
     var oran = Math.max(0, Math.min(1, d.coin / enBuyuk));
-    dolu.style.width = (oran * 100) + "%";
+    ray.querySelector("i").style.width = (oran * 100) + "%";
 
-    var coinEl = document.createElement("div");
-    coinEl.className = "etk-coin";
-    coinEl.textContent = "🪙 " + sayiYaz(d.coin) + " / " + sayiYaz(enBuyuk) + " coin";
-    alan.appendChild(coinEl);
+    var coinPil = document.createElement("div");
+    coinPil.className = "etk-coin-pil";
+    coinPil.textContent = "🪙 " + sayiYaz(d.coin) + " / " + sayiYaz(enBuyuk) + " coin";
+    alan.appendChild(coinPil);
 
-    /* ── Görev satırları ── */
+    /* ── GÖREV KARTLARI ──
+       İlerleme başlığın içinde (0 / 50.000) — referansta da öyle;
+       ayrı satır yazınca kart iki katı uzuyordu. */
     GOREVLER.forEach(function (g) {
       var simdiki = Math.min(d.toplanan[g.kaynak] || 0, g.hedef);
       var tamam = simdiki >= g.hedef;
@@ -492,17 +533,22 @@
       var satir = document.createElement("div");
       satir.className = "etk-satir";
       satir.innerHTML =
-        '<div class="etk-s-sol">' +
-          '<div class="etk-s-ad"></div>' +
-          '<div class="etk-s-ilerleme"></div>' +
-          '<div class="etk-s-odul"></div>' +
-          '<div class="etk-s-bar"><i></i></div>' +
+        '<div class="etk-s-ad"></div>' +
+        '<div class="etk-s-alt">' +
+          '<div class="etk-s-oduller">' +
+            '<div class="etk-oduc">🪙<b></b></div>' +
+          '</div>' +
+          '<button class="etk-s-btn" type="button"></button>' +
         '</div>' +
-        '<button class="etk-s-btn" type="button"></button>';
-      satir.querySelector(".etk-s-ad").textContent = g.ad;
-      satir.querySelector(".etk-s-ilerleme").textContent =
-        sayiYaz(simdiki) + " / " + sayiYaz(g.hedef);
-      satir.querySelector(".etk-s-odul").textContent = "🪙 " + g.coin + " coin";
+        '<div class="etk-s-bar"><i></i></div>';
+
+      var ad = satir.querySelector(".etk-s-ad");
+      ad.textContent = g.ad + " ";
+      var ilerleme = document.createElement("em");
+      ilerleme.textContent = "(" + sayiYaz(simdiki) + " / " + sayiYaz(g.hedef) + ")";
+      ad.appendChild(ilerleme);
+
+      satir.querySelector(".etk-oduc b").textContent = g.coin;
       satir.querySelector(".etk-s-bar i").style.width =
         Math.min(100, (simdiki / g.hedef) * 100) + "%";
 
