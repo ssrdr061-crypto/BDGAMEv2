@@ -1348,14 +1348,16 @@ function hudCiz() {
 /* Sağdaki düğme evreye göre değişir:
      gidiş  → ⏩ hızlandırma penceresi
      toplama→ ↩ geri çağır (hızlandırma YOK, süre kaynağa bağlı)
-     dönüş  → düğme yok. geriCagir() dönüşteki orduyu zaten geri
-              çevirmez ("Ordu zaten dönüş yolunda"), hızlandırma da
-              dönüşe işlemiyor; hep uyarı veren düğme koymuyoruz.
+     dönüş  → ⏩ hızlandırma penceresi. sureyiKis() dönüşü zaten
+              işliyor (s.donusAt geri çekilir); eksik olan yalnız
+              düğmeydi. Geri çağırma dönüşte anlamsız, o yüzden
+              pencerede sol düğme çıkmaz (bkz. hizlandirSor).
    Yer her üç durumda da ayrılır (.sefer-dugme boş da olsa),
    böylece kutu genişliği evre değişince oynamaz. */
 function dugmeIsareti(ev) {
-  if (ev.ad === "gidis") return '<span class="sefer-dugme sefer-hiz" data-eylem="hiz" aria-hidden="true">⏩</span>';
   if (ev.ad === "topla") return '<span class="sefer-dugme sefer-geri" data-eylem="geri" aria-hidden="true">↩</span>';
+  if (ev.ad === "gidis" || ev.ad === "donus")
+    return '<span class="sefer-dugme sefer-hiz" data-eylem="hiz" aria-hidden="true">⏩</span>';
   return '<span class="sefer-dugme sefer-bos" aria-hidden="true"></span>';
 }
 
@@ -1592,13 +1594,24 @@ function hizlandirSor(id) {
   const s = _yerel[id];
   if (!s) return;
 
+  /* Dönüşteki orduyu geri çağırmak anlamsız: geriCagirSor() zaten
+     "Ordu zaten dönüş yolunda" deyip çıkıyor. Uyarıdan başka işe
+     yaramayan düğmeyi pencereye hiç koymuyoruz. */
+  const donuyor = (s.durum === "donus");
+  const secenekler = {
+    kutular: cantaKutulari(),
+    kullanFn: (ad) => urunleHizlandir(id, ad),
+    kapatX: true, solKirmizi: true, kalici: true
+  };
+  if (!donuyor) {
+    secenekler.solEtiket = "Geri Çağır";
+    secenekler.solFn = () => geriCagirSor(id);
+  }
+
   onayPenceresi("", "",
     `${fmtSayi(AYAR.HIZ_BEDEL)} 💎`,
     () => { hizlandir(id); seferBittiyseKapat(id); },
-    { kutular: cantaKutulari(),
-      kullanFn: (ad) => urunleHizlandir(id, ad),
-      kapatX: true, solKirmizi: true,
-      solEtiket: "Geri Çağır", solFn: () => geriCagirSor(id), kalici: true });
+    secenekler);
 
   /* Pencere hangi sefere ait? Ordu varınca hudCiz bunu görüp kapatır. */
   const m = document.getElementById("seferOnayModal");
