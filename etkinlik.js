@@ -1,34 +1,48 @@
-/* etkinlik.js — ETKİNLİKLER EKRANI + KALE İÇİ İKONU (1. aşama)
+/* etkinlik.js — ETKİNLİKLER: TAKVİM + GÖREV + COİN + KUTU
    ═══════════════════════════════════════════════════════════════
    NE VAR
-   · Kale içindeyken sağ üstte "Etkinlikler" düğmesi (#etkIkon).
-     Yalnız kale içinde görünür — görünürlük `body.kaleici-acik`
-     sınıfına bağlı, JS ile açıp kapatma yok.
-   · Tam ekran Etkinlikler penceresi (#etkEkran):
-       – canlı UTC saati
-       – haftanın 7 günü (Pzt…Paz) + tarihleri, bugün vurgulu
-       – ızgara üstünde etkinlik çubuğu
-   · Şimdilik TEK etkinlik: Hoşgeldin Etkinliği, HER HAFTA tekrar.
-     Çubuğa basınca açıklama + bu haftaki tarih aralığı çıkar.
-     (Görev/ödül içeriği 2. aşamada.)
+   1) Kale içindeyken sağ üstte "Etkinlikler" düğmesi (#etkIkon).
+      Görünürlük saf CSS: `body.kaleici-acik`. JS ile aç/kapa yok.
+   2) Haftalık takvim ekranı (#etkEkran): canlı UTC saati,
+      Pzt…Paz gün şeridi, ızgara üstünde etkinlik çubuğu.
+   3) Çubuğa basınca GÖREV EKRANI (#etkGorev):
+        · yenilenmeye kalan süre (her gün 00:00 UTC)
+        · 4 toplama görevi → her biri COİN verir
+        · coin çubuğu üstünde 5 kutu; eşiği geçince açılır
+      Günde 5 kutu = 5 eşik; ertesi gün hepsi sıfırlanır.
 
-   TARİH — TEK DOĞRULUK KAYNAĞI
-   Aşağıdaki ETKINLIKLER dizisi. Gün numaraları UTC haftasına göre
-   1=Pazartesi … 7=Pazar. Etkinliğin gününü değiştirmek için
-   `basGun` / `bitGun` yeter, başka yerde tarih hesabı yoktur.
-   Saat de UTC — referanstaki gibi, oyuncu saat diliminden bağımsız.
+   ÜÇ AYAR NOKTASI — hepsi dosyanın başında, başka yerde yok:
+     GOREVLER  → hedefler ve görev başına coin
+     KUTULAR   → eşik (kaç coin) ve o kutunun ödülleri
+     ETKINLIKLER → takvimdeki gün aralığı (1=Pzt … 7=Paz, UTC)
+
+   ÖDÜL TABLOSU GEÇİCİDİR. Aşağıdaki miktarlar örnektir, senin
+   yazacağın değerlerle değiştirilecek. Ödül satırı üç türden biri:
+     { tur:"elmas",  miktar:50 }
+     { tur:"kaynak", kaynak:"odun", miktar:5000 }   (odun/et/demir/su/enerji)
+     { tur:"esya",   ad:"5 Dakika Hızlandırma", adet:2 }
+   Eşya adı magaza.js'teki `name` ile BİREBİR aynı olmalı; çanta
+   eşyayı adına göre saklıyor (state.inventory[ad]).
+
+   İLERLEME NEREDEN SAYILIYOR
+   Yalnız haritadan TOPLAMA seferiyle kaleye giren yük. sefer.js
+   `seferiBitir` içinde, yük depoya yazıldığı anda buraya haber
+   veriyor (`ETKINLIK.toplamaBildir`). Üretim, ganimet ve hediye
+   sayılmaz — sayacın tek kapısı orası.
+
+   KAYIT
+   Sayaçlar `state.etkinlik` içinde, hesabın kendi kaydında durur;
+   persistCurrentState() ile yazılır. Sunucu gerekmez.
 
    HAREKET
-   Açılış/kapanış ve çubukların gelişi Web Animations ile;
-   CSS keyframe/transition yok (prefers-reduced-motion öldürürdü).
+   Web Animations; CSS keyframe/transition yok.
    ═══════════════════════════════════════════════════════════════ */
 (function etkinlikMenusu() {
   "use strict";
 
-  var SURUM = "etkinlik-1";
+  var SURUM = "etkinlik-2";
 
-  /* ── ETKİNLİK TANIMI ──────────────────────────────────────────
-     basGun/bitGun: 1=Pzt … 7=Paz (UTC). Her hafta tekrarlar. */
+  /* ── 1) TAKVİM TANIMI ─────────────────────────────────────── */
   var ETKINLIKLER = [
     {
       id: "hosgeldin",
@@ -38,41 +52,112 @@
       renk2: "#d98f12",
       basGun: 1,
       bitGun: 7,
-      aciklama: "Yeni gelen komutanlar için haftalık karşılama etkinliği. " +
-                "Her hafta Pazartesi başlar, Pazar gecesi biter."
+      aciklama: "Yeni gelen komutanlar için karşılama etkinliği. " +
+                "Görevler her gün 00:00 UTC'de yenilenir."
     }
+  ];
+
+  /* ── 2) GÖREVLER — hedef ve coin ──────────────────────────── */
+  var GOREVLER = [
+    { id: "odun",   kaynak: "odun",   hedef: 50000, coin: 40, ad: "50.000 odun topla" },
+    { id: "su",     kaynak: "su",     hedef: 50000, coin: 40, ad: "50.000 su topla" },
+    { id: "enerji", kaynak: "enerji", hedef: 25000, coin: 40, ad: "25.000 enerji topla" },
+    { id: "et",     kaynak: "et",     hedef: 25000, coin: 40, ad: "25.000 et topla" }
+  ];
+
+  /* ── 3) KUTULAR — eşik + ödüller (MİKTARLAR GEÇİCİ) ───────── */
+  var KUTULAR = [
+    { esik: 20,  oduller: [ { tur: "kaynak", kaynak: "et",   miktar: 3000 },
+                            { tur: "elmas",  miktar: 10 } ] },
+    { esik: 40,  oduller: [ { tur: "kaynak", kaynak: "odun", miktar: 5000 },
+                            { tur: "esya",   ad: "5 Dakika Hızlandırma", adet: 2 } ] },
+    { esik: 80,  oduller: [ { tur: "kaynak", kaynak: "su",   miktar: 8000 },
+                            { tur: "elmas",  miktar: 25 } ] },
+    { esik: 120, oduller: [ { tur: "esya",   ad: "1 Saat Hızlandırma", adet: 1 },
+                            { tur: "kaynak", kaynak: "demir", miktar: 4000 } ] },
+    { esik: 160, oduller: [ { tur: "elmas",  miktar: 60 },
+                            { tur: "esya",   ad: "3 Saat Hızlandırma", adet: 1 },
+                            { tur: "kaynak", kaynak: "enerji", miktar: 6000 } ] }
   ];
 
   var GUN_KISA = ["Pzt", "Sal", "Çrş", "Prş", "Cum", "Cts", "Paz"];
   var HAYALET_MS = 350;
+  var KUTU_KAPALI = "gunlukkutukapali.webp";
+  var KUTU_ACIK   = "gunlukkutuacik.webp";
 
-  var ekran = null, saatEl = null, saatSayac = 0, acik = false;
+  var ekran = null, gorevEkran = null, saatEl = null;
+  var saatSayac = 0, gorevSayac = 0;
+  var acik = false, gorevAcik = false;
 
-  /* ── 1) UTC HAFTA HESABI ──────────────────────────────────────
-     Haftanın başı: Pazartesi 00:00 UTC. getUTCDay() 0=Pazar. */
+  /* ═══ TARİH (hepsi UTC) ═══ */
   function haftaBasi(simdi) {
     var g = simdi.getUTCDay();
     var kaydir = (g === 0 ? 6 : g - 1);
-    return Date.UTC(
-      simdi.getUTCFullYear(), simdi.getUTCMonth(), simdi.getUTCDate() - kaydir
-    );
+    return Date.UTC(simdi.getUTCFullYear(), simdi.getUTCMonth(), simdi.getUTCDate() - kaydir);
   }
-  function gunTarihi(bas, indeks) { return new Date(bas + indeks * 86400000); }
+  function gunTarihi(bas, i) { return new Date(bas + i * 86400000); }
   function ikiHane(n) { return (n < 10 ? "0" : "") + n; }
   function tarihKisa(d) { return ikiHane(d.getUTCMonth() + 1) + "/" + ikiHane(d.getUTCDate()); }
   function tarihUzun(d) {
     return d.getUTCFullYear() + "-" + ikiHane(d.getUTCMonth() + 1) + "-" + ikiHane(d.getUTCDate());
   }
   function saatYazisi(d) {
-    return "UTC Saati " + tarihUzun(d) + " " +
-           ikiHane(d.getUTCHours()) + ":" + ikiHane(d.getUTCMinutes()) + ":" + ikiHane(d.getUTCSeconds());
+    return "UTC Saati " + tarihUzun(d) + " " + ikiHane(d.getUTCHours()) + ":" +
+           ikiHane(d.getUTCMinutes()) + ":" + ikiHane(d.getUTCSeconds());
   }
-  /* bugün: 0=Pzt … 6=Paz */
   function bugunIndeks(simdi) { var g = simdi.getUTCDay(); return g === 0 ? 6 : g - 1; }
+  /* Bir sonraki 00:00 UTC'ye kalan süre */
+  function yenilenmeyeKalan() {
+    var n = new Date();
+    var ertesi = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1);
+    var ms = Math.max(0, ertesi - n.getTime());
+    var s = Math.floor(ms / 1000);
+    return ikiHane(Math.floor(s / 3600)) + ":" + ikiHane(Math.floor(s / 60) % 60) + ":" + ikiHane(s % 60);
+  }
+  function sayiYaz(n) { return Math.round(n || 0).toLocaleString("tr-TR"); }
 
-  /* ── 2) STİL ──────────────────────────────────────────────────
-     Renkler tema.js'in --km değişkenlerinden; ID'li seçici
-     kullanıldığı için sonradan eklenen kurallar ezemez. */
+  /* ═══ DURUM ═══
+     state.etkinlik = { gun, toplanan:{}, alinan:{}, coin, kutular:{} }
+     Gün değişince sayaçlar sıfırlanır. */
+  function oyunDurumu() { return (typeof window.state !== "undefined") ? window.state : null; }
+
+  function durum() {
+    var s = oyunDurumu();
+    if (!s) return null;
+    var bugun = tarihUzun(new Date());
+    if (!s.etkinlik || s.etkinlik.gun !== bugun) {
+      s.etkinlik = { gun: bugun, toplanan: {}, alinan: {}, coin: 0, kutular: {} };
+    }
+    if (!s.etkinlik.toplanan) s.etkinlik.toplanan = {};
+    if (!s.etkinlik.alinan)   s.etkinlik.alinan   = {};
+    if (!s.etkinlik.kutular)  s.etkinlik.kutular  = {};
+    if (typeof s.etkinlik.coin !== "number") s.etkinlik.coin = 0;
+    return s.etkinlik;
+  }
+
+  function kaydet() {
+    if (typeof window.persistCurrentState === "function") {
+      try { window.persistCurrentState(); } catch (e) {}
+    }
+  }
+
+  /* sefer.js buraya haber verir: toplama seferi yükü depoya girdi. */
+  function toplamaBildir(yuk) {
+    var d = durum();
+    if (!d || !yuk) return;
+    var degisti = false;
+    Object.keys(yuk).forEach(function (k) {
+      var m = Math.max(0, Math.round(yuk[k] || 0));
+      if (m <= 0) return;
+      d.toplanan[k] = (d.toplanan[k] || 0) + m;
+      degisti = true;
+    });
+    if (!degisti) return;
+    kaydet();
+    if (gorevAcik) gorevCiz();
+  }
+
+  /* ═══ STİL ═══ */
   function stilBas() {
     if (document.getElementById("etkinlikStil")) return;
     var st = document.createElement("style");
@@ -92,19 +177,20 @@
       "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
       "#etkIkon:active{transform:scale(.96); filter:brightness(.93);}",
 
-      /* ── Tam ekran ── */
-      "#etkEkran{position:fixed; inset:0; z-index:970; display:none;",
-      "  flex-direction:column; font-family:'Baloo 2','Nunito',sans-serif;",
+      /* ── Ortak tam ekran ── */
+      "#etkEkran,#etkGorev{position:fixed; inset:0; display:none; flex-direction:column;",
+      "  font-family:'Baloo 2','Nunito',sans-serif;",
       "  background:linear-gradient(180deg,var(--km-2) 0%,var(--km-3) 100%);}",
-      "#etkEkran.acik{display:flex;}",
-      "#etkEkran .etk-baslik{display:flex; align-items:center; gap:10px;",
+      "#etkEkran{z-index:970;} #etkGorev{z-index:972;}",
+      "#etkEkran.acik,#etkGorev.acik{display:flex;}",
+      "#etkEkran .etk-baslik,#etkGorev .etk-baslik{display:flex; align-items:center; gap:10px;",
       "  padding:calc(env(safe-area-inset-top,0) + 10px) 12px 10px;",
       "  background:linear-gradient(180deg,var(--km-1),var(--km-2));",
       "  color:#f2fbff; font-size:19px; font-weight:800;",
       "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
-      "#etkEkran .etk-geri{background:none; border:none; color:#f2fbff;",
+      "#etkEkran .etk-geri,#etkGorev .etk-geri{background:none; border:none; color:#f2fbff;",
       "  font-size:24px; line-height:1; padding:2px 6px; cursor:pointer;}",
-      "#etkEkran .etk-geri:active{transform:scale(.96); filter:brightness(.93);}",
+      "#etkEkran .etk-geri:active,#etkGorev .etk-geri:active{transform:scale(.96); filter:brightness(.93);}",
       "#etkEkran .etk-saat{padding:7px 10px; text-align:center; color:#eaf4ff;",
       "  font-size:14px; font-weight:800; font-variant-numeric:tabular-nums;",
       "  background:rgba(255,255,255,.10); border-bottom:1px solid rgba(160,215,255,.25);}",
@@ -113,12 +199,11 @@
       "#etkEkran .etk-gunler{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:8px 8px 6px;}",
       "#etkEkran .etk-gun{border-radius:10px; padding:5px 0; text-align:center;",
       "  background:rgba(255,255,255,.12); color:#eaf4ff;",
-      "  font-size:11.5px; font-weight:800; line-height:1.25;",
-      "  font-variant-numeric:tabular-nums;}",
+      "  font-size:11.5px; font-weight:800; line-height:1.25; font-variant-numeric:tabular-nums;}",
       "#etkEkran .etk-gun.bugun{background:linear-gradient(180deg,#f7c948,#e09b12); color:#23180a;}",
       "#etkEkran .etk-gun small{display:block; font-size:11px; opacity:.85; font-weight:700;}",
 
-      /* ── Izgara ── */
+      /* ── Takvim ızgarası ── */
       "#etkEkran .etk-alan{flex:1; overflow-y:auto; padding:0 8px 16px;}",
       "#etkEkran .etk-etiket{color:#cfe4f7; font-size:12px; font-weight:800; padding:4px 2px 6px;}",
       "#etkEkran .etk-izgara{position:relative; border-radius:12px; overflow:hidden;",
@@ -130,7 +215,7 @@
       "#etkEkran .etk-sutun.bugun{background:rgba(247,201,72,.16);}",
       "#etkEkran .etk-satirlar{position:relative; display:grid; gap:10px; padding:12px 0;",
       "  grid-template-columns:repeat(7,1fr);}",
-      "#etkEkran .etk-cubuk{grid-row:auto; display:flex; align-items:center; justify-content:center; gap:7px;",
+      "#etkEkran .etk-cubuk{display:flex; align-items:center; justify-content:center; gap:7px;",
       "  min-height:38px; border-radius:9px; padding:0 8px; cursor:pointer;",
       "  color:#2a1c05; font-size:13.5px; font-weight:800;",
       "  box-shadow:0 2px 6px rgba(0,20,45,.3);}",
@@ -138,31 +223,81 @@
       "#etkEkran .etk-cubuk .etk-c-ikon{font-size:17px;}",
       "#etkEkran .etk-dip{color:#bcd6ef; font-size:11.5px; font-weight:700; text-align:center; padding:12px 6px 0;}",
 
-      /* ── Detay penceresi ── */
-      "#etkDetay{position:fixed; inset:0; z-index:975; display:none;",
+      /* ── GÖREV EKRANI ── */
+      "#etkGorev .etk-g-yenile{display:flex; align-items:center; justify-content:center; gap:7px;",
+      "  padding:7px 10px; background:rgba(255,255,255,.10);",
+      "  border-bottom:1px solid rgba(160,215,255,.25);",
+      "  color:#eaf4ff; font-size:13.5px; font-weight:800; font-variant-numeric:tabular-nums;}",
+      "#etkGorev .etk-g-alan{flex:1; overflow-y:auto; padding:12px 10px 20px;}",
+
+      /* Coin çubuğu + kutular */
+      "#etkGorev .etk-kutular{display:flex; justify-content:space-between; align-items:flex-end; gap:4px;}",
+      "#etkGorev .etk-kutu{flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;",
+      "  background:none; border:none; padding:0; cursor:pointer; font-family:inherit;}",
+      "#etkGorev .etk-kutu img{width:44px; height:44px; object-fit:contain; display:block;}",
+      "#etkGorev .etk-kutu.kilitli img{filter:brightness(.60) saturate(.70);}",
+      "#etkGorev .etk-kutu .etk-k-esik{color:#eaf4ff; font-size:12px; font-weight:800;",
+      "  font-variant-numeric:tabular-nums;}",
+      "#etkGorev .etk-kutu.acilabilir .etk-k-esik{color:#ffe07a;}",
+      "#etkGorev .etk-kutu:active{transform:scale(.96); filter:brightness(.93);}",
+      "#etkGorev .etk-cizgi{position:relative; height:14px; border-radius:7px; margin:8px 2px 4px;",
+      "  background:rgba(255,255,255,.16); overflow:hidden;}",
+      "#etkGorev .etk-cizgi-dolu{position:absolute; left:0; top:0; bottom:0; width:0;",
+      "  background:linear-gradient(180deg,#f7c948,#e09b12);}",
+      "#etkGorev .etk-coin{display:flex; align-items:center; justify-content:center; gap:6px;",
+      "  color:#ffe07a; font-size:15px; font-weight:800; padding:2px 0 12px;",
+      "  font-variant-numeric:tabular-nums;}",
+
+      /* Görev satırı */
+      "#etkGorev .etk-satir{border-radius:14px; padding:11px 12px; margin-bottom:10px;",
+      "  background:rgba(255,255,255,.10); border:1px solid rgba(160,215,255,.22);",
+      "  display:flex; align-items:center; gap:10px;}",
+      "#etkGorev .etk-s-sol{flex:1; min-width:0;}",
+      "#etkGorev .etk-s-ad{color:#f2fbff; font-size:14px; font-weight:800;",
+      "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
+      "#etkGorev .etk-s-ilerleme{color:#cfe4f7; font-size:12px; font-weight:700; margin-top:3px;",
+      "  font-variant-numeric:tabular-nums;}",
+      "#etkGorev .etk-s-odul{color:#ffe07a; font-size:12px; font-weight:800; margin-top:2px;}",
+      "#etkGorev .etk-s-bar{height:8px; border-radius:4px; margin-top:6px;",
+      "  background:rgba(255,255,255,.16); overflow:hidden;}",
+      "#etkGorev .etk-s-bar i{display:block; height:100%; width:0;",
+      "  background:linear-gradient(180deg,#7fe0a0,#2fa563);}",
+      "#etkGorev .etk-s-btn{flex:0 0 auto; min-width:84px; padding:9px 12px; border:none; border-radius:11px;",
+      "  font-family:inherit; font-size:14px; font-weight:800; cursor:pointer;",
+      "  background:linear-gradient(180deg,#7fe0a0,#2fa563); color:#0b2a17;}",
+      "#etkGorev .etk-s-btn:active{transform:scale(.96); filter:brightness(.93);}",
+      "#etkGorev .etk-s-btn[disabled]{background:rgba(255,255,255,.18); color:#c3d8ee; cursor:default;}",
+      "#etkGorev .etk-g-uyari{color:#ffd0d0; font-size:13px; font-weight:700; text-align:center; padding:20px 8px;}",
+
+      /* ── Ortak açılır pencere ── */
+      "#etkPop{position:fixed; inset:0; z-index:978; display:none;",
       "  align-items:center; justify-content:center; padding:18px;",
       "  background:rgba(2,10,26,.72); font-family:'Baloo 2','Nunito',sans-serif;}",
-      "#etkDetay.acik{display:flex;}",
-      "#etkDetay .etk-d-kutu{width:100%; max-width:330px; border-radius:20px; padding:18px 16px;",
+      "#etkPop.acik{display:flex;}",
+      "#etkPop .etk-p-kutu{width:100%; max-width:330px; border-radius:20px; padding:18px 16px;",
       "  border:1px solid var(--km-kenar); color:#eaf4ff;",
       "  background:linear-gradient(180deg,var(--km-1) 0%,var(--km-2) 52%,var(--km-3) 100%);",
       "  box-shadow:0 2px 6px rgba(0,20,45,.3);}",
-      "#etkDetay .etk-d-ad{font-size:20px; font-weight:800; text-align:center;",
+      "#etkPop .etk-p-ad{font-size:19px; font-weight:800; text-align:center;",
       "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
-      "#etkDetay .etk-d-tarih{font-size:12.5px; font-weight:800; text-align:center; margin-top:4px;",
+      "#etkPop .etk-p-alt{font-size:12.5px; font-weight:800; text-align:center; margin-top:4px;",
       "  color:#f7c948; font-variant-numeric:tabular-nums;}",
-      "#etkDetay .etk-d-metin{font-size:13.5px; font-weight:600; line-height:1.45; margin:12px 0 16px;}",
-      "#etkDetay .etk-d-kapat{display:block; width:100%; padding:10px; border:none; border-radius:12px;",
+      "#etkPop .etk-p-metin{font-size:13.5px; font-weight:600; line-height:1.45; margin:12px 0 4px;}",
+      "#etkPop .etk-p-liste{margin:12px 0 4px;}",
+      "#etkPop .etk-p-oge{display:flex; align-items:center; gap:9px; padding:8px 2px;",
+      "  border-bottom:1px solid rgba(160,215,255,.18); font-size:14px; font-weight:800;}",
+      "#etkPop .etk-p-oge:last-child{border-bottom:none;}",
+      "#etkPop .etk-p-oge span:first-child{font-size:18px;}",
+      "#etkPop .etk-p-oge b{margin-left:auto; font-variant-numeric:tabular-nums;}",
+      "#etkPop .etk-p-btn{display:block; width:100%; margin-top:14px; padding:10px; border:none; border-radius:12px;",
       "  background:linear-gradient(180deg,#f7c948,#e09b12); color:#23180a;",
       "  font-family:inherit; font-size:15px; font-weight:800; cursor:pointer;}",
-      "#etkDetay .etk-d-kapat:active{transform:scale(.96); filter:brightness(.93);}"
+      "#etkPop .etk-p-btn:active{transform:scale(.96); filter:brightness(.93);}"
     ].join("\n");
     document.head.appendChild(st);
   }
 
-  /* ── 3) İSKELET ───────────────────────────────────────────────
-     İkon emoji ile çiziliyor; .webp geldiğinde yalnız .etk-i-kutu
-     içeriği değişir. Olmayan dosyaya sessiz bağ kurulmadı. */
+  /* ═══ İSKELET ═══ */
   function iskelet() {
     if (document.getElementById("etkEkran")) return;
 
@@ -186,26 +321,30 @@
           '<div class="etk-sutunlar" id="etkSutunlar"></div>' +
           '<div class="etk-satirlar" id="etkSatirlar"></div>' +
         '</div>' +
-        '<div class="etk-dip">Saatler UTC\'dir. Etkinlikler her hafta yenilenir.</div>' +
+        '<div class="etk-dip">Saatler UTC\'dir. Görevler her gün 00:00 UTC\'de yenilenir.</div>' +
       '</div>';
     document.body.appendChild(ekran);
     ekran.querySelector("#etkGeri").addEventListener("click", kapat);
     saatEl = ekran.querySelector("#etkSaat");
 
-    var det = document.createElement("div");
-    det.id = "etkDetay";
-    det.innerHTML =
-      '<div class="etk-d-kutu">' +
-      '<div class="etk-d-ad" id="etkDAd"></div>' +
-      '<div class="etk-d-tarih" id="etkDTarih"></div>' +
-      '<div class="etk-d-metin" id="etkDMetin"></div>' +
-      '<button class="etk-d-kapat" type="button" id="etkDKapat">Kapat</button></div>';
-    document.body.appendChild(det);
-    det.querySelector("#etkDKapat").addEventListener("click", detayKapat);
-    det.addEventListener("click", function (e) { if (e.target === det) detayKapat(); });
+    gorevEkran = document.createElement("div");
+    gorevEkran.id = "etkGorev";
+    gorevEkran.innerHTML =
+      '<div class="etk-baslik"><button class="etk-geri" type="button" id="etkGGeri">←</button>' +
+      '<span id="etkGAd">Etkinlik</span></div>' +
+      '<div class="etk-g-yenile">🕗 Yenilenme: <b id="etkGSayac">--:--:--</b></div>' +
+      '<div class="etk-g-alan" id="etkGAlan"></div>';
+    document.body.appendChild(gorevEkran);
+    gorevEkran.querySelector("#etkGGeri").addEventListener("click", gorevKapat);
+
+    var pop = document.createElement("div");
+    pop.id = "etkPop";
+    pop.innerHTML = '<div class="etk-p-kutu" id="etkPopKutu"></div>';
+    document.body.appendChild(pop);
+    pop.addEventListener("click", function (e) { if (e.target === pop) popKapat(); });
   }
 
-  /* ── 4) ÇİZİM ─────────────────────────────────────────────────── */
+  /* ═══ TAKVİM ÇİZİMİ ═══ */
   function ciz() {
     var simdi = new Date();
     var bas = haftaBasi(simdi);
@@ -214,9 +353,7 @@
     var gunler = ekran.querySelector("#etkGunler");
     var sutunlar = ekran.querySelector("#etkSutunlar");
     var satirlar = ekran.querySelector("#etkSatirlar");
-    gunler.innerHTML = "";
-    sutunlar.innerHTML = "";
-    satirlar.innerHTML = "";
+    gunler.innerHTML = ""; sutunlar.innerHTML = ""; satirlar.innerHTML = "";
 
     for (var i = 0; i < 7; i++) {
       var d = gunTarihi(bas, i);
@@ -238,13 +375,12 @@
       cubuk.innerHTML = '<span class="etk-c-ikon"></span><span class="etk-c-ad"></span>';
       cubuk.querySelector(".etk-c-ikon").textContent = e.ikon;
       cubuk.querySelector(".etk-c-ad").textContent = e.ad;
-      cubuk.addEventListener("click", function () { detayAc(e, bas); });
+      cubuk.addEventListener("click", function () { gorevAc(e); });
       satirlar.appendChild(cubuk);
 
       if (cubuk.animate) {
         cubuk.animate(
-          [{ opacity: 0, transform: "translateX(-14px)" },
-           { opacity: 1, transform: "translateX(0)" }],
+          [{ opacity: 0, transform: "translateX(-14px)" }, { opacity: 1, transform: "translateX(0)" }],
           { duration: 320, delay: 90 + sira * 70, easing: "cubic-bezier(.16,1,.3,1)", fill: "backwards" }
         );
       }
@@ -253,7 +389,239 @@
 
   function saatiYaz() { if (saatEl) saatEl.textContent = saatYazisi(new Date()); }
 
-  /* ── 5) AÇ / KAPAT ────────────────────────────────────────────── */
+  /* ═══ GÖREV EKRANI ═══ */
+  function gorevAc(e) {
+    iskelet();
+    gorevEkran.querySelector("#etkGAd").textContent = e.ikon + " " + e.ad;
+    gorevCiz();
+    gorevEkran.classList.add("acik");
+    gorevAcik = true;
+    gorevEkran.style.pointerEvents = "none";
+    setTimeout(function () { if (gorevEkran) gorevEkran.style.pointerEvents = ""; }, HAYALET_MS);
+    if (gorevEkran.animate) {
+      gorevEkran.animate(
+        [{ opacity: 0, transform: "translateY(16px)" }, { opacity: 1, transform: "translateY(0)" }],
+        { duration: 280, easing: "cubic-bezier(.16,1,.3,1)" }
+      );
+    }
+    clearInterval(gorevSayac);
+    gorevSayac = setInterval(function () {
+      var el = gorevEkran.querySelector("#etkGSayac");
+      if (el) el.textContent = yenilenmeyeKalan();
+      /* Gün döndüyse ekran kendini yeniler */
+      var d = durum();
+      if (d && d.gun !== tarihUzun(new Date())) gorevCiz();
+    }, 1000);
+    var sayacEl = gorevEkran.querySelector("#etkGSayac");
+    if (sayacEl) sayacEl.textContent = yenilenmeyeKalan();
+  }
+
+  function gorevKapat() {
+    if (!gorevAcik) return;
+    gorevAcik = false;
+    clearInterval(gorevSayac);
+    popKapat();
+    function bitir() { if (!gorevAcik && gorevEkran) gorevEkran.classList.remove("acik"); }
+    if (gorevEkran.animate) {
+      var a = gorevEkran.animate(
+        [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(16px)" }],
+        { duration: 180, easing: "cubic-bezier(.4,0,.9,.3)" }
+      );
+      a.onfinish = bitir;
+    } else bitir();
+  }
+
+  function gorevCiz() {
+    var alan = gorevEkran.querySelector("#etkGAlan");
+    if (!alan) return;
+    var d = durum();
+    if (!d) {
+      alan.innerHTML = '<div class="etk-g-uyari">Oyun verisi henüz yüklenmedi. ' +
+                       'Kaleye girip tekrar dene.</div>';
+      return;
+    }
+    alan.innerHTML = "";
+
+    /* ── Kutular + coin çubuğu ── */
+    var enBuyuk = KUTULAR[KUTULAR.length - 1].esik || 1;
+    var kutuKap = document.createElement("div");
+    kutuKap.className = "etk-kutular";
+    KUTULAR.forEach(function (k, i) {
+      var acildi = !!d.kutular[i];
+      var acilabilir = !acildi && d.coin >= k.esik;
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "etk-kutu" + (acildi ? " acilmis" : (acilabilir ? " acilabilir" : " kilitli"));
+      b.innerHTML = '<img alt=""><span class="etk-k-esik"></span>';
+      b.querySelector("img").src = acildi ? KUTU_ACIK : KUTU_KAPALI;
+      b.querySelector(".etk-k-esik").textContent = k.esik;
+      b.addEventListener("click", function () { kutuyaBas(i); });
+      kutuKap.appendChild(b);
+
+      if (acilabilir && b.animate) {
+        b.animate(
+          [{ transform: "translateY(0)" }, { transform: "translateY(-5px)" }, { transform: "translateY(0)" }],
+          { duration: 1400, iterations: Infinity, easing: "ease-in-out" }
+        );
+      }
+    });
+    alan.appendChild(kutuKap);
+
+    var cizgi = document.createElement("div");
+    cizgi.className = "etk-cizgi";
+    cizgi.innerHTML = '<div class="etk-cizgi-dolu"></div>';
+    alan.appendChild(cizgi);
+    var dolu = cizgi.querySelector(".etk-cizgi-dolu");
+    var oran = Math.max(0, Math.min(1, d.coin / enBuyuk));
+    dolu.style.width = (oran * 100) + "%";
+
+    var coinEl = document.createElement("div");
+    coinEl.className = "etk-coin";
+    coinEl.textContent = "🪙 " + sayiYaz(d.coin) + " / " + sayiYaz(enBuyuk) + " coin";
+    alan.appendChild(coinEl);
+
+    /* ── Görev satırları ── */
+    GOREVLER.forEach(function (g) {
+      var simdiki = Math.min(d.toplanan[g.kaynak] || 0, g.hedef);
+      var tamam = simdiki >= g.hedef;
+      var alindi = !!d.alinan[g.id];
+
+      var satir = document.createElement("div");
+      satir.className = "etk-satir";
+      satir.innerHTML =
+        '<div class="etk-s-sol">' +
+          '<div class="etk-s-ad"></div>' +
+          '<div class="etk-s-ilerleme"></div>' +
+          '<div class="etk-s-odul"></div>' +
+          '<div class="etk-s-bar"><i></i></div>' +
+        '</div>' +
+        '<button class="etk-s-btn" type="button"></button>';
+      satir.querySelector(".etk-s-ad").textContent = g.ad;
+      satir.querySelector(".etk-s-ilerleme").textContent =
+        sayiYaz(simdiki) + " / " + sayiYaz(g.hedef);
+      satir.querySelector(".etk-s-odul").textContent = "🪙 " + g.coin + " coin";
+      satir.querySelector(".etk-s-bar i").style.width =
+        Math.min(100, (simdiki / g.hedef) * 100) + "%";
+
+      var btn = satir.querySelector(".etk-s-btn");
+      btn.textContent = alindi ? "Alındı" : "Topla";
+      btn.disabled = alindi || !tamam;
+      if (!alindi && tamam) {
+        btn.addEventListener("click", function () { gorevTopla(g); });
+      }
+      alan.appendChild(satir);
+    });
+  }
+
+  function gorevTopla(g) {
+    var d = durum();
+    if (!d || d.alinan[g.id]) return;
+    var simdiki = d.toplanan[g.kaynak] || 0;
+    if (simdiki < g.hedef) return;
+    d.alinan[g.id] = true;
+    d.coin = (d.coin || 0) + g.coin;
+    kaydet();
+    gorevCiz();
+    if (typeof window.showToast === "function") {
+      try { window.showToast("🪙 +" + g.coin + " coin"); } catch (e) {}
+    }
+  }
+
+  /* ═══ KUTU ═══ */
+  function odulYazisi(o) {
+    if (o.tur === "elmas")  return { ikon: "💎", ad: "Elmas", adet: o.miktar };
+    if (o.tur === "kaynak") {
+      var bilgi = (window.DUGUM && window.DUGUM.KAYNAK && window.DUGUM.KAYNAK[o.kaynak]) || null;
+      return { ikon: (bilgi && bilgi.ikon) || "📦",
+               ad: (bilgi && bilgi.ad) || o.kaynak, adet: o.miktar };
+    }
+    return { ikon: "⏩", ad: o.ad, adet: o.adet };
+  }
+
+  function kutuyaBas(i) {
+    var d = durum();
+    if (!d) return;
+    var k = KUTULAR[i];
+    var acildi = !!d.kutular[i];
+    if (!acildi && d.coin >= k.esik) { kutuAc(i); return; }
+    /* Kilitli ya da açılmış: içeriği göster */
+    popListe(
+      acildi ? "Kutu açıldı" : k.esik + " coin kutusu",
+      acildi ? "Bu kutunun ödülleri alındı." : "Bu kutuyu açmak için " + k.esik + " coin gerekir.",
+      k.oduller
+    );
+  }
+
+  function kutuAc(i) {
+    var d = durum();
+    var k = KUTULAR[i];
+    if (!d || d.kutular[i] || d.coin < k.esik) return;
+    d.kutular[i] = true;
+
+    var s = oyunDurumu();
+    if (!s) return;
+    if (!s.kaynaklar) s.kaynaklar = {};
+    if (!s.inventory) s.inventory = {};
+
+    k.oduller.forEach(function (o) {
+      if (o.tur === "elmas") {
+        s.diamonds = (s.diamonds || 0) + Math.max(0, Math.round(o.miktar || 0));
+      } else if (o.tur === "kaynak") {
+        s.kaynaklar[o.kaynak] = (s.kaynaklar[o.kaynak] || 0) + Math.max(0, Math.round(o.miktar || 0));
+      } else if (o.tur === "esya") {
+        s.inventory[o.ad] = (s.inventory[o.ad] || 0) + Math.max(0, Math.round(o.adet || 0));
+      }
+    });
+
+    if (typeof window.renderDiamonds === "function")  { try { window.renderDiamonds(); } catch (e) {} }
+    if (typeof window.renderKaynaklar === "function") { try { window.renderKaynaklar(); } catch (e) {} }
+    if (typeof window.renderInventory === "function") { try { window.renderInventory(); } catch (e) {} }
+    kaydet();
+
+    gorevCiz();
+    popListe("🎁 Kutu açıldı!", "Ödüller çantana ve deponuna eklendi.", k.oduller);
+  }
+
+  /* ═══ AÇILIR PENCERE ═══ */
+  function popListe(baslik, altYazi, oduller) {
+    var pop = document.getElementById("etkPop");
+    if (!pop) return;
+    var kutu = pop.querySelector("#etkPopKutu");
+    var html = '<div class="etk-p-ad"></div><div class="etk-p-alt"></div><div class="etk-p-liste">';
+    kutu.innerHTML = html + '</div><button class="etk-p-btn" type="button">Tamam</button>';
+    kutu.querySelector(".etk-p-ad").textContent = baslik;
+    kutu.querySelector(".etk-p-alt").textContent = altYazi;
+
+    var liste = kutu.querySelector(".etk-p-liste");
+    oduller.forEach(function (o) {
+      var y = odulYazisi(o);
+      var satir = document.createElement("div");
+      satir.className = "etk-p-oge";
+      satir.innerHTML = "<span></span><span></span><b></b>";
+      var s = satir.querySelectorAll("span");
+      s[0].textContent = y.ikon;
+      s[1].textContent = y.ad;
+      satir.querySelector("b").textContent = sayiYaz(y.adet);
+      liste.appendChild(satir);
+    });
+
+    kutu.querySelector(".etk-p-btn").addEventListener("click", popKapat);
+    pop.classList.add("acik");
+    if (kutu.animate) {
+      kutu.animate(
+        [{ opacity: 0, transform: "translateY(14px) scale(.96)" },
+         { opacity: 1, transform: "translateY(0) scale(1)" }],
+        { duration: 260, easing: "cubic-bezier(.16,1,.3,1)" }
+      );
+    }
+  }
+
+  function popKapat() {
+    var pop = document.getElementById("etkPop");
+    if (pop) pop.classList.remove("acik");
+  }
+
+  /* ═══ TAKVİM AÇ / KAPAT ═══ */
   function ac() {
     iskelet();
     if (acik) return;
@@ -265,8 +633,7 @@
     setTimeout(function () { if (ekran) ekran.style.pointerEvents = ""; }, HAYALET_MS);
     if (ekran.animate) {
       ekran.animate(
-        [{ opacity: 0, transform: "translateY(16px)" },
-         { opacity: 1, transform: "translateY(0)" }],
+        [{ opacity: 0, transform: "translateY(16px)" }, { opacity: 1, transform: "translateY(0)" }],
         { duration: 280, easing: "cubic-bezier(.16,1,.3,1)" }
       );
     }
@@ -278,44 +645,18 @@
     if (!acik) return;
     acik = false;
     clearInterval(saatSayac);
-    detayKapat();
+    gorevKapat();
     function bitir() { if (!acik && ekran) ekran.classList.remove("acik"); }
     if (ekran.animate) {
       var a = ekran.animate(
-        [{ opacity: 1, transform: "translateY(0)" },
-         { opacity: 0, transform: "translateY(16px)" }],
+        [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(16px)" }],
         { duration: 180, easing: "cubic-bezier(.4,0,.9,.3)" }
       );
       a.onfinish = bitir;
     } else bitir();
   }
 
-  function detayAc(e, haftaBas) {
-    var kutu = document.getElementById("etkDetay");
-    if (!kutu) return;
-    var d1 = gunTarihi(haftaBas, e.basGun - 1);
-    var d2 = gunTarihi(haftaBas, e.bitGun - 1);
-    document.getElementById("etkDAd").textContent = e.ikon + "  " + e.ad;
-    document.getElementById("etkDTarih").textContent =
-      tarihUzun(d1) + " 00:00  →  " + tarihUzun(d2) + " 23:59 UTC";
-    document.getElementById("etkDMetin").textContent = e.aciklama;
-    kutu.classList.add("acik");
-    var ic = kutu.querySelector(".etk-d-kutu");
-    if (ic && ic.animate) {
-      ic.animate(
-        [{ opacity: 0, transform: "translateY(14px) scale(.96)" },
-         { opacity: 1, transform: "translateY(0) scale(1)" }],
-        { duration: 260, easing: "cubic-bezier(.16,1,.3,1)" }
-      );
-    }
-  }
-
-  function detayKapat() {
-    var kutu = document.getElementById("etkDetay");
-    if (kutu) kutu.classList.remove("acik");
-  }
-
-  /* ── 6) BAŞLAT ────────────────────────────────────────────────── */
+  /* ═══ BAŞLAT ═══ */
   function baslat() { stilBas(); iskelet(); }
 
   if (document.readyState === "loading") {
@@ -328,16 +669,24 @@
     SURUM: SURUM,
     ac: ac, kapat: kapat,
     liste: ETKINLIKLER,
+    gorevler: GOREVLER,
+    kutular: KUTULAR,
+    toplamaBildir: toplamaBildir,
     tani: function () {
       var simdi = new Date();
       var bas = haftaBasi(simdi);
+      var d = durum();
       return {
         surum: SURUM,
         utc: saatYazisi(simdi),
+        yenilenmeye: yenilenmeyeKalan(),
         haftaBasi: tarihUzun(new Date(bas)),
-        bugunIndeks: bugunIndeks(simdi),
-        ikonVar: !!document.getElementById("etkIkon"),
-        ekranVar: !!document.getElementById("etkEkran"),
+        durumVar: !!d,
+        gun: d ? d.gun : null,
+        coin: d ? d.coin : null,
+        toplanan: d ? d.toplanan : null,
+        alinan: d ? Object.keys(d.alinan) : null,
+        acilanKutular: d ? Object.keys(d.kutular) : null,
         etkinlikler: ETKINLIKLER.map(function (e) {
           return e.ad + " " + tarihUzun(gunTarihi(bas, e.basGun - 1)) +
                  " → " + tarihUzun(gunTarihi(bas, e.bitGun - 1));

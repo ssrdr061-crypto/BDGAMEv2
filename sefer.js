@@ -827,7 +827,7 @@ async function toplamayiBitir(id, s) {
       /* Kilit düştü: adım haritadan kalksın. */
       try { if (window.HARITA && HARITA.dugumTazele) HARITA.dugumTazele(); } catch (e) {}
     }
-    donuseGec(id, s, yuk);
+    donuseGec(id, s, yuk, "toplama");
   } catch (err) {
     console.error("[sefer] toplama bitirilemedi:", err);
     toast("Toplama bitirilemedi — konsola bak.", 5000);
@@ -836,12 +836,16 @@ async function toplamayiBitir(id, s) {
   _isleniyor.delete(id);
 }
 
-/* Ortak dönüş geçişi — yükle birlikte. */
-function donuseGec(id, s, yuk) {
+/* Ortak dönüş geçişi — yükle birlikte.
+   yukTur: yükün nereden geldiği. "toplama" ise etkinlik sayacı bunu
+   sayar (etkinlik.js). Savaş ganimeti bu yoldan geçmez, o yüzden
+   ganimet etkinliğe yazılmaz. */
+function donuseGec(id, s, yuk, yukTur) {
   seferYaz(id, Object.assign({}, s, {
     durum: "donus", donusAt: Date.now(), donusSureMs: s.sureMs,
     donusFx: s.tx, donusFy: s.ty,
     yuk: yuk || {},
+    yukTur: yukTur || null,
   }));
 }
 
@@ -956,6 +960,16 @@ function seferiBitir(id, s, sessiz) {
       if (typeof renderKaynaklar === "function") { try { renderKaynaklar(); } catch (e) {} }
       if (typeof persistCurrentState === "function") { try { persistCurrentState(); } catch (e) {} }
     }
+
+    /* ── ETKİNLİK SAYACI ──
+       Toplama görevlerinin ilerlemesi TEK yerden sayılır: yükün
+       depoya girdiği bu an. Savaş ganimeti (yukTur boş) sayılmaz.
+       etkinlik.js yüklü değilse sayacak bir şey de yoktur. */
+    if (s.yukTur === "toplama" && window.ETKINLIK &&
+        typeof window.ETKINLIK.toplamaBildir === "function") {
+      try { window.ETKINLIK.toplamaBildir(yuk); }
+      catch (e) { console.error("[sefer] etkinlik sayacı:", e); }
+    }
   }
 
   const yarali = s.yaralilar || null;
@@ -1024,7 +1038,7 @@ function geriCagir(id) {
         }
         if (window.DUGUM) await DUGUM.isgalBirak(s.slotId);
       } catch (e) { console.error("[sefer] geri çağırma:", e); }
-      donuseGec(id, s, yuk);
+      donuseGec(id, s, yuk, "toplama");
       toast(`↩️ Ordun toplamayı bırakıp dönüyor (${kismi > 0 ? "kısmi yük alındı" : "eli boş"}).`, 4000);
     })();
     return;
