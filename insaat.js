@@ -277,6 +277,22 @@
     return MUAF_SIRA[(hedefSv - 2) % MUAF_SIRA.length];
   }
 
+  /* ── KAYNAK BİNASI KAPISI — SABİT BEŞLİ DÖNGÜ ──
+     Ana Kale kapısı beş kaynak binasını birden istemez; her hedef
+     seviyede yalnız SIRADAKİ bina Sv hedef-1 olmalı, diğer dördü
+     kapıdan hiç çıkmaz. Kışla muafiyetiyle aynı desen: liste sabit,
+     oyuncu seçmez, ikinci bir kural yok.
+
+     KİLİTLENME YOK: istenen seviye yine hedef-1, yani kalenin mevcut
+     seviyesi — kaleTavani o binayı zaten oraya çıkarabiliyor.
+     Sv1→Sv10 boyunca sıra Odun · Ahır · Demir · Su · Enerji · Odun …
+     olarak döner, aynı bina iki hedefte üst üste istenmez. */
+  var KAYNAK_SIRA = ["odun", "ahir", "demir", "su", "enerji"];
+  function kapiKaynagi(hedefSv) {
+    var n = KAYNAK_SIRA.length;
+    return KAYNAK_SIRA[(((hedefSv - 2) % n) + n) % n];
+  }
+
   var ADLAR = {
     kale: "Ana Kale", odun: "Odun", ahir: "Ahır", demir: "Demir",
     su: "Su", enerji: "Enerji", arastirma: "Araştırma",
@@ -457,9 +473,12 @@
      kaleKapisi() ile AYNI kuraldan uretilir, ikinci bir kural yok. */
   function kaleKapisiListe(hedef) {
     var muaf = muafKisla(hedef);
+    var siradakiKaynak = kapiKaynagi(hedef);
     var liste = [];
     Object.keys(TIP).forEach(function (id) {
       if (id === "kale") return;
+      /* Kaynak binalarından yalnız döngüdeki bina kapıya girer. */
+      if (TIP[id] === "kaynak" && id !== siradakiKaynak) return;
       var gerek;
       if (KALE_ESIK[id])      gerek = tesisGereken(id, hedef);
       else if (id === muaf)   gerek = hedef - 2;
