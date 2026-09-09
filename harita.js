@@ -2389,9 +2389,40 @@
      böyle kırılmıştı: ekranKonumu/aktifMi hiç açılmamıştı ve füze
      aylarca eski yüzde hesabına düşüyordu. Buradan bir şey silmeden
      önce projede ADINI ARA. */
+  /* ── UÇ PAYI KARO CİNSİNDEN (sefer.js süreyi buradan kısaltır) ──
+     Çizimde yol kalenin kenarında başlayıp kenarında bitiyorsa,
+     mesafe de o kenarlara göre ölçülmeli. Çizimle AYNI iki fonksiyonu
+     kullanır (dugumEkranKutusu + kutuPayi), ikinci bir formül yok.
+     Dönen sayı KARO'dur: bir karo, o yönde iki yarıçap eder.
+     Harita henüz çizilmemişse veya düğüm bulunamazsa 0 döner; süre
+     tam mesafeden hesaplanır, sefer yine çalışır. */
+  function yolPayiKaro(fgx, fgy, tgx, tgy) {
+    try {
+      const A = ekranKonumu(fgx, fgy), B = ekranKonumu(tgx, tgy);
+      const dx = B.x - A.x, dy = B.y - A.y;
+      const L = Math.hypot(dx, dy);
+      if (!(L > 0.001) || !(A.zoom > 0)) return 0;
+
+      const ux = dx / L, uy = dy / L;
+      const bolen = Math.abs(ux) / HALF_W + Math.abs(uy) / HALF_H;
+      if (!(bolen > 0)) return 0;
+      const yaricapDunya = 1 / bolen;              /* yarım karo, dünya px */
+      const karoPayi = yaricapDunya * A.zoom;      /* ekran px */
+
+      const cikis = Math.max(karoPayi,
+        kutuPayi(dugumEkranKutusu(fgx, fgy), A.x, A.y, ux, uy) * YOL_PAY_KATSAYI);
+      const varis = Math.max(karoPayi,
+        kutuPayi(dugumEkranKutusu(tgx, tgy), B.x, B.y, -ux, -uy) * YOL_PAY_KATSAYI);
+
+      const toplam = Math.min(cikis + varis, L);
+      const karoPx = 2 * yaricapDunya * A.zoom;    /* bir karo, ekran px */
+      return karoPx > 0 ? toplam / karoPx : 0;
+    } catch (e) { return 0; }
+  }
+
   window.HARITA = { CFG, ciz, cizIste, gridToWorld, worldToGrid, biyom, ortala,
                     dugumleriYerlestir, ekranKonumu, merkezle, ORAN, onbellegiBosalt,
-                    dugumOnbellegiBosalt,
+                    dugumOnbellegiBosalt, yolPayiKaro,
                     /* canvas düğüm katmanı */
                     dugumBul, dugumTazele, cizUstIste,
                     ekranaGoreIzgara,

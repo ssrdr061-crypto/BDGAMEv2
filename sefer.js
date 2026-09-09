@@ -137,8 +137,23 @@ function oran() {
 function gorselKaroMesafesi(fx, fy, tx, ty) {
   return Math.hypot(tx - fx, ty - fy) * oran();
 }
+/* Yolun iki ucundan kırpılan pay, KARO cinsinden. Ölçü harita.js'te,
+   çizimle aynı yerde duruyor: burada ikinci bir hesap tutulsaydı
+   çizgi ile süre ayrışırdı. Harita cevap vermezse 0 — süre tam
+   mesafeden hesaplanır. */
+function ucPayiKaro(fx, fy, tx, ty) {
+  const H = window.HARITA;
+  if (!H || typeof H.yolPayiKaro !== "function") return 0;
+  let n = 0;
+  try { n = Number(H.yolPayiKaro(fx, fy, tx, ty)); } catch (e) { return 0; }
+  return (isFinite(n) && n > 0) ? n : 0;
+}
 function sureHesapla(fx, fy, tx, ty) {
-  const karo = gorselKaroMesafesi(fx, fy, tx, ty);
+  /* Ordu karo ORTASINA değil, hedef görselinin KENARINA varınca
+     savaşıyor; mesafe de oraya kadar ölçülür. Pay yolun tamamını
+     yiyemez, en az bir karoluk yürüyüş kalır. */
+  const tam = gorselKaroMesafesi(fx, fy, tx, ty);
+  const karo = Math.max(Math.min(tam, 1), tam - ucPayiKaro(fx, fy, tx, ty));
   return Math.max(AYAR.MIN_SURE_MS, Math.round(karo * AYAR.SANIYE_PER_GORSEL_KARO * 1000));
 }
 function gecerli(s) {
