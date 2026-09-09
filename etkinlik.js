@@ -119,7 +119,10 @@
   /* ═══ DURUM ═══
      state.etkinlik = { gun, toplanan:{}, alinan:{}, coin, kutular:{} }
      Gün değişince sayaçlar sıfırlanır. */
-  function oyunDurumu() { return (typeof window.state !== "undefined") ? window.state : null; }
+  /* index.html'de `const state = defaultState();` diye tanımlı.
+     const global NESNEYE yazılmaz — window.state HER ZAMAN undefined.
+     sefer.js gibi çıplak `state` üzerinden okunur. */
+  function oyunDurumu() { return (typeof state !== "undefined") ? state : null; }
 
   function durum() {
     var s = oyunDurumu();
@@ -136,8 +139,8 @@
   }
 
   function kaydet() {
-    if (typeof window.persistCurrentState === "function") {
-      try { window.persistCurrentState(); } catch (e) {}
+    if (typeof persistCurrentState === "function") {
+      try { persistCurrentState(); } catch (e) {}
     }
   }
 
@@ -522,8 +525,8 @@
     d.coin = (d.coin || 0) + g.coin;
     kaydet();
     gorevCiz();
-    if (typeof window.showToast === "function") {
-      try { window.showToast("🪙 +" + g.coin + " coin"); } catch (e) {}
+    if (typeof showToast === "function") {
+      try { showToast("🪙 +" + g.coin + " coin"); } catch (e) {}
     }
   }
 
@@ -573,9 +576,9 @@
       }
     });
 
-    if (typeof window.renderDiamonds === "function")  { try { window.renderDiamonds(); } catch (e) {} }
-    if (typeof window.renderKaynaklar === "function") { try { window.renderKaynaklar(); } catch (e) {} }
-    if (typeof window.renderInventory === "function") { try { window.renderInventory(); } catch (e) {} }
+    if (typeof renderDiamonds === "function")  { try { renderDiamonds(); } catch (e) {} }
+    if (typeof renderKaynaklar === "function") { try { renderKaynaklar(); } catch (e) {} }
+    if (typeof renderInventory === "function") { try { renderInventory(); } catch (e) {} }
     kaydet();
 
     gorevCiz();
