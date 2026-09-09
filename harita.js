@@ -1224,6 +1224,61 @@
      Artık zeminle AYNI karede, AYNI pan/zoom değeriyle çiziliyor —
      kayma matematiksel olarak imkânsız.
      ═════════════════════════════════════════════════════════════════════ */
+  /* ── DÜĞÜM GÖRSELİNİN EKRAN KUTUSU ──
+     Kale sprite'ı karodan çok daha büyük: seviyeye göre 122–198 px ve
+     üstüne dy ile yukarı kaydırılmış (index.html .castle-node
+     .node-avatar). Bu yüzden "karo kenarı" hâlâ resmin ta içine düşüyor
+     ve sefer çizgisi kalenin gövdesinden çıkıyormuş gibi duruyordu.
+
+     Ölçü BURADA İKİNCİ BİR TABLOYA yazılmaz — ekrandaki kutudan
+     okunur (getBoundingClientRect). Kale boyunu değiştirdiğinde yol
+     kendiliğinden uyar, düzeltilecek ikinci yer olmaz.
+     Karoda DOM düğümü yoksa (kaynak/arazi karoları canvas'a çizilir)
+     null döner; çağıran taraf karo kenarına düşer. */
+  let _kutuOnbellek = null;   /* yalnız tek çizim karesi boyunca yaşar */
+
+  function dugumEkranKutusu(gx, gy) {
+    const anahtar = gx + "," + gy;
+    if (_kutuOnbellek && _kutuOnbellek.has(anahtar)) return _kutuOnbellek.get(anahtar);
+    let kutu = null;
+    try {
+      const mapEl = document.getElementById("battleMap");
+      if (mapEl && uv) {
+        const p = gridToWorld(gx * ORAN, gy * ORAN);
+        const wx = p.x + HALF_W, wy = p.y + HALF_H;
+        const liste = dugumOnbellegi(mapEl);
+        for (let i = 0; i < liste.length; i++) {
+          if (Math.abs(liste[i].wx - wx) > 1 || Math.abs(liste[i].wy - wy) > 1) continue;
+          const el = liste[i].el;
+          if (!el.isConnected || el.style.display === "none") break;
+          const hedef = el.querySelector(".node-avatar") || el;
+          const r = hedef.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0) {
+            /* Kutu, canvas'ın kendi koordinatına çevrilir: düğüm katmanı
+               ile canvas ayrı elemanlar, sol üst köşeleri çakışmayabilir. */
+            const kr = uv.getBoundingClientRect();
+            kutu = { x1: r.left - kr.left, y1: r.top - kr.top,
+                     x2: r.right - kr.left, y2: r.bottom - kr.top };
+          }
+          break;
+        }
+      }
+    } catch (e) { kutu = null; }
+    if (_kutuOnbellek) _kutuOnbellek.set(anahtar, kutu);
+    return kutu;
+  }
+
+  /* Karo merkezinden (cx,cy) yön (ux,uy) boyunca kutunun kenarına kadar
+     olan uzaklık. Merkez kutunun dışında kalıyorsa (dy kaydırması
+     büyükse olur) 0 döner — yol uzatılmaz, yalnız kısaltılır. */
+  function kutuPayi(kutu, cx, cy, ux, uy) {
+    if (!kutu) return 0;
+    let t = Infinity;
+    if (Math.abs(ux) > 1e-6) t = Math.min(t, Math.max((kutu.x1 - cx) / ux, (kutu.x2 - cx) / ux));
+    if (Math.abs(uy) > 1e-6) t = Math.min(t, Math.max((kutu.y1 - cy) / uy, (kutu.y2 - cy) / uy));
+    return (isFinite(t) && t > 0) ? t : 0;
+  }
+
   function cizSeferler(c, panX, panY, zoom, w, h) {
     const S = window.SEFER;
     if (!S || !S.liste) return 0;
@@ -1237,6 +1292,10 @@
 
     c.save();
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    /* Kutu ölçüleri tek kare boyunca saklanır: aynı kaleye iki sefer
+       varsa rect bir kez okunur, her seferde yeniden değil. */
+    _kutuOnbellek = new Map();
 
     const kayma = -((Date.now() / 45) % 22);   /* akan kesik çizgi */
     let sayi = 0;
@@ -1255,27 +1314,32 @@
       const bx = (gridToWorld(ev.bx * ORAN, ev.by * ORAN).x + HALF_W) * zoom + panX;
       const by = (gridToWorld(ev.bx * ORAN, ev.by * ORAN).y + HALF_H) * zoom + panY;
 
-      /* ── UÇLARI KARO KENARINA ÇEK ──
-         Yol karo MERKEZİNDEN merkeze gidiyordu. Kale görseli dy ile
-         yukarı kaydırıldığı için karo merkezi resmin altına düşüyor;
-         işaretçi kalenin içine girip "taşmış" gibi duruyordu. İki ucu
-         da gidiş yönü boyunca karonun KENARINA kadar geri çekiyoruz.
-
-         Karo eşkenar dörtgen (|x|/HALF_W + |y|/HALF_H = 1), yarıçap
-         YÖNE göre değişir — sabit piksel payı yatay yolda kısa,
-         dikey yolda uzun kalırdı. Pay dünya ölçüsünde hesaplanır,
-         uçlar zaten zoom'lu olduğu için zoom ile çarpılır. */
+      /* ── UÇLARI GÖRSELİN KENARINA ÇEK ──
+         Yol karo MERKEZİNDEN merkeze gidiyordu; kale sprite'ı karodan
+         büyük ve dy ile kaydırılmış olduğu için çizgi hem kendi
+         kalemin hem rakibin gövdesinin içinden çıkıyordu.
+         İki uç da, gidiş yönü boyunca o karodaki düğüm görselinin
+         KENARINA kadar geri çekilir; düğüm yoksa en az karo kenarı
+         kadar (eşkenar dörtgen: |x|/HALF_W + |y|/HALF_H = 1). */
       let sx = ax, sy = ay, hx = bx, hy = by;
       const uzunluk = Math.hypot(bx - ax, by - ay);
       if (uzunluk > 0.001) {
         const ux = (bx - ax) / uzunluk, uy = (by - ay) / uzunluk;
         const bolen = Math.abs(ux) / HALF_W + Math.abs(uy) / HALF_H;
-        const yaricap = bolen > 0 ? (1 / bolen) * zoom : 0;
+        const karoPayi = bolen > 0 ? (1 / bolen) * zoom : 0;
+
+        let cikis = Math.max(karoPayi, kutuPayi(dugumEkranKutusu(ev.ax, ev.ay), ax, ay, ux, uy));
+        let varis = Math.max(karoPayi, kutuPayi(dugumEkranKutusu(ev.bx, ev.by), bx, by, -ux, -uy));
+
         /* Komşu karoda iki uç birbirini geçmesin: yol sıfıra iner,
            ters dönmez. */
-        const pay = Math.min(yaricap, uzunluk / 2);
-        sx = ax + ux * pay; sy = ay + uy * pay;
-        hx = bx - ux * pay; hy = by - uy * pay;
+        const toplam = cikis + varis;
+        if (toplam > uzunluk && toplam > 0) {
+          const k = uzunluk / toplam;
+          cikis *= k; varis *= k;
+        }
+        sx = ax + ux * cikis; sy = ay + uy * cikis;
+        hx = bx - ux * varis; hy = by - uy * varis;
       }
 
       /* Ordunun anlık yeri: yol üzerinde ilerleme oranı kadar.
