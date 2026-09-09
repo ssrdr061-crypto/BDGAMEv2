@@ -2133,8 +2133,19 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   line-height:22px; cursor:pointer;
 }
 #seferAyarPanel .sap-bas .sap-kapat{ margin-left:0; }
+/* Gövde kendi içinde kayar. Telefonda kaydırma çubuğu varsayılan
+   olarak gizli; panelde aşağıda daha ölçü olduğu belli olsun diye
+   görünür ve tutulabilir kalınlıkta yapıldı. */
 #seferAyarPanel .sap-govde{
-  max-height:52vh; overflow-y:auto; padding:6px 8px 8px;
+  max-height:52vh; overflow-y:scroll; padding:6px 8px 8px;
+  scrollbar-width:thin; scrollbar-color:#4fd8ff rgba(4,16,30,.6);
+}
+#seferAyarPanel .sap-govde::-webkit-scrollbar{ width:8px; }
+#seferAyarPanel .sap-govde::-webkit-scrollbar-track{
+  background:rgba(4,16,30,.6); border-radius:4px;
+}
+#seferAyarPanel .sap-govde::-webkit-scrollbar-thumb{
+  background:#4fd8ff; border-radius:4px;
 }
 #seferAyarPanel.sap-kapali .sap-govde{ display:none; }
 #seferAyarPanel .sap-satir{ padding:3px 0; }
@@ -2160,7 +2171,7 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 }
 #seferAyarPanel .sap-son{ display:flex; gap:6px; margin-top:8px; }
 #seferAyarPanel .sap-eylem{
-  flex:1 1 0; height:26px; padding:0;
+  flex:1 1 0; min-width:0; height:26px; padding:0;
   border:none; border-radius:8px; cursor:pointer;
   background:linear-gradient(180deg,#5a6b80,#3b4859);
   color:#eaf6ff; font-family:inherit; font-weight:800; font-size:10px;
@@ -2241,7 +2252,7 @@ function yoldakiBirlikler() {
    (transform dokunma alanını taşımaz). */
 const SEFERAYAR_DEPO = "seferAyar_v1";
 const SEFERAYAR_ALANLAR = [
-  { k: "--sf-en",          ad: "Yazı+bar genişliği",min: 30,  max: 260, adim: 1 },
+  { k: "--sf-en",          ad: "Kutu eni",          min: 20,  max: 260, adim: 1 },
   { k: "--sf-boy",         ad: "Kutu yüksekliği",   min: 18,  max: 80,  adim: 1 },
   { k: "--sf-yuv",         ad: "Köşe yuvarlaklığı", min: 0,   max: 30,  adim: 1 },
   { k: "--sf-ara",         ad: "Kutular arası",     min: 0,   max: 24,  adim: 1 },
@@ -2313,7 +2324,8 @@ function seferAyarPaneli() {
         '</div>').join("") +
       '<div class="sap-son">' +
         '<button class="sap-eylem sap-sifirla" type="button">Sıfırla</button>' +
-        '<button class="sap-eylem sap-goster" type="button">Değerleri göster</button>' +
+        '<button class="sap-eylem sap-goster" type="button">Göster</button>' +
+        '<button class="sap-eylem sap-kopyala" type="button">Kopyala</button>' +
       '</div>' +
       '<textarea class="sap-cikti" readonly rows="7" hidden></textarea>' +
     '</div>';
@@ -2391,6 +2403,34 @@ function seferAyarPaneli() {
     cikti.hidden = !cikti.hidden;
     yenile();
     if (!cikti.hidden) cikti.select();
+  });
+  /* KOPYALA — navigator.clipboard her yerde yok (http, izin, eski
+     WebView). O yüzden önce o denenir, olmazsa metin kutusu seçilip
+     execCommand('copy') ile kopyalanır. İkisi de olmazsa dürüstçe
+     söyler: sessizce "kopyalandı" yazmaz. */
+  kok.querySelector(".sap-kopyala").addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    const eskiYazi = "Kopyala";
+    if (cikti.hidden) { cikti.hidden = false; yenile(); }
+    const metin = cikti.value;
+    const bitir = (y) => { b.textContent = y; setTimeout(() => { b.textContent = eskiYazi; }, 1200); };
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(metin);
+        bitir("Kopyalandı"); return;
+      }
+    } catch (x) {}
+    try {
+      cikti.removeAttribute("readonly");        /* iOS readonly'de seçmiyor */
+      cikti.focus();
+      cikti.setSelectionRange(0, metin.length);
+      const ok = document.execCommand("copy");
+      cikti.setAttribute("readonly", "readonly");
+      bitir(ok ? "Kopyalandı" : "Olmadı, elle seç");
+    } catch (x) {
+      cikti.setAttribute("readonly", "readonly");
+      bitir("Olmadı, elle seç");
+    }
   });
   kok.querySelector(".sap-kapat").addEventListener("click", () => kok.remove());
   kok.querySelector(".sap-kucult").addEventListener("click", () => {
