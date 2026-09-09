@@ -1255,23 +1255,46 @@
       const bx = (gridToWorld(ev.bx * ORAN, ev.by * ORAN).x + HALF_W) * zoom + panX;
       const by = (gridToWorld(ev.bx * ORAN, ev.by * ORAN).y + HALF_H) * zoom + panY;
 
+      /* ── UÇLARI KARO KENARINA ÇEK ──
+         Yol karo MERKEZİNDEN merkeze gidiyordu. Kale görseli dy ile
+         yukarı kaydırıldığı için karo merkezi resmin altına düşüyor;
+         işaretçi kalenin içine girip "taşmış" gibi duruyordu. İki ucu
+         da gidiş yönü boyunca karonun KENARINA kadar geri çekiyoruz.
+
+         Karo eşkenar dörtgen (|x|/HALF_W + |y|/HALF_H = 1), yarıçap
+         YÖNE göre değişir — sabit piksel payı yatay yolda kısa,
+         dikey yolda uzun kalırdı. Pay dünya ölçüsünde hesaplanır,
+         uçlar zaten zoom'lu olduğu için zoom ile çarpılır. */
+      let sx = ax, sy = ay, hx = bx, hy = by;
+      const uzunluk = Math.hypot(bx - ax, by - ay);
+      if (uzunluk > 0.001) {
+        const ux = (bx - ax) / uzunluk, uy = (by - ay) / uzunluk;
+        const bolen = Math.abs(ux) / HALF_W + Math.abs(uy) / HALF_H;
+        const yaricap = bolen > 0 ? (1 / bolen) * zoom : 0;
+        /* Komşu karoda iki uç birbirini geçmesin: yol sıfıra iner,
+           ters dönmez. */
+        const pay = Math.min(yaricap, uzunluk / 2);
+        sx = ax + ux * pay; sy = ay + uy * pay;
+        hx = bx - ux * pay; hy = by - uy * pay;
+      }
+
       /* Ordunun anlık yeri: yol üzerinde ilerleme oranı kadar.
          TOPLARKEN ilerleme yolu değil kaynağı ölçer; ordu hedefte
          durur, o yüzden doğrudan hedef noktası alınır. */
       const t = (ev.ad === "topla") ? 1 : ev.p;
-      const ox = ax + (bx - ax) * t;
-      const oy = ay + (by - ay) * t;
+      const ox = sx + (hx - sx) * t;
+      const oy = sy + (hy - sy) * t;
 
       /* Tümüyle ekran dışındaysa hiç çizme. */
       const disari = (x, y) => (x < -160 || y < -160 || x > w + 160 || y > h + 160);
-      if (disari(ax, ay) && disari(bx, by) && disari(ox, oy)) continue;
+      if (disari(sx, sy) && disari(hx, hy) && disari(ox, oy)) continue;
       sayi++;
 
       /* YOL — toplarken yol çizilmez, ordu zaten varmış durumda. */
       if (ev.ad !== "topla") {
         c.beginPath();
-        c.moveTo(ax, ay);
-        c.lineTo(bx, by);
+        c.moveTo(sx, sy);
+        c.lineTo(hx, hy);
         c.strokeStyle = renk;
         c.globalAlpha = benim ? 0.9 : 0.55;
         c.lineWidth = benim ? 3 : 2;
