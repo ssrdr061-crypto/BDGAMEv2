@@ -1268,12 +1268,13 @@
     return kutu;
   }
 
-  /* ── SEFER YOLU UÇ PAYI — İNCE AYAR (?yolayar=1) ──
+  /* ── SEFER YOLU UÇ PAYI ──
      Kale görseli KARE bir PNG ve içinde şeffaf boşluk var: kutunun
-     kenarı çatının epey yukarısında kalıyor, yol da olduğundan kısa
-     duruyor. Kutu payı bu katsayıyla kısılır. Panelde gözle ölçülüp
-     kalıcı yazılacak, sonra panel silinecek. */
-  let YOL_PAY_KATSAYI = 0.5;
+     tam kenarı çatının epey yukarısında kalıyor, yol da olduğundan
+     kısa duruyordu. Kutu payı bu katsayıyla kısılır.
+     0.51 ekranda ölçüldü (9 Eyl, ?yolayar=1 paneliyle); panel iş
+     bitince silindi. */
+  const YOL_PAY_KATSAYI = 0.51;
 
   /* Karo merkezinden (cx,cy) yön (ux,uy) boyunca kutunun kenarına kadar
      olan uzaklık. Merkez kutunun dışında kalıyorsa (dy kaydırması
@@ -1285,33 +1286,6 @@
     if (Math.abs(uy) > 1e-6) t = Math.min(t, Math.max((kutu.y1 - cy) / uy, (kutu.y2 - cy) / uy));
     return (isFinite(t) && t > 0) ? t : 0;
   }
-
-  /* ── YOL UÇ PAYI PANELİ — GEÇİCİ (?yolayar=1) ──
-     Kaydırıcı YOL_PAY_KATSAYI'yı canlı değiştirir; değer ekranda
-     yazar. Doğru sayı bulununca yukarıdaki varsayılana yazılacak ve
-     bu blok silinecek. İş bitince kalmayacak. */
-  (function yolAyarPaneli() {
-    if (location.search.indexOf("yolayar=1") < 0) return;
-    function kur() {
-      if (!document.body) { setTimeout(kur, 200); return; }
-      var k = document.createElement("div");
-      k.id = "yolAyarPanel";
-      k.style.cssText = "position:fixed;left:8px;right:8px;bottom:96px;z-index:99999;" +
-        "background:rgba(2,8,22,.92);color:#9fe6ff;font:800 12px/1.4 'Baloo 2',sans-serif;" +
-        "padding:8px 10px;border-radius:10px;";
-      k.innerHTML = "<div id='yolAyarYazi'>uç payı: 0.50</div>" +
-        "<input id='yolAyarKaydir' type='range' min='0' max='100' value='50' " +
-        "style='width:100%;margin-top:6px;'>";
-      document.body.appendChild(k);
-      var yazi = k.querySelector("#yolAyarYazi");
-      k.querySelector("#yolAyarKaydir").addEventListener("input", function () {
-        YOL_PAY_KATSAYI = Number(this.value) / 100;
-        yazi.textContent = "uç payı: " + YOL_PAY_KATSAYI.toFixed(2);
-        try { cizIste(); } catch (e) {}
-      });
-    }
-    kur();
-  })();
 
   function cizSeferler(c, panX, panY, zoom, w, h) {
     const S = window.SEFER;
