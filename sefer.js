@@ -1601,7 +1601,9 @@ function hizlandirSor(id) {
   const secenekler = {
     kutular: cantaKutulari(),
     kullanFn: (ad) => urunleHizlandir(id, ad),
-    kapatX: true, solKirmizi: true, kalici: true
+    kapatX: true, solKirmizi: true, kalici: true,
+    /* Pencere açıkken harita kaydırılabilsin. */
+    haritaSerbest: true
   };
   if (!donuyor) {
     secenekler.solEtiket = "Geri Çağır";
@@ -1762,7 +1764,7 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 
   const kok = document.createElement("div");
   kok.id = "seferOnayModal";
-  kok.className = "sefer-onay-modal";
+  kok.className = "sefer-onay-modal" + (sec.haritaSerbest ? " som-gecirgen" : "");
   kok.innerHTML = `
     <div class="overlay-card som-card${baslik ? "" : " som-card-sade"}">
       ${sec.kapatX ? `<button class="som-x" type="button" aria-label="Kapat">✕</button>` : ""}
@@ -1777,9 +1779,14 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
     </div>`;
   document.body.appendChild(kok);
 
-  /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu. */
-  kok.style.pointerEvents = "none";
-  setTimeout(() => { kok.style.pointerEvents = ""; }, 350);
+  /* Hayalet tıklama: dokunuşla açılan pencere click'i yiyordu.
+     GEÇİRGEN pencerede koruma KÖKE değil KARTA yazılır: kökün
+     pointer-events'ı none, kartınki auto — köke inline none yazmak
+     kartı kapatmaz (çocuk auto derse yine tıklanır), üstelik 350 ms
+     sonra "" ile silinince kök yeniden olayları yutardı. */
+  const korumaEl = sec.haritaSerbest ? (kok.querySelector(".som-card") || kok) : kok;
+  korumaEl.style.pointerEvents = "none";
+  setTimeout(() => { korumaEl.style.pointerEvents = ""; }, 350);
 
   const kapat = () => kok.remove();
   /* kapatMi=false: pencere AÇIK kalır — arka arkaya hızlandırmak için. */
@@ -1859,7 +1866,11 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 
   kok.querySelector(".som-btn-no, .som-btn-kirmizi").onclick = () => { solFn ? cagir(solFn) : kapat(); };
   kok.querySelector(".som-btn-yes").onclick = () => cagir(cb, !sec.kalici);
-  kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
+  /* Boşluğa tıklayınca kapanma yalnız NORMAL pencerede. Geçirgen
+     pencerede o boşluk artık haritaya ait; kapatma ✕ ile yapılır. */
+  if (!sec.haritaSerbest) {
+    kok.addEventListener("click", e => { if (e.target === kok) kapat(); });
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2039,6 +2050,13 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
   background:transparent; padding:0 18px 96px;
 }
 .sefer-onay-modal .som-card-sade{ padding-top:34px; }
+/* ── GEÇİRGEN ÖRTÜ (som-gecirgen) ──
+   Kök inset:0 ile tüm ekranı kaplıyor ve pencere açıkken haritanın
+   dokunuşlarını yutuyordu: hızlandırma penceresi açıkken harita
+   kaydırılamıyordu. Kök artık olay almıyor, yalnız kartın kendisi
+   alıyor. Kapatma ✕ ile (kapatX bu pencerede zaten açık). */
+.sefer-onay-modal.som-gecirgen{ pointer-events:none; }
+.sefer-onay-modal.som-gecirgen .som-card{ pointer-events:auto; }
 /* Sağ üst kapatma — küçük, çerçevesiz. */
 .sefer-onay-modal .som-x{
   position:absolute; right:9px; top:8px; z-index:2;
