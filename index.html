@@ -2517,7 +2517,11 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 
   <!-- KAYNAK ŞERİDİ — odun / et / demir / su / enerji.
        Sayılar dugum.js'ten değil state.kaynaklar'dan okunur;
-       dugum.js yalnız ikon ve adı sağlar. -->
+       dugum.js yalnız ikon ve adı sağlar.
+       DİKKAT: kaynakhud.js bu kutuyu artık ŞERİT olarak değil,
+       üst satırdaki #kaynakPill düğmesine bağlı AÇILIR PANEL
+       olarak gösterir. Satırlar (.kaynak-oge) ve id'ler yerinde
+       durur — renderKaynaklar() ve tema.js onları besliyor. -->
   <div class="hud-kaynak" id="hudKaynak">
     <div class="kaynak-oge"><span class="kaynak-ikon">🪵</span><span id="kayOdun">0</span></div>
     <div class="kaynak-oge"><span class="kaynak-ikon">🍖</span><span id="kayEt">0</span></div>
@@ -10507,6 +10511,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
      için önemli değil. -->
 <script src="buff.js"></script>
 
+<!-- ═══ ÜST MENÜ KAYNAK DÜĞMESİ + LİSTE PANELİ ═══
+     5'li kaynak şeridini üst satırdaki tek düğmeye indirir; düğme
+     30 sn'de bir başka kaynağı gösterir, basınca liste açılır.
+     tema.js'ten (şerit stili + webp ikon) ve uretim.js/insaat.js'ten
+     (üretim/dk) SONRA yüklenmeli. -->
+<script src="kaynakhud.js"></script>
 
 </body>
 </html>
