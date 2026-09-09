@@ -65,10 +65,10 @@
 
   /* ── 2) GÖREVLER ──────────────────────────────────────────── */
   var GOREVLER = [
-    { id: "odun",   kaynak: "odun",   hedef: 50000, coin: 40, ad: "50.000 odun topla" },
-    { id: "su",     kaynak: "su",     hedef: 50000, coin: 40, ad: "50.000 su topla" },
-    { id: "enerji", kaynak: "enerji", hedef: 25000, coin: 40, ad: "25.000 enerji topla" },
-    { id: "et",     kaynak: "et",     hedef: 25000, coin: 40, ad: "25.000 et topla" }
+    { id: "odun",   kaynak: "odun",   hedef: 5000, coin: 40, ad: "5.000 odun topla" },
+    { id: "su",     kaynak: "su",     hedef: 5000, coin: 40, ad: "5.000 su topla" },
+    { id: "enerji", kaynak: "enerji", hedef: 2500, coin: 40, ad: "2.500 enerji topla" },
+    { id: "et",     kaynak: "et",     hedef: 2500, coin: 40, ad: "2.500 et topla" }
   ];
 
   /* ── 3) KUTULAR — eşik + ödüller ──────────────────────────
@@ -308,10 +308,8 @@
       "#etkPop .etk-p-oge .etk-p-em{width:34px; flex:0 0 34px; text-align:center; font-size:20px;}",
       "#etkPop .etk-p-oge .etk-p-ad2{flex:1; min-width:0;}",
       "#etkPop .etk-p-oge b{margin-left:auto; font-variant-numeric:tabular-nums;}",
-      "#etkPop .etk-p-btn{display:block; width:100%; margin-top:12px; padding:9px; border:none;",
-      "  border-radius:11px; background:linear-gradient(180deg,#f7c948,#e09b12); color:#23180a;",
-      "  font-family:inherit; font-size:14px; font-weight:800; cursor:pointer;}",
-      "#etkPop .etk-p-btn:active{transform:scale(.96); filter:brightness(.93);}"
+      "#etkPop .etk-p-ipucu{color:#a9c6e0; font-size:11px; font-weight:700;",
+      "  text-align:center; padding-top:9px;}"
     ].join("\n");
     document.head.appendChild(st);
   }
@@ -637,7 +635,7 @@
     var kutu = pop.querySelector("#etkPopKutu");
     kutu.innerHTML = '<div class="etk-p-ad"></div><div class="etk-p-alt"></div>' +
                      '<div class="etk-p-liste"></div>' +
-                     '<button class="etk-p-btn" type="button">Tamam</button>';
+                     '<div class="etk-p-ipucu">Kapatmak için boşluğa dokun</div>';
     kutu.querySelector(".etk-p-ad").textContent = baslik;
     kutu.querySelector(".etk-p-alt").textContent = altYazi;
 
@@ -649,12 +647,16 @@
       satir.innerHTML = '<span class="etk-p-ad2"></span><b></b>';
       satir.insertBefore(odulSimge(y), satir.firstChild);
       satir.querySelector(".etk-p-ad2").textContent = y.ad;
-      satir.querySelector("b").textContent = "x" + sayiYaz(y.adet);
+      satir.querySelector("b").textContent = sayiYaz(y.adet);
       liste.appendChild(satir);
     });
 
-    kutu.querySelector(".etk-p-btn").addEventListener("click", popKapat);
     pop.classList.add("acik");
+    /* HAYALET DOKUNMA: pencere, kutuya basılan dokunuşla açılıyor.
+       Aynı dokunuştan doğan click zemine düşüp pencereyi anında
+       kapatmasın diye ilk anda tıklamaya kapalı. */
+    pop.style.pointerEvents = "none";
+    setTimeout(function () { if (pop) pop.style.pointerEvents = ""; }, HAYALET_MS);
     if (kutu.animate) {
       kutu.animate(
         [{ opacity: 0, transform: "translateY(12px) scale(.96)" },
