@@ -1913,13 +1913,13 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
    bitince silindi (tanı paneli kalıcı değildir). Ölçü değişecekse
    tek yer burasıdır — kuralların içine px gömülmez. */
 #seferHud{
-  --sf-sol:3px; --sf-ust:116px; --sf-ara:5px;
-  --sf-en:132px; --sf-boy:28px; --sf-yuv:4px;
-  --sf-ic-ara:0px; --sf-sol-bosluk:0.5px; --sf-sag-bosluk:0px;
-  --sf-gorsel:22.5px; --sf-gorsel-ic:23.5px; --sf-gorsel-emoji:16px;
-  --sf-ad:9.5px; --sf-ad-satir:10.5px;
-  --sf-cubuk:10px; --sf-sure:9px;
-  --sf-dugme:17px; --sf-dugme-yazi:12.5px;
+  --sf-sol:0px; --sf-ust:113px; --sf-ara:5px;
+  --sf-en:60px; --sf-boy:19px; --sf-yuv:5px;
+  --sf-ic-ara:4px; --sf-sol-bosluk:0.5px; --sf-sag-bosluk:2px;
+  --sf-gorsel:21.5px; --sf-gorsel-ic:26.5px; --sf-gorsel-emoji:14.5px;
+  --sf-ad:9.5px; --sf-ad-satir:8px;
+  --sf-cubuk:7px; --sf-sure:9.5px;
+  --sf-dugme:22.5px; --sf-dugme-yazi:16.5px;
   position:fixed; left:var(--sf-sol); top:var(--sf-ust); z-index:40;
   display:flex; flex-direction:column; align-items:flex-start; gap:var(--sf-ara);
 }
@@ -1935,7 +1935,14 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
    olsa da kutu kıpırdamaz; süre çubuğun içinde ve tabular-nums.
    3B YOK: çerçeve, inset kabartı, radial parlaklık yok. */
 .sefer-satir{
-  width:var(--sf-en); box-sizing:border-box;
+  /* GENİŞLİK İÇERİĞE GÖRE: kutu, sağdaki düğmenin bittiği yerde
+     minik bir payla (--sf-sag-bosluk) kapanır. Sol kenar sabit,
+     kutu soldan sağa doğru uzar.
+     Yine de KIPIRDAMAZ: genişliği belirleyen tek esnek parça olan
+     yazı+bar sütunu (--sf-en) sabit ölçülü; süre rakamı ya da yazı
+     değişince toplam genişlik değişmez, satırlar da birbiriyle
+     aynı boyda kalır. */
+  width:max-content; box-sizing:border-box;
   height:var(--sf-boy); white-space:nowrap;
   position:relative; overflow:hidden;
   display:flex; align-items:center; gap:var(--sf-ic-ara);
@@ -1962,9 +1969,10 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
 }
 .sefer-gorsel img{ width:var(--sf-gorsel-ic); height:var(--sf-gorsel-ic); object-fit:contain; display:block; }
 
-/* Yazı + çubuk sütunu. min-width:0 olmadan uzun yazı kutuyu şişirir. */
+/* Yazı + çubuk sütunu. Kutunun genişliğini BU belirler: ölçüsü
+   sabit (--sf-en), içindeki yazı uzasa da kutuyu şişirmez. */
 .sefer-govde{
-  flex:1 1 auto; min-width:0;
+  flex:0 0 var(--sf-en); width:var(--sf-en); min-width:0;
   display:flex; flex-direction:column; justify-content:center; gap:2px;
 }
 .sefer-ad{
@@ -2228,7 +2236,7 @@ function yoldakiBirlikler() {
    (transform dokunma alanını taşımaz). */
 const SEFERAYAR_DEPO = "seferAyar_v1";
 const SEFERAYAR_ALANLAR = [
-  { k: "--sf-en",          ad: "Kutu genişliği",    min: 90,  max: 320, adim: 1 },
+  { k: "--sf-en",          ad: "Yazı+bar genişliği",min: 30,  max: 260, adim: 1 },
   { k: "--sf-boy",         ad: "Kutu yüksekliği",   min: 18,  max: 80,  adim: 1 },
   { k: "--sf-yuv",         ad: "Köşe yuvarlaklığı", min: 0,   max: 30,  adim: 1 },
   { k: "--sf-ara",         ad: "Kutular arası",     min: 0,   max: 24,  adim: 1 },
@@ -2236,7 +2244,7 @@ const SEFERAYAR_ALANLAR = [
   { k: "--sf-ust",         ad: "Üstten uzaklık",    min: 0,   max: 400, adim: 1 },
   { k: "--sf-ic-ara",      ad: "İç boşluk (gap)",   min: 0,   max: 20,  adim: .5 },
   { k: "--sf-sol-bosluk",  ad: "Sol kenar payı",    min: 0,   max: 20,  adim: .5 },
-  { k: "--sf-sag-bosluk",  ad: "Sağ kenar payı",    min: 0,   max: 20,  adim: .5 },
+  { k: "--sf-sag-bosluk",  ad: "Düğme sonrası pay", min: 0,   max: 20,  adim: .5 },
   { k: "--sf-gorsel",      ad: "Görsel çapı",       min: 10,  max: 60,  adim: .5 },
   { k: "--sf-gorsel-ic",   ad: "Görsel içi (webp)", min: 8,   max: 56,  adim: .5 },
   { k: "--sf-gorsel-emoji",ad: "Görsel içi (emoji)",min: 8,   max: 46,  adim: .5 },
