@@ -1913,13 +1913,13 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
    bitince silindi (tanı paneli kalıcı değildir). Ölçü değişecekse
    tek yer burasıdır — kuralların içine px gömülmez. */
 #seferHud{
-  --sf-sol:0px; --sf-ust:113px; --sf-ara:5px;
-  --sf-en:60px; --sf-boy:19px; --sf-yuv:5px;
-  --sf-ic-ara:4px; --sf-sol-bosluk:0.5px; --sf-sag-bosluk:2px;
+  --sf-sol:3px; --sf-ust:110px; --sf-ara:3px;
+  --sf-en:48px; --sf-boy:20px; --sf-yuv:5px;
+  --sf-ic-ara:1.5px; --sf-sol-bosluk:0.5px; --sf-sag-bosluk:2px;
   --sf-gorsel:21.5px; --sf-gorsel-ic:26.5px; --sf-gorsel-emoji:14.5px;
   --sf-ad:9.5px; --sf-ad-satir:8px;
   --sf-cubuk:7px; --sf-sure:9.5px;
-  --sf-dugme:22.5px; --sf-dugme-yazi:16.5px;
+  --sf-dugme:23.5px; --sf-dugme-yazi:16.5px;
   position:fixed; left:var(--sf-sol); top:var(--sf-ust); z-index:40;
   display:flex; flex-direction:column; align-items:flex-start; gap:var(--sf-ara);
 }
