@@ -1935,14 +1935,19 @@ function onayPenceresi(baslik, mesajHTML, onayEtiket, cb, sec) {
    olsa da kutu kıpırdamaz; süre çubuğun içinde ve tabular-nums.
    3B YOK: çerçeve, inset kabartı, radial parlaklık yok. */
 .sefer-satir{
-  /* GENİŞLİK İÇERİĞE GÖRE: kutu, sağdaki düğmenin bittiği yerde
-     minik bir payla (--sf-sag-bosluk) kapanır. Sol kenar sabit,
-     kutu soldan sağa doğru uzar.
-     Yine de KIPIRDAMAZ: genişliği belirleyen tek esnek parça olan
-     yazı+bar sütunu (--sf-en) sabit ölçülü; süre rakamı ya da yazı
-     değişince toplam genişlik değişmez, satırlar da birbiriyle
-     aynı boyda kalır. */
-  width:max-content; box-sizing:border-box;
+  /* GENİŞLİK HESAPLA — max-content DEĞİL.
+     max-content'te kutu, içindeki bir parçanın taşan kendi ölçüsüne
+     göre uzayabiliyordu: düğmeden sonra ince bir kuyruk kalıyordu.
+     Artık genişlik parçaların toplamı olarak yazılıyor; kutu
+     düğmenin bittiği yerde + --sf-sag-bosluk kadar payla BİTER,
+     taşan ne varsa overflow:hidden kırpar.
+       sol payı + görsel + gap + (yazı/bar) + gap + düğme + sağ payı
+     Sol kenar sabit, kutu soldan sağa uzar; süre rakamı ya da yazı
+     değişince toplam genişlik değişmez, satırlar aynı boyda kalır. */
+  width:calc(var(--sf-sol-bosluk) + var(--sf-gorsel) + var(--sf-ic-ara)
+             + var(--sf-en) + var(--sf-ic-ara) + var(--sf-dugme)
+             + var(--sf-sag-bosluk));
+  box-sizing:border-box;
   height:var(--sf-boy); white-space:nowrap;
   position:relative; overflow:hidden;
   display:flex; align-items:center; gap:var(--sf-ic-ara);
