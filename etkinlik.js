@@ -22,12 +22,13 @@
      KUTULAR   → eşik (kaç coin) ve o kutunun ödülleri
      ETKINLIKLER → takvimdeki gün aralığı (1=Pzt … 7=Paz, UTC)
 
-   ÖDÜL TABLOSU GEÇİCİDİR. Ödül satırı üç türden biri:
-     { tur:"elmas",  miktar:50 }
-     { tur:"kaynak", kaynak:"odun", miktar:5000 }
-     { tur:"esya",   ad:"5 Dakika Hızlandırma", adet:2 }
-   Eşya adı magaza.js'teki `name` ile birebir aynı olmalı; çanta
-   eşyayı adına göre saklıyor (state.inventory[ad]).
+   ÖDÜLLER KUTULAR tablosunda; türler ve gittikleri yer:
+     elmas  → state.diamonds
+     esya   → state.inventory[ad]  (ad, magaza.js'teki `name` ile
+              BİREBİR aynı olmalı)
+     parca  → state.heroShards.mor (gelistir.js'in ortak havuzu)
+     kaynak → state.kaynaklar[k]
+   Simgeler GORSEL tablosundaki .webp dosyalarından gelir.
 
    İLERLEME NEREDEN SAYILIYOR
    Yalnız haritadan TOPLAMA seferiyle kaleye giren yük. sefer.js
@@ -70,20 +71,38 @@
     { id: "et",     kaynak: "et",     hedef: 25000, coin: 40, ad: "25.000 et topla" }
   ];
 
-  /* ── 3) KUTULAR — eşik + ödüller (MİKTARLAR GEÇİCİ) ───────── */
+  /* ── 3) KUTULAR — eşik + ödüller ──────────────────────────
+     Ödül satırı dört türden biri:
+       { tur:"elmas",  miktar:300 }
+       { tur:"esya",   ad:"5 Dakika Hızlandırma", adet:5 }
+       { tur:"parca",  adet:1 }                → state.heroShards.mor
+       { tur:"kaynak", kaynak:"odun", miktar:5000 }
+     Görseller GORSEL tablosundan; dosya açılmazsa emojiye döner. */
   var KUTULAR = [
-    { esik: 20,  oduller: [ { tur: "kaynak", kaynak: "et",   miktar: 3000 },
-                            { tur: "elmas",  miktar: 10 } ] },
-    { esik: 40,  oduller: [ { tur: "kaynak", kaynak: "odun", miktar: 5000 },
-                            { tur: "esya",   ad: "5 Dakika Hızlandırma", adet: 2 } ] },
-    { esik: 80,  oduller: [ { tur: "kaynak", kaynak: "su",   miktar: 8000 },
-                            { tur: "elmas",  miktar: 25 } ] },
-    { esik: 120, oduller: [ { tur: "esya",   ad: "1 Saat Hızlandırma", adet: 1 },
-                            { tur: "kaynak", kaynak: "demir", miktar: 4000 } ] },
-    { esik: 160, oduller: [ { tur: "elmas",  miktar: 60 },
-                            { tur: "esya",   ad: "3 Saat Hızlandırma", adet: 1 },
-                            { tur: "kaynak", kaynak: "enerji", miktar: 6000 } ] }
+    { esik: 20,  oduller: [ { tur: "elmas", miktar: 300 },
+                            { tur: "esya", ad: "5 Dakika Hızlandırma", adet: 5 } ] },
+    { esik: 40,  oduller: [ { tur: "elmas", miktar: 600 },
+                            { tur: "esya", ad: "5 Dakika Hızlandırma", adet: 10 } ] },
+    { esik: 80,  oduller: [ { tur: "elmas", miktar: 900 },
+                            { tur: "esya", ad: "5 Dakika Hızlandırma", adet: 20 } ] },
+    { esik: 120, oduller: [ { tur: "elmas", miktar: 1500 },
+                            { tur: "esya", ad: "5 Dakika Hızlandırma", adet: 20 },
+                            { tur: "parca", adet: 1 } ] },
+    { esik: 160, oduller: [ { tur: "elmas", miktar: 1500 },
+                            { tur: "esya", ad: "5 Dakika Hızlandırma", adet: 20 },
+                            { tur: "parca", adet: 2 } ] }
   ];
+
+  /* Ödül görselleri — adlar oyunun kendi dosyalarından:
+     elmas.webp (index.html HUD), 5dkhiz.webp (magaza.js),
+     morparca.webp (gelistir.js). */
+  var GORSEL = {
+    elmas: "elmas.webp",
+    parca: "morparca.webp",
+    esya: { "5 Dakika Hızlandırma": "5dkhiz.webp",
+            "1 Saat Hızlandırma":   "1shiz.webp",
+            "3 Saat Hızlandırma":   "3shiz.webp" }
+  };
 
   var GUN_KISA = ["Pzt", "Sal", "Çrş", "Prş", "Cum", "Cts", "Paz"];
   var HAYALET_MS = 350;
@@ -283,7 +302,11 @@
       "#etkPop .etk-p-oge{display:flex; align-items:center; gap:8px; padding:6px 2px;",
       "  border-bottom:1px solid rgba(160,215,255,.16); font-size:13px; font-weight:700;}",
       "#etkPop .etk-p-oge:last-child{border-bottom:none;}",
-      "#etkPop .etk-p-oge span:first-child{font-size:16px;}",
+      "#etkPop .etk-p-oge .etk-p-gor{width:34px; height:34px; object-fit:contain;",
+      "  flex:0 0 34px; display:block; border-radius:8px;",
+      "  background:rgba(255,255,255,.10); padding:2px;}",
+      "#etkPop .etk-p-oge .etk-p-em{width:34px; flex:0 0 34px; text-align:center; font-size:20px;}",
+      "#etkPop .etk-p-oge .etk-p-ad2{flex:1; min-width:0;}",
       "#etkPop .etk-p-oge b{margin-left:auto; font-variant-numeric:tabular-nums;}",
       "#etkPop .etk-p-btn{display:block; width:100%; margin-top:12px; padding:9px; border:none;",
       "  border-radius:11px; background:linear-gradient(180deg,#f7c948,#e09b12); color:#23180a;",
@@ -522,13 +545,41 @@
 
   /* ═══ KUTU ═══ */
   function odulYazisi(o) {
-    if (o.tur === "elmas")  return { ikon: "💎", ad: "Elmas", adet: o.miktar };
+    if (o.tur === "elmas") {
+      return { ikon: "💎", gorsel: GORSEL.elmas, ad: "Elmas", adet: o.miktar };
+    }
+    if (o.tur === "parca") {
+      return { ikon: "🟣", gorsel: GORSEL.parca, ad: "Mor Parça", adet: o.adet };
+    }
     if (o.tur === "kaynak") {
       var bilgi = (window.DUGUM && window.DUGUM.KAYNAK && window.DUGUM.KAYNAK[o.kaynak]) || null;
-      return { ikon: (bilgi && bilgi.ikon) || "📦",
+      return { ikon: (bilgi && bilgi.ikon) || "📦", gorsel: bilgi && bilgi.gorsel,
                ad: (bilgi && bilgi.ad) || o.kaynak, adet: o.miktar };
     }
-    return { ikon: "⏩", ad: o.ad, adet: o.adet };
+    return { ikon: "⏩", gorsel: GORSEL.esya[o.ad] || null, ad: o.ad, adet: o.adet };
+  }
+
+  /* Görsel varsa <img>, dosya açılmazsa emojiye döner (dugum.js'in
+     kaynakSimge'siyle aynı yol — ekran boş kalmaz). */
+  function odulSimge(y) {
+    if (!y.gorsel) {
+      var em = document.createElement("span");
+      em.className = "etk-p-em";
+      em.textContent = y.ikon;
+      return em;
+    }
+    var im = document.createElement("img");
+    im.className = "etk-p-gor";
+    im.src = y.gorsel;
+    im.alt = "";
+    im.onerror = function () {
+      im.onerror = null;
+      var s2 = document.createElement("span");
+      s2.className = "etk-p-em";
+      s2.textContent = y.ikon;
+      im.replaceWith(s2);
+    };
+    return im;
   }
 
   function kutuyaBas(i) {
@@ -562,6 +613,11 @@
         s.kaynaklar[o.kaynak] = (s.kaynaklar[o.kaynak] || 0) + Math.max(0, Math.round(o.miktar || 0));
       } else if (o.tur === "esya") {
         s.inventory[o.ad] = (s.inventory[o.ad] || 0) + Math.max(0, Math.round(o.adet || 0));
+      } else if (o.tur === "parca") {
+        /* Mor parça ORTAK havuzda: gelistir.js state.heroShards.mor
+           okuyor, başka bir anahtar yok. */
+        if (!s.heroShards || typeof s.heroShards !== "object") s.heroShards = {};
+        s.heroShards.mor = (s.heroShards.mor || 0) + Math.max(0, Math.round(o.adet || 0));
       }
     });
 
@@ -590,11 +646,10 @@
       var y = odulYazisi(o);
       var satir = document.createElement("div");
       satir.className = "etk-p-oge";
-      satir.innerHTML = "<span></span><span></span><b></b>";
-      var sp = satir.querySelectorAll("span");
-      sp[0].textContent = y.ikon;
-      sp[1].textContent = y.ad;
-      satir.querySelector("b").textContent = sayiYaz(y.adet);
+      satir.innerHTML = '<span class="etk-p-ad2"></span><b></b>';
+      satir.insertBefore(odulSimge(y), satir.firstChild);
+      satir.querySelector(".etk-p-ad2").textContent = y.ad;
+      satir.querySelector("b").textContent = "x" + sayiYaz(y.adet);
       liste.appendChild(satir);
     });
 
