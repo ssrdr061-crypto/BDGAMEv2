@@ -1,8 +1,10 @@
 /* posta.js — POSTA (MESAJ KUTUSU): 5 SEKMELİ
    ═══════════════════════════════════════════════════════════════
    NE VAR
-   Alt menüdeki 5. düğme (eski "Savaş Günlüğü") artık POSTA açar.
-   Panel #panel-posta; üstte sekme şeridi, altında liste.
+   Posta, ekranın SAĞ ALT köşesindeki yüzen düğmeden açılır
+   (#postaYuzenBtn, okunmamış rozetiyle). Alt menüdeki 5. sıra
+   İttifak'a verildi. Panel #panel-posta; üstte sekme şeridi,
+   ortada liste ya da detay, altta iki toplu düğme.
 
      Savaşlar  → state.battleLogHistory içindeki PvP kayıtları
      Raporlar  → state.battleLogHistory içindeki canavar kayıtları
@@ -214,6 +216,19 @@
         "padding:calc(12px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));}" +
       "#panel-posta .posta-bas,#panel-posta .posta-sekmeler,#panel-posta .posta-arac{flex:0 0 auto;}" +
 
+      /* ── SAĞ ALT KÖŞEDEKİ YÜZEN POSTA DÜĞMESİ ──
+         Alt menüden çıkarıldı; sohbet şeridinin (bottom:52px)
+         üstünde durur, dokunma alanı 48px. */
+      "#postaYuzenBtn{position:fixed;right:10px;bottom:96px;z-index:20;width:48px;height:48px;" +
+        "border:0;padding:0;cursor:pointer;background:none;" +
+        "filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));}" +
+      "#postaYuzenBtn img{width:100%;height:100%;object-fit:contain;display:block;}" +
+      "#postaYuzenBtn .py-emoji{font-size:30px;line-height:48px;}" +
+      "#postaYuzenBtn .py-rozet{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;" +
+        "padding:0 5px;border-radius:10px;background:#e03a3a;color:#fff;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:900;font-size:11px;line-height:18px;font-variant-numeric:tabular-nums;" +
+        "box-shadow:0 1px 3px rgba(0,20,45,.5);}" +
+
       /* başlık satırı: solda geri oku, ortada ad, sağda kapat */
       ".posta-bas{display:flex;align-items:center;gap:8px;margin-bottom:10px;}" +
       "#panel-posta .posta-bas h2{flex:1 1 auto;margin:0;text-align:left;}" +
@@ -406,6 +421,7 @@
     Array.prototype.forEach.call(el.querySelectorAll(".posta-sekme"), function (b) {
       b.addEventListener("click", function () { sekmeSec(b.dataset.sekme); });
     });
+    rozetTazele();
   }
 
   function sekmeSec(id) {
@@ -716,6 +732,7 @@
     liste.unshift(kayit);
     if (liste.length > 50) liste.length = 50;
     yaz();
+    rozetTazele();
     if (panel && panel.classList.contains("active")) { sekmeleriCiz(); listeyiCiz(false); }
     return kayit;
   }
@@ -759,9 +776,9 @@
   }
 
   /* ── "posta" ANAHTARINI KARŞILA ───────────────────────────────
-     Alt menü düğmesi ve kaydırma sırası index.html'de "posta"
-     diyor; openOverlayPanel #panel-posta'yı tanımadığı için
-     sarmalanıyor. İkinci dinleyici eklenmez. */
+     Alt menüde posta düğmesi yok; yine de POSTA.ac() dışında
+     openOverlayPanel("posta") ile açılabilsin diye sarmalanır
+     (kaydırma sırası ve eski çağrılar için tek kapı). */
   function dockBagla() {
     var orij = window.openOverlayPanel;
     if (typeof orij === "function" && !orij.__postaWrapped) {
@@ -779,13 +796,44 @@
   function renderBagla() {
     window.renderBattleLogPanel = function () {
       if (panel && panel.classList.contains("active")) { sekmeleriCiz(); listeyiCiz(false); }
+      else rozetTazele();          /* panel kapalıyken de rozet doğru kalsın */
     };
   }
 
   /* ═══ BAŞLAT ═══ */
+  /* ── YÜZEN DÜĞME ──────────────────────────────────────────────
+     Posta alt menüden çıktı (o yer İttifak'ın), sağ alt köşede
+     duruyor. Rozet, bütün sekmelerdeki okunmamış toplamı. */
+  function yuzenKur() {
+    if (document.getElementById("postaYuzenBtn")) return;
+    var b = document.createElement("button");
+    b.id = "postaYuzenBtn";
+    b.setAttribute("aria-label", "Posta");
+    b.innerHTML = '<img src="gorsel15.webp" alt="Posta" onerror="this.onerror=null;' +
+      "this.replaceWith(Object.assign(document.createElement('span')," +
+      "{textContent:'✉️',className:'py-emoji'}))\">" +
+      '<span class="py-rozet" id="postaYuzenRozet" style="display:none"></span>';
+    document.body.appendChild(b);
+    b.addEventListener("click", function () { ac(); });
+    rozetTazele();
+  }
+
+  function rozetTazele() {
+    var r = document.getElementById("postaYuzenRozet");
+    if (!r) return;
+    var n = 0;
+    SEKMELER.forEach(function (s) {
+      if (s.id === "yildizli") return;          /* yıldızlı kopya sayardı */
+      n += okunmamisSayisi(s.id);
+    });
+    if (n > 0) { r.style.display = ""; r.textContent = (n > 99 ? "99+" : n); }
+    else { r.style.display = "none"; }
+  }
+
   function baslat() {
     stilBas();
     iskelet();
+    yuzenKur();
     dockBagla();
     renderBagla();
   }

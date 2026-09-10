@@ -2506,7 +2506,7 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
     <button class="dock-btn" data-panel="shop"><img class="dock-icon" src="gorsel12.webp" alt="Mağaza"></button>
     <button class="dock-btn" data-panel="hero"><img class="dock-icon" src="gorsel13.webp" alt="Kahraman"></button>
     <button class="dock-btn" data-panel="troops"><img class="dock-icon" src="gorsel14.webp" alt="Birlikler"></button>
-    <button class="dock-btn" data-panel="posta"><img class="dock-icon" src="gorsel15.webp" alt="Posta"></button>
+    <button class="dock-btn" data-panel="ittifak" aria-label="İttifak"><img class="dock-icon" src="ittifak.webp" alt="İttifak" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🤝',style:'font-size:26px;line-height:1'}))"></button>
     <button class="dock-btn" data-panel="rank" id="rankDockBtn" aria-label="Sıralama"><img class="dock-icon" src="gorsel25.webp" alt="Sıralama" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏆',style:'font-size:26px;line-height:1'}))"></button>
   </nav>
 
@@ -9086,7 +9086,7 @@ function bindTap(el, handler) {
   }
 }
 
-const PANEL_ORDER = ["inventory", "shop", "hero", "troops", "posta"];
+const PANEL_ORDER = ["inventory", "shop", "hero", "troops", "ittifak"];
 
 function setupNav() {
   document.querySelectorAll(".dock-btn[data-panel]").forEach(btn => {
@@ -10386,6 +10386,12 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
      posta.js'te çiziliyor. tema.js'ten SONRA yüklenir
      (rapor penceresi entryToReport/openReportModal oradan). -->
 <script src="posta.js"></script>
+
+<!-- ═══ İTTİFAK ═══
+     Alt menünün 5. düğmesi (data-panel="ittifak") bunu açar;
+     posta artık sağ alt köşedeki yüzen düğmede (posta.js).
+     Firebase kuralına `ittifaklar` düğümü eklenmeli. -->
+<script src="ittifak.js"></script>
 
 </body>
 </html>
