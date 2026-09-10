@@ -199,13 +199,16 @@
       "  filter:drop-shadow(0 8px 12px rgba(0,0,0,.55));",
       "  font-family:'Baloo 2','Nunito',sans-serif;}",
       "body.kaleici-acik #etkIkon{display:flex; z-index:41;}",
+      /* KUTU ve ALT YAZI KALDIRILDI — sandık/hastane düğmeleri gibi
+         çıplak simge duruyor. Kutu gidince 22px'lik simge yalnız
+         kalıp küçük göründüğü için 34px'e çıkarıldı; dokunma alanı
+         yine 40px'lik kapta, yalnız çizim büyüdü.
+         .etk-i-yazi artık üretilmiyor (bkz. iskelet()), kuralı da
+         kaldırıldı — ölü stil bırakılmadı. */
       "#etkIkon .etk-i-kutu{width:40px; height:40px; display:flex;",
       "  align-items:center; justify-content:center;",
-      "  font-size:22px; line-height:1; border-radius:11px;",
-      "  background:linear-gradient(180deg,var(--km-1),var(--km-2) 55%,var(--km-3));",
-      "  border:1px solid var(--km-kenar);}",
-      "#etkIkon .etk-i-yazi{font-weight:700; font-size:9.5px; color:#e8f4ff;",
-      "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
+      "  font-size:34px; line-height:1;",
+      "  background:none; border:none; border-radius:0;}",
       "#etkIkon:active{transform:scale(.96); filter:brightness(.93);}",
 
       /* ── Pencere kabı: ekranı KAPLAMAZ, ortada kart ── */
@@ -328,7 +331,11 @@
     var btn = document.createElement("button");
     btn.id = "etkIkon";
     btn.type = "button";
-    btn.innerHTML = '<span class="etk-i-kutu">📋</span><span class="etk-i-yazi">Etkinlikler</span>';
+    /* Alt yazı ("Etkinlikler") kaldırıldı — simge tek başına.
+       aria-label eklendi ki ekran okuyucu için ad kaybolmasın. */
+    btn.setAttribute("aria-label", "Etkinlikler");
+    btn.title = "Etkinlikler";
+    btn.innerHTML = '<span class="etk-i-kutu">📋</span>';
     btn.addEventListener("click", ac);
     /* Rozet sütununun İÇİNE girer — top/right değerleri hastane
        düğmesiyle AYNI kapsayıcıya göre ölçülüyor, yoksa hizalama

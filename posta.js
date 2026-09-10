@@ -218,12 +218,19 @@
 
       /* ── SAĞ ALT KÖŞEDEKİ YÜZEN POSTA DÜĞMESİ ──
          Alt menüden çıkarıldı; sohbet şeridinin (bottom:52px)
-         üstünde durur, dokunma alanı 48px. */
-      "#postaYuzenBtn{position:fixed;right:10px;bottom:96px;z-index:20;width:48px;height:48px;" +
-        "border:0;padding:0;cursor:pointer;background:none;" +
+         üstünde durur.
+         48px'lik çıplak görselden 42px'lik TEMA KUTUSUNA alındı:
+         zemin/çerçeve/köşe değerleri üst menüyle aynı --km-*
+         değişkenlerinden gelir, tema değişince kutu da değişir. */
+      "#postaYuzenBtn{position:fixed;right:10px;bottom:96px;z-index:20;width:42px;height:42px;" +
+        "padding:0;cursor:pointer;border-radius:11px;" +
+        "display:flex;align-items:center;justify-content:center;" +
+        "background:linear-gradient(180deg,var(--km-1),var(--km-2) 55%,var(--km-3));" +
+        "border:1px solid var(--km-kenar);" +
         "filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));}" +
-      "#postaYuzenBtn img{width:100%;height:100%;object-fit:contain;display:block;}" +
-      "#postaYuzenBtn .py-emoji{font-size:30px;line-height:48px;}" +
+      "#postaYuzenBtn:active{transform:scale(.96);filter:brightness(.93);}" +
+      "#postaYuzenBtn img{width:26px;height:26px;object-fit:contain;display:block;}" +
+      "#postaYuzenBtn .py-emoji{font-size:22px;line-height:1;}" +
       "#postaYuzenBtn .py-rozet{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;" +
         "padding:0 5px;border-radius:10px;background:#e03a3a;color:#fff;font-family:'Baloo 2',sans-serif;" +
         "font-weight:900;font-size:11px;line-height:18px;font-variant-numeric:tabular-nums;" +
@@ -804,8 +811,28 @@
   /* ── YÜZEN DÜĞME ──────────────────────────────────────────────
      Posta alt menüden çıktı (o yer İttifak'ın), sağ alt köşede
      duruyor. Rozet, bütün sekmelerdeki okunmamış toplamı. */
+  /* Düğmenin kabı: GÖVDE DEĞİL, #appScreen.
+     ── NEDEN ──
+     Düğme document.body'ye ekleniyordu; #appScreen{display:none}
+     iken bile gövde görünür olduğu için posta simgesi GİRİŞ ve
+     YÜKLEME ekranında da duruyordu. Oyunun "açık mı" göstergesi
+     tek yerde: #appScreen'in display'i (index.html 4907/4998).
+     Düğmeyi onun içine koyunca ekranla birlikte kendiliğinden
+     görünüp kayboluyor — ayrıca gizleme koduna, sınıfa, yoklamaya
+     gerek kalmıyor. sefer.js de aynı sebeple kutusunu #appScreen'e
+     taşımıştı (bkz. sefer.js 1267).
+     position:fixed bozulmaz: #appScreen'de transform/filter yok,
+     yani kapsayıcı blok hâlâ ekranın kendisi. */
+  function kap() {
+    return document.getElementById("appScreen") || document.body;
+  }
+
   function yuzenKur() {
-    if (document.getElementById("postaYuzenBtn")) return;
+    var v = document.getElementById("postaYuzenBtn");
+    if (v) {                       /* eski sürümden gövdede kalmışsa taşı */
+      if (v.parentElement !== kap()) kap().appendChild(v);
+      return;
+    }
     var b = document.createElement("button");
     b.id = "postaYuzenBtn";
     b.setAttribute("aria-label", "Posta");
@@ -813,7 +840,7 @@
       "this.replaceWith(Object.assign(document.createElement('span')," +
       "{textContent:'✉️',className:'py-emoji'}))\">" +
       '<span class="py-rozet" id="postaYuzenRozet" style="display:none"></span>';
-    document.body.appendChild(b);
+    kap().appendChild(b);
     b.addEventListener("click", function () { ac(); });
     rozetTazele();
   }
