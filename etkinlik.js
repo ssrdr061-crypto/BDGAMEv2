@@ -187,17 +187,24 @@
     var st = document.createElement("style");
     st.id = "etkinlikStil";
     st.textContent = [
-      /* ── Kale içi ikonu ── */
-      "#etkIkon{position:fixed; right:10px; top:84px; z-index:45; display:none;",
-      "  flex-direction:column; align-items:center; gap:2px;",
+      /* ── Kale içi ikonu ────────────────────────────────────
+         Sağdaki yüzen düğme yığınına katılır (index.html):
+           günlük 78 · sandık 128 · ETKİNLİK 174 · hastane 220
+         Ölçü onlarla aynı: 45px genişlik, ikon 34px.
+         z-index de aynı (18 / kale içinde 41) — paneller 50'de,
+         böylece ikon artık açık panelin üstünde kalmaz. */
+      "#etkIkon{position:fixed; right:5px; top:174px; z-index:18; display:none;",
+      "  flex-direction:column; align-items:center; gap:1px; width:45px;",
       "  background:none; border:none; padding:0; cursor:pointer;",
+      "  filter:drop-shadow(0 8px 12px rgba(0,0,0,.55));",
       "  font-family:'Baloo 2','Nunito',sans-serif;}",
-      "body.kaleici-acik #etkIkon{display:flex;}",
-      "#etkIkon .etk-i-kutu{width:44px; height:44px; display:flex; align-items:center; justify-content:center;",
-      "  font-size:23px; border-radius:13px;",
-      "  background:linear-gradient(180deg,#f7fbff,#cfe4f7);",
-      "  border:1px solid var(--km-kenar); box-shadow:0 2px 6px rgba(0,20,45,.3);}",
-      "#etkIkon .etk-i-yazi{font-weight:700; font-size:11px; color:#e8f4ff;",
+      "body.kaleici-acik #etkIkon{display:flex; z-index:41;}",
+      "#etkIkon .etk-i-kutu{width:38px; height:38px; display:flex;",
+      "  align-items:center; justify-content:center;",
+      "  font-size:21px; border-radius:11px;",
+      "  background:linear-gradient(180deg,var(--km-1),var(--km-2) 55%,var(--km-3));",
+      "  border:1px solid var(--km-kenar);}",
+      "#etkIkon .etk-i-yazi{font-weight:700; font-size:9.5px; color:#e8f4ff;",
       "  text-shadow:0 1px 2px rgba(0,20,45,.55);}",
       "#etkIkon:active{transform:scale(.96); filter:brightness(.93);}",
 
