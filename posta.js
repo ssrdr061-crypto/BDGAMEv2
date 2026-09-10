@@ -195,7 +195,15 @@
     var st2 = document.createElement("style");
     st2.id = "postaStil";
     st2.textContent =
-      "#panel-posta .overlay-card{padding:14px 12px 12px;}" +
+      /* TAM EKRAN: pencere içeriğe göre büyüyüp küçülmez. Başlık,
+         sekmeler ve araç şeridi hep aynı yerde durur; yalnız liste
+         kayar. Boş sekmede de pencere aynı boyda kalır. */
+      "#panel-posta{align-items:stretch !important;justify-content:stretch !important;}" +
+      "#panel-posta .overlay-card{width:100% !important;max-width:none !important;" +
+        "height:100% !important;max-height:none !important;border-radius:0 !important;" +
+        "display:flex !important;flex-direction:column !important;overflow:hidden !important;" +
+        "padding:calc(12px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));}" +
+      "#panel-posta .posta-sekmeler,#panel-posta .posta-arac{flex:0 0 auto;}" +
       "#panel-posta h2{font-family:'Baloo 2',sans-serif;font-weight:900;margin:0 0 10px;" +
         "text-align:center;color:var(--km-yazi);text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
 
@@ -222,7 +230,7 @@
         "box-shadow:0 2px 6px rgba(0,20,45,.3);text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
 
       /* liste */
-      ".posta-liste{max-height:56vh;overflow-y:auto;padding:2px;display:flex;" +
+      ".posta-liste{flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px;display:flex;" +
         "flex-direction:column;gap:7px;}" +
       ".posta-kart{display:flex;align-items:stretch;gap:8px;padding:8px;border-radius:12px;" +
         "background:linear-gradient(180deg,#fbfdff,#e6eef8);box-shadow:0 2px 6px rgba(0,20,45,.3);" +
@@ -328,8 +336,11 @@
     var d = damga();
     var okundu = !!d.ok[p.id];
     var yildiz = !!d.yz[p.id];
+    /* Görsel açılmazsa kırık simge kalıyordu; emojiye döner. */
     var ikon = p.ikonGorsel
-      ? '<img src="' + p.ikonGorsel + '" alt="">'
+      ? '<img src="' + p.ikonGorsel + '" alt="" onerror="this.onerror=null;' +
+        "this.replaceWith(Object.assign(document.createElement('span')," +
+        "{textContent:'" + p.ikonEmoji + "'}))\">"
       : "<span>" + p.ikonEmoji + "</span>";
     var odulHTML = "";
     if (p.odul) {
@@ -586,8 +597,8 @@
     var kart = panel.querySelector(".overlay-card");
     if (kart && !kapaliHareket()) {
       kart.animate(
-        [{ opacity: 0, transform: "translateY(26px) scale(.98)" },
-         { opacity: 1, transform: "translateY(0) scale(1)" }],
+        [{ opacity: 0, transform: "translateY(18px)" },
+         { opacity: 1, transform: "translateY(0)" }],
         { duration: 260, easing: "cubic-bezier(.2,.85,.3,1)" }
       );
     }
