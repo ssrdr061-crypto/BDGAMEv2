@@ -193,15 +193,15 @@
          Ölçü onlarla aynı: 45px genişlik, ikon 34px.
          z-index de aynı (18 / kale içinde 41) — paneller 50'de,
          böylece ikon artık açık panelin üstünde kalmaz. */
-      "#etkIkon{position:fixed; right:5px; top:174px; z-index:18; display:none;",
+      "#etkIkon{position:absolute; right:5px; top:174px; z-index:18; display:none;",
       "  flex-direction:column; align-items:center; gap:1px; width:45px;",
       "  background:none; border:none; padding:0; cursor:pointer;",
       "  filter:drop-shadow(0 8px 12px rgba(0,0,0,.55));",
       "  font-family:'Baloo 2','Nunito',sans-serif;}",
       "body.kaleici-acik #etkIkon{display:flex; z-index:41;}",
-      "#etkIkon .etk-i-kutu{width:38px; height:38px; display:flex;",
+      "#etkIkon .etk-i-kutu{width:40px; height:40px; display:flex;",
       "  align-items:center; justify-content:center;",
-      "  font-size:21px; border-radius:11px;",
+      "  font-size:22px; line-height:1; border-radius:11px;",
       "  background:linear-gradient(180deg,var(--km-1),var(--km-2) 55%,var(--km-3));",
       "  border:1px solid var(--km-kenar);}",
       "#etkIkon .etk-i-yazi{font-weight:700; font-size:9.5px; color:#e8f4ff;",
@@ -330,7 +330,17 @@
     btn.type = "button";
     btn.innerHTML = '<span class="etk-i-kutu">📋</span><span class="etk-i-yazi">Etkinlikler</span>';
     btn.addEventListener("click", ac);
-    document.body.appendChild(btn);
+    /* Rozet sütununun İÇİNE girer — top/right değerleri hastane
+       düğmesiyle AYNI kapsayıcıya göre ölçülüyor, yoksa hizalama
+       tutmaz. Hastane düğmesi yoksa gövdeye düşer ve konumlama
+       fixed'e çevrilir; sessizce yanlış yere yapışmaz. */
+    var hastane = document.getElementById("floatingHospitalBtn");
+    if (hastane && hastane.parentNode) {
+      hastane.parentNode.insertBefore(btn, hastane);
+    } else {
+      btn.style.position = "fixed";
+      document.body.appendChild(btn);
+    }
 
     ekran = document.createElement("div");
     ekran.id = "etkEkran";
