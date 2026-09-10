@@ -49,7 +49,7 @@
 (function gucHud() {
   "use strict";
 
-  var SURUM = "guchud-2";
+  var SURUM = "guchud-3";
 
   /* İkon: webp basmak istersen dosya adını yaz, boş ise emoji. */
   var IKON_GORSEL = "";
@@ -66,39 +66,39 @@
      Aralıklar bilerek GENİŞ: kısıtlamak yerine serbest bırakıldı. */
 
   var GUC_ALAN = [
-    ["--guc-buyume","Menü uzaması",      0,  60, 0.5,  "px", 15],
-    ["--guc-h",     "Güç satırı boyu",   0,  60, 0.5,  "px", 19],
+    ["--guc-buyume","Menü uzaması",      0,  60, 0.5,  "px", 16],
+    ["--guc-h",     "Güç satırı boyu",   0,  60, 0.5,  "px", 17],
     ["--guc-ust",   "Üst satır kayması",-30, 30, 0.5,  "px", 0],
-    ["--guc-kay",   "Güç dikey kayma",  -40, 40, 0.5,  "px", 0],
-    ["--guc-x",     "Güç yatay kayma", -200,200, 1,    "px", 10],
-    ["--guc-f",     "Güç yazı boyu",     6,  30, 0.25, "px", 14],
-    ["--guc-ik",    "Güç ikon boyu",     6,  34, 0.25, "px", 15],
-    ["--guc-ara",   "İkon–yazı arası",   0,  20, 0.5,  "px", 5]
+    ["--guc-kay",   "Güç dikey kayma",  -40, 40, 0.5,  "px", 3],
+    ["--guc-x",     "Güç yatay kayma", -200,200, 1,    "px", -10],
+    ["--guc-f",     "Güç yazı boyu",     6,  30, 0.25, "px", 14.25],
+    ["--guc-ik",    "Güç ikon boyu",     6,  34, 0.25, "px", 22.25],
+    ["--guc-ara",   "İkon–yazı arası",   0,  20, 0.5,  "px", 0]
   ];
 
   /* tema.js'in kendi alanları — aynı adlar, aynı birimler.
      Alt sınırlar bilerek düşürüldü (şeridi kısaltabilmek için). */
   var MENU_ALAN = [
-    ["--hud-h",  "Menü yüksekliği",   18, 130, 0.5,  "px", 48],
+    ["--hud-h",  "Menü yüksekliği",   18, 130, 0.5,  "px", 30.5],
     ["--hud-w",  "Menü genişliği",    40, 100, 0.5,  "%",  100],
-    ["--hud-r",  "Köşe yuvarlaklığı",  0,  40, 0.5,  "px", 12.5],
-    ["--hud-pt", "Üst boşluk",         0,  30, 0.5,  "px", 10],
-    ["--hud-pb", "Alt boşluk",         0,  30, 0.5,  "px", 10.5],
-    ["--hud-px", "Yan boşluk",         0,  40, 0.5,  "px", 1.5],
-    ["--hud-gap","Satır arası",      -20,  24, 0.5,  "px", -2],
-    ["--hud-ara","Öğe aralığı",        0,  24, 0.5,  "px", 4],
-    ["--hud-f1", "Üst satır yazı",     6,  28, 0.25, "px", 15.5],
-    ["--hud-f2", "Kaynak yazı",        6,  28, 0.25, "px", 14],
-    ["--hud-ik", "Kaynak ikon",        6,  32, 0.25, "px", 15],
+    ["--hud-r",  "Köşe yuvarlaklığı",  0,  40, 0.5,  "px", 9.5],
+    ["--hud-pt", "Üst boşluk",         0,  30, 0.5,  "px", 9],
+    ["--hud-pb", "Alt boşluk",         0,  30, 0.5,  "px", 11.5],
+    ["--hud-px", "Yan boşluk",         0,  40, 0.5,  "px", 0],
+    ["--hud-gap","Satır arası",      -20,  24, 0.5,  "px", -4.5],
+    ["--hud-ara","Öğe aralığı",        0,  24, 0.5,  "px", 1.5],
+    ["--hud-f1", "Üst satır yazı",     6,  28, 0.25, "px", 13.25],
+    ["--hud-f2", "Kaynak yazı",        6,  28, 0.25, "px", 12],
+    ["--hud-ik", "Kaynak ikon",        6,  32, 0.25, "px", 14.5],
     ["--hud-fw", "Yazı kalınlığı",   300, 900, 100,  "",   900],
-    ["--hud-lh", "Satır yüksekliği", 0.6, 2.2, 0.05, "",   1.45]
+    ["--hud-lh", "Satır yüksekliği", 0.6, 2.2, 0.05, "",   1.6]
   ];
 
   /* Seçmeli alanlar (sürgü değil, düğme grubu). */
   var SECMELI = [
     ["--guc-hiza", "Güç hizası", [
       ["flex-start", "sol"], ["center", "orta"], ["flex-end", "sağ"]
-    ], "flex-start"],
+    ], "center"],
     ["--guc-kirp", "Menü kırpması", [
       ["visible", "kapalı"], ["hidden", "açık"]
     ], "visible"]
@@ -149,7 +149,7 @@
          Kırpma artık değişkende: varsayılan visible → taşan hiçbir
          şey gizlenmez, satır her yöne serbest kaydırılabilir. */
       "html body #worldScreen .hud-top{",
-      "  height:calc(var(--hud-h, 48px) + var(--guc-buyume, 15px)",
+      "  height:calc(var(--hud-h, 30.5px) + var(--guc-buyume, 16px)",
       "              + env(safe-area-inset-top,0)) !important;",
       "  overflow:var(--guc-kirp, visible) !important;",
       "}",
@@ -170,13 +170,13 @@
       "  box-sizing:border-box !important;",
       "  display:flex !important;",
       "  align-items:center !important;",
-      "  justify-content:var(--guc-hiza, flex-start) !important;",
-      "  gap:var(--guc-ara, 5px) !important;",
-      "  height:var(--guc-h, 19px) !important;",
+      "  justify-content:var(--guc-hiza, center) !important;",
+      "  gap:var(--guc-ara, 0px) !important;",
+      "  height:var(--guc-h, 17px) !important;",
       "  min-height:0 !important;",
       "  margin:0 !important;",
-      "  padding:0 var(--hud-px, 1.5px) !important;",
-      "  transform:translate(var(--guc-x, 10px), var(--guc-kay, 0px)) !important;",
+      "  padding:0 var(--hud-px, 0px) !important;",
+      "  transform:translate(var(--guc-x, -10px), var(--guc-kay, 3px)) !important;",
       "  overflow:visible !important;",
       "  background:none !important; border:none !important;",
       "  box-shadow:none !important; pointer-events:none !important;",
@@ -190,18 +190,18 @@
       "html body #worldScreen .hud-top #hudGucIkon{",
       "  display:flex !important; align-items:center !important;",
       "  flex:0 0 auto !important;",
-      "  font-size:var(--guc-ik, 15px) !important;",
+      "  font-size:var(--guc-ik, 22.25px) !important;",
       "  line-height:1 !important;",
       "  filter:drop-shadow(0 1px 1px rgba(0,12,32,.7)) !important;",
       "}",
       "html body #worldScreen .hud-top #hudGucIkon img{",
-      "  width:var(--guc-ik, 15px) !important; height:var(--guc-ik, 15px) !important;",
+      "  width:var(--guc-ik, 22.25px) !important; height:var(--guc-ik, 22.25px) !important;",
       "  object-fit:contain !important; display:block !important; background:none !important;",
       "}",
       "html body #worldScreen .hud-top #hudGucDegerHud{",
       "  flex:0 0 auto !important;",
       "  font-family:'Baloo 2','Nunito',sans-serif !important;",
-      "  font-size:var(--guc-f, 14px) !important;",
+      "  font-size:var(--guc-f, 14.25px) !important;",
       "  font-weight:var(--hud-fw, 900) !important;",
       "  line-height:1 !important;",
       "  letter-spacing:.2px !important;",
@@ -360,7 +360,17 @@
       "#gucAyarPanel .gp-alt button{flex:1;padding:7px;border-radius:9px;border:0;",
       " font-weight:900;font-size:12px;font-family:inherit;background:#2f7fa8;color:#fff;}",
       "#gucAyarPanel .gp-alt button.gp-sil{background:#5a2f3a;}",
-      "#gucAyarPanel .gp-not{font-size:10.5px;opacity:.6;padding:0 7px 5px;line-height:1.3;}"
+      "#gucAyarPanel .gp-alt button.gp-kopya{background:#2f7a55;}",
+      "#gucAyarPanel .gp-not{font-size:10.5px;opacity:.6;padding:0 7px 5px;line-height:1.3;}",
+      /* Kopyalanan metin: pano çalışmazsa elle seçilebilsin diye
+         GÖRÜNÜR kutuya da yazılır (mobil tarayıcıda pano izni
+         reddedilebiliyor — o zaman kullanıcı basılı tutup seçer). */
+      "#gucAyarPanel .gp-cikti{display:none;margin:4px 7px 6px;padding:6px;",
+      " background:#0a1017;border:1px solid #2f5f7a;border-radius:8px;",
+      " color:#cfe6f5;font-family:ui-monospace,Menlo,Consolas,monospace;",
+      " font-size:10.5px;line-height:1.45;white-space:pre-wrap;word-break:break-all;",
+      " -webkit-user-select:all;user-select:all;max-height:22vh;overflow:auto;}",
+      "#gucAyarPanel[data-cikti=e] .gp-cikti{display:block;}"
     ].join("");
     document.head.appendChild(st);
 
@@ -379,8 +389,10 @@
       '</div>' +
       '<div class="gp-govde" id="gpGovde"></div>' +
       '<div class="gp-not" id="gpNot"></div>' +
+      '<div class="gp-cikti" id="gpCikti"></div>' +
       '<div class="gp-alt">' +
         '<button class="gp-kaydet">KAYDET</button>' +
+        '<button class="gp-kopya">📋 KOPYALA</button>' +
         '<button class="gp-sil">SIFIRLA</button>' +
       '</div>';
     document.body.appendChild(p);
@@ -421,6 +433,8 @@
         setTimeout(function () { b.textContent = "KAYDET"; }, 1200);
         return;
       }
+      if (b.classList.contains("gp-kopya")) { kopyala(b); return; }
+
       if (b.classList.contains("gp-sil")) {
         if (SEKME === "guc") {
           GUC = varsayilan(GUC_ALAN, SECMELI);
@@ -437,6 +451,41 @@
         slaytla(i, aktifDepo()[a[0]] + Number(b.dataset.y) * a[4]);
       }
     });
+  }
+
+  /* ── AYARLARI DIŞARI VER ──────────────────────────────────────
+     Ekrandaki rakamları tek tek okuyup yazmak zorunda kalmamak
+     için: bütün değerler tek metne dökülür, panoya kopyalanır ve
+     AYRICA görünür kutuya yazılır (pano izni verilmezse elle
+     seçilebilsin). Metin doğrudan koda gömülebilecek biçimdedir. */
+  function ayarMetni() {
+    var s = [SURUM + " — ayarlar"];
+    s.push("[GÜÇ]");
+    SECMELI.forEach(function (sc) { s.push("  " + sc[0] + ": " + GUC[sc[0]]); });
+    GUC_ALAN.forEach(function (a) { s.push("  " + a[0] + ": " + GUC[a[0]] + a[5]); });
+    s.push("[ÜST MENÜ]");
+    MENU_ALAN.forEach(function (a) { s.push("  " + a[0] + ": " + MENU[a[0]] + a[5]); });
+    return s.join("\n");
+  }
+
+  function kopyala(dugme) {
+    var metin = ayarMetni();
+    var p = document.getElementById("gucAyarPanel");
+    var kutu = document.getElementById("gpCikti");
+    if (kutu) { kutu.textContent = metin; p.setAttribute("data-cikti", "e"); }
+
+    function bitti(basarili) {
+      dugme.textContent = basarili ? "✓ KOPYALANDI" : "↓ AŞAĞIDAN SEÇ";
+      setTimeout(function () { dugme.textContent = "📋 KOPYALA"; }, 1600);
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(metin).then(function () { bitti(true); },
+                                                  function () { bitti(false); });
+        return;
+      }
+    } catch (e) {}
+    bitti(false);
   }
 
   function slaytla(i, v) {

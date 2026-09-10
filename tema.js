@@ -3656,19 +3656,19 @@ const ANAHTAR = "hudMenuAyar";
 
 /* [değişken, etiket, en az, en çok, adım, birim, varsayılan] */
 const ALANLAR = [
-  ["--hud-h",  "Menü yüksekliği",   30, 130, 1,    "px", 48],
-  ["--hud-f1", "Üst satır yazı",     8,  26, 0.25, "px", 15.5],
-  ["--hud-f2", "Kaynak yazı",        8,  26, 0.25, "px", 14],
-  ["--hud-ik", "Kaynak ikon",        8,  28, 0.25, "px", 15],
-  ["--hud-fw", "Yazı kalınlığı",   400, 900, 100,  "",  900],
-  ["--hud-lh", "Satır yüksekliği", 0.7, 1.8, 0.05, "",  1.45],
-  ["--hud-gap","Satır arası",       -8,  20, 0.5,  "px", -2],
-  ["--hud-pt", "Üst boşluk",         0,  24, 0.5,  "px", 10],
-  ["--hud-pb", "Alt boşluk",         0,  24, 0.5,  "px", 10.5],
-  ["--hud-px", "Yan boşluk",         0,  28, 0.5,  "px", 1.5],
-  ["--hud-ara","Öğe aralığı",        0,  20, 0.5,  "px", 4],
-  ["--hud-w",  "Menü genişliği",    55, 100, 0.5,  "%",  100],
-  ["--hud-r",  "Köşe yuvarlaklığı",  0,  30, 0.5,  "px", 12.5],
+  ["--hud-h",  "Menü yüksekliği",   18, 130, 0.5,  "px", 30.5],
+  ["--hud-f1", "Üst satır yazı",     6,  28, 0.25, "px", 13.25],
+  ["--hud-f2", "Kaynak yazı",        6,  28, 0.25, "px", 12],
+  ["--hud-ik", "Kaynak ikon",        6,  32, 0.25, "px", 14.5],
+  ["--hud-fw", "Yazı kalınlığı",   300, 900, 100,  "",  900],
+  ["--hud-lh", "Satır yüksekliği", 0.6, 2.2, 0.05, "",  1.6],
+  ["--hud-gap","Satır arası",      -20,  24, 0.5,  "px", -4.5],
+  ["--hud-pt", "Üst boşluk",         0,  30, 0.5,  "px", 9],
+  ["--hud-pb", "Alt boşluk",         0,  30, 0.5,  "px", 11.5],
+  ["--hud-px", "Yan boşluk",         0,  40, 0.5,  "px", 0],
+  ["--hud-ara","Öğe aralığı",        0,  24, 0.5,  "px", 1.5],
+  ["--hud-w",  "Menü genişliği",    40, 100, 0.5,  "%",  100],
+  ["--hud-r",  "Köşe yuvarlaklığı",  0,  40, 0.5,  "px", 9.5],
 ];
 
 function yuvarla(v, adim) {
