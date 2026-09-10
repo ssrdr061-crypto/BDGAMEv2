@@ -11,6 +11,15 @@
                  üyelik/kanal verisi doğduğunda buraya bağlanacak.
      Yıldızlı  → yıldızlanan postaların birleşik listesi
 
+   İKİ EKRAN, TEK PANEL
+   Liste ve DETAY sayfası aynı kartın içinde; biri gizlenir.
+   Karta ya da 🎁 kutusuna dokununca detay açılır: üstte posta
+   başlığı, altında açıklama, ödül kutusu + yeşil "Topla" ve
+   ayrı bir "Savaş Raporunu Aç" düğmesi. Ödül ARTIK LİSTEDEN
+   alınmaz, yalnız buradan. Rapor penceresi kendiliğinden açılmaz.
+   Alt şerit (Okunmuş Postaları Sil · Tümünü Oku ve Al) panelin
+   en altında, iki ekranda da aynı yerde durur.
+
    TEK RENDER
    Savaş günlüğünün eski paneli (#panel-battlelog) ve eski
    renderBattleLogPanel() yerini bu dosya alır: window.renderBattleLogPanel
@@ -203,7 +212,14 @@
         "height:100% !important;max-height:none !important;border-radius:0 !important;" +
         "display:flex !important;flex-direction:column !important;overflow:hidden !important;" +
         "padding:calc(12px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));}" +
-      "#panel-posta .posta-sekmeler,#panel-posta .posta-arac{flex:0 0 auto;}" +
+      "#panel-posta .posta-bas,#panel-posta .posta-sekmeler,#panel-posta .posta-arac{flex:0 0 auto;}" +
+
+      /* başlık satırı: solda geri oku, ortada ad, sağda kapat */
+      ".posta-bas{display:flex;align-items:center;gap:8px;margin-bottom:10px;}" +
+      "#panel-posta .posta-bas h2{flex:1 1 auto;margin:0;text-align:left;}" +
+      ".posta-geri{border:0;background:none;cursor:pointer;font-size:22px;line-height:1;" +
+        "color:#dff0ff;padding:0 2px;visibility:hidden;}" +
+      "#panel-posta .posta-bas .overlay-close{position:static !important;flex:0 0 auto;}" +
       "#panel-posta h2{font-family:'Baloo 2',sans-serif;font-weight:900;margin:0 0 10px;" +
         "text-align:center;color:var(--km-yazi);text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
 
@@ -223,7 +239,7 @@
         "box-shadow:0 1px 3px rgba(0,20,45,.5);}" +
 
       /* araç şeridi */
-      ".posta-arac{display:flex;gap:6px;margin:8px 0 6px;}" +
+      ".posta-arac{display:flex;gap:6px;margin:8px 0 0;}" +
       ".posta-arac button{flex:1 1 0;border:0;cursor:pointer;border-radius:9px;padding:8px 4px;" +
         "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:11px;color:#e8f4ff;" +
         "background:linear-gradient(180deg,#3d7ccc,#22488f);" +
@@ -262,6 +278,42 @@
       ".posta-eylem button{border:0;cursor:pointer;border-radius:8px;padding:6px 10px;" +
         "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:11.5px;color:#e8f4ff;" +
         "background:linear-gradient(180deg,#3d7ccc,#22488f);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+
+      /* ── DETAY SAYFASI ── */
+      ".posta-detay{flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px;display:none;}" +
+      ".pd-ust{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;" +
+        "background:linear-gradient(180deg,#fbfdff,#e6eef8);box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".pd-ikon{flex:0 0 54px;width:54px;height:54px;border-radius:10px;overflow:hidden;" +
+        "background:#dfe7f2;display:flex;align-items:center;justify-content:center;font-size:26px;}" +
+      ".pd-ikon img{width:100%;height:100%;object-fit:cover;display:block;}" +
+      ".pd-ust-yazi{min-width:0;}" +
+      ".pd-ad{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:15px;color:#14203a;}" +
+      ".pd-ad.pd-yenilgi{color:#8d2626;}" +
+      ".pd-zaman{font-size:11px;color:#6a789a;font-variant-numeric:tabular-nums;margin-top:2px;}" +
+      ".pd-metin{margin:10px 0;padding:10px;border-radius:12px;font-size:12.5px;line-height:1.45;" +
+        "color:#25334d;background:linear-gradient(180deg,#fbfdff,#e6eef8);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".pd-baslik{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:13px;color:#e8f4ff;" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.55);margin:2px 0 6px;text-align:center;}" +
+      ".pd-kutu{padding:12px 10px;border-radius:12px;background:linear-gradient(180deg,#fbfdff,#e6eef8);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".pd-odul-satir{display:flex;align-items:center;gap:10px;justify-content:center;}" +
+      ".pd-odul{position:relative;width:64px;height:64px;border-radius:12px;background:#dfe7f2;" +
+        "display:flex;align-items:center;justify-content:center;font-size:30px;" +
+        "box-shadow:inset 0 0 0 2px rgba(20,60,110,.14);}" +
+      ".pd-odul-adet{position:absolute;right:4px;bottom:2px;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:900;font-size:11px;color:#14203a;font-variant-numeric:tabular-nums;" +
+        "text-shadow:0 1px 0 #fff;}" +
+      ".pd-odul-ad{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#25334d;}" +
+      ".pd-topla{display:block;width:100%;margin-top:12px;border:0;cursor:pointer;border-radius:10px;" +
+        "padding:11px 8px;font-family:'Baloo 2',sans-serif;font-weight:900;font-size:14px;color:#fff;" +
+        "background:linear-gradient(180deg,#57c94f,#2e9a37);text-shadow:0 1px 2px rgba(0,40,10,.45);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".pd-topla.pd-alindi{background:linear-gradient(180deg,#b9c4d2,#8d9aab);cursor:default;}" +
+      ".pd-rapor{display:block;width:100%;margin-top:10px;border:0;cursor:pointer;border-radius:10px;" +
+        "padding:10px 8px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#e8f4ff;" +
+        "background:linear-gradient(180deg,#3d7ccc,#22488f);text-shadow:0 1px 2px rgba(0,20,45,.55);" +
         "box-shadow:0 2px 6px rgba(0,20,45,.3);}";
     document.head.appendChild(st2);
   }
@@ -282,14 +334,18 @@
     panel.id = "panel-posta";
     panel.innerHTML =
       '<div class="overlay-card">' +
-        '<button class="overlay-close" data-close>✕</button>' +
-        "<h2>✉️ POSTA</h2>" +
+        '<div class="posta-bas">' +
+          '<button class="posta-geri" id="postaGeriBtn">⬅</button>' +
+          "<h2>✉️ POSTA</h2>" +
+          '<button class="overlay-close" data-close>✕</button>' +
+        "</div>" +
         '<div class="posta-sekmeler" id="postaSekmeler"></div>' +
+        '<div class="posta-liste" id="postaListe"></div>' +
+        '<div class="posta-detay" id="postaDetay"></div>' +
         '<div class="posta-arac">' +
           '<button id="postaSilBtn">🗑 Okunmuş Postaları Sil</button>' +
           '<button id="postaHepsiBtn">📩 Tümünü Oku ve Al</button>' +
         "</div>" +
-        '<div class="posta-liste" id="postaListe"></div>' +
       "</div>";
     kap.appendChild(panel);
     sekmeleriCiz();
@@ -306,6 +362,34 @@
     if (hepsiBtn) hepsiBtn.addEventListener("click", tumunuOkuVeAl);
 
     document.getElementById("postaListe").addEventListener("click", listeDokunus);
+    document.getElementById("postaDetay").addEventListener("click", detayDokunus);
+
+    var geri = document.getElementById("postaGeriBtn");
+    if (geri) geri.addEventListener("click", listeyeDon);
+    gorunum("liste");
+  }
+
+  /* ── GÖRÜNÜM: liste ↔ detay ───────────────────────────────────
+     İki ekran AYNI panelde durur, biri gizlenir. Ayrı bir katman
+     açılmıyor; alt şerit ikisinde de aynı yerde kalıyor. */
+  function gorunum(hangi) {
+    var liste = document.getElementById("postaListe");
+    var detay = document.getElementById("postaDetay");
+    var sekme = document.getElementById("postaSekmeler");
+    var geri = document.getElementById("postaGeriBtn");
+    if (!liste || !detay) return;
+    var detaydaMi = (hangi === "detay");
+    liste.style.display = detaydaMi ? "none" : "flex";
+    detay.style.display = detaydaMi ? "block" : "none";
+    if (sekme) sekme.style.display = detaydaMi ? "none" : "flex";
+    if (geri) geri.style.visibility = detaydaMi ? "visible" : "hidden";
+  }
+
+  function listeyeDon() {
+    acikPosta = null;
+    gorunum("liste");
+    sekmeleriCiz();
+    listeyiCiz(false);
   }
 
   function sekmeleriCiz() {
@@ -326,6 +410,8 @@
 
   function sekmeSec(id) {
     if (!id || id === aktifSekme) return;
+    acikPosta = null;
+    gorunum("liste");
     aktifSekme = id;
     sekmeleriCiz();
     listeyiCiz(true);
@@ -407,11 +493,8 @@
     }
     var ob = e.target.closest ? e.target.closest("[data-odul]") : null;
     if (ob) {
-      var po = _gorunen[parseInt(ob.dataset.odul, 10)];
-      if (po && po.tur === "log" && typeof odulKutusunuAc === "function") {
-        odulKutusunuAc(po.kaynakIdx);
-        listeyiCiz(false);
-      }
+      /* Ödül listede alınmaz; detay sayfasındaki Topla düğmesinden alınır */
+      postayiAc(_gorunen[parseInt(ob.dataset.odul, 10)]);
       return;
     }
     var kart = e.target.closest ? e.target.closest(".posta-kart") : null;
@@ -435,41 +518,106 @@
     return true;
   }
 
+  /* ── DETAY SAYFASI ────────────────────────────────────────────
+     Karta ya da 🎁 kutusuna dokununca açılır. Ödül BURADAN alınır
+     (Topla), savaş raporu ayrı düğmeyle açılır — sayfa açılırken
+     rapor penceresi kendiliğinden gelmez. */
+  var acikPosta = null;
+
+  function detayHTML(p) {
+    var aciklama;
+    if (p.tur === "log") {
+      var ad = temizAd(p.en.enemyPlainName || p.en.enemyName);
+      aciklama = p.kazandi
+        ? ad + " başarılı bir şekilde alt edildi, tebrikler!"
+        : ad + " karşısında savaş kaybedildi.";
+    } else {
+      aciklama = (p.kayit && p.kayit.tam) ? p.kayit.tam : p.onizleme;
+    }
+
+    var odulBlok = "";
+    if (p.odul) {
+      var alindi = !!p.odul.alindi;
+      odulBlok =
+        '<div class="pd-baslik">Ödüller</div>' +
+        '<div class="pd-kutu">' +
+          '<div class="pd-odul-satir"><div class="pd-odul">' +
+            '<span class="pd-odul-ikon">' + (p.odul.ikon || "🎁") + "</span>" +
+            '<span class="pd-odul-adet">' +
+              ((typeof fmt === "function") ? fmt(p.odul.miktar || 0) : (p.odul.miktar || 0)) +
+            "</span></div>" +
+            '<div class="pd-odul-ad">' + (p.odul.ad || "") + "</div>" +
+          "</div>" +
+          '<button class="pd-topla' + (alindi ? " pd-alindi" : "") + '" id="postaToplaBtn"' +
+            (alindi ? " disabled" : "") + ">" + (alindi ? "Toplandı" : "Topla") + "</button>" +
+        "</div>";
+    }
+
+    var raporBlok = (p.tur === "log")
+      ? '<button class="pd-rapor" id="postaRaporBtn">📜 Savaş Raporunu Aç</button>'
+      : "";
+
+    return '<div class="pd-ust">' +
+             '<div class="pd-ikon">' + (p.ikonGorsel
+               ? '<img src="' + p.ikonGorsel + '" alt="">'
+               : "<span>" + p.ikonEmoji + "</span>") + "</div>" +
+             '<div class="pd-ust-yazi">' +
+               '<div class="pd-ad' + (p.kazandi === false ? " pd-yenilgi" : "") + '">' + p.baslik + "</div>" +
+               '<div class="pd-zaman">' + tarihYaz(p.zaman) + "</div>" +
+             "</div>" +
+           "</div>" +
+           '<div class="pd-metin">' + aciklama + "</div>" +
+           odulBlok + raporBlok;
+  }
+
+  function detayCiz() {
+    var el = document.getElementById("postaDetay");
+    if (!el || !acikPosta) return;
+    el.innerHTML = detayHTML(acikPosta);
+  }
+
   function postayiAc(p) {
     if (!p) return;
-    var degisti = okunduIsaretle(p);
-    if (degisti) { yaz(); sekmeleriCiz(); listeyiCiz(false); }
+    if (okunduIsaretle(p)) yaz();
+    acikPosta = p;
+    gorunum("detay");
+    detayCiz();
+    var el = document.getElementById("postaDetay");
+    if (el && !kapaliHareket()) {
+      el.animate(
+        [{ opacity: 0, transform: "translateX(18px)" },
+         { opacity: 1, transform: "translateX(0)" }],
+        { duration: 200, easing: "cubic-bezier(.2,.85,.3,1)" }
+      );
+    }
+  }
 
-    if (p.tur === "log") {
-      if (p.en.pvp) {
-        if (typeof openReportModal === "function" && typeof entryToReport === "function") {
-          openReportModal(entryToReport(p.en));
-        } else if (typeof showToast === "function") {
-          showToast("Rapor penceresi yüklenmedi (tema.js).");
-        }
-      } else if (typeof openLogReportModal === "function") {
-        openLogReportModal(p.en);
+  function detayDokunus(e) {
+    if (!acikPosta) return;
+    if (e.target.closest && e.target.closest("#postaToplaBtn")) {
+      if (acikPosta.tur === "log" && typeof odulKutusunuAc === "function") {
+        odulKutusunuAc(acikPosta.kaynakIdx);
+        /* damga kayda yazıldı; sayfayı tazele */
+        acikPosta.odul = (gunluk()[acikPosta.kaynakIdx] || {}).odul || acikPosta.odul;
+        detayCiz();
       }
       return;
     }
-    /* Sistem postası: metin uzun olabilir, toast yerine kart altında açılır */
-    sistemMetniAc(p);
+    if (e.target.closest && e.target.closest("#postaRaporBtn")) {
+      raporAc(acikPosta);
+    }
   }
 
-  function sistemMetniAc(p) {
-    var el = document.getElementById("postaListe");
-    if (!el) return;
-    var kart = el.querySelector('.posta-kart[data-idx="' + _gorunen.indexOf(p) + '"]');
-    if (!kart) return;
-    var eski = kart.querySelector(".pk-tam");
-    if (eski) { eski.remove(); return; }
-    var kutu = document.createElement("div");
-    kutu.className = "pk-tam";
-    kutu.style.cssText = "flex:1 1 100%;font-size:12px;color:#25334d;margin-top:6px;";
-    kutu.textContent = (p.kayit && p.kayit.tam) ? p.kayit.tam : p.onizleme;
-    kart.appendChild(kutu);
-    if (!kapaliHareket()) {
-      kutu.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: "ease-out" });
+  function raporAc(p) {
+    if (!p || p.tur !== "log") return;
+    if (p.en.pvp) {
+      if (typeof openReportModal === "function" && typeof entryToReport === "function") {
+        openReportModal(entryToReport(p.en));
+      } else if (typeof showToast === "function") {
+        showToast("Rapor penceresi yüklenmedi (tema.js).");
+      }
+    } else if (typeof openLogReportModal === "function") {
+      openLogReportModal(p.en);
     }
   }
 
@@ -591,6 +739,8 @@
       if (typeof loadBattleLog === "function") loadBattleLog();
     }
 
+    acikPosta = null;
+    gorunum("liste");
     sekmeleriCiz();
     listeyiCiz(true);
 
