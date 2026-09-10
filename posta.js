@@ -222,12 +222,14 @@
          48px'lik çıplak görselden 42px'lik TEMA KUTUSUNA alındı:
          zemin/çerçeve/köşe değerleri üst menüyle aynı --km-*
          değişkenlerinden gelir, tema değişince kutu da değişir. */
+      /* Kutu kalıyor ama KABARTMA yok: açık renk bevel çerçevesi ve
+         derin gölge 3B duruyordu, ikisi de kaldırıldı. Zemin yine
+         tema değişkenlerinden geliyor. */
       "#postaYuzenBtn{position:fixed;right:10px;bottom:96px;z-index:20;width:42px;height:42px;" +
-        "padding:0;cursor:pointer;border-radius:11px;" +
+        "padding:0;cursor:pointer;border-radius:11px;border:0;" +
         "display:flex;align-items:center;justify-content:center;" +
         "background:linear-gradient(180deg,var(--km-1),var(--km-2) 55%,var(--km-3));" +
-        "border:1px solid var(--km-kenar);" +
-        "filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));}" +
+        "filter:drop-shadow(0 2px 4px rgba(0,0,0,.30));}" +
       "#postaYuzenBtn:active{transform:scale(.96);filter:brightness(.93);}" +
       "#postaYuzenBtn img{width:26px;height:26px;object-fit:contain;display:block;}" +
       "#postaYuzenBtn .py-emoji{font-size:22px;line-height:1;}" +
@@ -270,8 +272,13 @@
       /* liste */
       ".posta-liste{flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px;display:flex;" +
         "flex-direction:column;gap:7px;}" +
+      /* Kart yüzeyi: düz beyaz DEĞİL, hafif gradyanlı gri.
+         3B görünüm veren yükseltme gölgesi (box-shadow) kaldırıldı;
+         yerine kartı zeminden ayıran saç teli çerçeve kondu — kabartma
+         yok, düz duruyor. */
       ".posta-kart{display:flex;align-items:stretch;gap:8px;padding:8px;border-radius:12px;" +
-        "background:linear-gradient(180deg,#fbfdff,#e6eef8);box-shadow:0 2px 6px rgba(0,20,45,.3);" +
+        "background:linear-gradient(180deg,#eef1f5,#d8dee7);" +
+        "border:1px solid rgba(20,32,58,.12);box-shadow:none;" +
         "cursor:pointer;}" +
       ".posta-kart.pk-okundu{filter:brightness(.93);}" +
       ".pk-ikon{flex:0 0 46px;width:46px;height:46px;border-radius:9px;overflow:hidden;" +
@@ -463,7 +470,13 @@
              '<div class="pk-orta">' +
                '<div class="pk-baslik' + (p.kazandi === false ? " pk-yenilgi" : "") + '">' +
                  p.baslik + "</div>" +
-               '<div class="pk-onizleme">' + p.onizleme + "</div>" +
+               /* Savaş kayıtlarında önizleme satırı BASILMAZ
+                  ("Saldırı · 1 tur", "Canavar savaşı · 3 tur" …).
+                  Alan silinmedi: ayrıntı penceresi p.onizleme'yi
+                  hâlâ açıklama olarak kullanıyor (bkz. 558). Sistem
+                  postalarında önizleme gerçek metindir, o kalır. */
+               (p.tur === "log" ? "" :
+                 '<div class="pk-onizleme">' + p.onizleme + "</div>") +
                '<div class="pk-zaman">' + tarihYaz(p.zaman) + "</div>" +
              "</div>" +
              '<div class="pk-sag">' +
@@ -811,20 +824,36 @@
   /* ── YÜZEN DÜĞME ──────────────────────────────────────────────
      Posta alt menüden çıktı (o yer İttifak'ın), sağ alt köşede
      duruyor. Rozet, bütün sekmelerdeki okunmamış toplamı. */
-  /* Düğmenin kabı: GÖVDE DEĞİL, #appScreen.
-     ── NEDEN ──
-     Düğme document.body'ye ekleniyordu; #appScreen{display:none}
-     iken bile gövde görünür olduğu için posta simgesi GİRİŞ ve
-     YÜKLEME ekranında da duruyordu. Oyunun "açık mı" göstergesi
-     tek yerde: #appScreen'in display'i (index.html 4907/4998).
-     Düğmeyi onun içine koyunca ekranla birlikte kendiliğinden
-     görünüp kayboluyor — ayrıca gizleme koduna, sınıfa, yoklamaya
-     gerek kalmıyor. sefer.js de aynı sebeple kutusunu #appScreen'e
-     taşımıştı (bkz. sefer.js 1267).
-     position:fixed bozulmaz: #appScreen'de transform/filter yok,
+  /* Düğmenin kabı: GÖVDE DEĞİL, #worldScreen.
+     ── İKİ AYRI HATAYI BİRDEN ÇÖZER ──
+
+     1) GİRİŞ/YÜKLEME EKRANINDA GÖRÜNMESİ
+        Düğme document.body'ye ekleniyordu; #appScreen{display:none}
+        iken bile gövde görünür olduğu için posta simgesi giriş ve
+        yükleme ekranında da duruyordu. #worldScreen, #appScreen'in
+        içindedir — ekran kapalıyken düğme de kendiliğinden yok
+        olur. Gizleme kodu, sınıf ya da yoklama gerekmez.
+
+     2) PANELLERİN ÜSTÜNE ÇIKMASI  ← asıl kök sebep
+        Sorun z-index'in KÜÇÜK olması değildi (düğme 20, paneller
+        50). #worldScreen `position:fixed` olduğu için KENDİ YIĞIN
+        BAĞLAMINI açıyor: panellerin 50'si o bağlamın içinde kalır,
+        dışarıya 50 diye taşmaz. Dışarıdan bakınca kıyas
+        "#worldScreen (z:auto ≈ 0)" ile "#postaYuzenBtn (z:20)"
+        arasında yapılır; 20 > 0 olduğu için düğme bütün
+        #worldScreen ağacının — panelleri dahil — üstüne biner.
+        Sayıyı büyütmek değil KÜÇÜLTMEK de işe yaramazdı; düğmeyi
+        panellerle AYNI bağlamın içine almak gerekiyordu. İçeri
+        girince 20 < 50 kıyası gerçekten çalışır ve paneller
+        düğmeyi örter. etkinlik.js aynı sebeple #etkIkon'u bu
+        ağacın içinde tutuyor (bkz. etkinlik.js 194).
+
+     position:fixed bozulmaz: #worldScreen'de transform/filter yok,
      yani kapsayıcı blok hâlâ ekranın kendisi. */
   function kap() {
-    return document.getElementById("appScreen") || document.body;
+    return document.getElementById("worldScreen")
+        || document.getElementById("appScreen")
+        || document.body;
   }
 
   function yuzenKur() {
