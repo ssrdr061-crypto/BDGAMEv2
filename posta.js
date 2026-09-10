@@ -44,12 +44,13 @@
    rAF + Web Animations. CSS keyframe/transition yok
    (prefers-reduced-motion hepsini öldürür).
 
-   INDEX.HTML'DE YAPILACAK TEK EKLEME
-     <script src="posta.js"></script>   (tema.js'ten SONRA)
-   ve artık ölü olan eski günlük bloğu silinmeli:
-     · <div class="overlay-panel" id="panel-battlelog"> … </div>
-     · function renderBattleLogPanel() { … }
-   Bu dosya, blok hâlâ duruyorsa açılışta DOM'dan kaldırır.
+   INDEX.HTML TARAFI (birlikte verilen dosyada YAPILDI)
+     · <script src="posta.js"></script>  (etkinlik.js'ten sonra)
+     · dock düğmesi data-panel="posta"
+     · PANEL_ORDER'da battlelog → posta
+     · silinenler: #panel-battlelog bloğu ve CSS'i,
+       renderBattleLogPanel(), formatLogTime(), clearBattleLogBtn
+       bağlaması, openOverlayPanel'in battlelog dalı
    ═══════════════════════════════════════════════════════════════ */
 (function postaKutusu() {
   "use strict";
@@ -263,10 +264,10 @@
   function iskelet() {
     if (document.getElementById("panel-posta")) return;
 
-    /* Eski günlük paneli varsa AYNI kapsayıcıya konur, sonra o
-       kaldırılır: iki liste yolu bir arada durmaz. */
-    var eski = document.getElementById("panel-battlelog");
-    var kap = (eski && eski.parentNode) ? eski.parentNode : document.body;
+    /* Diğer overlay panellerle AYNI kapsayıcıya konur; body'ye
+       eklenirse üst katman sırası onlardan farklı olur. */
+    var komsu = document.getElementById("panel-inventory");
+    var kap = (komsu && komsu.parentNode) ? komsu.parentNode : document.body;
 
     panel = document.createElement("div");
     panel.className = "overlay-panel";
@@ -283,9 +284,6 @@
         '<div class="posta-liste" id="postaListe"></div>' +
       "</div>";
     kap.appendChild(panel);
-
-    if (eski) eski.remove();
-
     sekmeleriCiz();
 
     /* Kapatma ve zemin dokunuşu kendi dinleyicimizle: setupNav
@@ -599,17 +597,11 @@
     if (panel) panel.classList.remove("active");
   }
 
-  /* ── ALT MENÜ DÜĞMESİNİ POSTAYA BAĞLA ─────────────────────────
-     setupNav dinleyiciyi `() => openOverlayPanel(btn.dataset.panel)`
-     olarak kurdu; değeri TIKLAMA anında okuyor. Bu yüzden düğmenin
-     data-panel'ini değiştirmek yeterli, ikinci dinleyici eklenmez. */
+  /* ── "posta" ANAHTARINI KARŞILA ───────────────────────────────
+     Alt menü düğmesi ve kaydırma sırası index.html'de "posta"
+     diyor; openOverlayPanel #panel-posta'yı tanımadığı için
+     sarmalanıyor. İkinci dinleyici eklenmez. */
   function dockBagla() {
-    var btn = document.querySelector('.dock-btn[data-panel="battlelog"]');
-    if (btn) {
-      btn.dataset.panel = "posta";
-      var im = btn.querySelector("img");
-      if (im) im.alt = "Posta";
-    }
     var orij = window.openOverlayPanel;
     if (typeof orij === "function" && !orij.__postaWrapped) {
       var sarmal = function (key) {

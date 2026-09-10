@@ -2363,80 +2363,6 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
    Ayni kurallar burada, BASLIKTA duruyor: ilk boyamada zaten duz.
    tema.js sonra ayni kurallari tekrar yaziyor, catisma olmuyor.
    DIKKAT: tema.js degisirse burasi da guncellenmeli. */
-/* — gunlukDuzles (tema.js ile birebir aynı) — */
-/* Panelin kendisi: radial parlaklık, 3px çerçeve ve dış ışıma yok */
-#panel-battlelog .overlay-card{
-  background:linear-gradient(180deg, var(--km-1, #1fa3ea), var(--km-3, #0e6fc0)) !important;
-  border:1px solid rgba(190,240,255,.20) !important;
-  box-shadow:none !important;
-}
-#panel-battlelog h2{
-  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
-  -webkit-text-stroke:0 !important;
-}
-#panel-battlelog .desc{ text-shadow:0 1px 2px rgba(0,20,45,.55) !important; }
-
-/* Kayıt kartı: kutu içinde kutu yok — sadece ayırıcı çizgi */
-#panel-battlelog .log-entry{
-  background:none !important;
-  border:none !important;
-  border-bottom:1px solid rgba(190,240,255,.14) !important;
-  border-radius:0 !important;
-  box-shadow:none !important;
-  padding-left:0 !important;
-}
-#panel-battlelog .log-entry.log-win,
-#panel-battlelog .log-entry.log-loss{ border-left:none !important; }
-
-/* Aç düğmesi: kalın alt kenar ve inset kalktı */
-#panel-battlelog .log-open-btn{
-  background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;
-  border:none !important;
-  box-shadow:none !important;
-  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
-  transition:transform .09s, filter .09s !important;
-}
-#panel-battlelog .log-open-btn:active{
-  transform:scale(.96) !important; filter:brightness(.93) !important;
-  box-shadow:none !important;
-}
-
-/* Ödül düğmesi: aynı sadeleştirme, rengi korunuyor */
-#panel-battlelog .log-gift-btn{
-  background:linear-gradient(180deg,#f7a83a,#c86a08) !important;
-  border:none !important;
-  box-shadow:none !important;
-  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
-  transition:transform .09s, filter .09s !important;
-}
-#panel-battlelog .log-gift-btn:active{
-  transform:scale(.96) !important; filter:brightness(.93) !important;
-  box-shadow:none !important;
-}
-#panel-battlelog .log-gift-btn.alindi{ box-shadow:none !important; }
-
-/* Günlüğü temizle düğmesi */
-#panel-battlelog .log-clear-btn{
-  border:none !important;
-  box-shadow:none !important;
-  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
-  transition:transform .09s, filter .09s !important;
-}
-#panel-battlelog .log-clear-btn:active{
-  transform:scale(.96) !important; filter:brightness(.93) !important;
-  box-shadow:none !important;
-}
-
-/* Kapat ✕ — sadece bu panelde düzleşir */
-#panel-battlelog .overlay-close{
-  box-shadow:none !important;
-  transition:transform .09s, filter .09s !important;
-}
-#panel-battlelog .overlay-close:active{
-  transform:scale(.96) !important; filter:brightness(.93) !important;
-  box-shadow:none !important;
-}
-
 /* GİRİŞ EKRANI kopyası buradan KALDIRILDI (18).
    Tek tanım yukarıda ~105. satırda. tema.js'teki altı kopya da silindi. */
 
@@ -2580,7 +2506,7 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
     <button class="dock-btn" data-panel="shop"><img class="dock-icon" src="gorsel12.webp" alt="Mağaza"></button>
     <button class="dock-btn" data-panel="hero"><img class="dock-icon" src="gorsel13.webp" alt="Kahraman"></button>
     <button class="dock-btn" data-panel="troops"><img class="dock-icon" src="gorsel14.webp" alt="Birlikler"></button>
-    <button class="dock-btn" data-panel="battlelog"><img class="dock-icon" src="gorsel15.webp" alt="Savaş Günlüğü"></button>
+    <button class="dock-btn" data-panel="posta"><img class="dock-icon" src="gorsel15.webp" alt="Posta"></button>
     <button class="dock-btn" data-panel="rank" id="rankDockBtn" aria-label="Sıralama"><img class="dock-icon" src="gorsel25.webp" alt="Sıralama" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏆',style:'font-size:26px;line-height:1'}))"></button>
   </nav>
 
@@ -2730,16 +2656,6 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
         <script type="text/plain" id="data3d_robot_mtl"></script>
         <script type="text/plain" id="data3d_robot_tex"></script>
       </section>
-    </div>
-  </div>
-
-  <div class="overlay-panel" id="panel-battlelog">
-    <div class="overlay-card">
-      <button class="overlay-close" data-close>✕</button>
-      <h2>📜 Savaş Günlüğü</h2>
-      <p class="desc">Tüm savaşlarının detaylı raporu burada kalıcı olarak birikir.</p>
-      <div class="log-list" id="battleLogHistoryList"></div>
-      <button class="log-clear-btn" id="clearBattleLogBtn">Günlüğü Temizle</button>
     </div>
   </div>
 
@@ -3483,10 +3399,7 @@ function loadBattleLog() {
       queueLogSave();
       console.log("[günlük] eski kayıtlar yeni düğüme taşınıyor");
     }
-    if (typeof renderBattleLogPanel === "function") {
-      const el = document.getElementById("battleLogHistoryList");
-      if (el) renderBattleLogPanel();
-    }
+    if (typeof renderBattleLogPanel === "function") renderBattleLogPanel();
   }).catch(e => console.warn("[günlük] okunamadı:", e));
 }
 
@@ -6036,48 +5949,6 @@ function formatRemaining(ms) {
   return sureBicim(ensure(ms));
 }
 
-function formatLogTime(ts) {
-  const d = new Date(ts);
-  return `${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}`;
-}
-
-function renderBattleLogPanel() {
-  const listEl = document.getElementById("battleLogHistoryList");
-  if (!listEl) return;
-  const history = state.battleLogHistory || [];
-  if (history.length === 0) {
-    listEl.innerHTML = emptyState("📜", "Henüz bir savaş raporu yok. Haritadan bir düşmanla savaş.", "18px");
-    return;
-  }
-  listEl.innerHTML = history.map((entry, i) => `
-      <div class="log-entry ${entry.win ? "log-win" : "log-loss"}">
-        <div class="log-entry-top">
-          <span class="log-entry-result">${entry.win ? "🏆 Zafer" : "💢 Yenilgi"}</span>
-          <span class="log-entry-enemy">${entry.enemyName}</span>
-          <span class="log-entry-time">${formatLogTime(entry.timestamp)}</span>
-        </div>
-        ${entry.pvp ? "" : `<div class="log-entry-actions">
-          <button class="log-open-btn" data-idx="${i}">📜 Aç</button>
-          ${entry.odul ? `<button class="log-gift-btn ${entry.odul.alindi ? "alindi" : ""}" data-gift="${i}">
-              ${entry.odul.ikon} ${fmt(entry.odul.miktar)}
-            </button>` : ""}
-        </div>`}
-      </div>`).join("");
-
-  if (!listEl.dataset.openHooked) {
-    listEl.dataset.openHooked = "1";
-    listEl.addEventListener("click", (e) => {
-      const b = e.target.closest(".log-open-btn");
-      if (b) {
-        const en = (state.battleLogHistory || [])[parseInt(b.dataset.idx, 10)];
-        if (en) openLogReportModal(en);
-        return;
-      }
-      const g = e.target.closest(".log-gift-btn");
-      if (g) odulKutusunuAc(parseInt(g.dataset.gift, 10));
-    });
-  }
-}
 
 /* ── HEDİYE KUTUSU ──
    Canavarın düşürdüğü kaynak savaş sonunda EKLENMEZ, burada
@@ -9189,17 +9060,6 @@ function openOverlayPanel(panelKey) {
   el.style.pointerEvents = "none";
   el._hayaletZm = setTimeout(() => { el.style.pointerEvents = ""; }, 350);
   if (panelKey === "troops") { renderTroopsPanel(); TroopViewer.show(); }
-  if (panelKey === "battlelog") {
-    renderBattleLogPanel();
-    /* Bulut günlüğü AÇILIŞTA DEĞİL, kutu ilk açılınca insin.
-       Bir kez indirir; sonraki açılışlarda tekrar istemez.
-       Bayrak logout() içinde sıfırlanır — yoksa başka hesapla
-       girildiğinde o hesabın günlüğü buluttan hiç inmez. */
-    if (!window._gunlukIndi) {
-      window._gunlukIndi = true;
-      if (typeof loadBattleLog === "function") loadBattleLog();
-    }
-  }
   if (panelKey === "hospital") renderHospitalPanel();
   if (panelKey === "rank") { rankSekmeBagla(); renderRankPanel(); }
 }
@@ -9226,7 +9086,7 @@ function bindTap(el, handler) {
   }
 }
 
-const PANEL_ORDER = ["inventory", "shop", "hero", "troops", "battlelog"];
+const PANEL_ORDER = ["inventory", "shop", "hero", "troops", "posta"];
 
 function setupNav() {
   document.querySelectorAll(".dock-btn[data-panel]").forEach(btn => {
@@ -9545,9 +9405,6 @@ safeBind("adminGiftSendBtn", "click", () => {
   });
 });
 
-safeBind("clearBattleLogBtn", "click", () => {
-  clearBattleLogHistory();
-});
 const EVENTS = {
   chestEl: openChest,
   floatingChestBtn: () => openOverlayPanel("chest"),
@@ -10522,6 +10379,13 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
      Kendi kendine yeter; kale içi görünürlüğü body.kaleici-acik
      sınıfına bağlı olduğu için kaleici.js'ten SONRA yüklenir. -->
 <script src="etkinlik.js"></script>
+
+<!-- ═══ POSTA (mesaj kutusu) ═══
+     5 sekmeli posta paneli. Eski Savaş Günlüğü paneli ve
+     renderBattleLogPanel() buradan kaldırıldı; liste artık
+     posta.js'te çiziliyor. tema.js'ten SONRA yüklenir
+     (rapor penceresi entryToReport/openReportModal oradan). -->
+<script src="posta.js"></script>
 
 </body>
 </html>
