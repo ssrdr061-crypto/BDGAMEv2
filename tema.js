@@ -7565,13 +7565,16 @@ setTimeout(uygula, 2500);
   var MAX_SV = 5;
 
   var CSS = `
-    #panel-rank .rs-sekmeler{ display:flex; gap:6px; margin:4px 2px 0; }
-    /* Üç düğme yan yana: "KAHRAMAN" 8 harf, 13,5 punto ile dar
-       telefonda taşıyordu. Punto ve harf aralığı ölçülüp düşürüldü. */
-    #panel-rank .rs-sekme{ flex:1 1 0; min-width:0; padding:7px 2px;
+    #panel-rank .rs-sekmeler{ display:flex; gap:4px; margin:4px 2px 0; }
+    /* Dört düğme yan yana: "KAHRAMAN" 8 harf, 13,5 punto ile dar
+       telefonda taşıyordu. Punto ve harf aralığı ölçülüp düşürüldü.
+       DÖRDÜNCÜ sekme (İTTİFAK) eklenince her düğmeye düşen pay
+       1/3'ten 1/4'e indi; punto 12 → 11 ve aradaki boşluk 6 → 4
+       yapıldı, yoksa 360 px genişlikte "KAHRAMAN" yine taşıyor. */
+    #panel-rank .rs-sekme{ flex:1 1 0; min-width:0; padding:7px 1px;
       border:none; border-radius:11px;
       background:rgba(255,255,255,.10); color:#cfe6ff;
-      font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:12px;
+      font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:11px;
       letter-spacing:0; white-space:nowrap; box-shadow:none;
       transition:transform .09s, filter .09s; }
     #panel-rank .rs-sekme:active{ transform:scale(.96); filter:brightness(.93); }
@@ -7587,6 +7590,21 @@ setTimeout(uygula, 2500);
       font-weight:800; font-size:13.5px; color:#000; text-shadow:none;
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     #panel-rank .rs-satir .rank-power{ flex:none; }
+
+    /* İTTİFAK satırı: sıra · [ETİKET] · ad · üye sayısı · toplam güç.
+       Etiket kutusu ittifak.js'teki .it-flama ile aynı mavi, ama
+       satıra sığsın diye küçültülmüş hâli. Buradaki ölçüler o
+       dosyadan BAĞIMSIZDIR; ittifak.js'i değiştirmek burayı bozmaz. */
+    #panel-rank .rs-etiket{ flex:0 0 auto; padding:2px 6px; border-radius:7px;
+      background:linear-gradient(180deg,#3d7ccc,#22488f); color:#fff;
+      font-family:'Baloo 2','Nunito',sans-serif; font-weight:900; font-size:11px;
+      text-shadow:0 1px 2px rgba(0,20,45,.55);
+      max-width:52px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #panel-rank .rs-itad{ flex:1 1 auto; min-width:0; text-align:left;
+      font-weight:800; font-size:13px; color:#000; text-shadow:none;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    #panel-rank .rs-uye{ flex:0 0 auto; font-size:11px; font-weight:800;
+      color:#2c68ad; text-shadow:none; }
   `;
 
   function stilBas() {
@@ -7706,6 +7724,156 @@ setTimeout(uygula, 2500);
     } catch (e) { kur(null); }
   }
 
+  /*  ═══ İTTİFAK SIRALAMASI ═══════════════════════════════════════
+      İttifakın gücü = ÜYELERİNİN GÜCÜNÜN TOPLAMI. Ayrı bir "ittifak
+      gücü" alanı hiçbir yere YAZILMAZ; her açılışta üyelerden
+      toplanır. Sebebi tek doğruluk kuralı: yazılsaydı bir üye asker
+      bastığında ittifak düğümünün de güncellenmesi gerekirdi, o
+      yazma unutulduğu ya da reddedildiği anda sıralama sessizce
+      yanlış kalırdı.
+
+      İKİ DÜĞÜM BİRLEŞTİRİLİR
+        ittifaklar/{id}/uyeler/{oyuncuAnahtari}  → kim hangi ittifakta
+        accounts/{oyuncuAnahtari}/state          → o oyuncunun gücü
+      Anahtarlar birebir aynıdır: ittifak.js üyeyi toFirebaseKey(ad)
+      ile yazar, hesap da accounts/toFirebaseKey(ad) altındadır
+      (toFirebaseKey kendi içinde küçük harfe çeviriyor, bu yüzden
+      büyük/küçük harf farkı eşleşmeyi bozmaz). Bu eşitlik bozulursa
+      bütün ittifaklar 0 güç gösterir — ilk bakılacak yer burasıdır.
+
+      SPARK (ücretsiz) PLAN: iki tane .once("value") okuması yapılır,
+      dinleyici (on) AÇILMAZ. Sekme her açıldığında yeniden okunur,
+      arka planda sürekli veri akmaz.
+
+      Kendi gücüm bulut yerine bellekteki state'ten alınır — bulut
+      kaydı 3 sn gecikmeli yazıldığı için (queueCloudSave) az önce
+      asker basmışsam bulutta eski değer duruyor olabilir.          */
+  function oyuncuGucu(st) {
+    try {
+      if (typeof computePlayerPower === "function") return computePlayerPower(st) || 0;
+    } catch (e) {}
+    return 0;
+  }
+
+  function benimAnahtarim() {
+    try {
+      if (typeof currentUsername === "string" && currentUsername &&
+          typeof toFirebaseKey === "function") {
+        return toFirebaseKey(currentUsername);
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function ittifakGucleri(hesaplar, ittifaklar) {
+    var liste = [];
+    if (!ittifaklar || typeof ittifaklar !== "object") return liste;
+
+    var bk = benimAnahtarim();
+    var benimGuc = 0;
+    try {
+      if (typeof state !== "undefined" && state) benimGuc = oyuncuGucu(state);
+    } catch (e) {}
+
+    Object.keys(ittifaklar).forEach(function (id) {
+      var it = ittifaklar[id];
+      if (!it || typeof it !== "object") return;
+      var uyeler = (it.uyeler && typeof it.uyeler === "object") ? it.uyeler : {};
+
+      var toplam = 0, sayi = 0, benMi = false;
+      Object.keys(uyeler).forEach(function (uk) {
+        sayi++;
+        if (bk && uk === bk) { toplam += benimGuc; benMi = true; return; }
+        var acc = hesaplar ? hesaplar[uk] : null;
+        /* Hesabı bulunamayan üye 0 güç sayılır (silinmiş hesap ya da
+           henüz buluta yazılmamış yeni oyuncu). Üye SAYISINA yine de
+           girer, yoksa "5 üye" yazan ittifak listede 3 üye görünür. */
+        if (acc) toplam += oyuncuGucu(acc.state);
+      });
+
+      liste.push({
+        id: id,
+        ad: it.ad || id,
+        etiket: it.etiket || "",
+        guc: toplam,
+        uye: sayi,
+        me: benMi
+      });
+    });
+
+    /* Güç eşitse (iki boş ittifak) üye sayısı, o da eşitse ad —
+       yoksa sıra her açılışta rastgele değişmiş gibi görünür. */
+    liste.sort(function (a, b) {
+      return (b.guc - a.guc) || (b.uye - a.uye) ||
+             String(a.ad).localeCompare(String(b.ad), "tr");
+    });
+    return liste;
+  }
+
+  function ittifakSatirlariHTML(liste) {
+    if (!liste.length) {
+      return '<div class="rank-empty">Henüz kurulmuş bir ittifak yok.</div>';
+    }
+    var h = "";
+    for (var i = 0; i < liste.length; i++) {
+      var p = liste[i], sira = i + 1;
+      var cls = "rank-row rs-satir";
+      if (sira === 1) cls += " rank-gold";
+      else if (sira === 2) cls += " rank-silver";
+      else if (sira === 3) cls += " rank-bronze";
+      if (p.me) cls += " rank-me";
+      h += '<div class="' + cls + '">' +
+             '<span class="rank-pos">' + sira + '</span>' +
+             (p.etiket ? '<span class="rs-etiket">' + kacir(p.etiket) + '</span>' : '') +
+             '<span class="rs-itad">' + kacir(p.ad) + '</span>' +
+             '<span class="rs-uye">👤' + p.uye + '</span>' +
+             '<span class="rank-power">' + sayiYaz(p.guc) + '</span>' +
+           '</div>';
+    }
+    return h;
+  }
+
+  function ittifakListesiCiz() {
+    var el = document.getElementById("rankList");
+    if (!el) return;
+    el.innerHTML = '<div class="rank-loading">Sıralama yükleniyor...</div>';
+
+    var bulut = false;
+    try {
+      bulut = (typeof firebaseReady !== "undefined") && firebaseReady &&
+              (typeof firebaseDb !== "undefined") && !!firebaseDb;
+    } catch (e) { bulut = false; }
+
+    if (!bulut) {
+      el.innerHTML = '<div class="rank-empty">İttifak sıralaması için internet bağlantısı gerekli.</div>';
+      return;
+    }
+
+    /* İki okuma paralel; biri düşerse öteki beklemede kalmasın diye
+       her ikisi de kendi catch'inde boş nesneye düşer. */
+    var pH = firebaseDb.ref("accounts").once("value")
+      .then(function (s) { return s.val() || {}; })
+      .catch(function () { return {}; });
+    var pI = firebaseDb.ref("ittifaklar").once("value")
+      .then(function (s) { return s.val() || {}; })
+      .catch(function (e) { return { __hata: (e && (e.code || e.message)) || "okunamadı" }; });
+
+    Promise.all([pH, pI]).then(function (r) {
+      var hesaplar = r[0], ittifaklar = r[1];
+      if (ittifaklar && ittifaklar.__hata) {
+        /* Okuma reddedildiyse sebep neredeyse her zaman aynı:
+           veritabanı kurallarında `ittifaklar` düğümü yok. Bunu
+           "ittifak yok" diye göstermek aylarca yanlış yere baktırır. */
+        el.innerHTML = '<div class="rank-empty">İttifak listesi okunamadı (' +
+                       kacir(ittifaklar.__hata) + ').</div>';
+        return;
+      }
+      el.innerHTML = ittifakSatirlariHTML(ittifakGucleri(hesaplar, ittifaklar));
+    }).catch(function () {
+      el.innerHTML = '<div class="rank-empty">İttifak sıralaması yüklenemedi.</div>';
+    });
+  }
+
   function sekmeSec(hangi) {
     var kutu = document.getElementById("rsSekmeler");
     if (!kutu) return;
@@ -7717,6 +7885,12 @@ setTimeout(uygula, 2500);
       var bas = document.getElementById("rankBaslik");
       if (bas) bas.textContent = "🦸 Kahraman Sıralaması";
       kahramanListesiCiz();
+      return;
+    }
+    if (hangi === "ittifak") {
+      var bas2 = document.getElementById("rankBaslik");
+      if (bas2) bas2.textContent = "🤝 İttifak Sıralaması";
+      ittifakListesiCiz();
       return;
     }
     /* GÜÇ ve SEVİYE aynı listeyi çizer, yalnız kip değişir.
@@ -7742,7 +7916,8 @@ setTimeout(uygula, 2500);
     kutu.innerHTML =
       '<button class="rs-sekme etkin" data-sekme="guc">GÜÇ</button>' +
       '<button class="rs-sekme" data-sekme="kahraman">KAHRAMAN</button>' +
-      '<button class="rs-sekme" data-sekme="seviye">SEVİYE</button>';
+      '<button class="rs-sekme" data-sekme="seviye">SEVİYE</button>' +
+      '<button class="rs-sekme" data-sekme="ittifak">İTTİFAK</button>';
     liste.parentNode.insertBefore(kutu, liste);
 
     kutu.addEventListener("pointerup", function (e) {
@@ -7790,6 +7965,8 @@ setTimeout(uygula, 2500);
   setTimeout(baslat, 1500);
 
   window.RANKSEKME = { ciz: kahramanListesiCiz, sec: sekmeSec,
+                       ittifakCiz: ittifakListesiCiz,
+                       ittifakGucleri: ittifakGucleri,
                        TABAN: TABAN, ADLAR: ADLAR };
 })();
 

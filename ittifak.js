@@ -31,10 +31,17 @@
    { id, ad, etiket, rutbe }. Çelişki olursa bulut kazanır —
    panel her açılışta buluttan tazelenir ve kısayol düzeltilir.
 
-   DİKKAT — FIREBASE KURALI
-   `database.rules.json`'a `ittifaklar` düğümü ve `state.ittifak`
-   alanı eklenmezse yazma SESSİZCE reddedilir ("$other" validate
-   false). Kurulumdan önce eklenmeli.
+   DİKKAT — FIREBASE KURALI  (kurulum: ITTIFAK-KURULUM.md)
+   Firebase Console → Realtime Database → Rules içine `ittifaklar`
+   düğümü EKLENMEDEN hiçbir şey çalışmaz: Realtime Database, hiçbir
+   kuralın kapsamadığı düğüme yazmayı varsayılan olarak reddeder.
+   Belirtisi "İttifak Kur"a basınca PERMISSION_DENIED'dır.
+   Yapıştırılacak kural bloğu: `ittifak-kurallari.json`.
+
+   Ayrıca oyuncu tarafına yeni bir alan yazılıyor: `state.ittifak`.
+   `accounts` kuralların `state` altında "$other": validate false
+   içeriyorsa bu alan TÜM hesap kaydını reddettirir; belirtisi
+   "oyun çalışıyor ama ilerleme buluta gitmiyor" olur.
 
    DİKKAT — .set() TUZAĞI
    Hiçbir yerde ittifak düğümünün tamamı .set() ile yazılmaz;
@@ -70,6 +77,7 @@
   var _liste = [];        /* buluttan gelen ittifaklar */
   var _benim = null;      /* üyesi olduğum ittifakın tam kaydı */
   var _yukleniyor = false;
+  var _okumaHatasi = null; /* son okuma neden düştü — ekranda gösterilir */
 
   /* ── KAPILAR ──────────────────────────────────────────────── */
   function st() { return (typeof state === "object" && state) ? state : null; }
@@ -86,6 +94,25 @@
   }
   function kok() { return firebaseDb.ref("ittifaklar"); }
   function uyar(m) { if (typeof showToast === "function") showToast(m); }
+
+  /* ── HATA ÇEVİRİSİ ────────────────────────────────────────────
+     Firebase'in ham kodu ("PERMISSION_DENIED") oyuncuya hiçbir şey
+     anlatmaz, geliştiriciyi de yanlış yere baktırır: kod sanılır,
+     oysa neredeyse her zaman veritabanı KURALLARIDIR — `ittifaklar`
+     düğümünü kapsayan bir kural yoksa Realtime Database yazmayı
+     varsayılan olarak reddeder. Sebep burada bir kez yazılıyor ki
+     bir daha aranmasın (bkz. ITTIFAK-KURULUM.md). */
+  function izinHatasiMi(e) {
+    var m = String((e && (e.code || e.message)) || "").toUpperCase();
+    return m.indexOf("PERMISSION") >= 0 || m.indexOf("DENIED") >= 0;
+  }
+  function hataMetni(e, ne) {
+    if (izinHatasiMi(e)) {
+      return ne + ": veritabanı izni yok. Firebase kurallarına " +
+             "`ittifaklar` düğümü eklenmeli (bkz. ITTIFAK-KURULUM.md).";
+    }
+    return ne + ": " + ((e && (e.code || e.message)) || "bilinmeyen hata");
+  }
   function saat() { return (typeof sunucuSaati === "function") ? sunucuSaati() : Date.now(); }
   function yaz() { if (typeof persistCurrentState === "function") persistCurrentState(); }
 
@@ -124,6 +151,7 @@
     if (!bulutVar()) { _liste = []; _benim = null; if (bitince) bitince(); return; }
     _yukleniyor = true;
     kok().once("value").then(function (snap) {
+      _okumaHatasi = null;
       var v = snap.val() || {};
       _liste = Object.keys(v).map(function (id) {
         var it = v[id] || {};
@@ -146,7 +174,8 @@
     }).catch(function (e) {
       _yukleniyor = false;
       console.warn("[ittifak] okunamadı:", e);
-      uyar("İttifak listesi alınamadı.");
+      _okumaHatasi = hataMetni(e, "İttifak listesi alınamadı");
+      uyar(_okumaHatasi);
       if (bitince) bitince();
     });
   }
@@ -295,10 +324,20 @@
       el.innerHTML = '<div class="it-bos">İttifak için internet bağlantısı gerekli.</div>';
       return;
     }
-    if (_benim) { el.innerHTML = ittifakEkraniHTML(); }
-    else if (aktifSekme === "kur")   { el.innerHTML = kurHTML(); }
-    else if (aktifSekme === "katil") { el.innerHTML = katilHTML(); }
-    else                             { el.innerHTML = davetHTML(); }
+    /* Okuma düştüyse sebep EKRANDA yazar. Gövdenin yerine geçmez,
+       ÜSTÜNE binen bir şerittir: kurallar okumayı reddedip yazmaya
+       izin veriyor olabilir — o durumda "Kur" formu hâlâ işe yarar,
+       formu gizlemek çalışan bir yolu kapatmak olurdu. */
+    var seritHTML = _okumaHatasi
+      ? '<div class="it-kutu" style="background:linear-gradient(180deg,#ffe9e9,#f7d2d2);">' +
+          '<div class="it-uyari kotu" style="margin:0;">⚠️ ' + kacar(_okumaHatasi) + "</div>" +
+        "</div>"
+      : "";
+
+    if (_benim) { el.innerHTML = seritHTML + ittifakEkraniHTML(); }
+    else if (aktifSekme === "kur")   { el.innerHTML = seritHTML + kurHTML(); }
+    else if (aktifSekme === "katil") { el.innerHTML = seritHTML + katilHTML(); }
+    else                             { el.innerHTML = seritHTML + davetHTML(); }
 
     if (!kapaliHareket()) {
       el.animate([{ opacity: 0, transform: "translateY(8px)" },
@@ -395,7 +434,7 @@
       tazele(function () { sekmeleriCiz(); govdeCiz(); });
     }).catch(function (e) {
       console.warn("[ittifak] kurulamadı:", e);
-      hata("Kurulamadı: " + ((e && (e.code || e.message)) || "bilinmeyen hata"));
+      hata(hataMetni(e, "Kurulamadı"));
     });
   }
 
@@ -456,7 +495,7 @@
           uyar("Başvurun gönderildi.");
           tazele(function () { govdeCiz(); });
         })
-        .catch(function (e) { uyar("Başvuru gönderilemedi."); console.warn("[ittifak]", e); });
+        .catch(function (e) { uyar(hataMetni(e, "Başvuru gönderilemedi")); console.warn("[ittifak]", e); });
       return;
     }
 
@@ -465,7 +504,7 @@
         uyar("🤝 " + it.ad + " ittifakına katıldın!");
         tazele(function () { sekmeleriCiz(); govdeCiz(); });
       })
-      .catch(function (e) { uyar("Katılınamadı."); console.warn("[ittifak]", e); });
+      .catch(function (e) { uyar(hataMetni(e, "Katılınamadı")); console.warn("[ittifak]", e); });
   }
 
   /* ── 3) DAVETLER / TALEPLER (üye değilken: kendi başvuruların) ── */
@@ -495,7 +534,7 @@
     if (!k) return;
     kok().child(id).child("basvurular").child(k).remove()
       .then(function () { uyar("Başvuru geri çekildi."); tazele(function () { govdeCiz(); }); })
-      .catch(function (e) { uyar("Geri çekilemedi."); console.warn("[ittifak]", e); });
+      .catch(function (e) { uyar(hataMetni(e, "Geri çekilemedi")); console.warn("[ittifak]", e); });
   }
 
   /* ── ÜYE EKRANI ───────────────────────────────────────────── */
@@ -581,21 +620,21 @@
     uyeYolu(bk).set({ ad: b.ad || bk, rutbe: "uye", at: saat() })
       .then(function () { return kok().child(_benim.id).child("basvurular").child(bk).remove(); })
       .then(function () { uyar((b.ad || "Oyuncu") + " katıldı."); tazele(govdeCiz); })
-      .catch(function (e) { uyar("İşlem başarısız."); console.warn("[ittifak]", e); });
+      .catch(function (e) { uyar(hataMetni(e, "İşlem başarısız")); console.warn("[ittifak]", e); });
   }
 
   function basvuruReddet(bk) {
     if (!_benim || !yetkiliMi()) return;
     kok().child(_benim.id).child("basvurular").child(bk).remove()
       .then(function () { uyar("Başvuru reddedildi."); tazele(govdeCiz); })
-      .catch(function (e) { uyar("İşlem başarısız."); console.warn("[ittifak]", e); });
+      .catch(function (e) { uyar(hataMetni(e, "İşlem başarısız")); console.warn("[ittifak]", e); });
   }
 
   function rutbeVer(uk, rutbe) {
     if (!_benim || benimRutbem() !== "kurucu") return;
     uyeYolu(uk).child("rutbe").set(rutbe)
       .then(function () { uyar("Rütbe güncellendi."); tazele(govdeCiz); })
-      .catch(function (e) { uyar("İşlem başarısız."); console.warn("[ittifak]", e); });
+      .catch(function (e) { uyar(hataMetni(e, "İşlem başarısız")); console.warn("[ittifak]", e); });
   }
 
   function uyeAt(uk) {
@@ -606,7 +645,7 @@
     if (benimRutbem() === "subay" && u.rutbe !== "uye") { uyar("Subayı yalnız kurucu atabilir."); return; }
     uyeYolu(uk).remove()
       .then(function () { uyar((u.ad || "Üye") + " ittifaktan atıldı."); tazele(govdeCiz); })
-      .catch(function (e) { uyar("İşlem başarısız."); console.warn("[ittifak]", e); });
+      .catch(function (e) { uyar(hataMetni(e, "İşlem başarısız")); console.warn("[ittifak]", e); });
   }
 
   function ayril() {
@@ -620,7 +659,7 @@
         aktifSekme = "katil";
         tazele(function () { sekmeleriCiz(); govdeCiz(); });
       })
-      .catch(function (e) { uyar("Ayrılınamadı."); console.warn("[ittifak]", e); });
+      .catch(function (e) { uyar(hataMetni(e, "Ayrılınamadı")); console.warn("[ittifak]", e); });
   }
 
   function dagit() {
@@ -634,7 +673,7 @@
         aktifSekme = "kur";
         tazele(function () { sekmeleriCiz(); govdeCiz(); });
       })
-      .catch(function (e) { uyar("Dağıtılamadı."); console.warn("[ittifak]", e); });
+      .catch(function (e) { uyar(hataMetni(e, "Dağıtılamadı")); console.warn("[ittifak]", e); });
   }
 
   /* ── DOKUNUŞ — tek kapı ───────────────────────────────────── */
