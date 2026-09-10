@@ -225,11 +225,22 @@
       /* Kutu kalıyor ama KABARTMA yok: açık renk bevel çerçevesi ve
          derin gölge 3B duruyordu, ikisi de kaldırıldı. Zemin yine
          tema değişkenlerinden geliyor. */
+      /* ── KATMAN SIRASI (hepsi #worldScreen'in içinde) ──
+           kale içi #kaleici .......... 30
+           alt menü / sohbet şeridi ... 40  (yalnız kale içindeyken)
+           ETKİNLİK ve POSTA .......... 18/20 → kale içinde 41
+           paneller .overlay-panel .... 50
+         Haritadayken 20 yeter. Kale içine girilince #kaleici 30'a
+         çıktığı için düğme onun ALTINDA kalıp kayboluyordu; kale
+         içinde 41'e çıkarılır — kale katmanının ve alt menünün
+         üstünde, ama panellerin (50) hâlâ altında. etkinlik.js
+         #etkIkon için birebir aynı sıçramayı yapıyor. */
       "#postaYuzenBtn{position:fixed;right:10px;bottom:96px;z-index:20;width:42px;height:42px;" +
         "padding:0;cursor:pointer;border-radius:11px;border:0;" +
         "display:flex;align-items:center;justify-content:center;" +
         "background:linear-gradient(180deg,var(--km-1),var(--km-2) 55%,var(--km-3));" +
         "filter:drop-shadow(0 2px 4px rgba(0,0,0,.30));}" +
+      "body.kaleici-acik #postaYuzenBtn{z-index:41;}" +
       "#postaYuzenBtn:active{transform:scale(.96);filter:brightness(.93);}" +
       "#postaYuzenBtn img{width:26px;height:26px;object-fit:contain;display:block;}" +
       "#postaYuzenBtn .py-emoji{font-size:22px;line-height:1;}" +
