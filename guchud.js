@@ -52,7 +52,7 @@
   var SURUM = "guchud-3";
 
   /* İkon: webp basmak istersen dosya adını yaz, boş ise emoji. */
-  var IKON_GORSEL = "";
+  var IKON_GORSEL = "gucikon.webp";
   var IKON_EMOJI  = "✊";
 
   var TAZELE_MS = 1000;    /* güç kaç ms'de bir okunur */
