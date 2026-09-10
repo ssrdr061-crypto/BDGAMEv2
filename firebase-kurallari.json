@@ -1,0 +1,117 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": false,
+
+    "castles": {
+      "$key": {
+        ".write": "newData.exists()",
+        ".validate": "newData.hasChildren(['kx','ky'])",
+        "kx":   { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 140" },
+        "ky":   { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 140" },
+        "kv":   { ".validate": "newData.isNumber()" },
+        "sv":   { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" },
+        "kb":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "name": { ".validate": "newData.isString() && newData.val().length <= 32" },
+        "gx":   { ".validate": "newData.isNumber()" },
+        "gy":   { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "kaleYerlesim": {
+      "$key": {
+        ".write": true,
+        "$bina": {
+          ".validate": "newData.hasChildren(['gx','gy'])",
+          "gx": { ".validate": "newData.isNumber() && newData.val() >= -40 && newData.val() <= 40" },
+          "gy": { ".validate": "newData.isNumber() && newData.val() >= -40 && newData.val() <= 40" },
+          "$other": { ".validate": false }
+        }
+      }
+    },
+
+    "battleLogs": {
+      "$key": { ".write": true }
+    },
+
+    "accounts": {
+      "$key": {
+        ".write": "newData.exists()",
+        ".validate": "newData.hasChildren(['displayName'])",
+        "displayName":  { ".validate": "newData.isString() && newData.val().length <= 32" },
+        "passwordHash": { ".validate": "newData.isString() && newData.val().length <= 64" }
+      }
+    },
+
+    "pvp":          { "$key": { ".write": true } },
+    "pvp_launches": { "$id":  { ".write": true, ".validate": "newData.hasChild('at')" } },
+    "pvpRaids":     { "$key": { "$id": { ".write": true } } },
+    "pvpFriendReq": { "$key": { "$id": { ".write": true } } },
+    "pvpFriendAck": { "$key": { "$id": { ".write": true } } },
+    "gifts":        { "$key": { "$id": { ".write": true } } },
+
+    "seferler": {
+      "$id": {
+        ".write": true,
+        ".validate": "!newData.exists() || newData.hasChildren(['sahip','gidisAt'])"
+      }
+    },
+
+    "dugumler": {
+      "$slot": {
+        ".write": true,
+        ".validate": "!newData.exists() || newData.hasChild('n')",
+        "n":   { ".validate": "newData.isNumber()" },
+        "k":   { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "td":  { ".validate": "newData.isNumber()" },
+        "iat": { ".validate": "newData.isNumber()" },
+        "it":  { ".validate": "newData.isString() && newData.val().length <= 64" },
+        "ia":  { ".validate": "newData.isString() && newData.val().length <= 32" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "chat": {
+      ".read": true,
+      "$msg": {
+        ".write": "newData.exists()",
+        ".validate": "newData.hasChildren(['name','text','at'])",
+        "name": { ".validate": "newData.isString() && newData.val().length <= 32" },
+        "text": { ".validate": "newData.isString() && newData.val().length >= 1 && ( (newData.val().beginsWith('[RAPOR]') && newData.val().length <= 6000) || newData.val().length <= 200 )" },
+        "at":   { ".validate": "newData.isNumber()" },
+        "kx":   { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 140" },
+        "ky":   { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 140" },
+        "kv":   { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "ittifaklar": {
+      "$id": {
+        ".write": true,
+        ".validate": "!newData.exists() || newData.hasChildren(['ad','etiket','kurucu','uyeler'])",
+        "ad":        { ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 16" },
+        "adKucuk":   { ".validate": "newData.isString() && newData.val().length <= 48" },
+        "etiket":    { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 4" },
+        "manifesto": { ".validate": "newData.isString() && newData.val().length <= 120" },
+        "katilim":   { ".validate": "newData.val() === 'aninda' || newData.val() === 'basvuru'" },
+        "kurucu":    { ".validate": "newData.isString() && newData.val().length <= 48" },
+        "kurulus":   { ".validate": "newData.isNumber()" },
+        "uyeler": {
+          "$uye": {
+            "ad":    { ".validate": "newData.isString() && newData.val().length <= 48" },
+            "rutbe": { ".validate": "newData.val() === 'kurucu' || newData.val() === 'subay' || newData.val() === 'uye'" },
+            "at":    { ".validate": "newData.isNumber()" }
+          }
+        },
+        "basvurular": {
+          "$bas": {
+            "ad": { ".validate": "newData.isString() && newData.val().length <= 48" },
+            "at": { ".validate": "newData.isNumber()" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -36,12 +36,13 @@
    düğümü EKLENMEDEN hiçbir şey çalışmaz: Realtime Database, hiçbir
    kuralın kapsamadığı düğüme yazmayı varsayılan olarak reddeder.
    Belirtisi "İttifak Kur"a basınca PERMISSION_DENIED'dır.
-   Yapıştırılacak kural bloğu: `ittifak-kurallari.json`.
+   Yapıştırılacak kuralların tamamı: `firebase-kurallari.json`.
 
    Ayrıca oyuncu tarafına yeni bir alan yazılıyor: `state.ittifak`.
-   `accounts` kuralların `state` altında "$other": validate false
-   içeriyorsa bu alan TÜM hesap kaydını reddettirir; belirtisi
-   "oyun çalışıyor ama ilerleme buluta gitmiyor" olur.
+   Bu yüzden `accounts` kuralına "$other": validate false EKLENMEMELİ —
+   eklenirse bu alan TÜM hesap kaydını reddettirir ve belirtisi
+   "oyun çalışıyor ama ilerleme buluta gitmiyor" olur. Mevcut
+   kurallarda böyle bir kısıt YOK, bu haliyle sorunsuz çalışır.
 
    DİKKAT — .set() TUZAĞI
    Hiçbir yerde ittifak düğümünün tamamı .set() ile yazılmaz;
