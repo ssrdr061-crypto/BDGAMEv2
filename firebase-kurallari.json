@@ -101,7 +101,7 @@
         "uyeler": {
           "$uye": {
             "ad":    { ".validate": "newData.isString() && newData.val().length <= 48" },
-            "rutbe": { ".validate": "newData.val() === 'kurucu' || newData.val() === 'subay' || newData.val() === 'uye'" },
+            "rutbe": { ".validate": "newData.val() === 'R1' || newData.val() === 'R2' || newData.val() === 'R3' || newData.val() === 'R4' || newData.val() === 'R5' || newData.val() === 'kurucu' || newData.val() === 'subay' || newData.val() === 'uye'" },
             "at":    { ".validate": "newData.isNumber()" }
           }
         },
