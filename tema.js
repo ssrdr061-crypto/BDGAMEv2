@@ -331,17 +331,23 @@ const DRAG_PX = 12;
     sabit 72 px taşma yapardı. width:100% + aspect-ratio:1 her
     genişlikte kare kalır ve taşmaz.
 
-    padding ŞART: görsel kare, çerçeve kavisli. Görseli kenara
-    dayarsak köşelerde çerçevenin dışına taşar — kırpmak yasak
-    olduğuna göre tek çözüm içeri almak. 5 px, 12 px yarıçaplı
-    köşenin dışına taşmayı tam engelliyor.                       */
+    İÇ BOŞLUK YOK: görsel çerçeveyi doldurur. Eşya görselleri
+    ÖLÇÜLDÜ — 12 dosyanın 11'i tam kare, biri 983x1024 (gözle
+    ayırt edilmez). Kutu da aspect-ratio:1 olduğu için oranlar
+    eşit: object-fit CONTAIN bu durumda kutuyu tam doldurur ve
+    hiçbir kenarı KESMEZ. (cover kullanmaya gerek yok — o kırpardı.)
+
+    Köşe uyumu .sc-img'deki border-radius ile sağlanır: çerçeve
+    12 px kavisli, kenarlık 2 px, iç yarıçap 10 px. Görsele o
+    yarıçap verilmezse kare köşeler kavisli çerçevenin dışına
+    taşıp üstünde görünür.                                        */
 #panel-inventory .inv-card .icon-box,
 #panel-inventory .shop-card .icon-box{
   flex:0 0 auto !important;
   width:100% !important;
   height:auto !important;
   aspect-ratio:1 !important;
-  padding:5px !important;
+  padding:0 !important;
   box-sizing:border-box !important;
   border-radius:12px !important;
   border:2px solid var(--cr-ana, #4f9fe0) !important;
@@ -5078,9 +5084,12 @@ document.head.appendChild(st);
   const s = document.createElement("style");
   s.textContent =
     "#panel-inventory .icon-box{ position:relative; overflow:visible; }" +
+    /* border-radius = çerçeve yarıçapı (12) − kenarlık (2) = 10 px.
+       Görsel çerçeveyi doldurduğu için köşelerin de aynı kavisi
+       taşıması gerekir, yoksa kare köşeler çerçevenin dışına taşar. */
     "#panel-inventory .icon-box .sc-img{" +
     "  width:100%; height:100%; object-fit:contain;" +
-    "  display:block; border-radius:0; position:relative;" +
+    "  display:block; border-radius:10px; position:relative;" +
     "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.55));" +
     "}" +
     /* Görseli olmayan eşyalar (emoji ya da çizilen SVG) da büyüsün */
