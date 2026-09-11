@@ -299,8 +299,16 @@ const DRAG_PX = 12;
 /* eşyalar satır değil KUTUCUK olarak dizilsin */
 #panel-inventory .inv-list{
   display:grid !important;
-  grid-template-columns:repeat(3, 1fr) !important;
-  gap:12px 8px !important;
+  grid-template-columns:repeat(4, 1fr) !important;
+  gap:10px 7px !important;
+  /* KIRPMA PAYI — .overlay-card overflow-y:auto olduğu için yatayda
+     da kırpıyor (CSS kuralı: bir eksen auto ise öteki visible
+     KALAMAZ, o da auto olur). Çerçeveler ve gölgeler kenarda
+     kesilmesin diye ızgaraya kenar payı verilir; kırpmayı kapatmak
+     yerine kesilecek şeyi kenardan içeri almak tek güvenli yol —
+     overflow'u kapatmak paneli kaydırılamaz yapardı. */
+  padding:2px 4px 16px !important;
+  overflow:visible !important;
   align-items:start !important;
 }
 #panel-inventory .inv-card,
@@ -310,18 +318,79 @@ const DRAG_PX = 12;
   align-items:center !important;
   justify-content:flex-start !important;
   text-align:center !important;
-  gap:4px !important;
-  padding:2px 2px 6px !important;
+  gap:0 !important;
+  padding:0 !important;
   min-height:0 !important;
+  overflow:visible !important;
   /* aspect-ratio KALDIRILDI: kutu çizilmediği için kareyi zorlamanın
      anlamı yok, yükseklik içeriğe göre belirlenir. */
   cursor:pointer;
 }
-/* Kutu kalkınca eşyaya daha çok yer kaldı: 46 → 72 px. */
+/*  ÇERÇEVE BURADA. Sabit px YERİNE hücreye uyan esnek ölçü:
+    4 sütunda 360 px'lik bir telefonda hücre ~72 px'e düşüyor,
+    sabit 72 px taşma yapardı. width:100% + aspect-ratio:1 her
+    genişlikte kare kalır ve taşmaz.
+
+    padding ŞART: görsel kare, çerçeve kavisli. Görseli kenara
+    dayarsak köşelerde çerçevenin dışına taşar — kırpmak yasak
+    olduğuna göre tek çözüm içeri almak. 5 px, 12 px yarıçaplı
+    köşenin dışına taşmayı tam engelliyor.                       */
 #panel-inventory .inv-card .icon-box,
 #panel-inventory .shop-card .icon-box{
-  flex:0 0 72px !important; width:72px !important; height:72px !important;
+  flex:0 0 auto !important;
+  width:100% !important;
+  height:auto !important;
+  aspect-ratio:1 !important;
+  padding:5px !important;
+  box-sizing:border-box !important;
+  border-radius:12px !important;
+  border:2px solid var(--cr-ana, #4f9fe0) !important;
+  background:linear-gradient(180deg,
+             var(--cr-ic1, rgba(255,255,255,.10)),
+             var(--cr-ic2, rgba(0,0,0,.28))) !important;
+  overflow:visible !important;
 }
+
+/*  ÇERÇEVE RENKLERİ — tür başına bir değişken çifti.
+    Mor ve turuncu tonları gelistir.js'teki PARCA RENK tablosuyla
+    AYNI (#a855f7 / #f97316); parça kutucuğu ile çanta çerçevesi
+    ayrışmasın diye oradan alındı.                               */
+#panel-inventory .cr-mor{
+  --cr-ana:#a855f7;
+  --cr-ic1:rgba(168,85,247,.26); --cr-ic2:rgba(76,29,149,.42);
+}
+#panel-inventory .cr-turuncu{
+  --cr-ana:#f97316;
+  --cr-ic1:rgba(249,115,22,.26); --cr-ic2:rgba(124,45,18,.42);
+}
+#panel-inventory .cr-yesil{
+  --cr-ana:#5fd98a;
+  --cr-ic1:rgba(95,217,138,.24); --cr-ic2:rgba(20,83,45,.42);
+}
+#panel-inventory .cr-mavi{
+  --cr-ana:#4fd1e8;
+  --cr-ic1:rgba(79,209,232,.22); --cr-ic2:rgba(12,74,110,.42);
+}
+
+/*  ADET — çerçevenin İÇİNDE, sağ altta (referans düzen).
+    Altta ayrı satır olarak durması istenmedi; .card-right
+    aşağıda gizleniyor. Kontur gölge şart: rakam eşyanın
+    üstüne biniyor, düz beyaz okunmuyor.                         */
+#panel-inventory .icon-box .inv-adet{
+  position:absolute !important;
+  right:3px !important; bottom:2px !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:900 !important; font-size:12px !important;
+  line-height:1 !important; color:#fff !important;
+  pointer-events:none !important;
+  text-shadow:-1.5px -1.5px 0 #0d1f3a, 1.5px -1.5px 0 #0d1f3a,
+              -1.5px 1.5px 0 #0d1f3a, 1.5px 1.5px 0 #0d1f3a,
+              0 -1.5px 0 #0d1f3a, 0 1.5px 0 #0d1f3a,
+              -1.5px 0 0 #0d1f3a, 1.5px 0 0 #0d1f3a,
+              0 2px 3px rgba(0,0,0,.65) !important;
+}
+/* Eski adet satırı (kutunun ALTINDAKİ yazı) kalksın */
+#panel-inventory .card-right{ display:none !important; }
 #panel-inventory .card-mid{ width:100%; min-width:0; }
 #panel-inventory .item-name{
   font-size:10.5px !important; line-height:1.12 !important; color:#fff !important;
@@ -5015,12 +5084,14 @@ document.head.appendChild(st);
     "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.55));" +
     "}" +
     /* Görseli olmayan eşyalar (emoji ya da çizilen SVG) da büyüsün */
+    /* Sabit px DEĞİL: 4 sütunda hücre ~72 px'e iniyor, 46/60 px
+       taşardı. Kutuya göre oranlanınca her genişlikte sığar. */
     "#panel-inventory .icon-box .sc-emoji{" +
-    "  font-size:46px; line-height:1;" +
+    "  font-size:32px; line-height:1;" +
     "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.55));" +
     "}" +
     "#panel-inventory .icon-box svg{" +
-    "  width:60px; height:60px;" +
+    "  width:100%; height:100%;" +
     "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.55));" +
     "}";
   document.head.appendChild(s);
@@ -5031,27 +5102,25 @@ document.head.appendChild(st);
   s.textContent =
     /* elmas bilgi kutusu gitsin */
     "#panel-inventory .inv-summary{ display:none !important; }" +
-    /* kalın 3B alt kenar yerine tek yumuşak gölge */
+    /* kalın 3B alt kenar yerine tek yumuşak gölge.
+       KIRPMA KALDIRILDI — burası "kenarda görünmeyen kesik alan"ın
+       kaynağıydı: overflow:hidden, çerçeveyi ve gölgeyi kart
+       sınırında kesiyordu. Menüde grafik için kırpma yapılmaz.
+       aspect-ratio ve padding de kalktı: kart artık çerçeve
+       taşımıyor, çerçeve .icon-box'ta ve kareyi kendi
+       aspect-ratio'su tutuyor. */
     "#panel-inventory .inv-card," +
     "#panel-inventory .shop-card," +
     "#panel-inventory .inv-row{" +
     "  box-shadow:none !important;" +
     "  position:relative !important;" +
-    "  padding:8px 6px 8px !important;" +
-    "  aspect-ratio:1 / 1.12 !important;" +
-    "  overflow:hidden !important;" +
+    "  padding:0 !important;" +
+    "  overflow:visible !important;" +
     "}" +
-    /* adet kutucuğun İÇİNDE, altta ortalı */
-    "#panel-inventory .card-right{" +
-    "  position:static !important;" +
-    "  width:100% !important; margin-top:4px !important;" +
-    "  display:flex !important; justify-content:center !important;" +
-    "}" +
-    /* yazı konturu yok, tek ince gölge */
-    "#panel-inventory .qty{" +
-    "  font-size:15px !important;" +
-    "  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;" +
-    "}" +
+    /* Adet artık çerçevenin İÇİNDE sağ altta (.inv-adet).
+       Alttaki ayrı satır kaldırıldı — istenmedi. */
+    "#panel-inventory .card-right{ display:none !important; }" +
+    "#panel-inventory .qty{ display:none !important; }" +
     /* isim yazısı gitsin, sadece adet kalsın */
     "#panel-inventory .item-name{ display:none !important; }" +
     /* boş kalan orta kutu yer kaplamasın */

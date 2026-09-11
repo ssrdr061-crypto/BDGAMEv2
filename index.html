@@ -5647,9 +5647,15 @@ function renderInventory() {
       const slotTag = def.isBoost
         ? `<span class="slot-tag">${def.heroName}</span>`
         : def.slot ? `<span class="slot-tag">${SLOT_LABELS_SHORT[def.slot]}</span>` : "";
+      /*  ADET ARTIK KUTUNUN İÇİNDE (sağ alt), altında DEĞİL.
+          rightHTML'deki .qty kaldırılmadı — mağaza da aynı
+          itemCard()'ı kullanıyor, oradaki düzeni bozmamak için
+          yalnız çantada CSS ile gizlenir; buradaki .inv-adet
+          ikon kutusunun içine konumlanır.                       */
       return itemCard(def.name, {
-        rootClass: "inv-card shop-card", cardClass: rarityClass(def),
-        iconHTML: itemIconSVG(def),
+        rootClass: "inv-card shop-card",
+        cardClass: rarityClass(def) + " " + cantaCerceve(def),
+        iconHTML: itemIconSVG(def) + `<span class="inv-adet">${fmt(qty)}</span>`,
         slotTag,
         bonusText,
         rightHTML: `<span class="qty">${qty}</span>
@@ -5766,6 +5772,26 @@ function rarityClass(item) {
   if (item.tier === "elite") return "rq-elite";
   if (item.tier === "mid") return "rq-mid";
   return "rq-entry";
+}
+
+/*  ÇANTA ÇERÇEVE RENGİ — eşyanın TÜRÜNDEN türer.
+    rarityClass() ile karıştırma: o mağazanın nadirlik/parıltı
+    sistemidir ve mağaza panelinde de kullanılıyor, dokunulursa
+    orası da değişir. Bu ayrı bir sınıf döndürür, yalnız çanta
+    kullanır.
+
+    Parçanın moru mu turuncu mu olduğu parcaKey'den anlaşılır:
+    gelistir.js'te mor ORTAK havuzdur ("mor"), turuncular kahramana
+    özeldir (celik_savasci / ivanovna / revolia). Aynı ayrım orada
+    parcaNadirligi() ile yapılıyor — burada ikinci bir liste
+    tutulmaz, tek kural: anahtar "mor" ise mor, değilse turuncu.  */
+function cantaCerceve(item) {
+  if (!item) return "cr-mavi";
+  if (item.isParca)   return (item.parcaKey === "mor") ? "cr-mor" : "cr-turuncu";
+  if (item.isBoost)   return "cr-mor";      /* kahraman buffları */
+  if (item.isKaynak)  return "cr-yesil";    /* kaynak sandıkları  */
+  if (item.isExpKitap) return "cr-mavi";    /* kahraman kitabı    */
+  return "cr-mavi";                          /* hızlandırma, pot, kalkan… */
 }
 
 function itemVisualKind(item) {
