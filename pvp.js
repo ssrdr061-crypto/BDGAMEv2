@@ -83,6 +83,26 @@ const CFG = {
      İkisini eşitlersen (0.70 → 0.25) eski davranışa döner.        */
   routPctZayif:   0.70,
 
+  /* ── GARNİZON ─────────────────────────────────────────────────
+     ESKİ DAVRANIŞ: saldıranın gönderebileceği asker sefer
+     kapasitesiyle SINIRLI (gelistir.js TABAN_KAPASITE + kahramanlar,
+     ~200.000 tavan), savunan ise ordusunun TAMAMIYLA karşılıyordu.
+     20 milyon askeri olan oyuncu 20 milyonla savunuyordu. Kurallar
+     eşit olmadığı için saldırı yapısal olarak hep kaybediyordu.
+
+     YENİ: savunan da kalesinin alabildiği kadar askerle karşılar.
+       garnizon  = kapasiteye kadar asker · kahraman bonusları İŞLER
+       artan     = geri kalan asker · KAHRAMANSIZ dövüşür
+     Garnizona önce ÜST kademeler girer (savunan en iyisini duvara
+     koyar). Artan askerler de kayıp verebilir — çok asker üretmenin
+     bedeli budur.
+
+     Kapasite: taban + garnizon/kale seviyesi başına artış.
+     0 yaparsan garnizon kapanır, savunan yine tüm ordusuyla
+     karşılar (eski davranış).                                    */
+  garnizonTaban:   100000,
+  garnizonSvBasi:   50000,
+
   /* ── TİP BAZINDA PASİFLEŞME EŞİĞİ ─────────────────────────────
      Bir birlik TÜRÜ, savaşa girdiği sayının bu oranına düşerse
      GERİ ÇEKİLİR: artık vurulamaz (korunur) ve artık vurmaz
@@ -503,6 +523,15 @@ function buildDefender(acc, fallbackName) {
     /* savaş motoru bunları kullanır */
     defTroops:  troops,
     realTroops: realTroops,
+    /*  GARNİZON KAPASİTESİ buradan okunur. PARÇA A'da kale
+        seviyesine bağlı; garnizon binası eklenince (PARÇA B) bu tek
+        satır o binanın seviyesini okuyacak, motorda hiçbir yer
+        değişmeyecek. Bulut kaydında kısaltılmış anahtar `bsv`. */
+    kaleSv: (() => {
+      const b = st.binaSv || st.bsv || {};
+      const v = b.garnizon || b.kale;
+      return (typeof v === "number" && isFinite(v) && v >= 1) ? Math.floor(v) : 1;
+    })(),
     hero: {
       attack:  num(h.attack, 40),
       defense: num(h.defense, 25),
@@ -1102,6 +1131,36 @@ function flowOf(ab) {
   };
 }
 
+/*  ── GARNİZON KAPASİTESİ ──
+    TEK KAYNAK. PARÇA B'de garnizon binası eklenince yalnız
+    `defender.kaleSv`in nereden geldiği değişecek, burası aynı kalır. */
+function garnizonKapasitesi(defender) {
+  if (CFG.garnizonTaban <= 0) return Infinity;      /* 0 → garnizon kapalı */
+  const sv = Math.max(1, Math.floor((defender && defender.kaleSv) || 1));
+  return CFG.garnizonTaban + (sv - 1) * CFG.garnizonSvBasi;
+}
+
+/*  Orduyu garnizon ve artan diye ikiye böler.
+    Garnizona ÖNCE ÜST KADEME girer: savunan duvara en iyi askerini
+    koyar. Aynı kademede SAF_SIRASI korunur.
+    Dönen: { garnizon:{uid:n}, artan:{uid:n}, artanVar:bool }       */
+function garnizonBol(troopsObj, sinir) {
+  const gar = {}, artan = {};
+  let kalan = sinir;
+  let varArtan = false;
+
+  /* üst kademeden alta doğru sırala */
+  const sirali = SAF_SIRASI().slice().sort((a, b) => KADEME_NO(b) - KADEME_NO(a));
+  sirali.forEach(uid => {
+    const n = Math.max(0, Math.floor(num((troopsObj || {})[uid], 0)));
+    if (n <= 0) return;
+    const al = Math.max(0, Math.min(n, kalan));
+    if (al > 0) { gar[uid] = al; kalan -= al; }
+    if (n - al > 0) { artan[uid] = n - al; varArtan = true; }
+  });
+  return { garnizon: gar, artan: artan, artanVar: varArtan };
+}
+
 function makeArmy(troopsObj, heroStats, label, abilities, heroSkins) {
   const units = [];
   SAF_SIRASI().forEach(uid => {
@@ -1555,13 +1614,22 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
 
   const A = makeArmy(attackerTroops, attackerHero, "attacker", abA,
                      atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
-  const D = makeArmy(defender.defTroops, {
+  /*  ── GARNİZON ──
+      Savunan bütün ordusuyla değil, kalesinin alabildiği kadar
+      askerle karşılar. Garnizon kahraman bonuslarını alır; artan
+      askerler savaşa girer ama KAHRAMANSIZ (ne yetenek ne stat
+      bonusu). Gerekçe ve ayarlar: CFG.garnizonTaban.              */
+  const _garSinir = garnizonKapasitesi(defender);
+  const _bol      = garnizonBol(defender.defTroops, _garSinir);
+
+  const defHeroStats = {
     attack:  defender.hero.attack  * CFG.castleAtkBonus,
     defense: defender.hero.defense * CFG.castleDefBonus,
     maxHp:   defender.hero.maxHp   * CFG.castleHpBonus,
     ultiChance: defender.hero.ultiChance,
     ultiMultiplier: defender.hero.ultiMultiplier,
-  }, "defender", abD, defSkins);
+  };
+  const D = makeArmy(_bol.garnizon, defHeroStats, "defender", abD, defSkins);
 
   /* Buff yüzdeleri (savunma/can/sayı) — TABAN hesabından ÖNCE.
      Sonra uygulansaydı çekilme eşiği eski sayıya göre kalırdı. */
@@ -1573,6 +1641,22 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   if (typeof window.kahramanStatUygula === "function") {
     window.kahramanStatUygula(A.units, atkSkins.length ? atkSkins : [state.selectedHeroSkin]);
     window.kahramanStatUygula(D.units, defSkins, defender.commanderLevels || {});
+  }
+
+  /*  ── ARTAN ASKERLER: KAHRAMANSIZ ──
+      Garnizona sığmayanlar savaşa girer ama komutan desteği almaz:
+      yetenek listesi boş, kahraman seviye bonusu uygulanmaz.
+      BURAYA eklenir, çünkü bundan SONRA gelen her şey (kale bonusu,
+      tip tabanı, bozgun eşiği, hasar) iki gruba da aynı işlemeli;
+      daha önce eklenseydi kahraman bonusunu da alırlardı.
+
+      Aynı kimlikten İKİ girdi oluşur (garnizondaki ve artan). Motor
+      bunu kaldırıyor: kayıplar `unitId` ile toplanıyor, hedef sırası
+      aileye bakıyor, sayımlar girdileri geziyor. Ayrı statlar
+      tutulabilsin diye bilerek ayrı girdi bırakıldı.               */
+  if (_bol.artanVar) {
+    const Dartan = makeArmy(_bol.artan, defHeroStats, "defender", [], []);
+    D.units = D.units.concat(Dartan.units);
   }
 
   /* ── STAT ÖZETİ (savaş raporu için) ───────────────────────────
