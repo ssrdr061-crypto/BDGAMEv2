@@ -275,6 +275,15 @@
         "padding:calc(12px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));}" +
       "#panel-ittifak .it-govde{box-sizing:border-box;}" +
       ".it-bas{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex:0 0 auto;}" +
+      /* Başlıktaki ittifak arması. Kapsayıcı h2 zaten
+         display:flex + align-items:center + gap:10px (index.html),
+         bu yüzden yazıyla dikey ortası kendiliğinden hizalanır —
+         burada yalnız ÖLÇÜ verilir. flex:0 0 auto şart: onsuz uzun
+         başlıkta arma eziliyor. object-fit:contain kareyi bozmaz.
+         Ölçü 19px'lik başlık yazısına göre seçildi (30px). */
+      "#panel-ittifak .it-bas-ikon{flex:0 0 auto;width:30px;height:30px;" +
+        "object-fit:contain;display:block;" +
+        "filter:drop-shadow(0 2px 3px rgba(0,20,45,.55));}" +
       "#panel-ittifak .it-bas h2{flex:1 1 auto;margin:0;text-align:left;" +
         "font-family:'Baloo 2',sans-serif;font-weight:900;color:var(--km-yazi);" +
         "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
@@ -453,7 +462,8 @@
     panel.innerHTML =
       '<div class="overlay-card">' +
         '<div class="it-bas">' +
-          "<h2>🤝 İTTİFAK</h2>" +
+          '<h2><img class="it-bas-ikon" src="ittifakikon.webp" alt="">' +
+            "İTTİFAK</h2>" +
           '<button class="overlay-close" data-close>✕</button>' +
         "</div>" +
         '<div class="it-sekmeler" id="itSekmeler"></div>' +
