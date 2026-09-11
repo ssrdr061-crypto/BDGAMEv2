@@ -660,6 +660,11 @@
     if (p.en.pvp) {
       if (typeof openReportModal === "function" && typeof entryToReport === "function") {
         openReportModal(entryToReport(p.en));
+      } else if (typeof showToastForce === "function") {
+        /*  showToast DEĞİL: bildirimler kapalı (Tuzak 9), uyarı hiç
+            görünmüyordu ve düğme sessizce ölüyordu. Görünmesi gereken
+            uyarı showToastForce ile verilir. */
+        showToastForce("Rapor penceresi yüklenmedi (tema.js).");
       } else if (typeof showToast === "function") {
         showToast("Rapor penceresi yüklenmedi (tema.js).");
       }

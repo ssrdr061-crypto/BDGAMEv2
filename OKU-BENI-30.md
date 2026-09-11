@@ -178,6 +178,17 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **PvP savaş raporları açılmıyordu** (eski hata, bu turda bulundu).
+  `posta.js` PvP raporu için İKİ kapı arıyor:
+  `openReportModal` **ve** `entryToReport`. `tema.js`'te yalnız
+  birincisi dışa açılmış, `entryToReport` IIFE içinde kalmıştı →
+  ikinci şart hep düşüyor, "📜 Savaş Raporunu Aç" hiçbir şey
+  yapmıyordu. Yedek uyarı `showToast` ile veriliyordu, bildirimler
+  kapalı olduğu için (Tuzak 9) hata **tamamen sessizdi**.
+  Düzeltme: `window.entryToReport = entryToReport;` + yedek uyarı
+  `showToastForce`a çevrildi. PvE/canavar raporları etkilenmemişti
+  (onlar `openLogReportModal` üzerinden gidiyor, o zaten window'da).
+
 - **Eğitim teslimatı oyuncuya geçti.** Süresi dolan parti artık kendiliğinden
   orduya katılmıyor: kışlasının üstünde birliğin kafa kutucuğu baloncuk olarak
   belirir, dokununca teslim alınır ve ekranın ortasında `✊ Güç +N` şeridi

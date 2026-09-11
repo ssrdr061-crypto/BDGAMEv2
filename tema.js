@@ -2796,6 +2796,17 @@ if (document.readyState === "loading") {
    hata tamamen sessiz kalıyordu. SİLME. */
 window.openReportModal = openReportModal;
 
+/*  AYNI TUZAK, İKİNCİ FONKSİYON — burası eksikti.
+    posta.js'teki PvP raporu kapısı İKİSİNİ birden arıyor:
+      typeof openReportModal === "function" && typeof entryToReport === "function"
+    entryToReport dışa açılmadığı için ikinci şart hep düşüyordu →
+    "📜 Savaş Raporunu Aç" düğmesi PvP postalarında hiçbir şey
+    yapmıyordu. Yedek uyarı showToast ile veriliyordu, bildirimler
+    kapalı olduğu için (Tuzak 9) hata tamamen sessiz kaldı.
+    PvE/canavar raporları etkilenmemişti: onlar index.html'deki
+    openLogReportModal üzerinden gidiyor, o zaten window'da. SİLME. */
+window.entryToReport = entryToReport;
+
 console.log("[tema.js] Görünüm dosyası yüklendi ✔");
 })();
 
