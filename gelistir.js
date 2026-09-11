@@ -295,6 +295,14 @@
       } else if (typeof a.chance === "number") {
         simdi = a.chance;
         ek = " ihtimal";
+      } else if (a.effect && typeof a.effect.chance === "number") {
+        /*  Sabit ihtimalli yetenekler ihtimali `effect` içinde tutar
+            (Tuzak 36: düz `chance` alanını motor yutuyor). Kademe
+            dizisi olmayanlarda kart bu yüzden BOŞ kalıyordu —
+            "Buz Engelleri" hiç satır basmıyordu. Tek kaynak yine
+            effect.chance, burada ikinci bir sayı yazılmadı. */
+        simdi = a.effect.chance;
+        ek = " ihtimal";
       }
       if (simdi == null) return { ad: a.title || "", simdi: null, sonra: null, ek: "" };
 

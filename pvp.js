@@ -60,6 +60,29 @@ const CFG = {
      (bir taraf tamamen yok olana kadar savaş sürer).              */
   routPct:        0.25,
 
+  /* ── UMUTSUZ SAVAŞTA BOZGUN EŞİĞİ ─────────────────────────────
+     ESKİ DAVRANIŞ (ölçüldü): kaybeden taraf, farkın ne olduğuna
+     BAKMADAN hep ordusunun %75'ini kaybediyordu. 34 bin askerle
+     20 milyona saldıran da, denk orduyla saldırıp kıl payı kaybeden
+     de aynı cezayı alıyordu. Sonuç: tek bir yanlış saldırı ordunun
+     dörtte üçünü siliyor, oyuncu deneme yapamıyor ve rapor "yaklaştım
+     mı" sorusuna cevap vermiyordu.
+
+     YENİ: bir ordu, karşısındakinden ne kadar zayıfsa o kadar ERKEN
+     dağılır — yani daha az kayıpla çekilir. Gerçekçi de: 600 kat
+     büyük bir orduyla karşılaşan birlik %75'i ölene kadar orada
+     durmaz, ilk temasta dağılır.
+
+       güç oranı 1.00 (denk)    → %25 kalınca dağılır (eskisi gibi)
+       güç oranı 0.50           → %47 kalınca dağılır
+       güç oranı ~0 (umutsuz)   → %70 kalınca dağılır
+
+     DENGEYİ BOZMAZ: zayıf taraf yine KAZANAMAZ, verdiği hasar da
+     değişmez (hasar kendi eşiğine değil rakibinkine bakar). Yalnız
+     kaybetmenin bedeli, kaybetme derecesiyle orantılı hale gelir.
+     İkisini eşitlersen (0.70 → 0.25) eski davranışa döner.        */
+  routPctZayif:   0.70,
+
   /* ── TİP BAZINDA PASİFLEŞME EŞİĞİ ─────────────────────────────
      Bir birlik TÜRÜ, savaşa girdiği sayının bu oranına düşerse
      GERİ ÇEKİLİR: artık vurulamaz (korunur) ve artık vurmaz
@@ -1027,7 +1050,27 @@ function applyTroopBuffs(units, ab, taraf) {
 function flowOf(ab) {
   const g = (t, k) => { const f = findBuff(ab, t); return f ? (f[k || "v"] || 0) : 0; };
   return {
-    freezeTurns:   Math.round(g("enemy_freeze_turns")),
+    /*  Donma süresi artık `valuesByLevel`den değil `effect.turns`ten
+        okunur: süre oyuncuya gösterilmiyor, kademe dizisinde tutmak
+        geliştirme kartında anlamsız bir "%1 → %2" satırı çıkarıyordu.
+        Eski tanımlar (v üzerinden) yine çalışsın diye yedek zincir. */
+    freezeTurns:   (() => {
+      const f = findBuff(ab, "enemy_freeze_turns");
+      if (!f) return 0;
+      const e = f.effect || {};
+      const t = (e.turns != null) ? e.turns
+              : (f.v ? f.v : (e.fallbackTurns != null ? e.fallbackTurns : 0));
+      return Math.max(0, Math.round(t || 0));
+    })(),
+    /*  Donmanın tutma ihtimali (%). Tanımda yoksa eski davranış
+        olan %100 döner — başka kahramana donma yazılırsa sessizce
+        kırılmasın diye. */
+    freezeSans:    (() => {
+      const f = findBuff(ab, "enemy_freeze_turns");
+      if (!f) return 100;
+      const c = (f.effect && f.effect.chance);
+      return (c != null) ? c : (f.chance != null ? f.chance : 100);
+    })(),
     reflectPct:    g("damage_reflect_pct"),
     defShredPct:   g("enemy_def_shred_pct"),
     /* Savunma yıpratmanın tutma ihtimali (Ateş Büyüsü) */
@@ -1684,9 +1727,23 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
      Savaşa girilen birlik sayısının %routPct'i. Ordu bu sayıya
      inince dağılır ve savaş biter; kalanlar sağ kurtulur.
      Hiç birliği olmayan taraf için taban 0'dır (eski davranış). */
-  function routFloor(a) {
+  /*  Ordunun savaş gücü — bozgun eşiği İKİSİNİN ORANINA bakar.
+      Motorun kendi birim statlarından (atk/def) okunur; bütün
+      bonuslar uygulandıktan sonra çağrıldığı için savaşta kullanılan
+      sayının aynısıdır, ikinci bir güç hesabı açılmaz. */
+  function orduGucu(a) {
+    let g = 0;
+    a.units.forEach(u => { g += ((u.atk || 0) + (u.def || 0)) * (u.count || 0); });
+    return Math.max(1, g);
+  }
+  /*  Zayıf ordu daha erken dağılır → daha az kayıpla çekilir.
+      Ayrıntılı gerekçe CFG.routPctZayif'in yanında.               */
+  function routFloor(a, rakip) {
     const bas = a.units.reduce((s, u) => s + u.start, 0);
-    return bas > 0 ? Math.floor(bas * CFG.routPct) : 0;
+    if (bas <= 0) return 0;
+    const oran = Math.min(1, orduGucu(a) / orduGucu(rakip));
+    const pct  = CFG.routPct + (1 - oran) * (CFG.routPctZayif - CFG.routPct);
+    return Math.floor(bas * pct);
   }
   /* Bozgun: toplam birlik tabana indiyse YA DA savaşacak (pasifleşmemiş)
      birlik kalmadıysa. İkincisi olmazsa, tüm türleri çekilmiş bir ordu
@@ -1695,13 +1752,20 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     if (a.units.reduce((s, u) => s + u.start, 0) <= 0) return false;
     return armyTroopCount(a) <= taban || armyActiveCount(a) <= 0;
   }
-  const tabanA = routFloor(A), tabanD = routFloor(D);
+  const tabanA = routFloor(A, D), tabanD = routFloor(D, A);
 
   /* EŞ ZAMANLI tur: iki taraf da tur başındaki güce göre vurur.
      Böylece saldıran taraf "önce vurma" avantajı kazanmaz. */
   let turn = 0;
   /* dondurma: rakip ilk N tur vuramaz */
   let freezeD = A.flow.freezeTurns, freezeA = D.flow.freezeTurns;
+  /*  İHTİMAL ZARI SAVAŞ BAŞINDA BİR KEZ atılır. Tur döngüsünde
+      atılsaydı yetenek her tur yeniden denenir, "%25" fiilen
+      çok daha yüksek bir orana çıkardı.
+      Zar BURADA, `used.freeze` yazılmadan ÖNCE atılıyor: tutmadıysa
+      rapor da yeteneğin çalıştığını yazmasın.                      */
+  if (freezeD > 0 && Math.random() * 100 >= A.flow.freezeSans) freezeD = 0;
+  if (freezeA > 0 && Math.random() * 100 >= D.flow.freezeSans) freezeA = 0;
   if (freezeD) A.flow.used.freeze = freezeD;
   if (freezeA) D.flow.used.freeze = freezeA;
 
@@ -1722,8 +1786,12 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     const rollA = rollDamage(A, D), rollD = rollDamage(D, A);
     let dmgAtoD = rollA.dmg, dmgDtoA = rollD.dmg;
 
-    if (freezeD > 0) { dmgDtoA = 0; freezeD--; }
-    if (freezeA > 0) { dmgAtoD = 0; freezeA--; }
+    /*  İLK TUR DONMAZ. Savaş tek turda bitebiliyor; donma ilk tura
+        işlerse karşı taraf hiç vuramadan savaş kapanıyor ve raporda
+        "0 ölü / 0 yaralı" çıkıyordu. Artık herkes en az bir kez
+        vurur, donma ikinci turdan itibaren işler. */
+    if (turn > 1 && freezeD > 0) { dmgDtoA = 0; freezeD--; }
+    if (turn > 1 && freezeA > 0) { dmgAtoD = 0; freezeA--; }
 
     /* ── MAĞAZA BUFFLARI: tur bazlı çarpanlar ──
        Artık her buff YALNIZ kendi ailesine işler (magaza.js'teki

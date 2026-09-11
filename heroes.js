@@ -136,11 +136,22 @@ const HERO_STATS = {
       {
         icon: "yetenek_engel.webp",
         title: "Buz Engelleri",
-        descTemplate: "Buzdan engeller yapma becerisiyle rakibi ayakta durmakta zorlaştırır: savaşın başında rakip {value} tur boyunca saldıramaz.",
-        /* Seviye 1-2: 1 tur garanti • Seviye 3-4: %40 ihtimalle 2 tur (tutmazsa 1 tur) • Seviye 5: 2 tur garanti */
-        valuesByLevel: [1, 1, 2, 2, 2],           /* donma turu */
-        chanceByLevel: [100, 100, 40, 40, 100],   /* 2 turun gelme ihtimali; tutmazsa 1 tur uygulanır */
-        effect: { type: "enemy_freeze_turns", fallbackTurns: 1 }
+        /*  ESKİ HÂLİ: her savaşta GARANTİ çalışıyor ve savaşın İLK
+            turuna işliyordu. Savaş tek turda bitebildiği için
+            (ezici güç farkında hep öyle oluyor) saldıran hiç
+            vuramadan savaş kapanıyor, raporda "0 ölü / 0 yaralı"
+            çıkıyordu — oyuncu haklı olarak bunu bozukluk sanıyordu.
+
+            YENİ: %25 ihtimalle çalışır ve ilk tura işlemez, yani
+            karşı taraf en az bir kez vurur.
+
+            {value} yer tutucusu KULLANILMIYOR: donma süresi oyuncuya
+            gösterilmiyor, ne açıklamada ne geliştirme kartında.
+            Süre ve ihtimal `effect` içinde durur — sabit ihtimalin
+            düz `chance` alanına yazılması sessizce düşüyordu
+            (Tuzak 36), Ateş Büyüsü ile aynı kalıp.                 */
+        descTemplate: "Buzdan engeller yapma becerisiyle rakibi ayakta durmakta zorlaştırır: %25 ihtimalle rakip saldıramaz.",
+        effect: { type: "enemy_freeze_turns", chance: 25, turns: 1, fallbackTurns: 1 }
       },
       {
         icon: "yetenek_zirh.webp",

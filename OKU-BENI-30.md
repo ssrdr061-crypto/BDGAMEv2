@@ -178,6 +178,28 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **Savaş dengesi: bozgun eşiği artık güç farkına göre.** Ölçüldü:
+  kaybeden taraf, farkın ne olduğuna bakmadan HEP ordusunun %75'ini
+  kaybediyordu (34 bin asker de, denk ordu da). Artık zayıf ordu daha
+  erken dağılır: güç oranı 1,00 → %25 kalınca (eskisi gibi), ~0 →
+  %70 kalınca. `CFG.routPct` + yeni `CFG.routPctZayif`, eşitlersen
+  eski davranışa döner. Ölçüm (savunanda 1M, 7'şer deneme):
+  10 bin orduda kayıp 7.500 → 3.029 · 100 bin: 75.000 → 32.864 ·
+  denk: 750.000 → 586.364. **Kazanma oranları değişmedi** (0/0, 7/7),
+  rakibin kaybı küçük ordularda aynı kaldı. Yan etki: çok güçlü
+  saldırgan zayıf savunanı artık komple silemiyor (1.000.000 → 588.571)
+  — kural iki tarafa da işliyor.
+- **Buz Engelleri (Buz Savaşçısı) yeniden yazıldı.** Eskiden GARANTİ
+  çalışıp savaşın İLK turuna işliyordu; savaş tek turda bitince
+  saldıran hiç vuramıyor ve raporda "0 ölü / 0 yaralı" çıkıyordu
+  (7/7 ölçüldü, oyuncu bunu bozukluk sandı). Artık **%25 ihtimalle**
+  ve **ilk tura işlemez** → 0/7. Süre ve ihtimal `effect` içinde
+  (`chance:25, turns:1`), `valuesByLevel`/`chanceByLevel` silindi.
+  Açıklamada yalnız ihtimal yazıyor, tur sayısı hiçbir yerde
+  gösterilmiyor. Zar savaş başında BİR kez atılır; tutmazsa rapor da
+  yeteneğin çalıştığını yazmaz. `gelistir.js` kartı sabit ihtimali
+  `effect.chance`ten okuyor (yoksa satır hiç basılmıyordu).
+
 - **PvP savaş raporları açılmıyordu** (eski hata, bu turda bulundu).
   `posta.js` PvP raporu için İKİ kapı arıyor:
   `openReportModal` **ve** `entryToReport`. `tema.js`'te yalnız
