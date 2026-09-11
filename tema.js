@@ -250,22 +250,29 @@ const DRAG_PX = 12;
 #panel-inventory .stat-card .num{ color:#fff !important; font-weight:900 !important; }
 #panel-inventory .stat-card .lbl{ color:#bfe6ff !important; }
 
-/* eşya kutucukları — mağaza kartıyla aynı model.
+/* eşyalar KUTUSUZ — referans oyundaki gibi eşyanın kendisi durur.
+   Eskiden burada koyu mavi gradyan bir kart vardı; eşya onun içinde
+   küçük bir kutucuk olarak görünüyordu. Kart kaldırıldı.
    ÇERÇEVE YOK: index.html'deki .shop-card kuralı 2px kenar veriyor
-   (mağaza paneli onu kullanıyor, oradan silinemez), burada kapatılıyor. */
+   (mağaza paneli onu kullanıyor, oradan silinemez), burada kapatılır.
+   animation:none — nadirlik parıltısı (.rq-elite) karta aitti,
+   kart gidince yalnız gölge titremesi olarak kalıyordu. */
 #panel-inventory .inv-card,
 #panel-inventory .shop-card,
 #panel-inventory .inv-row{
-  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%) !important;
+  background:none !important;
   border:none !important;
-  border-radius:14px !important;
+  border-radius:0 !important;
   box-shadow:none !important;
+  animation:none !important;
   color:#eaf7ff !important;
 }
+/* İkon kabı da görünmez: sarı/turuncu zemin ve yuvarlatma kalktı.
+   Görseli olmayan eşyalarda (emoji/SVG) zemin zaten gerekmiyor. */
 #panel-inventory .inv-card .icon-box,
 #panel-inventory .shop-card .icon-box{
-  background:linear-gradient(180deg, #ffd257, #f0932b) !important;
-  border:none !important; border-radius:10px !important;
+  background:none !important;
+  border:none !important; border-radius:0 !important;
   box-shadow:none !important;
 }
 #panel-inventory .qty{
@@ -293,7 +300,7 @@ const DRAG_PX = 12;
 #panel-inventory .inv-list{
   display:grid !important;
   grid-template-columns:repeat(3, 1fr) !important;
-  gap:10px !important;
+  gap:12px 8px !important;
   align-items:start !important;
 }
 #panel-inventory .inv-card,
@@ -303,15 +310,17 @@ const DRAG_PX = 12;
   align-items:center !important;
   justify-content:flex-start !important;
   text-align:center !important;
-  gap:5px !important;
-  padding:9px 6px 10px !important;
+  gap:4px !important;
+  padding:2px 2px 6px !important;
   min-height:0 !important;
-  aspect-ratio:1 / 1.12 !important;      /* kareye yakın kutucuk */
+  /* aspect-ratio KALDIRILDI: kutu çizilmediği için kareyi zorlamanın
+     anlamı yok, yükseklik içeriğe göre belirlenir. */
   cursor:pointer;
 }
+/* Kutu kalkınca eşyaya daha çok yer kaldı: 46 → 72 px. */
 #panel-inventory .inv-card .icon-box,
 #panel-inventory .shop-card .icon-box{
-  flex:0 0 46px !important; width:46px !important; height:46px !important;
+  flex:0 0 72px !important; width:72px !important; height:72px !important;
 }
 #panel-inventory .card-mid{ width:100%; min-width:0; }
 #panel-inventory .item-name{
@@ -4985,15 +4994,34 @@ document.head.appendChild(st);
 
 /* ── ÇANTA GÖRSELLERİ ──
    Mağazadaki .sc-img kuralı yalnız .shop-card2 kabına yazılıydı;
-   çanta .icon-box kullandığı için görsel boyutsuz kalıyor ve
-   kutuya sığmayıp kırpılıyordu. */
+   çanta .icon-box kullandığı için görsel boyutsuz kalıyordu.
+
+   KIRPMA KALDIRILDI — en önemlisi object-fit:
+     cover   kareye sığdırmak için görselin KENARLARINI KESER
+     contain görselin tamamını gösterir
+   Eskiden cover + overflow:hidden + border-radius:8px birlikte
+   çalışıyor ve eşyayı yuvarlak köşeli bir kutucuğa çeviriyordu.
+   Kutu kalktığına göre kırpmanın da kalkması gerekiyordu.
+
+   drop-shadow şart: eşya artık düz zeminde duruyor, gölgesiz
+   bırakılırsa koyu mavi arka planda siliniyor. */
 (function () {
   const s = document.createElement("style");
   s.textContent =
-    "#panel-inventory .icon-box{ position:relative; overflow:hidden; }" +
+    "#panel-inventory .icon-box{ position:relative; overflow:visible; }" +
     "#panel-inventory .icon-box .sc-img{" +
-    "  width:100%; height:100%; object-fit:cover;" +
-    "  display:block; border-radius:8px; position:relative;" +
+    "  width:100%; height:100%; object-fit:contain;" +
+    "  display:block; border-radius:0; position:relative;" +
+    "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.55));" +
+    "}" +
+    /* Görseli olmayan eşyalar (emoji ya da çizilen SVG) da büyüsün */
+    "#panel-inventory .icon-box .sc-emoji{" +
+    "  font-size:46px; line-height:1;" +
+    "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.55));" +
+    "}" +
+    "#panel-inventory .icon-box svg{" +
+    "  width:60px; height:60px;" +
+    "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.55));" +
     "}";
   document.head.appendChild(s);
 })();
