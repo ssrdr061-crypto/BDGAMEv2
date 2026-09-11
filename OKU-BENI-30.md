@@ -182,9 +182,21 @@ Kaçış: `?egitimkapat=1`.
   - **state'e yeni alan yazılmadı**: "hazır" olmak o türün son işinin
     `finishAt`inin geçmiş olmasıdır — türetilen durum, bu yüzden
     `compactStateForExport` dokunulmadı (Tuzak 7), eski kayıtlar çalışır.
-  - Baloncuk `kaleici.js` tuvalinde çizilir (`BALON` ayar tablosu);
-    kafa kadrajı `.hospital-face` ile AYNI değişkenlerden okunur
-    (`--tp-kp-*` / `--tp-ap-*` / `--tp-rp-*`), ikinci kadraj açılmadı.
+  - **Kışla rozetinin iki durumu var**, veri tek sorgudan:
+    `egitimDurum(aile)` → `uretim` (kafa kutucuğu + `ss:dd:sn` geri
+    sayım + ilerleme çizgisi) ya da `hazir` (dokunulunca toplanan
+    baloncuk).
+  - Rozet `kaleici.js` tuvalinde çizilir (`BALON` ayar tablosu).
+    **Kafa kutucuğu oyundaki kutucuğun aynısı**: kademe arka planı
+    (`birlikNarkaplan.webp`, Sv6 kasten yok) + `--tp-kp-*` /
+    `--tp-ap-*` / `--tp-rp-*` kadrajı + köşede kademe numarası.
+    İkinci kadraj ya da ikinci arka plan tablosu açılmadı.
+  - **Kayma önlemi:** rozet binalarla AYNI karede, aynı kamera
+    hesabıyla çiziliyor (Tuzak 30) — ölçüldü, kaydırmada binaya göre
+    bağıl kayma 0,000 px. Geri sayım şeridinin eni metne göre değil
+    `00:00:00`a göre ölçülüyor: rakam değişirken şerit kıpırdamıyor
+    (oyunun `sureBicim`i sabit genişlikte değil, o yüzden burada
+    kullanılamadı).
   - Şerit ayrı dosyada: `gucefekt.js` → `GUC_EFEKT.goster(miktar)`.
     Hareketin tamamı `requestAnimationFrame` (Tuzak 11), konum iki ayrı
     `translate()` (Tuzak 12).
@@ -239,7 +251,7 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 ## Sürümler (koddan okundu)
 
-`kaleici-56` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
+`kaleici-57` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
 `gucefekt-1` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
 

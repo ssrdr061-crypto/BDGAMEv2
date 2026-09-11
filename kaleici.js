@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-56';
+  var SURUM = 'kaleici-57';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -258,29 +258,35 @@
      Anahtarlar Firebase kimlikleridir, ADLARLA karıştırma. */
   var KISLA_AILE = { sovalye: 'knight', asker: 'soldier', robot: 'robot' };
 
-  /* ═══ ÜRETİM BALONCUĞU — AYAR ═══
-     Eğitimi biten parti orduya kendiliğinden katılmaz; kışlasının
-     üstünde birliğin KAFA KUTUCUĞU baloncuk olarak belirir, oyuncu
-     dokununca teslim alınır (index.html egitimTopla).
+  /* ═══ KIŞLA ROZETİ — AYAR ═══
+     Kışlanın üstünde iki durum gösterilir:
+       üretim → kafa kutucuğu + geri sayım şeridi
+       hazır  → kafa kutucuğu baloncuk olarak; dokununca teslim alınır
+     Veri tek yerden: index.html egitimDurum(aile).
 
-     Ölçüler binanın ekrandaki genişliğine bağlıdır — zoom değişince
-     baloncuk da büyür/küçülür, ekranda aynı yerde durur. */
+     Ölçüler binanın EKRANDAKİ genişliğine bağlıdır — zoom değişince
+     rozet de büyür/küçülür, binanın üstünde aynı noktada kalır.
+     Rozet binalarla AYNI karede, aynı kamera hesabıyla çizilir
+     (Tuzak 30): ekranı kaydırınca bina ile rozet birlikte gider,
+     aralarında kayma olamaz. */
   var BALON = {
-    pay:     0.46,   /* kutu boyu = binanın ekran genişliği × bu */
-    enAz:    38,     /* uzaklaşınca inilecek en küçük piksel */
+    pay:     0.46,   /* hazır baloncuğun kutu boyu = bina genişliği × bu */
+    uretPay: 0.30,   /* üretim rozetindeki kafa kutucuğunun boyu */
+    enAz:    26,     /* uzaklaşınca inilecek en küçük piksel */
     enCok:  104,     /* yaklaşınca çıkılacak en büyük piksel */
-    yukari:  0.30,   /* kuyruk ucu binanın üstünden ne kadar aşağıda */
-    kuyruk:  0.20,   /* kuyruk (sivri uç) boyu, kutu boyunun katı */
+    yukari:  0.30,   /* rozetin çıpası: binanın üstünden ne kadar aşağıda */
+    kuyruk:  0.20,   /* hazır baloncuğun sivri ucu, kutu boyunun katı */
     ic:      0.09,   /* beyaz çerçeve kalınlığı, kutu boyunun katı */
-    salinim: 3.0,    /* aşağı-yukarı süzülme genliği (px) */
+    salinim: 3.0,    /* hazır baloncuğun süzülme genliği (px) */
     donem:   1500    /* süzülme periyodu (ms) */
   };
 
-  /* KAFA KIRPIMI — index.html `.hospital-face[data-unit]` ile AYNI
-     sayılar (--tp-kp-* / --tp-ap-* / --tp-rp-*). Yüzdeler kutu
-     boyunun katıdır: g = görsel genişliği, s = sol, u = üst.
-     Değişkenler sayfada tanımlıysa ORADAN okunur, burası yalnız
-     yedeğidir — ikinci bir kadraj kaynağı açılmaz. */
+  /* KAFA KIRPIMI — oyunun kafa kutucuğuyla AYNI sayılar:
+     `.uv-portrait[data-unit]` (kademe seçici) · `.tp-img` (birlik
+     listesi) · `.hospital-face` hepsi bu değişkenleri okur.
+     Yüzdeler kutu boyunun katıdır: g = görsel genişliği, s = sol,
+     u = üst. Değişken sayfada tanımlıysa ORADAN okunur; buradaki
+     sayılar yalnız yedektir, ikinci bir kadraj kaynağı açılmaz. */
   var KAFA = {
     knight:  { d: '--tp-kp', g: 150, u: -29, s: -26 },
     soldier: { d: '--tp-ap', g: 130, u: -16, s: -21 },
@@ -292,54 +298,93 @@
     var o = { g: k.g, u: k.u, s: k.s };
     try {
       var st = getComputedStyle(document.documentElement);
-      var oku = function (ek, vars) {
+      var oku = function (ek, yedek) {
         var v = parseFloat(st.getPropertyValue(k.d + ek));
-        return isFinite(v) ? v : vars;
+        return isFinite(v) ? v : yedek;
       };
       o.g = oku('-w', k.g); o.u = oku('-t', k.u); o.s = oku('-l', k.s);
     } catch (e) {}
     return o;
   }
 
-  /* Baloncuk görselleri AYRI tabloda: GORSELLER'in anahtarı bina
+  /* Rozet görselleri AYRI tablolarda: GORSELLER'in anahtarı bina
      kimliğidir, birlik görselleri oraya karışırsa binaBul bunları
      da bina sanar. */
-  var BALON_GORSEL = {};
+  var BALON_GORSEL = {};   /* birlik görselleri, anahtar unitId  */
+  var KADEME_ARKA = {};    /* kademe arka planları, anahtar 1..5 */
+
+  function rozetGorsel(tablo, anahtar, dosya) {
+    var g = tablo[anahtar];
+    if (g) return (g.hazir && g.im.naturalWidth > 0) ? g.im : null;
+    if (!dosya) { tablo[anahtar] = { im: new Image(), hazir: false }; return null; }
+    var im = new Image();
+    tablo[anahtar] = { im: im, hazir: false };
+    im.onload  = function () { tablo[anahtar].hazir = true; kareIste(); };
+    im.onerror = function () { tablo[anahtar].hazir = false; };
+    im.src = dosya;
+    return null;
+  }
 
   function balonGorseli(unitId) {
     if (!unitId) return null;
-    var g = BALON_GORSEL[unitId];
-    if (g) return (g.hazir && g.im.naturalWidth > 0) ? g.im : null;
-
     var dosya = '';
     try {
       var def = window.UNIT_TYPES && window.UNIT_TYPES[unitId];
       dosya = (def && def.img) || '';
     } catch (e) {}
-    if (!dosya) { BALON_GORSEL[unitId] = { im: new Image(), hazir: false }; return null; }
-
-    var im = new Image();
-    BALON_GORSEL[unitId] = { im: im, hazir: false };
-    im.onload  = function () { BALON_GORSEL[unitId].hazir = true; kareIste(); };
-    im.onerror = function () { BALON_GORSEL[unitId].hazir = false; };
-    im.src = dosya;
-    return null;
+    return rozetGorsel(BALON_GORSEL, unitId, dosya);
   }
 
-  /* Bu kışlada teslim bekleyen parti — index.html tek kaynak. */
-  function hazirParti(binaId) {
+  /* Kademe arka planı: birlik1arkaplan.webp … birlik5arkaplan.webp.
+     Sv6'nın dosyası kasten çizilmedi (tema.js birlikKutuArkaPlan) —
+     o kademede arka plan çizilmez, kutu boş zeminiyle kalır. */
+  function kademeArkasi(kademe) {
+    var k = Math.round(kademe || 1);
+    if (k < 1 || k > 5) return null;
+    return rozetGorsel(KADEME_ARKA, k, 'birlik' + k + 'arkaplan.webp');
+  }
+
+  function birlikKademesi(unitId) {
+    try {
+      var def = window.UNIT_TYPES && window.UNIT_TYPES[unitId];
+      if (def && def.kademe) return def.kademe;
+    } catch (e) {}
+    return 1;
+  }
+
+  /* Bu kışlanın durumu — index.html tek kaynak. */
+  function kislaDurumu(binaId) {
     var aile = KISLA_AILE[binaId];
     if (!aile) return null;
     try {
-      if (typeof window.egitimHazir === 'function') return window.egitimHazir(aile);
+      if (typeof window.egitimDurum === 'function') return window.egitimDurum(aile);
     } catch (e) {}
     return null;
   }
 
+  /*  GERİ SAYIM BİÇİMİ — sabit genişlikte, ss:dd:sn.
+      Oyunun `sureBicim`i ("2 sa 31 dk") burada kullanılamaz: her
+      saniye uzunluğu değişir, şerit de onunla birlikte genişleyip
+      daralır — ekranda oynayan bir rozet çıkar. Rakam genişliği eşit
+      olmadığı için şeridin eni "00:00:00"a göre ölçülür, metne göre
+      değil: sayı değişirken şerit KIPIRDAMAZ.                     */
+  function geriSayim(ms) {
+    var t = Math.max(0, Math.round(ms / 1000));
+    var s = Math.floor(t / 3600);
+    var d = Math.floor((t % 3600) / 60);
+    var n = t % 60;
+    if (s > 99) { s = 99; d = 59; n = 59; }
+    var ik = function (v) { return (v < 10 ? '0' : '') + v; };
+    return ik(s) + ':' + ik(d) + ':' + ik(n);
+  }
+
   /* Çizimde doldurulur, dokunuş buradan okur — iki yerde ayrı
-     hesaplanırsa parmak baloncuğu ıskalar (binaKutusu ile aynı kural). */
+     hesaplanırsa parmak rozeti ıskalar (binaKutusu ile aynı kural).
+     Yalnız HAZIR baloncuklar buraya girer: üretim rozeti bilgi
+     gösterir, dokunuşu yutmaz. */
   var balonlar = [];
   var balonBasili = null;
+  var rozetVar = false;      /* herhangi bir rozet çizildi mi (kare isteği) */
 
   function balondaMi(px, py) {
     for (var i = 0; i < balonlar.length; i++) {
@@ -350,122 +395,225 @@
     return null;
   }
 
-  /* ---- Baloncukları çiz: bütün binalardan SONRA, en üstte ---- */
+  /* ---- Yuvarlak köşeli dikdörtgen yolu ---- */
+  function yuvarlakYol(x, y, gen, yuk, r) {
+    r = Math.min(r, gen / 2, yuk / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + gen, y, x + gen, y + yuk, r);
+    ctx.arcTo(x + gen, y + yuk, x, y + yuk, r);
+    ctx.arcTo(x, y + yuk, x, y, r);
+    ctx.arcTo(x, y, x + gen, y, r);
+    ctx.closePath();
+  }
+
+  /*  ---- KAFA KUTUCUĞU ----
+      Oyunun her yerindeki kutucuğun aynısı, tuvale çizilmiş hâli:
+        kademe arka planı  →  kırpılmış birlik görseli  →  kademe no
+      Üç katman ayrı; biri eksikse ötekiler yine çizilir.          */
+  function kafaKutucuguCiz(x, y, boy, unitId, aile, numaraGoster) {
+    var r = boy * 0.26;
+    ctx.save();
+    yuvarlakYol(x, y, boy, boy, r);
+    ctx.clip();
+
+    /* zemin — arka plan dosyası açılmazsa kutu boş kalmasın */
+    ctx.fillStyle = '#14406f';
+    ctx.fillRect(x, y, boy, boy);
+
+    var kademe = birlikKademesi(unitId);
+    var arka = kademeArkasi(kademe);
+    if (arka) {
+      /* CSS `background-size:cover` karşılığı: kısa kenardan doldur */
+      var aw = arka.naturalWidth, ah = arka.naturalHeight;
+      var ok = Math.max(boy / aw, boy / ah);
+      var cw = aw * ok, ch = ah * ok;
+      ctx.drawImage(arka, x + (boy - cw) / 2, y + (boy - ch) / 2, cw, ch);
+    }
+
+    var im = balonGorseli(unitId);
+    if (im) {
+      var kp = kafaKirpim(aile);
+      var gw = boy * kp.g / 100;
+      var gh = gw * (im.naturalHeight / im.naturalWidth);
+      ctx.drawImage(im, x + boy * kp.s / 100, y + boy * kp.u / 100, gw, gh);
+    } else {
+      /* Görsel açılmadıysa emoji — düz çizim bağlamı (canvas) */
+      var em = '🪖';
+      try {
+        var d2 = window.UNIT_TYPES && window.UNIT_TYPES[unitId];
+        if (d2 && d2.icon) em = d2.icon;
+      } catch (e) {}
+      ctx.fillStyle = '#eaf6ff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = Math.round(boy * 0.58) + 'px "Baloo 2",sans-serif';
+      ctx.fillText(em, x + boy / 2, y + boy * 0.54);
+    }
+
+    /* köşedeki kademe rakamı (.kp-sv'nin aynısı) */
+    if (numaraGoster && boy >= 30) {
+      var fs = Math.max(8, boy * 0.22);
+      ctx.font = '800 ' + fs + 'px "Baloo 2",sans-serif';
+      var yz = String(kademe);
+      var tw = ctx.measureText(yz).width;
+      var pw = tw + fs * 0.62, ph = fs * 1.22;
+      var px0 = x + boy - pw - boy * 0.04, py0 = y + boy - ph - boy * 0.04;
+      yuvarlakYol(px0, py0, pw, ph, ph * 0.38);
+      ctx.fillStyle = 'rgba(6,20,40,.72)';
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(yz, px0 + pw / 2, py0 + ph * 0.54);
+    }
+    ctx.restore();
+
+    /* ince çerçeve — kalın kontur yok (görünüm kuralı) */
+    yuvarlakYol(x, y, boy, boy, r);
+    ctx.lineWidth = Math.max(1, boy * 0.035);
+    ctx.strokeStyle = 'rgba(255,255,255,.86)';
+    ctx.stroke();
+  }
+
+  /* ---- ÜRETİM ROZETİ: kafa kutucuğu + geri sayım şeridi ----
+     Dokunuşu YUTMAZ: bilgi gösterir, altındaki binaya basılabilir. */
+  function uretimRozetiCiz(kut, d, aile) {
+    var k = Math.max(BALON.enAz, Math.min(BALON.enCok, kut.w * BALON.uretPay));
+    var yuk = k * 0.72;
+    var fs = Math.max(9, yuk * 0.56);
+
+    ctx.font = '800 ' + fs + 'px "Baloo 2",sans-serif';
+    /* Şerit eni EN GENİŞ olası metne göre — saniye değişince oynamasın */
+    var olcuMetin = ctx.measureText('00:00:00').width;
+    var serit = olcuMetin + fs * 1.5;
+
+    var ara = k * 0.10;
+    var W = k + ara + serit;
+    var mx = kut.x + kut.w / 2;
+    var cy = kut.y + kut.h * BALON.yukari;      /* rozetin dikey ortası */
+    var x0 = mx - W / 2;
+
+    /* şerit (kafa kutucuğunun ARKASINDAN başlar, kutu üstte kalır) */
+    var sx = x0 + k * 0.55, sy = cy - yuk / 2;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,20,45,.30)';
+    ctx.shadowBlur = 6 * CFG.zoom;
+    ctx.shadowOffsetY = 2 * CFG.zoom;
+    yuvarlakYol(sx, sy, W - k * 0.55, yuk, yuk * 0.34);
+    ctx.fillStyle = 'rgba(8,22,44,.86)';
+    ctx.fill();
+    ctx.restore();
+
+    /* ilerleme — şeridin içinde ince bir çizgi, alt kenarda */
+    if (d.oran > 0) {
+      var iy = sy + yuk - Math.max(2, yuk * 0.13);
+      var ix = sx + yuk * 0.30, iw = (W - k * 0.55) - yuk * 0.60;
+      ctx.save();
+      yuvarlakYol(ix, iy, iw, Math.max(2, yuk * 0.09), yuk * 0.06);
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      ctx.fill();
+      yuvarlakYol(ix, iy, Math.max(2, iw * d.oran), Math.max(2, yuk * 0.09), yuk * 0.06);
+      ctx.fillStyle = '#4ddc7a';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    /* süre — şeridin kafa kutucuğundan SONRAKİ bölümünde ortalanır */
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 ' + fs + 'px "Baloo 2",sans-serif';
+    ctx.fillText(geriSayim(d.kalanMs), x0 + k + ara + serit / 2, cy - yuk * 0.04);
+
+    /* kafa kutucuğu en üstte */
+    kafaKutucuguCiz(x0, cy - k / 2, k, d.unitId, aile, true);
+  }
+
+  /* ---- HAZIR BALONCUĞU: beyaz kutu + sivri uç, dokunulunca toplanır ---- */
+  function hazirBaloncukCiz(b, kut, d, aile, t) {
+    var boy = Math.max(BALON.enAz + 12, Math.min(BALON.enCok, kut.w * BALON.pay));
+    var kuy = boy * BALON.kuyruk;
+    var salin = Math.sin(t / BALON.donem * Math.PI * 2) * BALON.salinim;
+
+    var mx = kut.x + kut.w / 2;
+    var altY = kut.y + kut.h * BALON.yukari + salin;   /* kuyruğun ucu */
+    var x = mx - boy / 2;
+    var y = altY - kuy - boy;
+
+    balonlar.push({ id: b.id, aile: aile, x: x, y: y, w: boy, h: boy + kuy });
+
+    ctx.save();
+    /* Basma geri bildirimi: küçülme + karartma (görünüm kuralı) */
+    if (balonBasili === b.id) {
+      ctx.translate(mx, altY);
+      ctx.scale(0.96, 0.96);
+      ctx.translate(-mx, -altY);
+      ctx.globalAlpha = 0.93;
+    }
+
+    /* beyaz gövde + kuyruk — kalın kontur, kabartı, parlaklık yok */
+    var r = boy * 0.26;
+    ctx.shadowColor = 'rgba(0,20,45,.30)';
+    ctx.shadowBlur = 6 * CFG.zoom;
+    ctx.shadowOffsetY = 2 * CFG.zoom;
+    yuvarlakYol(x, y, boy, boy, r);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(mx - boy * 0.16, y + boy - 1);
+    ctx.lineTo(mx + boy * 0.16, y + boy - 1);
+    ctx.lineTo(mx, altY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+    var ic = boy * BALON.ic;
+    kafaKutucuguCiz(x + ic, y + ic, boy - ic * 2, d.unitId, aile, true);
+    ctx.restore();
+  }
+
+  /* ---- Rozetleri çiz: bütün binalardan SONRA, en üstte ---- */
   function baloncuklariCiz() {
     balonlar = [];
+    rozetVar = false;
     var t = (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
     for (var i = 0; i < BINALAR.length; i++) {
       var b = BINALAR[i];
-      if (!KISLA_AILE[b.id]) continue;
-      var hz = hazirParti(b.id);
-      if (!hz) continue;
+      var aile = KISLA_AILE[b.id];
+      if (!aile) continue;
+      var d = kislaDurumu(b.id);
+      if (!d) continue;
 
+      rozetVar = true;
       var kut = binaKutusu(b);
-      var boy = Math.max(BALON.enAz, Math.min(BALON.enCok, kut.w * BALON.pay));
-      var kuy = boy * BALON.kuyruk;
-      var salin = Math.sin(t / BALON.donem * Math.PI * 2) * BALON.salinim;
-
-      var mx = kut.x + kut.w / 2;
-      var altY = kut.y + kut.h * BALON.yukari + salin;   /* kuyruğun ucu */
-      var x = mx - boy / 2;
-      var y = altY - kuy - boy;
-
-      balonlar.push({ id: b.id, aile: KISLA_AILE[b.id], x: x, y: y, w: boy, h: boy + kuy });
-
-      var basili = (balonBasili === b.id);
-      ctx.save();
-      /* Basma geri bildirimi: küçülme + karartma (görünüm kuralı) */
-      if (basili) {
-        ctx.translate(mx, altY);
-        ctx.scale(0.96, 0.96);
-        ctx.translate(-mx, -altY);
-        ctx.globalAlpha = 0.93;
-      }
-
-      /* Gövde: beyaz yuvarlak kare + altında sivri kuyruk.
-         Kalın kontur, kabartı, radial parlaklık YOK — yalnız
-         yumuşak bir gölge. */
-      var r = boy * 0.26;
-      ctx.shadowColor = 'rgba(0,20,45,.30)';
-      ctx.shadowBlur = 6 * CFG.zoom;
-      ctx.shadowOffsetY = 2 * CFG.zoom;
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + boy, y, x + boy, y + boy, r);
-      ctx.arcTo(x + boy, y + boy, x, y + boy, r);
-      ctx.arcTo(x, y + boy, x, y, r);
-      ctx.arcTo(x, y, x + boy, y, r);
-      ctx.closePath();
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(mx - boy * 0.16, y + boy - 1);
-      ctx.lineTo(mx + boy * 0.16, y + boy - 1);
-      ctx.lineTo(mx, altY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-
-      /* İçerik: birliğin kafa kutucuğu — oyunun her yerinde
-         kullanılan aynı kadraj. */
-      var ic = boy * BALON.ic;
-      var kx = x + ic, ky = y + ic, ks = boy - ic * 2;
-      var im = balonGorseli(hz.unitId);
-
-      ctx.save();
-      ctx.beginPath();
-      var r2 = r * 0.72;
-      ctx.moveTo(kx + r2, ky);
-      ctx.arcTo(kx + ks, ky, kx + ks, ky + ks, r2);
-      ctx.arcTo(kx + ks, ky + ks, kx, ky + ks, r2);
-      ctx.arcTo(kx, ky + ks, kx, ky, r2);
-      ctx.arcTo(kx, ky, kx + ks, ky, r2);
-      ctx.closePath();
-      ctx.clip();
-      ctx.fillStyle = '#dfefff';
-      ctx.fillRect(kx, ky, ks, ks);
-
-      if (im) {
-        var kp = kafaKirpim(hz.aile);
-        var gw = ks * kp.g / 100;
-        var gh = gw * (im.naturalHeight / im.naturalWidth);
-        ctx.drawImage(im, kx + ks * kp.s / 100, ky + ks * kp.u / 100, gw, gh);
-      } else {
-        /* Görsel açılmadıysa emoji — düz çizim bağlamı (canvas) */
-        var em = '🪖';
-        try {
-          var d2 = window.UNIT_TYPES && window.UNIT_TYPES[hz.unitId];
-          if (d2 && d2.icon) em = d2.icon;
-        } catch (e) {}
-        ctx.fillStyle = '#0b2d55';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = Math.round(ks * 0.62) + 'px "Baloo 2",sans-serif';
-        ctx.fillText(em, kx + ks / 2, ky + ks * 0.54);
-      }
-      ctx.restore();
-      ctx.restore();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (d.durum === 'hazir') hazirBaloncukCiz(b, kut, d, aile, t);
+      else uretimRozetiCiz(kut, d, aile);
     }
   }
 
-  /* Baloncuk varken tuval yavaşça dönsün (süzülme). 60 fps gerekmez:
-     bir sonraki kare zamanlayıcıyla istenir, telefon boşuna ısınmaz. */
+  /* Rozet varken tuval yavaşça dönsün. 60 fps gerekmez: bir sonraki
+     kare zamanlayıcıyla istenir, telefon boşuna ısınmaz.
+     Hazır baloncuk süzüldüğü için daha sık, yalnız geri sayım varsa
+     saniyeye yetecek kadar seyrek. */
   var balonRaf = null;
   function balonKareIste() {
     if (balonRaf) return;
-    balonRaf = setTimeout(function () { balonRaf = null; kareIste(); }, 66);
+    balonRaf = setTimeout(function () { balonRaf = null; kareIste(); },
+                          balonlar.length ? 66 : 250);
   }
 
-  /* Parti ekranda hiç baloncuk yokken biterse tuval kendiliğinden
-     dönmediği için baloncuk geç çıkardı. Saniyede bir bakılır. */
+  /* Ekranda hiç rozet yokken üretim başlarsa tuval kendiliğinden
+     dönmediği için rozet geç çıkardı. Saniyede bir bakılır. */
   var balonSaat = setInterval(function () {
     if (!katman || !katman.classList.contains('acik')) return;
-    if (balonlar.length) return;            /* zaten çiziliyor */
+    if (rozetVar) return;                   /* zaten çiziliyor */
     for (var id in KISLA_AILE) {
-      if (hazirParti(id)) { kareIste(); return; }
+      if (kislaDurumu(id)) { kareIste(); return; }
     }
   }, 1000);
 
@@ -1177,7 +1325,7 @@
 
     seciliAdCiz();
     if (secimCanli()) kareIste();   // yanıp sönme sürerken kare iste
-    if (balonlar.length) balonKareIste();   // süzülme sürsün
+    if (rozetVar) balonKareIste();   // süzülme ve geri sayım sürsün
   }
 
   /* Seçilen bina kısa süre yanıp söner — oyuncu neye dokunduğunu görür */

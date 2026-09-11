@@ -4601,6 +4601,44 @@ function egitimHazir(aile) {
   return { aile: aile || egitimAilesi(unitId), adet, guc, unitId };
 }
 
+/*  KIŞLA ROZETİ İÇİN TEK SORGU — kaleici.js bunu okur.
+    Dönen:
+      null                                   iş yok
+      { durum:"hazir",  unitId, adet, guc }  teslim bekliyor
+      { durum:"uretim", unitId, adet, kalanMs, oran }   üretim sürüyor
+    Aynı ailede birden çok kademe üretiliyorsa EN ERKEN biten
+    gösterilir: oyuncunun ilk eline geçecek olan odur.
+    `oran` ilerlemedir (0–1); parti sıralı olduğu için başlangıç
+    ilk işin bitişinden bir birim süre geri gidilerek bulunur —
+    ayrıca bir "başlangıç" alanı yazılmaz (state'e alan eklenmiyor). */
+function egitimDurum(aile) {
+  const hazir = egitimHazir(aile);
+  if (hazir) {
+    return { durum: "hazir", unitId: hazir.unitId, adet: hazir.adet,
+             guc: hazir.guc, kalanMs: 0, oran: 1 };
+  }
+  if (!state.trainingQueue || state.trainingQueue.length === 0) return null;
+
+  const isler = state.trainingQueue.filter(j => !aile || egitimAilesi(j.unitId) === aile);
+  if (isler.length === 0) return null;
+
+  const son = egitimPartiBitisleri();
+  let hedef = "", hedefSon = Infinity;
+  isler.forEach(j => {
+    if (son[j.unitId] < hedefSon) { hedefSon = son[j.unitId]; hedef = j.unitId; }
+  });
+
+  const grup = isler.filter(j => j.unitId === hedef).sort((a, b) => a.finishAt - b.finishAt);
+  const def = UNIT_TYPES[hedef];
+  const birimMs = def ? def.trainMinutes * 60 * 1000 : 0;
+  const baslangic = grup[0].finishAt - birimMs;
+  const toplam = Math.max(1, hedefSon - baslangic);
+  const kalan = Math.max(0, hedefSon - Date.now());
+
+  return { durum: "uretim", unitId: hedef, adet: grup.length, kalanMs: kalan,
+           oran: Math.max(0, Math.min(1, 1 - kalan / toplam)) };
+}
+
 /*  TESLİMAT KAPISI — eğitilen birliği orduya katan TEK yer.
     Kışla baloncuğu da, kuyruktaki "AL" düğmesi de buradan geçer.
     Dönen: null (hazır parti yok) ya da { aile, adet, guc, unitId }  */
