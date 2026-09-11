@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-55';
+  var SURUM = 'kaleici-56';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -257,6 +257,217 @@
      iki yerde birden düzeltme gerekmez.
      Anahtarlar Firebase kimlikleridir, ADLARLA karıştırma. */
   var KISLA_AILE = { sovalye: 'knight', asker: 'soldier', robot: 'robot' };
+
+  /* ═══ ÜRETİM BALONCUĞU — AYAR ═══
+     Eğitimi biten parti orduya kendiliğinden katılmaz; kışlasının
+     üstünde birliğin KAFA KUTUCUĞU baloncuk olarak belirir, oyuncu
+     dokununca teslim alınır (index.html egitimTopla).
+
+     Ölçüler binanın ekrandaki genişliğine bağlıdır — zoom değişince
+     baloncuk da büyür/küçülür, ekranda aynı yerde durur. */
+  var BALON = {
+    pay:     0.46,   /* kutu boyu = binanın ekran genişliği × bu */
+    enAz:    38,     /* uzaklaşınca inilecek en küçük piksel */
+    enCok:  104,     /* yaklaşınca çıkılacak en büyük piksel */
+    yukari:  0.30,   /* kuyruk ucu binanın üstünden ne kadar aşağıda */
+    kuyruk:  0.20,   /* kuyruk (sivri uç) boyu, kutu boyunun katı */
+    ic:      0.09,   /* beyaz çerçeve kalınlığı, kutu boyunun katı */
+    salinim: 3.0,    /* aşağı-yukarı süzülme genliği (px) */
+    donem:   1500    /* süzülme periyodu (ms) */
+  };
+
+  /* KAFA KIRPIMI — index.html `.hospital-face[data-unit]` ile AYNI
+     sayılar (--tp-kp-* / --tp-ap-* / --tp-rp-*). Yüzdeler kutu
+     boyunun katıdır: g = görsel genişliği, s = sol, u = üst.
+     Değişkenler sayfada tanımlıysa ORADAN okunur, burası yalnız
+     yedeğidir — ikinci bir kadraj kaynağı açılmaz. */
+  var KAFA = {
+    knight:  { d: '--tp-kp', g: 150, u: -29, s: -26 },
+    soldier: { d: '--tp-ap', g: 130, u: -16, s: -21 },
+    robot:   { d: '--tp-rp', g: 140, u: -10, s: -18 }
+  };
+
+  function kafaKirpim(aile) {
+    var k = KAFA[aile] || KAFA.knight;
+    var o = { g: k.g, u: k.u, s: k.s };
+    try {
+      var st = getComputedStyle(document.documentElement);
+      var oku = function (ek, vars) {
+        var v = parseFloat(st.getPropertyValue(k.d + ek));
+        return isFinite(v) ? v : vars;
+      };
+      o.g = oku('-w', k.g); o.u = oku('-t', k.u); o.s = oku('-l', k.s);
+    } catch (e) {}
+    return o;
+  }
+
+  /* Baloncuk görselleri AYRI tabloda: GORSELLER'in anahtarı bina
+     kimliğidir, birlik görselleri oraya karışırsa binaBul bunları
+     da bina sanar. */
+  var BALON_GORSEL = {};
+
+  function balonGorseli(unitId) {
+    if (!unitId) return null;
+    var g = BALON_GORSEL[unitId];
+    if (g) return (g.hazir && g.im.naturalWidth > 0) ? g.im : null;
+
+    var dosya = '';
+    try {
+      var def = window.UNIT_TYPES && window.UNIT_TYPES[unitId];
+      dosya = (def && def.img) || '';
+    } catch (e) {}
+    if (!dosya) { BALON_GORSEL[unitId] = { im: new Image(), hazir: false }; return null; }
+
+    var im = new Image();
+    BALON_GORSEL[unitId] = { im: im, hazir: false };
+    im.onload  = function () { BALON_GORSEL[unitId].hazir = true; kareIste(); };
+    im.onerror = function () { BALON_GORSEL[unitId].hazir = false; };
+    im.src = dosya;
+    return null;
+  }
+
+  /* Bu kışlada teslim bekleyen parti — index.html tek kaynak. */
+  function hazirParti(binaId) {
+    var aile = KISLA_AILE[binaId];
+    if (!aile) return null;
+    try {
+      if (typeof window.egitimHazir === 'function') return window.egitimHazir(aile);
+    } catch (e) {}
+    return null;
+  }
+
+  /* Çizimde doldurulur, dokunuş buradan okur — iki yerde ayrı
+     hesaplanırsa parmak baloncuğu ıskalar (binaKutusu ile aynı kural). */
+  var balonlar = [];
+  var balonBasili = null;
+
+  function balondaMi(px, py) {
+    for (var i = 0; i < balonlar.length; i++) {
+      var b = balonlar[i], pay = 6;
+      if (px >= b.x - pay && px <= b.x + b.w + pay &&
+          py >= b.y - pay && py <= b.y + b.h + pay) return b;
+    }
+    return null;
+  }
+
+  /* ---- Baloncukları çiz: bütün binalardan SONRA, en üstte ---- */
+  function baloncuklariCiz() {
+    balonlar = [];
+    var t = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+    for (var i = 0; i < BINALAR.length; i++) {
+      var b = BINALAR[i];
+      if (!KISLA_AILE[b.id]) continue;
+      var hz = hazirParti(b.id);
+      if (!hz) continue;
+
+      var kut = binaKutusu(b);
+      var boy = Math.max(BALON.enAz, Math.min(BALON.enCok, kut.w * BALON.pay));
+      var kuy = boy * BALON.kuyruk;
+      var salin = Math.sin(t / BALON.donem * Math.PI * 2) * BALON.salinim;
+
+      var mx = kut.x + kut.w / 2;
+      var altY = kut.y + kut.h * BALON.yukari + salin;   /* kuyruğun ucu */
+      var x = mx - boy / 2;
+      var y = altY - kuy - boy;
+
+      balonlar.push({ id: b.id, aile: KISLA_AILE[b.id], x: x, y: y, w: boy, h: boy + kuy });
+
+      var basili = (balonBasili === b.id);
+      ctx.save();
+      /* Basma geri bildirimi: küçülme + karartma (görünüm kuralı) */
+      if (basili) {
+        ctx.translate(mx, altY);
+        ctx.scale(0.96, 0.96);
+        ctx.translate(-mx, -altY);
+        ctx.globalAlpha = 0.93;
+      }
+
+      /* Gövde: beyaz yuvarlak kare + altında sivri kuyruk.
+         Kalın kontur, kabartı, radial parlaklık YOK — yalnız
+         yumuşak bir gölge. */
+      var r = boy * 0.26;
+      ctx.shadowColor = 'rgba(0,20,45,.30)';
+      ctx.shadowBlur = 6 * CFG.zoom;
+      ctx.shadowOffsetY = 2 * CFG.zoom;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + boy, y, x + boy, y + boy, r);
+      ctx.arcTo(x + boy, y + boy, x, y + boy, r);
+      ctx.arcTo(x, y + boy, x, y, r);
+      ctx.arcTo(x, y, x + boy, y, r);
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(mx - boy * 0.16, y + boy - 1);
+      ctx.lineTo(mx + boy * 0.16, y + boy - 1);
+      ctx.lineTo(mx, altY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+      /* İçerik: birliğin kafa kutucuğu — oyunun her yerinde
+         kullanılan aynı kadraj. */
+      var ic = boy * BALON.ic;
+      var kx = x + ic, ky = y + ic, ks = boy - ic * 2;
+      var im = balonGorseli(hz.unitId);
+
+      ctx.save();
+      ctx.beginPath();
+      var r2 = r * 0.72;
+      ctx.moveTo(kx + r2, ky);
+      ctx.arcTo(kx + ks, ky, kx + ks, ky + ks, r2);
+      ctx.arcTo(kx + ks, ky + ks, kx, ky + ks, r2);
+      ctx.arcTo(kx, ky + ks, kx, ky, r2);
+      ctx.arcTo(kx, ky, kx + ks, ky, r2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.fillStyle = '#dfefff';
+      ctx.fillRect(kx, ky, ks, ks);
+
+      if (im) {
+        var kp = kafaKirpim(hz.aile);
+        var gw = ks * kp.g / 100;
+        var gh = gw * (im.naturalHeight / im.naturalWidth);
+        ctx.drawImage(im, kx + ks * kp.s / 100, ky + ks * kp.u / 100, gw, gh);
+      } else {
+        /* Görsel açılmadıysa emoji — düz çizim bağlamı (canvas) */
+        var em = '🪖';
+        try {
+          var d2 = window.UNIT_TYPES && window.UNIT_TYPES[hz.unitId];
+          if (d2 && d2.icon) em = d2.icon;
+        } catch (e) {}
+        ctx.fillStyle = '#0b2d55';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = Math.round(ks * 0.62) + 'px "Baloo 2",sans-serif';
+        ctx.fillText(em, kx + ks / 2, ky + ks * 0.54);
+      }
+      ctx.restore();
+      ctx.restore();
+    }
+  }
+
+  /* Baloncuk varken tuval yavaşça dönsün (süzülme). 60 fps gerekmez:
+     bir sonraki kare zamanlayıcıyla istenir, telefon boşuna ısınmaz. */
+  var balonRaf = null;
+  function balonKareIste() {
+    if (balonRaf) return;
+    balonRaf = setTimeout(function () { balonRaf = null; kareIste(); }, 66);
+  }
+
+  /* Parti ekranda hiç baloncuk yokken biterse tuval kendiliğinden
+     dönmediği için baloncuk geç çıkardı. Saniyede bir bakılır. */
+  var balonSaat = setInterval(function () {
+    if (!katman || !katman.classList.contains('acik')) return;
+    if (balonlar.length) return;            /* zaten çiziliyor */
+    for (var id in KISLA_AILE) {
+      if (hazirParti(id)) { kareIste(); return; }
+    }
+  }, 1000);
 
   /* ---- Görsel yükleyici: dosya yoksa sessizce emojiye düşülür ---- */
   var GORSELLER = {};
@@ -960,8 +1171,13 @@
     });
     for (var i = 0; i < sirali.length; i++) binaCiz(sirali[i]);
 
+    /* Üretim baloncukları binaların ÜSTÜNE, seçili binanın adı ve
+       düğmelerinin ALTINA çizilir: EĞİT/GELİŞTİR hep önde kalsın. */
+    baloncuklariCiz();
+
     seciliAdCiz();
     if (secimCanli()) kareIste();   // yanıp sönme sürerken kare iste
+    if (balonlar.length) balonKareIste();   // süzülme sürsün
   }
 
   /* Seçilen bina kısa süre yanıp söner — oyuncu neye dokunduğunu görür */
@@ -1719,6 +1935,18 @@
         iptalBasili = true; kaydi = true; kareIste(); return;
       }
 
+      /* ÜRETİM BALONCUĞU — binaların üstünde çizildiği için seçimden
+         ve taşımadan ÖNCE denetlenir; seçili bina olmasa da basılır.
+         EĞİT/GELİŞTİR/✔/✕ ondan da önde: onlar seçili binanın kendi
+         düğmeleri, parmak payları kesişirse onlar kazansın. */
+      var bl = balondaMi(px, py);
+      if (bl) {
+        balonBasili = bl.id;
+        kaydi = true;              // bırakınca seçim/kaydırma tetiklenmesin
+        kareIste();
+        return;
+      }
+
       if (secili && simgedeMi(px, py)) {
         /* TEK DOKUNUŞ taşıma modunu açar. Kapatma artık buradan
            değil, ✕ düğmesinden yapılıyor (mod açıkken bu ikon
@@ -1820,6 +2048,26 @@
     }
 
     if (parmakSayisi === 0) {
+      /* ÜRETİM BALONCUĞU: parmak baloncuğun üstünde kalktıysa parti
+         teslim alınır. Teslimatın tek kapısı index.html egitimTopla;
+         ekran ortasındaki "Güç +N" şeridini de o çağırır. */
+      if (balonBasili) {
+        var bid = balonBasili;
+        balonBasili = null;
+        var rb = tuval.getBoundingClientRect();
+        var ustB = balondaMi(e.clientX - rb.left, e.clientY - rb.top);
+        kistirma = false;
+        if (ustB && ustB.id === bid) {
+          try {
+            if (typeof window.egitimTopla === 'function') {
+              window.egitimTopla(KISLA_AILE[bid]);
+            }
+          } catch (er) { TANI('!! egitimTopla PATLADI: ' + (er && er.message)); }
+        }
+        kareIste();
+        return;
+      }
+
       /* EĞİT: parmak DÜĞMENİN ÜSTÜNDE kalktıysa aç. Kaydırıp
          dışarıda bırakırsa hiçbir şey olmaz. */
       if (egitBasili) {

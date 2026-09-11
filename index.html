@@ -4532,39 +4532,112 @@ function closeDailyRewardModal() {
   if (modal) modal.style.display = "none";
 }
 
-/*  EĞİTİM TESLİMATI — PARTİ HALİNDE
-    Eskiden kuyruktaki her birlik kendi saati gelince TEK TEK orduya
-    ekleniyordu: 76 şövalye verince iki dakikada bir sayı 1 artıyordu.
-    Oysa ekranda partinin TOPLAM süresi yazıyor ("×76 · 2 sa 31 dk"),
-    yani ekran "hepsi sonunda gelecek" diyor, arka taraf damla damla
-    veriyordu. Artık o türün kuyruğundaki SON iş bitmeden hiçbiri
-    eklenmez; bitince tamamı bir anda eklenir.
+/*  EĞİTİM TESLİMATI — PARTİ HALİNDE, ARTIK OYUNCU TOPLAR
+    ───────────────────────────────────────────────────────────────
+    ÖNCE: bir türün kuyruğundaki SON iş bitince o partinin tamamı
+    kendiliğinden orduya ekleniyordu.
+    ŞİMDİ: parti bitince kuyrukta HAZIR olarak bekler. Kışlasının
+    üstünde birliğin kafa kutucuğu baloncuk olarak belirir
+    (kaleici.js), oyuncu ona dokununca ordu büyür ve ekranın
+    ortasında kazanılan güç şeridi çıkar (gucefekt.js).
 
-    Kuyruğun yapısı bilerek DEĞİŞTİRİLMEDİ: ekrandaki adet kuyruk
-    uzunluğundan, kalan süre son işin saatinden okunuyor ve
-    hızlandırma zincirin tamamını kaydırıyor. Tek kapı burası
-    olduğu için o üç şeyin hiçbirine dokunmak gerekmedi.          */
-function applyFinishedTraining() {
-  if (!state.trainingQueue || state.trainingQueue.length === 0) return;
-  const now = Date.now();
+    KUYRUĞUN YAPISI DEĞİŞMEDİ ve state'e yeni alan YAZILMADI:
+    "hazır" olmak, o türün son işinin finishAt'inin geçmiş olması
+    demektir — türetilen bir durum. Bu yüzden compactStateForExport'a
+    da bir şey eklemek gerekmedi (Tuzak 7) ve eski kayıtlar olduğu
+    gibi çalışır.
 
-  /* birlik türüne göre partinin son bitişi */
-  const sonBitis = {};
-  state.trainingQueue.forEach(job => {
-    if (!(job.unitId in sonBitis) || job.finishAt > sonBitis[job.unitId]) {
-      sonBitis[job.unitId] = job.finishAt;
+    Ekrandaki adet kuyruk uzunluğundan, kalan süre son işin
+    saatinden okunuyor; hızlandırma zincirin tamamını kaydırıyor —
+    üçü de aynen duruyor.
+    ─────────────────────────────────────────────────────────────── */
+
+/*  Bir işin AİLESİ: knight2 → knight. Tek kaynak UNIT_TYPES.aile;
+    tablo yoksa sondaki kademe rakamı atılır.                      */
+function egitimAilesi(unitId) {
+  const def = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[unitId] : null;
+  if (def && def.aile) return def.aile;
+  return String(unitId || "").replace(/[0-9]+$/, "");
+}
+
+/*  Her birlik türü için partinin SON bitişi. Parti kuralının tek
+    hesaplandığı yer burasıdır; hazır mı sorusu da, teslimat da
+    bunu okur.                                                      */
+function egitimPartiBitisleri() {
+  const son = {};
+  (state.trainingQueue || []).forEach(job => {
+    if (!(job.unitId in son) || job.finishAt > son[job.unitId]) {
+      son[job.unitId] = job.finishAt;
     }
   });
+  return son;
+}
 
-  const stillTraining = [];
+/*  Toplanmayı bekleyen parti var mı? aile verilmezse hepsine bakar.
+    Dönen: null  ya da  { aile, adet, guc, unitId }
+    unitId = partideki EN ÜST kademe — baloncuğa onun kafası çizilir.
+    guc = orduya katılınca kazanılacak toplam güç (TROOP_POWER).    */
+function egitimHazir(aile) {
+  if (!state.trainingQueue || state.trainingQueue.length === 0) return null;
+  const now = Date.now();
+  const son = egitimPartiBitisleri();
+  let adet = 0, guc = 0, ustKademe = -1, unitId = "";
   state.trainingQueue.forEach(job => {
-    if (now >= sonBitis[job.unitId]) {
+    if (now < son[job.unitId]) return;
+    if (aile && egitimAilesi(job.unitId) !== aile) return;
+    adet++;
+    const def = UNIT_TYPES[job.unitId];
+    /*  Güç, sıralamanın okuduğu tabloyla AYNI yerden gelir; şeritteki
+        rakam ile üst menüdeki güç birebir tutsun.
+        try: bu fonksiyon açılış sırasında TROOP_POWER satırından ÖNCE
+        çağrılabiliyor (const, tanımlanmadan okunursa hata verir);
+        o durumda birliğin kendi power alanına düşülür.             */
+    try { guc += (TROOP_POWER[job.unitId] || 0); }
+    catch (e) { guc += (def && def.power) || 0; }
+    const kd = (def && def.kademe) || 1;
+    if (kd > ustKademe) { ustKademe = kd; unitId = job.unitId; }
+  });
+  if (!adet) return null;
+  return { aile: aile || egitimAilesi(unitId), adet, guc, unitId };
+}
+
+/*  TESLİMAT KAPISI — eğitilen birliği orduya katan TEK yer.
+    Kışla baloncuğu da, kuyruktaki "AL" düğmesi de buradan geçer.
+    Dönen: null (hazır parti yok) ya da { aile, adet, guc, unitId }  */
+function egitimTopla(aile) {
+  const hazir = egitimHazir(aile);
+  if (!hazir) return null;
+
+  const now = Date.now();
+  const son = egitimPartiBitisleri();
+  const kalan = [];
+  state.trainingQueue.forEach(job => {
+    if (now >= son[job.unitId] && (!aile || egitimAilesi(job.unitId) === aile)) {
       state.troops[job.unitId] = (state.troops[job.unitId] || 0) + 1;
     } else {
-      stillTraining.push(job);       /* parti daha bitmedi, hepsi bekler */
+      kalan.push(job);        /* parti daha bitmedi ya da başka aile */
     }
   });
-  state.trainingQueue = stillTraining;
+  state.trainingQueue = kalan;
+
+  try { persistCurrentState(); } catch (e) {}
+  ["renderTroopsPanel", "renderTroopQueue"].forEach(f => {
+    if (typeof window[f] === "function") { try { window[f](); } catch (e) {} }
+  });
+  /* Birlik ekranı (3D) açıksa tazelensin */
+  try { if (window.TroopViewer && TroopViewer.show) TroopViewer.show(); } catch (e) {}
+  /* Ekran ortası "Güç +N" şeridi — tek kapı gucefekt.js */
+  try { if (window.GUC_EFEKT) GUC_EFEKT.goster(hazir.guc); } catch (e) {}
+
+  return hazir;
+}
+
+/*  ESKİ KAPI — onlarca yerden çağrılıyor ("çağırınca kuyruk günceldir"
+    varsayımıyla). Teslimat artık egitimTopla'da olduğu için burada
+    orduya HİÇBİR ŞEY eklenmez; yalnız bekleyen parti olup olmadığını
+    döner. İkinci bir teslimat yolu AÇILMAZ.                        */
+function applyFinishedTraining() {
+  return !!egitimHazir(null);
 }
 
 /*  HASTANE TESLİMATI — PARTİ HALİNDE (eğitimle aynı kural)
@@ -9768,11 +9841,13 @@ const TroopViewer = (function () {
         const sonTerfi = terfiKuyruk.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
         const terfiKalan = sonTerfi.finishAt - Date.now();
         const terfiBicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
+        /* Üretimdeki gibi: bitmiş terfi de teslim alınmayı bekler. */
+        const terfiHazir = terfiKalan <= 0;
         return `<div class="unit-train-bar">
-            <div class="utb-training">⬆️ Terfi Ediliyor
-              <span class="unit-terfi-timer" data-terfi="${kid}">x${terfiKuyruk.length} · ${terfiBicim(terfiKalan)}</span>
+            <div class="utb-training">${terfiHazir ? "✅ Hazır" : "⬆️ Terfi Ediliyor"}
+              <span class="unit-terfi-timer" data-terfi="${kid}"${terfiHazir ? ' data-hazir="1"' : ""}>x${terfiKuyruk.length}${terfiHazir ? "" : " · " + terfiBicim(terfiKalan)}</span>
             </div>
-            <button class="speedup-trigger unit-speedup-btn" data-unit="${terfiHedefId}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
+            <button class="speedup-trigger unit-speedup-btn" data-unit="${terfiHedefId}" title="${terfiHazir ? "Birliklerini teslim al" : (speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al")}">${terfiHazir ? "✅ Teslim Al" : "⏩ Hızlandır"}</button>
           </div>`;
       };
       const speedUpCount = Object.keys(state.inventory || {})
@@ -9818,11 +9893,18 @@ const TroopViewer = (function () {
         const sonJob = trainQueueForUnit.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
         const remaining = sonJob.finishAt - Date.now();
         const bicim = (ms) => (typeof sureMs === "function") ? sureMs(ms) : formatRemaining(ms);
+        /* Parti bitti, teslim bekliyor: sayaç "0 sn"de donmasın ve
+           düğme hızlandırmaya değil TESLİM ALMAYA baksın. Dokunuş
+           yine tek .speedup-trigger dinleyicisinden egitimTopla'ya
+           gider — kışla baloncuğuyla aynı kapı.
+           data-hazir: saniyelik sayaç bu satırı bir kez yeniden
+           çizsin, her saniye değil. */
+        const hazirTeslim = remaining <= 0;
         html += `<div class="unit-train-bar">
-            <div class="utb-training">⏳ Eğitiliyor
-              <span class="unit-train-timer" data-unit="${kid}">x${trainQueueForUnit.length} · ${bicim(remaining)}</span>
+            <div class="utb-training">${hazirTeslim ? "✅ Hazır" : "⏳ Eğitiliyor"}
+              <span class="unit-train-timer" data-unit="${kid}"${hazirTeslim ? ' data-hazir="1"' : ""}>x${trainQueueForUnit.length}${hazirTeslim ? "" : " · " + bicim(remaining)}</span>
             </div>
-            <button class="speedup-trigger unit-speedup-btn" data-unit="${kid}" title="${speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al"}">⏩ Hızlandır</button>
+            <button class="speedup-trigger unit-speedup-btn" data-unit="${kid}" title="${hazirTeslim ? "Birliklerini teslim al" : (speedUpCount > 0 ? "Hızlandırmak için tıkla" : "Mağazadan ⏩ Hızlandırma satın al")}">${hazirTeslim ? "✅ Teslim Al" : "⏩ Hızlandır"}</button>
           </div>`;
         /* Üretim VE terfi aynı anda sürüyorsa (terfiden önce başlamış
            bir üretim partisi varsa) terfi çubuğu da altına eklenir. */
@@ -9939,8 +10021,10 @@ const TroopViewer = (function () {
         const sonJob = trainQueueForUnit.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
         const remaining = sonJob.finishAt - Date.now();
         if (remaining <= 0) {
-          applyFinishedTraining();
-          renderUnitStats();
+          /* Teslimat artık kendiliğinden olmuyor; satırı bir kez
+             "Teslim Al" biçimine çevir, sonra dokunma. Her saniye
+             renderUnitStats çağırmak paneli boşuna yeniden çizerdi. */
+          if (span.dataset.hazir !== "1") renderUnitStats();
           return;
         }
         span.textContent = "x" + trainQueueForUnit.length + " · " +
@@ -9957,8 +10041,7 @@ const TroopViewer = (function () {
         const sonJob = terfiKuyruk.reduce((a, b) => a.finishAt > b.finishAt ? a : b);
         const remaining = sonJob.finishAt - Date.now();
         if (remaining <= 0) {
-          applyFinishedTraining();
-          renderUnitStats();
+          if (span.dataset.hazir !== "1") renderUnitStats();
           return;
         }
         span.textContent = "x" + terfiKuyruk.length + " · " +
@@ -10048,6 +10131,15 @@ document.addEventListener("pointerup", (e) => {
   if (now - _hizSonTiklama < 400) return;                 /* çift tetikleme */
   _hizSonTiklama = now;
   if (document.getElementById("hospSpeedModal")) return;  /* zaten açık */
+  /*  Parti BİTMİŞ ve toplanmayı bekliyorsa bu düğme artık
+      hızlandırmaz, TESLİM ALIR. Kışla baloncuğuyla aynı kapıdan
+      geçer (egitimTopla), ikinci bir teslimat yolu açılmaz.
+      Hızlandırma penceresi zaten kalan süre 0 iken açılmıyordu —
+      düğme sessizce ölü kalırdı.                                  */
+  try {
+    const _aile = egitimAilesi(uid);
+    if (egitimHazir(_aile)) { egitimTopla(_aile); return; }
+  } catch (err) {}
   try {
     hizlandirmaPenceresi(uid, "egitim");
   } catch (err) {
@@ -10122,6 +10214,9 @@ setInterval(() => {
 <script src="temizle.js"></script>
 <script src="uretim.js"></script>
 <script src="insaat.js"></script>
+<!-- Ekran ortası "Güç +N" şeridi. kaleici.js'ten ÖNCE: kışla
+     baloncuğu bunu çağırıyor. -->
+<script src="gucefekt.js"></script>
 <script src="kaleici.js"></script>
 <script src="egitim.js"></script>
 

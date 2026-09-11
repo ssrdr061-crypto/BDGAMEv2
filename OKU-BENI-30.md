@@ -169,6 +169,32 @@ toplamı · `heroes.js` kartı Satın Al · `sefer.js` hızlandırma penceresi.
 `?egitimtani=1` `?egitimayar=1` `?egitimodul=1` `?birlik=1` `?zaman=1` `?temizle=1`
 Kaçış: `?egitimkapat=1`.
 
+## 30'da yapılanlar
+
+- **Eğitim teslimatı oyuncuya geçti.** Süresi dolan parti artık kendiliğinden
+  orduya katılmıyor: kışlasının üstünde birliğin kafa kutucuğu baloncuk olarak
+  belirir, dokununca teslim alınır ve ekranın ortasında `✊ Güç +N` şeridi
+  büyüyerek girip saydamlaşarak kaybolur.
+  - Teslimatın TEK kapısı `index.html egitimTopla(aile)`;
+    `egitimHazir(aile)` sorar, `egitimPartiBitisleri()` parti kuralını
+    tek yerde hesaplar. `applyFinishedTraining()` artık hiçbir şey
+    teslim etmez, yalnız "bekleyen var mı" döner (onlarca çağıran var).
+  - **state'e yeni alan yazılmadı**: "hazır" olmak o türün son işinin
+    `finishAt`inin geçmiş olmasıdır — türetilen durum, bu yüzden
+    `compactStateForExport` dokunulmadı (Tuzak 7), eski kayıtlar çalışır.
+  - Baloncuk `kaleici.js` tuvalinde çizilir (`BALON` ayar tablosu);
+    kafa kadrajı `.hospital-face` ile AYNI değişkenlerden okunur
+    (`--tp-kp-*` / `--tp-ap-*` / `--tp-rp-*`), ikinci kadraj açılmadı.
+  - Şerit ayrı dosyada: `gucefekt.js` → `GUC_EFEKT.goster(miktar)`.
+    Hareketin tamamı `requestAnimationFrame` (Tuzak 11), konum iki ayrı
+    `translate()` (Tuzak 12).
+  - İkinci giriş: kuyruk ve kademe ekranındaki sayaç, süre bitince
+    `✅ Teslim Al`a döner — aynı `.speedup-trigger` dinleyicisi
+    `egitimTopla`ya çevirir, ikinci teslimat yolu açılmadı.
+  - Kök tuzak kapatıldı: yeni sipariş kuyruğun ARKASINA eklendiği için
+    bekleyen parti bir daha hazır sayılmazdı → `trainUnit` ve `terfiEt`
+    yeni işi yazmadan önce bekleyeni teslim alıyor.
+
 ## 29'da yapılanlar
 
 - Mağaza kalkanı `SHOP_LIMITS`'e girdi → **haftalık 10 adet**.
@@ -213,11 +239,11 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 ## Sürümler (koddan okundu)
 
-`kaleici-55` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
+`kaleici-56` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
-`istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
+`gucefekt-1` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
 
 Yükleme sırası (`index.html` sonu): koordinat · heroes · kahramanlar · gelistir ·
 troops · istatistik · missile · pvp · pve · tema · rehber · harita · dugum ·
-sefer · karo · kale2x2 · temizle · uretim · insaat · kaleici · egitim ·
+sefer · karo · kale2x2 · temizle · uretim · insaat · **gucefekt** · kaleici · egitim ·
 three.js · magaza · buff.

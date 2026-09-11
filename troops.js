@@ -355,6 +355,13 @@ function terfiEt(unitId, adet) {
   /* Alt kademeyi hemen düş */
   state.troops[unitId] = Math.max(0, (state.troops[unitId] || 0) - n);
 
+  /* Bekleyen parti önce teslim alınır — trainUnit'teki kuralın
+     aynısı: yeni iş kuyruğun arkasına eklenince bekleyen parti
+     hazır sayılmaz olurdu. */
+  if (typeof egitimTopla === "function") {
+    try { egitimTopla(birlikAilesi(hedef.id)); } catch (e) {}
+  }
+
   /* Kuyruğa yaz — trainUnit ile aynı sıralı parti kuralı */
   if (!state.trainingQueue) state.trainingQueue = [];
   const birimMs = terfiSureDk(unitId, hedef.id) * 60 * 1000;
@@ -579,6 +586,16 @@ function trainUnit(unitId, count) {
   kaynakDus(unitId, count);
   if (typeof renderKaynaklar === "function") { try { renderKaynaklar(); } catch (e) {} }
 
+  /*  BEKLEYEN PARTİ ÖNCE TESLİM ALINIR.
+      "Hazır" olmak, o türün kuyruğundaki SON işin saatinin geçmiş
+      olmasıdır. Yeni sipariş kuyruğun ARKASINA eklendiği için o son
+      saat geleceğe kayar ve bekleyen parti bir daha hazır sayılmazdı
+      — asker kaybolmaz ama yeni parti bitene kadar rehin kalırdı.
+      Kök çözüm: yeni işi yazmadan önce bekleyeni teslim et.        */
+  if (typeof egitimTopla === "function") {
+    try { egitimTopla(birlikAilesi(unitId)); } catch (e) {}
+  }
+
   /* SIRALI EĞİTİM: birlikler teker teker çıkar. Yeni sipariş, o
      birlik türünün kuyruğundaki son işin ARKASINA eklenir.
      Farklı türler birbirini beklemez (her türün kendi kuyruğu var). */
@@ -770,6 +787,12 @@ function renderTroopQueue() {
        (Eskiden group[0] kullanılıyordu; o sadece sıradaki tek
         birliğin süresiydi, tüm kuyruğunki değil.) */
     const remaining = group[group.length - 1].finishAt - Date.now();
+    /* Parti bitti ama oyuncu henüz teslim almadı: sayaç "0 sn"de
+       donup kalmasın. Düğme artık hızlandırmaz, TESLİM ALIR —
+       dokunuşu index.html'deki tek .speedup-trigger dinleyicisi
+       egitimTopla'ya çevirir. Kışla baloncuğuyla aynı kapı. */
+    const hazirTeslim = remaining <= 0;
+    const sayacYazi = hazirTeslim ? "✅ TESLİM AL" : sureMs(remaining) + " ⏩";
     slot.style.display = "flex";
 
     /* ── TİTREME ÖNLEME ──
@@ -788,8 +811,9 @@ function renderTroopQueue() {
         <div class="q-info">
           <span class="q-count">x${group.length}</span>
           <button class="q-timer speedup-trigger" data-unit="${unitId}"
-                  title="${speedUpCount > 0 ? 'Hızlandırmak için tıkla' : 'Mağazadan ⏩ Hızlandırma satın al'}">
-            ${sureMs(remaining)} ⏩
+                  title="${hazirTeslim ? 'Birliklerini teslim al'
+                          : (speedUpCount > 0 ? 'Hızlandırmak için tıkla' : 'Mağazadan ⏩ Hızlandırma satın al')}">
+            ${sayacYazi}
           </button>
         </div>`;
       /* Dinleyici BURAYA bağlanmaz: bu iskelet saniyede bir yeniden
@@ -798,8 +822,7 @@ function renderTroopQueue() {
     } else {
       const sayacEl = slot.querySelector(".q-timer");
       if (sayacEl) {
-        const yeniMetin = sureMs(remaining) + " ⏩";
-        if (sayacEl.textContent.trim() !== yeniMetin) sayacEl.textContent = yeniMetin;
+        if (sayacEl.textContent.trim() !== sayacYazi) sayacEl.textContent = sayacYazi;
       }
     }
   });
