@@ -103,8 +103,15 @@ toplamı · `heroes.js` kartı Satın Al · `sefer.js` hızlandırma penceresi.
 **Arayüz**
 9. **Bildirimler kapalı** (`BILDIRIMLER_ACIK = false`) — `showToast` hiçbir şey
    yapmaz. Görünmesi gereken uyarı için `showToastForce`.
-10. `state` `const` → `window.state` hep `undefined`;
-    `typeof state !== "undefined"` ile koru.
+10. **Üst düzey `const` `window`'a KONMAZ.** `state` `const` →
+    `window.state` hep `undefined`. Aynısı `UNIT_TYPES`,
+    `KADEME_GORSEL`, `TROOP_POWER` için de geçerli: başka bir
+    dosyadan `window.UNIT_TYPES` diye okursan sessizce `undefined`
+    gelir, görseller emojiye düşer, kademe 1 sanılır. Çıplak adla
+    oku (`typeof UNIT_TYPES !== "undefined"` ile koru); sözlük
+    ortamı dosyalar arasında ortaktır, yeter ki tanımlayan dosya
+    önce yüklenmiş olsun. Deneme sayfasında değeri `window`'a
+    koyarsan bu hata görünmez — kaleici-57'de tam böyle kaçtı.
 11. **`prefers-reduced-motion`** tüm CSS animasyonlarını öldürür → halka/kubbe
     animasyonları `requestAnimationFrame` ile.
 12. **`calc(-50% + var(--x))` eksi değerde geçersizdir** — transform'un tamamı
@@ -251,7 +258,7 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 ## Sürümler (koddan okundu)
 
-`kaleici-57` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
+`kaleici-58` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
 `gucefekt-1` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
 

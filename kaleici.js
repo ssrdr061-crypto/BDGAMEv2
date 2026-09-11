@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var SURUM = 'kaleici-57';
+  var SURUM = 'kaleici-58';
 
   /* ══════════ GEÇİCİ TEŞHİS KATMANI — ?tani=1 ══════════
      Konsol yok, showToast kapalı. Bu blok ekranın üstüne siyah bir
@@ -325,14 +325,29 @@
     return null;
   }
 
+  /*  BİRLİK TANIMI — TEK OKUMA YOLU
+      TUZAK 10'UN AYNISI: troops.js'te `const UNIT_TYPES` yazıyor ve
+      üst düzey `const` window'a KONMAZ → `window.UNIT_TYPES` hep
+      undefined'dır. Öyle okununca birlik görseli de kademesi de
+      bulunamıyor, her kutucuk emojiye ve Sv1 arka planına düşüyordu.
+      Çıplak ad genel sözlük ortamından okunur ve çalışır; troops.js
+      kaleici.js'ten ÖNCE yüklendiği için typeof da güvenlidir.
+      window yolu yalnız yedek olarak duruyor.                      */
+  function birlikTanimi(unitId) {
+    if (!unitId) return null;
+    try {
+      if (typeof UNIT_TYPES !== 'undefined' && UNIT_TYPES) return UNIT_TYPES[unitId] || null;
+    } catch (e) {}
+    try {
+      if (window.UNIT_TYPES) return window.UNIT_TYPES[unitId] || null;
+    } catch (e) {}
+    return null;
+  }
+
   function balonGorseli(unitId) {
     if (!unitId) return null;
-    var dosya = '';
-    try {
-      var def = window.UNIT_TYPES && window.UNIT_TYPES[unitId];
-      dosya = (def && def.img) || '';
-    } catch (e) {}
-    return rozetGorsel(BALON_GORSEL, unitId, dosya);
+    var def = birlikTanimi(unitId);
+    return rozetGorsel(BALON_GORSEL, unitId, (def && def.img) || '');
   }
 
   /* Kademe arka planı: birlik1arkaplan.webp … birlik5arkaplan.webp.
@@ -345,11 +360,8 @@
   }
 
   function birlikKademesi(unitId) {
-    try {
-      var def = window.UNIT_TYPES && window.UNIT_TYPES[unitId];
-      if (def && def.kademe) return def.kademe;
-    } catch (e) {}
-    return 1;
+    var def = birlikTanimi(unitId);
+    return (def && def.kademe) || 1;
   }
 
   /* Bu kışlanın durumu — index.html tek kaynak. */
@@ -439,11 +451,8 @@
       ctx.drawImage(im, x + boy * kp.s / 100, y + boy * kp.u / 100, gw, gh);
     } else {
       /* Görsel açılmadıysa emoji — düz çizim bağlamı (canvas) */
-      var em = '🪖';
-      try {
-        var d2 = window.UNIT_TYPES && window.UNIT_TYPES[unitId];
-        if (d2 && d2.icon) em = d2.icon;
-      } catch (e) {}
+      var d2 = birlikTanimi(unitId);
+      var em = (d2 && d2.icon) || '🪖';
       ctx.fillStyle = '#eaf6ff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
