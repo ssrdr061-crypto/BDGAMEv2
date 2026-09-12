@@ -83,6 +83,53 @@ const CFG = {
      İkisini eşitlersen (0.70 → 0.25) eski davranışa döner.        */
   routPctZayif:   0.70,
 
+  /* ══ YENİ SAVAŞ MOTORU (PARÇA 2) ══════════════════════════════
+     savas2.js'te Serdar'ın gerçek Whiteout raporlarıyla ÖLÇÜLEREK
+     doğrulanan model. Üç mekanizma birlikte çalışır:
+
+       1) Savunma ASKER BAŞINA emer (savunmaModeli "birim")
+          → kalite çarpılarak işler, tabana çakılmaz
+       2) TEMAS SINIRI: aynı anda sınırlı sayıda asker vurur
+          → kalabalık hasarı katlamaz, yalnız daha uzun dayanır
+       3) ÜÇLÜ KAYIP: düşenlerin büyük kısmı HAFİF YARALI olur ve
+          bedava geri döner → saldırmak ucuzlar
+
+     Üçü birden olmadan "az sayıda kaliteli ordu" hiçbir zaman
+     kazanamıyor (ölçüldü: sınırsız modelde takas 1:1, temas sınırıyla
+     57:1, gerçek raporda 113:1).
+
+     false yaparsan motorun tamamı ESKİ davranışa döner — bu satır
+     tek geri dönüş anahtarıdır, aşağıdaki dört ayar da onunla
+     birlikte devreye girer. */
+  yeniMotor: true,
+
+  /* Aynı anda kaç asker vuruş yapabilir. Fazlası arkada bekler:
+     canıyla dayanıklılık katar ama hasara katılmaz. Sefer kapasitesi
+     tabanı 5.000 + kahraman başına ~20.000 olduğu için tipik bir
+     sefer 50–65 bin; sınır o ölçeğe göre seçildi. 0 = sınırsız. */
+  temasSiniri: 50000,
+
+  /* Yeni motorda savaş çok daha uzun sürer: tur başına hasar küçük
+     olduğu için sonuç turların toplamından çıkar. Eski 30 tur / 0.35
+     ölçeğinde savaşlar tek turda bitip kayıplar şişiyordu. */
+  /*  Tur sınırı BÜYÜK olmalı: kalabalık bir orduyu öğütmek binlerce
+      tur sürer. Ölçüldü — 4.000'de savaş yarıda kesiliyordu ve kazanan
+      "kim daha az oranda kaybetti" ile belirleniyordu; o yüzden temas
+      sınırının etkisi hiç görünmüyordu (sınırsız ile 5.000 aynı sonucu
+      veriyordu). Tur maliyeti birkaç aritmetik işlem. */
+  yeniMaxTurns:   60000,
+  yeniDamageScale: 0.02,
+
+  /* ── ÜÇLÜ KAYIP DAĞILIMI ──
+     Düşen askerin ne kadarı kalıcı gider, ne kadarı bedava döner.
+     Whiteout'ta ezici kazanılan savaşta düşenlerin %99'u hafif
+     yaralıydı; çekişmeli savaşta %55'i. Aradaki farkı savaşın
+     ÇEKİŞMESİ belirliyor: kendi kaybın oranı arttıkça hafif payı
+     düşer. Sayılar tasarım tercihidir (Whiteout'un eğrisi dört
+     rapordan çözülemedi), oyunda denenip buradan ayarlanır. */
+  hafifTavan: 0.92,   /* ezici kazanırken düşenlerin bu kadarı bedava döner */
+  hafifTaban: 0.45,   /* ordun tamamen dağılırken bile bu kadarı döner      */
+
   /* ── SAVUNMA MODELİ ───────────────────────────────────────────
      "toplam" = eski davranış: emilim savunanın TOPLAM savunmasıdır.
                 Asker sayısı arttıkça emilim büyür; saldıranın
@@ -1238,6 +1285,21 @@ function armyAtk(a) { return a.units.reduce((s,u) => s + (u.passive ? 0 : u.atk*
 function armyDef(a) { return a.units.reduce((s,u) => s + (u.passive ? 0 : u.def*u.count), 0) + (a.hero.hp > 0 ? a.hero.def : 0); }
 function armyAlive(a) { return armyActiveCount(a) > 0 || a.hero.hp > 0; }
 
+/*  VURUŞA KATILAN saldırı gücü — TEMAS SINIRI.
+    Ordu sınırdan kalabalıksa fazlası arkada bekler; saldırısı sınır
+    kadarına orantılı kırpılır. Yalnız hasar hesabında kullanılır:
+    armyAtk'a dokunulmadı, çünkü onu rapor stat özeti ve öldürücülük
+    ortalaması da okuyor — oralarda kırpma yanlış olur.               */
+function etkinAtk(a) {
+  const ham = armyAtk(a);
+  if (!CFG.yeniMotor) return ham;
+  const sinir = CFG.temasSiniri;
+  if (!sinir || !isFinite(sinir)) return ham;
+  const sayi = armyActiveCount(a);
+  if (sayi <= sinir) return ham;
+  return ham * (sinir / sayi);
+}
+
 /*  ASKER BAŞINA saldırı ve savunma — "birim" savunma modelinin
     okuduğu iki değer. Ağırlıklı ortalamadır: hangi birlikten kaç
     tane varsa o kadar sayılır. Kahraman katılmaz; kahraman tek
@@ -1540,7 +1602,10 @@ function olumDelme(a) {
 }
 
 function rollDamage(from, to) {
-  const raw = armyAtk(from);
+  /* Hasarın çıktığı güç TEMAS SINIRLI; paylar ise ham saldırıdan
+     hesaplanıyor (aşağıda), böylece kimin ne kadar vurduğu oranı
+     bozulmaz — yalnız toplam küçülür. */
+  const raw = CFG.yeniMotor ? etkinAtk(from) : armyAtk(from);
   if (raw <= 0) return { dmg: 0, paylar: {} };
 
   /* Savunma emilimi, saldıranın öldürücülüğü kadar delinir. */
@@ -1548,7 +1613,7 @@ function rollDamage(from, to) {
   const soak  = armyDef(to) * CFG.defenseFactor * (1 - delme);
 
   let dmg;
-  if (CFG.savunmaModeli === "birim") {
+  if (CFG.yeniMotor || CFG.savunmaModeli === "birim") {
     /*  ── BİRİM MODELİ ──
         Savunma bir KALİTE statıdır, sayı statı değil: emilim,
         savunanın TOPLAM savunmasına değil ASKER BAŞINA savunmasına
@@ -1564,7 +1629,8 @@ function rollDamage(from, to) {
     const bAtk = birimAtk(from);
     const bDef = birimDef(to) * (1 - delme);
     const oran = bAtk / Math.max(0.0001, bAtk + bDef * CFG.birimSavunmaKat);
-    dmg = raw * Math.max(CFG.minDamagePct, oran) * CFG.damageScale;
+    const olcek = CFG.yeniMotor ? CFG.yeniDamageScale : CFG.damageScale;
+    dmg = raw * Math.max(CFG.minDamagePct, oran) * olcek;
   } else {
     dmg = Math.max(raw * CFG.minDamagePct, raw - soak) * CFG.damageScale;
   }
@@ -1616,11 +1682,52 @@ function rollDamage(from, to) {
    `vuran.killsBy` rapor içindir (kim kimi düşürdü); orada da aynı
    oranı uygulamazsak ekrandaki döküm toplamla tutmaz.
    ═══════════════════════════════════════════════════════════════ */
+/*  ── HAFİF YARALI PAYI ──
+    Düşen askerin ne kadarı BEDAVA geri döner. Savaş ne kadar
+    çekişmeliyse o kadar azı döner:
+      ordunun %0'ı düştüyse (ezici kazanç) → hafifTavan  (%92)
+      ordunun tamamı düştüyse              → hafifTaban  (%45)
+    Whiteout'ta ezici canavar savaşında düşenlerin %99'u hafif
+    yaralıydı, çekişmeli PvP'de %55'i — bu eğri o iki ucu birleştirir.
+    Yeni motor kapalıyken 0 döner: eski davranışta bu kategori yok. */
+function hafifPayi(a) {
+  if (!CFG.yeniMotor) return 0;
+  const bas = a.units.reduce((s, u) => s + u.start, 0);
+  if (bas <= 0) return 0;
+  let dusen = 0;
+  Object.keys(a.killed || {}).forEach(k => { dusen += a.killed[k] || 0; });
+  Object.keys(a.wounded || {}).forEach(k => { dusen += a.wounded[k] || 0; });
+  const kayipOrani = Math.min(1, dusen / bas);
+  return CFG.hafifTavan - kayipOrani * (CFG.hafifTavan - CFG.hafifTaban);
+}
+
 function olumOraniniAyarla(a, vuran, oran) {
+  /*  Önce HAFİF YARALI ayrılır: bunlar orduya GERİ KATILIR, hastaneye
+      gitmez, kayıp sayılmaz. Sonra kalan kalıcı kayıp ölü/yaralı diye
+      bölünür (eski kural).
+      Geri katma burada yapılmalı: `remaining` bu çağrıdan SONRA
+      okunuyor, yoksa hafif yaralılar ordudan düşmüş görünür. */
+  const hafifOran = hafifPayi(a);
+  a.hafif = {};
+
   const ids = new Set([...Object.keys(a.killed || {}), ...Object.keys(a.wounded || {})]);
   ids.forEach(uid => {
-    const dusen = (a.killed[uid] || 0) + (a.wounded[uid] || 0);
+    let dusen = (a.killed[uid] || 0) + (a.wounded[uid] || 0);
     if (dusen <= 0) { delete a.killed[uid]; delete a.wounded[uid]; return; }
+
+    if (hafifOran > 0) {
+      const hafif = Math.round(dusen * hafifOran);
+      if (hafif > 0) {
+        a.hafif[uid] = hafif;
+        dusen -= hafif;
+        /* orduya geri kat — o kimliğin İLK girdisine yazmak yeter,
+           sayım girdileri gezerek toplandığı için doğru çıkar */
+        const u = a.units.find(x => x.unitId === uid);
+        if (u) { u.count += hafif; if (u.count > u.floor) u.passive = false; }
+      }
+    }
+    if (dusen <= 0) { delete a.killed[uid]; delete a.wounded[uid]; return; }
+
     /* ±%4 dalgalanma: yoksa ölen ve yaralanan tam eşit çıkar
        (69.566 / 69.564 gibi) ve rapor uydurma gibi görünür. */
     const o = Math.min(0.95, Math.max(0.02, oran + (Math.random() - 0.5) * 0.08));
@@ -1628,11 +1735,15 @@ function olumOraniniAyarla(a, vuran, oran) {
     a.killed[uid]  = olen;
     a.wounded[uid] = dusen - olen;
   });
+
   if (vuran && vuran.killsBy) {
+    /* Kim kimi düşürdü dökümü de aynı oranda kırpılır, yoksa rapordaki
+       satırlar toplamı tutmaz. */
     Object.keys(vuran.killsBy).forEach(k => {
       const v = vuran.killsBy[k];
-      const dusen = (v.killed || 0) + (v.wounded || 0);
+      let dusen = (v.killed || 0) + (v.wounded || 0);
       if (dusen <= 0) return;
+      dusen = Math.round(dusen * (1 - hafifOran));
       v.killed  = Math.round(dusen * oran);
       v.wounded = dusen - v.killed;
     });
@@ -1856,8 +1967,17 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
      Her birlik türü kendi başlangıç sayısının %typeFloorPct'ine
      inince geri çekilir (pasifleşir). Kale bonusu ve savaş öncesi
      yetenek kayıpları uygulandıktan SONRA hesaplanır. */
+  /*  TİP TABANI — yeni motorda KAPALI.
+      Eski motorda bir birlik türü %8'e inince geri çekiliyordu
+      (pasifleşiyordu) ve bu, savaşı erkenden bitiriyordu: bütün
+      türler çekilince ordu "bozguna uğradı" sayılıyor. Yeni motorda
+      yumuşatmayı HAFİF YARALI payı yapıyor; iki yumuşatma üst üste
+      binince temas sınırının etkisi ölçülemez hale geliyordu
+      (ölçüldü: sınır 5.000 ile sınırsız aynı sonucu veriyordu).
+      Bozgun eşiğiyle aynı gerekçe, bkz. routFloor. */
+  const TIP_TABAN = CFG.yeniMotor ? 0 : CFG.typeFloorPct;
   [A, D].forEach(ord => ord.units.forEach(u => {
-    u.floor = Math.floor(u.start * CFG.typeFloorPct);
+    u.floor = Math.floor(u.start * TIP_TABAN);
   }));
 
   /* ── BOZGUN TABANI ────────────────────────────────────────────
@@ -1878,6 +1998,14 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   function routFloor(a, rakip) {
     const bas = a.units.reduce((s, u) => s + u.start, 0);
     if (bas <= 0) return 0;
+    /*  YENİ MOTORDA BOZGUN EŞİĞİ YOK.
+        Eski motorda kaybeden hep ordusunun %75'ini yitiriyordu ve
+        eşik bunu sınırlamak için vardı. Yeni motorda yumuşatmayı
+        HAFİF YARALI payı yapıyor: düşenlerin büyük kısmı bedava
+        dönüyor. İki yumuşatma üst üste binerse savaş hiç sonuçlanmaz.
+        Gerçek Whiteout raporunda da savunanın "Savaşçı"sı 0'dı —
+        yani bozguna uğrayıp çekilmemiş, tamamı temas etmişti. */
+    if (CFG.yeniMotor) return 0;
     const oran = Math.min(1, orduGucu(a) / orduGucu(rakip));
     const pct  = CFG.routPct + (1 - oran) * (CFG.routPctZayif - CFG.routPct);
     return Math.floor(bas * pct);
@@ -1906,7 +2034,11 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
   if (freezeD) A.flow.used.freeze = freezeD;
   if (freezeA) D.flow.used.freeze = freezeA;
 
-  while (turn < CFG.maxTurns && armyAlive(A) && armyAlive(D)
+  /* Yeni motorda savaş uzun sürer: tur başına hasar küçük, sonuç
+     turların toplamından çıkar. Eski 30 turda savaş tek turda bitip
+     kayıplar şişiyordu. */
+  const TUR_SINIRI = CFG.yeniMotor ? CFG.yeniMaxTurns : CFG.maxTurns;
+  while (turn < TUR_SINIRI && armyAlive(A) && armyAlive(D)
          && !routed(A, tabanA) && !routed(D, tabanD)) {
     turn++;
 
@@ -2072,12 +2204,16 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
     statlar: _statOzet,
     attacker: {
       killed: A.killed, wounded: A.wounded,
+      /* Bedava dönen hafif yaralılar. Ordudan DÜŞÜLMEZ (zaten geri
+         katıldı), yalnız raporda gösterilir. Eski motorda boş kalır. */
+      hafif: A.hafif || {},
       remaining: armyTroopCount(A),
       damageDealt: A.damageDealt, damageTaken: Math.round(A.damageTaken),
       heroHp: Math.round(A.hero.hp), heroMaxHp: Math.round(A.hero.maxHp),
     },
     defender: {
       killed: D.killed, wounded: D.wounded,
+      hafif: D.hafif || {},
       remaining: armyTroopCount(D),
       damageDealt: D.damageDealt, damageTaken: Math.round(D.damageTaken),
       heroHp: Math.round(D.hero.hp), heroMaxHp: Math.round(D.hero.maxHp),
@@ -2930,6 +3066,8 @@ window.PVP = {
      savaş olmaz, eli boş döner. Silmeden önce projede ARA. */
   savasiCalistir: runPvpBattle,
   savunanKur: buildDefender,
+  /* Ölçüm kapıları — denge sınamaları bunları okur, oyun okumaz. */
+  olcum: { etkinAtk: etkinAtk, armyAtk: armyAtk, birimAtk: birimAtk, birimDef: birimDef },
   /* sefer.js varış anında bunu sorar — kalkan hesabı TEK YERDE. */
   kalkanKalan: kalkanKalan,
   sonSonuc: null,
