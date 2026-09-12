@@ -62,8 +62,12 @@
   var AYAR = {
     /* Savaşın en fazla kaç tur süreceği. Eski motorda 30'du ve savaşlar
        1 turda bitiyordu; burada tur başına hasar çok daha küçük olduğu
-       için savaş gerçekten sürüyor. */
-    maxTur: 500,
+       için savaş gerçekten sürüyor.
+       ÖLÇÜLDÜ: canavar savaşı ~65 tur, 15.000'in 1,1 milyonu öğütmesi
+       ~27.500 tur. Tur maliyeti birkaç aritmetik işlem, 100 bin tur
+       milisaniyeler sürüyor — sınır bilerek geniş. Dar tutulursa savaş
+       yarıda kesilir ve büyük ordular hiç bitirilemez. */
+    maxTur: 100000,
 
     /* Genel hız. Bütün hasarı ölçekler. Savaşın kazananını değiştirmez
        (iki taraf da aynı oranda hızlanır), TUR SAYISINI değiştirir — ve
@@ -78,6 +82,28 @@
        0,05'te sapma %1'in altına iniyor ve daha aşağısı bir şey
        kazandırmıyor, yalnız hesabı uzatıyor. Küçültme. */
     hasarKat: 0.05,
+
+    /* ── TEMAS SINIRI (cephe genişliği) ──
+       Bir orduda aynı anda EN FAZLA bu kadar asker vuruş yapabilir.
+       Fazlası arkada bekler: canıyla orduya dayanıklılık katar ama
+       vuruşa katılmaz.
+
+       NEDEN VAR: Serdar'ın gösterdiği gerçek rapor (15.000 asker,
+       1.129.475 askeri dağıtıyor) sınırsız modelle açıklanamıyor.
+       Hesaplandı: sınırsızken savunanın vuruşu saldıranınkinin 75
+       katı olur ve saldıran ilk turlarda erir. Savaş Detayları ekranı
+       saldıranın TEK kişi olduğunu (rally değil) gösterdiğine göre,
+       geriye tek açıklama kalıyor: savunanın 1,1 milyonu aynı anda
+       dövüşmüyor.
+
+       Bu sınır sayıyı değersizleştirmez — kalabalık ordu daha uzun
+       dayanır, saldıran onu bitirmek için çok daha fazla tur dövüşmek
+       zorunda kalır. Ama kalabalık artık hasarı KATLAMAZ, işte kalite
+       ile sayının yarışabilmesinin sebebi bu.
+
+       0 ya da Infinity yaparsan sınır kalkar (eski davranış).
+       15.000, Whiteout'taki tipik sefer büyüklüğüne denk. */
+    temasSiniri: 15000,
 
     /* ── ÜÇLÜ BÖLÜNME ──
        DİKKAT: aşağıdaki üç sayı HENÜZ DOĞRULANMADI. Elimizdeki iki
@@ -118,11 +144,24 @@
     }, 0) / n;
   }
 
+  /*  Vuruşa gerçekten katılan saldırı gücü.
+      Ordu temas sınırından kalabalıksa fazlası arkada bekler; saldırı
+      gücü sınır kadarına kırpılır. Kırpma ORANTILI yapılır: hangi
+      birlikten kaç tane varsa o oranda öne çıkar. (Önce üst kademeyi
+      öne sürmek istenirse yalnız bu fonksiyon değişir.) */
+  function etkinAtk(o) {
+    var sayi = toplamSayi(o);
+    var sinir = AYAR.temasSiniri;
+    var ham = toplamAtk(o);
+    if (!sinir || !isFinite(sinir) || sayi <= sinir) return ham;
+    return ham * (sinir / sayi);
+  }
+
   /* Bir turda karşı tarafa giden hasar.
      Savunma BÖLEN olarak girer: iki katı savunma, yarı hasar. */
   function turHasari(vuran, hedef) {
     var savunma = Math.max(0.5, birimOrt(hedef, "savunma"));
-    return toplamAtk(vuran) / savunma * AYAR.hasarKat;
+    return etkinAtk(vuran) / savunma * AYAR.hasarKat;
   }
 
   /* Kaybedilen candan asker dökümü.
