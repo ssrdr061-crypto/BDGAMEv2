@@ -180,11 +180,20 @@ Kaçış: `?egitimkapat=1`.
 
 - **AYAR PANELLERİ YAYINDAKİ DEĞERLERLE ÖRTÜŞTÜRÜLDÜ** (iki panel).
 
-  **Kale (`?kaleayar=1`):** Serdar'ın ölçtüğü Sv5 değeri kalıcı yazıldı —
-  `index.html` `.castle-node[data-sv="5"] .node-avatar`
-  **198px → 194px**, `translate(-2px,-102px) → translate(-2px,-41px)`.
-  Panelin kendi `AYAR` tablosu ve iki yorumdaki "güncel set" satırı da
-  aynı sayıya çekildi (üçü ayrışırsa panel açılınca kale zıplar).
+  **Kale (`?kaleayar=1`):** Serdar'ın panelde ölçtüğü SON set kalıcı
+  yazıldı. `index.html`:
+
+  | | eski | yeni |
+  |---|---|---|
+  | Sv1 (taban kural) | 122px | **130px** dy-75 |
+  | Sv2 | 166px dy22 | aynı |
+  | Sv3 | 176px | aynı |
+  | Sv4 | 186px dy-21 dx-2 | aynı |
+  | Sv5 | 198px dy-102 dx-2 | **182px dy-5 dx-4** |
+
+  Panelin kendi `AYAR` tablosu ve üç yorumdaki "güncel set" satırı da
+  aynı sayılara çekildi — ayrışırsa panel açılınca kale zıplar.
+  Ölçüldü: beş seviyede de panel ile yayın BİREBİR aynı.
 
   **Etiket (`?etiket=1`) — GERÇEK HATA:** panel beş seviyeyi de TEK
   varsayılanla başlatıyordu. Oysa `kaleEtiketi` bloğunda Sv1, Sv4 ve
