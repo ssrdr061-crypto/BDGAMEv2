@@ -11060,3 +11060,133 @@ st.textContent =
     "pointer-events:none;z-index:-1;}";
 document.head.appendChild(st);
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   SAVAŞ RAPORU — TAM EKRAN + OKUNURLUK
+   ---------------------------------------------------------------
+   Serdar'ın isteği (4 madde):
+
+     1) Rapor penceresi TAM EKRAN olsun. Eskiden ortada duran
+        380px'lik bir karttı; telefonun tamamını kaplıyor.
+     2) Başlık yazıları renk olarak DOYGUNLAŞSIN (BİRLİKLER, ÖLEN,
+        YARALANAN, stat başlıkları...). --rp-murekkep-2 (#584021)
+        kağıt zeminde silik kalıyordu.
+     3) Kahraman YILDIZLARI bir tık büyüsün (11px çok küçüktü).
+     4) Birlik kutucukları ASLA alt satıra düşmesin. Üç aile daima
+        yan yana, iki taraf karşılıklı. Ekrandaki hata buydu:
+        .rp-chips'te flex-wrap:wrap vardı, savunanın 10.397.750
+        rakamı sığmayınca 3. kutu alta kayıyordu.
+
+   NEDEN AYRI BLOK: rapor stilleri (.rp-box, .rp-chips...) dosyanın
+   üst kısmında birkaç yere dağılmış ve bazıları zaten !important.
+   Hepsini yerinde düzenlemek yerine en sona tek blok yazıldı;
+   geri almak için bu IIFE'yi silmek yeter.
+
+   Arka plan (#temaReportBack) padding'i INLINE yazılıyor
+   (openReportModal içinde back.style.cssText). Satır içi stili
+   yalnız !important ezer — o yüzden aşağıdaki her kural !important.
+   ══════════════════════════════════════════════════════════════ */
+(function raporTamEkran(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaRaporTamEkran";
+st.textContent = `
+/* ── 1) TAM EKRAN ── */
+html body #temaReportBack{
+  padding:0 !important;
+  align-items:stretch !important;
+  justify-content:stretch !important;
+}
+html body #temaReportBack .rp-box{
+  width:100% !important; max-width:none !important;
+  height:100% !important; max-height:none !important;
+  border-radius:0 !important; border:0 !important;
+  /* box-sizing yazılmazsa kutu ekran + padding kadar uzar (947px/915px
+     ölçüldü) ve alt kenar boşu boşuna kaydırılır. */
+  box-sizing:border-box !important;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 14px
+          calc(env(safe-area-inset-bottom,0px) + 18px) !important;
+}
+/*  TAM EKRAN DÜZENİ: başlık üstte, içerik ortada kayar, sayfa
+    okları + SAVAŞ DETAYLARI en altta sabit. Kart boyundayken
+    alt bar içeriğin hemen altındaydı; tam ekranda öyle bırakınca
+    altta kocaman boşluk kalıyordu (ölçüldü: 412x915 ekranda içerik
+    ~1390px'in yarısı kadar). Kaydırma artık .rp-sayfa'da.
+    :not([hidden]) şart — gizli 2. sayfa display:flex ile görünür
+    hâle gelirdi. */
+html body #temaReportBack .rp-box{
+  display:flex !important; flex-direction:column !important;
+  overflow:hidden !important;
+}
+html body #temaReportBack .rp-ttl{ flex:0 0 auto !important; }
+html body #temaReportBack .rp-sayfa:not([hidden]){
+  flex:1 1 auto !important; min-height:0 !important;
+  overflow-y:auto !important; -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+html body #temaReportBack .rp-alt{
+  flex:0 0 auto !important;
+  margin-top:12px !important;
+  padding-top:10px !important;
+  border-top:1px solid color-mix(in srgb, var(--rp-murekkep) 18%, transparent);
+}
+
+/* içerideki kesikli çerçeve ekran kenarına yapışmasın */
+html body #temaReportBack .rp-box::before{ inset:6px !important; border-radius:0 !important; }
+/* kapatma düğmesi çentiğin altında kalsın */
+html body #temaReportBack .rp-close{
+  top:calc(env(safe-area-inset-top,0px) + 10px) !important;
+}
+
+/* ── 2) BAŞLIKLAR DAHA DOYGUN ──
+   #584021 → #6b3706: aynı kahve ailesi, daha doygun ve daha koyu.
+   Yalnız BAŞLIK yazılarına verilir; sayılar ve isimler değişmez. */
+html body #temaReportBack .rp-krs-orta,
+html body #temaReportBack .rp-sec,
+html body #temaReportBack .rp-krs-ust,
+html body #temaReportBack .rp-role,
+html body .sd-box .sd-sutun{
+  color:#6b3706 !important;
+}
+html body #temaReportBack .rp-krs-orta{
+  font-size:11.5px !important; letter-spacing:.3px !important;
+}
+html body #temaReportBack .rp-sec{ font-size:12px !important; }
+html body #temaReportBack .rp-krs-ust{ font-size:11.5px !important; }
+
+/* ── 3) KAHRAMAN YILDIZLARI ── */
+html body .rep-hstars{ gap:2px !important; }
+html body .rep-hstars span{ font-size:15px !important; }
+
+/*  Kahraman ve birlik satırlarındaki -9px yan marjlar KALDIRILDI.
+    380px'lik kartta yeri zorlamak için konmuştu; tam ekranda
+    içeriği panelin dışına taşırıyordu (ölçüldü: sayfa 384px,
+    kaydırma 393px — kahraman portresi soldan kırpılıyordu). */
+html body #temaReportBack .rp-cols-hero,
+html body #temaReportBack .rp-cols-troop{
+  margin-left:0 !important; margin-right:0 !important;
+}
+
+/* ── 4) BİRLİKLER DAİMA YAN YANA ──
+   nowrap sarmayı kapatır; min-width:0 + flex:0 1 auto kutuların
+   daralmasına izin verir, yoksa nowrap taşmaya döner. Rakam yazısı
+   bir tık küçültüldü: tam ekranda sütun ~185px, üç kutu + boşluk
+   ile kutu başına ~57px kalıyor, "10.397.750" o genişliğe ancak
+   10px'te sığıyor. tabular-nums korunur. */
+html body #temaReportBack .rp-cols-troop .rp-chips{
+  flex-wrap:nowrap !important;
+  gap:6px !important;
+  align-items:flex-start !important;
+}
+html body #temaReportBack .rp-cols-troop .rp-unit{
+  min-width:0 !important; flex:0 1 auto !important;
+}
+html body #temaReportBack .rp-cols-troop .rp-ucap{
+  font-size:10px !important;
+  letter-spacing:-.2px !important;
+  white-space:nowrap !important;
+  font-variant-numeric:tabular-nums;
+}
+`;
+document.head.appendChild(st);
+})();

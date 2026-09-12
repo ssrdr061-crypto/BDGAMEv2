@@ -178,6 +178,34 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **SAVAŞ RAPORU TAM EKRAN** (`tema.js` sonundaki `raporTamEkran` bloğu).
+  Dört istek birlikte:
+  1. Pencere tam ekran (eskiden ortada 380px'lik kart).
+     `#temaReportBack` padding'i INLINE yazılıyor, o yüzden kuralların
+     hepsi `!important`. `box-sizing:border-box` şart — yoksa kutu
+     ekran + padding kadar uzuyor (ölçüldü: 947px/915px).
+  2. Başlık yazıları doygunlaştı: `#584021` → **`#6b3706`**
+     (BİRLİKLER/ÖLEN/YARALANAN satır adları, bölüm başlıkları,
+     taraf adları, Savaş Detayları sütun başlıkları). Punto da
+     10,5 → 11,5.
+  3. Kahraman yıldızları 11px → **15px**, aralık 1 → 2px.
+  4. Birlik kutucukları artık **asla alt satıra düşmüyor**:
+     `.rp-chips`teki `flex-wrap:wrap` → `nowrap`, kutular
+     `min-width:0` ile daralabiliyor, rakam 10px.
+     Ölçüldü: iki tarafta da 3 kutu **tek satır**, taşma 0,
+     "10.420.917" tam sığıyor.
+
+  Düzen: başlık üstte sabit, içerik `.rp-sayfa` içinde kayar,
+  oklar + SAVAŞ DETAYLARI altta sabit. `:not([hidden])` şart —
+  gizli 2. sayfaya `display:flex` verilirse görünür hâle gelir.
+
+  **TUZAK (ölçülerek bulundu):** `.rp-cols-hero` ve `.rp-cols-troop`
+  üzerindeki `margin-left/right:-9px` dar kart için konmuştu; tam
+  ekranda içeriği panelin dışına taşırıyordu (sayfa 384px, kaydırma
+  393px, kahraman portresi soldan kırpık). Yeni blokta 0'landı.
+
+  Geri alma: `raporTamEkran` IIFE'sini sil, rapor eski kart hâline döner.
+
 - **BOZGUN EŞİĞİ YENİ MOTORDA AÇILDI** (`CFG.yeniBozgun`, `yeniRoutDenk`,
   `yeniRoutZayif`). Önceki durumda kaybeden ordu son askerine kadar
   sahada eriyordu: "HAYATTA KALANLAR" satırı hep 0 çıkıyor ve umutsuz
