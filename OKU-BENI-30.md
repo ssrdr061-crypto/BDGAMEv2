@@ -178,6 +178,42 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **"GÜÇ +N" ŞERİDİ: TEK ŞERİT, TEK HİZA + PARLAMA** (`gucefekt.js`,
+  `gucefekt-1` → **`gucefekt-2`**).
+
+  **Hiza — kök sebep:** şerit her çağrıda YENİDEN yaratılıyordu ve
+  üst üste binmesin diye ekrandaki canlı şerit sayısına göre aşağı
+  kaydırılıyordu (`yuva = canlilar.length * 46`). Arka arkaya kışla
+  toplayınca şeritler 0 / 46 / 92 px'te çıkıyor, üstelik ilk şerit
+  söndükten sonra ikincisi kaydırılmış yerinde kalıyordu — "hepsi
+  aynı hizada gelmiyor" tam buydu.
+  Çözüm ekrandaki şeridi TEKE indirmek: yeni güç dururken gelirse
+  ikinci kutu çizilmez, mevcut şeridin sayısı **toplanır**, girişi
+  atlanır (`dogum = simdi() - GIR`), bekleme ve parlama baştan
+  başlar. `yuva` ve `canlilar` dizisi tamamen silindi; geri
+  koyulursa hiza da geri bozulur.
+  ÖLÇÜLDÜ (412×915, ekran ortası 206 / 457,5): üç toplama arka
+  arkaya → şerit adedi hep **1**, merkez üçünde de **206,0 / 457,5**,
+  dikey yayılma **0,00 px**, yatay **0,00 px**; aralıklı üç
+  toplamada da aynı. Sönme sonrası kalan şerit 0.
+
+  **Parlama:** şerit girdikten sonra içinden soldan sağa bir ışık
+  hüzmesi kayar. Tuzak 11 gereği CSS animasyonu değil, aynı
+  `requestAnimationFrame` döngüsünde. `PARLA_BEK 90` · `PARLA_SURE
+  560` · `PARLA_EN 104`; toplamı `GIR + DUR`u geçmez, yoksa ışık
+  şerit sönerken yolda kalır.
+  İki incelik: (1) ışık `.ge-parla-kutu` içinde ve arka planla AYNI
+  kenar solmasıyla (`mask-image`, 17%/83%) maskelenir — şeridin uçları
+  saydam olduğu için maskesiz bırakılırsa boşlukta yüzen beyaz bir
+  leke görünür; (2) gradyan tek duraklı değil, **keskin çekirdek +
+  geniş yumuşak etek** (.10/.30/.78/.30/.10) — tek duraklı hâli
+  ekranda ışık gibi değil "biraz açılmış zemin" gibi duruyordu.
+  Maske desteklenmeyen tarayıcıda da leke kalmasın diye ışığın kendi
+  saydamlığı yolun ilk ve son %22'sinde sönümlenir.
+  ÖLÇÜLDÜ: ışık şeridin sol kenarının dışından (x -43px) girip sağ
+  kenarının dışına (x 208px, şerit eni 157px) çıkıyor, yön **soldan
+  sağa**, görünür süre **508 ms**, şerit sönmeye başlamadan bitiyor.
+
 - **KALELER ARASI 1 KARO BOŞLUK** — `koordinat.js` `KALE_BOSLUK = 1`.
   Kaleler 2×2. Eskiden bitişik durabiliyorlardı; artık aralarında
   en az bir karo boş kalıyor.
@@ -567,7 +603,7 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 `kaleici-58` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
-`gucefekt-1` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
+`gucefekt-2` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
 
 Yükleme sırası (`index.html` sonu): koordinat · heroes · kahramanlar · gelistir ·
 troops · istatistik · missile · pvp · pve · tema · rehber · harita · dugum ·
