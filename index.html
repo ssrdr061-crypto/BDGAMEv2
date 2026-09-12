@@ -2104,25 +2104,24 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 
 .map-node.castle-node .node-ring{ width:auto; height:auto; }
 .map-node.castle-node .node-avatar{
-  width:130px; height:130px; transform:translateY(-75px);
+  width:132px; height:132px; transform:translateY(-19px);
   border:none; box-shadow:none; background:transparent;
   border-radius:0; overflow:visible; padding:0;
 }
 /* SEVİYE BAŞINA ÖLÇÜ — her seviyenin görselindeki şeffaf boşluk farklı,
    tek ölçü hepsine oturmuyor. Değerler ?kaleayar=1 paneliyle ölçüldü.
-   Sv1 varsayılanı yukarıdaki 130px/dy-75 kuralı.
+   Sv1 varsayılanı yukarıdaki 132px/dy-19 kuralı.
    Yeni seviye görseli eklendikçe buraya bir satır eklenir.
-   GÜNCEL SET: Sv1 130 dy-75 · Sv2 166 dy22 · Sv3 176 · Sv4 186 dy-21 dx-2 ·
-   Sv5 252 dy-42 dx-14 */
+   GÜNCEL SET: Sv1 132 dy-19 · Sv2 138 dy-11 · Sv3 172 dy-34 ·
+   Sv4 186 dy-21 dx-2 · Sv5 252 dy-42 dx-14 */
 .map-node.castle-node[data-sv="2"] .node-avatar{
-  width:166px; height:166px; transform:translateY(22px);
+  width:138px; height:138px; transform:translateY(-11px);
 }
 /* Sv3 artık kendi ölçüsünde; eskiden satırı yoktu ve Sv1 kuralına düşüyordu.
-   transform:none ZORUNLU: Sv1 kuralı artık translateY(-75px) taşıyor ve
-   ortak seçici olduğu için buraya da düşer; yazılmazsa Sv3 panelde
-   ölçülen dy 0 yerine -75'te durur. */
+   Kaydırma AÇIKÇA yazılır: Sv1 kuralı ortak seçici olduğu için buraya da
+   düşer, yazılmazsa Sv3 kendi dy'si yerine Sv1'inkinde durur. */
 .map-node.castle-node[data-sv="3"] .node-avatar{
-  width:176px; height:176px; transform:none;
+  width:172px; height:172px; transform:translateY(-34px);
 }
 .map-node.castle-node[data-sv="4"] .node-avatar{
   width:186px; height:186px; transform:translate(-2px, -21px);

@@ -178,6 +178,24 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **KALE HİZASI: beş seviye de yeniden yazıldı** (`?kaleayar=1` özeti).
+
+  | | eski | yeni |
+  |---|---|---|
+  | Sv1 (taban kural) | 130px dy-75 | **132px dy-19** |
+  | Sv2 | 166px dy22 | **138px dy-11** |
+  | Sv3 | 176px dy0 | **172px dy-34** |
+  | Sv4 | 186px dy-21 dx-2 | aynı |
+  | Sv5 | 252px dy-42 dx-14 | aynı |
+
+  Sv3'ün `transform:none` satırı gitti — artık kendi kaydırmasını
+  AÇIKÇA yazıyor. Sv1 kuralı ortak seçici olduğu için buraya da
+  düşer; yazılmazsa Sv3 kendi dy'si yerine Sv1'inkinde durur.
+  Panelin `AYAR` tablosu ve üç yorumdaki "güncel set" satırı da
+  aynı sayılara çekildi.
+  Ölçüldü: beş seviyede de yayın dökümle birebir, panel kapalıyken
+  de açıkken de — zıplama yok.
+
 - **KALE ETİKETİ: BEŞ SEVİYE DE KALICI YAZILDI** (`?etiket=1` panelinin
   DEĞERLER dökümünden birebir).
 
