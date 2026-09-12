@@ -178,6 +178,17 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **DOĞRULANDI: birlik statları İSTATİSTİKLER yüzdelerine işlemiyor.**
+  Şüphe edilmişti. `statKarsiHTML` yüzdeyi
+  `Σ(savaştaki stat × sayı) / Σ(ham taban × sayı) − 1` ile buluyor;
+  kademe tabanı sadeleşiyor. Deneyle doğrulandı: bonussuz orduyla Sv1,
+  Sv3, Sv6 ve karışık ordu hepsi **%0** veriyor. O yüzdeler yalnız
+  araştırma + kahraman + buff bonusudur.
+
+- **Savaş raporu: İKİ SAYFADA DA aile başına tek kutucuk.** Ana sayfadaki
+  birlik kutucukları (`unitChips`) ve döküm sayfası aynı kuralı kullanır:
+  üç aile, üç kutu; sayı toplanır, görsel baskın kademenin, köşede
+  ortalama kademe. Serdar'ın savaşında 11 kutucuk → 6.
 - **Savaş raporu birlik dökümü: aile başına TEK satır.** Eskiden her
   KADEME ayrı bloktu (Sv5 Savunucu ayrı, Sv6 Savunucu ayrı) ve iki
   taraf kademe kademe eşleniyordu; karışık ordularda 6-8 blok çıkıyor,

@@ -1011,19 +1011,50 @@ function rpBirlikIdleri(nesneler) {
 
 /* savaşa sürülen birlikler — eğitim panelindeki kafa kutucuğu biçimi.
    .rep-por[data-i] kadrajı ?ayar=1 tuner'ından gelen değişkenleri kullanır. */
+/*  ── AİLE BAŞINA TEK KUTUCUK ──────────────────────────────────
+    ESKİDEN: her KADEME ayrı kutucuktu. Karışık orduda 6 kutu yan yana
+    diziliyor, satır kayıyor ve görseli olmayan kademelerde boş kutu
+    kalıyordu.
+    ŞİMDİ: üç aile, üç kutucuk. Sayı aile içinde toplanır, görsel
+    baskın kademenin, köşede ORTALAMA KADEME yazar ("Sv 1,4").
+    Sayfa 2'deki birlik dökümüyle AYNI kural — iki sayfa birbirini
+    tutsun diye ortalama ve baskın kademe aynı biçimde hesaplanıyor.
+    Ortalama SAYIYA göre ağırlıklı:
+      27.500 Sv1 + 17.500 Sv2 → (27.500×1 + 17.500×2)/45.000 = Sv 1,4 */
 function unitChips(troopsObj) {
   const t = troopsObj || {};
-  /*  `data-i` kutucuğun KADRAJIDIR (görselin nereden kırpılacağı) ve
-      aileye bağlıdır, kimliğe değil: Süvari de Şövalye ile aynı
-      kadrajı kullanır. `data-kad` arka planı seçer.                */
-  const out = rpBirlikIdleri([t]).filter(uid => (t[uid] || 0) > 0).map(uid => {
-    const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[uid] : null;
+  const idler = rpBirlikIdleri([t]).filter(uid => (t[uid] || 0) > 0);
+  if (!idler.length) return '<span class="rp-dash">—</span>';
+
+  const out = [];
+  ["knight", "soldier", "robot"].forEach(fam => {
+    const grup = idler.filter(uid => rpAile(uid) === fam);
+    if (!grup.length) return;
+
+    let toplam = 0, agirlik = 0, baskin = null, baskinN = -1;
+    grup.forEach(uid => {
+      const n = t[uid] || 0;
+      toplam += n;
+      agirlik += n * rpKademe(uid);
+      if (n > baskinN) { baskinN = n; baskin = uid; }
+    });
+    if (toplam <= 0) return;
+
+    const ort = agirlik / toplam;
+    const svYazi = (Math.abs(ort - Math.round(ort)) < 0.05)
+      ? "Sv " + Math.round(ort)
+      : "Sv " + ort.toFixed(1).replace(".", ",");
+
+    const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[baskin] : null;
     const im = (d && d.img) ? `<img src="${d.img}" alt="">` : "";
-    const n  = (typeof fmt === "function") ? fmt(t[uid]) : String(t[uid]);
-    return `<div class="rp-unit">
-      <div class="rep-por" data-i="${RP_AILE_YERI[rpAile(uid)] ?? 0}" data-kad="${rpKademe(uid)}">${im}</div>
+    const n  = (typeof fmt === "function") ? fmt(toplam) : String(toplam);
+    /*  `data-i` kutucuğun KADRAJIDIR (görselin nereden kırpılacağı) ve
+        aileye bağlıdır, kimliğe değil: Süvari de Şövalye ile aynı
+        kadrajı kullanır. `data-kad` arka planı seçer.                */
+    out.push(`<div class="rp-unit">
+      <div class="rep-por" data-i="${RP_AILE_YERI[fam] ?? 0}" data-kad="${rpKademe(baskin)}">${im}<span class="rp-por-sv">${svYazi}</span></div>
       <span class="rp-ucap">${n}</span>
-    </div>`;
+    </div>`);
   });
   return out.join("") || '<span class="rp-dash">—</span>';
 }
