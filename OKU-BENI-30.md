@@ -178,6 +178,35 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **SAVAŞ MOTORU YENİLENDİ** (`CFG.yeniMotor`, tek geri dönüş anahtarı).
+  Model Serdar'ın gerçek Whiteout raporlarından ÖLÇÜLEREK çıkarıldı
+  (`savas2.js` bağımsız doğrulama modülü, oyuna bağlı değil: iki
+  kontrollü canavar savaşını %1 ve %0 sapmayla yeniden üretiyor).
+  Üç mekanizma:
+  1. **Savunma asker başına emer** (toplam değil). Eskiden savunanın
+     askeri çoğaldıkça emilim saldıranın toplam saldırısını geçiyor ve
+     hasar `minDamagePct` tabanına çakılıyordu; kalite bir yerden sonra
+     hiç işe yaramıyordu.
+  2. **Temas sınırı** (`temasSiniri`, 50.000): aynı anda sınırlı sayıda
+     asker vurur, fazlası arkada bekler. Kalabalık hasarı katlamaz,
+     yalnız daha uzun dayanır.
+  3. **Üçlü kayıp**: Kayıp / Yaralılar / **Hafif Yaralı**. Hafif yaralı
+     orduya bedava döner (hastane yok, güç kaybı yok). Pay savaşın
+     çekişmesine göre %92 → %45. Bozgun eşiği ve tip tabanı yeni
+     motorda KAPALI — yumuşatmayı artık bu pay yapıyor.
+  ÖLÇÜM — kalitenin yenebildiği sayı farkı: **2,5 kat → 26,8 kat**.
+  Saldırmanın bedeli: 2M→1M savaşında kalıcı kayıp 537.788 → 201.138.
+  Savaş süresi 20–83 ms (telefonda sorun değil).
+
+  **KÖK TUZAK (bu turda ısırdı):** `rollDamage`'da `paylar` hesabı
+  `raw`a bölünüyor ve toplamı 1 olmalı — `damageArmy` hasarı bu paylara
+  bölerek uyguluyor. Temas sınırı için `raw`ı kırpınca paylar toplamı
+  1'i aştı (20M'lik savunanda 533 çıktı) ve kırptığım hasar 533 katına
+  çıkarak geri geldi: 34.545 kişilik ordu tek turda siliniyordu, üstelik
+  sınır ne olursa olsun sonuç değişmiyordu (kırpma kendini iptal
+  ediyordu). Paylar artık HAM saldırıdan (`armyAtk`) hesaplanıyor.
+  Bölen değiştireceksen paylar toplamının 1 kaldığını DOĞRULA.
+
 - **Savaş dengesi: bozgun eşiği artık güç farkına göre.** Ölçüldü:
   kaybeden taraf, farkın ne olduğuna bakmadan HEP ordusunun %75'ini
   kaybediyordu (34 bin asker de, denk ordu da). Artık zayıf ordu daha

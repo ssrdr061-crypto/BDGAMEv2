@@ -1649,10 +1649,19 @@ function rollDamage(from, to) {
 
   /* Hasarın kaynak dağılımı: her birlik tipi kendi saldırı payı kadar.
      Bu pay, o tipin KENDİ hedef sırasıyla uygulanacak. */
+  /*  PAYLAR HAM SALDIRIDAN HESAPLANIR — kırpılmış `raw`dan DEĞİL.
+      Paylar toplamı 1 olmalı: `damageArmy` gelen hasarı bu paylara
+      bölerek uyguluyor. Bölen olarak kırpılmış değeri kullanırsan
+      toplam 1'i aşar ve uygulanan hasar aynı oranda ŞİŞER — temas
+      sınırı kendi kendini iptal eder.
+      ÖLÇÜLDÜ: 20 milyonluk savunanda ham 166.666.715 / kırpılmış
+      312.500 → paylar toplamı 533 çıkıyor, 2.687 hasar 1.4 milyon
+      gibi uygulanıyor ve 34.545 kişilik ordu tek turda siliniyordu. */
+  const hamAtk = armyAtk(from);
   const paylar = {};
   from.units.forEach(u => {
     if (u.passive) return;                      /* çekilmiş tip vurmaz */
-    const pay = (u.atk * u.count) / raw;
+    const pay = (u.atk * u.count) / hamAtk;
     if (pay > 0) {
       paylar[u.unitId] = (paylar[u.unitId] || 0) + pay;
       from.dealtByUnit[u.unitId] = (from.dealtByUnit[u.unitId] || 0) + dmg * pay;
@@ -1662,7 +1671,7 @@ function rollDamage(from, to) {
   /* Kahramanın kendi saldırısı: komutan sınıflarına eşit bölünür.
      Komutan yoksa sınıfsız kaynak → ön saf sırasıyla vurur. */
   if (from.hero.hp > 0 && from.hero.atk > 0) {
-    const hPay = from.hero.atk / raw;
+    const hPay = from.hero.atk / hamAtk;
     const cats = from.heroCats || [];
     if (cats.length) cats.forEach(c => { paylar["hero:" + c] = (paylar["hero:" + c] || 0) + hPay / cats.length; });
     else             paylar["hero"] = (paylar["hero"] || 0) + hPay;
