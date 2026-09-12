@@ -958,10 +958,22 @@ function statKarsiHTML(r) {
       };
       /* Kıyas SAYI üzerinden: metin kıyaslansaydı "+%468,6" < "+%9"
          çıkar, renkler ters olurdu (Tuzak 49). */
+      /*  RENK, EKRANDA YAZAN SAYIYA BAKAR.
+          Eskiden kıyas HER ZAMAN yüzde üzerindendi. İki tarafın da
+          bonusu yoksa iki yüzde de 0 olur, satır renksiz kalırdı —
+          oysa ekranda ham değerler yazıyor ve biri açık ara önde
+          olabiliyordu (canlı örnek: Savunucu Öldürücülüğü %7'ye
+          %1,2, ikisi de siyah).
+          Kural: ikisi de yüzde yazıyorsa yüzdeler, aksi hâlde
+          savaşta kullanılan GERÇEK STAT kıyaslanır. Böylece renk
+          hiçbir zaman ekrandaki sayıyla çelişmez. */
+      const ikisiYuzde = (av !== 0 && dv !== 0);
+      const ax = ikisiYuzde ? av : aVal;
+      const dx = ikisiYuzde ? dv : dVal;
       const ka = (av === null || dv === null) ? "" :
-                 (av > dv ? "rp-st-ust" : (av < dv ? "rp-st-alt" : ""));
+                 (ax > dx ? "rp-st-ust" : (ax < dx ? "rp-st-alt" : ""));
       const kd = (av === null || dv === null) ? "" :
-                 (dv > av ? "rp-st-ust" : (dv < av ? "rp-st-alt" : ""));
+                 (dx > ax ? "rp-st-ust" : (dx < ax ? "rp-st-alt" : ""));
       out += `<div class="rp-st-row">
         <span class="rp-st-v ${ka}">${yaz(av, aVal)}</span>
         <span class="rp-st-k">${st.ad}</span>
@@ -11091,6 +11103,17 @@ document.head.appendChild(st);
 const st = document.createElement("style");
 st.id = "temaRaporTamEkran";
 st.textContent = `
+/* ── 0) KAĞIT RENGİ BİR TIK AÇILDI ──
+   #bd9660 → #c9a472, alt ton #94703f → #a17c4c. Koyu kahve zeminde
+   satır şeritleri ve koyu yazı birbirine yakın kalıyordu; kağıt
+   açılınca yazı öne çıkıyor. Renk değişkenleri :root'ta tanımlı,
+   burada rapor kapsayıcısında yeniden yazılıyor — oyunun geri
+   kalanı etkilenmez. */
+html body #temaReportBack, html body .sd-back{
+  --rp-kagit:#c9a472 !important;
+  --rp-kagit-alt:#a17c4c !important;
+}
+
 /* ── 1) TAM EKRAN ── */
 html body #temaReportBack{
   padding:0 !important;

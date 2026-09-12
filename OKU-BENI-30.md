@@ -178,6 +178,25 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **İSTATİSTİKLER satırlarında renk, EKRANDAKİ SAYIYA bakıyor** (`statKarsiHTML`).
+  Hata: kıyas her zaman YÜZDE üzerindendi. İki tarafın da araştırma/
+  kahraman bonusu yoksa iki yüzde de 0 olur, satır renksiz kalırdı —
+  oysa o satırda ham stat değerleri yazıyor ve biri açık ara önde
+  olabiliyor. Canlı örnek: *Savunucu Öldürücülüğü %7'ye %1,2*, ikisi
+  de siyah.
+  Yeni kural: **ikisi de yüzde yazıyorsa yüzdeler, aksi hâlde savaşta
+  kullanılan gerçek stat** kıyaslanır. Böylece renk ekrandaki sayıyla
+  hiç çelişmez. Üç durumun üçü de sınandı (ikisi yüzdeli · karışık ·
+  ikisi ham).
+  Karışık durumda (bir tarafta bonus var, diğerinde hiç yok) renk
+  gerçek stata bakar: "+%100" kırmızı, "%30" yeşil olabilir — çünkü
+  bonussuz birlik gerçekten daha güçlüdür. Bu bilerek böyle.
+
+- **Rapor kağıdı bir tık açıldı:** `--rp-kagit` #bd9660 → **#c9a472**,
+  `--rp-kagit-alt` #94703f → **#a17c4c**. Sadece rapor kapsayıcısında
+  (#temaReportBack ve .sd-back) yeniden tanımlandı, oyunun geri kalanı
+  etkilenmez.
+
 - **SAVAŞ RAPORU TAM EKRAN** (`tema.js` sonundaki `raporTamEkran` bloğu).
   Dört istek birlikte:
   1. Pencere tam ekran (eskiden ortada 380px'lik kart).
