@@ -83,6 +83,21 @@ const CFG = {
      İkisini eşitlersen (0.70 → 0.25) eski davranışa döner.        */
   routPctZayif:   0.70,
 
+  /* ── SAVUNMA MODELİ ───────────────────────────────────────────
+     "toplam" = eski davranış: emilim savunanın TOPLAM savunmasıdır.
+                Asker sayısı arttıkça emilim büyür; saldıranın
+                kalitesi `minDamagePct` tabanına çakılır ve bir
+                yerden sonra hiç işe yaramaz.
+     "birim"  = emilim ASKER BAŞINA savunmadır. Kalabalık olmak
+                zırh kazandırmaz, yalnız daha çok beden verir —
+                kalite gerçekten sayıyla yarışabilir.
+     Geri dönüş: bu satırı "toplam" yap, başka hiçbir yer değişmez. */
+  savunmaModeli:  "toplam",
+  /* "birim" modelinde emilimin sertliği. Büyütürsen savunma daha
+     çok emer, savaşlar uzar. Denk kalitede eski modelle aynı hasarı
+     versin diye ölçülerek seçilir — tahminle değiştirme.          */
+  birimSavunmaKat: 2.8,
+
   /* ── GARNİZON ─────────────────────────────────────────────────
      ESKİ DAVRANIŞ: saldıranın gönderebileceği asker sefer
      kapasitesiyle SINIRLI (gelistir.js TABAN_KAPASITE + kahramanlar,
@@ -1223,6 +1238,24 @@ function armyAtk(a) { return a.units.reduce((s,u) => s + (u.passive ? 0 : u.atk*
 function armyDef(a) { return a.units.reduce((s,u) => s + (u.passive ? 0 : u.def*u.count), 0) + (a.hero.hp > 0 ? a.hero.def : 0); }
 function armyAlive(a) { return armyActiveCount(a) > 0 || a.hero.hp > 0; }
 
+/*  ASKER BAŞINA saldırı ve savunma — "birim" savunma modelinin
+    okuduğu iki değer. Ağırlıklı ortalamadır: hangi birlikten kaç
+    tane varsa o kadar sayılır. Kahraman katılmaz; kahraman tek
+    kişidir, ortalamayı sayı gibi şişirmesi yanlış olur.           */
+function birimSayi(a) {
+  return a.units.reduce((s,u) => s + (u.passive ? 0 : u.count), 0);
+}
+function birimAtk(a) {
+  const n = birimSayi(a);
+  if (n <= 0) return 0;
+  return a.units.reduce((s,u) => s + (u.passive ? 0 : u.atk*u.count), 0) / n;
+}
+function birimDef(a) {
+  const n = birimSayi(a);
+  if (n <= 0) return 0;
+  return a.units.reduce((s,u) => s + (u.passive ? 0 : u.def*u.count), 0) / n;
+}
+
 /* Bir kaynağın (vuran birlik tipinin) hedef sırası.
    "knight"/"soldier"/"robot" → TARGET_ORDER
    "hero:knight" gibi → o sınıfın sırası
@@ -1514,7 +1547,27 @@ function rollDamage(from, to) {
   const delme = olumDelme(from);
   const soak  = armyDef(to) * CFG.defenseFactor * (1 - delme);
 
-  let dmg = Math.max(raw * CFG.minDamagePct, raw - soak) * CFG.damageScale;
+  let dmg;
+  if (CFG.savunmaModeli === "birim") {
+    /*  ── BİRİM MODELİ ──
+        Savunma bir KALİTE statıdır, sayı statı değil: emilim,
+        savunanın TOPLAM savunmasına değil ASKER BAŞINA savunmasına
+        bakar. Böylece kalabalık olmak seni daha zırhlı yapmaz,
+        yalnız daha çok bedenin olur.
+
+        ESKİ ("toplam") modelde emilim toplam savunmaydı; savunanın
+        askeri çoğaldıkça emilim saldıranın toplam saldırısını
+        geçiyor ve hasar `minDamagePct` tabanına çakılıyordu. O taban
+        yüzünden saldıranın kalitesi bir yerden sonra HİÇ işe
+        yaramıyordu: 30 bin Sv6 ile 1 milyon Sv3'e saldırınca statı
+        30 kat yapsan bile sonuç değişmiyordu (ölçüldü).            */
+    const bAtk = birimAtk(from);
+    const bDef = birimDef(to) * (1 - delme);
+    const oran = bAtk / Math.max(0.0001, bAtk + bDef * CFG.birimSavunmaKat);
+    dmg = raw * Math.max(CFG.minDamagePct, oran) * CFG.damageScale;
+  } else {
+    dmg = Math.max(raw * CFG.minDamagePct, raw - soak) * CFG.damageScale;
+  }
   dmg *= (1 - CFG.variance/2) + Math.random() * CFG.variance;
   if (from.hero.hp > 0 && Math.random() < from.hero.ultiChance) dmg *= from.hero.ultiMul;
   dmg = Math.max(1, Math.round(dmg));
