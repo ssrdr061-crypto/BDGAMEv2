@@ -4696,22 +4696,21 @@ st.textContent = `
   font-family:'Baloo 2','Nunito',sans-serif !important;
 }
 
-/* süre çubuğu: kapatma düğmesinin altına girmesin.
-   Yükseklik/köşe/yazı biçimi index.html'deki tabandadır — buradan
-   EZİLMEZ, yoksa iki yerde iki ayrı ölçü olur (Tuzak 38). */
-.hosp-speed-modal .hsm-bar{
-  margin:2px 0 10px !important;
-  width:calc(100% - 52px) !important;
-}
+/* Süre çubuğunun ölçüsü ve konumu artık TAMAMEN index.html'de:
+   ✕ ile aynı flex satırında duruyor, genişliğini düzenden alıyor.
+   Buradaki eski "calc(100% - 52px)" ezmesi silindi — o sayı ✕'in
+   mutlak konumlu hâlinden kalmaydı ve çubuğu hizadan düşürüyordu. */
 .hosp-speed-modal .hsm-bar-fill{
   width:0%; transition:width .5s linear !important;
 }
 
 /* "5 dk" kutucuğu: dış 3B yok, görsel kutuyu doldurur.
+   GENİŞLİK YAZIYA UYAR — buradaki eski "flex:0 0 66px" sabit
+   genişliği, tabandaki min-width kuralını eziyordu.
    overflow:hidden ŞART — süre etiketinin perdesi köşelerden taşmasın. */
 .hosp-speed-modal .hsm-cards{ margin:0 0 4px !important; }
 .hosp-speed-modal .hsm-card-item{
-  flex:0 0 66px !important; height:66px !important;
+  height:62px !important;
   box-shadow:none !important;
   border-radius:12px !important;
   overflow:hidden !important;

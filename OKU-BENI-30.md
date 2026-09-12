@@ -227,9 +227,40 @@ Kaçış: `?egitimkapat=1`.
   `tema.js`te yalnız konum/çerçeve işi kaldı. Üçüncü katman
   açılmadı.
 
-  Ölçüldü (412px, 2×): kart 66×66 · etiket görünür ("1 dk") ·
-  bar 22px · −/+ 30×30 · tutamak 18×24 ve **ray içinde** ·
-  BİTİR/KULLAN 156×44 · HIZLI KULLAN 320×36 · kartlar yatayda
+  **İKİNCİ TUR — referans görsele göre rötuş ve İKİ KÖK HATA:**
+
+  - **✕ hizasızdı.** `.overlay-close` mutlak konumluydu ve süre
+    çubuğu onun altına girmesin diye `calc(100% - 52px)` ile
+    daraltılıyordu — sihirli sayı, üstelik ✕ çubukla hizalı değil.
+    İkisi artık tek flex satırında (`.hsm-head`); hizayı düzen
+    kuruyor, 52px silindi. ✕ 38 → **30px**.
+    Ölçüldü: çubuk ile ✕'in dikey merkez farkı **0,00 px**.
+  - **TUTAMAK RAYDAN TAŞIYORDU — sıralama hatası.** `tazele()` önce
+    sürgüyü konumlandırıp SONRA adet kutusunun genişliğini rakam
+    sayısına göre yazıyordu. İkisi aynı flex satırında: kutu
+    genişleyince ray daralıyor, ama tutamak eski genişliğe göre
+    yerleştirilmiş kalıyordu. Yani 9 → 10 geçişinde tutamak raydan
+    çıkıyordu (ölçüldü: **7,5 px** taşma). Kutu artık ÖNCE yazılıyor,
+    ray SONRA ölçülüyor.
+    İkinci ayrışma: çizim `clientWidth` (tam sayı) okurken `oranOku`
+    kesirli `getBoundingClientRect` okuyordu — sağ uçta yarım piksel
+    taşma (209 ↔ 208,5). İki yol da aynı kaynaktan okuyor.
+    Ölçüldü: iki uçta da taşma **0,0 px**.
+  - **Kart genişliği yazıya uyuyor.** Sabit 66px kareydi. Genişliği
+    belirleyen şey etiketin AKIŞTA olması — mutlak konumlu öğe
+    kapsayıcının genişliğine katılmaz, etiket eskiden öyleydi.
+    Ölçüldü: "1 dk" 48px · "10 dk" **54,4px**, hiçbirinde yazı
+    taşması yok.
+  - BİTİR sarı → **turuncu** (`#ff9d3c → #ef6f14`); sarı, mağazanın
+    elmas düğmeleriyle karışıyordu.
+  - Süre çubuğu 22 → **18px**, yazı 13,5 → 12px.
+  - −/+ daire → **yuvarlatılmış kare** (köşe 9px), referanstaki gibi.
+  - Düğmeler inceldi: `min-height` 40 → **34** (BİTİR/KULLAN 39px),
+    HIZLI KULLAN 36 → **32px**, puntolar düşürüldü.
+
+  Ölçüldü (412px, 2×): kart 62 boy · etiket görünür ("1 dk") ·
+  bar 18px · −/+ 30×30 · tutamak 18×24 ve **ray içinde** ·
+  BİTİR/KULLAN 156×39 · HIZLI KULLAN 320×32 · kartlar yatayda
   taşmıyor (320/320) · sayfa yatay kaydırması yok (412).
   `index.html`in dört satır içi JS bloğu ayrı ayrı `node --check`
   edildi (dördü de geçti; kalan dokuz blok `type="text/plain"` 3B

@@ -1662,7 +1662,6 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   border-radius:22px;          /* panel değil pencere: dört köşe yuvarlak */
   padding:18px 16px 18px;
 }
-.hosp-speed-modal .hsm-close{ top:12px; right:12px; }
 .hosp-speed-modal .hsm-title{
   justify-content:center; font-size:22px; letter-spacing:1.6px;
   padding-right:0; margin:0 0 12px;
@@ -1674,23 +1673,36 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   color:#dff2ff; text-transform:none;
 }
 
+/* Üst satır: süre çubuğu + ✕ yan yana, ortadan hizalı.
+   ✕ artık akışta (mutlak değil), o yüzden çubuk kendi genişliğini
+   flex'ten alır — "52px kadar dar" gibi bir sayı kalmadı. */
+.hosp-speed-modal .hsm-head{
+  display:flex; align-items:center; gap:8px; margin:0 0 10px;
+}
+.hosp-speed-modal .hsm-close{
+  position:static; flex:0 0 30px;
+  width:30px; height:30px; border-radius:9px;
+  font-size:15px; line-height:1;
+}
+
 /* Kalan süre çubuğu — ince ve tam yuvarlak uçlu.
    Yazı ss:dd:sn (saatBicim) ve tabular-nums: rakam değişirken
    ne şerit ne yazı kıpırdar. */
 .hosp-speed-modal .hsm-bar{
-  position:relative; height:22px; margin:0 0 4px;
-  border-radius:11px; overflow:hidden;
+  position:relative; flex:1 1 auto; min-width:0;
+  height:18px; margin:0;
+  border-radius:9px; overflow:hidden;
   background:rgba(3,16,38,.55); box-shadow:none;
 }
 .hosp-speed-modal .hsm-bar-fill{
   position:absolute; left:0; top:0; bottom:0; width:100%;
-  border-radius:11px;
+  border-radius:9px;
   background:linear-gradient(180deg,#5ce07a,#22a34a);
 }
 .hosp-speed-modal .hsm-bar-txt{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   font-family:'Baloo 2','Nunito',sans-serif;
-  color:#fff; font-size:13.5px; font-weight:800; letter-spacing:.6px;
+  color:#fff; font-size:12px; font-weight:800; letter-spacing:.5px;
   font-variant-numeric:tabular-nums;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
@@ -1700,10 +1712,15 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   display:flex; gap:9px; overflow-x:auto; -webkit-overflow-scrolling:touch;
   padding-bottom:2px;
 }
+/* GENİŞLİK YAZIYA UYAR: sabit kare değil. "5 dk" dar, "10 dk" ve
+   "8 sa" geniş kutu ister; sabit genişlikte uzun etiket ya kırpılır
+   ya da kısası bol durur. Genişliği belirleyen şey .hsm-ci-top'un
+   AKIŞTA olması — mutlak konumlu bir öğe kapsayıcısının genişliğine
+   hiç katılmaz, etiket eskiden öyleydi. */
 .hosp-speed-modal .hsm-card-item{
-  position:relative; flex:0 0 76px; height:76px;
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  border-radius:13px; cursor:pointer;
+  position:relative; flex:0 0 auto; min-width:48px; height:62px;
+  display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
+  border-radius:13px; cursor:pointer; overflow:hidden;
   font-family:'Baloo 2','Nunito',sans-serif;
   background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
   border:1px solid rgba(190,240,255,.35);
@@ -1719,15 +1736,20 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
    okuyamıyordu. Görselin üstünde durduğu için altına koyu bir perde
    konur — aksi hâlde açık renkli görselde yazı kayboluyor. */
 .hosp-speed-modal .hsm-ci-top{
-  position:absolute; left:0; right:0; top:0; z-index:2;
-  padding:2px 2px 5px;
+  position:relative; z-index:2;
+  padding:2px 11px 6px; white-space:nowrap;
   color:#fff; font-size:11.5px; font-weight:800; line-height:1.1;
   letter-spacing:.2px; text-align:center;
   text-shadow:0 1px 2px rgba(0,20,45,.75);
   background-image:linear-gradient(180deg,rgba(2,12,30,.82),rgba(2,12,30,0));
   pointer-events:none;
 }
-.hosp-speed-modal .hsm-ci-icon{ font-size:22px; line-height:1; }
+.hosp-speed-modal .hsm-ci-icon{
+  position:relative; z-index:2; flex:1 1 auto;
+  display:flex; align-items:center; justify-content:center;
+  margin-top:-6px;                    /* etiketin perde payını geri al */
+  font-size:22px; line-height:1;
+}
 .hosp-speed-modal .hsm-ci-count{
   position:absolute; right:6px; bottom:3px; z-index:2;
   color:#ffd257; font-size:11px; font-weight:900;
@@ -1740,11 +1762,11 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 .hosp-speed-modal .hsm-pick{
   display:flex; align-items:center; gap:10px; margin-top:14px;
 }
-/* −/+ : kare değil DAİRE, sade. Eskiden 36×32 sarı kutulardı;
-   yan yana durunca sürgüden çok yer kaplıyordu. */
+/* −/+ : referanstaki gibi YUVARLATILMIŞ KARE (daire değil), küçük.
+   Eskiden 36×32 sarı dikdörtgendi, sürgüden çok yer kaplıyordu. */
 .hosp-speed-modal .hsm-step{
   flex:0 0 30px; width:30px; height:30px; padding:0;
-  border-radius:50%; cursor:pointer;
+  border-radius:9px; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif;
   color:#eaf7ff; font-size:18px; font-weight:900; line-height:1;
   display:flex; align-items:center; justify-content:center;
@@ -1829,25 +1851,27 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 }
 
 /* Eylemler */
-.hosp-speed-modal .hsm-actions{ display:flex; gap:8px; margin-top:12px; }
+.hosp-speed-modal .hsm-actions{ display:flex; gap:8px; margin-top:10px; }
 .hosp-speed-modal .hsm-btn{
-  flex:1 1 0; min-height:40px; padding:5px 8px;
+  flex:1 1 0; min-height:34px; padding:4px 8px;
   border:none; border-radius:10px; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:900;
-  color:#fff; letter-spacing:.5px;
+  color:#fff; letter-spacing:.4px;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
 }
+/* BİTİR turuncu (referanstaki gibi) — sarı, BİTİR'i mağazadaki
+   elmas düğmeleriyle karıştırıyordu. */
 .hosp-speed-modal .hsm-finish{
-  font-size:16px;
-  background:linear-gradient(180deg,#ffd257,#e0a12c);
+  font-size:14.5px; line-height:1.15;
+  background:linear-gradient(180deg,#ff9d3c,#ef6f14);
   box-shadow:none;
-  text-shadow:0 2px 0 rgba(120,70,0,.55);
+  text-shadow:0 1px 2px rgba(90,40,0,.5);
 }
 .hosp-speed-modal .hsm-finish small{
-  font-size:14px; font-weight:900; color:#fff;
-  text-shadow:0 2px 0 rgba(120,70,0,.55);
+  font-size:12.5px; font-weight:900; color:#fff;
+  text-shadow:0 1px 2px rgba(90,40,0,.5);
 }
-.hosp-speed-modal .hsm-use{ font-size:15px; }
+.hosp-speed-modal .hsm-use{ font-size:14px; }
 .hosp-speed-modal .hsm-use,
 .hosp-speed-modal .hsm-quick{
   background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
@@ -1855,7 +1879,7 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   text-shadow:0 2px 0 rgba(0,10,30,.55);
 }
 .hosp-speed-modal .hsm-quick{
-  display:flex; width:100%; min-height:36px; margin-top:8px; font-size:14px;
+  display:flex; width:100%; min-height:32px; margin-top:7px; font-size:13px;
 }
 .hosp-speed-modal .hsm-btn:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none; }
 .hosp-speed-modal .hsm-btn[disabled]{ opacity:.5; }
@@ -6871,19 +6895,24 @@ function hizlandirmaPenceresi(unitId, tur) {
   kok.className = "hosp-speed-modal";
   kok.innerHTML = `
     <div class="overlay-card hsm-card">
-      <button class="overlay-close hsm-close" type="button">✕</button>
-
-      <div class="hsm-bar"><i class="hsm-bar-fill"></i><span class="hsm-bar-txt"></span></div>
+      <!-- Süre çubuğu ve ✕ AYNI SATIRDA. Eskiden ✕ mutlak konumluydu
+           (.overlay-close) ve çubuk onun altına girmesin diye
+           calc(100% - 52px) ile daraltılıyordu: sihirli sayı, ve ✕
+           çubukla hizalı değildi. Artık ikisi tek flex satırında,
+           hizayı düzen kuruyor. -->
+      <div class="hsm-head">
+        <div class="hsm-bar"><i class="hsm-bar-fill"></i><span class="hsm-bar-txt"></span></div>
+        <button class="overlay-close hsm-close" type="button">✕</button>
+      </div>
 
       ${liste.length === 0
         ? `<div class="hsm-empty">Hızlandırman yok.<br>Mağazadan ⏩ Hızlandırma satın alabilirsin.</div>`
         : `<div class="hsm-cards">
             ${liste.map((x, i) => `
               <button class="hsm-card-item${i === 0 ? " is-active" : ""}" data-i="${i}" type="button">
-                ${x.gorsel
-                  ? `<img class="hsm-ci-img" src="${x.gorsel}" alt="">`
-                  : `<span class="hsm-ci-icon">⏩</span>`}
+                ${x.gorsel ? `<img class="hsm-ci-img" src="${x.gorsel}" alt="">` : ``}
                 <span class="hsm-ci-top">${x.etiket}</span>
+                ${x.gorsel ? `` : `<span class="hsm-ci-icon">⏩</span>`}
                 <span class="hsm-ci-count">${x.adet}</span>
               </button>`).join("")}
           </div>
@@ -6993,33 +7022,43 @@ function hizlandirmaPenceresi(unitId, tur) {
     kok.dataset.enfazla = enFazla;
     const oran = enFazla > 1 ? (adet - 1) / (enFazla - 1) : 0;
 
-    /* Konumlar PİKSEL olarak yazılıyor. Yüzdeyle yazınca tutamak,
-       kendi yarı genişliği kadar rayın dışına taşıyordu. */
-    const ray = q(".hsm-slider");
-    if (ray) {
-      const w = ray.clientWidth;
-      const R = SURGU_YARI;
-      const kullanilir = Math.max(0, w - R * 2);
-      const px = R + oran * kullanilir;
-      const fill = q(".hsm-fill"), thumb = q(".hsm-thumb");
-      if (fill)  fill.style.width = px + "px";
-      if (thumb) thumb.style.left = px + "px";
-    }
-
     /* Sınıra dayanınca düğme SÖNÜK olur. Tavan artık kalan süreye
        bağlı olduğu için oyuncu "+ neden bir şey yapmıyor" demesin. */
     const mnEl = q(".hsm-minus"), plEl = q(".hsm-plus");
     if (mnEl) mnEl.disabled = (adet <= 1);
     if (plEl) plEl.disabled = (adet >= enFazla);
 
+    /*  ADET KUTUSU SÜRGÜDEN ÖNCE ÖLÇÜLÜR — SIRA ÖNEMLİ.
+        Kutu rakam sayısı kadar genişler ve ikisi AYNI flex satırında:
+        kutu genişleyince sürgünün rayı daralır. Eskiden sürgü önce
+        konumlanıyor, kutu sonra genişliyordu; 9→10 geçişinde tutamak
+        eski ray genişliğine göre yerleştirilmiş kalıyor ve raydan
+        taşıyordu (ölçüldü: 7,5 px). Kutuyu önce yazıp rayı sonra
+        ölçünce kayma sıfırlanır. */
     const qtyEl = q(".hsm-qty");
     if (qtyEl) {
       qtyEl.max = String(enFazla);
       if (document.activeElement !== qtyEl) qtyEl.value = String(adet);
-      /* Kutu rakam kadar genişler. box-sizing:content-box olduğu
-         için bu genişlik SADECE rakamın yeridir; iç boşluk ayrıca
-         eklenir, rakam kırpılmaz. */
+      /* box-sizing:content-box olduğu için bu genişlik SADECE
+         rakamın yeridir; iç boşluk ayrıca eklenir, rakam kırpılmaz. */
       qtyEl.style.width = String(qtyEl.value || "1").length + "ch";
+    }
+
+    /* Konumlar PİKSEL olarak yazılıyor. Yüzdeyle yazınca tutamak,
+       kendi yarı genişliği kadar rayın dışına taşıyordu. */
+    const ray = q(".hsm-slider");
+    if (ray) {
+      /* clientWidth TAM SAYIYA yuvarlar; oranOku ise kesirli
+         getBoundingClientRect kullanıyor. İkisi ayrışınca tutamak
+         sağ uçta rayı yarım piksel aşıyordu (ölçüldü: 209 ↔ 208,5).
+         İki yol da aynı kaynaktan okuyor artık. */
+      const w = ray.getBoundingClientRect().width;
+      const R = SURGU_YARI;
+      const kullanilir = Math.max(0, w - R * 2);
+      const px = R + oran * kullanilir;
+      const fill = q(".hsm-fill"), thumb = q(".hsm-thumb");
+      if (fill)  fill.style.width = px + "px";
+      if (thumb) thumb.style.left = px + "px";
     }
     /* "Hızlandırma Süresi": seçili kartın süresi × adet.
        Satır bir ara HTML'den silinmişti, bu hesap da yıllarca boşa
