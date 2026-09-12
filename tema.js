@@ -7402,11 +7402,33 @@ var KALE_VARSAYILAN = {
   kDolguD:   0,   /* dikey dolgu, px                  */
   kKose:    30,   /* köşe yuvarlaklığı, px            */
   kDx:       0,   /* çerçevenin yatay kayması         */
-  kDy:     -44,   /* dikey kayma (taban 61px)         */
+  kDy:     -44,   /* dikey kayma (taban 61px → 17px)  */
   kGEn:     67,   /* seviye görselinin genişliği, px  */
   kGBoy:   123,   /* seviye görselinin yüksekliği, px */
   kGX:     -34,   /* görsel–çerçeve boşluğu, px       */
   kGY:      -1    /* görselin dikey kayması, px       */
+};
+
+/*  SEVİYE BAŞINA FARKLAR — panel açılınca etiket ZIPLAMASIN.
+    HATA: beş seviye de yukarıdaki TEK varsayılanla başlıyordu.
+    Oysa kaleEtiketi bloğunda Sv1, Sv4 ve Sv5'in kendi kuralları var
+    (Sv5'te genişlik ve dolgu da farklı). Panel açılır açılmaz bu üç
+    seviyenin etiketi yerinden oynuyor, "neyi ayarladığın belli
+    olmuyor" — bloğun kendi şartı buydu ve tutmuyordu.
+
+    Sayılar kaleEtiketi bloğundan BİREBİR okundu:
+      Sv1  translate(0, -2)   → kDy = -2 - 61 = -63
+      Sv4  translate(0, -19)  → kDy = -19 - 61 = -80
+      Sv5  translate(0, -34)  → kDy = -34 - 61 = -95
+           max-width 400 · padding 0 30 · ::before margin-right -47
+    Sv2 ve Sv3 ortak kuralda, farkları yok.
+
+    Buradaki bir sayı değişirse kaleEtiketi bloğundaki EŞİ de
+    değişmeli; ikisi tek gerçeğin iki yazımı.                      */
+var KALE_SEVIYE_FARKI = {
+  1: { kDy: -63 },
+  4: { kDy: -80 },
+  5: { kDy: -95, kGenis: 400, kDolguY: 30, kGX: -47 }
 };
 
 /* DÜĞÜM — çarpanların 100 katı. Hepsi r (düğüm yarıçapı)
@@ -7419,7 +7441,9 @@ var DUGUM_VARSAYILAN = {
 function kopya(o){ return JSON.parse(JSON.stringify(o)); }
 
 var K = {}, D = Object.assign({}, DUGUM_VARSAYILAN);
-SEVIYELER.forEach(function(n){ K[n] = Object.assign({}, KALE_VARSAYILAN); });
+SEVIYELER.forEach(function(n){
+  K[n] = Object.assign({}, KALE_VARSAYILAN, KALE_SEVIYE_FARKI[n] || {});
+});
 
 try {
   var kayit = JSON.parse(localStorage.getItem(ANAHTAR) || "null");
@@ -7693,7 +7717,10 @@ function yerlestir(){
     }
 
     if (i === "sifirla") {
-      SEVIYELER.forEach(function(n){ K[n] = Object.assign({}, KALE_VARSAYILAN); });
+      /* SIFIRLA = yayındaki hâle dön, düz varsayılana değil. */
+      SEVIYELER.forEach(function(n){
+        K[n] = Object.assign({}, KALE_VARSAYILAN, KALE_SEVIYE_FARKI[n] || {});
+      });
       D = Object.assign({}, DUGUM_VARSAYILAN);
       uygula(); tazele();
       cikti.style.display = "none";
@@ -8278,7 +8305,7 @@ setTimeout(uygula, 2500);
      aynı olmak zorunda; ayrışırsa panel açılır açılmaz kale
      zıplıyor ve neyi ayarladığın belli olmuyor. */
   var AYAR = { 1:{boy:122,dy:-75,dx:0}, 2:{boy:166,dy:22,dx:0}, 3:{boy:176,dy:0,dx:0},
-               4:{boy:186,dy:-21,dx:-2}, 5:{boy:198,dy:-102,dx:-2} };
+               4:{boy:186,dy:-21,dx:-2}, 5:{boy:194,dy:-41,dx:-2} };
   var aktif = 2;
 
   function svOku(node) {
@@ -9081,8 +9108,8 @@ document.head.appendChild(st);
    yol izlenmişti.
 
    ── ÖLÇÜLER YÜZDEYLE ──
-   Kale kutusu seviyeye göre 122px ile 198px arasında değişir
-   (?kaleayar=1; güncel set: 122 · 166 · 176 · 186 · 198).
+   Kale kutusu seviyeye göre 122px ile 194px arasında değişir
+   (?kaleayar=1; güncel set: 122 · 166 · 176 · 186 · 194).
    Piksel yazılırsa Sv2 kalesi kubbeden taşar.
 
    ── calc İÇİNDE İŞARET ──

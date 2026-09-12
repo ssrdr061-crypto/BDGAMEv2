@@ -178,6 +178,35 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **AYAR PANELLERİ YAYINDAKİ DEĞERLERLE ÖRTÜŞTÜRÜLDÜ** (iki panel).
+
+  **Kale (`?kaleayar=1`):** Serdar'ın ölçtüğü Sv5 değeri kalıcı yazıldı —
+  `index.html` `.castle-node[data-sv="5"] .node-avatar`
+  **198px → 194px**, `translate(-2px,-102px) → translate(-2px,-41px)`.
+  Panelin kendi `AYAR` tablosu ve iki yorumdaki "güncel set" satırı da
+  aynı sayıya çekildi (üçü ayrışırsa panel açılınca kale zıplar).
+
+  **Etiket (`?etiket=1`) — GERÇEK HATA:** panel beş seviyeyi de TEK
+  varsayılanla başlatıyordu. Oysa `kaleEtiketi` bloğunda Sv1, Sv4 ve
+  Sv5'in kendi kuralları var. Panel açılır açılmaz etiket yerinden
+  oynuyordu; bloğun kendi şartı ("ayrışırsa neyi ayarladığın belli
+  olmaz") tutmuyordu.
+  ÖLÇÜLDÜ (panel açıldıktan sonra, eski ↔ yeni):
+
+  | | eski (panel açılınca) | yeni |
+  |---|---|---|
+  | Sv1 dikey | -2 → **+17** (19px zıpladı) | -2 → -2 ✔ |
+  | Sv5 dikey | -34 → **+17** (51px zıpladı) | -34 → -34 ✔ |
+  | Sv5 genişlik/dolgu | 400/30 → **215/19** | 400/30 ✔ |
+
+  Çözüm: `KALE_SEVIYE_FARKI` tablosu — Sv1 `kDy:-63`, Sv4 `kDy:-80`,
+  Sv5 `kDy:-95, kGenis:400, kDolguY:30, kGX:-47`. `SIFIRLA` da artık
+  düz varsayılana değil YAYINDAKİ hâle döner.
+
+  **DİKKAT:** panelin kayıtları `localStorage["bdEtiketSv1"]`de durur ve
+  varsayılanı EZER. Telefonda eski sayılar duruyorsa panelde bir kez
+  **SIFIRLA**'ya basmak gerekir.
+
 - **İSTATİSTİKLER satırlarında renk, EKRANDAKİ SAYIYA bakıyor** (`statKarsiHTML`).
   Hata: kıyas her zaman YÜZDE üzerindendi. İki tarafın da araştırma/
   kahraman bonusu yoksa iki yüzde de 0 olur, satır renksiz kalırdı —
