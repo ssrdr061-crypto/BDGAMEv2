@@ -169,7 +169,13 @@ const CFG = {
      Kapasite: taban + garnizon/kale seviyesi başına artış.
      0 yaparsan garnizon kapanır, savunan yine tüm ordusuyla
      karşılar (eski davranış).                                    */
-  garnizonTaban:   100000,
+  /*  0 = GARNİZON KAPALI (Serdar'ın kararı). Savunan yine tüm
+      ordusuyla karşılar, "garnizon dışı kahramansız dövüşür" ayrımı
+      işlemez. Kapatma sebebi: yeni motorla birlikte üç ayrı yumuşatma
+      birden devredeydi (bozgun eşiği + garnizon + hafif yaralı) ve
+      birbirlerini nasıl etkiledikleri ölçülemiyordu. Kod duruyor,
+      100000 yazınca geri gelir. */
+  garnizonTaban:        0,
   garnizonSvBasi:   50000,
 
   /* ── TİP BAZINDA PASİFLEŞME EŞİĞİ ─────────────────────────────

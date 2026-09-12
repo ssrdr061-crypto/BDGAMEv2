@@ -178,6 +178,20 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **Savaş raporu birlik dökümü: aile başına TEK satır.** Eskiden her
+  KADEME ayrı bloktu (Sv5 Savunucu ayrı, Sv6 Savunucu ayrı) ve iki
+  taraf kademe kademe eşleniyordu; karışık ordularda 6-8 blok çıkıyor,
+  görseli olmayan kademelerde boş kutu kalıyordu. Artık üç aile, üç
+  blok: sayılar toplanır, tek kafa kutucuğu (baskın kademenin görseli)
+  ve köşesinde **ortalama kademe** yazar — `Sv 1,4` gibi.
+  Ortalama SAYIYA göre ağırlıklı: 1000 Sv5 + 500 Sv6 → `Sv 5,3`.
+  Rozet `.rp-por-sv`, kutunun içine mutlak konumlu (`.rep-por` zaten
+  `position:relative`); `.rp-krs-baslik`in flex düzenine dokunulmadı.
+- **Garnizon KAPATILDI** (`garnizonTaban: 0`). Sebep: yeni motorla
+  birlikte üç yumuşatma birden devredeydi (bozgun eşiği + garnizon +
+  hafif yaralı) ve etkileri ayrıştırılamıyordu. Kod duruyor, 100000
+  yazınca geri gelir. Bozgun eşiğine dokunulmadı (yeni motorda kapalı).
+
 - **SAVAŞ MOTORU YENİLENDİ** (`CFG.yeniMotor`, tek geri dönüş anahtarı).
   Model Serdar'ın gerçek Whiteout raporlarından ÖLÇÜLEREK çıkarıldı
   (`savas2.js` bağımsız doğrulama modülü, oyuna bağlı değil: iki

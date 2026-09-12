@@ -1200,36 +1200,81 @@ function unitDetailHTML(r) {
   const solHepsi = tarafListesi(r.attackerTroops, { killed: AL.killed, wounded: AL.wounded, attrib: AA });
   const sagHepsi = tarafListesi(r.defenderTroops, { killed: DL.killed, wounded: DL.wounded, attrib: DA });
 
-  /*  Aile aile eşle. Aile sırası savaş panelindekiyle aynı. */
+  /*  ── AİLE BAŞINA TEK SATIR ──────────────────────────────────
+      ESKİDEN: her KADEME ayrı satırdı. Sv5 Savunucu ayrı, Sv6
+      Savunucu ayrı; iki taraf kademe kademe eşleniyordu. Karışık
+      ordularda sayfa 6-8 bloğa çıkıyor, görseli olmayan kademelerde
+      boş kutular kalıyordu.
+      ŞİMDİ: aile içindeki bütün kademeler TEK blokta toplanır —
+      üç aile, üç blok. Sayılar toplanır, kafa kutucuğu bir tanedir
+      ve altında ORTALAMA KADEME yazar (Whiteout'taki "Sv 9,9" gibi).
+      Ortalama SAYIYA göre ağırlıklıdır (Serdar'ın kararı):
+      1000 Sv5 + 500 Sv6 → (1000×5 + 500×6) / 1500 = Sv 5,3         */
   const ciftler = [];
   ["knight", "soldier", "robot"].forEach(fam => {
     const sol = solHepsi.filter(u => rpAile(u) === fam);
     const sag = sagHepsi.filter(u => rpAile(u) === fam);
-    const n = Math.max(sol.length, sag.length);
-    for (let k = 0; k < n; k++) ciftler.push({ sol: sol[k] || null, sag: sag[k] || null });
+    if (!sol.length && !sag.length) return;
+    ciftler.push({ sol: sol, sag: sag });
   });
 
   const bosNot = !ciftler.length
     ? `<div class="rp-note">Bu savaşta kayıt altına alınmış birlik dökümü yok.</div>` : "";
 
-  const kafaHTML = (u) => {
+  /*  Ailenin baskın kademesi ve ORTALAMA kademesi.
+      Ağırlık, savaşa GÖTÜRÜLEN sayıdır; kadro yoksa (eski kayıt)
+      kayıplardan sayılır — yoksa satır hiç sayı bulamaz ve ortalama
+      1 çıkardı. Baskın kademe yalnız GÖRSEL ve arka plan içindir. */
+  const aileOzet = (idler, kadro, kayipK, kayipY) => {
+    let toplam = 0, agirlik = 0, baskin = null, baskinN = -1;
+    idler.forEach(u => {
+      const n = ((kadro && kadro[u]) || 0) ||
+                (((kayipK && kayipK[u]) || 0) + ((kayipY && kayipY[u]) || 0));
+      if (n <= 0) return;
+      toplam += n;
+      agirlik += n * rpKademe(u);
+      if (n > baskinN) { baskinN = n; baskin = u; }
+    });
+    const id = baskin || idler[0] || null;
+    return { id: id, ortalama: toplam > 0 ? (agirlik / toplam) : (id ? rpKademe(id) : 0) };
+  };
+
+  const kafaHTML = (idler, kadro, kayipK, kayipY) => {
+    if (!idler || !idler.length) return `<div class="rep-por rp-por-bos"></div>`;
+    const oz = aileOzet(idler, kadro, kayipK, kayipY);
+    const u = oz.id;
     if (!u) return `<div class="rep-por rp-por-bos"></div>`;
     const d = (typeof UNIT_TYPES !== "undefined") ? UNIT_TYPES[u] : null;
     const im = (d && d.img) ? `<img src="${d.img}" alt="${(d && d.name) || AD[u] || u}">` : "";
+    /*  Ortalama kademe — virgüllü, Türkçe ayraçla. Tek kademe varsa
+        ondalık göstermeye gerek yok ("Sv 5", "Sv 5,3" değil). */
+    const ov = oz.ortalama || 0;
+    const svYazi = (ov <= 0) ? "" :
+      (Math.abs(ov - Math.round(ov)) < 0.05
+        ? "Sv " + Math.round(ov)
+        : "Sv " + ov.toFixed(1).replace(".", ","));
     /*  data-i KADRAJDIR ve aileye bağlıdır (Süvari, Şövalye ile aynı
         kırpma alanını kullanır). data-kad arka planı seçer.        */
-    return `<div class="rep-por" data-i="${RP_AILE_YERI[rpAile(u)] ?? 0}" data-kad="${rpKademe(u)}">${im}</div>`;
+    return `<div class="rep-por" data-i="${RP_AILE_YERI[rpAile(u)] ?? 0}" data-kad="${rpKademe(u)}">` +
+           `${im}<span class="rp-por-sv">${svYazi}</span></div>`;
   };
+
+  /*  Aile içindeki bütün kademelerin toplamı. */
+  const topla = (fn, idler) => (idler || []).reduce((s, u) => s + (fn(u) || 0), 0);
 
   const blok = ciftler.map(c => {
     const satir = OLCU.map(o => `
       <div class="rp-krs-satir">
-        <span class="rp-krs-sol ${rpRenk(o.tip, benS)}">${c.sol ? f(o.sol(c.sol)) : "—"}</span>
+        <span class="rp-krs-sol ${rpRenk(o.tip, benS)}">${c.sol.length ? f(topla(o.sol, c.sol)) : "—"}</span>
         <span class="rp-krs-orta">${o.ad}</span>
-        <span class="rp-krs-sag ${rpRenk(o.tip, !benS)}">${c.sag ? f(o.sag(c.sag)) : "—"}</span>
+        <span class="rp-krs-sag ${rpRenk(o.tip, !benS)}">${c.sag.length ? f(topla(o.sag, c.sag)) : "—"}</span>
       </div>`).join("");
     return `<div class="rp-krs-blok">
-        <div class="rp-krs-baslik">${kafaHTML(c.sol)}<span class="rp-krs-cizgi"></span>${kafaHTML(c.sag)}</div>
+        <div class="rp-krs-baslik">` +
+          kafaHTML(c.sol, r.attackerTroops, AL.killed, AL.wounded) +
+          `<span class="rp-krs-cizgi"></span>` +
+          kafaHTML(c.sag, r.defenderTroops, DL.killed, DL.wounded) +
+        `</div>
         ${satir}
       </div>`;
   }).join("");
@@ -6334,6 +6379,47 @@ st.textContent = `
   border:none !important;
   box-shadow:none !important;
 }
+`;
+document.head.appendChild(st);
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SAVAŞ RAPORU — KAFA KUTUCUĞUNDA ORTALAMA KADEME
+   ---------------------------------------------------------------
+   Birlik dökümü artık aile başına TEK satır (tema.js unitDetailHTML).
+   Kutucuğun köşesinde o ailenin ORTALAMA kademesi yazar: "Sv 5,3".
+   Ağırlık savaşa götürülen SAYIDIR.
+
+   Kutunun İÇİNE mutlak konumlu yazılır — `.rep-por` zaten
+   `position:relative` (bu dosyada, birlikKutuArkaPlan bloğunda) ve
+   `overflow:hidden`. Dışarıya kutu eklemek `.rp-krs-baslik`in flex
+   düzenini bozardı, o yüzden yerleşime hiç dokunulmadı.
+
+   Kademe seçicideki `.kp-sv` ile aynı görünüm: koyu hap, beyaz yazı,
+   3B yok. Rakam genişliği eşit olsun diye tabular-nums.
+   ══════════════════════════════════════════════════════════════ */
+(function raporOrtalamaKademe(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaRaporOrtKademe";
+st.textContent = `
+html body .rep-por .rp-por-sv{
+  position:absolute !important;
+  right:1px; bottom:0;
+  z-index:2 !important;
+  display:block !important;
+  width:auto !important; height:auto !important;
+  font-family:'Baloo 2','Nunito',sans-serif;
+  font-weight:800; font-size:9px; line-height:1;
+  color:#fff;
+  padding:1px 3px; border-radius:6px;
+  background-color:rgba(6,20,40,.78);
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
+  font-variant-numeric:tabular-nums;
+  pointer-events:none;
+}
+/* Yazı yoksa hap da çizilmesin */
+html body .rep-por .rp-por-sv:empty{ display:none !important; }
 `;
 document.head.appendChild(st);
 })();
