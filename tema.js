@@ -7255,14 +7255,14 @@ html body #battleMap .map-node.castle-node .node-label{
      asinca isim kirpilip uc nokta konur (asagidaki .nl-ad). Sabit
      genişlik kısa isimlerde kocaman boş bir kutu bırakıyordu. */
   width:auto;
-  max-width:215px;
+  max-width:400px;
   box-sizing:border-box;
   text-align:center;
   color:#ffffff;
   background:rgba(4,10,20,.62);
   border:none;
   border-radius:30px;
-  padding:0 19px;
+  padding:0 30px;
   text-shadow:0 1px 2px rgba(0,20,45,.55);
   /* TAŞMA KIRPMASI İÇERİDEKİ SPAN'DE — kutunun kendisinde DEĞİL.
      Buraya overflow:hidden yazılırsa seviye görseli de kırpılır:
@@ -7280,7 +7280,8 @@ html body #battleMap .map-node.castle-node .node-label{
      dugumleriYerlestir). transform-origin ÜST ORTA: küçülürken
      etiket kalenin altına yapışık kalır, ortasına kaymaz. */
   transform-origin:50% 0;
-  transform:translate(0px, 17px) scale(var(--et-k, 1));
+  /* data-sv gelmezse Sv3 hizası kullanılır (orta seviye). */
+  transform:translate(0px, -16px) scale(var(--et-k, 1));
 }
 
 /* Uzun kullanıcı adı çerçeveden taşmaz: kırpılır ve sonuna üç nokta
@@ -7303,7 +7304,7 @@ html body #battleMap .map-node.castle-node .node-label::before{
   position:absolute;
   right:100%;                 /* çerçevenin SOLUNA asılır */
   top:50%;
-  margin-right:-34px;         /* görsel–çerçeve boşluğu   */
+  margin-right:-47px;         /* görsel–çerçeve boşluğu   */
   transform:translateY(calc(-50% + -1px));
   width:67px;
   height:123px;
@@ -7329,21 +7330,33 @@ html body #battleMap .map-node.castle-node .node-label[data-sv="5"]::before{ bac
 
    Sayılar ?etiket=1 paneliyle ekranda ölçüldü. Yeni bir seviye
    hizasını değiştirirsen paneli aç, DEĞERLER'e bas ve buraya yaz. */
-/* Sv1 dikey kayma -63 (panel tabanı 61 → 61-63 = -2px). Ortak
-   kuraldaki 17px yalnız Sv2/3'e kalıyor. Diğer alanlar (dolgu,
-   genişlik, köşe, görsel) ortak kuralla aynı, tekrar yazılmıyor. */
+/*  BEŞ SEVİYE — ?etiket=1 panelinin DEĞERLER dökümünden birebir.
+    Kalenin görseli seviyeye göre 130px'den 252px'e çıkıyor, etiket
+    o görselin altından başlayan akışta duruyor; tek kayma sayısı
+    her seviyede aynı yere düşmüyor.
+
+    Yazılan tek alan KAYMA (ve Sv1'de dolgu) — yazı boyu, genişlik,
+    köşe ve görsel ölçüleri beşinde de aynı, ortak kuralda duruyor.
+
+    Paneldeki sayı ile buradaki arasında 61px'lik taban fark vardır:
+      panel dikey  -14  →  burada  61-75 ... yani  css = 61 + panel
+    Panelin KALE_SEVIYE_FARKI tablosu bunun EŞİDİR; biri değişirse
+    diğeri de değişmeli, yoksa panel açılınca etiket zıplar.        */
 html body #battleMap .map-node.castle-node .node-label[data-sv="1"]{
-  transform:translate(0px, -2px) scale(var(--et-k, 1));
+  padding:0 35px;
+  transform:translate(6px, -14px) scale(var(--et-k, 1));
+}
+html body #battleMap .map-node.castle-node .node-label[data-sv="2"]{
+  transform:translate(6px, -12px) scale(var(--et-k, 1));
+}
+html body #battleMap .map-node.castle-node .node-label[data-sv="3"]{
+  transform:translate(0px, -16px) scale(var(--et-k, 1));
 }
 html body #battleMap .map-node.castle-node .node-label[data-sv="4"]{
-  transform:translate(0px, -19px) scale(var(--et-k, 1));
+  transform:translate(0px, -34px) scale(var(--et-k, 1));
 }
-/* Sv5: yalnız kayma farklı. Genişlik/dolgu/görsel boşluğu ORTAK
-   kuralla aynı olduğu için tekrar yazılmıyor — eskiden 400px/30px
-   ve -47px yazılıydı, panelde ölçülen set onları ortak değere
-   geri getirdi. Panel: yatay 6 · dikey -129 (taban 61 → -68px). */
 html body #battleMap .map-node.castle-node .node-label[data-sv="5"]{
-  transform:translate(6px, -68px) scale(var(--et-k, 1));
+  transform:translate(0px, -64px) scale(var(--et-k, 1));
 }
 `;
 document.head.appendChild(st);
@@ -7396,15 +7409,15 @@ var SEVIYELER = [1, 2, 3, 4, 5];
    değerlerdir, yani panel açıldığı anda ekran değişmez. */
 var KALE_VARSAYILAN = {
   kPunto:   17,   /* yazı boyu, px                    */
-  kGenis:  215,   /* çerçeve genişlik TAVANI, px      */
-  kDolguY:  19,   /* yatay dolgu, px                  */
+  kGenis:  400,   /* çerçeve genişlik TAVANI, px      */
+  kDolguY:  30,   /* yatay dolgu, px                  */
   kDolguD:   0,   /* dikey dolgu, px                  */
   kKose:    30,   /* köşe yuvarlaklığı, px            */
   kDx:       0,   /* çerçevenin yatay kayması         */
-  kDy:     -44,   /* dikey kayma (taban 61px → 17px)  */
+  kDy:     -77,   /* dikey kayma (taban 61px → -16px) */
   kGEn:     67,   /* seviye görselinin genişliği, px  */
   kGBoy:   123,   /* seviye görselinin yüksekliği, px */
-  kGX:     -34,   /* görsel–çerçeve boşluğu, px       */
+  kGX:     -47,   /* görsel–çerçeve boşluğu, px       */
   kGY:      -1    /* görselin dikey kayması, px       */
 };
 
@@ -7416,17 +7429,21 @@ var KALE_VARSAYILAN = {
     olmuyor" — bloğun kendi şartı buydu ve tutmuyordu.
 
     Sayılar kaleEtiketi bloğundan BİREBİR okundu:
-      Sv1  translate(0, -2)   → kDy = -2 - 61 = -63
-      Sv4  translate(0, -19)  → kDy = -19 - 61 = -80
-      Sv5  translate(6, -68)  → kDx = 6 · kDy = -68 - 61 = -129
-    Sv2 ve Sv3 ortak kuralda, farkları yok.
+      Sv1  translate(6, -14) · padding 0 35 → kDx 6 · kDy -75 · kDolguY 35
+      Sv2  translate(6, -12)                → kDx 6 · kDy -73
+      Sv3  translate(0, -16)                → kDy -77  (= varsayılan)
+      Sv4  translate(0, -34)                → kDy -95
+      Sv5  translate(0, -64)                → kDy -125
+    Kural: kDy = css dikey - 61.
 
     Buradaki bir sayı değişirse kaleEtiketi bloğundaki EŞİ de
     değişmeli; ikisi tek gerçeğin iki yazımı.                      */
 var KALE_SEVIYE_FARKI = {
-  1: { kDy: -63 },
-  4: { kDy: -80 },
-  5: { kDy: -129, kDx: 6 }
+  1: { kDx: 6, kDy:  -75, kDolguY: 35 },
+  2: { kDx: 6, kDy:  -73 },
+  3: {         kDy:  -77 },
+  4: {         kDy:  -95 },
+  5: {         kDy: -125 }
 };
 
 /* DÜĞÜM — çarpanların 100 katı. Hepsi r (düğüm yarıçapı)

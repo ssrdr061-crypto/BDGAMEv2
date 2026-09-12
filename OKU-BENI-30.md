@@ -178,6 +178,34 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **KALE ETİKETİ: BEŞ SEVİYE DE KALICI YAZILDI** (`?etiket=1` panelinin
+  DEĞERLER dökümünden birebir).
+
+  | | yazı | genişlik | dolgu | köşe | kayma | görsel | boşluk |
+  |---|---|---|---|---|---|---|---|
+  | Sv1 | 17 | 400 | 0 **35** | 30 | **6 / -14** | 67×123 | -47 |
+  | Sv2 | 17 | 400 | 0 30 | 30 | **6 / -12** | 67×123 | -47 |
+  | Sv3 | 17 | 400 | 0 30 | 30 | **0 / -16** | 67×123 | -47 |
+  | Sv4 | 17 | 400 | 0 30 | 30 | **0 / -34** | 67×123 | -47 |
+  | Sv5 | 17 | 400 | 0 30 | 30 | **0 / -64** | 67×123 | -47 |
+
+  ORTAK kural bu yüzden değişti: `max-width` 215 → **400**,
+  `padding` 0 19 → **0 30**, `::before margin-right` -34 → **-47**,
+  `data-sv` gelmezse kullanılan kayma 17 → **-16** (Sv3 hizası).
+  Seviyeye özel yazılan tek alan KAYMA (ve Sv1'de dolgu).
+
+  **TABAN FARKI:** paneldeki sayı ile CSS arasında 61px vardır —
+  `css dikey = 61 + panel dikey`. Panelin `KALE_SEVIYE_FARKI`
+  tablosu bu kuralın eşidir (Sv1 -75 · Sv2 -73 · Sv3 -77 ·
+  Sv4 -95 · Sv5 -125) ve `KALE_VARSAYILAN` da ortak kurala çekildi.
+  Biri değişip diğeri unutulursa panel açılınca etiket zıplar.
+
+  Ölçüldü: beş seviyede de yayın dökümle **birebir**, hem panel
+  kapalıyken hem açıkken — zıplama yok.
+
+  NOT: dökümün son bölümü (`harita.js CFG.etiket` — kaynak/canavar
+  düğüm etiketi) ekran görüntülerinde kesikti, o kısma dokunulmadı.
+
 - **DENEME KALELERİ — `?botkale=1`** (`index.html` `denemeKaleleriHTML`).
   Kendi kalenin ÜSTÜNE iki sıra, sırada Sv1..Sv5 → **10 kale**.
   Seviye hizası ancak beş seviye aynı anda ekranda dururken
