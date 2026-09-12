@@ -4696,7 +4696,9 @@ st.textContent = `
   font-family:'Baloo 2','Nunito',sans-serif !important;
 }
 
-/* süre çubuğu: kapatma düğmesinin altına girmesin */
+/* süre çubuğu: kapatma düğmesinin altına girmesin.
+   Yükseklik/köşe/yazı biçimi index.html'deki tabandadır — buradan
+   EZİLMEZ, yoksa iki yerde iki ayrı ölçü olur (Tuzak 38). */
 .hosp-speed-modal .hsm-bar{
   margin:2px 0 10px !important;
   width:calc(100% - 52px) !important;
@@ -4704,22 +4706,21 @@ st.textContent = `
 .hosp-speed-modal .hsm-bar-fill{
   width:0%; transition:width .5s linear !important;
 }
-.hosp-speed-modal .hsm-bar-txt{
-  text-shadow:none !important; -webkit-text-stroke:0 !important;
-  font-weight:800 !important;
-}
 
-/* "5 dk" kutucuğu: dış 3B yok, biraz küçük, görsel kutuyu doldurur */
+/* "5 dk" kutucuğu: dış 3B yok, görsel kutuyu doldurur.
+   overflow:hidden ŞART — süre etiketinin perdesi köşelerden taşmasın. */
 .hosp-speed-modal .hsm-cards{ margin:0 0 4px !important; }
 .hosp-speed-modal .hsm-card-item{
-  flex:0 0 64px !important; height:64px !important;
+  flex:0 0 66px !important; height:66px !important;
   box-shadow:none !important;
   border-radius:12px !important;
   overflow:hidden !important;
   padding:0 !important;
 }
+/* Seçili kart: dağınık hale değil, net sarı çerçeve. */
 .hosp-speed-modal .hsm-card-item.is-active{
-  box-shadow:0 0 0 2px rgba(255,210,87,.35) !important;
+  border-color:#ffd257 !important;
+  box-shadow:inset 0 0 0 1px #ffd257 !important;
 }
 .hosp-speed-modal .hsm-ci-img{
   position:absolute !important; inset:0 !important;
@@ -4743,31 +4744,24 @@ st.textContent = `
   border-radius:8px !important; position:relative !important;
 }
 
-/* − ve + : 3B yok */
+/* − ve + : ölçü ve biçim index.html tabanında (daire, 30px).
+   Burada yalnız basma davranışı sadeleştirilir. */
 .hosp-speed-modal .hsm-pick{ margin-top:10px !important; }
-.hosp-speed-modal .hsm-step{
-  box-shadow:none !important;
-}
 .hosp-speed-modal .hsm-step:active{
   transform:none !important;
   box-shadow:none !important;
   filter:brightness(.94) !important;
 }
 
-/* eylem düğmeleri: ince, çerçevesiz, 3B'siz */
-.hosp-speed-modal .hsm-actions{ margin-top:10px !important; gap:8px !important; }
+/* eylem düğmeleri: ince, çerçevesiz, 3B'siz.
+   Yükseklik ve iç boşluk tabandan gelir; buradaki padding ezmesi
+   min-height'ı görünmez kılıyordu, silindi. */
 .hosp-speed-modal .hsm-btn{
-  padding:6px 6px !important; border:0 !important;
-  border-radius:10px !important; letter-spacing:.4px !important;
+  border:0 !important;
   box-shadow:none !important;
   text-shadow:none !important;
 }
-.hosp-speed-modal .hsm-finish{ font-size:15px !important; }
-.hosp-speed-modal .hsm-finish small{ font-size:13px !important; text-shadow:none !important; }
-.hosp-speed-modal .hsm-use{ font-size:14px !important; }
-.hosp-speed-modal .hsm-quick{
-  margin-top:8px !important; font-size:14px !important; padding:6px !important;
-}
+.hosp-speed-modal .hsm-finish small{ text-shadow:none !important; }
 .hosp-speed-modal .hsm-btn:active{
   transform:none !important;
   box-shadow:none !important;

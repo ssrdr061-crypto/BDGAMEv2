@@ -1674,21 +1674,25 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   color:#dff2ff; text-transform:none;
 }
 
-/* Kalan süre çubuğu */
+/* Kalan süre çubuğu — ince ve tam yuvarlak uçlu.
+   Yazı ss:dd:sn (saatBicim) ve tabular-nums: rakam değişirken
+   ne şerit ne yazı kıpırdar. */
 .hosp-speed-modal .hsm-bar{
-  position:relative; height:28px; margin:0 0 4px;
-  border-radius:9px; overflow:hidden;
+  position:relative; height:22px; margin:0 0 4px;
+  border-radius:11px; overflow:hidden;
   background:rgba(3,16,38,.55); box-shadow:none;
 }
 .hosp-speed-modal .hsm-bar-fill{
-  position:absolute; inset:0; width:100%;
+  position:absolute; left:0; top:0; bottom:0; width:100%;
+  border-radius:11px;
   background:linear-gradient(180deg,#5ce07a,#22a34a);
 }
 .hosp-speed-modal .hsm-bar-txt{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   font-family:'Baloo 2','Nunito',sans-serif;
-  color:#fff; font-size:15px; font-weight:900;
-  text-shadow:0 2px 0 rgba(0,40,10,.55);
+  color:#fff; font-size:13.5px; font-weight:800; letter-spacing:.6px;
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 2px rgba(0,20,45,.55);
 }
 
 /* Hızlandırma kartları */
@@ -1709,13 +1713,23 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   border-color:#ffd257;
   box-shadow:none;
 }
+/* SÜRE ETİKETİ ("5 dk") — kutucuğun ÜSTÜNDE, HER ZAMAN.
+   Eskiden yalnız görselsiz kartta basılıyordu; mağaza görseli olan
+   hızlandırmalarda oyuncu hangi kartın kaç dakika olduğunu ekrandan
+   okuyamıyordu. Görselin üstünde durduğu için altına koyu bir perde
+   konur — aksi hâlde açık renkli görselde yazı kayboluyor. */
 .hosp-speed-modal .hsm-ci-top{
-  color:#a8e7ff; font-size:12px; font-weight:900;
-  text-shadow:0 2px 0 rgba(0,10,30,.55);
+  position:absolute; left:0; right:0; top:0; z-index:2;
+  padding:2px 2px 5px;
+  color:#fff; font-size:11.5px; font-weight:800; line-height:1.1;
+  letter-spacing:.2px; text-align:center;
+  text-shadow:0 1px 2px rgba(0,20,45,.75);
+  background-image:linear-gradient(180deg,rgba(2,12,30,.82),rgba(2,12,30,0));
+  pointer-events:none;
 }
 .hosp-speed-modal .hsm-ci-icon{ font-size:22px; line-height:1; }
 .hosp-speed-modal .hsm-ci-count{
-  position:absolute; right:6px; bottom:3px;
+  position:absolute; right:6px; bottom:3px; z-index:2;
   color:#ffd257; font-size:11px; font-weight:900;
   text-shadow:0 1px 2px rgba(0,10,30,.7);
 }
@@ -1726,41 +1740,59 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 .hosp-speed-modal .hsm-pick{
   display:flex; align-items:center; gap:10px; margin-top:14px;
 }
+/* −/+ : kare değil DAİRE, sade. Eskiden 36×32 sarı kutulardı;
+   yan yana durunca sürgüden çok yer kaplıyordu. */
 .hosp-speed-modal .hsm-step{
-  flex:0 0 36px; width:36px; height:32px; padding:0;
-  border-radius:9px; border:none; cursor:pointer;
+  flex:0 0 30px; width:30px; height:30px; padding:0;
+  border-radius:50%; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif;
-  color:#3a2400; font-size:19px; font-weight:900; line-height:1;
-  background:linear-gradient(180deg,#ffd257,#e0a12c);
+  color:#eaf7ff; font-size:18px; font-weight:900; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  background-color:#2f66b5; background-image:none;
+  border:1px solid rgba(190,240,255,.20);
   box-shadow:none;
 }
 .hosp-speed-modal .hsm-step:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none; }
+.hosp-speed-modal .hsm-step[disabled]{ opacity:.38; }
 
 .hosp-speed-modal .hsm-slider{
   position:relative; flex:1 1 auto; height:30px;
   touch-action:none; cursor:pointer; user-select:none;
 }
 .hosp-speed-modal .hsm-track{
-  position:absolute; left:11px; right:11px; top:50%;
-  height:7px; margin-top:-3.5px; border-radius:99px;
+  position:absolute; left:9px; right:9px; top:50%;
+  height:6px; margin-top:-3px; border-radius:99px;
   background:rgba(3,16,38,.65);
   box-shadow:none;
 }
+/* Dolu kısım çubuğun yeşiliyle aynı: pencerede tek bir "ilerleme"
+   rengi olsun. Eskiden kırmızıydı, süre çubuğuyla çelişiyordu. */
 .hosp-speed-modal .hsm-fill{
   position:absolute; left:0; top:50%;
-  height:7px; margin-top:-3.5px; border-radius:99px;
-  background:linear-gradient(180deg,#ff5a5a,#c81f2f);
+  height:6px; margin-top:-3px; border-radius:99px;
+  background:linear-gradient(180deg,#5ce07a,#22a34a);
   box-shadow:none;
 }
+/* TUTAMAK: top değil, tutulacak bir kulp — referans penceredeki
+   gibi dikey yivli dikdörtgen. Genişliğinin YARISI JS'teki
+   SURGU_YARI ile aynı olmalı (18/2 = 9), yoksa tutamak parmağın
+   altından kaçar. */
 .hosp-speed-modal .hsm-thumb{
-  position:absolute; top:50%; left:11px;
-  width:22px; height:22px; margin:-11px 0 0 -11px;
-  border-radius:50%;
-  background:radial-gradient(circle at 35% 30%, #fff, #fff 60%, #dfe8f5);
-  box-shadow:none;
+  position:absolute; top:50%; left:9px;
+  width:18px; height:24px; margin:-12px 0 0 -9px;
+  border-radius:6px;
+  background-color:#fff; background-image:none;
+  border:none; box-shadow:0 2px 6px rgba(0,20,45,.3);
   pointer-events:none; transition:transform .12s ease;
 }
-.hosp-speed-modal .hsm-slider.dragging .hsm-thumb{ transform:scale(1.15); }
+.hosp-speed-modal .hsm-thumb::before,
+.hosp-speed-modal .hsm-thumb::after{
+  content:""; position:absolute; top:50%; width:2px; height:10px;
+  margin-top:-5px; border-radius:1px; background:#3f6ea8;
+}
+.hosp-speed-modal .hsm-thumb::before{ left:6px; }
+.hosp-speed-modal .hsm-thumb::after{ right:6px; }
+.hosp-speed-modal .hsm-slider.dragging .hsm-thumb{ transform:scale(1.12); }
 
 /* Adet kutusu — hastane kartındaki .hq-input ile aynı ölçüler.
    content-box: genişlik yalnızca rakamın yeri, iç boşluk ayrı. */
@@ -1778,12 +1810,17 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 .hosp-speed-modal .hsm-qty::-webkit-outer-spin-button,
 .hosp-speed-modal .hsm-qty::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
 
+/* "Hızlandırma Süresi  00:02:00" — seçilenin toplam karşılığı. */
 .hosp-speed-modal .hsm-total{
-  text-align:center; margin:12px 0 2px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  margin:10px 0 0;
   font-family:'Baloo 2','Nunito',sans-serif;
-  color:#dff2ff; font-size:13.5px; font-weight:800;
+  color:#cfe6f7; font-size:13px; font-weight:800; letter-spacing:.2px;
 }
-.hosp-speed-modal .hsm-total b{ color:#ffd257; }
+.hosp-speed-modal .hsm-total b{
+  color:#ffd257; font-size:15px; font-weight:900;
+  font-variant-numeric:tabular-nums; letter-spacing:.6px;
+}
 
 .hosp-speed-modal .hsm-empty{
   text-align:center; color:#eaf7ff; font-size:13px; font-weight:700;
@@ -1792,12 +1829,13 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 }
 
 /* Eylemler */
-.hosp-speed-modal .hsm-actions{ display:flex; gap:9px; margin-top:14px; }
+.hosp-speed-modal .hsm-actions{ display:flex; gap:8px; margin-top:12px; }
 .hosp-speed-modal .hsm-btn{
-  flex:1 1 0; padding:9px 6px; border:none; border-radius:12px; cursor:pointer;
+  flex:1 1 0; min-height:40px; padding:5px 8px;
+  border:none; border-radius:10px; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:900;
-  color:#fff; letter-spacing:.7px;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  color:#fff; letter-spacing:.5px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
 }
 .hosp-speed-modal .hsm-finish{
   font-size:16px;
@@ -1817,7 +1855,7 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   text-shadow:0 2px 0 rgba(0,10,30,.55);
 }
 .hosp-speed-modal .hsm-quick{
-  display:block; width:100%; margin-top:10px; font-size:15px;
+  display:flex; width:100%; min-height:36px; margin-top:8px; font-size:14px;
 }
 .hosp-speed-modal .hsm-btn:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none; }
 .hosp-speed-modal .hsm-btn[disabled]{ opacity:.5; }
@@ -6764,6 +6802,25 @@ function elmasYaz(n) {
   return Number(n || 0).toLocaleString("tr-TR");
 }
 
+/*  SAYAÇ BİÇİMİ — ss:dd:sn, SABİT GENİŞLİK.
+    sureBicim "1dk 58sn" veriyor: hem harf ibareleri var, hem de
+    rakam değiştikçe metnin eni oynuyor, çubuktaki yazı kıpırdıyor.
+    Burada her alan iki hane; tabular-nums ile birlikte sayaç hiç
+    kıpırdamaz. Gün diye ayrı alan AÇILMAZ — 26 saat "26:00:00"
+    olarak yazılır, genişlik yine sabit kalır.
+    sureBicim'e DOKUNULMADI: kuyruk, kışla rozeti ve geri kalan
+    her yer onu okumaya devam ediyor.                            */
+function saatBicim(ms) {
+  var t = Number(ms);
+  if (!isFinite(t) || t < 0) t = 0;
+  t = Math.ceil(t / 1000);
+  var sa = Math.floor(t / 3600);
+  var dk = Math.floor((t % 3600) / 60);
+  var sn = t % 60;
+  var ik = function (n) { return (n < 10 ? "0" : "") + n; };
+  return ik(sa) + ":" + ik(dk) + ":" + ik(sn);
+}
+
 /* tur: "hastane" (varsayılan) veya "egitim".
    Aynı pencere iki kuyruğu da yönetir — eğitim tarafı eskiden
    düğmeye her basışta sessizce TEK eşya harcıyordu; 74 dakikalık
@@ -6825,7 +6882,8 @@ function hizlandirmaPenceresi(unitId, tur) {
               <button class="hsm-card-item${i === 0 ? " is-active" : ""}" data-i="${i}" type="button">
                 ${x.gorsel
                   ? `<img class="hsm-ci-img" src="${x.gorsel}" alt="">`
-                  : `<span class="hsm-ci-top">${x.etiket}</span><span class="hsm-ci-icon">⏩</span>`}
+                  : `<span class="hsm-ci-icon">⏩</span>`}
+                <span class="hsm-ci-top">${x.etiket}</span>
                 <span class="hsm-ci-count">${x.adet}</span>
               </button>`).join("")}
           </div>
@@ -6840,6 +6898,8 @@ function hizlandirmaPenceresi(unitId, tur) {
             <button class="hsm-step hsm-plus" type="button">+</button>
             <input class="hsm-qty" type="number" inputmode="numeric" min="1" value="1">
           </div>
+
+          <div class="hsm-total">Hızlandırma Süresi<b id="hsmTotal">00:00:00</b></div>
 `}
 
       <div class="hsm-actions">
@@ -6863,10 +6923,20 @@ function hizlandirmaPenceresi(unitId, tur) {
 
   const q = sel => kok.querySelector(sel);
 
-  /* Kabuk — gövde sureBicim'e devredildi. */
+  /*  Bu pencerede süre HEP saat biçiminde yazılır (00:01:32).
+      Hem kalan süre çubuğu hem "Hızlandırma Süresi" satırı buradan
+      geçer, ikisi ayrışamaz.                                     */
   function sureYaz(ms) {
-    return sureBicim(ms);
+    return saatBicim(ms);
   }
+
+  /*  SÜRGÜ TOPUNUN YARI GENİŞLİĞİ — TEK YER.
+      Konumlar piksel yazılıyor (yüzdeyle yazınca tutamak kendi
+      genişliği kadar rayın dışına taşıyordu) ve aynı sayı İKİ
+      yerde kullanılıyor: çizim (tazele) ve dokunma (oranOku).
+      Ayrı ayrı yazılırsa tutamak parmağın altından kaçar.
+      CSS'teki .hsm-thumb genişliğinin yarısı olmalı.            */
+  const SURGU_YARI = 9;
 
   /*  Partinin TOPLAM süresi — çubuğun doluluğu buna göre hesaplanır.
       Adet × birim süre; hastanede iyileşme, eğitim süresinin 5'te 1'i.
@@ -6907,10 +6977,15 @@ function hizlandirmaPenceresi(unitId, tur) {
 
     if (!liste.length) return;
 
-    /* Üst sınır sadece elindeki adet. Kalan süreyi aşan kısım boşa
-       gider — bilerek: oyuncu 24 saniye için 5 dakikalık kullanmak
-       isteyebilir, beklemeye zorlanmamalı. */
-    const enFazla = Math.max(1, liste[secili].adet);
+    /* ── ÜST SINIR: ELİNDEKİ ADET **VE** İŞİ BİTİRMEYE YETEN ADET ──
+       Eskiden yalnız envantere bakıyordu: 2 dakikalık kuyrukta
+       8 tane 1 saatlik hızlandırma seçilebiliyordu ve fazlası
+       karşılıksız yanıyordu.
+       Tavan ceil() ile hesaplanır, yani SON parçanın taşması hâlâ
+       serbest — 24 saniye kalmışken 5 dakikalık kullanmak yasak
+       değil; yasaklanan, gereğinden fazlasını ÜST ÜSTE yığmak. */
+    const gerekli  = Math.max(1, Math.ceil(kalan / liste[secili].ms));
+    const enFazla  = Math.max(1, Math.min(liste[secili].adet, gerekli));
 
     if (adet > enFazla) adet = enFazla;
     if (adet < 1) adet = 1;
@@ -6918,12 +6993,12 @@ function hizlandirmaPenceresi(unitId, tur) {
     kok.dataset.enfazla = enFazla;
     const oran = enFazla > 1 ? (adet - 1) / (enFazla - 1) : 0;
 
-    /* Konumlar PİKSEL olarak yazılıyor. Yüzdeyle yazınca top,
-       kendi yarıçapı kadar rayın dışına taşıyordu. */
+    /* Konumlar PİKSEL olarak yazılıyor. Yüzdeyle yazınca tutamak,
+       kendi yarı genişliği kadar rayın dışına taşıyordu. */
     const ray = q(".hsm-slider");
     if (ray) {
       const w = ray.clientWidth;
-      const R = 11;                       /* topun yarıçapı */
+      const R = SURGU_YARI;
       const kullanilir = Math.max(0, w - R * 2);
       const px = R + oran * kullanilir;
       const fill = q(".hsm-fill"), thumb = q(".hsm-thumb");
@@ -6931,16 +7006,25 @@ function hizlandirmaPenceresi(unitId, tur) {
       if (thumb) thumb.style.left = px + "px";
     }
 
+    /* Sınıra dayanınca düğme SÖNÜK olur. Tavan artık kalan süreye
+       bağlı olduğu için oyuncu "+ neden bir şey yapmıyor" demesin. */
+    const mnEl = q(".hsm-minus"), plEl = q(".hsm-plus");
+    if (mnEl) mnEl.disabled = (adet <= 1);
+    if (plEl) plEl.disabled = (adet >= enFazla);
+
     const qtyEl = q(".hsm-qty");
     if (qtyEl) {
+      qtyEl.max = String(enFazla);
       if (document.activeElement !== qtyEl) qtyEl.value = String(adet);
       /* Kutu rakam kadar genişler. box-sizing:content-box olduğu
          için bu genişlik SADECE rakamın yeridir; iç boşluk ayrıca
          eklenir, rakam kırpılmaz. */
       qtyEl.style.width = String(qtyEl.value || "1").length + "ch";
     }
-    /* "Hızlandırma Süresi" satırı kaldırıldı; öğe varsa yine yazılır,
-       yoksa sessizce geçilir (hesap aynen çalışmaya devam eder). */
+    /* "Hızlandırma Süresi": seçili kartın süresi × adet.
+       Satır bir ara HTML'den silinmişti, bu hesap da yıllarca boşa
+       çalıştı (öğe yoksa sessizce geçiliyor). Geri kondu — oyuncu
+       KULLAN'a basmadan ne kadar kısaltacağını görmeli. */
     const topEl = q("#hsmTotal");
     if (topEl) topEl.textContent = sureYaz(adet * liste[secili].ms);
   }
@@ -6957,12 +7041,12 @@ function hizlandirmaPenceresi(unitId, tur) {
   });
 
   /* ── SÜRGÜ ──
-     Rayın HERHANGİ bir yerinden tutulup sürüklenebilir; oran, topun
-     yarıçapı kadar içeriden başlayan kullanılabilir alana göre
-     hesaplanır, böylece top uçlarda dışarı taşmaz. */
+     Rayın HERHANGİ bir yerinden tutulup sürüklenebilir; oran,
+     tutamağın yarı genişliği kadar içeriden başlayan kullanılabilir
+     alana göre hesaplanır, böylece tutamak uçlarda dışarı taşmaz. */
   const rayEl = q(".hsm-slider");
   if (rayEl) {
-    const R = 11;
+    const R = SURGU_YARI;
     let aktifId = null;
 
     const oranOku = clientX => {

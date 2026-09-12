@@ -178,6 +178,64 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **HIZLANDIRMA PENCERESİ ELDEN GEÇİRİLDİ** (`index.html`
+  `hizlandirmaPenceresi` + `tema.js temaHizlandirSade`).
+  Serdar başka bir oyundan referans getirdi; sekiz ayrı şikâyetin
+  her biri ayrı bir kökten geliyordu:
+
+  1. **Kutucukta süre yazmıyordu.** Şablon `x.gorsel ? img :
+     etiket + ikon` diye kuruluydu — mağaza görseli OLAN
+     hızlandırmalarda "5 dk" etiketi hiç basılmıyordu, üstelik
+     `tema.js` görseli `inset:0` ile kutuya yayıyordu. Etiket artık
+     HER ZAMAN basılıyor, kutunun üstünde, altında koyu perdeyle
+     (açık renkli görselde yazı kayboluyordu).
+  2. **Barda "1dk 58sn" yazıyordu.** `sureBicim` harfli ve değişken
+     genişlikte. Yeni `saatBicim(ms)` → **`00:01:32`**, her alan iki
+     hane; `tabular-nums` ile rakam değişirken yazı kıpırdamıyor.
+     `sureBicim`e DOKUNULMADI — kuyruk ve kışla rozeti onu okumaya
+     devam ediyor.
+  3. **Bar kabaydı:** 28px/köşe 9 → **22px/köşe 11**, uçları tam
+     yuvarlak, yazı 15px/900 → 13,5px/800.
+  4. **SINIRSIZ SEÇİM — asıl hata.** `enFazla` yalnız envantere
+     bakıyordu: 2 dakikalık kuyrukta 8 tane 1 saatlik seçilebiliyor
+     ve fazlası karşılıksız yanıyordu. Artık
+     `min(envanter, ceil(kalan / birim))`. Tavan `ceil` olduğu için
+     SON parçanın taşması hâlâ serbest (24 sn kalmışken 5 dakikalık
+     kullanmak yasak değil); yasaklanan üst üste yığmak.
+     Sınıra dayanınca −/+ sönüyor.
+  5. **"Hızlandırma Süresi" satırı geri geldi.** `#hsmTotal` bir ara
+     HTML'den silinmiş, `tazele()` içindeki hesap ise kalmıştı —
+     öğe bulunamadığı için sessizce boşa çalışıyordu.
+  6. **−/+ kutuları:** 36×32 sarı dikdörtgen → **30px daire**, düz
+     renk, sürgüye yer açıldı.
+  7. **Sürgü topu kalktı:** yuvarlak top yerine referanstaki gibi
+     **dikey yivli kulp** (18×24, köşe 6, iki yiv `::before/::after`).
+  8. **Düğmeler inceldi:** `min-height` 40 / hızlı kullan 36,
+     dolgu ve harf aralığı düşürüldü.
+
+  **TEK KAYNAK — SURGU_YARI:** tutamağın yarı genişliği (9) iki
+  yerde kullanılıyor, çizim (`tazele`) ve dokunma (`oranOku`).
+  Eskiden ikisinde de elle `11` yazılıydı; biri değişip diğeri
+  unutulursa tutamak parmağın altından kaçar. Artık tek `const`,
+  ve CSS'teki `.hsm-thumb` genişliğinin yarısı olmalı.
+
+  **EZME DEĞİL, SİLME (Tuzak 38):** bu pencerenin CSS'i İKİ yerde —
+  `index.html` tabanı ve `tema.js`in `!important`li ezmesi. Yeni
+  ölçüler tabana yazıldı, `tema.js`te artık çelişen kurallar
+  (bar yüksekliği/yazısı, `hsm-step` gölgesi, `hsm-btn` dolgusu,
+  `hsm-finish`/`hsm-use`/`hsm-quick` punto ezmeleri) **silindi**.
+  `tema.js`te yalnız konum/çerçeve işi kaldı. Üçüncü katman
+  açılmadı.
+
+  Ölçüldü (412px, 2×): kart 66×66 · etiket görünür ("1 dk") ·
+  bar 22px · −/+ 30×30 · tutamak 18×24 ve **ray içinde** ·
+  BİTİR/KULLAN 156×44 · HIZLI KULLAN 320×36 · kartlar yatayda
+  taşmıyor (320/320) · sayfa yatay kaydırması yok (412).
+  `index.html`in dört satır içi JS bloğu ayrı ayrı `node --check`
+  edildi (dördü de geçti; kalan dokuz blok `type="text/plain"` 3B
+  verisi, belgedeki 13 sayısı bunlarla birlikte).
+  Fonksiyon adları karşılaştırıldı: tek fark eklenen `saatBicim`.
+
 - **"GÜÇ +N" ŞERİDİ: TEK ŞERİT, TEK HİZA + PARLAMA** (`gucefekt.js`,
   `gucefekt-1` → **`gucefekt-2`**).
 
