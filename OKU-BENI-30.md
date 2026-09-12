@@ -178,6 +178,29 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **KALELER ARASI 1 KARO BOŞLUK** — `koordinat.js` `KALE_BOSLUK = 1`.
+  Kaleler 2×2. Eskiden bitişik durabiliyorlardı; artık aralarında
+  en az bir karo boş kalıyor.
+
+  **TEK KAYNAK:** sayı yalnız `koordinat.js`te. `kaleCakisirMi`
+  boşluk parametresi VERİLMEDEN çağrılınca kuralı kendisi uygular.
+  İki yerleştirme sınavı da artık boşluksuz çağırıyor:
+  `kale2x2.js` `bosMu` ve `index.html` `kaleKonabilirMi` —
+  ikisi de eskiden elle `0` geçiyordu. Elle sayı yazılırsa biri
+  güncellenip diğeri unutulduğunda kale bir yoldan konabilip
+  başka yoldan konamaz hâle gelir.
+
+  Ölçüldü (kale sol üst (10,10), komşu sağa kayıyor):
+  dx 0/1/2 **DOLU** · dx 3/4 **boş** — yani bitişik (dx=2) artık
+  yasak, bir karo boşluklu (dx=3) serbest. `kale2x2.bosMu` beş
+  denemede de aynı cevabı verdi. `koordinat.js` sınavına üç yeni
+  madde eklendi (bitişik dolu · 1 karo boşluklu serbest · dikeyde
+  de aynı); 25/26 geçiyor, kalan tek madde harness'ta harita.js
+  yüklü olmadığı için.
+
+  NOT: kural YENİ yerleştirmelere ve taşımalara işler. Hâlihazırda
+  bitişik duran kaleler yerinden oynatılmaz.
+
 - **KALE HİZASI: beş seviye de yeniden yazıldı** (`?kaleayar=1` özeti).
 
   | | eski | yeni |

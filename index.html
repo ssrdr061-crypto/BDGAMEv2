@@ -8197,13 +8197,15 @@ function setupMapPanning() {
       if (d && K.kaleKaplarMi(s.kx, s.ky, d.kx, d.ky)) return false;
     }
 
-    /* Başka oyuncuların kaleleri — 2×2 ile 2×2. Bitişik durabilirler,
-       tek karo bile iç içe geçerlerse dolu sayılır. */
+    /* Başka oyuncuların kaleleri — 2×2 ile 2×2. Aralarında en az
+       KALE_BOSLUK kadar karo boş kalmalı (koordinat.js); sayı burada
+       YAZILMAZ, kaleCakisirMi boşluksuz çağrılınca kuralı kendi
+       uygular. Eskiden 0 geçiliyordu ve kaleler bitişebiliyordu. */
     try {
       const liste = otherCastles || [];
       for (let i = 0; i < liste.length; i++) {
         const k = K.kaleKaro(liste[i] && liste[i].castle);
-        if (k && K.kaleCakisirMi(s.kx, s.ky, k.kx, k.ky, 0)) return false;
+        if (k && K.kaleCakisirMi(s.kx, s.ky, k.kx, k.ky)) return false;
       }
     } catch(e){}
 

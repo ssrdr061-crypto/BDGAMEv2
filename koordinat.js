@@ -175,6 +175,16 @@ function kaleKayit(kx, ky) {
    ═══════════════════════════════════════════════════════════ */
 const KALE_BOY = 2;
 
+/* ── KALELER ARASI ZORUNLU BOŞLUK ──────────────────────────────
+   İki kale arasında en az bu kadar karo BOŞ kalır. 0 = bitişik
+   durabilirler (eski davranış), 1 = aralarında bir karo boşluk.
+
+   TEK KAYNAK: yerleştirme sınavı yapan her yer (kale2x2.js bosMu,
+   index.html kaleKonabilirMi) bu sayıyı okur. Elle 0/1 yazılmaz,
+   yoksa biri güncellenip diğeri unutulduğunda kale bir yolda
+   konabilip başka yolda konamaz hâle gelir.                     */
+const KALE_BOSLUK = 1;
+
 function kaleBoy() { return KALE_BOY; }
 
 /* Sol üst karoyu ızgaraya oturt: kale ızgaranın dışına TAŞMASIN.
@@ -226,7 +236,8 @@ function kaleKaplarMi(kaleKx, kaleKy, kx, ky) {
    tek noktaya bakıyordu, 2×2'de yanlış cevap verir. */
 function kaleCakisirMi(aKx, aKy, bKx, bKy, bosluk) {
   const a = kaleSolUst(aKx, aKy), b = kaleSolUst(bKx, bKy);
-  const p = (typeof bosluk === "number" ? bosluk : 0);
+  /* Boşluk verilmezse oyunun kuralı (KALE_BOSLUK) geçerlidir. */
+  const p = (typeof bosluk === "number" ? bosluk : KALE_BOSLUK);
   return Math.abs(a.kx - b.kx) < KALE_BOY + p &&
          Math.abs(a.ky - b.ky) < KALE_BOY + p;
 }
@@ -329,9 +340,14 @@ function dogrula() {
     const kenar = kaleSolUst(karoSayisi() + 5, karoSayisi() + 5);
     ekle("kale kenardan taşmıyor", karoSayisi() - KALE_BOY, kenar.kx);
 
-    /* Bitişik iki kale çakışmaz, bir karo iç içe olan çakışır. */
-    ekle("bitişik kaleler serbest", 0, kaleCakisirMi(10, 10, 12, 10, 0) ? 1 : 0);
-    ekle("iç içe kaleler dolu",     1, kaleCakisirMi(10, 10, 11, 10, 0) ? 1 : 0);
+    /* boşluk 0 verilirse: bitişik serbest, bir karo iç içe dolu. */
+    ekle("bitişik kaleler serbest (boşluk 0)", 0, kaleCakisirMi(10, 10, 12, 10, 0) ? 1 : 0);
+    ekle("iç içe kaleler dolu",                1, kaleCakisirMi(10, 10, 11, 10, 0) ? 1 : 0);
+    /* Oyunun kuralı KALE_BOSLUK=1: bitişik ARTIK dolu, bir karo
+       boşluklu serbest. Boşluk verilmeden çağrıldığında da aynı. */
+    ekle("bitişik kaleler dolu (kural)",  1, kaleCakisirMi(10, 10, 12, 10) ? 1 : 0);
+    ekle("1 karo boşluklu serbest",       0, kaleCakisirMi(10, 10, 13, 10) ? 1 : 0);
+    ekle("dikeyde de aynı",               1, kaleCakisirMi(10, 10, 10, 12) ? 1 : 0);
     ekle("kale kendi karosunu kapsar", 1, kaleKaplarMi(10, 10, 11, 11) ? 1 : 0);
     ekle("kale dışı karo kapsanmaz",   0, kaleKaplarMi(10, 10, 12, 11) ? 1 : 0);
   } catch (e) {}
@@ -433,6 +449,7 @@ window.KOORD = {
   kaleSolUst: kaleSolUst, kaleKarolari: kaleKarolari,
   kaleMerkez: kaleMerkez, kaleMerkezOlcek: kaleMerkezOlcek,
   kaleKaplarMi: kaleKaplarMi, kaleCakisirMi: kaleCakisirMi,
+  KALE_BOSLUK: KALE_BOSLUK,
   kaleKaroylaCakisirMi: kaleKaroylaCakisirMi,
   /* teşhis */
   dogrula: dogrula, tani: tani,

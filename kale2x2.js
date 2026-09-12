@@ -110,7 +110,8 @@
       const t = liste[i];
       if (typeof t.kx !== "number") continue;
       if (t.kale) {
-        if (K().kaleCakisirMi(s.kx, s.ky, t.kx, t.ky, 0)) return false;
+        /* Boşluk YAZILMAZ: oyunun kuralı koordinat.js KALE_BOSLUK'ta. */
+        if (K().kaleCakisirMi(s.kx, s.ky, t.kx, t.ky)) return false;
       } else {
         if (K().kaleKaplarMi(s.kx, s.ky, t.kx, t.ky)) return false;
       }
