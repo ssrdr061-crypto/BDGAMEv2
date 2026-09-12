@@ -178,6 +178,37 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **BOZGUN EŞİĞİ YENİ MOTORDA AÇILDI** (`CFG.yeniBozgun`, `yeniRoutDenk`,
+  `yeniRoutZayif`). Önceki durumda kaybeden ordu son askerine kadar
+  sahada eriyordu: "HAYATTA KALANLAR" satırı hep 0 çıkıyor ve umutsuz
+  saldırının bedeli, fark ne olursa olsun sabit **%30** oluyordu.
+  Ordu artık savaşa giren sayısının belli bir oranına düşünce dağılır,
+  kalanlar sağ döner. Eşik güç oranına göre kayar: denk savaşta %25
+  kalınca, umutsuz savaşta %40 kalınca.
+
+  ÖLÇÜM — Serdar'ın gerçek savaşı, 117.900 asker → 20,1M (7 savaş ort.):
+
+  | ayar | kalıcı kayıp | %ordu | sağ dönen | rakipten düşen |
+  |---|---|---|---|---|
+  | kapalı (önceki) | 35.370 | 30,0% | 0 | 2.426 |
+  | z=0,35 | 17.099 | 14,5% | ~41.000 | 2.273 |
+  | **z=0,40 (seçilen)** | **15.010** | **12,7%** | **47.118** | **2.189** |
+  | z=0,45 | 13.051 | 11,1% | ~53.000 | 2.131 |
+
+  **Kendi kaybın yarıya inerken verdiğin hasar yalnız %10 azalıyor.**
+  Sebebi TEMAS SINIRI: ordu 50.000'in üstünde kaldığı sürece tam güçle
+  vuruyor, bozgun oraya inmeden savaşı bitiriyor. Kalite/sayı dengesi
+  de bozulmadı: 100.000 elit hâlâ 27,8 kat kalabalığı yeniyor (önce 26,9).
+
+  Diğer senaryolar (z=0,40): denk savaş %16,4 · kıl payı kayıp %16,0 ·
+  500 asker → 20,1M %12,8. Hepsi Serdar'ın istediği %10-20 aralığında.
+
+  **TERS ETKİSİ — bilerek kabul edildi:** bozgun İKİ TARAFA da işler.
+  Ezici kazandığın savaşta rakip de erken dağılır, ondan düşürdüğün
+  asker azalır (12.000 → 5.200). Yani kırım yaparak farm etmek zorlaştı.
+
+  Geri almak için: `CFG.yeniBozgun = false`. Tek satır.
+
 - **DOĞRULANDI: birlik statları İSTATİSTİKLER yüzdelerine işlemiyor.**
   Şüphe edilmişti. `statKarsiHTML` yüzdeyi
   `Σ(savaştaki stat × sayı) / Σ(ham taban × sayı) − 1` ile buluyor;

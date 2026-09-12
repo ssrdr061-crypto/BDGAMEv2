@@ -83,6 +83,40 @@ const CFG = {
      İkisini eşitlersen (0.70 → 0.25) eski davranışa döner.        */
   routPctZayif:   0.70,
 
+  /* ── YENİ MOTORDA BOZGUN ──────────────────────────────────────
+     yeniBozgun=false iken bozgun eşiği yoktur: kaybeden ordu son
+     askerine kadar sahada erir, "HAYATTA KALANLAR" hep 0 çıkar ve
+     umutsuz saldırının bedeli sabit ~%30 olur (ölçüldü: 122.900
+     askerin 36.869'u kalıcı gitti). Serdar'ın istediği: bu bedelin
+     %10-20 arasında kalması.
+
+     yeniBozgun=true iken ordu, savaşa giren sayısının şu oranına
+     düşünce dağılır ve kalanlar sağ döner:
+
+       güç oranı 1.00 (denk)     → yeniRoutDenk
+       güç oranı  ~0  (umutsuz)  → yeniRoutZayif
+
+     Kalıcı kayıp ≈ düşen oranı × (1 − hafif payı). Eşik ne kadar
+     yüksekse ordu o kadar erken çekilir, bedel o kadar düşer —
+     ÖLÇÜLDÜ (117.900 asker → 20,1M, 7 savaşın ortalaması):
+
+       ayar      kalıcı kayıp   %ordu   rakipten düşen
+       kapalı         35.370    30,0%            2.426
+       z=0,40         15.010    12,7%            2.189
+       z=0,45         13.051    11,1%            2.131
+
+     Kendi kaybın yarıya inerken verdiğin hasar yalnız %10 azalıyor.
+     Sebebi TEMAS SINIRI: ordu 50.000'in üstünde kaldığı sürece tam
+     güçle vuruyor, bozgun oraya inmeden önce savaşı bitiriyor.
+     Kalite/sayı dengesi de bozulmuyor (26,9 kat → 27,8 kat).
+
+     TERS ETKİSİ: ezici kazandığın savaşta rakip de erken dağılır,
+     yani ondan düşürdüğün asker azalır (12.000 → 5.200). Bozgun
+     iki tarafa da işler.                                         */
+  yeniBozgun:     true,
+  yeniRoutDenk:   0.25,
+  yeniRoutZayif:  0.40,
+
   /* ══ YENİ SAVAŞ MOTORU (PARÇA 2) ══════════════════════════════
      savas2.js'te Serdar'ın gerçek Whiteout raporlarıyla ÖLÇÜLEREK
      doğrulanan model. Üç mekanizma birlikte çalışır:
@@ -2027,9 +2061,11 @@ function pvpSimulate(attackerTroops, attackerHero, defender) {
         dönüyor. İki yumuşatma üst üste binerse savaş hiç sonuçlanmaz.
         Gerçek Whiteout raporunda da savunanın "Savaşçı"sı 0'dı —
         yani bozguna uğrayıp çekilmemiş, tamamı temas etmişti. */
-    if (CFG.yeniMotor) return 0;
+    if (CFG.yeniMotor && !CFG.yeniBozgun) return 0;
+    const denk  = CFG.yeniMotor ? CFG.yeniRoutDenk  : CFG.routPct;
+    const zayif = CFG.yeniMotor ? CFG.yeniRoutZayif : CFG.routPctZayif;
     const oran = Math.min(1, orduGucu(a) / orduGucu(rakip));
-    const pct  = CFG.routPct + (1 - oran) * (CFG.routPctZayif - CFG.routPct);
+    const pct  = denk + (1 - oran) * (zayif - denk);
     return Math.floor(bas * pct);
   }
   /* Bozgun: toplam birlik tabana indiyse YA DA savaşacak (pasifleşmemiş)
