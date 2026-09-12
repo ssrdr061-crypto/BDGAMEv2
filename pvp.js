@@ -128,7 +128,14 @@ const CFG = {
      düşer. Sayılar tasarım tercihidir (Whiteout'un eğrisi dört
      rapordan çözülemedi), oyunda denenip buradan ayarlanır. */
   hafifTavan: 0.92,   /* ezici kazanırken düşenlerin bu kadarı bedava döner */
-  hafifTaban: 0.45,   /* ordun tamamen dağılırken bile bu kadarı döner      */
+  /*  0,45 -> 0,70 (Serdar'ın gerçek savaşından sonra düzeltildi).
+      Bozgun eşiğini kaldırınca yumuşatma tamamen bu sayıya kaldı;
+      0,45 ile umutsuz saldırı ESKİSİNDEN pahalı hale gelmişti:
+      74.035 askerle 20 milyona saldırıda kalıcı kayıp 40.719 çıktı,
+      eski bozgun eşiğiyle (%70 sağ kalır) ~22.210 olurdu. 0,70 ikisini
+      eşitler; kazanılan savaşlarda hiçbir şey değişmez, çünkü orada
+      hafifTavan geçerli. */
+  hafifTaban: 0.70,   /* ordun tamamen dağılırken bile bu kadarı döner      */
 
   /* ── SAVUNMA MODELİ ───────────────────────────────────────────
      "toplam" = eski davranış: emilim savunanın TOPLAM savunmasıdır.
@@ -2435,11 +2442,13 @@ async function runPvpBattle() {
     myCommanders: myCommanders,
     enemyCommanders: enemyCommanders,
     statlar: R.statlar || null,
-    myLosses: { killed: myKilled, wounded: myWounded },
+    /* hafif: bedava dönenler. Ordudan düşülmez, yalnız raporun
+       dördüncü satırında gösterilir. */
+    myLosses: { killed: myKilled, wounded: myWounded, hafif: R.attacker.hafif || {} },
     myAttribution: R.attackerAttribution || null,
     enemyAttribution: R.defenderAttribution || null,
     heroFx: R.heroFx || null,
-    enemyLosses: { killed: R.defender.killed, wounded: R.defender.wounded },
+    enemyLosses: { killed: R.defender.killed, wounded: R.defender.wounded, hafif: R.defender.hafif || {} },
     usedTroops: Object.assign({}, sel),
     enemyTroops: Object.assign({}, enemy.realTroops || enemy.troops || {}),
   });

@@ -1113,7 +1113,8 @@ function ozetHTML(r) {
   /*  Toplamlar artık sabit üçlüyle değil, kayıtta GEÇEN her kimlikle
       hesaplanır — Sv2+ birlikler eskiden hiç sayılmıyordu, bu yüzden
       "BİRLİKLER 0" ve "ÖLEN 0" görünüyordu.                        */
-  const sira = rpBirlikIdleri([AT, DT, AL.killed, AL.wounded, DL.killed, DL.wounded]);
+  const sira = rpBirlikIdleri([AT, DT, AL.killed, AL.wounded, AL.hafif,
+                               DL.killed, DL.wounded, DL.hafif]);
 
   const toplam = (o) => sira.reduce((s, u) => s + ((o && o[u]) || 0), 0);
   const kayip  = (L, k) => sira.reduce((s, u) => s + ((L && L[k] && L[k][u]) || 0), 0);
@@ -1123,14 +1124,24 @@ function ozetHTML(r) {
 
   const aOlen = kayip(AL, "killed"),  dOlen = kayip(DL, "killed");
   const aYar  = kayip(AL, "wounded"), dYar  = kayip(DL, "wounded");
-  const kalan = (giden, olen, yar) => Math.max(0, giden - olen - yar);
+  /*  HAFİF YARALI — savaşta düşen ama BEDAVA geri dönen asker.
+      Hastaneye gitmez, güç kaybı saymaz, ordudan düşülmez. Yeni savaş
+      motoruyla geldi (pvp.js CFG.hafifTaban/hafifTavan). Eski
+      kayıtlarda bu alan yoktur: 0 çıkar ve satır çizilmez, böylece
+      geçmiş raporlar aynen görünmeye devam eder. */
+  const aHaf  = kayip(AL, "hafif"),   dHaf  = kayip(DL, "hafif");
+  const hafifVar = (aHaf + dHaf) > 0;
+  const kalan = (giden, olen, yar, haf) => Math.max(0, giden - olen - yar - haf);
 
   const SATIR = [
     { tip: "",       ad: "BİRLİKLER",        sol: aGiden, sag: dGiden },
     { tip: "olen",   ad: "ÖLEN",             sol: aOlen,  sag: dOlen },
     { tip: "yarali", ad: "YARALANAN",        sol: aYar,   sag: dYar },
-    { tip: "",       ad: "HAYATTA KALANLAR", sol: kalan(aGiden, aOlen, aYar), sag: kalan(dGiden, dOlen, dYar) },
   ];
+  if (hafifVar) SATIR.push({ tip: "", ad: "HAFİF YARALI", sol: aHaf, sag: dHaf });
+  SATIR.push({ tip: "", ad: "HAYATTA KALANLAR",
+               sol: kalan(aGiden, aOlen, aYar, aHaf),
+               sag: kalan(dGiden, dOlen, dYar, dHaf) });
 
   return `<div class="rp-ozet">` + SATIR.map(s => `
       <div class="rp-krs-satir">

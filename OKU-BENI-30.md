@@ -194,7 +194,15 @@ Kaçış: `?egitimkapat=1`.
      orduya bedava döner (hastane yok, güç kaybı yok). Pay savaşın
      çekişmesine göre %92 → %45. Bozgun eşiği ve tip tabanı yeni
      motorda KAPALI — yumuşatmayı artık bu pay yapıyor.
+  **Rapor artık BEŞ satır**: BİRLİKLER · ÖLEN · YARALANAN ·
+  **HAFİF YARALI** · HAYATTA KALANLAR. Hafif satırı yalnız değer
+  varsa çizilir, eski raporlar aynen görünür (`tema.js ozetHTML`).
   ÖLÇÜM — kalitenin yenebildiği sayı farkı: **2,5 kat → 26,8 kat**.
+  `hafifTaban` 0,45 → **0,70** (canlı savaştan sonra düzeltildi):
+  0,45 ile umutsuz saldırı ESKİSİNDEN pahalı çıkıyordu — 74.035
+  askerle 20 milyona saldırıda kalıcı kayıp 40.719 oldu, eski bozgun
+  eşiğiyle ~22.210 olurdu. 0,70 ikisini eşitler; kazanılan savaşlar
+  etkilenmez (orada `hafifTavan` geçerli).
   Saldırmanın bedeli: 2M→1M savaşında kalıcı kayıp 537.788 → 201.138.
   Savaş süresi 20–83 ms (telefonda sorun değil).
 
