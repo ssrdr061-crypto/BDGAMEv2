@@ -7338,13 +7338,12 @@ html body #battleMap .map-node.castle-node .node-label[data-sv="1"]{
 html body #battleMap .map-node.castle-node .node-label[data-sv="4"]{
   transform:translate(0px, -19px) scale(var(--et-k, 1));
 }
+/* Sv5: yalnız kayma farklı. Genişlik/dolgu/görsel boşluğu ORTAK
+   kuralla aynı olduğu için tekrar yazılmıyor — eskiden 400px/30px
+   ve -47px yazılıydı, panelde ölçülen set onları ortak değere
+   geri getirdi. Panel: yatay 6 · dikey -129 (taban 61 → -68px). */
 html body #battleMap .map-node.castle-node .node-label[data-sv="5"]{
-  max-width:400px;
-  padding:0 30px;
-  transform:translate(0px, -34px) scale(var(--et-k, 1));
-}
-html body #battleMap .map-node.castle-node .node-label[data-sv="5"]::before{
-  margin-right:-47px;
+  transform:translate(6px, -68px) scale(var(--et-k, 1));
 }
 `;
 document.head.appendChild(st);
@@ -7419,8 +7418,7 @@ var KALE_VARSAYILAN = {
     Sayılar kaleEtiketi bloğundan BİREBİR okundu:
       Sv1  translate(0, -2)   → kDy = -2 - 61 = -63
       Sv4  translate(0, -19)  → kDy = -19 - 61 = -80
-      Sv5  translate(0, -34)  → kDy = -34 - 61 = -95
-           max-width 400 · padding 0 30 · ::before margin-right -47
+      Sv5  translate(6, -68)  → kDx = 6 · kDy = -68 - 61 = -129
     Sv2 ve Sv3 ortak kuralda, farkları yok.
 
     Buradaki bir sayı değişirse kaleEtiketi bloğundaki EŞİ de
@@ -7428,7 +7426,7 @@ var KALE_VARSAYILAN = {
 var KALE_SEVIYE_FARKI = {
   1: { kDy: -63 },
   4: { kDy: -80 },
-  5: { kDy: -95, kGenis: 400, kDolguY: 30, kGX: -47 }
+  5: { kDy: -129, kDx: 6 }
 };
 
 /* DÜĞÜM — çarpanların 100 katı. Hepsi r (düğüm yarıçapı)
@@ -7517,7 +7515,11 @@ pstil.textContent =
  "font-size:15px;line-height:34px;text-align:center;font-weight:800;" +
  "box-shadow:0 2px 6px rgba(0,20,45,.3);transition:.09s;}" +
 "#bdET .kapak:active{transform:scale(.96);filter:brightness(.93);}" +
-"#bdET .govde{display:none;width:244px;margin-top:6px;padding:9px 10px 10px;" +
+/*  244 → 290: 244'te satır adları ("En çok genişlik", "Yatay
+    kayma") üç noktaya iniyordu ve iki ayrı satır birden "Yat..."
+    görünüyordu — hangisini sürdüğün belli olmuyordu. */
+"#bdET .govde{display:none;box-sizing:border-box;width:290px;" +
+ "max-width:calc(100vw - 16px);margin-top:6px;padding:9px 10px 10px;" +
  "border-radius:12px;background:linear-gradient(180deg,#22488f,#152e5e);" +
  "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
 "#bdET.acik .govde{display:block;}" +
@@ -7538,11 +7540,20 @@ pstil.textContent =
 /* Yalnız seçili bölümün satırları görünür — kaydırma yok. */
 "#bdET .grup{display:none;}" +
 "#bdET .grup.acik{display:block;}" +
-"#bdET .sat{display:flex;align-items:center;gap:7px;margin:4px 0;}" +
-"#bdET .ad{font:700 11px/1 'Baloo 2',system-ui,sans-serif;flex:1;" +
+/*  TAŞMA: .ad'de flex:1 + nowrap vardı; uzun etiket ("En çok
+    genişlik") satırı gövdeden geniş yapıyor, sayı kutusu ekranın
+    dışına taşıyordu — panelde değeri okuyamıyordun.
+    min-width:0 olmadan flex çocuğu içeriğinin altına inmez. */
+"#bdET .sat{display:flex;align-items:center;gap:6px;margin:4px 0;min-width:0;}" +
+"#bdET .ad{font:700 11px/1 'Baloo 2',system-ui,sans-serif;flex:1 1 0;" +
+ "min-width:0;overflow:hidden;text-overflow:ellipsis;" +
  "white-space:nowrap;color:#e8f4ff;}" +
 "#bdET input[type=range]{-webkit-appearance:none;appearance:none;" +
- "flex:0 0 88px;height:18px;background:transparent;margin:0;}" +
+/*  min-width:0 ŞART: sürgünün kendi min-content genişliği
+    Chromium'da 129px. Yazılmazsa flex-basis 70px yok sayılır,
+    satır adına yer kalmaz ve ad üç noktaya iner. */
+ "flex:0 0 78px;min-width:0;width:78px;height:18px;" +
+ "background:transparent;margin:0;}" +
 "#bdET input[type=range]::-webkit-slider-runnable-track{height:3px;" +
  "border-radius:2px;background:rgba(255,255,255,.22);}" +
 "#bdET input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;" +
@@ -11078,6 +11089,17 @@ if (document.readyState === "loading") {
 
    İş bitince BU BLOK SİLİNİR.
    ═══════════════════════════════════════════════════════════════════ */
+/*  DENEME KALELERİ tıklanmasın — olmayan bir hesabın savaş paneli
+    açılmasın. Düğüm index.html denemeKaleleriHTML'de üretiliyor,
+    yalnız ?botkale=1 ile. */
+(function botKaleGecirgen(){
+"use strict";
+var st = document.createElement("style");
+st.id = "temaBotKale";
+st.textContent = "html body #battleMap .map-node.bot-kale{pointer-events:none !important;}";
+document.head.appendChild(st);
+})();
+
 (function ayakiziTani(){
 "use strict";
 

@@ -178,6 +178,33 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **DENEME KALELERİ — `?botkale=1`** (`index.html` `denemeKaleleriHTML`).
+  Kendi kalenin ÜSTÜNE iki sıra, sırada Sv1..Sv5 → **10 kale**.
+  Seviye hizası ancak beş seviye aynı anda ekranda dururken
+  ayarlanabiliyordu, oyunda beşini yan yana bulmak şansa kalmıştı.
+  Firebase'e yazılmaz, `otherCastles`'a girmez; `bot-kale` sınıfı
+  taşır ve `pointer-events:none` ile dokunmayı geçirir (olmayan
+  hesabın savaş paneli açılmasın). Aralık 7 karo, sıra arası 9 —
+  Sv5 görseli 252px, daha dar verilirse üst üste biniyor.
+  Izgara sınırı `HARITA.CFG.grid`ten okunur, sayı gömülmedi.
+  **İş bitince blok silinir.** Ölçüldü: parametresiz 0 kale,
+  `?botkale=1` ile 10 kale (1,2,3,4,5 · 1,2,3,4,5), hepsi tıklanamaz.
+
+- **Etiket Sv5 kalıcı yazıldı** (panelde ölçülen set):
+  `translate(6px, -68px)` — panel yatay 6 · dikey -129 (taban 61).
+  Genişlik/dolgu/görsel boşluğu ORTAK kurala döndü; eskiden Sv5'e
+  ayrıca `max-width:400px`, `padding:0 30px`, `margin-right:-47px`
+  yazılıydı, hepsi silindi. `KALE_SEVIYE_FARKI[5]` de `{kDy:-129, kDx:6}`.
+
+- **Etiket panelinde sayı kutusu ekrandan taşıyordu** — değeri
+  okuyamıyordun ("En çok genişlik" kutusu kırpık). Üç sebep:
+  `.ad` `flex:1` + `nowrap` (min-width:0 yoktu), gövde 244px,
+  ve **sürgünün min-content genişliği Chromium'da 129px** —
+  `min-width:0` yazılmadan `flex-basis:78px` yok sayılıyor.
+  Düzeltildi: gövde 290px (`max-width:calc(100vw - 16px)`),
+  `.ad` ellipsis + min-width:0, sürgü `min-width:0;width:78px`.
+  Ölçüldü 412px ve 360px ekranda: kırpılan ad YOK, taşan kutu YOK.
+
 - **AYAR PANELLERİ YAYINDAKİ DEĞERLERLE ÖRTÜŞTÜRÜLDÜ** (iki panel).
 
   **Kale (`?kaleayar=1`):** Serdar'ın panelde ölçtüğü SON set kalıcı

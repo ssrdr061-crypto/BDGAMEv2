@@ -7216,7 +7216,57 @@ function buildCastleNodesHTML() {
       html += castleNodeHTML(c.castle, false, c.name, c.sv, c.kb || 0);
     }
   });
+
+  html += denemeKaleleriHTML();
   return html;
+}
+
+/* ══ DENEME KALELERİ — GEÇİCİ  (?botkale=1) ══════════════════════
+   Adres satırına ?botkale=1 eklenmedikçe HİÇBİR ŞEY yapmaz.
+
+   NİÇİN: kale görselinin ve etiketinin seviye başına hizası
+   (?kaleayar=1 · ?etiket=1) ancak beş seviye AYNI ANDA ekranda
+   dururken ayarlanabiliyor. Oyunda beş seviyeyi yan yana bulmak
+   şansa kalmıştı.
+
+   Kendi kalenin ÜSTÜNE iki sıra, sırada beş kale: Sv1..Sv5.
+   Toplam 10. Karo ızgarasında yukarı = KÜÇÜK y.
+
+   YALNIZ ÇİZİM: bu kaleler Firebase'e yazılmaz, otherCastles'a
+   girmez, kayıt oluşturmaz. `bot-kale` sınıfı taşırlar ve
+   dokunmayı geçirirler (pointer-events:none, tema.js) — tıklanıp
+   olmayan bir hesabın savaş paneli açılmasın.
+
+   İş bitince BU BLOK SİLİNİR.
+   ══════════════════════════════════════════════════════════════ */
+function denemeKaleleriHTML() {
+  try {
+    if (!/[?&]botkale=1(&|$)/.test(location.search)) return "";
+  } catch (e) { return ""; }
+
+  const kk = state.castle && KOORD.kaleKaro(state.castle);
+  if (!kk) return "";
+
+  /* Izgara sınırı harita.js'ten okunur; burada sayı gömülmez. */
+  const KARO = (window.HARITA && HARITA.CFG && HARITA.CFG.grid) || 141;
+  const sinir = (v) => Math.max(2, Math.min(KARO - 4, Math.round(v)));
+
+  /* Aralık kalelerin EN BÜYÜĞÜNE göre: Sv5 görseli 252px, karo
+     genişliğinden çok daha geniş. 7 karo ara verilmezse üst üste
+     biniyor ve hangi etiketi ayarladığın görünmüyor. */
+  const ARA = 7, SIRA_ARA = 9;
+  let out = "";
+  for (let sira = 0; sira < 2; sira++) {
+    for (let i = 0; i < 5; i++) {
+      const sv = i + 1;
+      const kx = sinir(kk.kx - ARA * 2 + i * ARA);
+      const ky = sinir(kk.ky - SIRA_ARA * (sira + 1));
+      const kayit = KOORD.kaleKayit(kx, ky);
+      out += castleNodeHTML(kayit, false, "Deneme Sv" + sv, sv, 0)
+               .replace("castle-node castle-other", "castle-node castle-other bot-kale");
+    }
+  }
+  return out;
 }
 
 /* Son yazılan katmanın imzası. Boş dizgi = henüz hiç yazılmadı. */
