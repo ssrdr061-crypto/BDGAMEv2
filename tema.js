@@ -7321,7 +7321,7 @@ html body #battleMap .map-node.castle-node .node-label[data-sv="4"]::before{ bac
 html body #battleMap .map-node.castle-node .node-label[data-sv="5"]::before{ background-image:url("seviye5.webp"); }
 
 /* ── SEVİYE BAŞINA HİZA ──
-   Kale görselinin ölçüsü seviyeye göre 130px ile 186px arasında değişiyor ve
+   Kale görselinin ölçüsü seviyeye göre 130px ile 252px arasında değişiyor ve
    etiket o görselin ALTINDAN başlayan akışta duruyor; tek kaydırma
    sayısı bu yüzden her seviyede aynı yere düşmüyor. Aşağıdaki
    satırlar yukarıdaki ORTAK kuralın yalnız FARKLI olan alanlarını
@@ -7356,7 +7356,7 @@ document.head.appendChild(st);
    Adres satırına ?etiket=1 eklenmedikçe HİÇBİR ŞEY yapmaz.
 
    NEDEN SEVİYE BAŞINA: kale görselinin ölçüsü seviyeye göre
-   130px ile 186px arasında değişiyor (index.html .castle-node .node-avatar).
+   130px ile 252px arasında değişiyor (index.html .castle-node .node-avatar).
    Etiket o görselin ALTINDAN başlayan akışta durduğu için, tek bir
    kaydırma sayısı Sv1'de doğru olurken Sv4'te kalenin göbeğinde
    kalıyordu. Artık her seviyenin kendi sayıları var.
@@ -8305,7 +8305,7 @@ setTimeout(uygula, 2500);
      aynı olmak zorunda; ayrışırsa panel açılır açılmaz kale
      zıplıyor ve neyi ayarladığın belli olmuyor. */
   var AYAR = { 1:{boy:130,dy:-75,dx:0}, 2:{boy:166,dy:22,dx:0}, 3:{boy:176,dy:0,dx:0},
-               4:{boy:186,dy:-21,dx:-2}, 5:{boy:182,dy:-5,dx:-4} };
+               4:{boy:186,dy:-21,dx:-2}, 5:{boy:252,dy:-42,dx:-14} };
   var aktif = 2;
 
   function svOku(node) {
@@ -9108,8 +9108,8 @@ document.head.appendChild(st);
    yol izlenmişti.
 
    ── ÖLÇÜLER YÜZDEYLE ──
-   Kale kutusu seviyeye göre 130px ile 186px arasında değişir
-   (?kaleayar=1; güncel set: 130 · 166 · 176 · 186 · 182).
+   Kale kutusu seviyeye göre 130px ile 252px arasında değişir
+   (?kaleayar=1; güncel set: 130 · 166 · 176 · 186 · 252).
    Piksel yazılırsa Sv2 kalesi kubbeden taşar.
 
    ── calc İÇİNDE İŞARET ──

@@ -189,7 +189,7 @@ Kaçış: `?egitimkapat=1`.
   | Sv2 | 166px dy22 | aynı |
   | Sv3 | 176px | aynı |
   | Sv4 | 186px dy-21 dx-2 | aynı |
-  | Sv5 | 198px dy-102 dx-2 | **182px dy-5 dx-4** |
+  | Sv5 | 198px dy-102 dx-2 | **252px dy-42 dx-14** |
 
   Panelin kendi `AYAR` tablosu ve üç yorumdaki "güncel set" satırı da
   aynı sayılara çekildi — ayrışırsa panel açılınca kale zıplar.
