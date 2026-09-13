@@ -483,6 +483,63 @@ const DRAG_PX = 12;
   padding-top:10px !important;
 }
 
+/*  ══ MAĞAZA BALONCUĞU — çanta ile AYNI KALIP ═════════════════
+    Ürün kartına dokununca kartın satırının altında açılır.
+    Görünüm çantadaki .inv-pop ile bilerek birebir: iki panelde
+    iki ayrı bilgi penceresi olması istenmedi.
+    Ok, kartın ortasını gösterir; konumu JS'te --ok değişkenine
+    YÜZDE olarak yazılır (mağaza ızgarasında ara başlıklar var,
+    sabit sütun oranı yanlış karta bakardı).
+    (Tuzak 27: bu yorum şablon dizgisinin içinde, ters tırnak yok.) */
+#panel-shop .shop-pop{
+  grid-column:1 / -1 !important;
+  position:relative !important;
+  margin:8px 0 6px !important;
+  padding:12px !important;
+  border-radius:14px !important;
+  background:rgba(233,246,255,.96) !important;
+  color:#123a63 !important;
+  text-align:center !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+}
+#panel-shop .shop-pop-ok{
+  position:absolute !important; top:-7px !important;
+  left:var(--ok, 50%) !important;
+  width:16px !important; height:8px !important;
+  margin-left:-8px !important;
+  background:rgba(233,246,255,.96) !important;
+  clip-path:polygon(50% 0, 100% 100%, 0 100%) !important;
+}
+#panel-shop .shop-pop-ad{
+  color:#0f3a6b !important; font-size:15px !important; font-weight:900 !important;
+  line-height:1.2 !important; margin-bottom:3px !important; text-shadow:none !important;
+}
+#panel-shop .shop-pop-not{
+  color:#2c5b8c !important; font-size:12px !important; font-weight:700 !important;
+  line-height:1.35 !important; text-shadow:none !important;
+}
+#panel-shop .shop-pop-alt{
+  color:#4a7099 !important; font-size:11.5px !important; font-weight:800 !important;
+  margin-top:5px !important; text-shadow:none !important;
+}
+/* Seçili ürün kartı: çantadaki gibi köşe işaretleri. */
+#panel-shop .shop-card2.is-secili::after{
+  content:"" !important; position:absolute !important; inset:0 !important;
+  pointer-events:none !important; z-index:4 !important;
+  background-image:
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff) !important;
+  background-repeat:no-repeat !important;
+  background-size:16px 3px, 3px 16px, 16px 3px, 3px 16px,
+                  16px 3px, 3px 16px, 16px 3px, 3px 16px !important;
+  background-position:
+    left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom !important;
+}
+
 /*  ══ BALONCUK — kutucuğun SATIRININ ALTINDA ══════════════════
     Referans düzen: dokunulan kutucuğun satırının altında açılır,
     satırın tamamını kaplar, ok dokunulan kutucuğu gösterir.

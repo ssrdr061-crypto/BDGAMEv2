@@ -178,6 +178,37 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **MAĞAZA BİLGİ PENCERESİ ÇANTAYLA AYNI KALIBA ALINDI** (`magaza.js`
+  `showShopInfoPopup`, stil `tema.js`).
+  İki panelde iki ayrı bilgi penceresi vardı: çantada satır altı
+  açık baloncuk, mağazada karta göre MUTLAK konumlanan koyu kutu
+  (`.shop-info-pop` + `positionShopPopup`). İkincisi kartın üstüne
+  biniyor, ızgara kayınca kartından ayrı düşüyordu — o yüzden
+  "kaydırınca kapat" diye ayrı bir çare yazılmıştı.
+  Artık mağaza baloncuğu da ızgaranın bir HÜCRESİ (`.shop-pop`,
+  `grid-column:1/-1`): kartın satırının altına girer, kayınca
+  kartıyla birlikte gider. Kaydırınca kapatma **silindi**, gereksiz
+  kaldı. `positionShopPopup` ve ölü `.shop-info-pop` CSS'i de silindi.
+
+  **SATIR GEOMETRİDEN BULUNUR, sütun sayısından DEĞİL:** mağaza
+  ızgarasında ara başlıklar (`.shop-tier-header`) satırın tamamını
+  kaplıyor, "her satırda üç kart" varsayımı kırılır. Aynı
+  `offsetTop`taki son kart aranır. Ok da sabit sütun oranıyla değil,
+  kartın ölçülen ortasından YÜZDE olarak (`--ok`) yazılır.
+
+  Ölçüldü (412×820): baloncuk ızgarayı kaplıyor (340/344) · kartın
+  satırının ALTINDA · ok sapması **0,0 px** · zemin çantadakiyle
+  aynı (`rgba(233,246,255,.96)`) · seçili kartta köşe işaretleri ·
+  sayfa yatay kaydırması yok.
+
+  **Tuzak 27 ÜÇÜNCÜ KEZ ısırdı:** `tema.js`teki şablon dizgisinin
+  içine yazdığım yoruma ters tırnak koydum (`.inv-pop`), dosya
+  çöktü. `node --check` yakaladı. Ayrıca `magaza.js`in enjekte
+  ettiği CSS dizgisinden ölü kuralı silerken yorumu kapatmayı
+  unuttum — dizgiyi ayrıştırıp yorum aç/kapa sayısını saymak
+  yakaladı (6/5). Bu dosyada CSS bir DİZGİ içinde, `node --check`
+  onu görmez.
+
 - **ÇANTA — KUTUCUK ŞERİTLERİ VE BOŞ SEKME.**
   - **Anlamsız "1" rozeti kalktı.** Kök `magaza.js urunRozeti()`in
     son satırıydı: eşleşmeyen her ürüne `return "1"`. Bonus eşyası,

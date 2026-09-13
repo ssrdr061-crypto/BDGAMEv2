@@ -2,7 +2,7 @@
 /* Stil bu dosyaya gömülüdür — görünüm ayarları için aşağıdaki CSS bloğunu düzenle.
    NOT: Bu blok bir zamanlar dosyada İKİ KEZ duruyordu (biri kaçış karakterli
    kopyasıydı) ve aynı stylesheet head'e iki kere ekleniyordu. Kopya silindi. */
-(function(){ const st = document.createElement("style"); st.textContent = '/* ═══════════════════════════════════════════════════════\n   MAĞAZA GÖRÜNÜMÜ — oyundan bağımsız eklenti dosyası.\n   Oyunun kendi CSS\'ine dokunmaz; sadece mağaza panelini\n   (#panel-shop) yeniden giydirir.\n   ═══════════════════════════════════════════════════════ */\n#panel-shop h2{ color:var(--km-yazi,#eaf4ff); text-shadow:0 2px 4px rgba(0,15,40,.7); }\n\n.shop-refresh-band{\n  text-align:center; margin:2px 0 8px;\n  color:#fff; font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:13px;\n  text-shadow:0 1px 3px rgba(0,30,55,.5);\n}\n.shop-refresh-band .clock{ color:#ffd257; }\n\n#panel-shop .shop-tabs{\n  display:flex; gap:8px; overflow-x:auto; padding:2px 2px 8px;\n  border:none; background:none;\n}\n#panel-shop .shop-tab{\n  flex-shrink:0; cursor:pointer;\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:12.5px; letter-spacing:.2px;\n  color:#dff4ff; padding:4px 14px; border-radius:16px;\n  background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.06));\n  border:1px solid rgba(160,215,255,.45);\n  text-shadow:0 1px 2px rgba(0,30,55,.5);\n  transition:all .15s ease;\n}\n#panel-shop .shop-tab:hover{ border-color:#fff; color:#fff; }\n#panel-shop .shop-tab.active{\n  background:linear-gradient(180deg,#ffffff,#cfeefb);\n  color:#152e5e; border-color:#fff; text-shadow:none;\n  box-shadow:none;\n}\n\n#panel-shop .shop-grid{\n  position:relative;\n  display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;\n  align-items:start; align-content:start;\n  overflow-y:auto; max-height:56vh; padding:4px 2px 14px;\n  scrollbar-width:thin; scrollbar-color:#5bb9e6 transparent;\n}\n#panel-shop .shop-grid::-webkit-scrollbar{width:8px;}\n#panel-shop .shop-grid::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#7fd0f2,#3d9fd6); border-radius:8px;}\n#panel-shop .shop-grid::-webkit-scrollbar-track{background:rgba(0,0,0,.15);}\n\n#panel-shop .shop-tier-header{\n  grid-column:1 / -1;\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:12.5px;\n  color:#fff; text-shadow:0 1px 3px rgba(0,30,55,.6);\n  margin:4px 0 0; border:none; background:none; padding:0;\n}\n\n/* ── ürün kartı ── */\n.shop-card2{\n  position:relative;\n  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);\n  border-radius:14px;\n  padding:8px 6px 0;\n  display:flex; flex-direction:column; align-items:center; gap:4px;\n  overflow:hidden;\n  box-shadow:none;\n  cursor:pointer;\n  transition:transform .12s, filter .12s;\n  animation:shopCardIn .3s cubic-bezier(.2,1.2,.35,1) backwards;\n}\n@keyframes shopCardIn{\n  from{ opacity:0; transform:translateY(16px) scale(.92); }\n  to  { opacity:1; transform:translateY(0) scale(1); }\n}\n.shop-card2:hover{ transform:translateY(-3px); filter:brightness(1.1) saturate(1.12); }\n.shop-card2:active{ transform:scale(.96); filter:brightness(.93); }\n\n/* SARI KUTU KALDIRILDI — görsel doğrudan çizilir, arkasında kap yok.\n   Ölçü (58% kare) kalır: kartın yüksekliğini bu belirler. */\n.shop-card2 .sc-icon{\n  position:relative;\n  width:58%; aspect-ratio:1/1;\n  border-radius:8px;\n  background:none;\n  box-shadow:none;\n  display:flex; align-items:center; justify-content:center;\n}\n.shop-card2 .sc-icon svg{ width:62%; height:62%; position:relative; }\n.shop-card2 .sc-badge{\n  position:absolute; right:2px; bottom:2px;\n  background:rgba(0,0,0,.5); color:#fff;\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:9px;\n  border-radius:4px; padding:0 4px;\n}\n.shop-card2 .sc-tag{\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:8.5px;\n  color:#9fe3ff; letter-spacing:.4px;\n  text-shadow:0 1px 2px rgba(0,10,30,.7);\n  margin-bottom:-3px;\n}\n/* rakamlar: beyaz dolgu + lacivert kontur (3B) */\n.shop-card2 .sc-left, .shop-card2 .sc-price{\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; color:#fff;\n  text-shadow:\n    -2px -1px 0 #1d3a63, 2px -1px 0 #1d3a63,\n    -2px 2px 0 #1d3a63, 2px 2px 0 #1d3a63,\n    0 -2px 0 #1d3a63, 0 2px 0 #1d3a63,\n    -2px 0 0 #1d3a63, 2px 0 0 #1d3a63,\n    0 3px 0 #142a4a;\n}\n.shop-card2 .sc-left{ font-size:11.5px; letter-spacing:.2px; white-space:nowrap; line-height:1.15; }\n.shop-card2 .sc-price{\n  width:calc(100% + 12px); margin:1px -6px 0;\n  border:none; cursor:pointer;\n  background:linear-gradient(180deg,#0e2246 0%, #1a3a75 100%);\n  padding:4px 0 5px; font-size:12.5px;\n  box-shadow:none;\n  transition:filter .1s, transform .06s;\n}\n.shop-card2 .sc-price:hover{ filter:brightness(1.15); }\n.shop-card2 .sc-price:active{ transform:scale(.96); filter:brightness(.93); }\n.shop-card2 .sc-price:disabled{ cursor:not-allowed; opacity:.75; }\n\n/* tükendi durumu: kart kalır, grileşir */\n.shop-card2.soldout .sc-icon{ filter:saturate(.1) brightness(.85); }\n.shop-card2.soldout::before{\n  content:""; position:absolute; inset:0; z-index:2;\n  background:rgba(120,130,140,.32); border-radius:14px; pointer-events:none;\n}\n.shop-card2 .sc-soldtag{\n  position:absolute; top:34%; left:50%; transform:translate(-50%,-50%) rotate(-8deg);\n  z-index:3; background:rgba(90,100,110,.92); color:#fff;\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:10px; letter-spacing:1px;\n  padding:2px 10px; border-radius:5px;\n  box-shadow:none;\n}\n.shop-card2.bought{ animation:shopPop .3s ease; }\n@keyframes shopPop{ 40%{ transform:scale(1.07); box-shadow:0 0 18px rgba(255,210,87,.85); } }\n\n/* ── özellik baloncuğu ── */\n.shop-info-pop{\n  position:absolute; z-index:20;\n  background:linear-gradient(180deg, rgba(26,58,117,.97), rgba(14,34,70,.97));\n  border-radius:12px;\n  box-shadow:none;\n  animation:shopCardIn .18s ease both;\n}\n.shop-info-pop{ padding:8px 12px 9px; cursor:pointer; }\n.shop-info-pop .in-name{\n  color:#ffd257; font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:13px;\n  text-shadow:0 1px 2px rgba(0,10,30,.7); margin-bottom:2px;\n}\n.shop-info-pop .in-desc{\n  color:#cbe4ff; font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:600; font-size:11.5px; line-height:1.35;\n  text-shadow:0 1px 2px rgba(0,10,30,.6);\n}\n.shop-info-pop .in-tl{\n  color:#9fe3ff; font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:10px; margin-top:3px;\n}\n\n@media (max-width:480px){\n  #panel-shop .shop-grid{ gap:8px; }\n}\n'; document.head.appendChild(st); })();
+(function(){ const st = document.createElement("style"); st.textContent = '/* ═══════════════════════════════════════════════════════\n   MAĞAZA GÖRÜNÜMÜ — oyundan bağımsız eklenti dosyası.\n   Oyunun kendi CSS\'ine dokunmaz; sadece mağaza panelini\n   (#panel-shop) yeniden giydirir.\n   ═══════════════════════════════════════════════════════ */\n#panel-shop h2{ color:var(--km-yazi,#eaf4ff); text-shadow:0 2px 4px rgba(0,15,40,.7); }\n\n.shop-refresh-band{\n  text-align:center; margin:2px 0 8px;\n  color:#fff; font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:13px;\n  text-shadow:0 1px 3px rgba(0,30,55,.5);\n}\n.shop-refresh-band .clock{ color:#ffd257; }\n\n#panel-shop .shop-tabs{\n  display:flex; gap:8px; overflow-x:auto; padding:2px 2px 8px;\n  border:none; background:none;\n}\n#panel-shop .shop-tab{\n  flex-shrink:0; cursor:pointer;\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:12.5px; letter-spacing:.2px;\n  color:#dff4ff; padding:4px 14px; border-radius:16px;\n  background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.06));\n  border:1px solid rgba(160,215,255,.45);\n  text-shadow:0 1px 2px rgba(0,30,55,.5);\n  transition:all .15s ease;\n}\n#panel-shop .shop-tab:hover{ border-color:#fff; color:#fff; }\n#panel-shop .shop-tab.active{\n  background:linear-gradient(180deg,#ffffff,#cfeefb);\n  color:#152e5e; border-color:#fff; text-shadow:none;\n  box-shadow:none;\n}\n\n#panel-shop .shop-grid{\n  position:relative;\n  display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;\n  align-items:start; align-content:start;\n  overflow-y:auto; max-height:56vh; padding:4px 2px 14px;\n  scrollbar-width:thin; scrollbar-color:#5bb9e6 transparent;\n}\n#panel-shop .shop-grid::-webkit-scrollbar{width:8px;}\n#panel-shop .shop-grid::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#7fd0f2,#3d9fd6); border-radius:8px;}\n#panel-shop .shop-grid::-webkit-scrollbar-track{background:rgba(0,0,0,.15);}\n\n#panel-shop .shop-tier-header{\n  grid-column:1 / -1;\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; font-size:12.5px;\n  color:#fff; text-shadow:0 1px 3px rgba(0,30,55,.6);\n  margin:4px 0 0; border:none; background:none; padding:0;\n}\n\n/* ── ürün kartı ── */\n.shop-card2{\n  position:relative;\n  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);\n  border-radius:14px;\n  padding:8px 6px 0;\n  display:flex; flex-direction:column; align-items:center; gap:4px;\n  overflow:hidden;\n  box-shadow:none;\n  cursor:pointer;\n  transition:transform .12s, filter .12s;\n  animation:shopCardIn .3s cubic-bezier(.2,1.2,.35,1) backwards;\n}\n@keyframes shopCardIn{\n  from{ opacity:0; transform:translateY(16px) scale(.92); }\n  to  { opacity:1; transform:translateY(0) scale(1); }\n}\n.shop-card2:hover{ transform:translateY(-3px); filter:brightness(1.1) saturate(1.12); }\n.shop-card2:active{ transform:scale(.96); filter:brightness(.93); }\n\n/* SARI KUTU KALDIRILDI — görsel doğrudan çizilir, arkasında kap yok.\n   Ölçü (58% kare) kalır: kartın yüksekliğini bu belirler. */\n.shop-card2 .sc-icon{\n  position:relative;\n  width:58%; aspect-ratio:1/1;\n  border-radius:8px;\n  background:none;\n  box-shadow:none;\n  display:flex; align-items:center; justify-content:center;\n}\n.shop-card2 .sc-icon svg{ width:62%; height:62%; position:relative; }\n.shop-card2 .sc-badge{\n  position:absolute; right:2px; bottom:2px;\n  background:rgba(0,0,0,.5); color:#fff;\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:9px;\n  border-radius:4px; padding:0 4px;\n}\n.shop-card2 .sc-tag{\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:8.5px;\n  color:#9fe3ff; letter-spacing:.4px;\n  text-shadow:0 1px 2px rgba(0,10,30,.7);\n  margin-bottom:-3px;\n}\n/* rakamlar: beyaz dolgu + lacivert kontur (3B) */\n.shop-card2 .sc-left, .shop-card2 .sc-price{\n  font-family:\'Baloo 2\',\'Nunito\',sans-serif; font-weight:800; color:#fff;\n  text-shadow:\n    -2px -1px 0 #1d3a63, 2px -1px 0 #1d3a63,\n    -2px 2px 0 #1d3a63, 2px 2px 0 #1d3a63,\n    0 -2px 0 #1d3a63, 0 2px 0 #1d3a63,\n    -2px 0 0 #1d3a63, 2px 0 0 #1d3a63,\n    0 3px 0 #142a4a;\n}\n.shop-card2 .sc-left{ font-size:11.5px; letter-spacing:.2px; white-space:nowrap; line-height:1.15; }\n.shop-card2 .sc-price{\n  width:calc(100% + 12px); margin:1px -6px 0;\n  border:none; cursor:pointer;\n  background:linear-gradient(180deg,#0e2246 0%, #1a3a75 100%);\n  padding:4px 0 5px; font-size:12.5px;\n  box-shadow:none;\n  transition:filter .1s, transform .06s;\n}\n.shop-card2 .sc-price:hover{ filter:brightness(1.15); }\n.shop-card2 .sc-price:active{ transform:scale(.96); filter:brightness(.93); }\n.shop-card2 .sc-price:disabled{ cursor:not-allowed; opacity:.75; }\n\n/* tükendi durumu: kart kalır, grileşir */\n.shop-card2.soldout .sc-icon{ filter:saturate(.1) brightness(.85); }\n.shop-card2.soldout::before{\n  content:""; position:absolute; inset:0; z-index:2;\n  background:rgba(120,130,140,.32); border-radius:14px; pointer-events:none;\n}\n.shop-card2 .sc-soldtag{\n  position:absolute; top:34%; left:50%; transform:translate(-50%,-50%) rotate(-8deg);\n  z-index:3; background:rgba(90,100,110,.92); color:#fff;\n  font-family:\'Baloo 2\',sans-serif; font-weight:800; font-size:10px; letter-spacing:1px;\n  padding:2px 10px; border-radius:5px;\n  box-shadow:none;\n}\n.shop-card2.bought{ animation:shopPop .3s ease; }\n@keyframes shopPop{ 40%{ transform:scale(1.07); box-shadow:0 0 18px rgba(255,210,87,.85); } }\n\n/* özellik baloncuğu CSS SİLİNDİ — .shop-info-pop kalktı, yerine\n   ızgara hücresi olan .shop-pop geldi (stili tema.js). */\n\n@media (max-width:480px){\n  #panel-shop .shop-grid{ gap:8px; }\n}\n'; document.head.appendChild(st); })();
 
 
 /* ═══════════════════════════════════════════════════════════════
@@ -400,7 +400,8 @@ function renderShop() {
 }
 
 function closeShopPopups() {
-  document.querySelectorAll(".shop-info-pop").forEach(p => p.remove());
+  document.querySelectorAll(".shop-pop").forEach(p => p.remove());
+  document.querySelectorAll(".shop-card2.is-secili").forEach(k => k.classList.remove("is-secili"));
   closeBuyDialog();
 }
 
@@ -468,60 +469,78 @@ function shopItemDesc(item) {
 }
 
 /* item özellik baloncuğu */
+/*  BİLGİ BALONCUĞU — ÜRÜNÜN SATIRININ ALTINDA (çantayla aynı kalıp).
+    Eskiden karta göre MUTLAK konumlanan koyu bir kutuydu
+    (positionShopPopup): kartın üstüne biniyor, ızgara kayınca
+    kartından ayrı düşüyordu (o yüzden kaydırınca kapatmak
+    gerekiyordu) ve çantadaki baloncukla hiç benzemiyordu.
+    Artık ızgaranın bir hücresi: satırın sonuna eklenir, satırın
+    tamamını kaplar, kayınca kartıyla birlikte gider.
+
+    SATIR GEOMETRİDEN BULUNUR, sütun sayısından DEĞİL: mağaza
+    ızgarasında ara başlıklar (.shop-tier-header) var ve onlar
+    satırın tamamını kaplıyor, "her satırda üç kart" varsayımı
+    kırılır. Aynı offsetTop'taki son kart aranır.                */
 function showShopInfoPopup(item, card) {
   const grid = $id("shopGrid");
-  const already = document.querySelector(".shop-info-pop[data-name='" + item.name + "']");
+  if (!grid) return;
+  const acik = grid.querySelector(".shop-pop");
+  const ayni = !!(acik && acik.dataset.name === item.name);
   closeShopPopups();
-  if (already) return; // aynı karta ikinci tıklama = kapat
+  if (ayni) return;                    /* aynı karta ikinci dokunuş = kapat */
 
   const desc = shopItemDesc(item);
-
-  const tl = item.tier ? `<div class="in-tl">≈ ${calculateTLPrice(item.price).toFixed(2)} ₺</div>` : "";
+  const tl = item.tier
+    ? '<div class="shop-pop-alt">≈ ' + calculateTLPrice(item.price).toFixed(2) + ' ₺</div>' : "";
   const lim = shopLimitOf(item)
-    ? `<div class="in-tl">Haftalık limit: ${shopBought(item.name)} / ${shopLimitOf(item)}</div>` : "";
+    ? '<div class="shop-pop-alt">Haftalık limit: ' + shopBought(item.name) + ' / ' + shopLimitOf(item) + '</div>' : "";
 
   const pop = document.createElement("div");
-  pop.className = "shop-info-pop";
+  pop.className = "shop-pop";
   pop.dataset.name = item.name;
-  pop.innerHTML = `<div class="in-name">${item.name}</div><div class="in-desc">${desc}</div>${tl}${lim}`;
-  grid.appendChild(pop);
-  positionShopPopup(pop, card, grid);
-  pop.addEventListener("click", () => pop.remove());
+  pop.innerHTML =
+    '<i class="shop-pop-ok"></i>' +
+    '<div class="shop-pop-ad">' + item.name + '</div>' +
+    '<div class="shop-pop-not">' + desc + '</div>' + tl + lim;
+
+  let son = card;
+  const ust = card.offsetTop;
+  grid.querySelectorAll(".shop-card2").forEach(k => {
+    if (Math.abs(k.offsetTop - ust) < 2) son = k;
+  });
+  son.insertAdjacentElement("afterend", pop);
+
+  /*  Ok dokunulan kartın ORTASINI gösterir. Yüzde kullanılır:
+      sütun sayısı kategoriye göre değişebilir, sabit oran yazılırsa
+      ok yanlış karta bakar.                                      */
+  const gk = grid.getBoundingClientRect(), kk = card.getBoundingClientRect();
+  const yuzde = gk.width > 0 ? ((kk.left + kk.width / 2) - gk.left) / gk.width * 100 : 50;
+  pop.style.setProperty("--ok", yuzde.toFixed(2) + "%");
+  card.classList.add("is-secili");
 }
 
 /* ── BALONCUĞU DIŞARI DOKUNUNCA KAPAT ─────────────────────────────
-   Eskiden kapatma dinleyicisi YALNIZ baloncuğun kendisindeydi:
-   boşluğa, sekmelere ya da panelin başka bir yerine dokunmak
-   baloncuğu kapatmıyordu, ekranda asılı kalıyordu.
-
    Dinleyici belgeye BİR KEZ kurulur (her renderShop'ta yeniden
    eklenirse aynı tıklama defalarca işlenir). Baloncuğu açan
-   tıklamanın kendisi kapatmaz: o tıklamanın hedefi kartın içindedir
-   ve aşağıdaki closest() denetimine takılır — bu yüzden ayrıca
-   gecikme/zamanlayıcı hilesine gerek yok.
+   tıklamanın kendisi kapatmaz: hedefi kartın içindedir ve
+   aşağıdaki closest() denetimine takılır.
 
    pointerdown kullanılır: parmak kalkmadan kapanır, kaydırmayla
-   açılan hayalet tıklamalara bağlı kalmaz. */
+   açılan hayalet tıklamalara bağlı kalmaz.
+
+   KAYDIRINCA KAPATMA SİLİNDİ: baloncuk artık ızgaranın bir hücresi,
+   kartıyla birlikte kayıyor. Mutlak konumluyken kartından ayrı
+   düştüğü için kapatmak gerekiyordu. */
 (function shopPopupDisiKapat() {
   if (window._shopPopDisiKurulu) return;
   window._shopPopDisiKurulu = true;
 
   document.addEventListener("pointerdown", function (e) {
-    if (!document.querySelector(".shop-info-pop")) return;      /* açık baloncuk yok */
+    if (!document.querySelector(".shop-pop")) return;      /* açık baloncuk yok */
     const t = e.target;
-    /* Çantadaki kutucuklar da baloncuk açıyor (tema.js sonundaki
-       cantaBuffDetay bloğu) — onlara dokunma baloncuğu kapatmamalı,
-       yoksa açılan baloncuk aynı anda kapanır. */
-    if (t && t.closest && t.closest(".shop-info-pop, .shop-card2, .bd-buy-mask, #invList .inv-card")) return;
-    document.querySelectorAll(".shop-info-pop").forEach(p => p.remove());
+    if (t && t.closest && t.closest(".shop-pop, .shop-card2, .bd-buy-mask")) return;
+    closeShopPopups();
   }, true);
-
-  /* Listeyi kaydırınca da kapansın — baloncuk karta göre
-     konumlandığı için kaydırmada kartından ayrı düşer. */
-  const grid = document.getElementById("shopGrid");
-  if (grid) grid.addEventListener("scroll", () => {
-    document.querySelectorAll(".shop-info-pop").forEach(p => p.remove());
-  }, { passive: true });
 })();
 
 /* ═══════════════════════════════════════════════════════════════
@@ -606,15 +625,8 @@ function showBuyDialog(item, idx, maxQty) {
   sync();
 }
 
-function positionShopPopup(pop, card, grid) {
-  const w = card.offsetWidth * 2 + 10;
-  pop.style.width = Math.min(w, grid.clientWidth - 20) + "px";
-  let x = card.offsetLeft;
-  const maxX = grid.clientWidth - pop.offsetWidth - 10;
-  if (x > maxX) x = Math.max(0, maxX);
-  pop.style.left = x + "px";
-  pop.style.top = (card.offsetTop + card.offsetHeight - pop.offsetHeight + 4) + "px";
-}
+/* positionShopPopup SİLİNDİ — baloncuk artık ızgaranın bir
+   hücresi, mutlak konumlanmıyor. */
 
 /* oyunun updateShopButtons'unu devral: elmas değişince fiyatları aç/kapat */
 function updateShopButtons() {
