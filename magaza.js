@@ -117,7 +117,7 @@ const shopItems = [
      sunucuya yüklenmeli — dosya yokken kart kırık resim gösterir,
      emojiye DÜŞMEZ (index.html:5644). */
   { name: "Tecrübe Kitabı", price: 200, isExpKitap: true, icon: "📘",
-    expDesc: "Çantana düşer. Kahraman ekranındaki YÜKSELT düğmesiyle harcanır: kahramanın tecrübe seviyesini yükseltir, sefer kapasitesini ve gücünü artırır. Yıldızla ilgisi yoktur, yıldız parçayla yükselir." },
+    expDesc: "Kahramanın tecrübe seviyesini yükseltir. Kahraman ekranındaki YÜKSELT düğmesiyle harcanır: kahramanın tecrübe seviyesini yükseltir, sefer kapasitesini ve gücünü artırır. Yıldızla ilgisi yoktur, yıldız parçayla yükselir." },
 
   /* MAĞAZA GÖRSELİ BEKLENİYOR: `missile.js`teki fuze_Fuze-roket.webp
      HARİTADA UÇAN füzedir, kart görseli değil. Kart için ayrı
@@ -445,22 +445,52 @@ function cantaSekmesi(item) {
 }
 window.cantaSekmesi = cantaSekmesi;
 
+/*  KISA AÇIKLAMA — bilgi baloncuklarının okuduğu metin.
+    shopItemDesc() tam metni verir (satın alma penceresi onu
+    kullanmaya devam eder); baloncukta ise YALNIZ İLK CÜMLE ve
+    SİMGESİZ hâli görünür — kutucuğun altındaki kutu üç satırlık
+    ansiklopedi maddesine dönüşmesin.
+
+    İki ayıklama var:
+      1) HTML etiketleri (elmas/kaynak GÖRSELİ innerHTML'e
+         basılıyor, düz metne düşünce ham <img> görünürdü),
+      2) emoji (⛓ gibi simgeler cümlenin ortasında duruyordu).
+
+    İLK CÜMLE ayrımı NOKTA + BOŞLUK ile yapılır, düz nokta ile
+    DEĞİL: Türkçe binlik ayracı da nokta ("5.000 Demir"), düz
+    noktadan bölünce metin "5." diye kesiliyordu.               */
+var _EMOJI_RE = /[\u2190-\u21FF\u2300-\u27BF\u2B00-\u2BFF\uFE0F\u200D]|[\uD800-\uDBFF][\uDC00-\uDFFF]/g;
+function kisaAciklama(item) {
+  var ham = "";
+  try { ham = shopItemDesc(item) || ""; } catch (e) {}
+  ham = String(ham).replace(/<[^>]*>/g, "").replace(_EMOJI_RE, "");
+  ham = ham.replace(/\s{2,}/g, " ").trim();
+  var m = ham.match(/^[\s\S]*?[.!?](?=\s|$)/);
+  return (m ? m[0] : ham).trim();
+}
+window.kisaAciklama = kisaAciklama;
+
 /* ürün açıklaması — hem baloncuk hem satın alma penceresi kullanır */
 function shopItemDesc(item) {
   if (item.isMissile)        return item.missileDesc || "";
-  if (item.isSpeedUpItem)    return "Eğitim/iyileşme süresini " +
-                                    (item.speedUpMinutes >= 60
+  /*  GENEL hızlandırma: yalnız eğitim/iyileşmeye değil, şehirdeki
+      bekleyen işe uygulanır. Açıklama da o yüzden sadece SÜREYİ
+      söyler, nereye işlediğini saymaz.                          */
+  if (item.isSpeedUpItem)    return (item.speedUpMinutes >= 60
                                       ? Math.round(item.speedUpMinutes / 60) + " saat"
-                                      : item.speedUpMinutes + " dk") +
-                                    " kısaltır.";
+                                      : item.speedUpMinutes + " dakika") +
+                                    " hızlandırır.";
   if (item.isSeferHiz)       return "Yoldaki bir intikalin kalan süresini %" +
                                     Math.round(item.hizOran * 100) +
                                     " kısaltır. Haritadaki sefer kutusuna dokunup kullanılır.";
-  if (item.isKalkan)         return "Çantana düşer. Kullandığında kalen " +
-                                    (item.kalkanSaat || 6) +
-                                    " saat saldırıya kapanır: kimse ordu gönderemez, füze atamaz. " +
-                                    "Sen saldırırsan kalkanın anında düşer. Tekrar kullanınca süre başa sarar.";
-  if (item.isStaminaPotion)  return "Genel Canı doldurur (envanterine düşer).";
+  /*  İLK CÜMLE ANLAMLI OLMALI: baloncuk yalnız onu gösteriyor
+      (kisaAciklama). Eskiden "Çantana düşer." ile başlıyordu ve
+      baloncukta kalkanın ne işe yaradığı hiç yazmıyordu.        */
+  if (item.isKalkan)         return "Kalen " + (item.kalkanSaat || 6) +
+                                    " saat saldırıya kapanır. " +
+                                    "Kimse ordu gönderemez, füze atamaz; sen saldırırsan kalkan anında düşer. " +
+                                    "Tekrar kullanınca süre başa sarar.";
+  if (item.isStaminaPotion)  return "Genel Canı doldurur.";
   if (item.isExpKitap)       return item.expDesc || "";
   if (item.isParca)          return item.parcaDesc || "";
   if (item.isKaynak)         return item.kaynakDesc || "";
@@ -489,7 +519,7 @@ function showShopInfoPopup(item, card) {
   closeShopPopups();
   if (ayni) return;                    /* aynı karta ikinci dokunuş = kapat */
 
-  const desc = shopItemDesc(item);
+  const desc = kisaAciklama(item);
   const tl = item.tier
     ? '<div class="shop-pop-alt">≈ ' + calculateTLPrice(item.price).toFixed(2) + ' ₺</div>' : "";
   const lim = shopLimitOf(item)

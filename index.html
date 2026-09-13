@@ -6109,8 +6109,11 @@ function cantaKullanim(def) {
 function cantaBaloncukHTML(def, sutun) {
   const k = cantaKullanim(def);
   const elde = Math.max(0, Math.floor((state.inventory || {})[def.name] || 0));
+  /* Baloncukta YALNIZ İLK CÜMLE ve simgesiz hâl görünür —
+     kısaltma magaza.js kisaAciklama()'da, mağaza baloncuğu da
+     aynı yerden okuyor. Tam metin satın alma penceresinde kalır. */
   let aciklama = "";
-  try { if (typeof shopItemDesc === "function") aciklama = shopItemDesc(def) || ""; } catch (e) {}
+  try { if (typeof kisaAciklama === "function") aciklama = kisaAciklama(def) || ""; } catch (e) {}
 
   /* Kalkan açıkken uyarı: süre başa sarar, ÜSTÜNE EKLENMEZ. */
   let uyari = "";

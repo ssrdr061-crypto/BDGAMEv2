@@ -178,6 +178,40 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **BALONCUK AÇIKLAMALARI: TEK CÜMLE, SİMGESİZ** (`magaza.js
+  kisaAciklama()`). Çanta ve mağaza baloncukları artık tam metni
+  değil YALNIZ İLK CÜMLEYİ, simgesiz hâlde gösteriyor; tam metin
+  satın alma penceresinde duruyor. İki ayıklama var: HTML etiketleri
+  (elmas/kaynak GÖRSELİ innerHTML'e basılıyor, düz metne düşünce ham
+  `<img>` görünür) ve emoji.
+
+  **İLK CÜMLE NOKTA + BOŞLUK ile ayrılır, düz nokta ile DEĞİL:**
+  Türkçe binlik ayracı da nokta ("5.000 Demir") — düz noktadan
+  bölünce metin "5." diye kesiliyordu.
+
+  **İLK CÜMLE ANLAMLI OLMALI** — iki açıklama bu yüzden yeniden
+  yazıldı: kalkan "Çantana düşer." ile başlıyordu (baloncukta
+  kalkanın ne yaptığı hiç yazmıyordu) → "Kalen 6 saat saldırıya
+  kapanır."; tecrübe kitabı da aynı şekilde → "Kahramanın tecrübe
+  seviyesini yükseltir." Can potundaki "(envanterine düşer)" eki
+  silindi.
+  Sınandı: Demir Sandığı "5.000 Demir doğrudan kaynaklarına
+  eklenir." · Mor Parça / Buzul Özü / İntikal %25 hepsi tek cümle.
+
+- **Hızlandırma açıklaması düzeltildi.** "Eğitim/iyileşme süresini
+  1 saat kısaltır" yazıyordu; oysa GENEL hızlandırma, şehirdeki
+  bekleyen işe uygulanıyor. Artık yalnız süreyi söylüyor:
+  **"1 saat hızlandırır."** · **"5 dakika hızlandırır."**
+
+- **Bonus eşyasının ESKİ penceresi çantadan kaldırıldı** (`buff.js`).
+  Çantada bonus kutucuğuna dokununca güçlendirme menüsünün kendi
+  penceresi açılıyordu (capture evresinde dinleyen ayrı bir blok):
+  tek panelde iki ayrı pencere modeli. Dinleyici **silindi**; bonus
+  eşyası artık çantada da satır altı baloncuğunu açıyor ve oradaki
+  "Kahramana Git" düğmesiyle kahraman ekranına gidiliyor.
+  Güçlendirme menüsünün kendi penceresi (`detayAc`) DURUYOR —
+  sefere gönderme panelinden açılan yol değişmedi.
+
 - **MAĞAZA BİLGİ PENCERESİ ÇANTAYLA AYNI KALIBA ALINDI** (`magaza.js`
   `showShopInfoPopup`, stil `tema.js`).
   İki panelde iki ayrı bilgi penceresi vardı: çantada satır altı
