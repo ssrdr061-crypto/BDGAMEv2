@@ -3246,26 +3246,45 @@ st.textContent = `
    Boşluk değerleri birlik paneliyle BİREBİR aynı tutuldu
    (60px üst / 70px alt) — birini değiştirirsen diğerlerini de
    değiştir, yoksa paneller arası geçişte kart zıplar. */
-/*  ÇANTA BU LİSTEDEN ÇIKARILDI — tam ekran oldu.
-    Burada 60/12/70 boşluk ve 420px tavan veriliyor; çantaya da
-    uygulanınca yukarıdaki tam ekran kuralı (bu blok SONRA geldiği
-    için, Tuzak 38) sessizce eziliyordu. Ezme üstüne ezme yazmak
-    yerine çanta listeden alındı; diğer üç panel aynen kalıyor. */
+/*  ÇANTA ve MARKET BU LİSTEDEN ÇIKARILDI — ikisi de tam ekran.
+    Burada 60/12/70 boşluk ve 420px tavan veriliyor; tam ekran
+    olacak panele de uygulanınca yukarıdaki tam ekran kuralı
+    (bu blok SONRA geldiği için, Tuzak 38) sessizce eziliyordu.
+    Ezme üstüne ezme yazmak yerine panel listeden alınıyor;
+    hastane ve sandık aynen kalıyor. */
 #panel-hospital,
-#panel-chest,
-#panel-shop{
+#panel-chest{
   align-items:center !important;
   justify-content:center !important;
   padding:60px 12px 70px !important;
 }
 #panel-hospital .overlay-card,
-#panel-chest .overlay-card,
-#panel-shop .overlay-card{
+#panel-chest .overlay-card{
   width:100% !important;
   max-width:420px !important;
   max-height:100% !important;
   border-radius:22px !important;
   border-top:1px solid var(--km-kenar) !important;
+}
+
+/*  ── MARKET TAM EKRAN ──
+    Çantayla aynı kalıp: panel ekranın tamamı, başlık ve sekmeler
+    üstte sabit, yalnız ürün ızgarası kayar.
+    SÜTUN 3 → 4: tam ekranda üç sütun kartları gereksiz şişiriyordu.
+    Sütun sayısı magaza.js'in kendi CSS'inde 3 yazılı; burada
+    EZİLİYOR çünkü o dosya kendi görünümünü taşıyor ve tam ekran
+    kararı temaya ait.                                            */
+#panel-shop{ align-items:stretch !important; padding:0 !important; }
+#panel-shop .overlay-card{
+  width:100% !important; max-width:none !important;
+  height:100% !important; max-height:none !important;
+  border-radius:0 !important;
+  padding:10px 10px 16px !important;
+  animation:none !important;
+}
+#panel-shop .shop-grid{
+  grid-template-columns:repeat(4, 1fr) !important;
+  gap:8px !important;
 }
 
 /* ── MAĞAZA: SABİT BOY, TEK KAYDIRMA, SÜRGÜ YOK ──────────────
@@ -5163,16 +5182,15 @@ const st = document.createElement("style");
 st.id = "temaUcBoyutTemizlik";
 st.textContent = `
 
-/* ── 1) PANEL ÇERÇEVELERİ ── */
-#panel-troops .uv-viewer,
-#panel-shop .overlay-card{
+/* ── 1) PANEL ÇERÇEVELERİ ──
+   MARKET ÇIKARILDI: tam ekran oldu, ekranın dört yanına 2px çerçeve
+   çizmenin anlamı yok (ve köşelerde yarım piksel çizgi bırakıyor). */
+#panel-troops .uv-viewer{
   border-width:2px !important;
   border-color:rgba(190,240,255,.5) !important;
   box-shadow:none !important;
 }
-#panel-shop .overlay-card{
-  border-top-width:2px !important;
-}
+#panel-shop .overlay-card{ border:none !important; }
 
 /* ── 2) MAĞAZA KARTLARI ── */
 .shop-card2{

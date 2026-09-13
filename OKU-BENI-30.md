@@ -178,6 +178,37 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **MARKET TAM EKRAN + 4 SÜTUN.** Çantayla aynı kalıp: panel ekranın
+  tamamı, başlık/yenilenme/sekmeler üstte, yalnız ürün ızgarası kayar.
+  Sütun 3 → **4** (tam ekranda üç sütun kartları gereksiz şişiriyordu).
+  **KÖK (Tuzak 38, çantadakinin aynısı):** tam ekran kuralını yazmak
+  yetmiyor — `#panel-hospital, #panel-chest, #panel-shop` ortak bloğu
+  DAHA SONRA gelip 60/12/70 boşluğu ve `max-width:420px`i geri
+  koyuyor. Market o listeden **çıkarıldı**; hastane ve sandık aynen
+  kaldı. Ayrıca "panel çerçeveleri" bloğundan da çıkarıldı: ekranın
+  dört yanına 2px çerçeve çizmenin anlamı yok.
+  Ölçüldü (412×820): kart **412×820 = tam ekran** · **4 sütun** ·
+  on iki kartın hepsi aynı ende (89,5×99,2) · ilk satırda 4 kart ·
+  fiyat düğmesi karta sığıyor · ızgara taşması 0 · sayfa yatay
+  kaydırması yok.
+
+- **KAHRAMAN EKRANLARI AYRI BÖLÜME BIRAKILDI — sebebi ölçüldü.**
+  `HERO_UI.kartTamEkran` anahtarı hem listeyi hem detayı tek seferde
+  tam ekran yapıyor, ama detay ekranında HİZA KIRILIYOR:
+  - Yetenek kutuları kartın DİKEY ORTASINA sabit pikselle bağlı
+    (`top:50%` + `translateY(box.dy)`, dy = -150px).
+  - Kahraman görseli ise kendi ölçüsünü kabuktan alıp **9:16'ya
+    oturuyor** (`ch0 = min(vh, vw*16/9)`).
+  412×820'de: kart yüksekliği 704 → 820 (**×1,165**) ama model
+  689,8 → 732,4 (**×1,062**) büyüyor. İki oran farklı olduğu için
+  kutular karakterden ayrı düşer — sabit dy'yi kart oranıyla da
+  model oranıyla da çarpmak yanlış sonuç verir.
+  **DOĞRU ÇÖZÜM (sıradaki iş):** kutuları kartın ortasına değil
+  MODELİN kutusuna bağlamak — yetenek sütunlarını model görseliyle
+  aynı ölçüdeki (cw0×ch0) bir sarmalın içine almak. O zaman bütün
+  dx/dy değerleri modele göre olur ve her ekran boyunda kendiliğinden
+  uyar; sihirli oran gerekmez.
+
 - **BALONCUK AÇIKLAMALARI: TEK CÜMLE, SİMGESİZ** (`magaza.js
   kisaAciklama()`). Çanta ve mağaza baloncukları artık tam metni
   değil YALNIZ İLK CÜMLEYİ, simgesiz hâlde gösteriyor; tam metin
