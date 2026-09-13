@@ -178,6 +178,22 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **BİRLİK EĞİTİM EKRANLARI TAM EKRAN** (`tema.js` `troopPanelV2`).
+  Üç aile de (Savunucu · Koruyucu · Nişancı) aynı `.uv-viewer`ın
+  içinde durduğu için tek kural üçünü birden kapsıyor — ayrı ölçü
+  yazılmadı, yoksa aileler arası geçişte panel zıplar.
+  **KÖK (Tuzak 38):** tam ekran kuralını yazmak yetmiyordu; aynı
+  dosyada DAHA SONRA gelen "HİZA: kahraman kartıyla birebir aynı"
+  bloğu 60/12/70 boşluğu ve `max-width:420px`i geri koyuyordu,
+  "PANEL ÇERÇEVELERİ" bloğu da 2px kenarı. Ezme üstüne ezme
+  yazmak yerine ikisinden de ÖLÇÜ SİLİNDİ; panelin tek ölçü
+  kaynağı artık `troopPanelV2`nin baş bloğu.
+  Ölçüldü (412×820, 2×): kart **412×820 = tam ekran** · köşe 0 ·
+  kenar 0 · panel dolgusu 0 · üç ailede de birebir aynı ·
+  sayfa yatay kaydırması yok (412).
+  **GERİ DÖNÜŞ:** `#panel-troops`a `padding:60px 12px 70px`,
+  `.uv-viewer`a `max-width:420px` + `border-radius:22px`.
+
 - **Kahraman listesi 4×4** (`kahramanlar.js KLIST_UI.sutun/satir`).
   Ölçüldü (412×820): 4 sütun × 4 satır, kart 94,8×171,8, ızgarada
   dikey kaydırma 0, alt şerit (8/8 + Kahraman Al) ekranda.
@@ -1053,7 +1069,8 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 `gucefekt-2` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
 
 **Tam ekran olan paneller:** çanta (`#panel-inventory`) · market
-(`#panel-shop`) · kahraman listesi ve detayı (`HERO_UI.kartTamEkran`).
+(`#panel-shop`) · kahraman listesi ve detayı (`HERO_UI.kartTamEkran`) ·
+birlik eğitim ekranları (`#panel-troops`, üç aile birden).
 Hastane ve sandık hâlâ dört yanı boşluklu kart.
 
 **Denetim betiği:** `tuzak27.py` — şablon dizgisi içindeki yorumlarda

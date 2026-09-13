@@ -2291,23 +2291,27 @@ if (document.readyState === "loading") {
   const s = document.createElement("style");
   s.id = "troopPanelV2";
   s.textContent = `
-/* ── PANEL: ekranın ortasında kart ── */
+/* ── PANEL: TAM EKRAN ──
+   Çanta ve marketle AYNI kalıp: panel ekranın tamamı, kart değil.
+   Üç birlik ekranı (knight/soldier/robot) aynı .uv-viewer'ın içinde
+   durduğu için tek kural üçüne birden işler — hiçbiri için ayrı
+   ölçü yazılmaz, yoksa aileler arası geçişte panel zıplar.
+   Eski hâli: padding 60/12/70 + 420px tavan (kahraman kartıyla aynı
+   boşluk). Geri dönüş için o iki satırı yazmak yeter. */
 #panel-troops{
-  /* HİZA: kahraman kartıyla aynı — heroes.js → HERO_UI.kartUst/kartAlt/kartKenar
-     Orada bir değer değiştirirsen buradaki padding'i de aynı yap. */
   align-items:stretch !important; justify-content:center !important;
-  padding:60px 12px 70px !important;
+  padding:0 !important;
   /* tema.js'in panelin dışına çizdiği çerçeve/karartı kalkıyor */
   border:0 !important; border-radius:0 !important; box-shadow:none !important; overflow:visible !important;
 }
 
 #panel-troops .uv-viewer{
-  width:100% !important; max-width:420px !important;
+  width:100% !important; max-width:none !important;
   height:100% !important;
   background:
     linear-gradient(180deg,#1fa3ea,#0e6fc0) !important;
-  border:1px solid rgba(190,240,255,.85) !important;
-  border-radius:22px !important;
+  border:none !important;
+  border-radius:0 !important;
   box-shadow:none !important;
   overflow:hidden !important;
 }
@@ -2559,19 +2563,14 @@ if (document.readyState === "loading") {
 /* ── Birlik geçişi anında olsun (yumuşak geçiş "yenileniyor" hissi veriyordu) ── */
 #panel-troops .unit-screen{ transition:none !important; }
 
-/* ── HİZA: KAHRAMAN KARTIYLA BİREBİR AYNI ──
-   Değerler heroes.js → HERO_UI.kartUst / kartAlt / kartKenar ile aynı.
-   Orada bir değeri değiştirirsen buradaki padding'i de aynı yap.
-   NOT: Bu blok dosyanın en sonunda olduğu için yukarıdaki
-   #panel-troops kurallarını EZER — ölçüyü buradan ayarla. */
-#panel-troops{ padding:60px 12px 70px !important; align-items:stretch !important; }
-#panel-troops .uv-viewer{
-  height:100% !important;
-  max-width:420px !important;
-  border-radius:22px !important;
-  border:1px solid rgba(190,240,255,.85) !important;
-  box-shadow:none !important;
-}
+/* ── HİZA: TAM EKRAN ──
+   Burada eskiden kahraman kartıyla aynı boşluk (60/12/70) ve 420px
+   tavan yazılıydı. Bu blok dosyada SONRA geldiği için yukarıdaki
+   "PANEL: TAM EKRAN" kuralını sessizce eziyordu (Tuzak 38).
+   Ezme üstüne ezme yazmak yerine ÖLÇÜLER SİLİNDİ — panelin tek
+   ölçü kaynağı artık yukarıdaki blok. */
+#panel-troops{ align-items:stretch !important; }
+#panel-troops .uv-viewer{ height:100% !important; box-shadow:none !important; }
 
 /* ── İNCE AYAR — değerler CSS değişkeni, canlı ayar paneli bunları değiştirir ── */
 #panel-troops .uv-portrait{
@@ -5214,11 +5213,11 @@ st.textContent = `
 /* ── 1) PANEL ÇERÇEVELERİ ──
    MARKET ÇIKARILDI: tam ekran oldu, ekranın dört yanına 2px çerçeve
    çizmenin anlamı yok (ve köşelerde yarım piksel çizgi bırakıyor). */
-#panel-troops .uv-viewer{
-  border-width:2px !important;
-  border-color:rgba(190,240,255,.5) !important;
-  box-shadow:none !important;
-}
+/*  BİRLİK PANELİ DE ÇIKARILDI — o da tam ekran oldu; ekranın dört
+    yanına 2px çerçeve çizmenin anlamı yok. Bu blok YUKARIDAKİ
+    tam ekran kuralından SONRA geliyor (Tuzak 38), bırakılsaydı
+    kenarı sessizce geri koyardı. */
+#panel-troops .uv-viewer{ border:none !important; box-shadow:none !important; }
 #panel-shop .overlay-card{ border:none !important; }
 
 /* ── 2) MAĞAZA KARTLARI ── */
