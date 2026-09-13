@@ -178,6 +178,50 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **ÇANTA — BÖLÜM 2: SATIR ALTI BALONCUĞU** (`index.html`
+  `cantaBaloncukHTML` / `cantaBaloncukBagla` / `cantaEsyaKullan`).
+
+  **KÖK (eski durum):** `tema.js`'te yakalama evresinde çalışan bir
+  dinleyici vardı; kutucuğa dokununca MAĞAZANIN satın alma
+  penceresinin kopyasını açıyordu ve yalnız **kaynak paketiyle
+  kalkanı** tanıyordu. Parça, tecrübe kitabı ve bonus eşyalarına
+  dokununca **hiçbir şey olmuyordu** — üstelik sessizce, çünkü
+  `if (!d.isKaynak) return;` diyip çıkıyordu.
+  O blok (235 satır) **silindi**, ikinci dinleyici bırakılmadı:
+  yakalama evresinde çalıştığı için yenisine hiç sıra gelmezdi.
+
+  - Baloncuk, dokunulan kutucuğun **satırının altına** eklenir ve
+    satırın tamamını kaplar (`grid-column:1/-1` ŞART — ızgara dört
+    sütunlu, verilmezse baloncuk tek hücreye sıkışır). Ok, dokunulan
+    kutucuğun ortasını gösterir: sütun (n+0,5)/4.
+    Ölçüldü: ok ile seçili kutucuğun merkezi arasında **0,9 px**.
+  - **Kullanım kuralı TEK YERDE** — `cantaKullanim(def)`:
+    `adet` (sürgüyle kaç tane: kaynak, parça) · `tek` (kalkan, can
+    potu) · `git` (bonus ve tecrübe kitabı → **Kahramana Git**,
+    `openOverlayPanel("hero")`) · `yok`.
+    Kahraman parçası ve kitabı böylece çantadan kullanılabilir oldu.
+  - Açıklama `magaza.js shopItemDesc()`ten gelir — mağaza baloncuğu
+    da aynı metni okur, ikinci bir açıklama tablosu açılmadı.
+  - Sürgü hızlandırma penceresiyle aynı dil: konum piksel, tutamak
+    kulp, yarı genişlik (9) JS ile CSS'te aynı.
+  - Aynı kutucuğa tekrar dokunmak baloncuğu kapatır; sekme
+    değişince de kapanır. Seçili eşya o sekmede değilse baloncuk
+    kendiliğinden düşer.
+
+  **TUZAK 10 BURADA ISIRDI:** parça havuzuna yazan işlevi
+  `window.parcaEkleAnahtar` diye çağırmıştım — `gelistir.js` onu
+  **`window.parcaEkle`** adıyla açıyor (içerideki adı
+  `parcaEkleAnahtar`). Yanlış adla çağrılsaydı hiçbir hata çıkmaz,
+  parça çantadan düşer ama havuza HİÇ girmezdi.
+
+  `itemCard`'a `data-name` eklendi: baloncuk eşyayı bundan bulur.
+  Eskiden ad ekrandaki yazıdan okunacaktı, o yazı iki satırda
+  kırpıldığı için eşleşme kaybolurdu.
+
+  Ölçüldü (412×820): baloncuk satırı kaplıyor (382/370) · satırın
+  ALTINDA · ok sapması 0,9 px · seçili kutucukta köşe işaretleri ·
+  sayfa yatay kaydırması yok.
+
 - **ÇANTA — BÖLÜM 1: TAM EKRAN + SEKMELER + ROZET** (`index.html`
   `renderInventory` · `magaza.js` · `tema.js` çanta bloğu).
   Referans oyundaki düzene geçiş. Büyük iş olduğu için ikiye

@@ -483,6 +483,133 @@ const DRAG_PX = 12;
   padding-top:10px !important;
 }
 
+/*  ══ BALONCUK — kutucuğun SATIRININ ALTINDA ══════════════════
+    Referans düzen: dokunulan kutucuğun satırının altında açılır,
+    satırın tamamını kaplar, ok dokunulan kutucuğu gösterir.
+    grid-column:1/-1 ŞART — ızgara 4 sütunlu, verilmezse baloncuk
+    tek hücreye sıkışır. */
+#panel-inventory .inv-pop{
+  grid-column:1 / -1 !important;
+  position:relative !important;
+  margin:8px 0 6px !important;
+  padding:12px 12px 12px !important;
+  border-radius:14px !important;
+  background:rgba(233,246,255,.96) !important;
+  color:#123a63 !important;
+  text-align:center !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+/*  OK: dokunulan kutucuğun ortasını gösterir. Izgara 4 sütun, o
+    yüzden sütunun ortası (n+0,5)/4. Konum yüzdeyle yazılır ki
+    ekran genişliğinden bağımsız olsun; Tuzak 12 gereği yüzde ile
+    piksel AYRI translate halkalarında. */
+#panel-inventory .inv-pop-ok{
+  position:absolute !important; top:-7px !important;
+  width:16px !important; height:8px !important;
+  background:rgba(233,246,255,.96) !important;
+  clip-path:polygon(50% 0, 100% 100%, 0 100%) !important;
+}
+#panel-inventory .inv-pop[data-sutun="0"] .inv-pop-ok{ left:12.5% !important; transform:translate(-50%,0) !important; }
+#panel-inventory .inv-pop[data-sutun="1"] .inv-pop-ok{ left:37.5% !important; transform:translate(-50%,0) !important; }
+#panel-inventory .inv-pop[data-sutun="2"] .inv-pop-ok{ left:62.5% !important; transform:translate(-50%,0) !important; }
+#panel-inventory .inv-pop[data-sutun="3"] .inv-pop-ok{ left:87.5% !important; transform:translate(-50%,0) !important; }
+
+#panel-inventory .inv-pop-ad{
+  color:#0f3a6b !important; font-size:15px !important; font-weight:900 !important;
+  line-height:1.2 !important; margin-bottom:3px !important;
+  text-shadow:none !important;
+}
+#panel-inventory .inv-pop-not{
+  color:#2c5b8c !important; font-size:12px !important; font-weight:700 !important;
+  line-height:1.35 !important; text-shadow:none !important;
+}
+#panel-inventory .inv-pop-uyari{
+  color:#a2560c !important; font-size:11.5px !important; font-weight:800 !important;
+  margin-top:5px !important; line-height:1.3 !important; text-shadow:none !important;
+}
+#panel-inventory .inv-pop-elde{
+  color:#4a7099 !important; font-size:11.5px !important; margin-top:6px !important;
+  text-shadow:none !important;
+}
+
+/* adet satırı — hızlandırma penceresiyle aynı dil */
+#panel-inventory .inv-pop-say{
+  display:flex !important; align-items:center !important; gap:8px !important;
+  margin:10px 2px 0 !important;
+}
+#panel-inventory .inv-pop-step{
+  flex:0 0 28px !important; width:28px !important; height:28px !important;
+  padding:0 !important; border:none !important; border-radius:8px !important;
+  background:#2f66b5 !important; color:#eaf7ff !important;
+  font-size:17px !important; font-weight:900 !important; line-height:1 !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  box-shadow:none !important; cursor:pointer;
+}
+#panel-inventory .inv-pop-step[disabled]{ opacity:.38 !important; }
+#panel-inventory .inv-pop-ray{
+  position:relative !important; flex:1 1 auto !important; height:28px !important;
+  touch-action:none !important; cursor:pointer; user-select:none;
+}
+#panel-inventory .inv-pop-track{
+  position:absolute !important; left:9px !important; right:9px !important; top:50% !important;
+  height:6px !important; margin-top:-3px !important; border-radius:99px !important;
+  background:rgba(18,58,99,.22) !important;
+}
+#panel-inventory .inv-pop-fill{
+  position:absolute !important; left:0 !important; top:50% !important;
+  height:6px !important; margin-top:-3px !important; border-radius:99px !important;
+  background:linear-gradient(180deg,#5ce07a,#22a34a) !important;
+}
+/* tutamak: top değil kulp — hızlandırma penceresiyle aynı biçim.
+   Genişliğinin YARISI JS'teki R (9) ile aynı olmalı. */
+#panel-inventory .inv-pop-thumb{
+  position:absolute !important; top:50% !important; left:9px !important;
+  width:18px !important; height:22px !important; margin:-11px 0 0 -9px !important;
+  border-radius:6px !important; background:#fff !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important; pointer-events:none !important;
+}
+#panel-inventory .inv-pop-adet{
+  flex:0 0 auto !important; min-width:30px !important;
+  color:#0f3a6b !important; font-size:14px !important; font-weight:900 !important;
+  font-variant-numeric:tabular-nums !important; text-shadow:none !important;
+}
+#panel-inventory .inv-pop-max{
+  flex:0 0 auto !important; padding:5px 10px !important;
+  border:none !important; border-radius:8px !important; cursor:pointer;
+  background:#2f66b5 !important; color:#eaf7ff !important;
+  font-size:11px !important; font-weight:900 !important;
+  box-shadow:none !important;
+}
+#panel-inventory .inv-pop-kullan{
+  display:block !important; margin:11px auto 0 !important;
+  padding:7px 34px !important; border:none !important; border-radius:10px !important;
+  cursor:pointer;
+  background:linear-gradient(180deg,#4a9fe8,#2270c4) !important;
+  color:#fff !important; font-size:14px !important; font-weight:900 !important;
+  letter-spacing:.4px !important; box-shadow:none !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.45) !important;
+}
+#panel-inventory .inv-pop-kullan:active{ transform:scale(.96); filter:brightness(.93); }
+
+/*  SEÇİLİ KUTUCUK — köşe işaretleri (hızlandırma penceresiyle
+    aynı dil). Izgara kırpmasın diye hücrenin İÇİNDE duruyor. */
+#panel-inventory .inv-card.is-secili .icon-box::after{
+  content:"" !important; position:absolute !important;
+  left:-3px !important; right:-3px !important; top:-3px !important; bottom:-3px !important;
+  pointer-events:none !important; z-index:4 !important;
+  background-image:
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff) !important;
+  background-repeat:no-repeat !important;
+  background-size:16px 3px, 3px 16px, 16px 3px, 3px 16px,
+                  16px 3px, 3px 16px, 16px 3px, 3px 16px !important;
+  background-position:
+    left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom !important;
+}
+
 /*  ROZET (sol üst) — eşyanın NE KADAR verdiği.
     Sağ alttaki sayı KAÇ TANE olduğu; ikisi ayrı şey ve ayrı köşede
     durmalı, yoksa "10 K" ile "140" yan yana gelip karışır. */
@@ -6006,263 +6133,18 @@ document.head.appendChild(st);
 
 
 /* ═══════════════════════════════════════════════════════════════
-   ÇANTA · KAYNAK PAKETİ KULLANMA PENCERESİ
+   ÇANTADA EŞYA KULLANMA — eski MODAL bloğu SİLİNDİ.
 
-   SORUN: Çantadaki kaynak paketlerine (Et/Demir/Su Sandığı, Enerji
-   Hücresi) dokununca hiçbir şey olmuyordu. İki sebep üst üste
-   binmişti:
-     1) Bu dosyanın üst kısmı çantadaki "Kullan" düğmesini
-        gizliyor (#panel-inventory .inv-use-btn{display:none}).
-     2) Kutucuğa dokunma dinleyicisi eşya ne olursa olsun
-        useStaminaPotion() çağırıyordu — kaynak paketinde "Çantanda
-        can potu yok" diyip susuyordu.
-
-   ÇÖZÜM: Kaynak paketine dokunulunca MAĞAZADAKİ SATIN ALMA
-   PENCERESİNİN AYNISI açılır. Aynı sınıflar kullanılıyor
-   (.bd-buy-mask / .bd-buy-box / .bd-q-row ...), yani görünüm
-   birebir mağazanınki; mağaza penceresinin biçimi değişirse bu da
-   kendiliğinden değişir. Tek farkı: elmas değil ADET kullanılır ve
-   düğme "kullan" der.
-
-   Yakalama (capture) evresinde dinliyoruz ki yukarıdaki eski
-   dinleyiciye hiç sıra gelmesin — o dosyaya dokunmadan yolu
-   kesiyoruz.
+   Burada, kutucuğa dokununca mağazanın satın alma penceresinin
+   aynısını açan bir blok vardı (.bd-buy-mask) ve yalnız kaynak
+   paketiyle kalkanı tanıyordu; parça, kitap ve bonus eşyaları
+   dokununca hiçbir şey olmuyordu.
+   Yerine geçen: index.html `cantaBaloncuk` — kutucuğun ALTINDAKİ
+   satıra açılan açıklama baloncuğu (referans düzen). Tek dokunma
+   yolu orada; burada ikinci bir dinleyici KALMADI, yoksa yakalama
+   evresinde çalışıp yenisine hiç sıra gelmiyordu.
    ═══════════════════════════════════════════════════════════════ */
-(function cantaKaynakKullan() {
-  "use strict";
 
-  var _esc = null;
-
-  function sayiYaz(n) {
-    try { if (typeof fmt === "function") return fmt(n); } catch (e) {}
-    return String(n);
-  }
-
-  function tanim(ad) {
-    try { return (typeof getItemDef === "function") ? getItemDef(ad) : null; }
-    catch (e) { return null; }
-  }
-
-  /* Kartın hangi eşya olduğunu, içindeki GİZLİ Kullan düğmesinin
-     data-item'ından okuyoruz — isim etiketi kırpılmış olabilir. */
-  function kartAdi(kart) {
-    var b = kart.querySelector(".inv-use-btn");
-    if (b && b.dataset && b.dataset.item) return b.dataset.item;
-    var n = kart.querySelector(".item-name");
-    return n ? n.textContent.trim() : "";
-  }
-
-  function elde(ad) {
-    try { return (state.inventory && state.inventory[ad]) || 0; } catch (e) { return 0; }
-  }
-
-  function kaynakAdi(ad) { return String(ad).replace(/ (Sandığı|Hücresi)$/, ""); }
-
-  function simge(d) {
-    try { if (typeof itemIconSVG === "function") return itemIconSVG(d); } catch (e) {}
-    return d.emoji || d.icon || "";
-  }
-
-  function aciklama(d) {
-    try { if (typeof shopItemDesc === "function") return shopItemDesc(d) || ""; } catch (e) {}
-    return "Kullanınca +" + sayiYaz(d.miktar) + " " + kaynakAdi(d.name) + " verir.";
-  }
-
-  function kapat() {
-    var m = document.querySelector(".bd-buy-mask");
-    if (m) m.remove();
-    if (_esc) { document.removeEventListener("keydown", _esc); _esc = null; }
-  }
-
-  /* Seçilen adet kadar paketi kaynağa çevirir. index.html'deki
-     kaynakPaketiKullan HEPSİNİ birden harcıyor; burada adet
-     seçilebildiği için kendi hesabımızı yapıyoruz. */
-  function kullan(d, adet) {
-    var ad = d.name;
-    var varOlan = elde(ad);
-    adet = Math.max(1, Math.min(adet, varOlan));
-    if (adet <= 0) { return; }
-
-    if (!state.kaynaklar || typeof state.kaynaklar !== "object") {
-      state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
-    }
-    var k = d.kaynakId;
-    var eski = state.kaynaklar[k];
-    var toplam = (d.miktar || 0) * adet;
-    state.kaynaklar[k] = (typeof eski === "number" && isFinite(eski) ? eski : 0) + toplam;
-
-    state.inventory[ad] = varOlan - adet;
-    if (state.inventory[ad] <= 0) delete state.inventory[ad];
-
-    try { if (typeof renderKaynaklar === "function") renderKaynaklar(); } catch (e) {}
-    try { if (typeof renderInventory === "function") renderInventory(); } catch (e) {}
-    try { if (typeof persistCurrentState === "function") persistCurrentState(); } catch (e) {}
-    try {
-      if (typeof showToast === "function") {
-        showToast((d.emoji || "") + " +" + sayiYaz(toplam) + " " + kaynakAdi(ad) + " eklendi!");
-      }
-    } catch (e) {}
-  }
-
-  function pencere(d) {
-    kapat();
-    try { if (typeof closeShopPopups === "function") closeShopPopups(); } catch (e) {}
-
-    var enFazla = Math.max(1, elde(d.name));
-    var adet = 1;
-
-    var mask = document.createElement("div");
-    mask.className = "bd-buy-mask";
-    mask.innerHTML =
-      '<div class="bd-buy-box">' +
-        '<div class="bd-buy-head">' +
-          '<span>Kullan</span>' +
-          '<button class="bd-buy-x" type="button">✕</button>' +
-        '</div>' +
-        '<div class="bd-buy-body">' +
-          '<div class="bd-buy-top">' +
-            '<div class="bd-buy-icon">' + simge(d) + '</div>' +
-            '<div class="bd-buy-txt">' +
-              '<div class="bd-buy-name">' + d.name + '</div>' +
-              '<div class="bd-buy-desc">' + aciklama(d) + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="bd-q-row">' +
-            '<button class="bd-qbtn" type="button" data-d="-1">−</button>' +
-            '<input class="bd-q-range" type="range" min="1" max="' + enFazla + '" value="1">' +
-            '<button class="bd-qbtn" type="button" data-d="1">+</button>' +
-            '<div class="bd-qnum">1</div>' +
-            '<button class="bd-qmax" type="button">MAX</button>' +
-          '</div>' +
-          '<button class="bd-buy-go" type="button"></button>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(mask);
-
-    var range = mask.querySelector(".bd-q-range");
-    var num   = mask.querySelector(".bd-qnum");
-    var go    = mask.querySelector(".bd-buy-go");
-
-    function esitle() {
-      adet = Math.min(enFazla, Math.max(1, adet));
-      range.value = adet;
-      num.textContent = adet;
-      var pct = enFazla > 1 ? ((adet - 1) / (enFazla - 1)) * 100 : 100;
-      range.style.setProperty("--fill", pct + "%");
-      /* Mağazada düğmede toplam FİYAT yazar; burada kazanılacak
-         toplam KAYNAK yazıyor — aynı yerde, aynı biçimde. */
-      go.textContent = (d.emoji || "") + " +" + sayiYaz((d.miktar || 0) * adet);
-      go.disabled = false;
-    }
-
-    range.addEventListener("input", function () {
-      adet = parseInt(range.value, 10) || 1; esitle();
-    });
-    mask.querySelectorAll(".bd-qbtn").forEach(function (b) {
-      b.addEventListener("click", function () {
-        adet += parseInt(b.dataset.d, 10); esitle();
-      });
-    });
-    mask.querySelector(".bd-qmax").addEventListener("click", function () {
-      adet = enFazla; esitle();
-    });
-    mask.querySelector(".bd-buy-x").addEventListener("click", kapat);
-    mask.addEventListener("click", function (e) { if (e.target === mask) kapat(); });
-    go.addEventListener("click", function () {
-      var n = adet;
-      kapat();
-      kullan(d, n);
-    });
-    _esc = function (e) { if (e.key === "Escape") kapat(); };
-    document.addEventListener("keydown", _esc);
-
-    esitle();
-  }
-
-  /* CAPTURE: çantadaki kaynak kutucuğuna dokunma buradan öteye
-     geçmez, eski can-potu dinleyicisi hiç çalışmaz. Diğer eşyalar
-     (can potu vb.) eskisi gibi akar. */
-  document.addEventListener("click", function (e) {
-    var t = e.target;
-    if (!t || !t.closest) return;
-    var kart = t.closest("#invList .inv-card, #invList .shop-card");
-    if (!kart) return;
-
-    var d = tanim(kartAdi(kart));
-    if (!d) return;
-
-    /* ── KALKAN ──
-       Kaynak paketi değil: adet seçilmez, tek dokunuşta açılır.
-       Yine de onay soruyoruz — kalan süre varsa başa saracağı
-       için oyuncu bilerek basmalı. Aynı .bd-buy-* sınıfları,
-       yalnız adet satırı yok. */
-    if (d.isKalkan) {
-      e.stopPropagation();
-      e.preventDefault();
-      kalkanOnayi(d);
-      return;
-    }
-
-    if (!d.isKaynak) return;
-
-    e.stopPropagation();
-    e.preventDefault();
-    pencere(d);
-  }, true);
-
-  /* Kalkan onay penceresi. Kullanma işini index.html'deki
-     kalkanKullan() yapar — süre hesabı ve kayıt TEK YERDE kalsın. */
-  function kalkanOnayi(d) {
-    kapat();
-    try { if (typeof closeShopPopups === "function") closeShopPopups(); } catch (e) {}
-
-    var saat = d.kalkanSaat || 6;
-    var kalan = 0;
-    try {
-      if (typeof window.kalkanKalanMs === "function") kalan = window.kalkanKalanMs();
-    } catch (e) {}
-
-    var uyari = kalan > 0
-      ? '<div class="bd-buy-desc" style="color:#ffd257;margin-top:4px;">' +
-        'Şu an açık kalkanın var. Yeni kalkan süreyi ' + saat +
-        ' saate geri sarar, üstüne EKLEMEZ.</div>'
-      : "";
-
-    var mask = document.createElement("div");
-    mask.className = "bd-buy-mask";
-    mask.innerHTML =
-      '<div class="bd-buy-box">' +
-        '<div class="bd-buy-head">' +
-          '<span>Kullan</span>' +
-          '<button class="bd-buy-x" type="button">✕</button>' +
-        '</div>' +
-        '<div class="bd-buy-body">' +
-          '<div class="bd-buy-top">' +
-            '<div class="bd-buy-icon">' + simge(d) + '</div>' +
-            '<div class="bd-buy-txt">' +
-              '<div class="bd-buy-name">' + d.name + '</div>' +
-              '<div class="bd-buy-desc">' + aciklama(d) + '</div>' +
-              uyari +
-            '</div>' +
-          '</div>' +
-          '<button class="bd-buy-go" type="button">🛡️ ' + saat + ' SAAT KALKAN AÇ</button>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(mask);
-
-    mask.querySelector(".bd-buy-x").addEventListener("click", kapat);
-    mask.addEventListener("click", function (e) { if (e.target === mask) kapat(); });
-    mask.querySelector(".bd-buy-go").addEventListener("click", function () {
-      kapat();
-      try {
-        if (typeof window.kalkanKullan === "function") window.kalkanKullan(d.name);
-        else if (typeof kalkanKullan === "function") kalkanKullan(d.name);
-      } catch (e) {}
-    });
-    _esc = function (e) { if (e.key === "Escape") kapat(); };
-    document.addEventListener("keydown", _esc);
-  }
-})();
 
 /* ═══════════════════════════════════════════════════════════════
    3B TEMİZLİĞİ — ÜST ŞERİT · ALT MENÜ · GİRİŞ EKRANI

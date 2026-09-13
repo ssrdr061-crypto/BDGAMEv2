@@ -2937,8 +2937,11 @@ const speedupBtn = (unitId, remaining, speedUpCount, cls) => `
         ${formatRemaining(remaining)} ⏩
       </button>`;
 
+/*  data-name: kutucuğun hangi eşya olduğu. Çanta baloncuğu bunu
+    okur; yoksa eşya adını ekrandaki yazıdan çıkarmak gerekir ve
+    o yazı kırpılırsa (iki satır + ellipsis) eşleşme kaybolur. */
 const itemCard = (name, opts) => `
-      <div class="${opts.rootClass || "shop-card"} ${opts.cardClass}">
+      <div class="${opts.rootClass || "shop-card"} ${opts.cardClass}" data-name="${name}">
         <div class="icon-box">${opts.iconHTML}${opts.slotTag || ""}</div>
         <div class="card-mid">
           <div class="item-name">${name}</div>
@@ -5913,16 +5916,229 @@ function renderInventory() {
             ${(def.isStaminaPotion || def.isKaynak || def.isParca || def.isKalkan) ? `<button class="inv-use-btn" data-item="${def.name}">Kullan</button>` : ""}`,
       });
     }).join("");
-    bindAll(list, ".inv-use-btn", (ds) => {
-      const ad = ds && ds.item;
-      const d  = ad ? getItemDef(ad) : null;
-      if (d && d.isParca && typeof window.parcaPaketiKullan === "function") window.parcaPaketiKullan(ad);
-      else if (d && d.isKaynak) kaynakPaketiKullan(ad);
-      else if (d && d.isKalkan) kalkanKullan(ad);
-      else useStaminaPotion();
-    });
+  }
+
+  /*  BALONCUĞU SATIRIN ALTINA SOK.
+      Izgara 4 sütunlu; baloncuk seçili kutucuğun SATIRININ sonuna
+      eklenir ve satırın tamamını kaplar (grid-column:1/-1).
+      Sütun bilgisi okun yerini belirler: ok, dokunulan kutucuğun
+      ortasını gösterir.
+      Seçili eşya bu sekmede değilse (sekme değişti) baloncuk
+      kendiliğinden düşer — ayrıca temizlemek gerekmez.            */
+  if (cantaSecili && keys.length) {
+    const i = keys.indexOf(cantaSecili);
+    if (i < 0) { cantaSecili = null; }
+    else {
+      const def = getItemDef(cantaSecili);
+      if (def) {
+        const sutun  = i % 4;
+        const satirSon = Math.min(keys.length - 1, i - sutun + 3);
+        const kutular = Array.from(list.children);
+        const html = cantaBaloncukHTML(def, sutun);
+        const hedef = kutular[satirSon];
+        if (hedef) hedef.insertAdjacentHTML("afterend", html);
+        else list.insertAdjacentHTML("beforeend", html);
+        const secKutu = kutular[i];
+        if (secKutu) secKutu.classList.add("is-secili");
+        cantaBaloncukBagla(def);
+      }
+    }
   }
   persistCurrentState();
+}
+
+/*  Baloncuğun içindeki düğmeler. Her çizimden sonra yeniden bağlanır
+    (baloncuk her seferinde baştan yazılıyor).                     */
+function cantaBaloncukBagla(def) {
+  const pop = document.querySelector("#invList .inv-pop");
+  if (!pop) return;
+  const k = cantaKullanim(def);
+  const enFazla = Math.max(1, Math.floor((state.inventory || {})[def.name] || 1));
+
+  function tazele() {
+    if (cantaAdet > enFazla) cantaAdet = enFazla;
+    if (cantaAdet < 1) cantaAdet = 1;
+    const s = pop.querySelector(".inv-pop-adet");
+    if (s) s.textContent = cantaAdet;
+    const e = pop.querySelector(".inv-pop-eksi"), a = pop.querySelector(".inv-pop-arti");
+    if (e) e.disabled = (cantaAdet <= 1);
+    if (a) a.disabled = (cantaAdet >= enFazla);
+    /* Sürgü: hızlandırma penceresiyle aynı kural — konum PİKSEL,
+       tutamağın yarı genişliği kadar içeriden (Tuzak 12/19). */
+    const ray = pop.querySelector(".inv-pop-ray");
+    if (ray) {
+      const R = 9;
+      const w = ray.getBoundingClientRect().width;
+      const oran = enFazla > 1 ? (cantaAdet - 1) / (enFazla - 1) : 0;
+      const px = R + oran * Math.max(0, w - R * 2);
+      const f = pop.querySelector(".inv-pop-fill"), t = pop.querySelector(".inv-pop-thumb");
+      if (f) f.style.width = px + "px";
+      if (t) t.style.left  = px + "px";
+    }
+  }
+
+  const ray = pop.querySelector(".inv-pop-ray");
+  if (ray) {
+    let aktif = null;
+    const uygula = x => {
+      const R = 9, r = ray.getBoundingClientRect();
+      const kul = r.width - R * 2;
+      const oran = kul <= 0 ? 0 : Math.max(0, Math.min(1, (x - r.left - R) / kul));
+      cantaAdet = 1 + Math.round(oran * (enFazla - 1));
+      tazele();
+    };
+    ray.addEventListener("pointerdown", e => {
+      aktif = e.pointerId; ray.setPointerCapture(aktif);
+      uygula(e.clientX); e.preventDefault(); e.stopPropagation();
+    });
+    ray.addEventListener("pointermove", e => { if (aktif === e.pointerId) uygula(e.clientX); });
+    const birak = () => { aktif = null; };
+    ray.addEventListener("pointerup", birak);
+    ray.addEventListener("pointercancel", birak);
+  }
+  const e = pop.querySelector(".inv-pop-eksi"), a = pop.querySelector(".inv-pop-arti"),
+        mx = pop.querySelector(".inv-pop-max");
+  if (e)  e.addEventListener("click",  ev => { ev.stopPropagation(); cantaAdet--; tazele(); });
+  if (a)  a.addEventListener("click",  ev => { ev.stopPropagation(); cantaAdet++; tazele(); });
+  if (mx) mx.addEventListener("click", ev => { ev.stopPropagation(); cantaAdet = enFazla; tazele(); });
+
+  const btn = pop.querySelector(".inv-pop-kullan");
+  if (btn) btn.addEventListener("click", ev => {
+    ev.stopPropagation();
+    cantaEsyaKullan(def, k);
+  });
+
+  tazele();
+}
+
+/*  KULLANMA — tek kapı. Her eşya türü kendi mevcut yolundan gider;
+    burada ikinci bir kaynak/parça hesabı YAPILMAZ.               */
+function cantaEsyaKullan(def, k) {
+  const ad = def.name;
+  if (k.tur === "git") {
+    cantaSecili = null;
+    if (typeof openOverlayPanel === "function") openOverlayPanel("hero");
+    return;
+  }
+  if (k.tur === "tek") {
+    if (def.isKalkan) kalkanKullan(ad);
+    else useStaminaPotion();
+    cantaSecili = null;
+    renderInventory();
+    return;
+  }
+  if (k.tur === "adet") {
+    const n = Math.max(1, Math.min(cantaAdet, Math.floor((state.inventory || {})[ad] || 0)));
+    if (n <= 0) { showToastForce("Çantanda bu eşyadan kalmadı."); return; }
+    if (def.isKaynak) cantaKaynakVer(def, n);
+    else if (def.isParca) cantaParcaVer(def, n);
+    cantaAdet = 1;
+    if (!((state.inventory || {})[ad] > 0)) cantaSecili = null;
+    renderInventory();
+    return;
+  }
+}
+
+/*  Kaynak paketi: N tane kullan. index.html'deki kaynakPaketiKullan
+    HEPSİNİ birden harcıyor (eski "Kullan" düğmesinin davranışı);
+    baloncukta adet seçilebildiği için burada N ile çalışan yol var.
+    Ne kadar verdiği yine magaza.js tanımından okunur.             */
+function cantaKaynakVer(def, n) {
+  if (!state.kaynaklar || typeof state.kaynaklar !== "object") {
+    state.kaynaklar = { odun: 0, et: 0, demir: 0, su: 0, enerji: 0 };
+  }
+  const kid = def.kaynakId;
+  const eski = state.kaynaklar[kid];
+  const toplam = (def.miktar || 0) * n;
+  state.kaynaklar[kid] = (typeof eski === "number" && isFinite(eski) ? eski : 0) + toplam;
+
+  state.inventory[def.name] = (state.inventory[def.name] || 0) - n;
+  if (state.inventory[def.name] <= 0) delete state.inventory[def.name];
+
+  try { renderKaynaklar(); } catch (e) {}
+  persistCurrentState();
+  showToastForce("+" + fmt(toplam) + " " + def.name.replace(/ (Sandığı|Hücresi)$/, "") + " eklendi!");
+}
+
+/*  Kahraman parçası: havuza N tane. Havuz hesabı gelistir.js'te —
+    parcaEkleAnahtar oraya ait, burada ikinci bir havuz açılmaz.   */
+function cantaParcaVer(def, n) {
+  state.inventory[def.name] = (state.inventory[def.name] || 0) - n;
+  if (state.inventory[def.name] <= 0) delete state.inventory[def.name];
+  /* DİKKAT: gelistir.js bu işlevi `window.parcaEkle` adıyla açıyor
+     (içerideki adı parcaEkleAnahtar). Yanlış adla çağrılırsa
+     hiçbir hata çıkmaz, parça sessizce buharlaşır — parça çantadan
+     düşer ama havuza girmez. */
+  try {
+    if (typeof window.parcaEkle === "function") window.parcaEkle(def.parcaKey, n);
+  } catch (e) {}
+  persistCurrentState();
+  showToastForce(n + " " + def.name + " kullanıldı.");
+}
+
+/*  ══ ÇANTA BALONCUĞU ══════════════════════════════════════════
+    Kutucuğa dokununca, kutucuğun BULUNDUĞU SATIRIN ALTINDA açılan
+    açıklama kutusu (referans düzen). Eskiden mağazanın satın alma
+    penceresinin kopyası açılıyordu ve yalnız kaynak paketiyle
+    kalkanı tanıyordu; parça, kitap ve bonus eşyaları dokununca
+    HİÇBİR ŞEY olmuyordu. O blok tema.js'ten silindi, tek yol bu.  */
+let cantaSecili = null;          /* açık baloncuğun eşya adı */
+let cantaAdet   = 1;             /* baloncuktaki adet seçimi   */
+
+/*  EŞYA NASIL KULLANILIR — TEK KARAR YERİ.
+    tur: "adet" (sürgüyle kaç tane) · "tek" (tek dokunuş) ·
+         "git" (kullanımı başka ekranda) · "yok" (kullanılmaz)   */
+function cantaKullanim(def) {
+  if (!def) return { tur: "yok" };
+  if (def.isKaynak)         return { tur: "adet", etiket: "Kullan" };
+  if (def.isParca)          return { tur: "adet", etiket: "Kullan" };
+  if (def.isStaminaPotion)  return { tur: "tek",  etiket: "Kullan" };
+  if (def.isKalkan)         return { tur: "tek",  etiket: "Kullan" };
+  /* Kahraman eşyaları: harcama kahraman ekranında yapılır. Çantadan
+     "Kahramana Git" ile oraya atar — oyuncu eşyayı çantada görüp
+     nereye gideceğini bilemiyordu. */
+  if (def.isBoost || def.isExpKitap) return { tur: "git", etiket: "Kahramana Git" };
+  return { tur: "yok" };
+}
+
+/*  Baloncuğun HTML'i. Açıklama magaza.js shopItemDesc()'ten gelir —
+    mağaza baloncuğu da aynı metni kullanır, iki ayrı açıklama
+    yazılmaz.                                                      */
+function cantaBaloncukHTML(def, sutun) {
+  const k = cantaKullanim(def);
+  const elde = Math.max(0, Math.floor((state.inventory || {})[def.name] || 0));
+  let aciklama = "";
+  try { if (typeof shopItemDesc === "function") aciklama = shopItemDesc(def) || ""; } catch (e) {}
+
+  /* Kalkan açıkken uyarı: süre başa sarar, ÜSTÜNE EKLENMEZ. */
+  let uyari = "";
+  if (def.isKalkan) {
+    let kalan = 0;
+    try { if (typeof window.kalkanKalanMs === "function") kalan = window.kalkanKalanMs(); } catch (e) {}
+    if (kalan > 0) uyari = `<div class="inv-pop-uyari">Şu an açık kalkanın var. Yeni kalkan süreyi başa sarar, üstüne EKLEMEZ.</div>`;
+  }
+
+  const sayRow = (k.tur === "adet") ? `
+      <div class="inv-pop-say">
+        <button class="inv-pop-step inv-pop-eksi" type="button">−</button>
+        <div class="inv-pop-ray"><i class="inv-pop-track"></i><i class="inv-pop-fill"></i><i class="inv-pop-thumb"></i></div>
+        <button class="inv-pop-step inv-pop-arti" type="button">+</button>
+        <span class="inv-pop-adet">${cantaAdet}</span>
+        <button class="inv-pop-max" type="button">MAX</button>
+      </div>` : "";
+
+  const dugme = (k.tur === "yok") ? "" :
+    `<button class="inv-pop-kullan" type="button">${k.etiket}</button>`;
+
+  return `<div class="inv-pop" data-sutun="${sutun}" data-ad="${def.name}">
+      <i class="inv-pop-ok"></i>
+      <div class="inv-pop-ad">${def.name}</div>
+      <div class="inv-pop-not">${aciklama}</div>
+      ${uyari}
+      ${sayRow}
+      ${dugme}
+      ${k.tur === "yok" ? `<div class="inv-pop-elde">Elinde ${fmt(elde)} tane</div>` : ""}
+    </div>`;
 }
 
 /*  SEKME DEĞİŞİMİ — tek dinleyici, gövdede.
@@ -5935,7 +6151,34 @@ document.addEventListener("click", function (e) {
   const cat = t.dataset.cat;
   if (!cat || cat === cantaSekme) return;
   cantaSekme = cat;
+  cantaSecili = null;          /* sekme değişince açık baloncuk kapanır */
   renderInventory();
+});
+
+/*  KUTUCUĞA DOKUNMA — çantanın TEK dokunma yolu.
+    Baloncuğun kendi içine dokunmak onu kapatmamalı; sürgüyü
+    sürüklerken de kapanmamalı.                                   */
+document.addEventListener("click", function (e) {
+  const t = e.target;
+  if (!t || !t.closest) return;
+  if (t.closest("#invList .inv-pop")) return;      /* baloncuğun içi */
+
+  const kart = t.closest("#invList .inv-card, #invList .shop-card");
+  if (kart) {
+    const ad = kart.dataset && kart.dataset.name
+             ? kart.dataset.name
+             : (kart.querySelector(".item-name") || {}).textContent;
+    if (!ad) return;
+    cantaSecili = (cantaSecili === ad) ? null : ad;   /* aynısına tekrar = kapat */
+    cantaAdet = 1;
+    renderInventory();
+    return;
+  }
+  /* Izgaranın boşluğuna dokunmak baloncuğu kapatır. */
+  if (cantaSecili && t.closest("#panel-inventory")) {
+    cantaSecili = null;
+    renderInventory();
+  }
 });
 
 /*  ── KAYNAK PAKETİ KULLANMA ──────────────────────────────────
