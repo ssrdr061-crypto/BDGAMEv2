@@ -1001,20 +1001,34 @@ Kaçış: `?egitimkapat=1`.
 
 ## Sıradaki iş
 
-1. **Elmas B grubu** — `textContent` ile yazılan altı yer (Tuzak 23).
+1. **`?botkale=1` deneme kalelerini SİL** (`index.html
+   denemeKaleleriHTML`). Kale hizası işi bitti, blok geçiciydi.
+2. **`kale2.webp` / `kale3.webp`** diğer seviyelerle açı olarak
+   uyumsuz — yeni görsel arayışı sürüyor.
+3. **Kahraman detayının `z-index`i 400**, öbür paneller 50. "Üstüne
+   hiçbir şey binemiyor" hissi buradan; hizalanacaksa ayrı karar.
+4. **Etiket panelinin DÜĞÜM (%) bölümü** hiç işlenmedi
+   (`harita.js CFG.etiket`).
+5. **Bozgun eşiği + `hafifTaban`** birlikte tekrar gözden geçirilebilir.
+6. **Mağazanın satın alma penceresi** (`.bd-buy-mask`) hâlâ eski
+   model: ekranın ortasında açılan pencere. Bilgi baloncukları
+   çanta kalıbına geçti, satın alma akışı geçmedi.
+7. **Elmas B grubu** — `textContent` ile yazılan altı yer (Tuzak 23).
    Eğitim düğmeleri en kritiği: işaretleme ve güncelleme birlikte düzeltilmeli.
-2. `?elmasayar=1` panelini sil — `tasima`, `rehber`, `canta` ayarlandıktan sonra.
-3. Elmas görseli kırpılma denetimi: mağaza kartları, inşaat düğmeleri, kahraman listesi.
-4. `egitim.js savasZinciri()` oyunda sınansın; çalışmıyorsa kaldır. Bitişte
+8. `?elmasayar=1` panelini sil — `tasima`, `rehber` ayarlandıktan sonra.
+   **`canta` satırı zaten ölü:** çantanın elmas özet kutusu kalktı,
+   o satırın sürdüğü `::before` artık yok.
+9. Elmas görseli kırpılma denetimi: mağaza kartları, inşaat düğmeleri, kahraman listesi.
+10. `egitim.js savasZinciri()` oyunda sınansın; çalışmıyorsa kaldır. Bitişte
    Revolia kapanış paneli yazılmadı.
-5. `tema.js` CSS ezme temizliği: enjeksiyonlara `id` ver → listele → değerleri
+11. `tema.js` CSS ezme temizliği: enjeksiyonlara `id` ver → listele → değerleri
    eşitle → eskileri sil → `menuGirisDuzles` yamasını kaldır.
-6. JetBrains Mono'yu ayıkla (30+ satır). **Toplu değiştir-bas yapma.**
-7. `mizrakci.webp` eksik (Koruyucu Sv1 boş). Arka planı renk **eşiğiyle** değil
+12. JetBrains Mono'yu ayıkla (30+ satır). **Toplu değiştir-bas yapma.**
+13. `mizrakci.webp` eksik (Koruyucu Sv1 boş). Arka planı renk **eşiğiyle** değil
    renk **oranıyla** ayır.
-8. İnşaat dengesi ve sefer kapasitesi rakamları oyunla sınanmadı.
-9. Araştırma binası seviyeleniyor ama seviyesi hiçbir şeye bağlı değil.
-10. Terfi sistemi yok (Sv2+ edinilemez) · tedavi süresi ordu ölçeğinde saçmalıyor ·
+14. İnşaat dengesi ve sefer kapasitesi rakamları oyunla sınanmadı.
+15. Araştırma binası seviyeleniyor ama seviyesi hiçbir şeye bağlı değil.
+16. Terfi sistemi yok (Sv2+ edinilemez) · tedavi süresi ordu ölçeğinde saçmalıyor ·
     sıralama tüm `accounts`'u çekiyor · `kale2x2.js` bağlanmadı · Blaze +
     Cloud Functions ile sunucu tarafı sefer.
 
@@ -1037,6 +1051,14 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 `kaleici-58` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
 `gucefekt-2` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
+
+**Tam ekran olan paneller:** çanta (`#panel-inventory`) · market
+(`#panel-shop`) · kahraman listesi ve detayı (`HERO_UI.kartTamEkran`).
+Hastane ve sandık hâlâ dört yanı boşluklu kart.
+
+**Denetim betiği:** `tuzak27.py` — şablon dizgisi içindeki yorumlarda
+ters tırnak arar (`tema.js` · `magaza.js` · `buff.js` ·
+`kahramanlar.js` · `heroes.js`). Bu tur dört kez dosya çökertti.
 
 Yükleme sırası (`index.html` sonu): koordinat · heroes · kahramanlar · gelistir ·
 troops · istatistik · missile · pvp · pve · tema · rehber · harita · dugum ·
