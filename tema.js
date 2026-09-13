@@ -11317,3 +11317,147 @@ html body #temaReportBack .rp-cols-troop .rp-ucap{
 `;
 document.head.appendChild(st);
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   BİRLİK EĞİTİM EKRANI — ALT KAMP SEKMELERİ · YAN DÜĞMELER ·
+   NİTELİKLER  (referans düzeni, BÖLÜM 1)
+
+   Serdar referans getirdi; üç parça:
+     1) En altta üç kamp sekmesi, seçili olan açık zeminli ve yukarı
+        çıkık. Aile değiştirmenin görünür tek yolu artık bu.
+     2) Sağda alt alta iki düğme: ☰ Nitelikler · ⬆ Terfi.
+     3) ☰ ile açılan Nitelikler ekranı — yedi satır, çubuklu,
+        iki sütun. Ana ekrandaki dört stat kutusu buraya taşındı.
+
+   Blok DOSYANIN SONUNDA: #panel-troops'un ölçü ve düzen kuralları
+   yukarıda birkaç yere dağılmış durumda, sonra eklenen kazanıyor
+   (Tuzak 38). Yeni kural yazarken buraya yaz, yukarıyı ezme.
+   ═══════════════════════════════════════════════════════════════ */
+(function birlikEkraniReferansDuzen(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaBirlikReferans";
+st.textContent = `
+/* ── ALT KAMP SEKMELERİ ──
+   Yükseklik 62px; .unit-screen'in alt dolgusu da bu sayıya bağlı,
+   birini değiştirirsen diğerini de değiştir yoksa "Eğit" düğmesi
+   sekmelerin altında kalır. */
+#panel-troops .uv-kamp{
+  position:absolute !important; left:0 !important; right:0 !important;
+  bottom:0 !important; z-index:60 !important;
+  display:flex !important; align-items:flex-end !important; gap:6px !important;
+  padding:0 6px calc(6px + env(safe-area-inset-bottom,0)) !important;
+}
+#panel-troops .uv-kamp-tab{
+  flex:1 1 0 !important; min-width:0 !important;
+  display:flex !important; flex-direction:column !important;
+  align-items:center !important; justify-content:center !important; gap:1px !important;
+  padding:6px 4px 7px !important;
+  border:none !important; border-radius:14px !important;
+  background:linear-gradient(180deg,#2f8fd6,#1668b4) !important;
+  color:#dff4ff !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:12px !important; line-height:1.1 !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  cursor:pointer !important; -webkit-tap-highlight-color:transparent;
+  transition:filter .09s ease, transform .09s ease !important;
+}
+#panel-troops .uv-kamp-tab .uvk-ico{ font-size:15px !important; line-height:1 !important; }
+#panel-troops .uv-kamp-tab .uvk-ad{
+  max-width:100% !important; white-space:nowrap !important;
+  overflow:hidden !important; text-overflow:ellipsis !important;
+}
+#panel-troops .uv-kamp-tab.is-active{
+  background:linear-gradient(180deg,#ffffff,#dff1fb) !important;
+  color:#0e6fc0 !important; text-shadow:none !important;
+  padding-top:11px !important;          /* referans: seçili sekme yukarı çıkıktır */
+}
+#panel-troops .uv-kamp-tab:active{ transform:scale(.96) !important; filter:brightness(.93) !important; }
+
+/* İçerik sekmelerin altında kalmasın (62px + telefon çene payı) */
+#panel-troops .unit-screen{
+  padding-bottom:calc(62px + env(safe-area-inset-bottom,0)) !important;
+}
+
+/* ── SAĞ YAN DÜĞMELER ── */
+#panel-troops .uv-yan{
+  position:absolute !important; right:10px !important; top:54% !important;
+  z-index:58 !important;
+  display:flex !important; flex-direction:column !important; gap:10px !important;
+}
+#panel-troops .uv-yan-btn{
+  width:46px !important; height:46px !important; border-radius:14px !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  font-size:20px !important; line-height:1 !important; color:#eaf7ff !important;
+  background:linear-gradient(180deg,#2f8fd6,#1668b4) !important;
+  border:1px solid rgba(190,240,255,.20) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  cursor:pointer !important; -webkit-tap-highlight-color:transparent;
+  transition:filter .09s ease, transform .09s ease !important;
+}
+#panel-troops .uv-yan-btn:active{ transform:scale(.96) !important; filter:brightness(.93) !important; }
+
+/* ── NİTELİKLER EKRANI ──
+   Görünürlüğü .unit-screen'deki nitelik-acik sınıfı belirler.
+   Açıkken adet çubuğu ve Anında/Üret satırı gizlenir; kademe
+   şeridi ve alt sekmeler referanstaki gibi EKRANDA KALIR. */
+#panel-troops .uv-nitelik{ display:none !important; }
+#panel-troops .unit-screen.nitelik-acik .uv-nitelik{ display:block !important; }
+#panel-troops .unit-screen.nitelik-acik .unit-qty-bar,
+#panel-troops .unit-screen.nitelik-acik .unit-train-bar{ display:none !important; }
+
+#panel-troops .uvn-baslik{
+  display:flex !important; align-items:center !important; gap:10px !important;
+  margin:2px 2px 8px !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:900 !important; font-size:14px !important; color:#eaf7ff !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+}
+#panel-troops .uvn-baslik::before,
+#panel-troops .uvn-baslik::after{
+  content:"" !important; flex:1 1 0 !important; height:1px !important;
+  background:rgba(190,240,255,.35) !important;
+}
+#panel-troops .uvn-izgara{
+  display:grid !important; grid-template-columns:1fr 1fr !important;
+  gap:9px 12px !important; padding:0 2px 2px !important;
+}
+#panel-troops .uvn-satir{
+  display:grid !important; grid-template-columns:20px 1fr !important;
+  gap:7px !important; align-items:center !important; min-width:0 !important;
+}
+#panel-troops .uvn-ikon{ font-size:15px !important; line-height:1 !important; text-align:center !important; }
+#panel-troops .uvn-sag{ min-width:0 !important; }
+#panel-troops .uvn-ust{
+  display:flex !important; align-items:baseline !important;
+  justify-content:space-between !important; gap:6px !important;
+}
+#panel-troops .uvn-ad{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:12px !important; color:#dff4ff !important;
+  white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+}
+#panel-troops .uvn-dg{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:900 !important; font-size:13px !important; color:#fff !important;
+  font-variant-numeric:tabular-nums !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+}
+#panel-troops .uvn-ray{
+  height:7px !important; margin-top:3px !important;
+  border-radius:5px !important; overflow:hidden !important;
+  background:rgba(4,32,60,.45) !important;
+}
+#panel-troops .uvn-dolu{
+  display:block !important; height:100% !important; border-radius:5px !important;
+  background:linear-gradient(180deg,#7ff08a,#33c65a) !important;
+}
+/* Oyunda karşılığı olmayan satır (Hız · Yük): sönük, çubuk boş */
+#panel-troops .uvn-bos{ opacity:.55 !important; }
+`;
+document.head.appendChild(st);
+})();

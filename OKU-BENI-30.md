@@ -178,6 +178,61 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **BİRLİK EĞİTİM EKRANI REFERANS DÜZENİNE GEÇİYOR — BÖLÜM 1**
+  (`index.html` TroopViewer + `renderUnitStats` · `troops.js` ·
+  `tema.js` `temaBirlikReferans`). Serdar başka bir oyundan iki
+  ekran görüntüsü getirdi. Büyük iş olduğu için ikiye bölündü;
+  bu bölüm **ALT SEKMELER + YAN DÜĞMELER + NİTELİKLER**.
+
+  - **Alt kamp sekmeleri.** Üç aile de her zaman ekranın altında;
+    seçili olan beyaz zeminli ve bir tık yukarı çıkık. Sıra ve
+    simge `troops.js UNIT_ROLES`tan, ad `kislaAdi()`nden gelir
+    (insaat.js `ADLAR`) — dördüncü bir aile listesi açılmadı.
+    **KAPI BİLEREK `aileAc()`:** `go()` KIŞLA KİLİDİ'nde erken
+    dönüyor, yani kışladan girildiğinde sekmeler sessizce ölü
+    kalırdı. `aileAc` kilidi aşan tek yol. **YAN ETKİ:** artık
+    kışladan girince de öbür kampa geçilebiliyor — kilit yalnız
+    kaydırmayı ve okları bağlıyor.
+  - **Sağda iki düğme:** ☰ Nitelikler · ⬆ Terfi. Nitelikler
+    açıkken ☰ geri okuna (↩) döner; ikinci bir kapatma düğmesi
+    konmadı.
+  - **⬆ terfi TUZAK 10 + TUZAK 9 birlikte ısırırdı.** Terfi
+    penceresi `troops.js`te `TroopTabs` IIFE'sinin İÇİNDE
+    (`upgrade`) ve `TroopTabs` üst düzey `const` — `window`a
+    kendiliğinden çıkmıyor. Dışa açıldı (`window.TroopTabs`) ve
+    `upgrade` döndürülen nesneye eklendi. Ayrıca `upgrade`in üç
+    uyarısı (`asker yok` · `en üst kademe` · `kaynak yetmiyor`)
+    `showToast` ile veriliyordu, bildirimler kapalı olduğu için
+    düğme o üç durumda **hiçbir şey yapmamış gibi** görünürdü →
+    `showToastForce`. Düğme SEÇİLİ KADEMENİN kimliğiyle çağırır
+    (`aktifId`), aile kimliğiyle değil.
+  - **Nitelikler ekranı:** yedi satır, çubuklu, iki sütun.
+    Ana ekrandaki dört stat kutusu (`stats-grid`) **kaldırıldı**,
+    değerler buraya taşındı. Tek kaynak `NITELIK` tablosu;
+    değer `UNIT_TYPES`taki alandan okunur, ikinci stat tablosu
+    yok. Çubuğun tavanı sabit değil, o alanın bütün birliklerdeki
+    en büyük değeri (`nitelikTavan`) — kademe sayıları değişince
+    çubuklar kendiliğinden doğru kalır.
+    **HIZ ve YÜK oyunda YOK** (Serdar "sonra eklerim, boş bırak"
+    dedi): alan tanımlı olmadığı için satır sönük ve "—" ile
+    çizilir. `troops.js`e `hiz`/`yuk` yazıldığı gün burada hiçbir
+    şey değiştirmeden dolarlar.
+
+  Ölçüldü (412×820 ve 360×740, 2×): alt çubuk **53,2px**, üç sekme
+  eşit (129,3 / 112), seçili sekme 5px yukarıda ve 5px uzun,
+  hiçbirinde yazı taşması yok · yan düğmeler 46×46, sağ kenardan
+  10px · "Eğit" satırı ile sekme çubuğu arası **12,8px**, çakışma
+  yok · Nitelikler açıkken 7 satır, adet ve Eğit çubuğu gizli,
+  kademe şeridi ekranda, taşma yok · sayfa yatay kaydırması yok.
+  `index.html`in dört satır içi JS bloğu ayrı ayrı `node --check`
+  edildi (dördü de geçti). Fonksiyon adları karşılaştırıldı:
+  yalnız ekleme var, silinen yok.
+
+  **BÖLÜM 2 (sırada):** altıgen kademe rozetleri + roma rakamı +
+  seçilinin altında adet · kaynak kutusu 2×2 (elindeki/gereken) ·
+  Bitir/Eğit düğmelerinin referans rengi ve düzeni · `tema.js`te
+  ölü kalan `#panel-troops .stat-row` kuralları silinecek.
+
 - **BİRLİK EĞİTİM EKRANLARI TAM EKRAN** (`tema.js` `troopPanelV2`).
   Üç aile de (Savunucu · Koruyucu · Nişancı) aynı `.uv-viewer`ın
   içinde durduğu için tek kural üçünü birden kapsıyor — ayrı ölçü
@@ -1017,6 +1072,8 @@ Kaçış: `?egitimkapat=1`.
 
 ## Sıradaki iş
 
+0. **Birlik ekranı BÖLÜM 2** — altıgen kademe rozetleri, kaynak
+   kutusu 2×2, Bitir/Eğit düğme rengi, ölü `stat-row` CSS'i.
 1. **`?botkale=1` deneme kalelerini SİL** (`index.html
    denemeKaleleriHTML`). Kale hizası işi bitti, blok geçiciydi.
 2. **`kale2.webp` / `kale3.webp`** diğer seviyelerle açı olarak

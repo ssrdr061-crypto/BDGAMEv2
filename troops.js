@@ -1858,14 +1858,14 @@ const TroopTabs = (function () {
 
     const sahip = (state.troops && state.troops[unitId]) || 0;
     if (sahip <= 0) {
-      if (typeof showToast === "function") showToast(`Önce ${def.name} eğitmelisin.`);
+      if (typeof showToastForce === "function") showToastForce(`Önce ${def.name} eğitmelisin.`);
       return;
     }
 
     const hedef = terfiHedefi(unitId);
     if (!hedef) {
-      if (typeof showToast === "function") {
-        showToast(`${def.name} zaten en üst açık kademende. Üstünü açmak için ${kislaAdi(def.aile)} yükselt.`);
+      if (typeof showToastForce === "function") {
+        showToastForce(`${def.name} zaten en üst açık kademende. Üstünü açmak için ${kislaAdi(def.aile)} yükselt.`);
       }
       return;
     }
@@ -1874,8 +1874,8 @@ const TroopTabs = (function () {
     if (enFazla < 1) {
       const b = terfiKaynakBirim(unitId, hedef.id);
       const liste = Object.keys(b).map(r => `${KAYNAK_IKON[r] || ""} ${fmt(b[r])}`).join(" · ");
-      if (typeof showToast === "function") {
-        showToast(`Kaynağın yetmiyor. 1 ${hedef.name} için ${liste} gerekiyor.`);
+      if (typeof showToastForce === "function") {
+        showToastForce(`Kaynağın yetmiyor. 1 ${hedef.name} için ${liste} gerekiyor.`);
       }
       return;
     }
@@ -1979,8 +1979,15 @@ const TroopTabs = (function () {
   function onOpen()  { build(); show(window.KISLA_KILIT ? "train" : "units"); }
   function onClose() { clearInterval(tickTimer); }
 
-  return { onOpen, onClose, show, render };
+  return { onOpen, onClose, show, render, upgrade };
 })();
+
+/*  TUZAK 10: üst düzey `const` window'a KENDİLİĞİNDEN ÇIKMAZ.
+    Birlik ekranındaki ⬆ terfi düğmesi (index.html terfiAc)
+    window.TroopTabs.upgrade'i çağırıyor; bu satır olmadan
+    düğme hiçbir hata vermeden HİÇBİR ŞEY yapmazdı.        */
+window.TroopTabs = TroopTabs;
+
 
 
 /* ── OYUNA BAĞLANMA ──────────────────────────────────────────

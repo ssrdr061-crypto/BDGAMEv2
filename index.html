@@ -10186,6 +10186,8 @@ const TroopViewer = (function () {
     if (next) bindTap(next, () => go(idx + 1));
     setupSwipe(viewerEl);
     buildRoles();
+    kampCubuguKur();
+    yanDugmelerKur();
     inited = true;
     apply(true);
   }
@@ -10210,6 +10212,72 @@ const TroopViewer = (function () {
     }).join("");
     box.querySelectorAll(".uv-role").forEach(b => bindTap(b, () => go(parseInt(b.dataset.i, 10) || 0)));
     box.dataset.ok = "1";
+  }
+
+  /*  ── ALT: KAMP SEKMELERİ ──
+      Üç aile de her zaman ekranın altında durur (referans düzeni).
+      Sıra ve simge troops.js UNIT_ROLES'tan, ad kislaAdi()'ndan
+      (insaat.js ADLAR) gelir — burada dördüncü bir aile listesi
+      TUTULMAZ.
+      Kapı bilerek aileAc(): go() KIŞLA KİLİDİ'nde erken döner, yani
+      kışladan girildiğinde sekmeler sessizce ölü kalırdı. aileAc
+      kilidi aşan tek yoldur, sekmeler her girişte çalışır.        */
+  function kampCubuguKur() {
+    if (!viewerEl || viewerEl.querySelector(".uv-kamp")) return;
+    if (typeof UNIT_ROLES === "undefined") return;
+    const bar = document.createElement("div");
+    bar.className = "uv-kamp";
+    bar.innerHTML = UNIT_ROLES.map(r => {
+      const ad = (typeof kislaAdi === "function") ? kislaAdi(r.unit) : r.label;
+      return `<button class="uv-kamp-tab" data-unit="${r.unit}" aria-label="${ad}">` +
+             `<span class="uvk-ico">${r.icon}</span>` +
+             `<span class="uvk-ad">${ad}</span></button>`;
+    }).join("");
+    viewerEl.appendChild(bar);
+    bar.querySelectorAll(".uv-kamp-tab").forEach(b =>
+      bindTap(b, () => { nitelikKapat(); aileAc(b.dataset.unit); }));
+  }
+
+  function syncKamp() {
+    const u = ORDER[idx];
+    document.querySelectorAll("#panel-troops .uv-kamp-tab").forEach(b =>
+      b.classList.toggle("is-active", b.dataset.unit === u));
+  }
+
+  /*  ── SAĞ YAN DÜĞMELER: ☰ Nitelikler · ⬆ Terfi ──
+      Nitelikler açıkken ☰ geri okuna döner; ikinci bir kapatma
+      düğmesi konmadı, aynı düğme iki durumu taşır.               */
+  let _nitelikAcik = false;
+
+  function yanDugmelerKur() {
+    if (!viewerEl || viewerEl.querySelector(".uv-yan")) return;
+    const kutu = document.createElement("div");
+    kutu.className = "uv-yan";
+    kutu.innerHTML =
+      `<button class="uv-yan-btn" id="uvNitelikBtn" aria-label="Nitelikler">☰</button>` +
+      `<button class="uv-yan-btn" id="uvTerfiBtn" aria-label="Terfi">⬆</button>`;
+    viewerEl.appendChild(kutu);
+    bindTap(kutu.querySelector("#uvNitelikBtn"), nitelikCevir);
+    bindTap(kutu.querySelector("#uvTerfiBtn"), terfiAc);
+  }
+
+  function nitelikYaz() {
+    screens.forEach(sc => { if (sc) sc.classList.toggle("nitelik-acik", _nitelikAcik); });
+    const b = document.getElementById("uvNitelikBtn");
+    if (b) b.textContent = _nitelikAcik ? "↩" : "☰";
+  }
+  function nitelikCevir() { _nitelikAcik = !_nitelikAcik; nitelikYaz(); }
+  function nitelikKapat() { if (_nitelikAcik) { _nitelikAcik = false; nitelikYaz(); } }
+
+  /*  TERFİ — troops.js'teki TEK terfi kapısı (TroopTabs.upgrade,
+      onay penceresiyle birlikte). SEÇİLİ KADEMENİN kimliğiyle
+      çağrılır (aktifId), aile kimliğiyle DEĞİL: aksi hâlde Sv3
+      ekranındayken Sv1 terfi ederdi (aynı kök, "Üret" hatasında
+      da bu ısırmıştı).                                           */
+  function terfiAc() {
+    const T = window.TroopTabs;
+    if (!T || typeof T.upgrade !== "function") return;
+    T.upgrade(aktifId(ORDER[idx]));
   }
 
   function syncRoles() {
@@ -10239,6 +10307,7 @@ const TroopViewer = (function () {
       titleEl.textContent = (d && d.name) || NAMES[ORDER[idx]];
     }
     syncRoles();
+    syncKamp();
     if (fullRedraw || !_drawn) { renderUnitStats(); _drawn = true; }
     else syncPortraits();
   }
@@ -10287,11 +10356,61 @@ const TroopViewer = (function () {
     }).join("");
   }
 
+  /*  ── NİTELİKLER — TEK KAYNAK ──
+      ☰ düğmesiyle açılan ekrandaki satırlar. Değer troops.js'teki
+      birlik tanımından OKUNUR, burada ikinci bir stat tablosu
+      tutulmaz: `alan` UNIT_TYPES'taki alanın adıdır.
+      HIZ ve YÜK oyunda henüz YOK — alan tanımlı olmadığı için
+      satır boş çizilir ("—", çubuk boş). troops.js'e `hiz`/`yuk`
+      yazıldığı gün burada hiçbir şey değiştirmeden dolarlar.     */
+  const NITELIK = [
+    { ad: "Güç",         alan: "power",   ikon: "✊" },
+    { ad: "Saldırı",     alan: "attack",  ikon: "🗡️" },
+    { ad: "Savunma",     alan: "defense", ikon: "🛡️" },
+    { ad: "Sağlık",      alan: "hp",      ikon: "❤️" },
+    { ad: "Öldürücülük", alan: "olum",    ikon: "💀" },
+    { ad: "Hız",         alan: "hiz",     ikon: "🏃" },
+    { ad: "Yük",         alan: "yuk",     ikon: "🎒" },
+  ];
+
+  /*  Çubuğun tavanı SABİT YAZILMAZ — o alanın bütün birliklerdeki
+      en büyük değeridir (üç aile × altı kademe). Kademe değerleri
+      değişince çubuklar kendiliğinden doğru kalır. */
+  function nitelikTavan(alan) {
+    let en = 0;
+    try {
+      Object.keys(UNIT_TYPES).forEach(k => {
+        const v = UNIT_TYPES[k] && UNIT_TYPES[k][alan];
+        if (typeof v === "number" && v > en) en = v;
+      });
+    } catch (e) {}
+    return en > 0 ? en : 1;
+  }
+
+  function nitelikHTML(def) {
+    const satir = NITELIK.map(n => {
+      const v = def[n.alan];
+      const bos = (typeof v !== "number");
+      const oran = bos ? 0 : Math.max(0, Math.min(100, v * 100 / nitelikTavan(n.alan)));
+      return `<div class="uvn-satir${bos ? " uvn-bos" : ""}">` +
+               `<span class="uvn-ikon">${n.ikon}</span>` +
+               `<div class="uvn-sag">` +
+                 `<div class="uvn-ust"><span class="uvn-ad">${n.ad}</span>` +
+                 `<span class="uvn-dg">${bos ? "—" : fmt(v)}</span></div>` +
+                 `<div class="uvn-ray"><i class="uvn-dolu" style="width:${oran}%"></i></div>` +
+               `</div></div>`;
+    }).join("");
+    return `<div class="uv-nitelik"><div class="uvn-baslik"><span>Nitelikler</span></div>` +
+           `<div class="uvn-izgara">${satir}</div></div>`;
+  }
+
   function renderUnitStats() {
+    /*  Yalnız hangi ailenin hangi kutuya yazılacağı. Stat adları ve
+        simgeleri buradan ÇIKTI — hepsi tek kaynakta (NITELIK). */
     const STAT_MAP = {
-      knight:  { el: "knightStats",  icons: ["","","",""], labels: ["Saldırı","Can","Savunma","Öldürücülük"] },
-      soldier: { el: "soldierStats", icons: ["","","",""], labels: ["Saldırı","Can","Savunma","Öldürücülük"] },
-      robot:   { el: "robotStats",   icons: ["","","",""], labels: ["Saldırı","Can","Savunma","Öldürücülük"] },
+      knight:  { el: "knightStats"  },
+      soldier: { el: "soldierStats" },
+      robot:   { el: "robotStats"   },
     };
     ORDER.forEach(uid => {
       const cfg = STAT_MAP[uid];
@@ -10359,16 +10478,13 @@ const TroopViewer = (function () {
       }
       html += `</div>`;
 
-      /* ── İSTATİSTİKLER ──
-         4. kutu artık ÖLDÜRÜCÜLÜK. Güç bu satırdan çıktı, sağ üst
-         köşedeki rozete taşındı (seviye bilgisiyle birlikte). */
-      const stats = [def.attack, def.hp, def.defense, def.olum || 0];
-      html += '<div class="stats-grid">';
-      stats.forEach((val, i2) => {
-        const ek = (cfg.labels[i2] === "Güç") ? " stat-row-power" : "";
-        html += `<div class="stat-row${ek}"><span class="stat-ico">${cfg.icons[i2]}</span><span class="stat-name">${cfg.labels[i2]}</span><span class="stat-val">${fmt(val)}</span></div>`;
-      });
-      html += `</div>`;
+      /* ── NİTELİKLER ──
+         Dört stat kutusu ana ekrandan KALKTI (referans düzeni):
+         statlar artık ☰ düğmesiyle açılan Nitelikler ekranında,
+         çubuklu ve yedi satır. Blok her zaman basılır, görünürlüğü
+         .unit-screen'deki `nitelik-acik` sınıfı belirler — açılışta
+         yeniden çizim olmasın diye. */
+      html += nitelikHTML(def);
 
       /* ── EĞİT BÖLÜMÜ ── */
       /* KÖK HATA (düzeltildi): burada `uid` kullanılıyordu. `uid` AİLE
@@ -10630,6 +10746,10 @@ const TroopViewer = (function () {
 
   function show() {
     init();
+    /* Nitelikler ekranı panelle birlikte KAPANIR — açık bırakılırsa
+       oyuncu kışlaya girdiğinde eğitim yerine stat listesi bulur. */
+    _nitelikAcik = false;
+    nitelikYaz();
     requestAnimationFrame(() => { apply(true); });   /* panel açılışında tam çizim */
   }
   function hide() { }
@@ -10638,7 +10758,7 @@ const TroopViewer = (function () {
     let x0 = 0, y0 = 0, tracking = false;
     /* Sürgü, buton, kutu gibi kontrollerin üstünde kaydırma çalışmasın —
        yoksa sürgüyü çekerken diğer birliğe atlıyor. */
-    const NO_SWIPE = "input, button, select, textarea, .uv-portrait, .uv-role, .uv-roles, .unit-qty-bar, .unit-train-bar, .stats";
+    const NO_SWIPE = "input, button, select, textarea, .uv-portrait, .uv-role, .uv-roles, .uv-kamp, .uv-yan, .uv-nitelik, .unit-qty-bar, .unit-train-bar, .stats";
     const inControl = (t) => !!(t && t.closest && t.closest(NO_SWIPE));
 
     el.addEventListener("touchstart", (e) => {
