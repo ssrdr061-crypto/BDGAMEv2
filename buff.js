@@ -882,42 +882,19 @@ document.addEventListener("click", function (e) {
   if (t && (t.id === "mapBackBtn" || t.id === "battleBtn")) { pencereKapat(); detayKapat(); }
 }, true);
 
-/*  ── ÇANTADAN KULLANMA ──
-    Çantadaki güçlendirme kutucuğuna dokununca güçlendirme
-    menüsündekinin AYNI açıklama penceresi açılır: açıklama +
-    KULLAN / GERİ AL. Kart adını, kutucuğun içindeki gizli
-    `.inv-use-btn`'in data-item'ından ya da isim etiketinden okuyoruz
-    (tema.js'teki kaynak paketi penceresiyle aynı yöntem).
+/*  ── ÇANTADAN KULLANMA — KALDIRILDI ──
+    Burada, çantadaki güçlendirme kutucuğuna dokununca güçlendirme
+    menüsünün AYNI penceresini açan bir dinleyici vardı (CAPTURE
+    evresinde, index.html'in kart dinleyicisine sıra gelmesin diye).
 
-    CAPTURE evresinde dinleniyor: index.html'in eski kart
-    dinleyicisine sıra gelmesin. Yalnız `isBoost` ürünlerde araya
-    giriyoruz, diğer eşyalar eskisi gibi akıyor.
+    Çantanın kendi bilgi baloncuğu gelince (index.html cantaBaloncuk)
+    bonus eşyasına dokununca ESKİ tip pencere çıkmaya devam ediyordu:
+    tek panelde iki ayrı pencere modeli. Dinleyici silindi; bonus
+    eşyası artık çantada da satır altı baloncuğunu açıyor ve oradaki
+    "Kahramana Git" düğmesiyle kahraman ekranına gidiliyor.
 
-    NOT: Buff yalnız kahramanı savaşa seçiliyken kullanılabilir.
-    Çantadan bakarken komutan seçili değilse düğme kilitli görünür
-    ve sebebi yazar — kural bilerek korundu, buff boşa gitmesin. */
-document.addEventListener("click", function (e) {
-  const t = e.target;
-  if (!t || !t.closest) return;
-  const kart = t.closest("#invList .inv-card, #invList .shop-card");
-  if (!kart) return;
-
-  let ad = "";
-  const gizli = kart.querySelector(".inv-use-btn");
-  if (gizli && gizli.dataset && gizli.dataset.item) ad = gizli.dataset.item;
-  if (!ad) {
-    const n = kart.querySelector(".item-name");
-    ad = n ? n.textContent.trim() : "";
-  }
-  const u = urunBul(ad);
-  if (!u || !u.isBoost || !u.effect) return;
-
-  e.stopPropagation();
-  e.preventDefault();
-  detayAc(u, function () {
-    try { if (typeof renderInventory === "function") renderInventory(); } catch (err) {}
-  }, true);
-}, true);
+    Güçlendirme menüsünün kendi penceresi (detayAc) DURUYOR —
+    sefere gönderme panelinden açılan yol değişmedi.                */
 
 /* ── 7) DIŞA AÇILANLAR ───────────────────────────────────────── */
 

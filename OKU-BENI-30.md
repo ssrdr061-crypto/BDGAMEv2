@@ -178,6 +178,475 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **Kahraman listesi 4×4** (`kahramanlar.js KLIST_UI.sutun/satir`).
+  Ölçüldü (412×820): 4 sütun × 4 satır, kart 94,8×171,8, ızgarada
+  dikey kaydırma 0, alt şerit (8/8 + Kahraman Al) ekranda.
+
+- **KAHRAMAN DETAYINDAKİ ÇERÇEVE KALDIRILDI.** `tema.js`te
+  `#heroDetailOverlay`e 3px kenar + İKİ iç kabartı + dış parlama
+  yazılıydı; hem görünüm kuralına aykırıydı (3B yok) hem de bu
+  pencereyi oyunun geri kalanından ayrı bir şeymiş gibi
+  gösteriyordu. `kahramanlar.js`teki kart gölgesi de silindi.
+  NOT: pencerenin `z-index`i hâlâ **400** (öbür paneller 50) —
+  "üstüne hiçbir şey binemiyor" hissi buradan geliyor. Dokunulmadı,
+  ayrı bir karar.
+
+- **YETENEK KUTULARININ İLK KARE PARLAMASI — kök bulundu.**
+  Kutuların ölçüsü, çerçevesi ve kaydırması `applyUi()`da yazılıyor;
+  o çalışana kadar tarayıcı kutuları VARSAYILAN hâlleriyle bir kare
+  çiziyordu. Görülen buydu: çerçeveler bir an belirip kayboluyor,
+  üçüncü kutu (kaydırması henüz yok) yukarıda çıkıp yerine
+  zıplıyordu. Kahramanlar arası geçişte DOM baştan yazıldığı için
+  her seferinde tekrarlıyordu.
+  Çözüm: sütunlar `visibility:hidden` başlar, `applyUi` sonunda
+  görünür olur. **`display:none` DEĞİL** — o ölçüyü 0 yapar
+  (Tuzak 14) ve applyUi yanlış hesaplar.
+
+- **KAHRAMAN LİSTESİ ve DETAYI TAM EKRAN** (`heroes.js
+  HERO_UI.kartTamEkran = true`). Tek anahtar ikisini birden açıyor.
+
+  **HİZA SORUNU ve ÇÖZÜMÜ:** yetenek kutuları kartın ortasına SABİT
+  pikselle bağlıydı (`top:50%` + `dy:-150`), kahraman görseli ise
+  kendi ölçüsünü kabuktan alıp 9:16'ya oturuyor. Tam ekranda ikisi
+  FARKLI oranda büyüyor (412×820'de kart ×1,165, model ×1,062), yani
+  kutular karakterden ayrı düşüyordu.
+  Artık bütün kutu ölçüleri MODELE göre ölçekleniyor (`_modelOran`):
+  oran = modelin şimdiki yüksekliği / eski düzendeki yüksekliği.
+  Sütunlar da kartın değil MODELİN kenarından başlıyor — kart tam
+  ekranda modelden geniş olabilir, kart kenarına yaslanınca kutular
+  karakterden uzaklaşıyordu.
+  HERO_UI değerleri OLDUĞU GİBİ kalır, ayar paneli aynı sayıları
+  yazmaya devam eder; yalnız çizerken oranla çarpılırlar. Eski düzen
+  ölçüleri de HERO_UI'dan okunur (kartUst/kartAlt/kartKenar/
+  kartMaxGenislik) — biri değişirse oran kendiliğinden düzelir.
+
+  Hesaplandı (dört ekran boyunda): tam ekranda oran **1,06**,
+  `yan` 8 → 8,5px, `dy` -150 → **-159**; kart modunda oran tam
+  **1,000**.
+  **GERİ DÖNÜŞ TEK SATIR:** `kartTamEkran = false` — ölçekleyici
+  1 döndüğü için hiza birebir eski hâline döner.
+
+- **ÇERÇEVE RENGİ HER EŞYAYA — TEK KAYNAK** (`magaza.js
+  urunCerceve()`). Mağaza kartı da çanta kutucuğu da buradan okur.
+  Dört renk: **yeşil · mavi · mor · turuncu** (değerler `tema.js`
+  `--cr-*`).
+
+  | eşya | renk |
+  |---|---|
+  | 5 dk hızlandırma | yeşil |
+  | 1 saat hızlandırma | mavi |
+  | 3 saat hızlandırma | mor |
+  | İntikal %25 · %50 | mor · turuncu |
+  | kaynak sandıkları (düşük seviye) | yeşil |
+  | tecrübe kitabı | mavi |
+  | kahraman buff'ı ve parçası | **kahramanın nadirliği** |
+
+  **KAHRAMAN EŞYALARI RENGİ İKİNCİ KEZ YAZMAZ:** buff ve parça,
+  rengini `KAHRAMAN.nadirlik()`ten alır (`ssr` → turuncu, `mor` →
+  mor). Kahramanın nadirliği değişirse eşyası da onunla döner.
+  Eski `cantaCerceve` buff'ı HEP mor yazıyordu — turuncu kahramanın
+  buff'ı yanlış renkteydi; o kopya kural silindi, çanta artık
+  `urunCerceve`ye devrediyor.
+
+  **İLERİSİ İÇİN ELLE EZME:** bir ürüne `cerceve: "mavi"` yazmak
+  kuralı geçersiz kılar. Üst seviye kaynaklar gelince onların
+  satırına bu alanı eklemek yeter — "kaynak = yeşil" kuralını
+  değiştirmeye gerek yok, mevcut düşük seviye kaynaklar yeşil kalır.
+
+  **PALETİN KAPSAMI KALDIRILDI:** `.cr-*` sınıfları yalnız
+  `#panel-inventory` altında tanımlıydı; mağaza kartına aynı sınıfı
+  verince renk gelmiyordu. Artık sınıf nerede kullanılırsa orada
+  çalışıyor.
+  Çerçeve mağazada da ürün GÖRSELİNİN çevresinde duruyor, kartın
+  dışında değil — kart zaten koyu mavi bir kutu, dış kenarını
+  boyamak on iki kartı yan yana kirli gösteriyordu.
+
+  Sınandı: 28 ürünün hepsi tek tek listelendi, hepsi kurala uydu.
+  Market **3 sütuna** döndü (412×820: kart 122,7×118,4, hepsi eşit,
+  ızgara taşması 0).
+
+- **Tuzak 27 için KALICI DENETİM.** Şablon dizgisi içindeki yoruma
+  ters tırnak koymak bu turda DÖRDÜNCÜ kez dosyayı çökertti.
+  Artık `tema.js` · `magaza.js` · `buff.js` · `kahramanlar.js` ·
+  `heroes.js` dosyalarındaki `textContent = ...` bloklarının
+  içindeki yorumları tarayan bir denetim var; ters tırnak bulursa
+  dosya ve satır numarasıyla söylüyor.
+
+- **MARKET TAM EKRAN + 4 SÜTUN.** Çantayla aynı kalıp: panel ekranın
+  tamamı, başlık/yenilenme/sekmeler üstte, yalnız ürün ızgarası kayar.
+  Sütun 3 → **4** (tam ekranda üç sütun kartları gereksiz şişiriyordu).
+  **KÖK (Tuzak 38, çantadakinin aynısı):** tam ekran kuralını yazmak
+  yetmiyor — `#panel-hospital, #panel-chest, #panel-shop` ortak bloğu
+  DAHA SONRA gelip 60/12/70 boşluğu ve `max-width:420px`i geri
+  koyuyor. Market o listeden **çıkarıldı**; hastane ve sandık aynen
+  kaldı. Ayrıca "panel çerçeveleri" bloğundan da çıkarıldı: ekranın
+  dört yanına 2px çerçeve çizmenin anlamı yok.
+  Ölçüldü (412×820): kart **412×820 = tam ekran** · **4 sütun** ·
+  on iki kartın hepsi aynı ende (89,5×99,2) · ilk satırda 4 kart ·
+  fiyat düğmesi karta sığıyor · ızgara taşması 0 · sayfa yatay
+  kaydırması yok.
+
+- **KAHRAMAN EKRANLARI AYRI BÖLÜME BIRAKILDI — sebebi ölçüldü.**
+  `HERO_UI.kartTamEkran` anahtarı hem listeyi hem detayı tek seferde
+  tam ekran yapıyor, ama detay ekranında HİZA KIRILIYOR:
+  - Yetenek kutuları kartın DİKEY ORTASINA sabit pikselle bağlı
+    (`top:50%` + `translateY(box.dy)`, dy = -150px).
+  - Kahraman görseli ise kendi ölçüsünü kabuktan alıp **9:16'ya
+    oturuyor** (`ch0 = min(vh, vw*16/9)`).
+  412×820'de: kart yüksekliği 704 → 820 (**×1,165**) ama model
+  689,8 → 732,4 (**×1,062**) büyüyor. İki oran farklı olduğu için
+  kutular karakterden ayrı düşer — sabit dy'yi kart oranıyla da
+  model oranıyla da çarpmak yanlış sonuç verir.
+  **DOĞRU ÇÖZÜM (sıradaki iş):** kutuları kartın ortasına değil
+  MODELİN kutusuna bağlamak — yetenek sütunlarını model görseliyle
+  aynı ölçüdeki (cw0×ch0) bir sarmalın içine almak. O zaman bütün
+  dx/dy değerleri modele göre olur ve her ekran boyunda kendiliğinden
+  uyar; sihirli oran gerekmez.
+
+- **BALONCUK AÇIKLAMALARI: TEK CÜMLE, SİMGESİZ** (`magaza.js
+  kisaAciklama()`). Çanta ve mağaza baloncukları artık tam metni
+  değil YALNIZ İLK CÜMLEYİ, simgesiz hâlde gösteriyor; tam metin
+  satın alma penceresinde duruyor. İki ayıklama var: HTML etiketleri
+  (elmas/kaynak GÖRSELİ innerHTML'e basılıyor, düz metne düşünce ham
+  `<img>` görünür) ve emoji.
+
+  **İLK CÜMLE NOKTA + BOŞLUK ile ayrılır, düz nokta ile DEĞİL:**
+  Türkçe binlik ayracı da nokta ("5.000 Demir") — düz noktadan
+  bölünce metin "5." diye kesiliyordu.
+
+  **İLK CÜMLE ANLAMLI OLMALI** — iki açıklama bu yüzden yeniden
+  yazıldı: kalkan "Çantana düşer." ile başlıyordu (baloncukta
+  kalkanın ne yaptığı hiç yazmıyordu) → "Kalen 6 saat saldırıya
+  kapanır."; tecrübe kitabı da aynı şekilde → "Kahramanın tecrübe
+  seviyesini yükseltir." Can potundaki "(envanterine düşer)" eki
+  silindi.
+  Sınandı: Demir Sandığı "5.000 Demir doğrudan kaynaklarına
+  eklenir." · Mor Parça / Buzul Özü / İntikal %25 hepsi tek cümle.
+
+- **Hızlandırma açıklaması düzeltildi.** "Eğitim/iyileşme süresini
+  1 saat kısaltır" yazıyordu; oysa GENEL hızlandırma, şehirdeki
+  bekleyen işe uygulanıyor. Artık yalnız süreyi söylüyor:
+  **"1 saat hızlandırır."** · **"5 dakika hızlandırır."**
+
+- **Bonus eşyasının ESKİ penceresi çantadan kaldırıldı** (`buff.js`).
+  Çantada bonus kutucuğuna dokununca güçlendirme menüsünün kendi
+  penceresi açılıyordu (capture evresinde dinleyen ayrı bir blok):
+  tek panelde iki ayrı pencere modeli. Dinleyici **silindi**; bonus
+  eşyası artık çantada da satır altı baloncuğunu açıyor ve oradaki
+  "Kahramana Git" düğmesiyle kahraman ekranına gidiliyor.
+  Güçlendirme menüsünün kendi penceresi (`detayAc`) DURUYOR —
+  sefere gönderme panelinden açılan yol değişmedi.
+
+- **MAĞAZA BİLGİ PENCERESİ ÇANTAYLA AYNI KALIBA ALINDI** (`magaza.js`
+  `showShopInfoPopup`, stil `tema.js`).
+  İki panelde iki ayrı bilgi penceresi vardı: çantada satır altı
+  açık baloncuk, mağazada karta göre MUTLAK konumlanan koyu kutu
+  (`.shop-info-pop` + `positionShopPopup`). İkincisi kartın üstüne
+  biniyor, ızgara kayınca kartından ayrı düşüyordu — o yüzden
+  "kaydırınca kapat" diye ayrı bir çare yazılmıştı.
+  Artık mağaza baloncuğu da ızgaranın bir HÜCRESİ (`.shop-pop`,
+  `grid-column:1/-1`): kartın satırının altına girer, kayınca
+  kartıyla birlikte gider. Kaydırınca kapatma **silindi**, gereksiz
+  kaldı. `positionShopPopup` ve ölü `.shop-info-pop` CSS'i de silindi.
+
+  **SATIR GEOMETRİDEN BULUNUR, sütun sayısından DEĞİL:** mağaza
+  ızgarasında ara başlıklar (`.shop-tier-header`) satırın tamamını
+  kaplıyor, "her satırda üç kart" varsayımı kırılır. Aynı
+  `offsetTop`taki son kart aranır. Ok da sabit sütun oranıyla değil,
+  kartın ölçülen ortasından YÜZDE olarak (`--ok`) yazılır.
+
+  Ölçüldü (412×820): baloncuk ızgarayı kaplıyor (340/344) · kartın
+  satırının ALTINDA · ok sapması **0,0 px** · zemin çantadakiyle
+  aynı (`rgba(233,246,255,.96)`) · seçili kartta köşe işaretleri ·
+  sayfa yatay kaydırması yok.
+
+  **Tuzak 27 ÜÇÜNCÜ KEZ ısırdı:** `tema.js`teki şablon dizgisinin
+  içine yazdığım yoruma ters tırnak koydum (`.inv-pop`), dosya
+  çöktü. `node --check` yakaladı. Ayrıca `magaza.js`in enjekte
+  ettiği CSS dizgisinden ölü kuralı silerken yorumu kapatmayı
+  unuttum — dizgiyi ayrıştırıp yorum aç/kapa sayısını saymak
+  yakaladı (6/5). Bu dosyada CSS bir DİZGİ içinde, `node --check`
+  onu görmez.
+
+- **ÇANTA — KUTUCUK ŞERİTLERİ VE BOŞ SEKME.**
+  - **Anlamsız "1" rozeti kalktı.** Kök `magaza.js urunRozeti()`in
+    son satırıydı: eşleşmeyen her ürüne `return "1"`. Bonus eşyası,
+    kahraman parçası, tecrübe kitabı ve donanımın "ne kadar verdiği"
+    diye bir sayısı yok — kutucuğun üstünde anlamsız bir 1 duruyordu,
+    kaç tane olduğu zaten alt şeritte yazıyor. Artık **boş** döner.
+    Mağaza kartı boş rozet istemiyor, orada `urunRozeti(item) || "1"`
+    ile doldurulur — tek kaynak korundu.
+    Sınandı: kaynak "10K" · hızlandırma "5dk" · kalkan "6sa" ·
+    intikal "%25" · bonus/parça/kitap **""**.
+  - **Şeritler düz oldu.** Üstteki rozet "gittikçe kararan" bir
+    gradyan perdeydi, çizimin üstünde kirli bir leke gibi duruyordu.
+    Alttaki adet ise çıplak beyaz rakamdı ve okunsun diye **sekiz
+    yönlü kalın kontur gölgesi** taşıyordu — hem ağır, hem 3B'siz
+    görünüm kuralına aykırı.
+    **ÜSTTEKİ** artık düz, yarı saydam siyah bant
+    (`rgba(0,0,0,.42)`), ortalı, punto 11 → **12,5**.
+    **ALTTAKİNE ŞERİT KONMADI** (denendi, istenmedi: çizimin alt
+    kenarını kapatıyordu) — rakam doğrudan görselin üstünde, sağ
+    altta durur. Eski sekiz yönlü kontur GERİ GELMEZ; okunurluğu
+    tek, yumuşak bir gölge sağlar.
+  - **Boş sekmede hiçbir şey yazmıyor.** Örümcek ağı + "Bu bölümde
+    eşyan yok" satırı dört sütunluk ızgaranın TEK hücresine sıkışıp
+    kelime kelime alt alta diziliyordu. Boş ızgara zaten kendini
+    anlatıyor.
+
+- **ÇANTA — BÖLÜM 2: SATIR ALTI BALONCUĞU** (`index.html`
+  `cantaBaloncukHTML` / `cantaBaloncukBagla` / `cantaEsyaKullan`).
+
+  **KÖK (eski durum):** `tema.js`'te yakalama evresinde çalışan bir
+  dinleyici vardı; kutucuğa dokununca MAĞAZANIN satın alma
+  penceresinin kopyasını açıyordu ve yalnız **kaynak paketiyle
+  kalkanı** tanıyordu. Parça, tecrübe kitabı ve bonus eşyalarına
+  dokununca **hiçbir şey olmuyordu** — üstelik sessizce, çünkü
+  `if (!d.isKaynak) return;` diyip çıkıyordu.
+  O blok (235 satır) **silindi**, ikinci dinleyici bırakılmadı:
+  yakalama evresinde çalıştığı için yenisine hiç sıra gelmezdi.
+
+  - Baloncuk, dokunulan kutucuğun **satırının altına** eklenir ve
+    satırın tamamını kaplar (`grid-column:1/-1` ŞART — ızgara dört
+    sütunlu, verilmezse baloncuk tek hücreye sıkışır). Ok, dokunulan
+    kutucuğun ortasını gösterir: sütun (n+0,5)/4.
+    Ölçüldü: ok ile seçili kutucuğun merkezi arasında **0,9 px**.
+  - **Kullanım kuralı TEK YERDE** — `cantaKullanim(def)`:
+    `adet` (sürgüyle kaç tane: kaynak, parça) · `tek` (kalkan, can
+    potu) · `git` (bonus ve tecrübe kitabı → **Kahramana Git**,
+    `openOverlayPanel("hero")`) · `yok`.
+    Kahraman parçası ve kitabı böylece çantadan kullanılabilir oldu.
+  - Açıklama `magaza.js shopItemDesc()`ten gelir — mağaza baloncuğu
+    da aynı metni okur, ikinci bir açıklama tablosu açılmadı.
+  - Sürgü hızlandırma penceresiyle aynı dil: konum piksel, tutamak
+    kulp, yarı genişlik (9) JS ile CSS'te aynı.
+  - Aynı kutucuğa tekrar dokunmak baloncuğu kapatır; sekme
+    değişince de kapanır. Seçili eşya o sekmede değilse baloncuk
+    kendiliğinden düşer.
+
+  **TUZAK 10 BURADA ISIRDI:** parça havuzuna yazan işlevi
+  `window.parcaEkleAnahtar` diye çağırmıştım — `gelistir.js` onu
+  **`window.parcaEkle`** adıyla açıyor (içerideki adı
+  `parcaEkleAnahtar`). Yanlış adla çağrılsaydı hiçbir hata çıkmaz,
+  parça çantadan düşer ama havuza HİÇ girmezdi.
+
+  `itemCard`'a `data-name` eklendi: baloncuk eşyayı bundan bulur.
+  Eskiden ad ekrandaki yazıdan okunacaktı, o yazı iki satırda
+  kırpıldığı için eşleşme kaybolurdu.
+
+  Ölçüldü (412×820): baloncuk satırı kaplıyor (382/370) · satırın
+  ALTINDA · ok sapması 0,9 px · seçili kutucukta köşe işaretleri ·
+  sayfa yatay kaydırması yok.
+
+- **ÇANTA — BÖLÜM 1: TAM EKRAN + SEKMELER + ROZET** (`index.html`
+  `renderInventory` · `magaza.js` · `tema.js` çanta bloğu).
+  Referans oyundaki düzene geçiş. Büyük iş olduğu için ikiye
+  bölündü; bu bölüm ÇERÇEVE, ikinci bölüm BALONCUK.
+
+  - **Tam ekran.** Çanta alttan çıkan 420px'lik bir karttı.
+    **KÖK (Tuzak 38):** tam ekran kuralını yazmak yetmedi —
+    `#panel-hospital, #panel-chest, #panel-shop, #panel-inventory`
+    ortak bloğu DAHA SONRA geldiği için 60/12/70 boşluğu ve
+    `max-width:420px`i geri koyuyordu. Ezme üstüne ezme yazmak
+    yerine **çanta o listeden çıkarıldı**; diğer üç panel aynen
+    kaldı. Ölçüldü: kart 412×820 = ekranın tamamı.
+  - **Beş sekme:** Kaynaklar · Hızlandırma · Bonus · Donanım · Diğer.
+    Hangi eşyanın hangi sekmeye düştüğüne `magaza.js cantaSekmesi()`
+    karar verir — TEK KAYNAK, çantada ikinci bir tablo yok.
+    Tanımı olmayan anahtar "Diğer"e düşer, eski kayıttan kalan eşya
+    sekmesiz kalıp görünmez olmaz.
+    Açık sekme `state`e YAZILMAZ (Tuzak 7): ekranda anlamı olan bir
+    seçim, `compactStateForExport`a dokunulmadı.
+  - **ROZET (sol üst):** eşyanın NE KADAR verdiği ("10K", "5 dk").
+    Sağ alttaki sayı KAÇ TANE olduğu — ikisi ayrı şey, ayrı köşede.
+    Hesap `magaza.js urunRozeti()`nde: mağaza kartı da çanta
+    kutucuğu da oradan okur. Mağazadaki satır içi hesap silindi,
+    yoksa aynı eşya mağazada "10K", çantada "10.000" görünürdü.
+  - Üstteki "Toplam Elmas / Farklı Eşya" özet kartları ve
+    açıklama satırı SİLİNDİ (sekme çubuğu geldi); elmas zaten üst
+    şeritte duruyordu. `#invDiamonds`/`#invItemCount` yazan JS de
+    temizlendi. **NOT:** `?elmasayar=1` panelinin "canta" satırı bu
+    özet kutusunun `::before`ini sürüyordu — artık öyle bir kutu
+    yok, o satır boşa çalışıyor (çökme yok).
+
+  Ölçüldü (412×820): tam ekran ✔ · 4 sütun · kutucuk 90×90 ·
+  rozet ile adet çakışmıyor · beş sekme aynı boyda, hiçbirinde
+  yazı taşması yok · sayfa yatay kaydırması yok.
+
+  **BÖLÜM 2 (sırada):** kutucuğa dokununca SATIRIN ALTINDA açılan
+  açıklama baloncuğu (başlık + kısa açıklama + sürgülü adet +
+  Kullan), kahraman parçasının ve kahraman kitabının çantadan
+  kullanılabilmesi (kitap kahraman sayfasına atar), seçili
+  kutucuğun köşe işaretleri.
+
+- **Hızlandırma kutucuğu: ÇİZİLMİŞ ÇERÇEVE KALDIRILDI.**
+  Kök şuydu: hızlandırma görsellerinin KENDİ çerçevesi var
+  (yeşil/mavi/mor kenarlı kare çizimler, 1024×1024). Altına bir de
+  kutu çiziliyordu — iki çerçeve üst üste biniyor, üstelik kutu
+  kare olmadığı için görsel kırpılıyor/eziliyordu. `cover`→`contain`
+  yetmedi, asıl sorun kutunun kare OLMAMASIYDI.
+  Artık: kutu **62×62 gerçek kare**, `background:none`, `border:none`;
+  kare görsel kare kutuda `contain` ile kutuyu TAM doldurur ve
+  hiçbir kenarı kesmez. Görselsiz hızlandırma (⏩) yüzer kalmasın
+  diye yalnız ona zemin verilir (`hsm-gorselsiz`).
+  Ölçüldü: görsel 1024×1024 → ekranda 62×62, kutuyu tam dolduruyor,
+  çizilmiş zemin `none`, kenar `0px`.
+- **Seçili hızlandırma: sarı çerçeve değil KÖŞE İŞARETLERİ.**
+  Sarı kenar görselin kendi çerçevesinin üstüne biniyor, ikisi
+  birbiriyle yarışıyordu. Referanstaki gibi dört köşe işareti
+  (`.hsm-ci-sec`, sekiz gradyan — her köşede bir yatay bir dikey
+  çubuk), kutunun 3px dışında.
+  **Tuzak 13 burada ısırdı:** `.hsm-cards` `overflow-x:auto`, ve o
+  yatayda olduğu KADAR dikeyde de kırpıyor — köşe işaretlerinin
+  üst/alt uçları kesiliyordu. Izgaraya 4px pay verildi.
+- **Düğmeler kısaldı, BİTİR ile KULLAN EŞİT ölçüde.**
+  Flex ile iki deneme de tutmadı: `1 1 0` ikisini satırın tamamına
+  yayıyor, `0 1 auto` her birini kendi yazısı kadar yapıyordu
+  (BİTİR 86, KULLAN 104 — eşit değil).
+  Izgara ikisini birden çözer: `width:max-content` ızgaranın enini
+  içeriğe göre belirler, `1fr 1fr` o eni ikiye EŞİT böler; yükseklik
+  zaten hücrelerin birbirine gerilmesinden eşit geliyor.
+  Aralarında 14px boşluk. HIZLI KULLAN tam genişlik değil, ortada.
+  Ölçüldü (kart eni 346): BİTİR **104×39** · KULLAN **104×39**
+  (en ve boy birebir aynı) · HIZLI KULLAN **154×32** px.
+- **Hızlandırma penceresi — kutucuk görseli ve düğme genişliği.**
+  Kutucuğun genişliği yazıya bağlanınca kutu kare olmaktan çıktı
+  ama görsel hâlâ `object-fit:cover` ile geriliyordu: oklar ezik
+  görünüyordu. Görsel artık `contain` ve etiket şeridinin ALTINA
+  oturuyor (`top:20px`), oran hiç bozulmuyor. Kutucuk 62 → **66px**,
+  taban genişlik 48 → **58px**.
+  Düğmeler `flex:1 1 0` ile zorla yarı yarıya bölünüyordu;
+  "BİTİR 💎 1.480" sıkışırken "KULLAN" boş duruyordu. `flex:1 1 auto`
+  ile her düğme önce kendi yazısı kadar yer alıyor.
+  **Tuzak 27 tekrar ısırdı:** `tema.js`teki şablon dizgisinin içine
+  yazdığım yoruma ters tırnak koydum, dosya çöktü. `node --check`
+  yakaladı.
+
+- **HIZLANDIRMA PENCERESİ ELDEN GEÇİRİLDİ** (`index.html`
+  `hizlandirmaPenceresi` + `tema.js temaHizlandirSade`).
+  Serdar başka bir oyundan referans getirdi; sekiz ayrı şikâyetin
+  her biri ayrı bir kökten geliyordu:
+
+  1. **Kutucukta süre yazmıyordu.** Şablon `x.gorsel ? img :
+     etiket + ikon` diye kuruluydu — mağaza görseli OLAN
+     hızlandırmalarda "5 dk" etiketi hiç basılmıyordu, üstelik
+     `tema.js` görseli `inset:0` ile kutuya yayıyordu. Etiket artık
+     HER ZAMAN basılıyor, kutunun üstünde, altında koyu perdeyle
+     (açık renkli görselde yazı kayboluyordu).
+  2. **Barda "1dk 58sn" yazıyordu.** `sureBicim` harfli ve değişken
+     genişlikte. Yeni `saatBicim(ms)` → **`00:01:32`**, her alan iki
+     hane; `tabular-nums` ile rakam değişirken yazı kıpırdamıyor.
+     `sureBicim`e DOKUNULMADI — kuyruk ve kışla rozeti onu okumaya
+     devam ediyor.
+  3. **Bar kabaydı:** 28px/köşe 9 → **22px/köşe 11**, uçları tam
+     yuvarlak, yazı 15px/900 → 13,5px/800.
+  4. **SINIRSIZ SEÇİM — asıl hata.** `enFazla` yalnız envantere
+     bakıyordu: 2 dakikalık kuyrukta 8 tane 1 saatlik seçilebiliyor
+     ve fazlası karşılıksız yanıyordu. Artık
+     `min(envanter, ceil(kalan / birim))`. Tavan `ceil` olduğu için
+     SON parçanın taşması hâlâ serbest (24 sn kalmışken 5 dakikalık
+     kullanmak yasak değil); yasaklanan üst üste yığmak.
+     Sınıra dayanınca −/+ sönüyor.
+  5. **"Hızlandırma Süresi" satırı geri geldi.** `#hsmTotal` bir ara
+     HTML'den silinmiş, `tazele()` içindeki hesap ise kalmıştı —
+     öğe bulunamadığı için sessizce boşa çalışıyordu.
+  6. **−/+ kutuları:** 36×32 sarı dikdörtgen → **30px daire**, düz
+     renk, sürgüye yer açıldı.
+  7. **Sürgü topu kalktı:** yuvarlak top yerine referanstaki gibi
+     **dikey yivli kulp** (18×24, köşe 6, iki yiv `::before/::after`).
+  8. **Düğmeler inceldi:** `min-height` 40 / hızlı kullan 36,
+     dolgu ve harf aralığı düşürüldü.
+
+  **TEK KAYNAK — SURGU_YARI:** tutamağın yarı genişliği (9) iki
+  yerde kullanılıyor, çizim (`tazele`) ve dokunma (`oranOku`).
+  Eskiden ikisinde de elle `11` yazılıydı; biri değişip diğeri
+  unutulursa tutamak parmağın altından kaçar. Artık tek `const`,
+  ve CSS'teki `.hsm-thumb` genişliğinin yarısı olmalı.
+
+  **EZME DEĞİL, SİLME (Tuzak 38):** bu pencerenin CSS'i İKİ yerde —
+  `index.html` tabanı ve `tema.js`in `!important`li ezmesi. Yeni
+  ölçüler tabana yazıldı, `tema.js`te artık çelişen kurallar
+  (bar yüksekliği/yazısı, `hsm-step` gölgesi, `hsm-btn` dolgusu,
+  `hsm-finish`/`hsm-use`/`hsm-quick` punto ezmeleri) **silindi**.
+  `tema.js`te yalnız konum/çerçeve işi kaldı. Üçüncü katman
+  açılmadı.
+
+  **İKİNCİ TUR — referans görsele göre rötuş ve İKİ KÖK HATA:**
+
+  - **✕ hizasızdı.** `.overlay-close` mutlak konumluydu ve süre
+    çubuğu onun altına girmesin diye `calc(100% - 52px)` ile
+    daraltılıyordu — sihirli sayı, üstelik ✕ çubukla hizalı değil.
+    İkisi artık tek flex satırında (`.hsm-head`); hizayı düzen
+    kuruyor, 52px silindi. ✕ 38 → **30px**.
+    Ölçüldü: çubuk ile ✕'in dikey merkez farkı **0,00 px**.
+  - **TUTAMAK RAYDAN TAŞIYORDU — sıralama hatası.** `tazele()` önce
+    sürgüyü konumlandırıp SONRA adet kutusunun genişliğini rakam
+    sayısına göre yazıyordu. İkisi aynı flex satırında: kutu
+    genişleyince ray daralıyor, ama tutamak eski genişliğe göre
+    yerleştirilmiş kalıyordu. Yani 9 → 10 geçişinde tutamak raydan
+    çıkıyordu (ölçüldü: **7,5 px** taşma). Kutu artık ÖNCE yazılıyor,
+    ray SONRA ölçülüyor.
+    İkinci ayrışma: çizim `clientWidth` (tam sayı) okurken `oranOku`
+    kesirli `getBoundingClientRect` okuyordu — sağ uçta yarım piksel
+    taşma (209 ↔ 208,5). İki yol da aynı kaynaktan okuyor.
+    Ölçüldü: iki uçta da taşma **0,0 px**.
+  - **Kart genişliği yazıya uyuyor.** Sabit 66px kareydi. Genişliği
+    belirleyen şey etiketin AKIŞTA olması — mutlak konumlu öğe
+    kapsayıcının genişliğine katılmaz, etiket eskiden öyleydi.
+    Ölçüldü: "1 dk" 48px · "10 dk" **54,4px**, hiçbirinde yazı
+    taşması yok.
+  - BİTİR sarı → **turuncu** (`#ff9d3c → #ef6f14`); sarı, mağazanın
+    elmas düğmeleriyle karışıyordu.
+  - Süre çubuğu 22 → **18px**, yazı 13,5 → 12px.
+  - −/+ daire → **yuvarlatılmış kare** (köşe 9px), referanstaki gibi.
+  - Düğmeler inceldi: `min-height` 40 → **34** (BİTİR/KULLAN 39px),
+    HIZLI KULLAN 36 → **32px**, puntolar düşürüldü.
+
+  Ölçüldü (412px, 2×): kart 62 boy · etiket görünür ("1 dk") ·
+  bar 18px · −/+ 30×30 · tutamak 18×24 ve **ray içinde** ·
+  BİTİR/KULLAN 156×39 · HIZLI KULLAN 320×32 · kartlar yatayda
+  taşmıyor (320/320) · sayfa yatay kaydırması yok (412).
+  `index.html`in dört satır içi JS bloğu ayrı ayrı `node --check`
+  edildi (dördü de geçti; kalan dokuz blok `type="text/plain"` 3B
+  verisi, belgedeki 13 sayısı bunlarla birlikte).
+  Fonksiyon adları karşılaştırıldı: tek fark eklenen `saatBicim`.
+
+- **"GÜÇ +N" ŞERİDİ: TEK ŞERİT, TEK HİZA + PARLAMA** (`gucefekt.js`,
+  `gucefekt-1` → **`gucefekt-2`**).
+
+  **Hiza — kök sebep:** şerit her çağrıda YENİDEN yaratılıyordu ve
+  üst üste binmesin diye ekrandaki canlı şerit sayısına göre aşağı
+  kaydırılıyordu (`yuva = canlilar.length * 46`). Arka arkaya kışla
+  toplayınca şeritler 0 / 46 / 92 px'te çıkıyor, üstelik ilk şerit
+  söndükten sonra ikincisi kaydırılmış yerinde kalıyordu — "hepsi
+  aynı hizada gelmiyor" tam buydu.
+  Çözüm ekrandaki şeridi TEKE indirmek: yeni güç dururken gelirse
+  ikinci kutu çizilmez, mevcut şeridin sayısı **toplanır**, girişi
+  atlanır (`dogum = simdi() - GIR`), bekleme ve parlama baştan
+  başlar. `yuva` ve `canlilar` dizisi tamamen silindi; geri
+  koyulursa hiza da geri bozulur.
+  ÖLÇÜLDÜ (412×915, ekran ortası 206 / 457,5): üç toplama arka
+  arkaya → şerit adedi hep **1**, merkez üçünde de **206,0 / 457,5**,
+  dikey yayılma **0,00 px**, yatay **0,00 px**; aralıklı üç
+  toplamada da aynı. Sönme sonrası kalan şerit 0.
+
+  **Parlama:** şerit girdikten sonra içinden soldan sağa bir ışık
+  hüzmesi kayar. Tuzak 11 gereği CSS animasyonu değil, aynı
+  `requestAnimationFrame` döngüsünde. `PARLA_BEK 90` · `PARLA_SURE
+  560` · `PARLA_EN 104`; toplamı `GIR + DUR`u geçmez, yoksa ışık
+  şerit sönerken yolda kalır.
+  İki incelik: (1) ışık `.ge-parla-kutu` içinde ve arka planla AYNI
+  kenar solmasıyla (`mask-image`, 17%/83%) maskelenir — şeridin uçları
+  saydam olduğu için maskesiz bırakılırsa boşlukta yüzen beyaz bir
+  leke görünür; (2) gradyan tek duraklı değil, **keskin çekirdek +
+  geniş yumuşak etek** (.10/.30/.78/.30/.10) — tek duraklı hâli
+  ekranda ışık gibi değil "biraz açılmış zemin" gibi duruyordu.
+  Maske desteklenmeyen tarayıcıda da leke kalmasın diye ışığın kendi
+  saydamlığı yolun ilk ve son %22'sinde sönümlenir.
+  ÖLÇÜLDÜ: ışık şeridin sol kenarının dışından (x -43px) girip sağ
+  kenarının dışına (x 208px, şerit eni 157px) çıkıyor, yön **soldan
+  sağa**, görünür süre **508 ms**, şerit sönmeye başlamadan bitiyor.
+
 - **KALELER ARASI 1 KARO BOŞLUK** — `koordinat.js` `KALE_BOSLUK = 1`.
   Kaleler 2×2. Eskiden bitişik durabiliyorlardı; artık aralarında
   en az bir karo boş kalıyor.
@@ -532,20 +1001,34 @@ Kaçış: `?egitimkapat=1`.
 
 ## Sıradaki iş
 
-1. **Elmas B grubu** — `textContent` ile yazılan altı yer (Tuzak 23).
+1. **`?botkale=1` deneme kalelerini SİL** (`index.html
+   denemeKaleleriHTML`). Kale hizası işi bitti, blok geçiciydi.
+2. **`kale2.webp` / `kale3.webp`** diğer seviyelerle açı olarak
+   uyumsuz — yeni görsel arayışı sürüyor.
+3. **Kahraman detayının `z-index`i 400**, öbür paneller 50. "Üstüne
+   hiçbir şey binemiyor" hissi buradan; hizalanacaksa ayrı karar.
+4. **Etiket panelinin DÜĞÜM (%) bölümü** hiç işlenmedi
+   (`harita.js CFG.etiket`).
+5. **Bozgun eşiği + `hafifTaban`** birlikte tekrar gözden geçirilebilir.
+6. **Mağazanın satın alma penceresi** (`.bd-buy-mask`) hâlâ eski
+   model: ekranın ortasında açılan pencere. Bilgi baloncukları
+   çanta kalıbına geçti, satın alma akışı geçmedi.
+7. **Elmas B grubu** — `textContent` ile yazılan altı yer (Tuzak 23).
    Eğitim düğmeleri en kritiği: işaretleme ve güncelleme birlikte düzeltilmeli.
-2. `?elmasayar=1` panelini sil — `tasima`, `rehber`, `canta` ayarlandıktan sonra.
-3. Elmas görseli kırpılma denetimi: mağaza kartları, inşaat düğmeleri, kahraman listesi.
-4. `egitim.js savasZinciri()` oyunda sınansın; çalışmıyorsa kaldır. Bitişte
+8. `?elmasayar=1` panelini sil — `tasima`, `rehber` ayarlandıktan sonra.
+   **`canta` satırı zaten ölü:** çantanın elmas özet kutusu kalktı,
+   o satırın sürdüğü `::before` artık yok.
+9. Elmas görseli kırpılma denetimi: mağaza kartları, inşaat düğmeleri, kahraman listesi.
+10. `egitim.js savasZinciri()` oyunda sınansın; çalışmıyorsa kaldır. Bitişte
    Revolia kapanış paneli yazılmadı.
-5. `tema.js` CSS ezme temizliği: enjeksiyonlara `id` ver → listele → değerleri
+11. `tema.js` CSS ezme temizliği: enjeksiyonlara `id` ver → listele → değerleri
    eşitle → eskileri sil → `menuGirisDuzles` yamasını kaldır.
-6. JetBrains Mono'yu ayıkla (30+ satır). **Toplu değiştir-bas yapma.**
-7. `mizrakci.webp` eksik (Koruyucu Sv1 boş). Arka planı renk **eşiğiyle** değil
+12. JetBrains Mono'yu ayıkla (30+ satır). **Toplu değiştir-bas yapma.**
+13. `mizrakci.webp` eksik (Koruyucu Sv1 boş). Arka planı renk **eşiğiyle** değil
    renk **oranıyla** ayır.
-8. İnşaat dengesi ve sefer kapasitesi rakamları oyunla sınanmadı.
-9. Araştırma binası seviyeleniyor ama seviyesi hiçbir şeye bağlı değil.
-10. Terfi sistemi yok (Sv2+ edinilemez) · tedavi süresi ordu ölçeğinde saçmalıyor ·
+14. İnşaat dengesi ve sefer kapasitesi rakamları oyunla sınanmadı.
+15. Araştırma binası seviyeleniyor ama seviyesi hiçbir şeye bağlı değil.
+16. Terfi sistemi yok (Sv2+ edinilemez) · tedavi süresi ordu ölçeğinde saçmalıyor ·
     sıralama tüm `accounts`'u çekiyor · `kale2x2.js` bağlanmadı · Blaze +
     Cloud Functions ile sunucu tarafı sefer.
 
@@ -567,7 +1050,15 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 `kaleici-58` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
-`gucefekt-1` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
+`gucefekt-2` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
+
+**Tam ekran olan paneller:** çanta (`#panel-inventory`) · market
+(`#panel-shop`) · kahraman listesi ve detayı (`HERO_UI.kartTamEkran`).
+Hastane ve sandık hâlâ dört yanı boşluklu kart.
+
+**Denetim betiği:** `tuzak27.py` — şablon dizgisi içindeki yorumlarda
+ters tırnak arar (`tema.js` · `magaza.js` · `buff.js` ·
+`kahramanlar.js` · `heroes.js`). Bu tur dört kez dosya çökertti.
 
 Yükleme sırası (`index.html` sonu): koordinat · heroes · kahramanlar · gelistir ·
 troops · istatistik · missile · pvp · pve · tema · rehber · harita · dugum ·

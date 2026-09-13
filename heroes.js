@@ -27,7 +27,11 @@ const HERO_UI = {
   kartMaxGenislik:"420px",   /* en fazla genişlik                         */
   kartRadius:     "22px",    /* köşe yuvarlaklığı (dört köşe)             */
   kartCerceve:    "1px solid rgba(160,215,255,.60)",   /* tema kenarı — 3B/gölge yok */
-  kartTamEkran:   false,     /* true = eski tam ekran görünüm             */
+  kartTamEkran:   true,      /* kahraman listesi + detay TAM EKRAN.
+                                Kapatırsan (false) ikisi de dört yanı
+                                boşluklu kart görünümüne döner; kutu
+                                ölçekleyicisi (_modelOran) o durumda
+                                1 döner, hiza değişmez.            */
 
   /* YETENEK KUTUCUKLARI — kahramanın SAĞINDA ve SOLUNDA, dikey sütun.
      Kutular ikiye bölünür: ilk yarısı SOL sütuna, kalanı SAĞ sütuna.
@@ -879,8 +883,18 @@ function openHeroDetail(skinId) {
         ? (window.kahramanGucu(skinId) || 0).toLocaleString("tr-TR")
         : ""
     }</span></div>
-    <div id="hdBoxL" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
-    <div id="hdBoxR" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
+    <!-- visibility:hidden — YETENEK KUTULARININ İLK KARE PARLAMASI.
+         Kutuların ölçüsü, çerçevesi ve kaydırması applyUi()'da
+         yazılıyor; o çalışana kadar tarayıcı kutuları VARSAYILAN
+         hâlleriyle bir kare çiziyordu: çerçeveler bir an görünüp
+         kayboluyor, üçüncü kutu da (kaydırması henüz yok) yukarıda
+         belirip yerine zıplıyordu. Kahramanlar arası geçişte DOM
+         baştan yazıldığı için her seferinde tekrarlıyordu.
+         Sütunlar gizli başlar, applyUi sonunda görünür olur.
+         display DEĞİL visibility: display:none ölçüyü 0 yapar
+         (Tuzak 14) ve applyUi yanlış hesaplar. -->
+    <div id="hdBoxL" style="position:absolute;z-index:5;display:flex;flex-direction:column;visibility:hidden;"></div>
+    <div id="hdBoxR" style="position:absolute;z-index:5;display:flex;flex-direction:column;visibility:hidden;"></div>
     <div id="hdStatPanel" style="display:none;position:absolute;top:56px;bottom:74px;right:0;width:44%;z-index:6;box-sizing:border-box;padding:10px 11px;border:none;border-top-left-radius:12px;border-bottom-left-radius:12px;background:rgba(255,255,255,.22);color:#ffffff;font-family:'Baloo 2','Nunito',sans-serif;font-size:12px;font-weight:700;overflow-y:auto;-webkit-overflow-scrolling:touch;text-shadow:0 1px 2px rgba(0,20,45,.55);"></div>
     <div id="hdTabs" style="position:absolute;left:0;right:0;bottom:0;z-index:9;display:flex;gap:6px;padding:7px 8px;box-sizing:border-box;background:linear-gradient(180deg,rgba(4,16,38,.0),rgba(4,16,38,.55));">
       <button class="hd-tab" data-t="detay"   style="flex:1;">DETAY</button>
@@ -1010,25 +1024,64 @@ function openHeroDetail(skinId) {
     sarmalEls.push(sarmal);
   });
 
+  /*  ── MODEL KUTUSU ve ÖLÇEK — TAM EKRAN HİZASININ ANAHTARI ──
+      Yetenek kutularının yeri kartın ortasına SABİT PİKSELLE bağlı
+      (top:50% + dy). Kahraman görseli ise kendi ölçüsünü kabuktan
+      alıp 9:16'ya oturuyor. Kart tam ekran olunca ikisi FARKLI
+      oranda büyüyor — 412x820'de kart yüksekliği x1,165, model
+      x1,062 — ve kutular karakterden ayrı düşüyordu.
+
+      Çözüm: bütün kutu ölçüleri MODELE göre ölçekleniyor. Oran,
+      modelin şimdiki yüksekliğinin, eski (tam ekran olmayan)
+      düzendeki yüksekliğine bölümü. Değerler HERO_UI'da olduğu gibi
+      kalır, ayar paneli de aynı sayıları yazmaya devam eder;
+      yalnız çizerken oranla çarpılırlar.                          */
+  function _modelKutu(vw, vh) {
+    let cw = vw, ch = vw * 16 / 9;
+    if (ch > vh) { ch = vh; cw = vh * 9 / 16; }
+    return { cw: cw, ch: ch };
+  }
+  function _modelOran() {
+    const U0 = HERO_UI;
+    const simdi = _modelKutu(ov.clientWidth, ov.clientHeight);
+    /* Eski düzen: dört yanı boşluklu kart. Sayılar HERO_UI'dan
+       okunur, elle yazılmaz — kartUst/kartAlt değişirse oran da
+       kendiliğinden düzelir. */
+    const bosY = (parseInt(U0.kartUst) || 60) + (parseInt(U0.kartAlt) || 56);
+    const bosX = (parseInt(U0.kartKenar) || 12) * 2;
+    const enb  = parseInt(U0.kartMaxGenislik) || 420;
+    const eski = _modelKutu(Math.min(window.innerWidth - bosX, enb),
+                            window.innerHeight - bosY);
+    return (eski.ch > 0 && simdi.ch > 0) ? (simdi.ch / eski.ch) : 1;
+  }
+
   // Tüm stilleri U'dan uygular — editör her değişiklikte bunu çağırır
   function applyUi() {
     /* HİZA: iki sütun da kartın dikey ORTASINDAN başlar; ortalama YOK.
-       Eskiden `translateY(-50%)` vardı ve sütun yüksekliği kutu
+       Eskiden translateY(-50%) vardı ve sütun yüksekliği kutu
        sayısına göre değiştiği için sol/sağ kutular farklı yüksekliğe
        oturuyordu (sol 2 kutu, sağ 1 kutu). Artık başlangıç çizgisi
        ortaktır; dikey yeri box1/box2/box3 dy değerleri belirler. */
-    const _ortala = `top:50%;transform:translateY(${U.boxes.dy}px);`;
+    const _o = _modelOran();
+    const _s = v => Math.round((parseFloat(v) || 0) * _o) + "px";
+    /* Sütunlar kartın değil MODELİN kenarından başlar: kart tam
+       ekranda modelden geniş olabilir, kart kenarına yaslanırsa
+       kutular karakterden uzaklaşır. */
+    const _kutu = _modelKutu(ov.clientWidth, ov.clientHeight);
+    const _yanPx = Math.round((ov.clientWidth - _kutu.cw) / 2
+                              + (parseFloat(U.boxes.yan) || 0) * _o) + "px";
+    const _ortala = `top:50%;transform:translateY(${Math.round(U.boxes.dy * _o)}px);`;
     bxL.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
-                        `gap:${U.boxes.gap};left:${U.boxes.yan};${_ortala}`;
+                        `visibility:visible;gap:${_s(U.boxes.gap)};left:${_yanPx};${_ortala}`;
     bxR.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
-                        `gap:${U.boxes.gap};right:${U.boxes.yan};${_ortala}`;
+                        `visibility:visible;gap:${_s(U.boxes.gap)};right:${_yanPx};${_ortala}`;
     boxEls.forEach((box, i) => {
       const o = i === 0 ? U.boxes.box1 : (i === 1 && boxEls.length > 2 ? U.boxes.box3 : U.boxes.box2);
-      box.style.cssText = `width:${U.boxes.width};height:${U.boxes.height};border-radius:${U.boxes.radius};border:${U.boxes.border};background:${U.boxes.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;`;
+      box.style.cssText = `width:${_s(U.boxes.width)};height:${_s(U.boxes.height)};border-radius:${U.boxes.radius};border:${U.boxes.border};background:${U.boxes.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;`;
       const sarmal = sarmalEls[i];
       if (sarmal) {
         sarmal.style.cssText = `display:flex;flex-direction:column;align-items:center;` +
-          `gap:2px;transform:translate(${o.dx}px,${o.dy}px);`;
+          `gap:2px;transform:translate(${Math.round(o.dx * _o)}px,${Math.round(o.dy * _o)}px);`;
         const y = sarmal.querySelector(".hdAbilitySv");
         if (y) y.style.cssText = `font-family:'Baloo 2','Nunito',sans-serif;` +
           `font-weight:700;font-size:11px;line-height:1;color:#e8f4ff;` +
@@ -1040,7 +1093,7 @@ function openHeroDetail(skinId) {
     const _ust = panel.dataset.ust || "50%";
     /* Panel, basılan kutunun bulunduğu YANA yaslanır. */
     const _yan = panel.dataset.yan === "sag"
-      ? `right:${U.boxes.yan};` : `left:${U.boxes.yan};`;
+      ? `right:${_yanPx};` : `left:${_yanPx};`;
     const _gor = panel.dataset.hazir === "0" ? "hidden" : "visible";
     panel.style.cssText = `display:${wasOpen ? "block" : "none"};visibility:${_gor};position:absolute;` +
       `transition:none !important;animation:none !important;` +

@@ -357,43 +357,48 @@ const DRAG_PX = 12;
   overflow:visible !important;
 }
 
-/*  ÇERÇEVE RENKLERİ — tür başına bir değişken çifti.
-    Mor ve turuncu tonları gelistir.js'teki PARCA RENK tablosuyla
-    AYNI (#a855f7 / #f97316); parça kutucuğu ile çanta çerçevesi
-    ayrışmasın diye oradan alındı.                               */
-#panel-inventory .cr-mor{
+/*  ── ÇERÇEVE RENKLERİ — ORTAK PALET ──
+    Kapsam KALDIRILDI: eskiden yalnız #panel-inventory altındaydı,
+    mağaza kartına aynı sınıfı verince renk gelmiyordu. Artık sınıf
+    nerede kullanılırsa orada çalışır — çanta kutucuğu, mağaza kartı
+    ve ileride başka bir liste, hepsi tek palet.
+    Hangi eşyanın hangi rengi aldığına magaza.js urunCerceve()
+    karar verir; burada YALNIZ renkler durur.
+    Mor ve turuncu tonları gelistir.js'teki PARÇA RENK tablosuyla
+    AYNI (#a855f7 / #f97316).                                     */
+.cr-mor{
   --cr-ana:#a855f7;
   --cr-ic1:rgba(168,85,247,.26); --cr-ic2:rgba(76,29,149,.42);
 }
-#panel-inventory .cr-turuncu{
+.cr-turuncu{
   --cr-ana:#f97316;
   --cr-ic1:rgba(249,115,22,.26); --cr-ic2:rgba(124,45,18,.42);
 }
-#panel-inventory .cr-yesil{
+.cr-yesil{
   --cr-ana:#5fd98a;
   --cr-ic1:rgba(95,217,138,.24); --cr-ic2:rgba(20,83,45,.42);
 }
-#panel-inventory .cr-mavi{
+.cr-mavi{
   --cr-ana:#4fd1e8;
   --cr-ic1:rgba(79,209,232,.22); --cr-ic2:rgba(12,74,110,.42);
 }
 
-/*  ADET — çerçevenin İÇİNDE, sağ altta (referans düzen).
-    Altta ayrı satır olarak durması istenmedi; .card-right
-    aşağıda gizleniyor. Kontur gölge şart: rakam eşyanın
-    üstüne biniyor, düz beyaz okunmuyor.                         */
+/*  KAÇ TANE olduğu — ŞERİTSİZ, sağ altta.
+    Üstteki rozetin bandı duruyor ama buraya ŞERİT İSTENMEDİ:
+    çizimin alt kenarını kapatıyordu. Rakam doğrudan görselin
+    üstünde durur.
+    Eski hâlindeki sekiz yönlü kalın kontur gölgesi GERİ GELMEZ
+    (3B'siz görünüm kuralı) — okunurluğu tek, yumuşak bir gölge
+    sağlar; açık zeminli çizimde de ayırt edilir. */
 #panel-inventory .icon-box .inv-adet{
-  position:absolute !important;
-  right:3px !important; bottom:2px !important;
+  position:absolute !important; right:5px !important; bottom:3px !important;
+  left:auto !important; padding:0 !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:900 !important; font-size:12px !important;
-  line-height:1 !important; color:#fff !important;
+  font-weight:900 !important; font-size:12.5px !important; line-height:1.15 !important;
+  color:#fff !important; text-align:right !important;
   pointer-events:none !important;
-  text-shadow:-1.5px -1.5px 0 #0d1f3a, 1.5px -1.5px 0 #0d1f3a,
-              -1.5px 1.5px 0 #0d1f3a, 1.5px 1.5px 0 #0d1f3a,
-              0 -1.5px 0 #0d1f3a, 0 1.5px 0 #0d1f3a,
-              -1.5px 0 0 #0d1f3a, 1.5px 0 0 #0d1f3a,
-              0 2px 3px rgba(0,0,0,.65) !important;
+  background:none !important; border-radius:0 !important;
+  text-shadow:0 1px 3px rgba(0,0,0,.95), 0 0 5px rgba(0,0,0,.8) !important;
 }
 /* Eski adet satırı (kutunun ALTINDAKİ yazı) kalksın */
 #panel-inventory .card-right{ display:none !important; }
@@ -419,28 +424,272 @@ const DRAG_PX = 12;
   text-transform:uppercase !important; padding-right:0 !important;
   font-size:22px !important; margin-top:2px !important;
 }
-/* "Sahip olduğun elmaslar..." açıklaması gizlendi */
-#panel-inventory .desc{ display:none !important; }
+/*  ÇANTA TAM EKRAN.
+    Panel alttan çıkan bir kart değil, ekranın tamamı: eşya ızgarası
+    dört sütun ve altında açıklama baloncuğu açılacak, 88vh'lik kart
+    o düzene yetmiyordu.
+    .overlay-panel ortak kural olduğu için ALIGN-ITEMS burada
+    ezilir — ortak kuralı değiştirmek bütün panelleri tam ekran
+    yapardı.                                                       */
+#panel-inventory{ align-items:stretch !important; }
+#panel-inventory .overlay-card{
+  max-width:none !important;
+  max-height:none !important;
+  height:100% !important;
+  border-radius:0 !important;
+  padding:10px 10px 16px !important;
+  animation:none !important;      /* tam ekranda aşağıdan kayma tuhaf duruyor */
+  display:flex !important; flex-direction:column !important;
+}
+/* Izgara, başlık ve sekmeler sabitken TEK BAŞINA kayar. */
+#panel-inventory .inv-list{
+  flex:1 1 auto !important; min-height:0 !important;
+  overflow-y:auto !important; -webkit-overflow-scrolling:touch;
+  align-content:start !important;
+}
 
-/* elmas/eşya özet kutuları → yalnızca 💎 rozeti kalsın */
-#panel-inventory .inv-summary{
-  display:flex !important; justify-content:center !important; margin:6px 0 14px !important;
+/* "Sahip olduğun elmaslar..." açıklaması ve elmas özet kutusu
+   HTML'den SİLİNDİ (sekme çubuğu geldi). Elmas sayısı zaten üst
+   şeritte duruyor, özet kutusu ikinci kopyaydı.
+   NOT: ?elmasayar=1 panelinin "canta" satırı bu ::before kutusunu
+   sürüyordu — artık öyle bir kutu yok, o satır boşa çalışıyor. */
+
+/* ── SEKMELER ──
+   Referans düzen: başlığın hemen altında beş sekme, seçili olan
+   açık zeminli ve ızgarayla birleşik duruyor.
+   Uzun ad ("Hızlandırma") iki satıra sarar; sekmelerin boyu en
+   uzun ada göre eşitlensin diye satır align-items:stretch. */
+#panel-inventory .inv-tabs{
+  display:flex !important; align-items:stretch !important;
+  gap:4px !important; margin:6px 0 0 !important;
+  padding:0 2px !important;
 }
-#panel-inventory .inv-summary .stat-card:nth-child(2){ display:none !important; } /* "Farklı Eşya" kutusu kaldırıldı */
-#panel-inventory .inv-summary .stat-card{
-  flex:0 0 auto !important; padding:8px 20px !important; border-radius:14px !important;
+#panel-inventory .inv-tab{
+  flex:1 1 0 !important; min-width:0 !important;
+  padding:6px 4px 7px !important;
+  border:none !important; cursor:pointer;
+  border-radius:10px 10px 0 0 !important;
+  background:rgba(3,16,38,.30) !important;
+  color:#cfe6f7 !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:11.5px !important;
+  line-height:1.12 !important; letter-spacing:.1px !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
 }
-#panel-inventory .inv-summary .stat-card .lbl{ display:none !important; } /* "TOPLAM ELMAS" yazısı yok */
-#panel-inventory .inv-summary .stat-card .num{ font-size:22px !important; }
-/* Emoji yerine elmas gorseli. CSS'te onerror yoktur — dosya eksikse
-   simge hic cikmaz, sayi yalniz kalir (yazi bozulmaz). */
-#panel-inventory .inv-summary .stat-card .num::before{
-  content:""; display:inline-block;
-  width:var(--elc-kutu, 1.05em); height:var(--elc-kutu, 1.05em);
-  margin-right:.22em; vertical-align:-.14em;
-  background:url("elmas.webp") center/contain no-repeat;
-  /* scale AKISI DEGISTIRMEZ: kutu 1.05em kalir, gorsel buyur. */
-  transform:scale(var(--elc-olcek, 1)) translate(var(--elc-x, 0em), var(--elc-y, 0em));
+#panel-inventory .inv-tab.is-active{
+  background:rgba(233,246,255,.95) !important;
+  color:#134a86 !important;
+  text-shadow:none !important;
+}
+/* Seçili sekme ile ızgara arasında çizgi olmasın: ızgaranın üstüne
+   sekmelerin zeminiyle aynı açıklıkta ince bir şerit. */
+#panel-inventory .inv-list{
+  border-top:2px solid rgba(233,246,255,.95) !important;
+  padding-top:10px !important;
+}
+
+/*  ══ MAĞAZA BALONCUĞU — çanta ile AYNI KALIP ═════════════════
+    Ürün kartına dokununca kartın satırının altında açılır.
+    Görünüm çantadaki .inv-pop ile bilerek birebir: iki panelde
+    iki ayrı bilgi penceresi olması istenmedi.
+    Ok, kartın ortasını gösterir; konumu JS'te --ok değişkenine
+    YÜZDE olarak yazılır (mağaza ızgarasında ara başlıklar var,
+    sabit sütun oranı yanlış karta bakardı).
+    (Tuzak 27: bu yorum şablon dizgisinin içinde, ters tırnak yok.) */
+#panel-shop .shop-pop{
+  grid-column:1 / -1 !important;
+  position:relative !important;
+  margin:8px 0 6px !important;
+  padding:12px !important;
+  border-radius:14px !important;
+  background:rgba(233,246,255,.96) !important;
+  color:#123a63 !important;
+  text-align:center !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+}
+#panel-shop .shop-pop-ok{
+  position:absolute !important; top:-7px !important;
+  left:var(--ok, 50%) !important;
+  width:16px !important; height:8px !important;
+  margin-left:-8px !important;
+  background:rgba(233,246,255,.96) !important;
+  clip-path:polygon(50% 0, 100% 100%, 0 100%) !important;
+}
+#panel-shop .shop-pop-ad{
+  color:#0f3a6b !important; font-size:15px !important; font-weight:900 !important;
+  line-height:1.2 !important; margin-bottom:3px !important; text-shadow:none !important;
+}
+#panel-shop .shop-pop-not{
+  color:#2c5b8c !important; font-size:12px !important; font-weight:700 !important;
+  line-height:1.35 !important; text-shadow:none !important;
+}
+#panel-shop .shop-pop-alt{
+  color:#4a7099 !important; font-size:11.5px !important; font-weight:800 !important;
+  margin-top:5px !important; text-shadow:none !important;
+}
+/* Seçili ürün kartı: çantadaki gibi köşe işaretleri. */
+#panel-shop .shop-card2.is-secili::after{
+  content:"" !important; position:absolute !important; inset:0 !important;
+  pointer-events:none !important; z-index:4 !important;
+  background-image:
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff) !important;
+  background-repeat:no-repeat !important;
+  background-size:16px 3px, 3px 16px, 16px 3px, 3px 16px,
+                  16px 3px, 3px 16px, 16px 3px, 3px 16px !important;
+  background-position:
+    left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom !important;
+}
+
+/*  ══ BALONCUK — kutucuğun SATIRININ ALTINDA ══════════════════
+    Referans düzen: dokunulan kutucuğun satırının altında açılır,
+    satırın tamamını kaplar, ok dokunulan kutucuğu gösterir.
+    grid-column:1/-1 ŞART — ızgara 4 sütunlu, verilmezse baloncuk
+    tek hücreye sıkışır. */
+#panel-inventory .inv-pop{
+  grid-column:1 / -1 !important;
+  position:relative !important;
+  margin:8px 0 6px !important;
+  padding:12px 12px 12px !important;
+  border-radius:14px !important;
+  background:rgba(233,246,255,.96) !important;
+  color:#123a63 !important;
+  text-align:center !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+}
+/*  OK: dokunulan kutucuğun ortasını gösterir. Izgara 4 sütun, o
+    yüzden sütunun ortası (n+0,5)/4. Konum yüzdeyle yazılır ki
+    ekran genişliğinden bağımsız olsun; Tuzak 12 gereği yüzde ile
+    piksel AYRI translate halkalarında. */
+#panel-inventory .inv-pop-ok{
+  position:absolute !important; top:-7px !important;
+  width:16px !important; height:8px !important;
+  background:rgba(233,246,255,.96) !important;
+  clip-path:polygon(50% 0, 100% 100%, 0 100%) !important;
+}
+#panel-inventory .inv-pop[data-sutun="0"] .inv-pop-ok{ left:12.5% !important; transform:translate(-50%,0) !important; }
+#panel-inventory .inv-pop[data-sutun="1"] .inv-pop-ok{ left:37.5% !important; transform:translate(-50%,0) !important; }
+#panel-inventory .inv-pop[data-sutun="2"] .inv-pop-ok{ left:62.5% !important; transform:translate(-50%,0) !important; }
+#panel-inventory .inv-pop[data-sutun="3"] .inv-pop-ok{ left:87.5% !important; transform:translate(-50%,0) !important; }
+
+#panel-inventory .inv-pop-ad{
+  color:#0f3a6b !important; font-size:15px !important; font-weight:900 !important;
+  line-height:1.2 !important; margin-bottom:3px !important;
+  text-shadow:none !important;
+}
+#panel-inventory .inv-pop-not{
+  color:#2c5b8c !important; font-size:12px !important; font-weight:700 !important;
+  line-height:1.35 !important; text-shadow:none !important;
+}
+#panel-inventory .inv-pop-uyari{
+  color:#a2560c !important; font-size:11.5px !important; font-weight:800 !important;
+  margin-top:5px !important; line-height:1.3 !important; text-shadow:none !important;
+}
+#panel-inventory .inv-pop-elde{
+  color:#4a7099 !important; font-size:11.5px !important; margin-top:6px !important;
+  text-shadow:none !important;
+}
+
+/* adet satırı — hızlandırma penceresiyle aynı dil */
+#panel-inventory .inv-pop-say{
+  display:flex !important; align-items:center !important; gap:8px !important;
+  margin:10px 2px 0 !important;
+}
+#panel-inventory .inv-pop-step{
+  flex:0 0 28px !important; width:28px !important; height:28px !important;
+  padding:0 !important; border:none !important; border-radius:8px !important;
+  background:#2f66b5 !important; color:#eaf7ff !important;
+  font-size:17px !important; font-weight:900 !important; line-height:1 !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  box-shadow:none !important; cursor:pointer;
+}
+#panel-inventory .inv-pop-step[disabled]{ opacity:.38 !important; }
+#panel-inventory .inv-pop-ray{
+  position:relative !important; flex:1 1 auto !important; height:28px !important;
+  touch-action:none !important; cursor:pointer; user-select:none;
+}
+#panel-inventory .inv-pop-track{
+  position:absolute !important; left:9px !important; right:9px !important; top:50% !important;
+  height:6px !important; margin-top:-3px !important; border-radius:99px !important;
+  background:rgba(18,58,99,.22) !important;
+}
+#panel-inventory .inv-pop-fill{
+  position:absolute !important; left:0 !important; top:50% !important;
+  height:6px !important; margin-top:-3px !important; border-radius:99px !important;
+  background:linear-gradient(180deg,#5ce07a,#22a34a) !important;
+}
+/* tutamak: top değil kulp — hızlandırma penceresiyle aynı biçim.
+   Genişliğinin YARISI JS'teki R (9) ile aynı olmalı. */
+#panel-inventory .inv-pop-thumb{
+  position:absolute !important; top:50% !important; left:9px !important;
+  width:18px !important; height:22px !important; margin:-11px 0 0 -9px !important;
+  border-radius:6px !important; background:#fff !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important; pointer-events:none !important;
+}
+#panel-inventory .inv-pop-adet{
+  flex:0 0 auto !important; min-width:30px !important;
+  color:#0f3a6b !important; font-size:14px !important; font-weight:900 !important;
+  font-variant-numeric:tabular-nums !important; text-shadow:none !important;
+}
+#panel-inventory .inv-pop-max{
+  flex:0 0 auto !important; padding:5px 10px !important;
+  border:none !important; border-radius:8px !important; cursor:pointer;
+  background:#2f66b5 !important; color:#eaf7ff !important;
+  font-size:11px !important; font-weight:900 !important;
+  box-shadow:none !important;
+}
+#panel-inventory .inv-pop-kullan{
+  display:block !important; margin:11px auto 0 !important;
+  padding:7px 34px !important; border:none !important; border-radius:10px !important;
+  cursor:pointer;
+  background:linear-gradient(180deg,#4a9fe8,#2270c4) !important;
+  color:#fff !important; font-size:14px !important; font-weight:900 !important;
+  letter-spacing:.4px !important; box-shadow:none !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.45) !important;
+}
+#panel-inventory .inv-pop-kullan:active{ transform:scale(.96); filter:brightness(.93); }
+
+/*  SEÇİLİ KUTUCUK — köşe işaretleri (hızlandırma penceresiyle
+    aynı dil). Izgara kırpmasın diye hücrenin İÇİNDE duruyor. */
+#panel-inventory .inv-card.is-secili .icon-box::after{
+  content:"" !important; position:absolute !important;
+  left:-3px !important; right:-3px !important; top:-3px !important; bottom:-3px !important;
+  pointer-events:none !important; z-index:4 !important;
+  background-image:
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff) !important;
+  background-repeat:no-repeat !important;
+  background-size:16px 3px, 3px 16px, 16px 3px, 3px 16px,
+                  16px 3px, 3px 16px, 16px 3px, 3px 16px !important;
+  background-position:
+    left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom !important;
+}
+
+/*  ÜST ŞERİT — eşyanın NE KADAR verdiği ("10K", "5 dk").
+    Sağ alttaki sayı KAÇ TANE olduğu; ikisi ayrı şey, ayrı köşede.
+    GRADYAN DEĞİL DÜZ ŞERİT: "gittikçe kararan" perde çizimin
+    üstünde kirli bir leke gibi duruyordu. Düz, yarı saydam siyah
+    bant hem okunur hem çizimi bozmaz.
+    Rozeti olmayan eşyada (bonus, parça, kitap) hiç basılmaz —
+    magaza.js urunRozeti() boş döner. */
+#panel-inventory .icon-box .inv-rozet{
+  position:absolute !important; left:0 !important; right:0 !important; top:0 !important;
+  padding:2px 5px !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:900 !important; font-size:12.5px !important; line-height:1.15 !important;
+  color:#fff !important; text-align:center !important;
+  pointer-events:none !important;
+  border-radius:10px 10px 0 0 !important;
+  background:rgba(0,0,0,.42) !important;
+  background-image:none !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.55) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -610,11 +859,15 @@ const DRAG_PX = 12;
 /* ═══════════════════════════════════════════════════════════════
    KAHRAMAN DETAY — mavi tema çerçevesi + "Geliştir" butonu mavi
    ═══════════════════════════════════════════════════════════════ */
+/*  ÇERÇEVE KALDIRILDI. Ekran tam ekran oldu; dört yanına 3px kenar,
+    üstüne iki iç kabartı ve bir dış parlama çizmek hem görünüm
+    kuralına aykırıydı (3B yok) hem de bu pencereyi oyunun geri
+    kalanından ayrı bir şey gibi gösteriyordu.
+    overflow:hidden KALDI — kahraman görseli kenardan taşmasın. */
 #heroDetailOverlay{
-  border:3px solid rgba(190,240,255,.85) !important;
-  box-shadow:inset 0 0 0 3px rgba(190,240,255,.4), inset 0 0 40px rgba(120,225,255,.3),
-             0 0 26px rgba(120,225,255,.45) !important;
-  border-radius:18px !important; overflow:hidden !important;
+  border:none !important;
+  box-shadow:none !important;
+  border-radius:0 !important; overflow:hidden !important;
 }
 #heroDetailOverlay #hdBuyBtn{
   background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;
@@ -3002,23 +3255,65 @@ st.textContent = `
    Boşluk değerleri birlik paneliyle BİREBİR aynı tutuldu
    (60px üst / 70px alt) — birini değiştirirsen diğerlerini de
    değiştir, yoksa paneller arası geçişte kart zıplar. */
+/*  ÇANTA ve MARKET BU LİSTEDEN ÇIKARILDI — ikisi de tam ekran.
+    Burada 60/12/70 boşluk ve 420px tavan veriliyor; tam ekran
+    olacak panele de uygulanınca yukarıdaki tam ekran kuralı
+    (bu blok SONRA geldiği için, Tuzak 38) sessizce eziliyordu.
+    Ezme üstüne ezme yazmak yerine panel listeden alınıyor;
+    hastane ve sandık aynen kalıyor. */
 #panel-hospital,
-#panel-chest,
-#panel-shop,
-#panel-inventory{
+#panel-chest{
   align-items:center !important;
   justify-content:center !important;
   padding:60px 12px 70px !important;
 }
 #panel-hospital .overlay-card,
-#panel-chest .overlay-card,
-#panel-shop .overlay-card,
-#panel-inventory .overlay-card{
+#panel-chest .overlay-card{
   width:100% !important;
   max-width:420px !important;
   max-height:100% !important;
   border-radius:22px !important;
   border-top:1px solid var(--km-kenar) !important;
+}
+
+/*  ── MARKET TAM EKRAN ──
+    Çantayla aynı kalıp: panel ekranın tamamı, başlık ve sekmeler
+    üstte sabit, yalnız ürün ızgarası kayar.
+    SÜTUN 3 → 4: tam ekranda üç sütun kartları gereksiz şişiriyordu.
+    Sütun sayısı magaza.js'in kendi CSS'inde 3 yazılı; burada
+    EZİLİYOR çünkü o dosya kendi görünümünü taşıyor ve tam ekran
+    kararı temaya ait.                                            */
+#panel-shop{ align-items:stretch !important; padding:0 !important; }
+#panel-shop .overlay-card{
+  width:100% !important; max-width:none !important;
+  height:100% !important; max-height:none !important;
+  border-radius:0 !important;
+  padding:10px 10px 16px !important;
+  animation:none !important;
+}
+#panel-shop .shop-grid{
+  grid-template-columns:repeat(3, 1fr) !important;
+  gap:10px !important;
+}
+
+/*  ── MAĞAZA KARTINDA ÇERÇEVE ──
+    Çantadaki kutucukla aynı dil: renkli kenar ürün GÖRSELİNİN
+    çevresinde durur, kartın tamamında değil — kart zaten koyu mavi
+    bir kutu, dış kenarını boyamak on iki kartı yan yana kirli
+    gösteriyordu.
+    Renk sınıfı kartta (.cr-*), değişken oradan miras alınıyor. */
+#panel-shop .shop-card2 .sc-icon{
+  border:2px solid var(--cr-ana, #4f9fe0) !important;
+  border-radius:12px !important;
+  background:linear-gradient(180deg,
+             var(--cr-ic1, rgba(255,255,255,.10)),
+             var(--cr-ic2, rgba(0,0,0,.28))) !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+}
+/* Görsel çerçeveyi doldursun, köşeleri taşmasın. */
+#panel-shop .shop-card2 .sc-icon .sc-img{
+  border-radius:10px !important;
 }
 
 /* ── MAĞAZA: SABİT BOY, TEK KAYDIRMA, SÜRGÜ YOK ──────────────
@@ -4696,35 +4991,32 @@ st.textContent = `
   font-family:'Baloo 2','Nunito',sans-serif !important;
 }
 
-/* süre çubuğu: kapatma düğmesinin altına girmesin */
-.hosp-speed-modal .hsm-bar{
-  margin:2px 0 10px !important;
-  width:calc(100% - 52px) !important;
-}
+/* Süre çubuğunun ölçüsü ve konumu artık TAMAMEN index.html'de:
+   ✕ ile aynı flex satırında duruyor, genişliğini düzenden alıyor.
+   Buradaki eski "calc(100% - 52px)" ezmesi silindi — o sayı ✕'in
+   mutlak konumlu hâlinden kalmaydı ve çubuğu hizadan düşürüyordu. */
 .hosp-speed-modal .hsm-bar-fill{
   width:0%; transition:width .5s linear !important;
 }
-.hosp-speed-modal .hsm-bar-txt{
-  text-shadow:none !important; -webkit-text-stroke:0 !important;
-  font-weight:800 !important;
-}
 
-/* "5 dk" kutucuğu: dış 3B yok, biraz küçük, görsel kutuyu doldurur */
+/*  "5 dk" kutucuğu — ÖLÇÜ VE ÇERÇEVE ARTIK index.html TABANINDA.
+    Burada eskiden sabit yükseklik, çizilmiş çerçeve ve seçili kart
+    için sarı kenar vardı; üçü de tabandaki yeni kuralları
+    eziyordu (Tuzak 38). Kutucuk artık gerçek kare, görselin kendi
+    çerçevesiyle geliyor ve seçim köşe işaretiyle gösteriliyor —
+    hepsi tek yerde. Bu blokta yalnız ızgara boşluğu kaldı. */
 .hosp-speed-modal .hsm-cards{ margin:0 0 4px !important; }
-.hosp-speed-modal .hsm-card-item{
-  flex:0 0 64px !important; height:64px !important;
-  box-shadow:none !important;
-  border-radius:12px !important;
-  overflow:hidden !important;
-  padding:0 !important;
-}
-.hosp-speed-modal .hsm-card-item.is-active{
-  box-shadow:0 0 0 2px rgba(255,210,87,.35) !important;
-}
+/*  GÖRSEL KUTUYU TAM DOLDURUR, KIRPILMAZ.
+    Kutu kare (62x62) ve çizimler de kare: contain bu durumda
+    kutunun tamamını kaplar ve hiçbir kenarı kesmez. Görselin
+    KENDİ çerçevesi böylece olduğu gibi görünür — altına ikinci
+    bir çerçeve çizilmiyor. (cover kırpardı, cezalandırdığımız
+    ezilme oradan geliyordu.) */
 .hosp-speed-modal .hsm-ci-img{
   position:absolute !important; inset:0 !important;
   width:100% !important; height:100% !important;
-  object-fit:cover !important; display:block !important;
+  object-fit:contain !important; display:block !important;
+  border-radius:12px !important;
   pointer-events:none !important;
 }
 /* sahip olunan adet: beyaz, okunaklı, ezik değil */
@@ -4743,31 +5035,24 @@ st.textContent = `
   border-radius:8px !important; position:relative !important;
 }
 
-/* − ve + : 3B yok */
+/* − ve + : ölçü ve biçim index.html tabanında (daire, 30px).
+   Burada yalnız basma davranışı sadeleştirilir. */
 .hosp-speed-modal .hsm-pick{ margin-top:10px !important; }
-.hosp-speed-modal .hsm-step{
-  box-shadow:none !important;
-}
 .hosp-speed-modal .hsm-step:active{
   transform:none !important;
   box-shadow:none !important;
   filter:brightness(.94) !important;
 }
 
-/* eylem düğmeleri: ince, çerçevesiz, 3B'siz */
-.hosp-speed-modal .hsm-actions{ margin-top:10px !important; gap:8px !important; }
+/* eylem düğmeleri: ince, çerçevesiz, 3B'siz.
+   Yükseklik ve iç boşluk tabandan gelir; buradaki padding ezmesi
+   min-height'ı görünmez kılıyordu, silindi. */
 .hosp-speed-modal .hsm-btn{
-  padding:6px 6px !important; border:0 !important;
-  border-radius:10px !important; letter-spacing:.4px !important;
+  border:0 !important;
   box-shadow:none !important;
   text-shadow:none !important;
 }
-.hosp-speed-modal .hsm-finish{ font-size:15px !important; }
-.hosp-speed-modal .hsm-finish small{ font-size:13px !important; text-shadow:none !important; }
-.hosp-speed-modal .hsm-use{ font-size:14px !important; }
-.hosp-speed-modal .hsm-quick{
-  margin-top:8px !important; font-size:14px !important; padding:6px !important;
-}
+.hosp-speed-modal .hsm-finish small{ text-shadow:none !important; }
 .hosp-speed-modal .hsm-btn:active{
   transform:none !important;
   box-shadow:none !important;
@@ -4926,16 +5211,15 @@ const st = document.createElement("style");
 st.id = "temaUcBoyutTemizlik";
 st.textContent = `
 
-/* ── 1) PANEL ÇERÇEVELERİ ── */
-#panel-troops .uv-viewer,
-#panel-shop .overlay-card{
+/* ── 1) PANEL ÇERÇEVELERİ ──
+   MARKET ÇIKARILDI: tam ekran oldu, ekranın dört yanına 2px çerçeve
+   çizmenin anlamı yok (ve köşelerde yarım piksel çizgi bırakıyor). */
+#panel-troops .uv-viewer{
   border-width:2px !important;
   border-color:rgba(190,240,255,.5) !important;
   box-shadow:none !important;
 }
-#panel-shop .overlay-card{
-  border-top-width:2px !important;
-}
+#panel-shop .overlay-card{ border:none !important; }
 
 /* ── 2) MAĞAZA KARTLARI ── */
 .shop-card2{
@@ -5958,263 +6242,18 @@ document.head.appendChild(st);
 
 
 /* ═══════════════════════════════════════════════════════════════
-   ÇANTA · KAYNAK PAKETİ KULLANMA PENCERESİ
+   ÇANTADA EŞYA KULLANMA — eski MODAL bloğu SİLİNDİ.
 
-   SORUN: Çantadaki kaynak paketlerine (Et/Demir/Su Sandığı, Enerji
-   Hücresi) dokununca hiçbir şey olmuyordu. İki sebep üst üste
-   binmişti:
-     1) Bu dosyanın üst kısmı çantadaki "Kullan" düğmesini
-        gizliyor (#panel-inventory .inv-use-btn{display:none}).
-     2) Kutucuğa dokunma dinleyicisi eşya ne olursa olsun
-        useStaminaPotion() çağırıyordu — kaynak paketinde "Çantanda
-        can potu yok" diyip susuyordu.
-
-   ÇÖZÜM: Kaynak paketine dokunulunca MAĞAZADAKİ SATIN ALMA
-   PENCERESİNİN AYNISI açılır. Aynı sınıflar kullanılıyor
-   (.bd-buy-mask / .bd-buy-box / .bd-q-row ...), yani görünüm
-   birebir mağazanınki; mağaza penceresinin biçimi değişirse bu da
-   kendiliğinden değişir. Tek farkı: elmas değil ADET kullanılır ve
-   düğme "kullan" der.
-
-   Yakalama (capture) evresinde dinliyoruz ki yukarıdaki eski
-   dinleyiciye hiç sıra gelmesin — o dosyaya dokunmadan yolu
-   kesiyoruz.
+   Burada, kutucuğa dokununca mağazanın satın alma penceresinin
+   aynısını açan bir blok vardı (.bd-buy-mask) ve yalnız kaynak
+   paketiyle kalkanı tanıyordu; parça, kitap ve bonus eşyaları
+   dokununca hiçbir şey olmuyordu.
+   Yerine geçen: index.html `cantaBaloncuk` — kutucuğun ALTINDAKİ
+   satıra açılan açıklama baloncuğu (referans düzen). Tek dokunma
+   yolu orada; burada ikinci bir dinleyici KALMADI, yoksa yakalama
+   evresinde çalışıp yenisine hiç sıra gelmiyordu.
    ═══════════════════════════════════════════════════════════════ */
-(function cantaKaynakKullan() {
-  "use strict";
 
-  var _esc = null;
-
-  function sayiYaz(n) {
-    try { if (typeof fmt === "function") return fmt(n); } catch (e) {}
-    return String(n);
-  }
-
-  function tanim(ad) {
-    try { return (typeof getItemDef === "function") ? getItemDef(ad) : null; }
-    catch (e) { return null; }
-  }
-
-  /* Kartın hangi eşya olduğunu, içindeki GİZLİ Kullan düğmesinin
-     data-item'ından okuyoruz — isim etiketi kırpılmış olabilir. */
-  function kartAdi(kart) {
-    var b = kart.querySelector(".inv-use-btn");
-    if (b && b.dataset && b.dataset.item) return b.dataset.item;
-    var n = kart.querySelector(".item-name");
-    return n ? n.textContent.trim() : "";
-  }
-
-  function elde(ad) {
-    try { return (state.inventory && state.inventory[ad]) || 0; } catch (e) { return 0; }
-  }
-
-  function kaynakAdi(ad) { return String(ad).replace(/ (Sandığı|Hücresi)$/, ""); }
-
-  function simge(d) {
-    try { if (typeof itemIconSVG === "function") return itemIconSVG(d); } catch (e) {}
-    return d.emoji || d.icon || "";
-  }
-
-  function aciklama(d) {
-    try { if (typeof shopItemDesc === "function") return shopItemDesc(d) || ""; } catch (e) {}
-    return "Kullanınca +" + sayiYaz(d.miktar) + " " + kaynakAdi(d.name) + " verir.";
-  }
-
-  function kapat() {
-    var m = document.querySelector(".bd-buy-mask");
-    if (m) m.remove();
-    if (_esc) { document.removeEventListener("keydown", _esc); _esc = null; }
-  }
-
-  /* Seçilen adet kadar paketi kaynağa çevirir. index.html'deki
-     kaynakPaketiKullan HEPSİNİ birden harcıyor; burada adet
-     seçilebildiği için kendi hesabımızı yapıyoruz. */
-  function kullan(d, adet) {
-    var ad = d.name;
-    var varOlan = elde(ad);
-    adet = Math.max(1, Math.min(adet, varOlan));
-    if (adet <= 0) { return; }
-
-    if (!state.kaynaklar || typeof state.kaynaklar !== "object") {
-      state.kaynaklar = { et: 0, demir: 0, su: 0, enerji: 0 };
-    }
-    var k = d.kaynakId;
-    var eski = state.kaynaklar[k];
-    var toplam = (d.miktar || 0) * adet;
-    state.kaynaklar[k] = (typeof eski === "number" && isFinite(eski) ? eski : 0) + toplam;
-
-    state.inventory[ad] = varOlan - adet;
-    if (state.inventory[ad] <= 0) delete state.inventory[ad];
-
-    try { if (typeof renderKaynaklar === "function") renderKaynaklar(); } catch (e) {}
-    try { if (typeof renderInventory === "function") renderInventory(); } catch (e) {}
-    try { if (typeof persistCurrentState === "function") persistCurrentState(); } catch (e) {}
-    try {
-      if (typeof showToast === "function") {
-        showToast((d.emoji || "") + " +" + sayiYaz(toplam) + " " + kaynakAdi(ad) + " eklendi!");
-      }
-    } catch (e) {}
-  }
-
-  function pencere(d) {
-    kapat();
-    try { if (typeof closeShopPopups === "function") closeShopPopups(); } catch (e) {}
-
-    var enFazla = Math.max(1, elde(d.name));
-    var adet = 1;
-
-    var mask = document.createElement("div");
-    mask.className = "bd-buy-mask";
-    mask.innerHTML =
-      '<div class="bd-buy-box">' +
-        '<div class="bd-buy-head">' +
-          '<span>Kullan</span>' +
-          '<button class="bd-buy-x" type="button">✕</button>' +
-        '</div>' +
-        '<div class="bd-buy-body">' +
-          '<div class="bd-buy-top">' +
-            '<div class="bd-buy-icon">' + simge(d) + '</div>' +
-            '<div class="bd-buy-txt">' +
-              '<div class="bd-buy-name">' + d.name + '</div>' +
-              '<div class="bd-buy-desc">' + aciklama(d) + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="bd-q-row">' +
-            '<button class="bd-qbtn" type="button" data-d="-1">−</button>' +
-            '<input class="bd-q-range" type="range" min="1" max="' + enFazla + '" value="1">' +
-            '<button class="bd-qbtn" type="button" data-d="1">+</button>' +
-            '<div class="bd-qnum">1</div>' +
-            '<button class="bd-qmax" type="button">MAX</button>' +
-          '</div>' +
-          '<button class="bd-buy-go" type="button"></button>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(mask);
-
-    var range = mask.querySelector(".bd-q-range");
-    var num   = mask.querySelector(".bd-qnum");
-    var go    = mask.querySelector(".bd-buy-go");
-
-    function esitle() {
-      adet = Math.min(enFazla, Math.max(1, adet));
-      range.value = adet;
-      num.textContent = adet;
-      var pct = enFazla > 1 ? ((adet - 1) / (enFazla - 1)) * 100 : 100;
-      range.style.setProperty("--fill", pct + "%");
-      /* Mağazada düğmede toplam FİYAT yazar; burada kazanılacak
-         toplam KAYNAK yazıyor — aynı yerde, aynı biçimde. */
-      go.textContent = (d.emoji || "") + " +" + sayiYaz((d.miktar || 0) * adet);
-      go.disabled = false;
-    }
-
-    range.addEventListener("input", function () {
-      adet = parseInt(range.value, 10) || 1; esitle();
-    });
-    mask.querySelectorAll(".bd-qbtn").forEach(function (b) {
-      b.addEventListener("click", function () {
-        adet += parseInt(b.dataset.d, 10); esitle();
-      });
-    });
-    mask.querySelector(".bd-qmax").addEventListener("click", function () {
-      adet = enFazla; esitle();
-    });
-    mask.querySelector(".bd-buy-x").addEventListener("click", kapat);
-    mask.addEventListener("click", function (e) { if (e.target === mask) kapat(); });
-    go.addEventListener("click", function () {
-      var n = adet;
-      kapat();
-      kullan(d, n);
-    });
-    _esc = function (e) { if (e.key === "Escape") kapat(); };
-    document.addEventListener("keydown", _esc);
-
-    esitle();
-  }
-
-  /* CAPTURE: çantadaki kaynak kutucuğuna dokunma buradan öteye
-     geçmez, eski can-potu dinleyicisi hiç çalışmaz. Diğer eşyalar
-     (can potu vb.) eskisi gibi akar. */
-  document.addEventListener("click", function (e) {
-    var t = e.target;
-    if (!t || !t.closest) return;
-    var kart = t.closest("#invList .inv-card, #invList .shop-card");
-    if (!kart) return;
-
-    var d = tanim(kartAdi(kart));
-    if (!d) return;
-
-    /* ── KALKAN ──
-       Kaynak paketi değil: adet seçilmez, tek dokunuşta açılır.
-       Yine de onay soruyoruz — kalan süre varsa başa saracağı
-       için oyuncu bilerek basmalı. Aynı .bd-buy-* sınıfları,
-       yalnız adet satırı yok. */
-    if (d.isKalkan) {
-      e.stopPropagation();
-      e.preventDefault();
-      kalkanOnayi(d);
-      return;
-    }
-
-    if (!d.isKaynak) return;
-
-    e.stopPropagation();
-    e.preventDefault();
-    pencere(d);
-  }, true);
-
-  /* Kalkan onay penceresi. Kullanma işini index.html'deki
-     kalkanKullan() yapar — süre hesabı ve kayıt TEK YERDE kalsın. */
-  function kalkanOnayi(d) {
-    kapat();
-    try { if (typeof closeShopPopups === "function") closeShopPopups(); } catch (e) {}
-
-    var saat = d.kalkanSaat || 6;
-    var kalan = 0;
-    try {
-      if (typeof window.kalkanKalanMs === "function") kalan = window.kalkanKalanMs();
-    } catch (e) {}
-
-    var uyari = kalan > 0
-      ? '<div class="bd-buy-desc" style="color:#ffd257;margin-top:4px;">' +
-        'Şu an açık kalkanın var. Yeni kalkan süreyi ' + saat +
-        ' saate geri sarar, üstüne EKLEMEZ.</div>'
-      : "";
-
-    var mask = document.createElement("div");
-    mask.className = "bd-buy-mask";
-    mask.innerHTML =
-      '<div class="bd-buy-box">' +
-        '<div class="bd-buy-head">' +
-          '<span>Kullan</span>' +
-          '<button class="bd-buy-x" type="button">✕</button>' +
-        '</div>' +
-        '<div class="bd-buy-body">' +
-          '<div class="bd-buy-top">' +
-            '<div class="bd-buy-icon">' + simge(d) + '</div>' +
-            '<div class="bd-buy-txt">' +
-              '<div class="bd-buy-name">' + d.name + '</div>' +
-              '<div class="bd-buy-desc">' + aciklama(d) + '</div>' +
-              uyari +
-            '</div>' +
-          '</div>' +
-          '<button class="bd-buy-go" type="button">🛡️ ' + saat + ' SAAT KALKAN AÇ</button>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(mask);
-
-    mask.querySelector(".bd-buy-x").addEventListener("click", kapat);
-    mask.addEventListener("click", function (e) { if (e.target === mask) kapat(); });
-    mask.querySelector(".bd-buy-go").addEventListener("click", function () {
-      kapat();
-      try {
-        if (typeof window.kalkanKullan === "function") window.kalkanKullan(d.name);
-        else if (typeof kalkanKullan === "function") kalkanKullan(d.name);
-      } catch (e) {}
-    });
-    _esc = function (e) { if (e.key === "Escape") kapat(); };
-    document.addEventListener("keydown", _esc);
-  }
-})();
 
 /* ═══════════════════════════════════════════════════════════════
    3B TEMİZLİĞİ — ÜST ŞERİT · ALT MENÜ · GİRİŞ EKRANI
