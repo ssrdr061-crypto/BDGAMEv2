@@ -1708,27 +1708,57 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 }
 
 /* Hızlandırma kartları */
+/*  KIRPMA PAYI (Tuzak 13): overflow-x:auto yatayda olduğu KADAR
+    dikeyde de kırpar. Seçili kutucuğun köşe işaretleri kutunun
+    3px dışında duruyor; pay verilmezse üst ve alt uçları kesilir.
+    Payı kenardan içeri almak tek güvenli yol — overflow'u kapatmak
+    kartların yana kaydırılmasını bitirirdi. */
 .hosp-speed-modal .hsm-cards{
-  display:flex; gap:9px; overflow-x:auto; -webkit-overflow-scrolling:touch;
-  padding-bottom:2px;
+  display:flex; gap:11px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  padding:4px 4px 6px;
 }
-/* GENİŞLİK YAZIYA UYAR: sabit kare değil. "5 dk" dar, "10 dk" ve
-   "8 sa" geniş kutu ister; sabit genişlikte uzun etiket ya kırpılır
-   ya da kısası bol durur. Genişliği belirleyen şey .hsm-ci-top'un
-   AKIŞTA olması — mutlak konumlu bir öğe kapsayıcısının genişliğine
-   hiç katılmaz, etiket eskiden öyleydi. */
+/*  KUTUCUK = GERÇEK KARE, ÇİZİLMİŞ ÇERÇEVE YOK.
+    Hızlandırma görsellerinin KENDİ çerçevesi var (yeşil/mavi/mor
+    kenarlı kare çizimler). Altına bir de kutu çizilince iki çerçeve
+    üst üste biniyordu; üstelik kutu kare olmadığı için görsel ya
+    kırpılıyor ya eziliyordu.
+    Kutu kare + görsel kare → object-fit:contain kutuyu tam doldurur
+    ve hiçbir kenarı kesmez (çantadaki kural ile aynı).
+    Genişlik artık yazıya göre DEĞİL: kare olması ondan önce gelir.
+    overflow GÖRÜNÜR — seçim köşeleri kutunun birazcık dışında
+    duruyor, kırpılmamalı. */
 .hosp-speed-modal .hsm-card-item{
-  position:relative; flex:0 0 auto; min-width:58px; height:66px;
-  display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
-  border-radius:13px; cursor:pointer; overflow:hidden;
+  position:relative; flex:0 0 62px; width:62px; height:62px;
+  display:block; padding:0;
+  border-radius:12px; cursor:pointer; overflow:visible;
   font-family:'Baloo 2','Nunito',sans-serif;
-  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
-  border:1px solid rgba(190,240,255,.35);
-  box-shadow:none;
+  background:none; border:none; box-shadow:none;
 }
-.hosp-speed-modal .hsm-card-item.is-active{
-  border-color:#ffd257;
-  box-shadow:none;
+/* Görseli olmayan hızlandırma (⏩) yüzer kalmasın diye ona zemin. */
+.hosp-speed-modal .hsm-card-item.hsm-gorselsiz{
+  background:linear-gradient(180deg, #3d7ccc 0%, #22488f 55%, #152e5e 100%);
+  border:1px solid rgba(190,240,255,.20);
+}
+/*  SEÇİM: sarı çerçeve DEĞİL, dört köşe işareti (referans düzen).
+    Sarı kenar görselin kendi çerçevesinin üstüne biniyor ve ikisi
+    birbiriyle yarışıyordu. Köşeler kutunun dışında durur, çizime
+    hiç dokunmaz. Sekiz gradyan = her köşede bir yatay bir dikey
+    çubuk.                                                        */
+.hosp-speed-modal .hsm-ci-sec{ display:none; }
+.hosp-speed-modal .hsm-card-item.is-active .hsm-ci-sec{
+  display:block; position:absolute; left:-3px; right:-3px; top:-3px; bottom:-3px;
+  pointer-events:none; z-index:3;
+  background-image:
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff),
+    linear-gradient(#8fe3ff,#8fe3ff), linear-gradient(#8fe3ff,#8fe3ff);
+  background-repeat:no-repeat;
+  background-size:16px 3px, 3px 16px, 16px 3px, 3px 16px,
+                  16px 3px, 3px 16px, 16px 3px, 3px 16px;
+  background-position:
+    left top, left top, right top, right top,
+    left bottom, left bottom, right bottom, right bottom;
 }
 /* SÜRE ETİKETİ ("5 dk") — kutucuğun ÜSTÜNDE, HER ZAMAN.
    Eskiden yalnız görselsiz kartta basılıyordu; mağaza görseli olan
@@ -1736,8 +1766,9 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
    okuyamıyordu. Görselin üstünde durduğu için altına koyu bir perde
    konur — aksi hâlde açık renkli görselde yazı kayboluyor. */
 .hosp-speed-modal .hsm-ci-top{
-  position:relative; z-index:2;
-  padding:2px 11px 6px; white-space:nowrap;
+  position:absolute; left:0; right:0; top:0; z-index:2;
+  border-radius:12px 12px 0 0;
+  padding:1px 2px 5px; white-space:nowrap;
   color:#fff; font-size:11.5px; font-weight:800; line-height:1.1;
   letter-spacing:.2px; text-align:center;
   text-shadow:0 1px 2px rgba(0,20,45,.75);
@@ -1745,9 +1776,8 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   pointer-events:none;
 }
 .hosp-speed-modal .hsm-ci-icon{
-  position:relative; z-index:2; flex:1 1 auto;
+  position:absolute; left:0; right:0; top:18px; bottom:0; z-index:2;
   display:flex; align-items:center; justify-content:center;
-  margin-top:-6px;                    /* etiketin perde payını geri al */
   font-size:22px; line-height:1;
 }
 .hosp-speed-modal .hsm-ci-count{
@@ -1851,13 +1881,19 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 }
 
 /* Eylemler */
-.hosp-speed-modal .hsm-actions{ display:flex; gap:8px; margin-top:10px; }
+/*  DÜĞMELER ORTALI ve YAZI KADAR.
+    `flex:1 1 auto` ile bile artan boşluk düğmelere paylaştırılıyor
+    ve ikisi satırı komple dolduruyordu. `0 1 auto` + ortalama:
+    düğme yazısı kadar yer alır, kenarlarda boşluk kalır. */
+.hosp-speed-modal .hsm-actions{
+  display:flex; gap:10px; margin-top:10px; justify-content:center;
+}
 /*  GENİŞLİK YAZIYA GÖRE: flex-basis `0` değil `auto`.
     `1 1 0` iki düğmeyi zorla yarı yarıya bölüyordu; "BİTİR 💎 1.180"
     sıkışırken "KULLAN" bol bol boş duruyordu. `auto` ile her düğme
     önce kendi yazısı kadar yer alır, artan boşluk sonra paylaşılır. */
 .hosp-speed-modal .hsm-btn{
-  flex:1 1 auto; min-height:34px; padding:4px 14px;
+  flex:0 1 auto; min-height:34px; padding:4px 22px;
   border:none; border-radius:10px; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:900;
   color:#fff; letter-spacing:.4px;
@@ -1882,8 +1918,10 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
   box-shadow:none;
   text-shadow:0 2px 0 rgba(0,10,30,.55);
 }
+/* HIZLI KULLAN da tam genişlik değil: yazısı kadar, ortada. */
 .hosp-speed-modal .hsm-quick{
-  display:flex; width:100%; min-height:32px; margin-top:7px; font-size:13px;
+  display:flex; width:auto; min-height:32px; font-size:13px;
+  margin:7px auto 0; padding:4px 30px;
 }
 .hosp-speed-modal .hsm-btn:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none; }
 .hosp-speed-modal .hsm-btn[disabled]{ opacity:.5; }
@@ -6957,11 +6995,12 @@ function hizlandirmaPenceresi(unitId, tur) {
         ? `<div class="hsm-empty">Hızlandırman yok.<br>Mağazadan ⏩ Hızlandırma satın alabilirsin.</div>`
         : `<div class="hsm-cards">
             ${liste.map((x, i) => `
-              <button class="hsm-card-item${i === 0 ? " is-active" : ""}" data-i="${i}" type="button">
+              <button class="hsm-card-item${i === 0 ? " is-active" : ""}${x.gorsel ? "" : " hsm-gorselsiz"}" data-i="${i}" type="button">
                 ${x.gorsel ? `<img class="hsm-ci-img" src="${x.gorsel}" alt="">` : ``}
                 <span class="hsm-ci-top">${x.etiket}</span>
                 ${x.gorsel ? `` : `<span class="hsm-ci-icon">⏩</span>`}
                 <span class="hsm-ci-count">${x.adet}</span>
+                <i class="hsm-ci-sec"></i>
               </button>`).join("")}
           </div>
 

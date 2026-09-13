@@ -4762,35 +4762,24 @@ st.textContent = `
   width:0%; transition:width .5s linear !important;
 }
 
-/* "5 dk" kutucuğu: dış 3B yok, görsel kutuyu doldurur.
-   GENİŞLİK YAZIYA UYAR — buradaki eski "flex:0 0 66px" sabit
-   genişliği, tabandaki min-width kuralını eziyordu.
-   overflow:hidden ŞART — süre etiketinin perdesi köşelerden taşmasın. */
+/*  "5 dk" kutucuğu — ÖLÇÜ VE ÇERÇEVE ARTIK index.html TABANINDA.
+    Burada eskiden sabit yükseklik, çizilmiş çerçeve ve seçili kart
+    için sarı kenar vardı; üçü de tabandaki yeni kuralları
+    eziyordu (Tuzak 38). Kutucuk artık gerçek kare, görselin kendi
+    çerçevesiyle geliyor ve seçim köşe işaretiyle gösteriliyor —
+    hepsi tek yerde. Bu blokta yalnız ızgara boşluğu kaldı. */
 .hosp-speed-modal .hsm-cards{ margin:0 0 4px !important; }
-.hosp-speed-modal .hsm-card-item{
-  height:66px !important;
-  box-shadow:none !important;
-  border-radius:12px !important;
-  overflow:hidden !important;
-  padding:0 !important;
-}
-/* Seçili kart: dağınık hale değil, net sarı çerçeve. */
-.hosp-speed-modal .hsm-card-item.is-active{
-  border-color:#ffd257 !important;
-  box-shadow:inset 0 0 0 1px #ffd257 !important;
-}
-/*  GÖRSEL: etiketin ALTINDAKİ alanı kaplar, KIRPILMAZ.
-    Kutucuk artık kare değil (genişliği yazıya uyuyor); cover
-    kare çizimi 48x62'lik kutuya zorlayınca oklar eziliyordu.
-    contain oranı korur, top da görseli etiket şeridinin altına
-    indirir — yoksa çizimin tepesi perdenin altında kalıyor.
-    (Tuzak 27: bu yorum şablon dizgisinin içinde, ters tırnak yok.)
-    Üst değer etiket şeridinin boyuyla aynı olmalı (2+11,5×1,1+6≈20). */
+/*  GÖRSEL KUTUYU TAM DOLDURUR, KIRPILMAZ.
+    Kutu kare (62x62) ve çizimler de kare: contain bu durumda
+    kutunun tamamını kaplar ve hiçbir kenarı kesmez. Görselin
+    KENDİ çerçevesi böylece olduğu gibi görünür — altına ikinci
+    bir çerçeve çizilmiyor. (cover kırpardı, cezalandırdığımız
+    ezilme oradan geliyordu.) */
 .hosp-speed-modal .hsm-ci-img{
-  position:absolute !important;
-  left:0 !important; right:0 !important; top:20px !important; bottom:2px !important;
-  width:auto !important; height:auto !important;
+  position:absolute !important; inset:0 !important;
+  width:100% !important; height:100% !important;
   object-fit:contain !important; display:block !important;
+  border-radius:12px !important;
   pointer-events:none !important;
 }
 /* sahip olunan adet: beyaz, okunaklı, ezik değil */

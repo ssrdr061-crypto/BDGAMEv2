@@ -219,6 +219,32 @@ Kaçış: `?egitimkapat=1`.
   kullanılabilmesi (kitap kahraman sayfasına atar), seçili
   kutucuğun köşe işaretleri.
 
+- **Hızlandırma kutucuğu: ÇİZİLMİŞ ÇERÇEVE KALDIRILDI.**
+  Kök şuydu: hızlandırma görsellerinin KENDİ çerçevesi var
+  (yeşil/mavi/mor kenarlı kare çizimler, 1024×1024). Altına bir de
+  kutu çiziliyordu — iki çerçeve üst üste biniyor, üstelik kutu
+  kare olmadığı için görsel kırpılıyor/eziliyordu. `cover`→`contain`
+  yetmedi, asıl sorun kutunun kare OLMAMASIYDI.
+  Artık: kutu **62×62 gerçek kare**, `background:none`, `border:none`;
+  kare görsel kare kutuda `contain` ile kutuyu TAM doldurur ve
+  hiçbir kenarı kesmez. Görselsiz hızlandırma (⏩) yüzer kalmasın
+  diye yalnız ona zemin verilir (`hsm-gorselsiz`).
+  Ölçüldü: görsel 1024×1024 → ekranda 62×62, kutuyu tam dolduruyor,
+  çizilmiş zemin `none`, kenar `0px`.
+- **Seçili hızlandırma: sarı çerçeve değil KÖŞE İŞARETLERİ.**
+  Sarı kenar görselin kendi çerçevesinin üstüne biniyor, ikisi
+  birbiriyle yarışıyordu. Referanstaki gibi dört köşe işareti
+  (`.hsm-ci-sec`, sekiz gradyan — her köşede bir yatay bir dikey
+  çubuk), kutunun 3px dışında.
+  **Tuzak 13 burada ısırdı:** `.hsm-cards` `overflow-x:auto`, ve o
+  yatayda olduğu KADAR dikeyde de kırpıyor — köşe işaretlerinin
+  üst/alt uçları kesiliyordu. Izgaraya 4px pay verildi.
+- **Düğmeler kısaldı.** `flex:1 1 auto` ile bile artan boşluk
+  düğmelere paylaştırılıyor, ikisi satırı komple dolduruyordu.
+  `flex:0 1 auto` + `justify-content:center`: düğme yazısı kadar
+  yer alır. HIZLI KULLAN da tam genişlik değil, ortada.
+  Ölçüldü (kart eni 346): BİTİR **86** · KULLAN **104** ·
+  HIZLI KULLAN **154** px.
 - **Hızlandırma penceresi — kutucuk görseli ve düğme genişliği.**
   Kutucuğun genişliği yazıya bağlanınca kutu kare olmaktan çıktı
   ama görsel hâlâ `object-fit:cover` ile geriliyordu: oklar ezik
