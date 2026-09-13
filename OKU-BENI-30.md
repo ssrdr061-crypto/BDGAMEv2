@@ -178,6 +178,41 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **KADEME ROZETİ ALTIGEN OLDU** (`tema.js` `temaKademeAltigen`).
+  Bölüm 4'te "riskli" diye bırakılmıştı; Serdar denememi istedi,
+  iki engel de çözüldü:
+  - **`clip-path` ÇOCUKLARIN HEPSİNİ keser — kenarlık dahil.**
+    Bu yüzden kenar `border` ile değil, kutunun kendi zemininden
+    2px'lik bir HALKA olarak veriliyor: dıştaki altıgen (kutu)
+    halka rengi, içteki altıgen (`::before`, 2px içeri) kademe
+    arka planı. İkisine de AYNI çokgen yazılıyor (tek `const`),
+    ayrışırsa halka kenarlarda tutmaz.
+  - **Kademe arka plan görselleri** (`birlik1..5arkaplan.webp`)
+    ve %200 ölçekli çizim olduğu gibi duruyor; kırpmayı artık
+    `overflow` değil `clip-path` yapıyor, o kurallara dokunulmadı.
+  - Seçili rozet: halka altın + 2px yukarı. **Dış parlama YOK** —
+    hem görünüm kuralı, hem de `clip-path` `box-shadow`u zaten
+    keserdi.
+  - **İki deneme geri alındı, ikisi de ölçülerek:** (1) görseli
+    yukarı çekmek (`margin-top:-12%`) kaskın altını kesiyor ve
+    yüzü rakamın arkasına sokuyor — kare kutudaki kadraj (-4%)
+    altıgende de en iyisi. (2) Rakamı alt ORTAYA almak yüzü
+    kapatıyor; sağ alta alındı, altıgenin sağ alt eğimi yüzün
+    dışında kalıyor.
+
+  Ölçüldü (412×820 ve 360×740): altı rozet de **37,8×42,4** ve
+  birbirinin aynı, hepsinde çokgen kırpma etkin, adet ile kaynak
+  kutusu arası 8px, yatay kaydırma yok.
+
+  **GERİ DÖNÜŞ TEK HAMLE:** `temaKademeAltigen` IIFE'sini sil —
+  rozetler yuvarlak köşeli kareye döner, başka hiçbir yer etkilenmez.
+
+  **ÖLÇÜM ARACI NOTU:** sınav sayfası CSS'i dosyadan düz metin
+  olarak topluyordu, şablon dizgisindeki `${SABIT}` yerleri
+  dolmuyor ve `clip-path` sessizce geçersiz kalıyordu — altıgen
+  "hiç uygulanmadı" gibi görünüyordu. Araç artık `const` değerlerini
+  dosyadan okuyup yerine koyuyor ve dolduramadığı yer kalırsa uyarıyor.
+
 - **BİRLİK EKRANI — BÖLÜM 4: AKICILIK · BİTİR'DE GÜÇ ŞERİDİ ·
   KADEME ŞERİDİ.** Hiçbir şey silinmedi; üç ekleme.
 

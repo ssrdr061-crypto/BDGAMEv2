@@ -11590,3 +11590,76 @@ st.textContent = `
 `;
 document.head.appendChild(st);
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   KADEME ROZETİ — ALTIGEN (referans düzeni)
+
+   Serdar referanstaki altıgen rozetleri istedi. İki şeye dikkat:
+     1) clip-path ÇOCUKLARIN HEPSİNİ keser — kenarlık da dahil.
+        Bu yüzden kenarlık `border` ile DEĞİL, kutunun kendi
+        zemininden 2px'lik bir halka olarak veriliyor: dıştaki
+        altıgen (kutu) halka rengi, içteki altıgen (::before,
+        2px içeri) kademe arka planı. Birinin clip'i ötekini
+        kesmesin diye İKİSİNE DE aynı çokgen yazılıyor.
+     2) Kademe görseli %200 ölçekli (üstteki .uv-portrait img
+        kuralı) ve kutunun overflow'uyla kırpılıyordu; altıgende
+        kırpmayı clip-path yapıyor, o kural olduğu gibi duruyor.
+
+   Seçili rozet: halka rengi altın + 2px yukarı. Dış parlama YOK
+   (görünüm kuralı), clip-path zaten box-shadow'u keserdi.
+
+   GERİ DÖNÜŞ: bu IIFE'yi sil — rozetler yuvarlak köşeli kareye
+   döner, başka hiçbir yeri etkilemez.
+   ═══════════════════════════════════════════════════════════════ */
+(function kademeAltigen(){
+"use strict";
+const st = document.createElement("style");
+st.id = "temaKademeAltigen";
+/*  Sivri tepeli altıgen. İki yerde de AYNI değer olmalı — ayrışırsa
+    halka kalınlığı kenarlarda tutmaz. */
+const ALTIGEN = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
+st.textContent = `
+html body #panel-troops .uv-portrait{
+  -webkit-clip-path:${ALTIGEN} !important;
+  clip-path:${ALTIGEN} !important;
+  border:none !important;
+  border-radius:0 !important;
+  background:rgba(190,240,255,.55) !important;   /* halka */
+  /* Altıgen enine göre daha uzundur: en × 1,12 */
+  height:calc(var(--tp-box,44px) * .86 * 1.12) !important;
+  box-shadow:none !important;
+}
+html body #panel-troops .uv-portrait::before{
+  inset:2px !important;
+  -webkit-clip-path:${ALTIGEN} !important;
+  clip-path:${ALTIGEN} !important;
+}
+/*  Görsel de halkanın içinde kalsın: kutuyla aynı çokgen.
+    KADRAJA DOKUNULMADI: görseli yukarı çekmek denendi (-12%),
+    daha kötü — kaskın altı kesiliyor ve yüz rakamın arkasına
+    giriyor. Kare kutudaki kadraj (-4%) altıgende de en iyisi. */
+html body #panel-troops .uv-portrait img{
+  -webkit-clip-path:${ALTIGEN};
+  clip-path:${ALTIGEN};
+}
+html body #panel-troops .uv-portrait.is-active{
+  background:#ffd257 !important;                 /* seçili halka */
+  transform:translateY(-2px) !important;
+}
+/*  Numara ALT ORTADA DEĞİL, sağ altta: kademe çizimlerinde yüz tam
+    o noktaya denk geliyor ve ortadaki hap yüzü kapatıyordu
+    (denendi, ölçüldü). Altıgenin sağ alt eğimi yüzün dışında
+    kaldığı için oraya oturuyor. */
+html body #panel-troops .uv-portrait .kp-sv{
+  right:4px !important; left:auto !important;
+  bottom:3px !important;
+  transform:none !important;
+  padding:0 4px !important; border-radius:7px !important;
+  font-size:9.5px !important; line-height:13px !important;
+  background:rgba(6,20,40,.82) !important;
+  letter-spacing:.03em !important;
+}
+`;
+document.head.appendChild(st);
+})();
