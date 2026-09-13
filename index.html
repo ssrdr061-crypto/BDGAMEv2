@@ -5869,10 +5869,12 @@ function renderInventory() {
     return sek === cantaSekme;
   });
 
+  /*  BOŞ SEKME: hiçbir şey yazılmaz.
+      Örümcek ağı + "Bu bölümde eşyan yok" satırı, dört sütunluk
+      ızgaranın tek hücresine sıkışıp kelime kelime alt alta
+      diziliyordu. Boş ızgara zaten kendini anlatıyor. */
   if (keys.length === 0) {
-    list.innerHTML = emptyState("🕸️", hepsi.length
-      ? "Bu bölümde eşyan yok."
-      : "Çantan boş. Mağazadan eşya al ya da sandık aç.");
+    list.innerHTML = "";
   } else {
     list.innerHTML = keys.map(k => {
       const def = getItemDef(k);

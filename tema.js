@@ -378,22 +378,21 @@ const DRAG_PX = 12;
   --cr-ic1:rgba(79,209,232,.22); --cr-ic2:rgba(12,74,110,.42);
 }
 
-/*  ADET — çerçevenin İÇİNDE, sağ altta (referans düzen).
-    Altta ayrı satır olarak durması istenmedi; .card-right
-    aşağıda gizleniyor. Kontur gölge şart: rakam eşyanın
-    üstüne biniyor, düz beyaz okunmuyor.                         */
+/*  ALT ŞERİT — KAÇ TANE olduğu.
+    Eskiden çıplak beyaz rakamdı ve okunsun diye sekiz yönlü kalın
+    kontur gölgesi vardı; çizimin üstünde hem ağır duruyor hem de
+    3B'siz görünüm kuralına aykırıydı. Artık üst şeritle aynı dilde
+    düz, yarı saydam siyah bant. */
 #panel-inventory .icon-box .inv-adet{
-  position:absolute !important;
-  right:3px !important; bottom:2px !important;
+  position:absolute !important; left:0 !important; right:0 !important; bottom:0 !important;
+  padding:2px 6px !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:900 !important; font-size:12px !important;
-  line-height:1 !important; color:#fff !important;
+  font-weight:900 !important; font-size:12.5px !important; line-height:1.15 !important;
+  color:#fff !important; text-align:right !important;
   pointer-events:none !important;
-  text-shadow:-1.5px -1.5px 0 #0d1f3a, 1.5px -1.5px 0 #0d1f3a,
-              -1.5px 1.5px 0 #0d1f3a, 1.5px 1.5px 0 #0d1f3a,
-              0 -1.5px 0 #0d1f3a, 0 1.5px 0 #0d1f3a,
-              -1.5px 0 0 #0d1f3a, 1.5px 0 0 #0d1f3a,
-              0 2px 3px rgba(0,0,0,.65) !important;
+  border-radius:0 0 10px 10px !important;
+  background:rgba(0,0,0,.42) !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.55) !important;
 }
 /* Eski adet satırı (kutunun ALTINDAKİ yazı) kalksın */
 #panel-inventory .card-right{ display:none !important; }
@@ -610,19 +609,24 @@ const DRAG_PX = 12;
     left bottom, left bottom, right bottom, right bottom !important;
 }
 
-/*  ROZET (sol üst) — eşyanın NE KADAR verdiği.
-    Sağ alttaki sayı KAÇ TANE olduğu; ikisi ayrı şey ve ayrı köşede
-    durmalı, yoksa "10 K" ile "140" yan yana gelip karışır. */
+/*  ÜST ŞERİT — eşyanın NE KADAR verdiği ("10K", "5 dk").
+    Sağ alttaki sayı KAÇ TANE olduğu; ikisi ayrı şey, ayrı köşede.
+    GRADYAN DEĞİL DÜZ ŞERİT: "gittikçe kararan" perde çizimin
+    üstünde kirli bir leke gibi duruyordu. Düz, yarı saydam siyah
+    bant hem okunur hem çizimi bozmaz.
+    Rozeti olmayan eşyada (bonus, parça, kitap) hiç basılmaz —
+    magaza.js urunRozeti() boş döner. */
 #panel-inventory .icon-box .inv-rozet{
   position:absolute !important; left:0 !important; right:0 !important; top:0 !important;
-  padding:1px 3px 4px !important;
+  padding:2px 5px !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:900 !important; font-size:11px !important; line-height:1.1 !important;
+  font-weight:900 !important; font-size:12.5px !important; line-height:1.15 !important;
   color:#fff !important; text-align:center !important;
   pointer-events:none !important;
   border-radius:10px 10px 0 0 !important;
-  background-image:linear-gradient(180deg,rgba(2,12,30,.80),rgba(2,12,30,0)) !important;
-  text-shadow:0 1px 2px rgba(0,20,45,.75) !important;
+  background:rgba(0,0,0,.42) !important;
+  background-image:none !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.55) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════

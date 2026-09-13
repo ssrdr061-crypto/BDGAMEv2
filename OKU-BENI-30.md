@@ -178,6 +178,28 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **ÇANTA — KUTUCUK ŞERİTLERİ VE BOŞ SEKME.**
+  - **Anlamsız "1" rozeti kalktı.** Kök `magaza.js urunRozeti()`in
+    son satırıydı: eşleşmeyen her ürüne `return "1"`. Bonus eşyası,
+    kahraman parçası, tecrübe kitabı ve donanımın "ne kadar verdiği"
+    diye bir sayısı yok — kutucuğun üstünde anlamsız bir 1 duruyordu,
+    kaç tane olduğu zaten alt şeritte yazıyor. Artık **boş** döner.
+    Mağaza kartı boş rozet istemiyor, orada `urunRozeti(item) || "1"`
+    ile doldurulur — tek kaynak korundu.
+    Sınandı: kaynak "10K" · hızlandırma "5dk" · kalkan "6sa" ·
+    intikal "%25" · bonus/parça/kitap **""**.
+  - **Şeritler düz oldu.** Üstteki rozet "gittikçe kararan" bir
+    gradyan perdeydi, çizimin üstünde kirli bir leke gibi duruyordu.
+    Alttaki adet ise çıplak beyaz rakamdı ve okunsun diye **sekiz
+    yönlü kalın kontur gölgesi** taşıyordu — hem ağır, hem 3B'siz
+    görünüm kuralına aykırı. İkisi de artık aynı dilde: düz, yarı
+    saydam siyah bant (`rgba(0,0,0,.42)`), punto 11/12 → **12,5**,
+    üstteki ortalı, alttaki sağa yaslı.
+  - **Boş sekmede hiçbir şey yazmıyor.** Örümcek ağı + "Bu bölümde
+    eşyan yok" satırı dört sütunluk ızgaranın TEK hücresine sıkışıp
+    kelime kelime alt alta diziliyordu. Boş ızgara zaten kendini
+    anlatıyor.
+
 - **ÇANTA — BÖLÜM 2: SATIR ALTI BALONCUĞU** (`index.html`
   `cantaBaloncukHTML` / `cantaBaloncukBagla` / `cantaEsyaKullan`).
 

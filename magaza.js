@@ -358,7 +358,9 @@ function renderShop() {
 
     const left = shopLeft(item);
     const soldOut = left <= 0;
-    const badge = urunRozeti(item);        /* tek kaynak — çanta da bunu okur */
+    /* Mağaza kartı her zaman bir rozet ister; rozeti olmayan
+       üründe "1" (bir adet alırsın) yazılır. Çanta boş bırakır. */
+    const badge = urunRozeti(item) || "1";
 
     html += `
       <div class="shop-card2 ${soldOut ? "soldout" : ""}" data-idx="${realIdx}" style="animation-delay:${i * 0.04}s">
@@ -418,7 +420,13 @@ function urunRozeti(item) {
   if (item.isSpeedUpItem) return item.speedUpMinutes >= 60
                                  ? Math.round(item.speedUpMinutes / 60) + "sa"
                                  : item.speedUpMinutes + "dk";
-  return "1";
+  /*  BOŞ döner: bonus eşyası, kahraman parçası, tecrübe kitabı,
+      donanım... Bunların "ne kadar verdiği" diye bir sayısı yok;
+      eskiden hepsine "1" yazılıyordu ve çantada kutucuğun üstünde
+      anlamsız bir 1 duruyordu — kaç tane olduğu zaten sağ altta.
+      Mağaza kartı boş rozet istemiyor, orada `|| "1"` ile
+      dolduruluyor.                                               */
+  return "";
 }
 window.urunRozeti = urunRozeti;
 
