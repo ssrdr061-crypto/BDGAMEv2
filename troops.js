@@ -556,10 +556,35 @@ function trainUnitInstant(unitId, count) {
   }
   state.diamonds -= totalCost;
   state.troops[unitId] = (state.troops[unitId] || 0) + count;
-  renderDiamonds();
-  updateShopButtons();
-  renderTroopsPanel();
-  if (typeof persistCurrentState === "function") { try { persistCurrentState(); } catch (e) {} }
+
+  /*  ── AKICILIK ──
+      Üç tazeleme de KARE BAŞINA BİR kez yapılır. Hiçbiri atlanmıyor;
+      arka arkaya basınca aynı karedeki tekrarlar birleşiyor. Yardımcı
+      yoksa eskisi gibi doğrudan çağrılır (davranış birebir aynı).   */
+  const ciz = (ad, fn) => {
+    if (typeof window.bdTekCizim === "function") window.bdTekCizim(ad, fn);
+    else fn();
+  };
+  ciz("elmas", renderDiamonds);
+  ciz("magazaDugmeleri", updateShopButtons);
+  ciz("birlikPaneli", renderTroopsPanel);
+
+  /*  Kayıt 500 ms sessizliğe ertelenir: her dokunuşta BÜTÜN hesap
+      nesnesi JSON'a çevrilip localStorage'a yazılıyordu, donmanın
+      büyük kısmı buydu. Kayıt iptal edilmez — panel kapanınca,
+      sayfa arkaya atılınca ve sayfadan çıkılırken hemen yazılır.  */
+  if (typeof window.bdKaydetYakinda === "function") window.bdKaydetYakinda();
+  else if (typeof persistCurrentState === "function") { try { persistCurrentState(); } catch (e) {} }
+
+  /*  Ekran ortası "Güç +N" şeridi — eğitim teslimatındakiyle AYNI
+      kapı (gucefekt.js). Güç, sıralamanın okuduğu TROOP_POWER
+      tablosundan gelir; o satır henüz tanımlı değilse birliğin
+      kendi power alanına düşülür (egitimPartiOzet ile aynı kalıp). */
+  let _guc = 0;
+  try { _guc = (TROOP_POWER[unitId] || 0) * count; }
+  catch (e) { _guc = (def.power || 0) * count; }
+  try { if (window.GUC_EFEKT && _guc > 0) GUC_EFEKT.goster(_guc); } catch (e) {}
+
   showToast(`⚡ ${count} ${def.name} anında hazır!`);
 }
 
@@ -609,9 +634,14 @@ function trainUnit(unitId, count) {
     state.trainingQueue.push({ unitId, finishAt: sonBitis });
   }
 
-  renderDiamonds();
-  updateShopButtons();
-  renderTroopsPanel();
+  /* Tazelemeler kare başına bir kez (bkz. trainUnitInstant). */
+  const ciz2 = (ad, fn) => {
+    if (typeof window.bdTekCizim === "function") window.bdTekCizim(ad, fn);
+    else fn();
+  };
+  ciz2("elmas", renderDiamonds);
+  ciz2("magazaDugmeleri", updateShopButtons);
+  ciz2("birlikPaneli", renderTroopsPanel);
   showToast(count === 1
     ? `${def.name} eğitime başladı (${sureDk(def.trainMinutes)}).`
     : `${count} ${def.name} eğitime başladı (toplam ${sureDk(def.trainMinutes * count)}).`);

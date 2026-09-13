@@ -5002,6 +5002,58 @@ function loginAccount(username, password) {
   return { ok: true };
 }
 
+/*  ═══════════════════════════════════════════════════════════
+    AKICILIK — İKİ YARDIMCI (hiçbir şey silinmedi, ikisi de
+    mevcut işlevleri ÇAĞIRIR, davranışı değiştirmez)
+
+    Serdar "Bitir"e hızlı hızlı basınca oyun donuyordu. Ölçülen
+    yük her dokunuşta AYNI kareye sığmayan üç iş:
+      1) renderTroopsPanel + renderUnitStats (üç ekranı da yazar)
+      2) localStorage: BÜTÜN hesap nesnesi JSON'a çevrilip yazılır
+      3) bulut yazımının kuyruğa alınması
+    Basış sayısıyla birlikte doğrusal büyüyorlar.
+
+    · bdTekCizim(ad, fn): aynı kare içinde kaç kez çağrılırsa
+      çağrılsın, her ad için işi BİR kez çalıştırır. Çizim
+      atlanmaz, yalnız tekrarları birleşir.
+    · bdKaydetYakinda(): kaydı 500 ms sessizliğe erteler. Kayıt
+      İPTAL EDİLMEZ; panel kapanınca, sayfa arkaya atılınca ve
+      sayfadan çıkılırken bekleyen kayıt HEMEN yazılır
+      (bdKaydetSimdi). Tuzak 3/6: yazılmamış değişiklikle sayfa
+      kapanırsa veri gider — o yüzden üç ayrı boşaltma kapısı var.
+    ═══════════════════════════════════════════════════════════ */
+window.bdTekCizim = (function () {
+  var bekleyen = {}, acik = false;
+  return function (ad, fn) {
+    bekleyen[ad] = fn;
+    if (acik) return;
+    acik = true;
+    requestAnimationFrame(function () {
+      acik = false;
+      var isler = bekleyen; bekleyen = {};
+      Object.keys(isler).forEach(function (k) { try { isler[k](); } catch (e) {} });
+    });
+  };
+})();
+
+var _bdKayitZaman = null;
+function bdKaydetSimdi() {
+  if (_bdKayitZaman) { clearTimeout(_bdKayitZaman); _bdKayitZaman = null; }
+  try { persistCurrentState(); } catch (e) {}
+}
+function bdKaydetYakinda() {
+  if (_bdKayitZaman) clearTimeout(_bdKayitZaman);
+  _bdKayitZaman = setTimeout(function () { _bdKayitZaman = null; bdKaydetSimdi(); }, 500);
+}
+window.bdKaydetSimdi = bdKaydetSimdi;
+window.bdKaydetYakinda = bdKaydetYakinda;
+/*  Boşaltma kapıları: sayfa arkaya atılınca ve kapanırken.
+    (Panel kapanışı closeOverlayPanel'de.) */
+document.addEventListener("visibilitychange", function () {
+  if (document.visibilityState === "hidden") bdKaydetSimdi();
+});
+window.addEventListener("pagehide", bdKaydetSimdi);
+
 function persistCurrentState() {
   if (!currentUsername) return;
   const accounts = loadAccounts();
@@ -9723,6 +9775,8 @@ function openOverlayPanel(panelKey) {
 function closeOverlayPanel(panelEl) {
   panelEl.classList.remove("active");
   if (panelEl.id === "panel-troops") TroopViewer.hide();
+  /* Ertelenmiş kayıt varsa panel kapanırken hemen yazılır. */
+  if (typeof bdKaydetSimdi === "function") bdKaydetSimdi();
 }
 
 function bindTap(el, handler) {
@@ -10523,10 +10577,28 @@ const TroopViewer = (function () {
         const d = UNIT_TYPES[kademeId(uid, k)];
         if (!d) continue;
         const src = d.img || "";
-        html += `<button class="uv-portrait${k === lv ? " is-active" : ""}${kademeAcikMi(uid, k) ? "" : " kp-kilit"}` +
+        /*  Kademe numarası ROMA rakamı (referans düzeni). Tablo tek
+            satır, kademe sayısı artarsa buraya eklenir.
+            SEÇİLİ kademenin ALTINDA elindeki adet yazar — referansta
+            da öyle; sayı `state.troops`tan gelir, ikinci bir sayaç
+            tutulmaz. */
+        const roma = ["", "I", "II", "III", "IV", "V", "VI"][k] || String(k);
+        const sec = (k === lv);
+        /*  Kutu ve adet DİKEY BİR YUVANIN içinde, ikisi de akışta.
+            Adedi kutunun içine mutlak konumla koymak denendi ve
+            tutmadı: kutunun overflow'u kapalı (kademe görseli %200
+            ölçekli, kırpılması ŞART) ve açılınca görsel bütün
+            ekrana taşıyor; kutu ölçüsü de --tp-box ile değiştiği
+            için yüzdeli konum kayıyordu. Yuva ikisini de çözüyor,
+            kutunun kendisine hiç dokunulmuyor. */
+        const adet = sec
+          ? `<span class="kp-adet">${fmt((state && state.troops && state.troops[kademeId(uid, k)]) || 0)}</span>`
+          : "";
+        html += `<span class="kp-yuva">` +
+                `<button class="uv-portrait${sec ? " is-active" : ""}${kademeAcikMi(uid, k) ? "" : " kp-kilit"}` +
                 `" data-unit="${uid}" data-kademe="${k}" aria-label="${k}.Sv ${d.name}">` +
                 (src ? `<img src="${src}" alt="">` : `<span>${d.icon || "?"}</span>`) +
-                `<span class="kp-sv">${k}</span></button>`;
+                `<span class="kp-sv">${roma}</span></button>${adet}</span>`;
       }
       html += `</div>`;
 
@@ -10694,13 +10766,20 @@ const TroopViewer = (function () {
                                      parseInt(btn.dataset.kademe, 10) || 1));
       });
 
+      /*  Çizim kare başına BİR kez: arka arkaya basınca her dokunuş
+          ayrı bir tam çizim başlatıyordu (üç ekran birden). İş
+          atlanmıyor, yalnız aynı karedeki tekrarlar birleşiyor. */
+      const tazele = () => {
+        if (typeof bdTekCizim === "function") bdTekCizim("birlikEkrani", renderUnitStats);
+        else renderUnitStats();
+      };
       const trainBtn = el.querySelector(".unit-train-btn");
-      if (trainBtn) bindTap(trainBtn, () => { trainUnit(kid, unitTrainQty[uid] || 1); renderUnitStats(); });
+      if (trainBtn) bindTap(trainBtn, () => { trainUnit(kid, unitTrainQty[uid] || 1); tazele(); });
 
       const instBtn = el.querySelector(".unit-instant-btn");
       if (instBtn) bindTap(instBtn, () => {
         if (typeof trainUnitInstant === "function") trainUnitInstant(kid, unitTrainQty[uid] || 1);
-        renderUnitStats();
+        tazele();
       });
 
       /* HIZLANDIR düğmesi burada BAĞLANMAZ — belge düzeyindeki tek

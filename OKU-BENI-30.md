@@ -178,6 +178,54 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **BİRLİK EKRANI — BÖLÜM 4: AKICILIK · BİTİR'DE GÜÇ ŞERİDİ ·
+  KADEME ŞERİDİ.** Hiçbir şey silinmedi; üç ekleme.
+
+  - **"Bitir"e hızlı basınca donma.** Her dokunuşta üç iş birden
+    çalışıyordu: (1) `renderTroopsPanel` + `renderUnitStats` (üç
+    ekranı da yazar), (2) BÜTÜN hesap nesnesinin JSON'a çevrilip
+    localStorage'a yazılması, (3) bulut yazımının kuyruğa alınması.
+    Üçü de basış sayısıyla doğrusal büyüyor.
+    İki yardımcı eklendi, ikisi de mevcut işlevleri ÇAĞIRIR:
+    · **`bdTekCizim(ad, fn)`** — aynı kare içinde kaç kez
+      çağrılırsa çağrılsın işi bir kez çalıştırır
+      (`requestAnimationFrame`). Çizim ATLANMAZ, tekrarlar
+      birleşir. `trainUnitInstant`, `trainUnit` ve birlik
+      ekranındaki iki düğme bunu kullanır.
+    · **`bdKaydetYakinda()`** — kaydı 500 ms sessizliğe erteler.
+      Kayıt İPTAL EDİLMEZ: panel kapanınca (`closeOverlayPanel`),
+      sayfa arkaya atılınca (`visibilitychange`) ve sayfadan
+      çıkarken (`pagehide`) bekleyen kayıt HEMEN yazılır
+      (`bdKaydetSimdi`). Tuzak 3/6 gereği üç ayrı boşaltma kapısı
+      var. `persistCurrentState`e DOKUNULMADI, oyunun geri kalanı
+      eskisi gibi anında yazmaya devam ediyor.
+  - **BİTİR'de de "Güç +N" şeridi.** Eğitim teslimatındakiyle AYNI
+    kapı (`gucefekt.js GUC_EFEKT.goster`). Güç, sıralamanın okuduğu
+    `TROOP_POWER` tablosundan gelir; tablo henüz tanımlı değilse
+    birliğin kendi `power` alanına düşülür — `egitimPartiOzet` ile
+    birebir aynı kalıp, ikinci bir güç hesabı açılmadı.
+  - **Kademe şeridi:** numaralar **roma rakamı** (I…VI) ve SEÇİLİ
+    kademenin **altında elindeki adet** yazıyor (`state.troops`tan,
+    ikinci sayaç yok).
+    **İKİ DENEME TUTMADI, kökleri şunlar:** (1) adet kutunun içine
+    mutlak konumla konunca kutunun `overflow:hidden`ı onu kırpıyor;
+    açınca da %200 ölçekli kademe görselleri bütün ekrana taşıyor.
+    (2) Kırpmayı görselin sarmalına alınca bu sefer yüzdeli konum
+    tutmadı: kutu ölçüsü `--tp-box` ile değişiyor (44 → 37,8) ve
+    genel `.uv-portrait span` kuralı adet yazısına da
+    `width/height:100%` veriyordu.
+    **Tutan yol:** kutu ve adet dikey bir YUVANIN (`.kp-yuva`)
+    içinde, ikisi de akışta. Kutuya hiç dokunulmuyor.
+    Ölçüldü (412×820 ve 360×740): altı kutu aynı hizada, adet
+    kutunun 5px altında, kaynak kutusuyla arası 8px, çakışma yok,
+    yatay kaydırma yok.
+
+  **Altıgen kademe rozeti YAPILMADI — sebebi:** kutucukların
+  arka planı kademeye göre ayrı görsel (`birlik1..5arkaplan.webp`)
+  ve kademe çizimleri %200 ölçekli kırpılıyor; `clip-path` ile
+  altıgene çevirmek hem bu arka planları hem çizimin kenarlarını
+  keser. Ayrı bir karar olarak bırakıldı.
+
 - **BİRLİK EKRANI — BÖLÜM 3: SÜRGÜ HİZASI, ALT SEKMELERİN BİÇİMİ,
   YAN DÜĞME ÖLÇÜSÜ.**
 

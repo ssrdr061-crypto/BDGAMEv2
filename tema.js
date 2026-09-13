@@ -2444,8 +2444,11 @@ if (document.readyState === "loading") {
 #panel-troops .bar{ display:none !important; }
 
 /* ── PORTRE SEÇİCİ (3 birlik) ── */
+/*  Yuvalar üstten hizalanır: yalnız seçilinin altında adet yazdığı
+    için ortadan hizalanınca öbür kutular aşağı kayıyordu. */
 #panel-troops .uv-portraits{
-  display:flex !important; justify-content:center !important; gap:9px !important;
+  display:flex !important; justify-content:center !important;
+  align-items:flex-start !important; gap:9px !important;
   margin:2px 0 10px !important;
 }
 #panel-troops .uv-portrait{
@@ -2470,6 +2473,22 @@ if (document.readyState === "loading") {
   border-color:#ffd257 !important;
   box-shadow:none !important;
   transform:translateY(-2px) !important;
+}
+/*  KADEME YUVASI: kutu üstte, seçilinin adedi altında — ikisi de
+    AKIŞTA. Kutunun overflow'una dokunulmaz (kademe görseli %200
+    ölçekli, kırpılması şart) ve kutu ölçüsü --tp-box ile değişse
+    bile hiza bozulmaz. Adet yazısı yuvanın çocuğu olduğu için
+    ".uv-portrait span" genel kuralına da yakalanmaz. */
+#panel-troops .kp-yuva{
+  display:flex !important; flex-direction:column !important;
+  align-items:center !important; gap:3px !important; flex:none !important;
+}
+#panel-troops .kp-adet{
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:900 !important; font-size:12.5px !important; line-height:1 !important;
+  color:#ffffff !important; font-variant-numeric:tabular-nums !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  pointer-events:none !important;
 }
 
 /* ── ADET ÇUBUĞU — REFERANS DÜZENİ ──
