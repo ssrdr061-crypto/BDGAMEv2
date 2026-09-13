@@ -859,11 +859,15 @@ const DRAG_PX = 12;
 /* ═══════════════════════════════════════════════════════════════
    KAHRAMAN DETAY — mavi tema çerçevesi + "Geliştir" butonu mavi
    ═══════════════════════════════════════════════════════════════ */
+/*  ÇERÇEVE KALDIRILDI. Ekran tam ekran oldu; dört yanına 3px kenar,
+    üstüne iki iç kabartı ve bir dış parlama çizmek hem görünüm
+    kuralına aykırıydı (3B yok) hem de bu pencereyi oyunun geri
+    kalanından ayrı bir şey gibi gösteriyordu.
+    overflow:hidden KALDI — kahraman görseli kenardan taşmasın. */
 #heroDetailOverlay{
-  border:3px solid rgba(190,240,255,.85) !important;
-  box-shadow:inset 0 0 0 3px rgba(190,240,255,.4), inset 0 0 40px rgba(120,225,255,.3),
-             0 0 26px rgba(120,225,255,.45) !important;
-  border-radius:18px !important; overflow:hidden !important;
+  border:none !important;
+  box-shadow:none !important;
+  border-radius:0 !important; overflow:hidden !important;
 }
 #heroDetailOverlay #hdBuyBtn{
   background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;

@@ -28,8 +28,8 @@
 const KLIST_UI = {
   baslik:   "Kahramanlar",
 
-  sutun:    3,      /* ızgara sütun sayısı   */
-  satir:    3,      /* ızgara satır sayısı   → toplam yuva = sutun × satir */
+  sutun:    4,      /* ızgara sütun sayısı   */
+  satir:    4,      /* ızgara satır sayısı   → toplam yuva = sutun × satir */
 
   bosluk_x: 5,      /* kartlar arası YATAY boşluk (px)  */
   bosluk_y: 5,      /* kartlar arası DİKEY boşluk (px)  */
@@ -339,8 +339,9 @@ function _klistKartAyar(id) {
   background:rgba(5,4,10,.72);
   -webkit-tap-highlight-color:transparent;
 }
-/* Kartın 9999px'lik kararması iptal (inline stili !important ezer) */
-#heroDetailOverlay{ box-shadow:0 10px 34px rgba(0,0,0,.55) !important; }
+/* Kart gölgesi de kalktı: ekran tam ekran, dışarıda gölge düşecek
+   bir yer yok ve tema.js'teki çerçeve kaldırma kuralıyla çelişiyordu. */
+#heroDetailOverlay{ box-shadow:none !important; }
 
 @keyframes klistPop{ from{opacity:0; transform:translateX(-50%) translateY(10px) scale(.97)} }
 `;

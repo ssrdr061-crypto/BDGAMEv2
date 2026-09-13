@@ -178,6 +178,30 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **Kahraman listesi 4×4** (`kahramanlar.js KLIST_UI.sutun/satir`).
+  Ölçüldü (412×820): 4 sütun × 4 satır, kart 94,8×171,8, ızgarada
+  dikey kaydırma 0, alt şerit (8/8 + Kahraman Al) ekranda.
+
+- **KAHRAMAN DETAYINDAKİ ÇERÇEVE KALDIRILDI.** `tema.js`te
+  `#heroDetailOverlay`e 3px kenar + İKİ iç kabartı + dış parlama
+  yazılıydı; hem görünüm kuralına aykırıydı (3B yok) hem de bu
+  pencereyi oyunun geri kalanından ayrı bir şeymiş gibi
+  gösteriyordu. `kahramanlar.js`teki kart gölgesi de silindi.
+  NOT: pencerenin `z-index`i hâlâ **400** (öbür paneller 50) —
+  "üstüne hiçbir şey binemiyor" hissi buradan geliyor. Dokunulmadı,
+  ayrı bir karar.
+
+- **YETENEK KUTULARININ İLK KARE PARLAMASI — kök bulundu.**
+  Kutuların ölçüsü, çerçevesi ve kaydırması `applyUi()`da yazılıyor;
+  o çalışana kadar tarayıcı kutuları VARSAYILAN hâlleriyle bir kare
+  çiziyordu. Görülen buydu: çerçeveler bir an belirip kayboluyor,
+  üçüncü kutu (kaydırması henüz yok) yukarıda çıkıp yerine
+  zıplıyordu. Kahramanlar arası geçişte DOM baştan yazıldığı için
+  her seferinde tekrarlıyordu.
+  Çözüm: sütunlar `visibility:hidden` başlar, `applyUi` sonunda
+  görünür olur. **`display:none` DEĞİL** — o ölçüyü 0 yapar
+  (Tuzak 14) ve applyUi yanlış hesaplar.
+
 - **KAHRAMAN LİSTESİ ve DETAYI TAM EKRAN** (`heroes.js
   HERO_UI.kartTamEkran = true`). Tek anahtar ikisini birden açıyor.
 

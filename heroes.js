@@ -883,8 +883,18 @@ function openHeroDetail(skinId) {
         ? (window.kahramanGucu(skinId) || 0).toLocaleString("tr-TR")
         : ""
     }</span></div>
-    <div id="hdBoxL" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
-    <div id="hdBoxR" style="position:absolute;z-index:5;display:flex;flex-direction:column;"></div>
+    <!-- visibility:hidden — YETENEK KUTULARININ İLK KARE PARLAMASI.
+         Kutuların ölçüsü, çerçevesi ve kaydırması applyUi()'da
+         yazılıyor; o çalışana kadar tarayıcı kutuları VARSAYILAN
+         hâlleriyle bir kare çiziyordu: çerçeveler bir an görünüp
+         kayboluyor, üçüncü kutu da (kaydırması henüz yok) yukarıda
+         belirip yerine zıplıyordu. Kahramanlar arası geçişte DOM
+         baştan yazıldığı için her seferinde tekrarlıyordu.
+         Sütunlar gizli başlar, applyUi sonunda görünür olur.
+         display DEĞİL visibility: display:none ölçüyü 0 yapar
+         (Tuzak 14) ve applyUi yanlış hesaplar. -->
+    <div id="hdBoxL" style="position:absolute;z-index:5;display:flex;flex-direction:column;visibility:hidden;"></div>
+    <div id="hdBoxR" style="position:absolute;z-index:5;display:flex;flex-direction:column;visibility:hidden;"></div>
     <div id="hdStatPanel" style="display:none;position:absolute;top:56px;bottom:74px;right:0;width:44%;z-index:6;box-sizing:border-box;padding:10px 11px;border:none;border-top-left-radius:12px;border-bottom-left-radius:12px;background:rgba(255,255,255,.22);color:#ffffff;font-family:'Baloo 2','Nunito',sans-serif;font-size:12px;font-weight:700;overflow-y:auto;-webkit-overflow-scrolling:touch;text-shadow:0 1px 2px rgba(0,20,45,.55);"></div>
     <div id="hdTabs" style="position:absolute;left:0;right:0;bottom:0;z-index:9;display:flex;gap:6px;padding:7px 8px;box-sizing:border-box;background:linear-gradient(180deg,rgba(4,16,38,.0),rgba(4,16,38,.55));">
       <button class="hd-tab" data-t="detay"   style="flex:1;">DETAY</button>
@@ -1062,9 +1072,9 @@ function openHeroDetail(skinId) {
                               + (parseFloat(U.boxes.yan) || 0) * _o) + "px";
     const _ortala = `top:50%;transform:translateY(${Math.round(U.boxes.dy * _o)}px);`;
     bxL.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
-                        `gap:${_s(U.boxes.gap)};left:${_yanPx};${_ortala}`;
+                        `visibility:visible;gap:${_s(U.boxes.gap)};left:${_yanPx};${_ortala}`;
     bxR.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
-                        `gap:${_s(U.boxes.gap)};right:${_yanPx};${_ortala}`;
+                        `visibility:visible;gap:${_s(U.boxes.gap)};right:${_yanPx};${_ortala}`;
     boxEls.forEach((box, i) => {
       const o = i === 0 ? U.boxes.box1 : (i === 1 && boxEls.length > 2 ? U.boxes.box3 : U.boxes.box2);
       box.style.cssText = `width:${_s(U.boxes.width)};height:${_s(U.boxes.height)};border-radius:${U.boxes.radius};border:${U.boxes.border};background:${U.boxes.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;`;
