@@ -178,6 +178,30 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **KAHRAMAN LİSTESİ ve DETAYI TAM EKRAN** (`heroes.js
+  HERO_UI.kartTamEkran = true`). Tek anahtar ikisini birden açıyor.
+
+  **HİZA SORUNU ve ÇÖZÜMÜ:** yetenek kutuları kartın ortasına SABİT
+  pikselle bağlıydı (`top:50%` + `dy:-150`), kahraman görseli ise
+  kendi ölçüsünü kabuktan alıp 9:16'ya oturuyor. Tam ekranda ikisi
+  FARKLI oranda büyüyor (412×820'de kart ×1,165, model ×1,062), yani
+  kutular karakterden ayrı düşüyordu.
+  Artık bütün kutu ölçüleri MODELE göre ölçekleniyor (`_modelOran`):
+  oran = modelin şimdiki yüksekliği / eski düzendeki yüksekliği.
+  Sütunlar da kartın değil MODELİN kenarından başlıyor — kart tam
+  ekranda modelden geniş olabilir, kart kenarına yaslanınca kutular
+  karakterden uzaklaşıyordu.
+  HERO_UI değerleri OLDUĞU GİBİ kalır, ayar paneli aynı sayıları
+  yazmaya devam eder; yalnız çizerken oranla çarpılırlar. Eski düzen
+  ölçüleri de HERO_UI'dan okunur (kartUst/kartAlt/kartKenar/
+  kartMaxGenislik) — biri değişirse oran kendiliğinden düzelir.
+
+  Hesaplandı (dört ekran boyunda): tam ekranda oran **1,06**,
+  `yan` 8 → 8,5px, `dy` -150 → **-159**; kart modunda oran tam
+  **1,000**.
+  **GERİ DÖNÜŞ TEK SATIR:** `kartTamEkran = false` — ölçekleyici
+  1 döndüğü için hiza birebir eski hâline döner.
+
 - **ÇERÇEVE RENGİ HER EŞYAYA — TEK KAYNAK** (`magaza.js
   urunCerceve()`). Mağaza kartı da çanta kutucuğu da buradan okur.
   Dört renk: **yeşil · mavi · mor · turuncu** (değerler `tema.js`

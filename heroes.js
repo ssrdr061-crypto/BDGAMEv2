@@ -27,7 +27,11 @@ const HERO_UI = {
   kartMaxGenislik:"420px",   /* en fazla genişlik                         */
   kartRadius:     "22px",    /* köşe yuvarlaklığı (dört köşe)             */
   kartCerceve:    "1px solid rgba(160,215,255,.60)",   /* tema kenarı — 3B/gölge yok */
-  kartTamEkran:   false,     /* true = eski tam ekran görünüm             */
+  kartTamEkran:   true,      /* kahraman listesi + detay TAM EKRAN.
+                                Kapatırsan (false) ikisi de dört yanı
+                                boşluklu kart görünümüne döner; kutu
+                                ölçekleyicisi (_modelOran) o durumda
+                                1 döner, hiza değişmez.            */
 
   /* YETENEK KUTUCUKLARI — kahramanın SAĞINDA ve SOLUNDA, dikey sütun.
      Kutular ikiye bölünür: ilk yarısı SOL sütuna, kalanı SAĞ sütuna.
@@ -1010,25 +1014,64 @@ function openHeroDetail(skinId) {
     sarmalEls.push(sarmal);
   });
 
+  /*  ── MODEL KUTUSU ve ÖLÇEK — TAM EKRAN HİZASININ ANAHTARI ──
+      Yetenek kutularının yeri kartın ortasına SABİT PİKSELLE bağlı
+      (top:50% + dy). Kahraman görseli ise kendi ölçüsünü kabuktan
+      alıp 9:16'ya oturuyor. Kart tam ekran olunca ikisi FARKLI
+      oranda büyüyor — 412x820'de kart yüksekliği x1,165, model
+      x1,062 — ve kutular karakterden ayrı düşüyordu.
+
+      Çözüm: bütün kutu ölçüleri MODELE göre ölçekleniyor. Oran,
+      modelin şimdiki yüksekliğinin, eski (tam ekran olmayan)
+      düzendeki yüksekliğine bölümü. Değerler HERO_UI'da olduğu gibi
+      kalır, ayar paneli de aynı sayıları yazmaya devam eder;
+      yalnız çizerken oranla çarpılırlar.                          */
+  function _modelKutu(vw, vh) {
+    let cw = vw, ch = vw * 16 / 9;
+    if (ch > vh) { ch = vh; cw = vh * 9 / 16; }
+    return { cw: cw, ch: ch };
+  }
+  function _modelOran() {
+    const U0 = HERO_UI;
+    const simdi = _modelKutu(ov.clientWidth, ov.clientHeight);
+    /* Eski düzen: dört yanı boşluklu kart. Sayılar HERO_UI'dan
+       okunur, elle yazılmaz — kartUst/kartAlt değişirse oran da
+       kendiliğinden düzelir. */
+    const bosY = (parseInt(U0.kartUst) || 60) + (parseInt(U0.kartAlt) || 56);
+    const bosX = (parseInt(U0.kartKenar) || 12) * 2;
+    const enb  = parseInt(U0.kartMaxGenislik) || 420;
+    const eski = _modelKutu(Math.min(window.innerWidth - bosX, enb),
+                            window.innerHeight - bosY);
+    return (eski.ch > 0 && simdi.ch > 0) ? (simdi.ch / eski.ch) : 1;
+  }
+
   // Tüm stilleri U'dan uygular — editör her değişiklikte bunu çağırır
   function applyUi() {
     /* HİZA: iki sütun da kartın dikey ORTASINDAN başlar; ortalama YOK.
-       Eskiden `translateY(-50%)` vardı ve sütun yüksekliği kutu
+       Eskiden translateY(-50%) vardı ve sütun yüksekliği kutu
        sayısına göre değiştiği için sol/sağ kutular farklı yüksekliğe
        oturuyordu (sol 2 kutu, sağ 1 kutu). Artık başlangıç çizgisi
        ortaktır; dikey yeri box1/box2/box3 dy değerleri belirler. */
-    const _ortala = `top:50%;transform:translateY(${U.boxes.dy}px);`;
+    const _o = _modelOran();
+    const _s = v => Math.round((parseFloat(v) || 0) * _o) + "px";
+    /* Sütunlar kartın değil MODELİN kenarından başlar: kart tam
+       ekranda modelden geniş olabilir, kart kenarına yaslanırsa
+       kutular karakterden uzaklaşır. */
+    const _kutu = _modelKutu(ov.clientWidth, ov.clientHeight);
+    const _yanPx = Math.round((ov.clientWidth - _kutu.cw) / 2
+                              + (parseFloat(U.boxes.yan) || 0) * _o) + "px";
+    const _ortala = `top:50%;transform:translateY(${Math.round(U.boxes.dy * _o)}px);`;
     bxL.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
-                        `gap:${U.boxes.gap};left:${U.boxes.yan};${_ortala}`;
+                        `gap:${_s(U.boxes.gap)};left:${_yanPx};${_ortala}`;
     bxR.style.cssText = `position:absolute;z-index:5;display:flex;flex-direction:column;` +
-                        `gap:${U.boxes.gap};right:${U.boxes.yan};${_ortala}`;
+                        `gap:${_s(U.boxes.gap)};right:${_yanPx};${_ortala}`;
     boxEls.forEach((box, i) => {
       const o = i === 0 ? U.boxes.box1 : (i === 1 && boxEls.length > 2 ? U.boxes.box3 : U.boxes.box2);
-      box.style.cssText = `width:${U.boxes.width};height:${U.boxes.height};border-radius:${U.boxes.radius};border:${U.boxes.border};background:${U.boxes.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;`;
+      box.style.cssText = `width:${_s(U.boxes.width)};height:${_s(U.boxes.height)};border-radius:${U.boxes.radius};border:${U.boxes.border};background:${U.boxes.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;`;
       const sarmal = sarmalEls[i];
       if (sarmal) {
         sarmal.style.cssText = `display:flex;flex-direction:column;align-items:center;` +
-          `gap:2px;transform:translate(${o.dx}px,${o.dy}px);`;
+          `gap:2px;transform:translate(${Math.round(o.dx * _o)}px,${Math.round(o.dy * _o)}px);`;
         const y = sarmal.querySelector(".hdAbilitySv");
         if (y) y.style.cssText = `font-family:'Baloo 2','Nunito',sans-serif;` +
           `font-weight:700;font-size:11px;line-height:1;color:#e8f4ff;` +
@@ -1040,7 +1083,7 @@ function openHeroDetail(skinId) {
     const _ust = panel.dataset.ust || "50%";
     /* Panel, basılan kutunun bulunduğu YANA yaslanır. */
     const _yan = panel.dataset.yan === "sag"
-      ? `right:${U.boxes.yan};` : `left:${U.boxes.yan};`;
+      ? `right:${_yanPx};` : `left:${_yanPx};`;
     const _gor = panel.dataset.hazir === "0" ? "hidden" : "visible";
     panel.style.cssText = `display:${wasOpen ? "block" : "none"};visibility:${_gor};position:absolute;` +
       `transition:none !important;animation:none !important;` +
