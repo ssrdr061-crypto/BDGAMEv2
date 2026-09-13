@@ -239,12 +239,16 @@ Kaçış: `?egitimkapat=1`.
   **Tuzak 13 burada ısırdı:** `.hsm-cards` `overflow-x:auto`, ve o
   yatayda olduğu KADAR dikeyde de kırpıyor — köşe işaretlerinin
   üst/alt uçları kesiliyordu. Izgaraya 4px pay verildi.
-- **Düğmeler kısaldı.** `flex:1 1 auto` ile bile artan boşluk
-  düğmelere paylaştırılıyor, ikisi satırı komple dolduruyordu.
-  `flex:0 1 auto` + `justify-content:center`: düğme yazısı kadar
-  yer alır. HIZLI KULLAN da tam genişlik değil, ortada.
-  Ölçüldü (kart eni 346): BİTİR **86** · KULLAN **104** ·
-  HIZLI KULLAN **154** px.
+- **Düğmeler kısaldı, BİTİR ile KULLAN EŞİT ölçüde.**
+  Flex ile iki deneme de tutmadı: `1 1 0` ikisini satırın tamamına
+  yayıyor, `0 1 auto` her birini kendi yazısı kadar yapıyordu
+  (BİTİR 86, KULLAN 104 — eşit değil).
+  Izgara ikisini birden çözer: `width:max-content` ızgaranın enini
+  içeriğe göre belirler, `1fr 1fr` o eni ikiye EŞİT böler; yükseklik
+  zaten hücrelerin birbirine gerilmesinden eşit geliyor.
+  Aralarında 14px boşluk. HIZLI KULLAN tam genişlik değil, ortada.
+  Ölçüldü (kart eni 346): BİTİR **104×39** · KULLAN **104×39**
+  (en ve boy birebir aynı) · HIZLI KULLAN **154×32** px.
 - **Hızlandırma penceresi — kutucuk görseli ve düğme genişliği.**
   Kutucuğun genişliği yazıya bağlanınca kutu kare olmaktan çıktı
   ama görsel hâlâ `object-fit:cover` ile geriliyordu: oklar ezik

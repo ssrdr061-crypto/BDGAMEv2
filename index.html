@@ -1881,12 +1881,18 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 }
 
 /* Eylemler */
-/*  DÜĞMELER ORTALI ve YAZI KADAR.
-    `flex:1 1 auto` ile bile artan boşluk düğmelere paylaştırılıyor
-    ve ikisi satırı komple dolduruyordu. `0 1 auto` + ortalama:
-    düğme yazısı kadar yer alır, kenarlarda boşluk kalır. */
+/*  BİTİR ve KULLAN: EŞİT ÖLÇÜ, ORTADA, SATIRI DOLDURMADAN.
+    Flex ile denendi ve olmadı: `1 1 0` ikisini satırın tamamına
+    yayıyor, `0 1 auto` ise her birini kendi yazısı kadar yapıyor
+    (BİTİR 86, KULLAN 104 — eşit değil).
+    Izgara ikisini birden çözer: `width:max-content` ızgaranın enini
+    içeriğe göre belirler, `1fr 1fr` de o eni İKİYE EŞİT böler.
+    Yükseklik zaten eşit — ızgara hücreleri varsayılan olarak
+    birbirine göre gerilir (align-items:stretch). */
 .hosp-speed-modal .hsm-actions{
-  display:flex; gap:10px; margin-top:10px; justify-content:center;
+  display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:14px; width:max-content; max-width:100%;
+  margin:10px auto 0;
 }
 /*  GENİŞLİK YAZIYA GÖRE: flex-basis `0` değil `auto`.
     `1 1 0` iki düğmeyi zorla yarı yarıya bölüyordu; "BİTİR 💎 1.180"
