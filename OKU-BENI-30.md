@@ -192,9 +192,13 @@ Kaçış: `?egitimkapat=1`.
     gradyan perdeydi, çizimin üstünde kirli bir leke gibi duruyordu.
     Alttaki adet ise çıplak beyaz rakamdı ve okunsun diye **sekiz
     yönlü kalın kontur gölgesi** taşıyordu — hem ağır, hem 3B'siz
-    görünüm kuralına aykırı. İkisi de artık aynı dilde: düz, yarı
-    saydam siyah bant (`rgba(0,0,0,.42)`), punto 11/12 → **12,5**,
-    üstteki ortalı, alttaki sağa yaslı.
+    görünüm kuralına aykırı.
+    **ÜSTTEKİ** artık düz, yarı saydam siyah bant
+    (`rgba(0,0,0,.42)`), ortalı, punto 11 → **12,5**.
+    **ALTTAKİNE ŞERİT KONMADI** (denendi, istenmedi: çizimin alt
+    kenarını kapatıyordu) — rakam doğrudan görselin üstünde, sağ
+    altta durur. Eski sekiz yönlü kontur GERİ GELMEZ; okunurluğu
+    tek, yumuşak bir gölge sağlar.
   - **Boş sekmede hiçbir şey yazmıyor.** Örümcek ağı + "Bu bölümde
     eşyan yok" satırı dört sütunluk ızgaranın TEK hücresine sıkışıp
     kelime kelime alt alta diziliyordu. Boş ızgara zaten kendini

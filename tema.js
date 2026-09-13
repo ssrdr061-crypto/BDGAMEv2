@@ -378,21 +378,22 @@ const DRAG_PX = 12;
   --cr-ic1:rgba(79,209,232,.22); --cr-ic2:rgba(12,74,110,.42);
 }
 
-/*  ALT ŞERİT — KAÇ TANE olduğu.
-    Eskiden çıplak beyaz rakamdı ve okunsun diye sekiz yönlü kalın
-    kontur gölgesi vardı; çizimin üstünde hem ağır duruyor hem de
-    3B'siz görünüm kuralına aykırıydı. Artık üst şeritle aynı dilde
-    düz, yarı saydam siyah bant. */
+/*  KAÇ TANE olduğu — ŞERİTSİZ, sağ altta.
+    Üstteki rozetin bandı duruyor ama buraya ŞERİT İSTENMEDİ:
+    çizimin alt kenarını kapatıyordu. Rakam doğrudan görselin
+    üstünde durur.
+    Eski hâlindeki sekiz yönlü kalın kontur gölgesi GERİ GELMEZ
+    (3B'siz görünüm kuralı) — okunurluğu tek, yumuşak bir gölge
+    sağlar; açık zeminli çizimde de ayırt edilir. */
 #panel-inventory .icon-box .inv-adet{
-  position:absolute !important; left:0 !important; right:0 !important; bottom:0 !important;
-  padding:2px 6px !important;
+  position:absolute !important; right:5px !important; bottom:3px !important;
+  left:auto !important; padding:0 !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:900 !important; font-size:12.5px !important; line-height:1.15 !important;
   color:#fff !important; text-align:right !important;
   pointer-events:none !important;
-  border-radius:0 0 10px 10px !important;
-  background:rgba(0,0,0,.42) !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.55) !important;
+  background:none !important; border-radius:0 !important;
+  text-shadow:0 1px 3px rgba(0,0,0,.95), 0 0 5px rgba(0,0,0,.8) !important;
 }
 /* Eski adet satırı (kutunun ALTINDAKİ yazı) kalksın */
 #panel-inventory .card-right{ display:none !important; }
