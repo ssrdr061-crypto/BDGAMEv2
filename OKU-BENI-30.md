@@ -178,6 +178,33 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **BİRLİK EKRANI — BÖLÜM 3: SÜRGÜ HİZASI, ALT SEKMELERİN BİÇİMİ,
+  YAN DÜĞME ÖLÇÜSÜ.**
+
+  - **Sürgü tutamağı raydan aşağı taşıyordu ve −/+ ile aynı hizada
+    değildi. KÖK yine TUZAK 38:** dosyada DAHA SONRA gelen
+    "ADET ÇUBUĞU: − / kutu / + ortada, sürgü kendi satırında"
+    bloğu eski düzeni geri koyuyordu (`flex-wrap`, `order:9`,
+    sürgü `height:20px`, `uq-btn` 30px, `uq-input` 52px). Referans
+    düzeni tek satır olduğu için o ölçüler **silindi** — tek kaynak
+    yukarıdaki referans bloğu. Ayrıca sürgünün KUTUSU tutamak kadar
+    yükseğe çıkarıldı (24px) ve rayın ortasına oturtuldu; kutu
+    14px iken Chrome 24px'lik tutamağı kutunun üstünden çiziyordu.
+    Ölçüldü: sürgü kutusunun merkezi **678,0**, rayın merkezi
+    **678,0** — fark 0.
+  - **Alt sekmeler kutucuk değil.** Referansta ekranın altına
+    YAPIŞIKLAR ve yalnız üst köşeleri yuvarlak. Dört köşesi
+    yuvarlak, altında boşluk olan kartlardı. Telefonun çene payı
+    artık çubuğa değil sekmenin KENDİ dolgusuna ekleniyor — çubuğa
+    eklenince sekmenin altında zemin renginde bir şerit kalıyor ve
+    yapışıklık bozuluyordu.
+    Ölçüldü (412×820 ve 360×740): sekmelerin alt kenarı ekranın
+    alt kenarıyla **birebir aynı** (820 / 740), köşe
+    **14px 14px 0 0**, seçili sekme 5px daha uzun (59,2 / 54,2),
+    hiçbirinde yazı taşması yok.
+  - **☰ ve ⬆ küçüldü:** 42×42 → **36×36**, simge 23 → 19px.
+    Kademe şeridine binme yok (şeridin 14px üstünde).
+
 - **BİRLİK EKRANI — BÖLÜM 2: EMOJİ TEMİZLİĞİ, KAYNAK KUTUSU,
   SÜRGÜ, DÜĞMELER.** Serdar Bölüm 1'i reddetti; altı şikâyetin her
   biri ayrı bir kökten geliyordu.

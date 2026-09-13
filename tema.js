@@ -2528,9 +2528,15 @@ if (document.readyState === "loading") {
     linear-gradient(90deg,#33c65a 0 var(--dolu,0%), rgba(4,32,60,.55) var(--dolu,0%) 100%) !important;
   box-shadow:none !important;
 }
+/*  Sürgünün KUTUSU tutamak kadar yüksek (24px) ve rayın dikey
+    ortasına oturtulur. inset:0 ile kutu 14px kalıyordu; Chrome
+    24px'lik tutamağı o kutunun ÜSTÜNDEN çizdiği için kulp raydan
+    aşağı taşıyordu (ölçüldü). Tek translateY — Tuzak 12'deki
+    calc(-50% + …) kalıbına girilmiyor. */
 #panel-troops .uv-qty-slider{
-  position:absolute !important; inset:0 !important;
-  width:100% !important; height:100% !important; margin:0 !important;
+  position:absolute !important; left:0 !important; right:0 !important;
+  top:50% !important; transform:translateY(-50%) !important;
+  width:100% !important; height:24px !important; margin:0 !important;
   writing-mode:horizontal-tb !important; direction:ltr !important;
   -webkit-appearance:none !important; appearance:none !important;
   background:transparent !important; cursor:pointer !important;
@@ -4786,37 +4792,25 @@ st.textContent = `
 }
 #panel-troops .stat-row.stat-row-power .stat-val{ color:#ffd257 !important; }
 
-/* ── ADET ÇUBUĞU: − / kutu / + ortada, sürgü kendi satırında ── */
-#panel-troops .unit-qty-bar{
-  flex-wrap:wrap !important; justify-content:center !important;
-  gap:7px !important; margin:8px 10px 0 !important;
-}
-#panel-troops .uq-btn{
-  width:30px !important; height:30px !important;
-  font-size:17px !important; border-radius:9px !important;
-  box-shadow:none !important;
-}
-#panel-troops .uq-input{
-  width:52px !important; padding:5px 2px !important;
-  font-size:15px !important; border-radius:9px !important;
-  border-width:2px !important;
-}
-#panel-troops .uv-qty-slider{
-  flex:1 1 100% !important; order:9 !important; width:100% !important;
-  height:20px !important; margin:2px 2px 0 !important;
-}
+/*  ADET ÇUBUĞU KURALLARI BURADAN SİLİNDİ (Tuzak 38).
+    Burada eski düzen yazılıydı: satır sarmalı, − / kutu / + ortada,
+    sürgü order:9 ile KENDİ SATIRINA (height:20px, tam genişlik).
+    Referans düzeni tek satır olduğu için yukarıdaki "ADET ÇUBUĞU —
+    REFERANS DÜZENİ" bloğu bunları yeniden yazıyor, ama bu blok
+    dosyada DAHA SONRA geldiği için sessizce geri koyuyordu:
+    sürgünün yüksekliği 24 yerine 20'de kalıyor ve tutamak rayın
+    ortasına oturmuyordu (ölçüldü: 2px aşağıda). Ezme üstüne ezme
+    yazmak yerine ölçüler silindi; tek kaynak yukarıdaki blok.   */
 
 /* ── ÜRET / ANINDA: alt satır ASLA alta taşmasın ──
    "1 sa 40 dk" iki satıra düşünce düğme uzuyordu. Metin tek satıra
    kilitlendi, taşarsa font kendiliğinden ufalır (kutuda yer var). */
+/*  Düğmelerin dolgusu ve alt yazı puntosu da yukarıdaki referans
+    bloğunda; burada yalnız TEK SATIRA KİLİT kalıyor (uzun süre
+    "1 sa 40 dk" iki satıra düşünce düğme uzuyordu). */
 #panel-troops .unit-instant-btn,
-#panel-troops .unit-train-btn{
-  padding:6px 4px !important; min-height:52px !important;
-}
-#panel-troops .utb-sub{
-  white-space:nowrap !important; font-size:11px !important;
-  letter-spacing:0 !important; opacity:.92 !important;
-}
+#panel-troops .unit-train-btn{ min-height:52px !important; }
+#panel-troops .utb-sub{ white-space:nowrap !important; letter-spacing:0 !important; }
 #panel-troops .utb-top{ white-space:nowrap !important; }
 `;
 document.head.appendChild(st);
@@ -11405,18 +11399,24 @@ st.textContent = `
    Yükseklik 62px; .unit-screen'in alt dolgusu da bu sayıya bağlı,
    birini değiştirirsen diğerini de değiştir yoksa "Eğit" düğmesi
    sekmelerin altında kalır. */
+/*  REFERANS: sekmeler ekranın altına YAPIŞIK, yalnız üst köşeleri
+    yuvarlak. Eskiden dört köşesi yuvarlak, altında boşluk olan
+    kutucuklardı — referansta öyle değil, doğrudan alttan geliyorlar.
+    Telefonun çene payı sekmenin KENDİ dolgusuna eklenir, çubuğa
+    değil: çubuğa eklenirse sekmenin altında zemin rengi bir şerit
+    kalır ve "yapışık" hissi bozulur. */
 #panel-troops .uv-kamp{
   position:absolute !important; left:0 !important; right:0 !important;
   bottom:0 !important; z-index:60 !important;
-  display:flex !important; align-items:flex-end !important; gap:6px !important;
-  padding:0 6px calc(6px + env(safe-area-inset-bottom,0)) !important;
+  display:flex !important; align-items:flex-end !important; gap:5px !important;
+  padding:0 5px 0 !important;
 }
 #panel-troops .uv-kamp-tab{
   flex:1 1 0 !important; min-width:0 !important;
   display:flex !important; flex-direction:column !important;
-  align-items:center !important; justify-content:center !important; gap:1px !important;
-  padding:6px 4px 7px !important;
-  border:none !important; border-radius:14px !important;
+  align-items:center !important; justify-content:center !important; gap:2px !important;
+  padding:8px 4px calc(9px + env(safe-area-inset-bottom,0)) !important;
+  border:none !important; border-radius:14px 14px 0 0 !important;
   background:linear-gradient(180deg,#2f8fd6,#1668b4) !important;
   color:#dff4ff !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
@@ -11437,9 +11437,9 @@ st.textContent = `
   overflow:hidden !important; text-overflow:ellipsis !important;
 }
 #panel-troops .uv-kamp-tab.is-active{
-  background:linear-gradient(180deg,#ffffff,#dff1fb) !important;
+  background:linear-gradient(180deg,#ffffff,#eef7fd) !important;
   color:#0e6fc0 !important; text-shadow:none !important;
-  padding-top:11px !important;          /* referans: seçili sekme yukarı çıkıktır */
+  padding-top:13px !important;          /* referans: seçili sekme yukarı çıkıktır */
 }
 #panel-troops .uv-kamp-tab:active{ transform:scale(.96) !important; filter:brightness(.93) !important; }
 
@@ -11458,10 +11458,10 @@ st.textContent = `
   position:absolute !important; right:8px !important;
   bottom:100% !important; margin-bottom:10px !important;
   z-index:22 !important;
-  display:flex !important; flex-direction:column !important; gap:9px !important;
+  display:flex !important; flex-direction:column !important; gap:8px !important;
 }
 #panel-troops .uv-yan-btn{
-  width:42px !important; height:42px !important; border-radius:12px !important;
+  width:36px !important; height:36px !important; border-radius:11px !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
   padding:0 !important; color:#ffffff !important;
   background:linear-gradient(180deg,#4fb6f0,#1a76c4) !important;
@@ -11471,7 +11471,7 @@ st.textContent = `
   transition:filter .09s ease, transform .09s ease !important;
 }
 #panel-troops .uv-yan-btn:active{ transform:scale(.96) !important; filter:brightness(.93) !important; }
-#panel-troops .uv-yan-btn .uv-sim{ width:23px !important; height:23px !important; }
+#panel-troops .uv-yan-btn .uv-sim{ width:19px !important; height:19px !important; }
 
 /* ── SİMGE KUTUSU (satır içi SVG) ──
    Emoji yok: her simge tek renk çizim, rengini bulunduğu yazıdan
