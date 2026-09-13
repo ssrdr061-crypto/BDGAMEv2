@@ -363,7 +363,7 @@ function renderShop() {
     const badge = urunRozeti(item) || "1";
 
     html += `
-      <div class="shop-card2 ${soldOut ? "soldout" : ""}" data-idx="${realIdx}" style="animation-delay:${i * 0.04}s">
+      <div class="shop-card2 ${urunCerceve(item)} ${soldOut ? "soldout" : ""}" data-idx="${realIdx}" style="animation-delay:${i * 0.04}s">
         <div class="sc-icon">${itemIconSVG(item)}<span class="sc-badge">${badge}</span></div>
         ${item.isBoost ? `<div class="sc-tag">${item.heroName}</div>` : ""}
         <div class="sc-left">Limit: ${shopLimitOf(item) ? fmt(left) : "∞"}</div>
@@ -430,6 +430,50 @@ function urunRozeti(item) {
   return "";
 }
 window.urunRozeti = urunRozeti;
+
+/*  ── ÇERÇEVE RENGİ — TEK KAYNAK ────────────────────────────────
+    Her eşyanın bir çerçeve rengi var; mağaza kartı da çanta
+    kutucuğu da BURADAN okur, iki yerde iki ayrı tablo yok.
+
+    Dört renk: yesil · mavi · mor · turuncu (değerleri tema.js'te
+    --cr-* değişkenlerinde).
+
+    ELLE EZME: bir ürüne `cerceve: "mavi"` yazarsan kural yok
+    sayılır ve o renk kullanılır. İleride üst seviye kaynaklar
+    gelince onların satırına bu alanı ekle — aşağıdaki
+    "kaynak = yeşil" kuralını değiştirmene gerek kalmaz, mevcut
+    düşük seviye kaynaklar yeşil kalır.
+
+    Kahraman eşyaları (buff ve parça) rengini KAHRAMANIN
+    nadirliğinden alır: ssr → turuncu, mor → mor. Renk ikinci kez
+    yazılmaz, kahramanın nadirliği değişirse eşya da onunla döner. */
+function _kahramanRengi(heroId) {
+  try {
+    if (typeof KAHRAMAN !== "undefined" && KAHRAMAN.nadirlik) {
+      return KAHRAMAN.nadirlik(heroId) === "ssr" ? "turuncu" : "mor";
+    }
+  } catch (e) {}
+  return "mor";
+}
+function urunCerceve(item) {
+  if (!item) return "cr-mavi";
+  if (item.cerceve) return "cr-" + item.cerceve;          /* elle ezme */
+
+  if (item.isBoost)   return "cr-" + _kahramanRengi(item.heroId);
+  if (item.isParca)   return "cr-" + (item.parcaKey === "mor"
+                                       ? "mor"
+                                       : _kahramanRengi(item.parcaKey));
+  if (item.isKaynak)  return "cr-yesil";                  /* düşük seviye kaynaklar */
+  if (item.isExpKitap) return "cr-mavi";
+  if (item.isSeferHiz) return item.hizOran >= 0.5 ? "cr-turuncu" : "cr-mor";
+  if (item.isSpeedUpItem) {
+    if (item.speedUpMinutes >= 180) return "cr-mor";
+    if (item.speedUpMinutes >= 60)  return "cr-mavi";
+    return "cr-yesil";
+  }
+  return "cr-mavi";                    /* kalkan, can potu, füze… */
+}
+window.urunCerceve = urunCerceve;
 
 /*  ÇANTA SEKMESİ — eşya hangi sekmeye düşer.
     Sekme adları referans oyundan: Kaynaklar · Hızlandırma · Bonus ·

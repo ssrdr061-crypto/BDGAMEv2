@@ -6297,13 +6297,16 @@ function rarityClass(item) {
     özeldir (celik_savasci / ivanovna / revolia). Aynı ayrım orada
     parcaNadirligi() ile yapılıyor — burada ikinci bir liste
     tutulmaz, tek kural: anahtar "mor" ise mor, değilse turuncu.  */
+/*  Çanta kutucuğunun çerçeve rengi — KARAR magaza.js
+    urunCerceve()'de. Burada ikinci bir tablo tutulmuyordu ama
+    kural KOPYAydı: mağaza kartıyla ayrışabiliyordu (buff hep mor
+    yazılıydı, oysa turuncu kahramanın buff'ı turuncu olmalı).
+    Artık tek kaynak.                                            */
 function cantaCerceve(item) {
-  if (!item) return "cr-mavi";
-  if (item.isParca)   return (item.parcaKey === "mor") ? "cr-mor" : "cr-turuncu";
-  if (item.isBoost)   return "cr-mor";      /* kahraman buffları */
-  if (item.isKaynak)  return "cr-yesil";    /* kaynak sandıkları  */
-  if (item.isExpKitap) return "cr-mavi";    /* kahraman kitabı    */
-  return "cr-mavi";                          /* hızlandırma, pot, kalkan… */
+  try {
+    if (typeof urunCerceve === "function") return urunCerceve(item);
+  } catch (e) {}
+  return "cr-mavi";
 }
 
 function itemVisualKind(item) {

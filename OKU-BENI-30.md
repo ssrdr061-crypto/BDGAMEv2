@@ -178,6 +178,52 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **ÇERÇEVE RENGİ HER EŞYAYA — TEK KAYNAK** (`magaza.js
+  urunCerceve()`). Mağaza kartı da çanta kutucuğu da buradan okur.
+  Dört renk: **yeşil · mavi · mor · turuncu** (değerler `tema.js`
+  `--cr-*`).
+
+  | eşya | renk |
+  |---|---|
+  | 5 dk hızlandırma | yeşil |
+  | 1 saat hızlandırma | mavi |
+  | 3 saat hızlandırma | mor |
+  | İntikal %25 · %50 | mor · turuncu |
+  | kaynak sandıkları (düşük seviye) | yeşil |
+  | tecrübe kitabı | mavi |
+  | kahraman buff'ı ve parçası | **kahramanın nadirliği** |
+
+  **KAHRAMAN EŞYALARI RENGİ İKİNCİ KEZ YAZMAZ:** buff ve parça,
+  rengini `KAHRAMAN.nadirlik()`ten alır (`ssr` → turuncu, `mor` →
+  mor). Kahramanın nadirliği değişirse eşyası da onunla döner.
+  Eski `cantaCerceve` buff'ı HEP mor yazıyordu — turuncu kahramanın
+  buff'ı yanlış renkteydi; o kopya kural silindi, çanta artık
+  `urunCerceve`ye devrediyor.
+
+  **İLERİSİ İÇİN ELLE EZME:** bir ürüne `cerceve: "mavi"` yazmak
+  kuralı geçersiz kılar. Üst seviye kaynaklar gelince onların
+  satırına bu alanı eklemek yeter — "kaynak = yeşil" kuralını
+  değiştirmeye gerek yok, mevcut düşük seviye kaynaklar yeşil kalır.
+
+  **PALETİN KAPSAMI KALDIRILDI:** `.cr-*` sınıfları yalnız
+  `#panel-inventory` altında tanımlıydı; mağaza kartına aynı sınıfı
+  verince renk gelmiyordu. Artık sınıf nerede kullanılırsa orada
+  çalışıyor.
+  Çerçeve mağazada da ürün GÖRSELİNİN çevresinde duruyor, kartın
+  dışında değil — kart zaten koyu mavi bir kutu, dış kenarını
+  boyamak on iki kartı yan yana kirli gösteriyordu.
+
+  Sınandı: 28 ürünün hepsi tek tek listelendi, hepsi kurala uydu.
+  Market **3 sütuna** döndü (412×820: kart 122,7×118,4, hepsi eşit,
+  ızgara taşması 0).
+
+- **Tuzak 27 için KALICI DENETİM.** Şablon dizgisi içindeki yoruma
+  ters tırnak koymak bu turda DÖRDÜNCÜ kez dosyayı çökertti.
+  Artık `tema.js` · `magaza.js` · `buff.js` · `kahramanlar.js` ·
+  `heroes.js` dosyalarındaki `textContent = ...` bloklarının
+  içindeki yorumları tarayan bir denetim var; ters tırnak bulursa
+  dosya ve satır numarasıyla söylüyor.
+
 - **MARKET TAM EKRAN + 4 SÜTUN.** Çantayla aynı kalıp: panel ekranın
   tamamı, başlık/yenilenme/sekmeler üstte, yalnız ürün ızgarası kayar.
   Sütun 3 → **4** (tam ekranda üç sütun kartları gereksiz şişiriyordu).

@@ -357,23 +357,28 @@ const DRAG_PX = 12;
   overflow:visible !important;
 }
 
-/*  ÇERÇEVE RENKLERİ — tür başına bir değişken çifti.
-    Mor ve turuncu tonları gelistir.js'teki PARCA RENK tablosuyla
-    AYNI (#a855f7 / #f97316); parça kutucuğu ile çanta çerçevesi
-    ayrışmasın diye oradan alındı.                               */
-#panel-inventory .cr-mor{
+/*  ── ÇERÇEVE RENKLERİ — ORTAK PALET ──
+    Kapsam KALDIRILDI: eskiden yalnız #panel-inventory altındaydı,
+    mağaza kartına aynı sınıfı verince renk gelmiyordu. Artık sınıf
+    nerede kullanılırsa orada çalışır — çanta kutucuğu, mağaza kartı
+    ve ileride başka bir liste, hepsi tek palet.
+    Hangi eşyanın hangi rengi aldığına magaza.js urunCerceve()
+    karar verir; burada YALNIZ renkler durur.
+    Mor ve turuncu tonları gelistir.js'teki PARÇA RENK tablosuyla
+    AYNI (#a855f7 / #f97316).                                     */
+.cr-mor{
   --cr-ana:#a855f7;
   --cr-ic1:rgba(168,85,247,.26); --cr-ic2:rgba(76,29,149,.42);
 }
-#panel-inventory .cr-turuncu{
+.cr-turuncu{
   --cr-ana:#f97316;
   --cr-ic1:rgba(249,115,22,.26); --cr-ic2:rgba(124,45,18,.42);
 }
-#panel-inventory .cr-yesil{
+.cr-yesil{
   --cr-ana:#5fd98a;
   --cr-ic1:rgba(95,217,138,.24); --cr-ic2:rgba(20,83,45,.42);
 }
-#panel-inventory .cr-mavi{
+.cr-mavi{
   --cr-ana:#4fd1e8;
   --cr-ic1:rgba(79,209,232,.22); --cr-ic2:rgba(12,74,110,.42);
 }
@@ -3283,8 +3288,28 @@ st.textContent = `
   animation:none !important;
 }
 #panel-shop .shop-grid{
-  grid-template-columns:repeat(4, 1fr) !important;
-  gap:8px !important;
+  grid-template-columns:repeat(3, 1fr) !important;
+  gap:10px !important;
+}
+
+/*  ── MAĞAZA KARTINDA ÇERÇEVE ──
+    Çantadaki kutucukla aynı dil: renkli kenar ürün GÖRSELİNİN
+    çevresinde durur, kartın tamamında değil — kart zaten koyu mavi
+    bir kutu, dış kenarını boyamak on iki kartı yan yana kirli
+    gösteriyordu.
+    Renk sınıfı kartta (.cr-*), değişken oradan miras alınıyor. */
+#panel-shop .shop-card2 .sc-icon{
+  border:2px solid var(--cr-ana, #4f9fe0) !important;
+  border-radius:12px !important;
+  background:linear-gradient(180deg,
+             var(--cr-ic1, rgba(255,255,255,.10)),
+             var(--cr-ic2, rgba(0,0,0,.28))) !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+}
+/* Görsel çerçeveyi doldursun, köşeleri taşmasın. */
+#panel-shop .shop-card2 .sc-icon .sc-img{
+  border-radius:10px !important;
 }
 
 /* ── MAĞAZA: SABİT BOY, TEK KAYDIRMA, SÜRGÜ YOK ──────────────
