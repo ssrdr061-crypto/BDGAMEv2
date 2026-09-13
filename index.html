@@ -1718,7 +1718,7 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
    AKIŞTA olması — mutlak konumlu bir öğe kapsayıcısının genişliğine
    hiç katılmaz, etiket eskiden öyleydi. */
 .hosp-speed-modal .hsm-card-item{
-  position:relative; flex:0 0 auto; min-width:48px; height:62px;
+  position:relative; flex:0 0 auto; min-width:58px; height:66px;
   display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
   border-radius:13px; cursor:pointer; overflow:hidden;
   font-family:'Baloo 2','Nunito',sans-serif;
@@ -1852,8 +1852,12 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 
 /* Eylemler */
 .hosp-speed-modal .hsm-actions{ display:flex; gap:8px; margin-top:10px; }
+/*  GENİŞLİK YAZIYA GÖRE: flex-basis `0` değil `auto`.
+    `1 1 0` iki düğmeyi zorla yarı yarıya bölüyordu; "BİTİR 💎 1.180"
+    sıkışırken "KULLAN" bol bol boş duruyordu. `auto` ile her düğme
+    önce kendi yazısı kadar yer alır, artan boşluk sonra paylaşılır. */
 .hosp-speed-modal .hsm-btn{
-  flex:1 1 0; min-height:34px; padding:4px 8px;
+  flex:1 1 auto; min-height:34px; padding:4px 14px;
   border:none; border-radius:10px; cursor:pointer;
   font-family:'Baloo 2','Nunito',sans-serif; font-weight:900;
   color:#fff; letter-spacing:.4px;
@@ -2621,17 +2625,18 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
     <div class="overlay-card">
       <button class="overlay-close" data-close>✕</button>
       <h2>🎒 Çanta</h2>
-      <p class="desc">Sahip olduğun elmaslar ve satın aldığın eşyalar.</p>
-      <div class="inv-summary">
-        <div class="stat-card">
-          <div class="num" id="invDiamonds">0</div>
-          <div class="lbl">Toplam Elmas</div>
-        </div>
-        <div class="stat-card">
-          <div class="num" id="invItemCount">0</div>
-          <div class="lbl">Farklı Eşya</div>
-        </div>
+
+      <!-- SEKMELER. Hangi eşyanın hangi sekmeye düştüğüne
+           magaza.js cantaSekmesi() karar verir — burada ikinci bir
+           tablo YOK, yalnız sekmenin adı ve anahtarı duruyor. -->
+      <div class="inv-tabs" id="invTabs">
+        <button class="inv-tab is-active" data-cat="kaynak"  type="button">Kaynaklar</button>
+        <button class="inv-tab" data-cat="hiz"     type="button">Hızlandırma</button>
+        <button class="inv-tab" data-cat="bonus"   type="button">Bonus</button>
+        <button class="inv-tab" data-cat="donanim" type="button">Donanım</button>
+        <button class="inv-tab" data-cat="diger"   type="button">Diğer</button>
       </div>
+
       <div class="inv-list" id="invList">
         <div class="empty-state"><span class="icon">🕸️</span>Çantan boş. Mağazadan eşya al ya da sandık aç.</div>
       </div>
@@ -5746,7 +5751,9 @@ function renderDiamonds() {
   const el = document.getElementById("diamondAmount");
   el.textContent = fmt(state.diamonds);
   el.className = "amount " + diamondColorClass(state.diamonds);
-  document.getElementById("invDiamonds").textContent = fmt(state.diamonds);
+  /* #invDiamonds SİLİNDİ — çantanın üstündeki "Toplam Elmas / Farklı
+     Eşya" özet kartları kalktı (sekme çubuğu geldi). Elmas sayısı
+     zaten üst şeritte duruyordu, ikinci kopyaydı. */
   renderKaynaklar();
   persistCurrentState();
 }
@@ -5791,12 +5798,34 @@ function renderChestUI() {
   persistCurrentState();
 }
 
+/*  AÇIK SEKME — çantanın tek durumu. state'e YAZILMAZ: kayıtta yeri
+    olmayan, yalnız ekranda anlamı olan bir seçim (Tuzak 7 gereği
+    compactStateForExport'a da dokunulmadı). Panel kapanıp açılınca
+    Kaynaklar'dan başlar.                                           */
+let cantaSekme = "kaynak";
+
 function renderInventory() {
   const list = document.getElementById("invList");
-  const keys = Object.keys(state.inventory);
-  document.getElementById("invItemCount").textContent = keys.length;
+  if (!list) return;
+
+  /* Sekme düğmelerinin açık/kapalı hâli tek yerden yazılır. */
+  document.querySelectorAll("#invTabs .inv-tab").forEach(b => {
+    b.classList.toggle("is-active", b.dataset.cat === cantaSekme);
+  });
+
+  const hepsi = Object.keys(state.inventory);
+  /* Tanımı olmayan anahtar "Diğer"e düşer — eski kayıtlardan kalan
+     bir eşya sekmesiz kalıp görünmez olmasın. */
+  const keys = hepsi.filter(k => {
+    const d = getItemDef(k);
+    const sek = (typeof cantaSekmesi === "function") ? cantaSekmesi(d) : "diger";
+    return sek === cantaSekme;
+  });
+
   if (keys.length === 0) {
-    list.innerHTML = emptyState("🕸️", "Çantan boş. Mağazadan eşya al ya da sandık aç.");
+    list.innerHTML = emptyState("🕸️", hepsi.length
+      ? "Bu bölümde eşyan yok."
+      : "Çantan boş. Mağazadan eşya al ya da sandık aç.");
   } else {
     list.innerHTML = keys.map(k => {
       const def = getItemDef(k);
@@ -5824,10 +5853,16 @@ function renderInventory() {
           itemCard()'ı kullanıyor, oradaki düzeni bozmamak için
           yalnız çantada CSS ile gizlenir; buradaki .inv-adet
           ikon kutusunun içine konumlanır.                       */
+      /*  ROZET (sol üst): eşyanın NE KADAR verdiği. Sağ alttaki
+          sayı KAÇ TANE olduğudur, ikisi ayrı şey. Hesap
+          magaza.js urunRozeti()'nde — mağaza kartıyla tek kaynak. */
+      const rozet = (typeof urunRozeti === "function") ? urunRozeti(def) : "";
       return itemCard(def.name, {
         rootClass: "inv-card shop-card",
         cardClass: rarityClass(def) + " " + cantaCerceve(def),
-        iconHTML: itemIconSVG(def) + `<span class="inv-adet">${fmt(qty)}</span>`,
+        iconHTML: itemIconSVG(def)
+          + (rozet ? `<span class="inv-rozet">${rozet}</span>` : "")
+          + `<span class="inv-adet">${fmt(qty)}</span>`,
         slotTag,
         bonusText,
         rightHTML: `<span class="qty">${qty}</span>
@@ -5845,6 +5880,19 @@ function renderInventory() {
   }
   persistCurrentState();
 }
+
+/*  SEKME DEĞİŞİMİ — tek dinleyici, gövdede.
+    invList her çizimde baştan yazıldığı için düğmelere tek tek
+    dinleyici bağlamak (ve her çizimde yenilemek) gerekmez;
+    sekme çubuğu sabit ama aynı yoldan gitmesi daha az kırılgan. */
+document.addEventListener("click", function (e) {
+  const t = e.target && e.target.closest && e.target.closest("#invTabs .inv-tab");
+  if (!t) return;
+  const cat = t.dataset.cat;
+  if (!cat || cat === cantaSekme) return;
+  cantaSekme = cat;
+  renderInventory();
+});
 
 /*  ── KAYNAK PAKETİ KULLANMA ──────────────────────────────────
     Mağazadan alınan sandıklar çantada durur; burada kullanılınca

@@ -178,6 +178,60 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **ÇANTA — BÖLÜM 1: TAM EKRAN + SEKMELER + ROZET** (`index.html`
+  `renderInventory` · `magaza.js` · `tema.js` çanta bloğu).
+  Referans oyundaki düzene geçiş. Büyük iş olduğu için ikiye
+  bölündü; bu bölüm ÇERÇEVE, ikinci bölüm BALONCUK.
+
+  - **Tam ekran.** Çanta alttan çıkan 420px'lik bir karttı.
+    **KÖK (Tuzak 38):** tam ekran kuralını yazmak yetmedi —
+    `#panel-hospital, #panel-chest, #panel-shop, #panel-inventory`
+    ortak bloğu DAHA SONRA geldiği için 60/12/70 boşluğu ve
+    `max-width:420px`i geri koyuyordu. Ezme üstüne ezme yazmak
+    yerine **çanta o listeden çıkarıldı**; diğer üç panel aynen
+    kaldı. Ölçüldü: kart 412×820 = ekranın tamamı.
+  - **Beş sekme:** Kaynaklar · Hızlandırma · Bonus · Donanım · Diğer.
+    Hangi eşyanın hangi sekmeye düştüğüne `magaza.js cantaSekmesi()`
+    karar verir — TEK KAYNAK, çantada ikinci bir tablo yok.
+    Tanımı olmayan anahtar "Diğer"e düşer, eski kayıttan kalan eşya
+    sekmesiz kalıp görünmez olmaz.
+    Açık sekme `state`e YAZILMAZ (Tuzak 7): ekranda anlamı olan bir
+    seçim, `compactStateForExport`a dokunulmadı.
+  - **ROZET (sol üst):** eşyanın NE KADAR verdiği ("10K", "5 dk").
+    Sağ alttaki sayı KAÇ TANE olduğu — ikisi ayrı şey, ayrı köşede.
+    Hesap `magaza.js urunRozeti()`nde: mağaza kartı da çanta
+    kutucuğu da oradan okur. Mağazadaki satır içi hesap silindi,
+    yoksa aynı eşya mağazada "10K", çantada "10.000" görünürdü.
+  - Üstteki "Toplam Elmas / Farklı Eşya" özet kartları ve
+    açıklama satırı SİLİNDİ (sekme çubuğu geldi); elmas zaten üst
+    şeritte duruyordu. `#invDiamonds`/`#invItemCount` yazan JS de
+    temizlendi. **NOT:** `?elmasayar=1` panelinin "canta" satırı bu
+    özet kutusunun `::before`ini sürüyordu — artık öyle bir kutu
+    yok, o satır boşa çalışıyor (çökme yok).
+
+  Ölçüldü (412×820): tam ekran ✔ · 4 sütun · kutucuk 90×90 ·
+  rozet ile adet çakışmıyor · beş sekme aynı boyda, hiçbirinde
+  yazı taşması yok · sayfa yatay kaydırması yok.
+
+  **BÖLÜM 2 (sırada):** kutucuğa dokununca SATIRIN ALTINDA açılan
+  açıklama baloncuğu (başlık + kısa açıklama + sürgülü adet +
+  Kullan), kahraman parçasının ve kahraman kitabının çantadan
+  kullanılabilmesi (kitap kahraman sayfasına atar), seçili
+  kutucuğun köşe işaretleri.
+
+- **Hızlandırma penceresi — kutucuk görseli ve düğme genişliği.**
+  Kutucuğun genişliği yazıya bağlanınca kutu kare olmaktan çıktı
+  ama görsel hâlâ `object-fit:cover` ile geriliyordu: oklar ezik
+  görünüyordu. Görsel artık `contain` ve etiket şeridinin ALTINA
+  oturuyor (`top:20px`), oran hiç bozulmuyor. Kutucuk 62 → **66px**,
+  taban genişlik 48 → **58px**.
+  Düğmeler `flex:1 1 0` ile zorla yarı yarıya bölünüyordu;
+  "BİTİR 💎 1.480" sıkışırken "KULLAN" boş duruyordu. `flex:1 1 auto`
+  ile her düğme önce kendi yazısı kadar yer alıyor.
+  **Tuzak 27 tekrar ısırdı:** `tema.js`teki şablon dizgisinin içine
+  yazdığım yoruma ters tırnak koydum, dosya çöktü. `node --check`
+  yakaladı.
+
 - **HIZLANDIRMA PENCERESİ ELDEN GEÇİRİLDİ** (`index.html`
   `hizlandirmaPenceresi` + `tema.js temaHizlandirSade`).
   Serdar başka bir oyundan referans getirdi; sekiz ayrı şikâyetin

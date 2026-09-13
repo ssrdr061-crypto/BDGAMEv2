@@ -419,28 +419,83 @@ const DRAG_PX = 12;
   text-transform:uppercase !important; padding-right:0 !important;
   font-size:22px !important; margin-top:2px !important;
 }
-/* "Sahip olduğun elmaslar..." açıklaması gizlendi */
-#panel-inventory .desc{ display:none !important; }
+/*  ÇANTA TAM EKRAN.
+    Panel alttan çıkan bir kart değil, ekranın tamamı: eşya ızgarası
+    dört sütun ve altında açıklama baloncuğu açılacak, 88vh'lik kart
+    o düzene yetmiyordu.
+    .overlay-panel ortak kural olduğu için ALIGN-ITEMS burada
+    ezilir — ortak kuralı değiştirmek bütün panelleri tam ekran
+    yapardı.                                                       */
+#panel-inventory{ align-items:stretch !important; }
+#panel-inventory .overlay-card{
+  max-width:none !important;
+  max-height:none !important;
+  height:100% !important;
+  border-radius:0 !important;
+  padding:10px 10px 16px !important;
+  animation:none !important;      /* tam ekranda aşağıdan kayma tuhaf duruyor */
+  display:flex !important; flex-direction:column !important;
+}
+/* Izgara, başlık ve sekmeler sabitken TEK BAŞINA kayar. */
+#panel-inventory .inv-list{
+  flex:1 1 auto !important; min-height:0 !important;
+  overflow-y:auto !important; -webkit-overflow-scrolling:touch;
+  align-content:start !important;
+}
 
-/* elmas/eşya özet kutuları → yalnızca 💎 rozeti kalsın */
-#panel-inventory .inv-summary{
-  display:flex !important; justify-content:center !important; margin:6px 0 14px !important;
+/* "Sahip olduğun elmaslar..." açıklaması ve elmas özet kutusu
+   HTML'den SİLİNDİ (sekme çubuğu geldi). Elmas sayısı zaten üst
+   şeritte duruyor, özet kutusu ikinci kopyaydı.
+   NOT: ?elmasayar=1 panelinin "canta" satırı bu ::before kutusunu
+   sürüyordu — artık öyle bir kutu yok, o satır boşa çalışıyor. */
+
+/* ── SEKMELER ──
+   Referans düzen: başlığın hemen altında beş sekme, seçili olan
+   açık zeminli ve ızgarayla birleşik duruyor.
+   Uzun ad ("Hızlandırma") iki satıra sarar; sekmelerin boyu en
+   uzun ada göre eşitlensin diye satır align-items:stretch. */
+#panel-inventory .inv-tabs{
+  display:flex !important; align-items:stretch !important;
+  gap:4px !important; margin:6px 0 0 !important;
+  padding:0 2px !important;
 }
-#panel-inventory .inv-summary .stat-card:nth-child(2){ display:none !important; } /* "Farklı Eşya" kutusu kaldırıldı */
-#panel-inventory .inv-summary .stat-card{
-  flex:0 0 auto !important; padding:8px 20px !important; border-radius:14px !important;
+#panel-inventory .inv-tab{
+  flex:1 1 0 !important; min-width:0 !important;
+  padding:6px 4px 7px !important;
+  border:none !important; cursor:pointer;
+  border-radius:10px 10px 0 0 !important;
+  background:rgba(3,16,38,.30) !important;
+  color:#cfe6f7 !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:800 !important; font-size:11.5px !important;
+  line-height:1.12 !important; letter-spacing:.1px !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
 }
-#panel-inventory .inv-summary .stat-card .lbl{ display:none !important; } /* "TOPLAM ELMAS" yazısı yok */
-#panel-inventory .inv-summary .stat-card .num{ font-size:22px !important; }
-/* Emoji yerine elmas gorseli. CSS'te onerror yoktur — dosya eksikse
-   simge hic cikmaz, sayi yalniz kalir (yazi bozulmaz). */
-#panel-inventory .inv-summary .stat-card .num::before{
-  content:""; display:inline-block;
-  width:var(--elc-kutu, 1.05em); height:var(--elc-kutu, 1.05em);
-  margin-right:.22em; vertical-align:-.14em;
-  background:url("elmas.webp") center/contain no-repeat;
-  /* scale AKISI DEGISTIRMEZ: kutu 1.05em kalir, gorsel buyur. */
-  transform:scale(var(--elc-olcek, 1)) translate(var(--elc-x, 0em), var(--elc-y, 0em));
+#panel-inventory .inv-tab.is-active{
+  background:rgba(233,246,255,.95) !important;
+  color:#134a86 !important;
+  text-shadow:none !important;
+}
+/* Seçili sekme ile ızgara arasında çizgi olmasın: ızgaranın üstüne
+   sekmelerin zeminiyle aynı açıklıkta ince bir şerit. */
+#panel-inventory .inv-list{
+  border-top:2px solid rgba(233,246,255,.95) !important;
+  padding-top:10px !important;
+}
+
+/*  ROZET (sol üst) — eşyanın NE KADAR verdiği.
+    Sağ alttaki sayı KAÇ TANE olduğu; ikisi ayrı şey ve ayrı köşede
+    durmalı, yoksa "10 K" ile "140" yan yana gelip karışır. */
+#panel-inventory .icon-box .inv-rozet{
+  position:absolute !important; left:0 !important; right:0 !important; top:0 !important;
+  padding:1px 3px 4px !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-weight:900 !important; font-size:11px !important; line-height:1.1 !important;
+  color:#fff !important; text-align:center !important;
+  pointer-events:none !important;
+  border-radius:10px 10px 0 0 !important;
+  background-image:linear-gradient(180deg,rgba(2,12,30,.80),rgba(2,12,30,0)) !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.75) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -3002,18 +3057,21 @@ st.textContent = `
    Boşluk değerleri birlik paneliyle BİREBİR aynı tutuldu
    (60px üst / 70px alt) — birini değiştirirsen diğerlerini de
    değiştir, yoksa paneller arası geçişte kart zıplar. */
+/*  ÇANTA BU LİSTEDEN ÇIKARILDI — tam ekran oldu.
+    Burada 60/12/70 boşluk ve 420px tavan veriliyor; çantaya da
+    uygulanınca yukarıdaki tam ekran kuralı (bu blok SONRA geldiği
+    için, Tuzak 38) sessizce eziliyordu. Ezme üstüne ezme yazmak
+    yerine çanta listeden alındı; diğer üç panel aynen kalıyor. */
 #panel-hospital,
 #panel-chest,
-#panel-shop,
-#panel-inventory{
+#panel-shop{
   align-items:center !important;
   justify-content:center !important;
   padding:60px 12px 70px !important;
 }
 #panel-hospital .overlay-card,
 #panel-chest .overlay-card,
-#panel-shop .overlay-card,
-#panel-inventory .overlay-card{
+#panel-shop .overlay-card{
   width:100% !important;
   max-width:420px !important;
   max-height:100% !important;
@@ -4710,7 +4768,7 @@ st.textContent = `
    overflow:hidden ŞART — süre etiketinin perdesi köşelerden taşmasın. */
 .hosp-speed-modal .hsm-cards{ margin:0 0 4px !important; }
 .hosp-speed-modal .hsm-card-item{
-  height:62px !important;
+  height:66px !important;
   box-shadow:none !important;
   border-radius:12px !important;
   overflow:hidden !important;
@@ -4721,10 +4779,18 @@ st.textContent = `
   border-color:#ffd257 !important;
   box-shadow:inset 0 0 0 1px #ffd257 !important;
 }
+/*  GÖRSEL: etiketin ALTINDAKİ alanı kaplar, KIRPILMAZ.
+    Kutucuk artık kare değil (genişliği yazıya uyuyor); cover
+    kare çizimi 48x62'lik kutuya zorlayınca oklar eziliyordu.
+    contain oranı korur, top da görseli etiket şeridinin altına
+    indirir — yoksa çizimin tepesi perdenin altında kalıyor.
+    (Tuzak 27: bu yorum şablon dizgisinin içinde, ters tırnak yok.)
+    Üst değer etiket şeridinin boyuyla aynı olmalı (2+11,5×1,1+6≈20). */
 .hosp-speed-modal .hsm-ci-img{
-  position:absolute !important; inset:0 !important;
-  width:100% !important; height:100% !important;
-  object-fit:cover !important; display:block !important;
+  position:absolute !important;
+  left:0 !important; right:0 !important; top:20px !important; bottom:2px !important;
+  width:auto !important; height:auto !important;
+  object-fit:contain !important; display:block !important;
   pointer-events:none !important;
 }
 /* sahip olunan adet: beyaz, okunaklı, ezik değil */

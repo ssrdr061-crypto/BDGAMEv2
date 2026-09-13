@@ -358,15 +358,7 @@ function renderShop() {
 
     const left = shopLeft(item);
     const soldOut = left <= 0;
-    const badge = item.isKalkan ? ((item.kalkanSaat || 6) + "sa")
-                : item.isSeferHiz ? ("%" + Math.round(item.hizOran * 100))
-                : item.isKaynak
-                    ? (item.miktar >= 1000 ? (item.miktar / 1000) + "K" : String(item.miktar))
-                : (item.isSpeedUpItem
-                    ? (item.speedUpMinutes >= 60
-                        ? Math.round(item.speedUpMinutes / 60) + "sa"
-                        : item.speedUpMinutes + "dk")
-                    : "1");
+    const badge = urunRozeti(item);        /* tek kaynak — çanta da bunu okur */
 
     html += `
       <div class="shop-card2 ${soldOut ? "soldout" : ""}" data-idx="${realIdx}" style="animation-delay:${i * 0.04}s">
@@ -409,6 +401,40 @@ function closeShopPopups() {
   document.querySelectorAll(".shop-info-pop").forEach(p => p.remove());
   closeBuyDialog();
 }
+
+/*  ÜRÜN ROZETİ — kutucuğun sol üstündeki küçük etiket ("10 K", "5 dk").
+    Eşyanın NE KADAR verdiğini söyler, kaç tane olduğunu değil (o sağ
+    altta durur).
+    TEK KAYNAK: mağaza kartı da çanta kutucuğu da buradan okur. İki
+    yerde ayrı yazılırsa aynı eşya mağazada "10K", çantada "10.000"
+    görünür.                                                        */
+function urunRozeti(item) {
+  if (!item) return "";
+  if (item.isKalkan)      return (item.kalkanSaat || 6) + "sa";
+  if (item.isSeferHiz)    return "%" + Math.round(item.hizOran * 100);
+  if (item.isKaynak)      return item.miktar >= 1000
+                                 ? (item.miktar / 1000) + "K"
+                                 : String(item.miktar);
+  if (item.isSpeedUpItem) return item.speedUpMinutes >= 60
+                                 ? Math.round(item.speedUpMinutes / 60) + "sa"
+                                 : item.speedUpMinutes + "dk";
+  return "1";
+}
+window.urunRozeti = urunRozeti;
+
+/*  ÇANTA SEKMESİ — eşya hangi sekmeye düşer.
+    Sekme adları referans oyundan: Kaynaklar · Hızlandırma · Bonus ·
+    Donanım · Diğer. Burada TEK yerde karar verilir; çanta bu
+    işlevi çağırır, ikinci bir tablo açmaz.                        */
+function cantaSekmesi(item) {
+  if (!item) return "diger";
+  if (item.isKaynak)                          return "kaynak";
+  if (item.isSpeedUpItem || item.isSeferHiz)  return "hiz";
+  if (item.isBoost || item.isStaminaPotion || item.isKalkan) return "bonus";
+  if (item.slot)                              return "donanim";
+  return "diger";                  /* parça, tecrübe kitabı, füze... */
+}
+window.cantaSekmesi = cantaSekmesi;
 
 /* ürün açıklaması — hem baloncuk hem satın alma penceresi kullanır */
 function shopItemDesc(item) {
