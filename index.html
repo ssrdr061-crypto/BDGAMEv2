@@ -10187,7 +10187,6 @@ const TroopViewer = (function () {
     setupSwipe(viewerEl);
     buildRoles();
     kampCubuguKur();
-    yanDugmelerKur();
     inited = true;
     apply(true);
   }
@@ -10227,11 +10226,20 @@ const TroopViewer = (function () {
     if (typeof UNIT_ROLES === "undefined") return;
     const bar = document.createElement("div");
     bar.className = "uv-kamp";
+    /*  Simge EMOJİ DEĞİL, ailenin kendi rozet görseli (UNIT_ROLES.rozet).
+        Dosya açılmazsa görsel gizlenir — emojiye DÜŞMEZ.
+        Ad burada YAZILMAZ: bu işlev panel kurulurken çalışıyor ve
+        insaat.js index.html'in SONUNDA yükleniyor (satır ~10892),
+        yani kislaAdi() burada hep "Kışla" yedeğine düşüyordu —
+        üç sekmede de "Kışla" yazmasının kökü buydu. Ad artık her
+        çizimde syncKamp()'ta yazılıyor. */
     bar.innerHTML = UNIT_ROLES.map(r => {
-      const ad = (typeof kislaAdi === "function") ? kislaAdi(r.unit) : r.label;
-      return `<button class="uv-kamp-tab" data-unit="${r.unit}" aria-label="${ad}">` +
-             `<span class="uvk-ico">${r.icon}</span>` +
-             `<span class="uvk-ad">${ad}</span></button>`;
+      const g = r.rozet
+        ? `<img src="${r.rozet}" alt="" onerror="this.style.display='none'">`
+        : "";
+      return `<button class="uv-kamp-tab" data-unit="${r.unit}">` +
+             `<span class="uvk-ico">${g}</span>` +
+             `<span class="uvk-ad"></span></button>`;
     }).join("");
     viewerEl.appendChild(bar);
     bar.querySelectorAll(".uv-kamp-tab").forEach(b =>
@@ -10240,8 +10248,16 @@ const TroopViewer = (function () {
 
   function syncKamp() {
     const u = ORDER[idx];
-    document.querySelectorAll("#panel-troops .uv-kamp-tab").forEach(b =>
-      b.classList.toggle("is-active", b.dataset.unit === u));
+    document.querySelectorAll("#panel-troops .uv-kamp-tab").forEach(b => {
+      b.classList.toggle("is-active", b.dataset.unit === u);
+      /* Ad her çizimde yazılır: kurulum anında insaat.js henüz
+         yüklü değil (bkz. kampCubuguKur). textContent düz metin
+         bağlamı — burada görsel YOK, o ayrı span'de duruyor. */
+      const ad = (typeof kislaAdi === "function") ? kislaAdi(b.dataset.unit) : "";
+      const e = b.querySelector(".uvk-ad");
+      if (e && ad && e.textContent !== ad) e.textContent = ad;
+      if (ad) b.setAttribute("aria-label", ad);
+    });
   }
 
   /*  ── SAĞ YAN DÜĞMELER: ☰ Nitelikler · ⬆ Terfi ──
@@ -10249,22 +10265,28 @@ const TroopViewer = (function () {
       düğmesi konmadı, aynı düğme iki durumu taşır.               */
   let _nitelikAcik = false;
 
-  function yanDugmelerKur() {
-    if (!viewerEl || viewerEl.querySelector(".uv-yan")) return;
-    const kutu = document.createElement("div");
-    kutu.className = "uv-yan";
-    kutu.innerHTML =
-      `<button class="uv-yan-btn" id="uvNitelikBtn" aria-label="Nitelikler">☰</button>` +
-      `<button class="uv-yan-btn" id="uvTerfiBtn" aria-label="Terfi">⬆</button>`;
-    viewerEl.appendChild(kutu);
-    bindTap(kutu.querySelector("#uvNitelikBtn"), nitelikCevir);
-    bindTap(kutu.querySelector("#uvTerfiBtn"), terfiAc);
+  /*  Düğmeler .stats bloğunun İÇİNDE, ona göre `bottom:100%` ile
+      yerleşir — yani kademe şeridinin hemen ÜSTÜNDE dururlar.
+      Viewer'a bir kez eklenip yüzdeyle konumlandırıldıklarında
+      kademe kutucuklarının üstüne biniyorlardı: yüzde, ekran boyu
+      ve stat bloğunun yüksekliği değiştikçe kayıyor.
+      Her çizimde yeniden yazıldıkları için bağlama da çizimin
+      yanında yapılır (aşağıda "Bind events"). */
+  function yanDugmelerHTML() {
+    return `<div class="uv-yan">` +
+           `<button class="uv-yan-btn uv-nitelik-btn" aria-label="Nitelikler">${SIM.liste}</button>` +
+           `<button class="uv-yan-btn uv-terfi-btn" aria-label="Terfi">${SIM.terfi}</button>` +
+           `</div>`;
   }
 
   function nitelikYaz() {
     screens.forEach(sc => { if (sc) sc.classList.toggle("nitelik-acik", _nitelikAcik); });
-    const b = document.getElementById("uvNitelikBtn");
-    if (b) b.textContent = _nitelikAcik ? "↩" : "☰";
+    /* Üç ekranın her birinde bir kopya var; hepsi aynı durumu
+       taşır, yoksa aile değiştirince düğme yanlış simgede kalır.
+       innerHTML bağlamı: simge çizim, emoji değil. */
+    document.querySelectorAll("#panel-troops .uv-nitelik-btn").forEach(b => {
+      b.innerHTML = _nitelikAcik ? SIM.geri : SIM.liste;
+    });
   }
   function nitelikCevir() { _nitelikAcik = !_nitelikAcik; nitelikYaz(); }
   function nitelikKapat() { if (_nitelikAcik) { _nitelikAcik = false; nitelikYaz(); } }
@@ -10342,19 +10364,48 @@ const TroopViewer = (function () {
       } catch (e) { return ""; }
     }
 
+    /*  REFERANS DÜZENİ: iki sütunlu kutu, her hücrede
+        ELİNDEKİ / GEREKEN. Eskiden yalnız gereken yazıyordu —
+        oyuncu yetip yetmediğini ancak rengin kırmızıya dönmesinden
+        anlıyordu.
+        Elindeki KISALTILIR (1,0M), gereken TAM yazılır (2.784):
+        gereken az hanelidir ve tam hâli okunur, elindeki milyonlara
+        çıkıyor ve tam yazılırsa hücreyi taşırıyor.
+        Simge GÖRSELDİR; dosya açılmazsa gizlenir, emojiye DÜŞMEZ. */
     box.innerHTML = Object.keys(gerek).map(k => {
       const yetersiz = (kay[k] || 0) < gerek[k];
-      const em = (typeof KAYNAK_IKON !== "undefined" && KAYNAK_IKON[k]) || "";
       const g = kaynakGorseli(k);
       const ikon = g
-        ? `<img class="uvr-gorsel" src="${g}" alt="" ` +
-          `onerror="this.onerror=null;this.replaceWith(document.createTextNode('${em}'))">`
-        : em;
+        ? `<img class="uvr-gorsel" src="${g}" alt="" onerror="this.style.display='none'">`
+        : "";
       return `<div class="uv-res-oge${yetersiz ? " yok" : ""}">` +
              `<span class="uvr-em">${ikon}</span>` +
-             `<span class="uvr-mik">${kisa(gerek[k])}</span></div>`;
+             `<span class="uvr-mik"><b class="uvr-var">${kisa(kay[k] || 0)}</b>` +
+             `<i class="uvr-bol">/</i><b class="uvr-gerek">${fmt(gerek[k])}</b></span></div>`;
     }).join("");
   }
+
+  /*  ── SİMGELER: ÇİZİM, EMOJİ DEĞİL ──
+      Bu ekranda EMOJİ KULLANILMAZ. Emoji telefonun yazı tipine göre
+      değişir, rengi tutmaz, kutuların içinde kaba durur ve düz metin
+      ile innerHTML bağlamlarını karıştırır. Hepsi satır içi SVG:
+      tek renk (currentColor), düz çizim, kabartı/gölge yok.
+      Yeni simge gerekirse BU tabloya ekle, ikinci bir liste açma.  */
+  const SIM = {
+    guc:      '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 9.6A1.6 1.6 0 0 1 8.6 8H9V6.8a1.4 1.4 0 0 1 2.8 0V8h.6V6.3a1.4 1.4 0 0 1 2.8 0V8h.5A2.8 2.8 0 0 1 19.5 10.8v2.4A4.8 4.8 0 0 1 14.7 18h-2.2A5.5 5.5 0 0 1 7 12.5z"/></svg>',
+    saldiri:  '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2 14.2 5.6v8.1H9.8V5.6z"/><path d="M8 15.4h8"/><path d="M12 15.4V20.8"/></g></svg>',
+    savunma:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.8 19 5.4v5.4c0 4.3-2.9 8.1-7 9.4-4.1-1.3-7-5.1-7-9.4V5.4z"/></svg>',
+    saglik:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.4 4.7 13.1a4.6 4.6 0 1 1 6.5-6.5l.8.8.8-.8a4.6 4.6 0 1 1 6.5 6.5z"/></svg>',
+    olum:     '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 11a7 7 0 1 1 14 0c0 2.4-1.2 4.1-2.6 5.1V19H7.6v-2.9C6.2 15.1 5 13.4 5 11z"/><circle cx="9.3" cy="11.2" r="1.7" fill="currentColor" stroke="none"/><circle cx="14.7" cy="11.2" r="1.7" fill="currentColor" stroke="none"/></g></svg>',
+    hiz:      '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 6 6 6-6 6"/><path d="m13 6 6 6-6 6"/></g></svg>',
+    yuk:      '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="7.5" width="16" height="12" rx="2.4"/><path d="M4 11.8h16"/><path d="M9.4 7.5V6a2.6 2.6 0 0 1 5.2 0v1.5"/></g></svg>',
+    liste:    '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="5.2" cy="7" r="1.7"/><circle cx="5.2" cy="12" r="1.7"/><circle cx="5.2" cy="17" r="1.7"/><rect x="9.2" y="5.9" width="10.6" height="2.2" rx="1.1"/><rect x="9.2" y="10.9" width="10.6" height="2.2" rx="1.1"/><rect x="9.2" y="15.9" width="10.6" height="2.2" rx="1.1"/></g></svg>',
+    terfi:    '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.5V5.6"/><path d="m5.8 11.8 6.2-6.2 6.2 6.2"/></g></svg>',
+    geri:     '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 5.8 4 11l5.2 5.2"/><path d="M4 11h9.6a5.4 5.4 0 0 1 5.4 5.4v1.8"/></g></svg>',
+    saat:     '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.4V12l3.1 2"/></g></svg>',
+    kadro:    '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><circle cx="9.2" cy="8" r="3.3"/><path d="M3.4 19.4c0-3.2 2.6-5.3 5.8-5.3s5.8 2.1 5.8 5.3z"/><circle cx="17.2" cy="9.2" r="2.4"/><path d="M15.6 19.4h5.2c0-2.5-1.5-4.2-3.6-4.2-.7 0-1.4.2-1.9.6z"/></g></svg>',
+  };
+  function sim(ad, sinif) { return '<span class="uv-sim' + (sinif ? " " + sinif : "") + '">' + (SIM[ad] || "") + '</span>'; }
 
   /*  ── NİTELİKLER — TEK KAYNAK ──
       ☰ düğmesiyle açılan ekrandaki satırlar. Değer troops.js'teki
@@ -10364,13 +10415,13 @@ const TroopViewer = (function () {
       satır boş çizilir ("—", çubuk boş). troops.js'e `hiz`/`yuk`
       yazıldığı gün burada hiçbir şey değiştirmeden dolarlar.     */
   const NITELIK = [
-    { ad: "Güç",         alan: "power",   ikon: "✊" },
-    { ad: "Saldırı",     alan: "attack",  ikon: "🗡️" },
-    { ad: "Savunma",     alan: "defense", ikon: "🛡️" },
-    { ad: "Sağlık",      alan: "hp",      ikon: "❤️" },
-    { ad: "Öldürücülük", alan: "olum",    ikon: "💀" },
-    { ad: "Hız",         alan: "hiz",     ikon: "🏃" },
-    { ad: "Yük",         alan: "yuk",     ikon: "🎒" },
+    { ad: "Güç",         alan: "power",   sim: "guc"     },
+    { ad: "Saldırı",     alan: "attack",  sim: "saldiri" },
+    { ad: "Savunma",     alan: "defense", sim: "savunma" },
+    { ad: "Sağlık",      alan: "hp",      sim: "saglik"  },
+    { ad: "Öldürücülük", alan: "olum",    sim: "olum"    },
+    { ad: "Hız",         alan: "hiz",     sim: "hiz"     },
+    { ad: "Yük",         alan: "yuk",     sim: "yuk"     },
   ];
 
   /*  Çubuğun tavanı SABİT YAZILMAZ — o alanın bütün birliklerdeki
@@ -10393,7 +10444,7 @@ const TroopViewer = (function () {
       const bos = (typeof v !== "number");
       const oran = bos ? 0 : Math.max(0, Math.min(100, v * 100 / nitelikTavan(n.alan)));
       return `<div class="uvn-satir${bos ? " uvn-bos" : ""}">` +
-               `<span class="uvn-ikon">${n.ikon}</span>` +
+               sim(n.sim, "uvn-ikon") +
                `<div class="uvn-sag">` +
                  `<div class="uvn-ust"><span class="uvn-ad">${n.ad}</span>` +
                  `<span class="uvn-dg">${bos ? "—" : fmt(v)}</span></div>` +
@@ -10466,7 +10517,8 @@ const TroopViewer = (function () {
       }
 
       /* ── ÜST: bu ailenin KADEMELERİ (Sv1 … Sv6) ── */
-      let html = `<div class="uv-portraits">`;
+      let html = yanDugmelerHTML();
+      html += `<div class="uv-portraits">`;
       for (let k = 1; k <= kademeSayisi(); k++) {
         const d = UNIT_TYPES[kademeId(uid, k)];
         if (!d) continue;
@@ -10543,12 +10595,13 @@ const TroopViewer = (function () {
             PANEL ZIPLAMASIN diye adet çubuğu GÖRÜNMEZ olarak yine
             basılır — kademeler arası geçerken yükseklik sabit kalır.
             Kilit kutusu da üretim düğmeleriyle aynı iki satırlıdır. */
+        html += `<div class="uv-res"></div>`;
         html += `<div class="unit-qty-bar kilit-hayalet" aria-hidden="true">
             <button class="uq-btn uq-minus">−</button>
-            <input type="number" class="uq-input" value="1" readonly tabindex="-1">
+            <span class="uq-ray"><input type="range" class="uv-qty-slider" min="1" max="1" value="1" tabindex="-1"></span>
             <button class="uq-btn uq-plus">+</button>
-            <div class="uv-res"></div>
-            <input type="range" class="uv-qty-slider" min="1" max="1" value="1" tabindex="-1">
+            <input type="number" class="uq-input" value="1" readonly tabindex="-1">
+            <button class="uq-max" tabindex="-1">${SIM.kadro}</button>
           </div>`;
         html += `<div class="unit-train-bar">
             <div class="utb-kilit">
@@ -10584,21 +10637,28 @@ const TroopViewer = (function () {
       } else if (terfiVar) {
         html += terfiCubugu();
       } else {
+        /*  REFERANS DÜZENİ
+            · Kaynak kutusu adet çubuğunun ÜSTÜNDE, ayrı kutu.
+            · Satır: − · ray · + · adet kutusu · en çok düğmesi.
+              Sürgü artık kendi satırında değil, rayın içinde.
+            · Düğmeler: BİTİR (elmas) · EĞİT (süre). "Üret ×N"
+              yazısı kalktı — adet zaten kutuda yazıyor. */
+        html += `<div class="uv-res"></div>`;
         html += `<div class="unit-qty-bar">
-            <button class="uq-btn uq-minus" data-unit="${uid}">−</button>
+            <button class="uq-btn uq-minus" data-unit="${uid}" aria-label="Azalt">−</button>
+            <span class="uq-ray"><input type="range" class="uv-qty-slider" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}"></span>
+            <button class="uq-btn uq-plus" data-unit="${uid}" aria-label="Artır">+</button>
             <input type="number" class="uq-input" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}" inputmode="numeric">
-            <button class="uq-btn uq-plus" data-unit="${uid}">+</button>
-            <div class="uv-res"></div>
-            <input type="range" class="uv-qty-slider" data-unit="${uid}" min="1" max="${sliderMax}" value="${qty}">
+            <button class="uq-max" data-unit="${uid}" aria-label="En çok">${SIM.kadro}</button>
           </div>`;
         html += `<div class="unit-train-bar">
             <button class="unit-instant-btn" data-unit="${uid}">
-              <span class="utb-top">⚡ Anında</span>
+              <span class="utb-top">Bitir</span>
               <span class="utb-sub utb-inst-cost">${ELMAS("kisla")} <span class="utb-inst-deger">${fmt(instCost)}</span></span>
             </button>
             <button class="unit-train-btn" data-unit="${uid}">
-              <span class="utb-top">Üret ×<span class="utb-qty">${qty}</span></span>
-              <span class="utb-sub">⏱ <span class="utb-sure">${(typeof sureDk === "function") ? sureDk(def.trainMinutes * qty) : (def.trainMinutes * qty) + " dk"}</span></span>
+              <span class="utb-top">Eğit</span>
+              <span class="utb-sub">${sim("saat", "utb-sim")} <span class="utb-sure">${(typeof sureDk === "function") ? sureDk(def.trainMinutes * qty) : (def.trainMinutes * qty) + " dk"}</span></span>
             </button>
           </div>`;
       }
@@ -10624,6 +10684,11 @@ const TroopViewer = (function () {
       }
 
       /* Bind events */
+      const nitBtn = el.querySelector(".uv-nitelik-btn");
+      if (nitBtn) bindTap(nitBtn, nitelikCevir);
+      const trfBtn = el.querySelector(".uv-terfi-btn");
+      if (trfBtn) bindTap(trfBtn, terfiAc);
+
       el.querySelectorAll(".uv-portrait").forEach(btn => {
         bindTap(btn, () => setKademe(btn.dataset.unit || uid,
                                      parseInt(btn.dataset.kademe, 10) || 1));
@@ -10645,10 +10710,24 @@ const TroopViewer = (function () {
       /* adet: kaydırıcı + / − / kutu — hepsi birbirini günceller */
       const slider = el.querySelector(".uv-qty-slider");
       const numBox = el.querySelector(".uq-input");
+      /*  Sürgünün YEŞİL DOLGUSU: tarayıcının kendi rayı iki yanı
+          aynı renk çiziyor, referansta sol taraf dolu. Dolgu oranı
+          CSS değişkeniyle veriliyor (--dolu) ve ray o değişkenden
+          boyanıyor — ikinci bir element eklenmedi. */
+      const rayYaz = (v) => {
+        if (!slider) return;
+        const en = Math.max(1, sliderMax - 1);
+        /* Değişken RAYA yazılır, sürgüye değil: gradyan rayın kuralı
+           ve CSS değişkeni yalnız AŞAĞI doğru geçer. Sürgüye yazınca
+           ray onu hiç görmüyor, dolgu çizilmiyordu. */
+        const ray = slider.closest(".uq-ray") || slider.parentElement;
+        if (ray) ray.style.setProperty("--dolu", ((v - 1) * 100 / en) + "%");
+      };
       const setQty = (v) => {
         v = Math.max(1, Math.min(sliderMax, parseInt(v, 10) || 1));
         unitTrainQty[uid] = v;
         if (slider) slider.value = v;
+        rayYaz(v);
         if (numBox && document.activeElement !== numBox) numBox.value = v;
         /* ANINDA fiyatı: yalnız DEĞER span'i tazelenir. Kutunun
            tamamına textContent yazılırsa elmas görseli silinir (Tuzak 23). */
@@ -10671,10 +10750,20 @@ const TroopViewer = (function () {
       const plus = el.querySelector(".uq-plus");
       if (minus) bindTap(minus, () => setQty((unitTrainQty[uid] || 1) - 1));
       if (plus) bindTap(plus, () => setQty((unitTrainQty[uid] || 1) + 1));
+      /* "En çok": tavan zaten maxUretilebilir() — burada ikinci bir
+         hesap yapılmaz, sürgünün üst sınırı ne ise o yazılır. */
+      const enCok = el.querySelector(".uq-max");
+      if (enCok) bindTap(enCok, () => setQty(sliderMax));
 
-      /* ilk çizimde de kaynak yazısı dolsun */
+      /* ilk çizimde de kaynak yazısı ve sürgü dolgusu dolsun */
+      rayYaz(qty);
       uvGereksinim(kid, el, qty);
     });
+
+    /* Düğmeler her çizimde yeniden yazıldı: açık/kapalı durumu ve
+       ekrandaki sınıf yeniden uygulanmalı, yoksa Nitelikler açıkken
+       kademe değiştirince ekran kapanmış gibi görünür. */
+    nitelikYaz();
   }
 
   /* Canlı sayaç — her saniye timer güncelle (DOM üzerinden, innerHTML yeniden yazılmadan) */

@@ -178,6 +178,68 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **BİRLİK EKRANI — BÖLÜM 2: EMOJİ TEMİZLİĞİ, KAYNAK KUTUSU,
+  SÜRGÜ, DÜĞMELER.** Serdar Bölüm 1'i reddetti; altı şikâyetin her
+  biri ayrı bir kökten geliyordu.
+
+  1. **EMOJİ YASAK — bu ekranda hiç yok artık.** Statlar, sekmeler
+     ve yan düğmeler emoji taşıyordu. Hepsi satır içi **SVG** oldu
+     (`index.html` `SIM` tablosu, tek kaynak): tek renk
+     (`currentColor`), düz çizim, kabartı yok. Aile sekmelerinin
+     simgesi ise oyunun kendi rozet görselleri
+     (`UNIT_ROLES.rozet` → `rozet-savunucu/koruyucu/nisanci.webp`).
+     Dosya açılmazsa görsel **gizlenir**, emojiye DÜŞMEZ.
+     Ölçüldü: ekranda kalan emoji sayısı **0**.
+  2. **Üç sekmede de "Kışla" yazıyordu — KÖK YÜKLEME SIRASI.**
+     `kislaAdi()` adı `window.INSAAT.ADLAR`dan okuyor, ama
+     `insaat.js` `index.html`in SONUNDA yükleniyor (satır ~10892)
+     ve sekme çubuğu panel kurulurken yazılıyordu → her seferinde
+     "Kışla" yedeği. Ad artık **her çizimde** `syncKamp()`ta
+     yazılıyor: Savunucu / Koruyucu / Nişancı Kışlası.
+  3. **Yan düğmeler kademe kutucuklarının üstüne biniyordu.**
+     Kök: viewer'a bir kez eklenip `top:54%` ile konumlanıyorlardı;
+     yüzde, stat bloğunun yüksekliğiyle kaymaz. Artık `.stats`ın
+     İÇİNDELER ve `bottom:100%` ile onun üstünde dururlar — her
+     ekran boyunda kademe şeridinin üstünde kalırlar.
+     Ölçüldü: iki ekran boyunda da şeridin **14px üstünde**, binme 0.
+  4. **Kaynak kutusu referansa benzemiyordu.** Tek satır simge +
+     gereken miktar yazıyordu. Artık iki sütunlu kutu ve her
+     hücrede **elindeki / gereken** (`1,0M/2.784`). Elindeki
+     kısaltılır, gereken tam yazılır; yetmeyen kaynakta yalnız
+     ELİNDEKİ kırmızı olur.
+  5. **Sürgü.** Tarayıcının kendi rayı (`accent-color`) iki yanı
+     aynı renk çiziyordu ve sürgü ayrı satıra düşüyordu. Artık tek
+     satır: **− · ray · + · adet kutusu · en çok**. Ray kendi
+     zeminini boyuyor (dolu yeşil, kalanı koyu), oran JS'ten
+     `--dolu` ile geliyor, tutamak referanstaki gibi beyaz kulp.
+     **TUZAK (ölçerek bulundu):** değişken önce SÜRGÜYE yazılmıştı,
+     gradyan ise RAYIN kuralı — CSS değişkeni yalnız aşağı doğru
+     geçtiği için dolgu hiç çizilmiyordu. Ray'a yazılıyor.
+  6. **Düğmeler.** "⚡ Anında / Üret ×N" → **BİTİR** (turuncu,
+     elmas) ve **EĞİT** (mavi, saat + süre). "×N" kalktı, adet
+     zaten kutuda yazıyor (`.utb-qty` kaldırıldı, onu tazeleyen
+     kod korumalı olduğu için dokunulmadı).
+
+  **`tuzak27.py` BENİ İKİ KEZ KORUYAMADI — denetimin kendisinde kök
+  açık vardı.** Düzenli ifade `textContent = \`(.*?)\`;` ile şablonun
+  tamamını yakalamaya çalışıyordu; yorumun içindeki ters tırnak
+  şablonu ERKEN bitirdiği için blok kısa kesiliyor ve aranan yorum
+  hiç görünmüyordu — yani aradığı karakter tam da aramayı
+  bozuyordu. Betik yeniden yazıldı: şablonun başından itibaren
+  karakter karakter ilerliyor, CSS yorumunun içindeyse ters tırnak
+  HATA, dışındaysa şablonu bitirir. Bilerek bozulmuş kopyayla
+  sınandı, ikisini de yakaladı.
+
+  Ölçüldü (412×820 ve 360×740, 2×): ekranda emoji 0 · sekme adları
+  doğru ve hiçbirinde taşma yok · yan düğmeler kademe şeridinin
+  14px üstünde · kaynak kutusu üç hücre, taşma yok · sürgü dolgusu
+  %39,4 çiziliyor · Eğit satırı ile sekme çubuğu arası 5,8px ·
+  Nitelikler açıkken kaynak + adet + Eğit gizli, yedi satır
+  görünür · sayfa yatay kaydırması yok. `index.html`in dört satır
+  içi JS bloğu ayrı ayrı `node --check` edildi. Fonksiyon adları
+  karşılaştırıldı: `sim` eklendi, `yanDugmelerKur` →
+  `yanDugmelerHTML` (yeri değişti), silinen yok.
+
 - **BİRLİK EĞİTİM EKRANI REFERANS DÜZENİNE GEÇİYOR — BÖLÜM 1**
   (`index.html` TroopViewer + `renderUnitStats` · `troops.js` ·
   `tema.js` `temaBirlikReferans`). Serdar başka bir oyundan iki
@@ -1131,7 +1193,8 @@ birlik eğitim ekranları (`#panel-troops`, üç aile birden).
 Hastane ve sandık hâlâ dört yanı boşluklu kart.
 
 **Denetim betiği:** `tuzak27.py` — şablon dizgisi içindeki yorumlarda
-ters tırnak arar (`tema.js` · `magaza.js` · `buff.js` ·
+ters tırnak arar (30'da yeniden yazıldı: eski düzenli ifade sürümü
+aradığı karakterin kendisi yüzünden kör kalıyordu) (`tema.js` · `magaza.js` · `buff.js` ·
 `kahramanlar.js` · `heroes.js`). Bu tur dört kez dosya çökertti.
 
 Yükleme sırası (`index.html` sonu): koordinat · heroes · kahramanlar · gelistir ·

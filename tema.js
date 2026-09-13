@@ -2472,40 +2472,94 @@ if (document.readyState === "loading") {
   transform:translateY(-2px) !important;
 }
 
-/* ── ADET ÇUBUĞU: − / kutu / + / sürgü ── */
+/* ── ADET ÇUBUĞU — REFERANS DÜZENİ ──
+   Tek satır:  −  ·  ray  ·  +  ·  adet kutusu  ·  en çok
+   Eskiden − / kutu / + bir satırdaydı, sürgü ayrı satıra düşüyordu
+   ve tarayıcının kendi rayı (accent-color) iki yanı aynı renk
+   çiziyordu. Yeni ray kendi zeminini kendi boyuyor: dolu kısım
+   yeşil, kalanı koyu — oran JS'ten --dolu ile geliyor. */
 #panel-troops .unit-qty-bar{
   display:flex !important; align-items:center !important; gap:8px !important;
   margin:8px 8px 0 !important;
 }
 #panel-troops .uq-btn{
-  width:38px !important; height:38px !important; flex:none !important;
+  width:36px !important; height:36px !important; flex:none !important;
   border-radius:11px !important; cursor:pointer !important;
-  background:linear-gradient(180deg,#ffd257,#f0932b) !important;
-  border:1px solid rgba(255,220,150,.7) !important; color:#3a2408 !important;
+  background:linear-gradient(180deg,#4fb6f0,#1a76c4) !important;
+  border:none !important; color:#fff !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
-  font-weight:800 !important; font-size:21px !important; line-height:1 !important;
-  box-shadow:none !important;
+  font-weight:900 !important; font-size:22px !important; line-height:1 !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  transition:filter .09s ease, transform .09s ease !important;
 }
-#panel-troops .uq-btn:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none !important; }
+#panel-troops .uq-btn:active{ transform:scale(.96) !important; filter:brightness(.93) !important; }
 #panel-troops .uq-input{
-  width:62px !important; flex:none !important; text-align:center !important;
-  padding:8px 4px !important; border-radius:11px !important;
-  background:rgba(255,255,255,.18) !important;
-  border:1px solid rgba(190,240,255,.7) !important; color:#fff !important;
+  width:64px !important; flex:none !important; text-align:center !important;
+  padding:7px 4px !important; border-radius:10px !important;
+  background:rgba(4,32,60,.45) !important;
+  border:none !important; color:#fff !important;
   font-family:'Baloo 2','Nunito',sans-serif !important;
   font-weight:800 !important; font-size:16px !important; outline:none !important;
+  font-variant-numeric:tabular-nums !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
   -moz-appearance:textfield;
 }
 #panel-troops .uq-input::-webkit-outer-spin-button,
 #panel-troops .uq-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+#panel-troops .uq-max{
+  width:36px !important; height:36px !important; flex:none !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  border-radius:10px !important; cursor:pointer !important;
+  background:rgba(4,32,60,.45) !important; border:none !important;
+  color:#cfe9ff !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
+  transition:filter .09s ease, transform .09s ease !important;
+}
+#panel-troops .uq-max:active{ transform:scale(.96) !important; filter:brightness(.93) !important; }
+#panel-troops .uq-max .uv-sim{ width:20px !important; height:20px !important; }
+
+/* RAY: sürgü kendi kutusunun içinde, tam genişlikte */
+#panel-troops .uq-ray{
+  flex:1 1 auto !important; min-width:0 !important;
+  display:block !important; position:relative !important;
+  height:14px !important; border-radius:7px !important;
+  background:
+    linear-gradient(90deg,#33c65a 0 var(--dolu,0%), rgba(4,32,60,.55) var(--dolu,0%) 100%) !important;
+  box-shadow:none !important;
+}
 #panel-troops .uv-qty-slider{
-  flex:1 !important; width:auto !important; height:24px !important;
+  position:absolute !important; inset:0 !important;
+  width:100% !important; height:100% !important; margin:0 !important;
   writing-mode:horizontal-tb !important; direction:ltr !important;
-  -webkit-appearance:auto !important; appearance:auto !important;
-  accent-color:#ffd257 !important; cursor:pointer !important;
+  -webkit-appearance:none !important; appearance:none !important;
+  background:transparent !important; cursor:pointer !important;
+}
+#panel-troops .uv-qty-slider::-webkit-slider-runnable-track{
+  background:transparent !important; height:100% !important; border:none !important;
+}
+#panel-troops .uv-qty-slider::-moz-range-track{
+  background:transparent !important; height:100% !important; border:none !important;
+}
+/*  TUTAMAK: referanstaki gibi dikey yivli kulp.
+    Genişliğin YARISI JS tarafında da kullanılmıyor (sürgü gerçek
+    <input type=range>, konumu tarayıcı hesaplıyor) — hızlandırma
+    penceresindeki SURGU_YARI derdi burada YOK. */
+#panel-troops .uv-qty-slider::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:18px; height:24px; border-radius:6px; border:none;
+  background:linear-gradient(180deg,#ffffff,#d8ecfa);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  cursor:pointer;
+}
+#panel-troops .uv-qty-slider::-moz-range-thumb{
+  width:18px; height:24px; border-radius:6px; border:none;
+  background:linear-gradient(180deg,#ffffff,#d8ecfa);
+  box-shadow:0 2px 6px rgba(0,20,45,.3);
+  cursor:pointer;
 }
 
-/* ── İKİ BUTON: Anında / Üret ── */
+/* ── İKİ BUTON: BİTİR (turuncu) / EĞİT (mavi) ── */
 #panel-troops .unit-train-bar{
   display:flex !important; align-items:stretch !important; gap:8px !important;
   position:static !important; height:auto !important; margin:6px 8px 0 !important;
@@ -2521,21 +2575,29 @@ if (document.readyState === "loading") {
   text-transform:none !important; letter-spacing:.3px !important;
 }
 #panel-troops .unit-instant-btn{
-  background:linear-gradient(180deg,#ffd257,#f0932b) !important;
-  border:1px solid rgba(255,220,150,.7) !important; color:#3a2408 !important;
-  text-shadow:0 1px 0 rgba(255,255,255,.4) !important;
-  box-shadow:none !important;
+  background:linear-gradient(180deg,#ffab3d,#ef7d12) !important;
+  border:none !important; color:#fff !important;
+  text-shadow:0 1px 2px rgba(90,40,0,.45) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 #panel-troops .unit-instant-btn:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none !important; }
 #panel-troops .unit-train-btn{
-  background:linear-gradient(180deg,#4fd8ff,#1fa3ea) !important;
-  border:1px solid rgba(190,240,255,.9) !important; color:#fff !important;
-  text-shadow:0 2px 3px rgba(0,40,70,.5) !important;
-  box-shadow:none !important;
+  background:linear-gradient(180deg,#4fb6f0,#1a76c4) !important;
+  border:none !important; color:#fff !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+  box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
 }
 #panel-troops .unit-train-btn:active{ transform:scale(.96); filter:brightness(.93); box-shadow:none !important; }
-#panel-troops .utb-top{ font-weight:800 !important; font-size:17px !important; line-height:1.12 !important; }
-#panel-troops .utb-sub{ font-weight:700 !important; font-size:12px !important; line-height:1.12 !important; opacity:.9 !important; }
+#panel-troops .unit-instant-btn,
+#panel-troops .unit-train-btn{ padding:7px 6px !important; }
+#panel-troops .utb-top{ font-weight:900 !important; font-size:18px !important; line-height:1.1 !important; }
+#panel-troops .utb-sub{
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  gap:5px !important;
+  font-weight:800 !important; font-size:13px !important; line-height:1.1 !important;
+  opacity:1 !important; font-variant-numeric:tabular-nums !important;
+}
+#panel-troops .utb-sub .uv-sim{ width:15px !important; height:15px !important; }
 
 /* ── EĞİTİM SÜRÜYOR ── */
 #panel-troops .utb-training{
@@ -11364,7 +11426,12 @@ st.textContent = `
   cursor:pointer !important; -webkit-tap-highlight-color:transparent;
   transition:filter .09s ease, transform .09s ease !important;
 }
-#panel-troops .uv-kamp-tab .uvk-ico{ font-size:15px !important; line-height:1 !important; }
+#panel-troops .uv-kamp-tab .uvk-ico{
+  display:block !important; width:22px !important; height:22px !important; line-height:0 !important;
+}
+#panel-troops .uv-kamp-tab .uvk-ico img{
+  width:100% !important; height:100% !important; object-fit:contain !important; display:block !important;
+}
 #panel-troops .uv-kamp-tab .uvk-ad{
   max-width:100% !important; white-space:nowrap !important;
   overflow:hidden !important; text-overflow:ellipsis !important;
@@ -11381,24 +11448,66 @@ st.textContent = `
   padding-bottom:calc(62px + env(safe-area-inset-bottom,0)) !important;
 }
 
-/* ── SAĞ YAN DÜĞMELER ── */
+/* ── SAĞ YAN DÜĞMELER ──
+   .stats bloğunun İÇİNDE ve bottom:100% ile onun ÜSTÜNDE durur:
+   böylece kademe şeridine hiçbir ekran boyunda binmez. Eskiden
+   viewer'a bir kez eklenip top:54% ile konumlanıyordu ve kutucukların
+   üstüne biniyordu — yüzde, stat bloğunun yüksekliğiyle birlikte
+   kaymıyor.  (.stats'ın position:relative'i yukarıda tanımlı.) */
 #panel-troops .uv-yan{
-  position:absolute !important; right:10px !important; top:54% !important;
-  z-index:58 !important;
-  display:flex !important; flex-direction:column !important; gap:10px !important;
+  position:absolute !important; right:8px !important;
+  bottom:100% !important; margin-bottom:10px !important;
+  z-index:22 !important;
+  display:flex !important; flex-direction:column !important; gap:9px !important;
 }
 #panel-troops .uv-yan-btn{
-  width:46px !important; height:46px !important; border-radius:14px !important;
+  width:42px !important; height:42px !important; border-radius:12px !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  font-size:20px !important; line-height:1 !important; color:#eaf7ff !important;
-  background:linear-gradient(180deg,#2f8fd6,#1668b4) !important;
-  border:1px solid rgba(190,240,255,.20) !important;
+  padding:0 !important; color:#ffffff !important;
+  background:linear-gradient(180deg,#4fb6f0,#1a76c4) !important;
+  border:none !important;
   box-shadow:0 2px 6px rgba(0,20,45,.3) !important;
-  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
   cursor:pointer !important; -webkit-tap-highlight-color:transparent;
   transition:filter .09s ease, transform .09s ease !important;
 }
 #panel-troops .uv-yan-btn:active{ transform:scale(.96) !important; filter:brightness(.93) !important; }
+#panel-troops .uv-yan-btn .uv-sim{ width:23px !important; height:23px !important; }
+
+/* ── SİMGE KUTUSU (satır içi SVG) ──
+   Emoji yok: her simge tek renk çizim, rengini bulunduğu yazıdan
+   alır (currentColor). Ölçü kullanıldığı yerde verilir.        */
+#panel-troops .uv-sim{
+  display:inline-flex !important; align-items:center !important; justify-content:center !important;
+  width:16px; height:16px; flex:none !important; line-height:0 !important;
+}
+#panel-troops .uv-sim svg{ width:100% !important; height:100% !important; display:block !important; }
+
+/* ── KAYNAK KUTUSU: 2 SÜTUN, elindeki / gereken ── */
+#panel-troops .uv-res{
+  display:grid !important; grid-template-columns:1fr 1fr !important;
+  gap:5px 8px !important;
+  margin:8px 8px 0 !important; padding:8px 9px !important;
+  border-radius:12px !important; background:rgba(4,32,60,.42) !important;
+  border:none !important;
+}
+#panel-troops .uv-res-oge{
+  display:flex !important; align-items:center !important; gap:7px !important;
+  min-width:0 !important;
+}
+#panel-troops .uv-res .uvr-em{ flex:0 0 22px !important; width:22px !important; height:22px !important; }
+#panel-troops .uv-res .uvr-gorsel{ width:22px !important; height:22px !important; object-fit:contain !important; }
+#panel-troops .uv-res .uvr-mik{
+  min-width:0 !important; white-space:nowrap !important;
+  overflow:hidden !important; text-overflow:ellipsis !important;
+  font-family:'Baloo 2','Nunito',sans-serif !important;
+  font-size:13px !important; font-variant-numeric:tabular-nums !important;
+  text-shadow:0 1px 2px rgba(0,20,45,.55) !important;
+}
+#panel-troops .uv-res .uvr-var  { font-weight:900 !important; color:#ffffff !important; }
+#panel-troops .uv-res .uvr-bol  { font-style:normal !important; font-weight:700 !important; color:#9fc8e6 !important; margin:0 1px !important; }
+#panel-troops .uv-res .uvr-gerek{ font-weight:800 !important; color:#cfe9ff !important; }
+/* Yetmeyen kaynak: yalnız ELİNDEKİ kırmızı — gereken bilgi olarak kalır */
+#panel-troops .uv-res-oge.yok .uvr-var{ color:#ff8f8f !important; }
 
 /* ── NİTELİKLER EKRANI ──
    Görünürlüğü .unit-screen'deki nitelik-acik sınıfı belirler.
@@ -11406,6 +11515,7 @@ st.textContent = `
    şeridi ve alt sekmeler referanstaki gibi EKRANDA KALIR. */
 #panel-troops .uv-nitelik{ display:none !important; }
 #panel-troops .unit-screen.nitelik-acik .uv-nitelik{ display:block !important; }
+#panel-troops .unit-screen.nitelik-acik .uv-res,
 #panel-troops .unit-screen.nitelik-acik .unit-qty-bar,
 #panel-troops .unit-screen.nitelik-acik .unit-train-bar{ display:none !important; }
 
@@ -11426,10 +11536,10 @@ st.textContent = `
   gap:9px 12px !important; padding:0 2px 2px !important;
 }
 #panel-troops .uvn-satir{
-  display:grid !important; grid-template-columns:20px 1fr !important;
+  display:grid !important; grid-template-columns:19px 1fr !important;
   gap:7px !important; align-items:center !important; min-width:0 !important;
 }
-#panel-troops .uvn-ikon{ font-size:15px !important; line-height:1 !important; text-align:center !important; }
+#panel-troops .uvn-ikon{ width:19px !important; height:19px !important; color:#bfe4ff !important; }
 #panel-troops .uvn-sag{ min-width:0 !important; }
 #panel-troops .uvn-ust{
   display:flex !important; align-items:baseline !important;

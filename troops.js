@@ -477,9 +477,9 @@ function kisaSayi(n) {
     eklersen sadece UNIT_TYPES'ı ve bu listeyi düzenle.
     ───────────────────────────────────────────── */
 const UNIT_ROLES = [
-  { id: "savunma", label: "Savunucu", icon: "🛡️", unit: "knight"  },
-  { id: "guc",     label: "Koruyucu", icon: "⚔️", unit: "soldier" },
-  { id: "nisan",   label: "Nişancı", icon: "🎯", unit: "robot"   },
+  { id: "savunma", label: "Savunucu", icon: "🛡️", rozet: "rozet-savunucu.webp", unit: "knight"  },
+  { id: "guc",     label: "Koruyucu", icon: "⚔️", rozet: "rozet-koruyucu.webp", unit: "soldier" },
+  { id: "nisan",   label: "Nişancı", icon: "🎯", rozet: "rozet-nisanci.webp",  unit: "robot"   },
 ];
 
 /*  Ekranda görünen ad = birliğin kendi adı ("Tüfekçi").
