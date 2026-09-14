@@ -7176,12 +7176,12 @@ const ANAHTAR = "bdAtmosfer2";
    Aksi halde panel açılır açılmaz harita değişir ve "panel bozuyor"
    sanılır. harita.js'te bir sayı değiştirirsen buraya da yaz. */
 const VARSAYILAN = {
-  losGuc: 54, losIc: 46, losEnX: 82, losEnY: 68, losY: 44,
+  losGuc: 0, losIc: 25, losEnX: 87, losEnY: 68, losY: 44,
   gradeGuc: 100,
   kaleGuc: 0, golgeEn: 56, golgeOran: 27, golgeTaban: 83,
   dugumGuc: 55, dugumEn: 106, dugumBoy: 40, dugumDy: 70,
-  dokuGuc: 0, dokuGenlik: 96,
-  doyLav: 95, lekeAci: 45, lekeUzat: 26,
+  dokuGuc: 0, dokuGenlik: 127,
+  doyLav: 129, lekeAci: 84, lekeUzat: 13,
 };
 
 let A = Object.assign({}, VARSAYILAN);

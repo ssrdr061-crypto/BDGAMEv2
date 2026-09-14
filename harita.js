@@ -229,8 +229,13 @@
        yumuşak geçer. Ayrı bir `if` ile kesilseydi sınırda görünür bir
        renk sıçraması olurdu.
 
-       1 = dokunma · <1 soldur · >1 canlandır. */
-    doygunlukLav: 0.95,
+       1 = dokunma · <1 soldur · >1 canlandır.
+
+       ÖLÇÜLDÜ, TAHMİN DEĞİL: 0.95 ile başlandı (lav soluklaşsın diye),
+       ekranda bakılınca lav fazla ölü kaldı ve 1.29'a çıkarıldı —
+       kar/lav ortak doygunluğunun (1.18) da üstünde. Ayrı bir ayar
+       olmasının asıl faydası bu: lav artık kardan BAĞIMSIZ. */
+    doygunlukLav: 1.29,
 
     /* ── BÖLGE BAŞINA LEKE KARAKTERİ ──
        koyu = koyu parçaların gücü · acik = açık parçaların gücü
@@ -353,10 +358,15 @@
          ic: bu orana kadar HİÇ dokunma. Küçültürsen karartma ortaya
          doğru sürünür ve harita kirli görünür. 0.40'ın altına inme. */
       vinyet: {
-        guc:      0.54,        /* 0 = kapalı · en kenardaki koyuluk */
+        /* KAPALI (0). Denendi ve ekranda bakılarak kapatıldı: grade
+           katmanı sahneye zaten ortak bir ton veriyor, üstüne kenar
+           karartması binince harita dar bir tünelden bakılıyormuş gibi
+           duruyordu. Aşağıdaki ic/enX/enY/merkezY güc 0 iken HİÇBİR
+           ŞEY YAPMAZ; açmak istersen guc'ü 0.4-0.6 arası dene. */
+        guc:      0.00,        /* 0 = kapalı · en kenardaki koyuluk */
         renk:     "6,18,44",   /* R,G,B — gece mavisi               */
-        ic:       0.46,        /* temiz merkezin yarıçapı (0-1)     */
-        enX:      82,          /* elipsin genişliği, ekranın %'si   */
+        ic:       0.25,        /* temiz merkezin yarıçapı (0-1)     */
+        enX:      87,          /* elipsin genişliği, ekranın %'si   */
         enY:      68,          /* elipsin yüksekliği, ekranın %'si  */
         merkezY:  44,          /* elips merkezi, ekran boyunun %'si */
       },
@@ -412,7 +422,7 @@
            bölünmezse desenin eki dikiş olarak görünür. */
       doku: {
         guc:    0,
-        genlik: 96,
+        genlik: 127,
         boy:    128,
       },
     },
@@ -432,7 +442,7 @@
        gider.
 
        YENİ HALİ: yön bir açıyla seçiliyor, ızgara uzayında:
-         45  = (gx+gy) → ekranda DÜZ AŞAĞI, derinlik yönü (varsayılan)
+         45  = (gx+gy) → ekranda DÜZ AŞAĞI, derinlik yönü
           0  = gx ekseni → ekranda sağ-aşağı
          90  = gy ekseni → ekranda sol-aşağı
         135  = (gx-gy) → ekranda DÜZ YANA (eski davranış)
@@ -442,8 +452,13 @@
        3'ü aşma, yine bant olur.
 
        ?isik=1 panelinde "Desen açı / Desen uzat" ile canlı denenir. */
-    lekeAci:  45,
-    lekeUzat: 2.6,
+    /* ÖLÇÜLDÜ: 45/2.6 ile başlandı, ekranda 84/1.3'e getirildi.
+       84 ≈ gy ekseni, yani desen ekranda SOL-AŞAĞI doğru, karo
+       köşegenine yakın gidiyor. Uzatma 1.3'e inince şerit hissi
+       kalkıyor; izdüşümün kendi 2:1'i zaten yeterli yatıklığı
+       veriyor. */
+    lekeAci:  84,
+    lekeUzat: 1.3,
 
     /* ── DÜĞÜM ETİKETİ İNCE AYAR ──
        Kaynak/canavar düğümünün altındaki "kutucuk + isim" şeridi.
@@ -982,7 +997,7 @@
 
     /* ── DESEN EKSENİ ──
        eu = desenin UZADIĞI yön, ev = ona dik yön. Yönü CFG.lekeAci
-       belirler (varsayılan 45° = ekranda aşağı, yani derinlik).
+       belirler (varsayılan 84° ≈ gy ekseni = ekranda sol-aşağı).
        Ayrıntı ve eski "yatay ezme" hikâyesi CFG.lekeAci'nin başında. */
     const e  = lekeEkseni(gx, gy, 1);
     const eu = e.u, ev = e.v;
