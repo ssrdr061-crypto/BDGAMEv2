@@ -2618,7 +2618,12 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
     <button class="dock-btn" data-panel="hero"><img class="dock-icon" src="gorsel13.webp" alt="Kahraman"></button>
     <button class="dock-btn" data-panel="troops"><img class="dock-icon" src="gorsel14.webp" alt="Birlikler"></button>
     <button class="dock-btn" data-panel="ittifak" aria-label="İttifak"><img class="dock-icon" src="ittifakikon.webp" alt="İttifak" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🛡️',style:'font-size:26px;line-height:1'}))"></button>
-    <button class="dock-btn" data-panel="rank" id="rankDockBtn" aria-label="Sıralama"><img class="dock-icon" src="gorsel25.webp" alt="Sıralama" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🏆',style:'font-size:26px;line-height:1'}))"></button>
+    <!-- SIRALAMA DÜĞMESİ ALT MENÜDEN KALDIRILDI — işlev değişmedi,
+         yalnız kapı değişti: artık Şef Profili ekranındaki "Liderlik
+         Tablosu" düğmesi aynı paneli (#panel-rank) açıyor. Geri
+         koymak istersen bu yorumun altındaki satırı aç:
+    <button class="dock-btn" data-panel="rank" id="rankDockBtn" aria-label="Sıralama"><img class="dock-icon" src="gorsel25.webp" alt="Sıralama" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('span'),{textContent:'&#127942;',style:'font-size:26px;line-height:1'}))"></button>
+    -->
   </nav>
 
   <div class="coord-panel" id="coordPanel">
@@ -11371,6 +11376,13 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
      ikinci bir hesap yoktur. Silinirse rozet de pencere de gider,
      başka hiçbir yer etkilenmez. -->
 <script src="kalkanrozet.js"></script>
+
+<!-- ŞEF PROFİLİ — üst sağdaki 👤 yerine fotoğraf çerçevesi, dokununca
+     profil ekranı. Sıralama paneli de buradaki "Liderlik Tablosu"
+     düğmesinden açılıyor (alt menüden kaldırıldı). Değerler
+     computePlayerPower / kaleSeviyesi / ITTIFAK.benim / state.stamina
+     kapılarından okunur, ikinci hesap yoktur. -->
+<script src="profil.js"></script>
 
 </body>
 </html>

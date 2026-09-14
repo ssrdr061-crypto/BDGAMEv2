@@ -178,6 +178,66 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **ŞEF PROFİLİ + ÜST SAĞDA FOTOĞRAF ÇERÇEVESİ** (yeni dosya
+  `profil.js`, `index.html`e tek `<script>` + alt menüden bir satır
+  yorum). Üstteki 👤 emojisi kalktı, yerine oyuncunun kendi
+  fotoğrafını yükleyebildiği çerçeve geldi; çerçeveye dokununca
+  referanstaki "Şef Profili" ekranı açılıyor.
+
+  - **SIRALAMA ALT MENÜDEN ÇIKTI, İŞLEV DEĞİŞMEDİ.** `#panel-rank`
+    ve onu dolduran kodun tamamı yerinde; yalnız KAPI değişti,
+    artık profildeki "Liderlik Tablosu" düğmesi açıyor. Alt menü
+    6 → **5 düğme**. Eski satır `index.html`de yorum olarak duruyor,
+    geri koymak tek hamle.
+  - **ÇIKIŞ ONAYI KAYBOLMADI:** üst şeritteki düğmenin eski işi
+    profildeki **Ayarlar**a taşındı (`showLogoutConfirm`).
+  - **İKİ KÖK, İKİSİ DE ÖLÇEREK BULUNDU:**
+    (1) Dinleyiciyi düğmenin ÜSTÜNE koymak yetmiyor — bir öğenin
+        kendi dinleyicileri yakalama/köpürme farkı gözetmeden
+        BAĞLANMA SIRASINA göre çalışır; `index.html` aynı düğmeye
+        daha önce bağlandığı için sonradan yazılan
+        `stopImmediatePropagation` ona yetişemiyor. Kapı `document`ın
+        yakalama evresine alındı.
+    (2) Olay "click" DEĞİL: `safeBind`, PointerEvent varsa
+        **pointerup** bağlıyor. Yalnız click'i durdurunca çıkış
+        penceresi yine açılıyordu; ikisi birden durduruluyor.
+  - **DEĞERLER MEVCUT KAPILARDAN:** güç `computePlayerPower(state)`
+    (sıralamanın okuduğu aynı işlev) · seviye `kaleSeviyesi()` ·
+    ittifak `ITTIFAK.benim()` · şerit `state.stamina` (üst şeritteki
+    aynı sayaç) · ad `currentUsername` + ittifak etiketi. İkinci
+    hesap açılmadı.
+  - **OLMAYAN ALAN UYDURULMAZ:** oyunda "Öldürme" ve "Eyalet" yok,
+    "Görünümler" ekranı da yok. Satırlar referanstaki yerlerinde
+    duruyor ama **sönük ve "—"** ile — Nitelikler ekranındaki
+    HIZ/YÜK ile aynı kalıp. Veri yazıldığı gün burada hiçbir şey
+    değişmeden dolarlar.
+  - **FOTOĞRAF STATE'E YAZILMAZ.** `localStorage bdProfilFoto_<hesap>`:
+    (a) Tuzak 7 — `compactStateForExport`a girmeyen alan her girişte
+    sıfırlanır, girseydi de her kayıtta buluta yüz kilobayt taşırdı;
+    (b) fotoğraf oyunun verisi değil, o telefonun tercihi.
+    Yüklenen dosya canvas ile **kare kırpılıp 256px**'e küçültülüp
+    JPEG olarak saklanıyor — ham dosya megabaytlarca olabilir ve
+    localStorage dolunca oyunun KAYDI da yazılamaz (Tuzak 6).
+    Depo dolarsa sessiz kalmaz, `showToastForce` ile söyler (Tuzak 9).
+  - Renkler yine `tema.js` `--km-*` değişkenlerinden; simgeler satır
+    içi SVG (emoji yok), fotoğraf yokken kutuda ince kişi çizimi
+    duruyor — ilgisiz bir oyun görseli konmadı.
+
+  Ölçüldü (412×820 ve 360×740, 2×): alt menü **5 düğme**,
+  `#rankDockBtn` yok · üst şeritte çerçeve **22×22**, 👤 emojisi
+  ekranda yok · profil **tam ekran** (412×820 / 360×740) · altı
+  satır doğru değerlerle ("Güç 49.000", "Kale Sv. 1", "Öldürme —",
+  "İttifak —", "Eyalet —") · dayanıklılık şeridi 1000/1000 · dört
+  düğmede yazı taşması **0** · "Liderlik Tablosu" `#panel-rank`i
+  açıyor ve profil kapanıyor · çıkış penceresi kendiliğinden
+  açılmıyor · sayfa yatay kaydırması **0** · konsolda hata yok.
+  `index.html`in dört satır içi JS bloğu ayrı ayrı `node --check`
+  edildi, `tuzak27.py` temiz.
+
+  **GERİ DÖNÜŞ:** `index.html`den `<script src="profil.js">` satırını
+  sil (👤 emojisi ve çıkış onayı geri gelir) ve alt menüdeki sıralama
+  düğmesinin yorumunu aç.
+
 - **KALKAN ROZETİ + SÜRE PENCERESİ** (yeni dosya `kalkanrozet.js`,
   `index.html`e tek `<script>` satırı). Serdar referans oyundan
   getirdi: kalkan açıkken üst şeridin altında sol köşede küçük bir
@@ -1402,7 +1462,7 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 `kaleici-58` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
-`gucefekt-2` · `kalkanrozet-3` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
+`gucefekt-2` · `kalkanrozet-3` · `profil-1` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
 
 **Tam ekran olan paneller:** çanta (`#panel-inventory`) · market
 (`#panel-shop`) · kahraman listesi ve detayı (`HERO_UI.kartTamEkran`) ·
@@ -1417,4 +1477,4 @@ aradığı karakterin kendisi yüzünden kör kalıyordu) (`tema.js` · `magaza.
 Yükleme sırası (`index.html` sonu): koordinat · heroes · kahramanlar · gelistir ·
 troops · istatistik · missile · pvp · pve · tema · rehber · harita · dugum ·
 sefer · karo · kale2x2 · temizle · uretim · insaat · **gucefekt** · kaleici · egitim ·
-three.js · magaza · buff · **kalkanrozet**.
+three.js · magaza · buff · **kalkanrozet** · **profil**.
