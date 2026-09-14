@@ -9455,37 +9455,52 @@ document.head.appendChild(st);
 (function kalkanKubbesi() {
   "use strict";
 
-  /* ── REFERANSA GÖRE AYARLANDI ──
-     Hedef: buzlu cam bir KÜRE. Eski hâli doygun camgöbeği bir KUBBE idi
-     ve etrafında kalın, parlak bir çeper vardı; ekranda cam değil, boyalı
-     bir kase gibi duruyordu. Değişen dört şey:
+  /* ── KALKAN KUBBESİ ──
+     Hedef: buzlu cam, hafif turkuaz, KÜRENİN BİR PARÇASI olan bir kubbe.
 
-     1) SİLÜET KÜRE OLDU (aci 36 → 90). Yoldaki alt yay ry = r·sin(aci)
-        ile çiziliyor; 90'da sin=1, yani alt yay da tam yarım daire →
-        çember. Bir kürenin silüeti bakış açısından BAĞIMSIZ olarak
-        çemberdir, referanstaki de öyle. 36'da alt yay basıktı ve şekil
-        yere oturmuş bir kubbeye dönüyordu.
+     ── GEOMETRİ: TEK AÇI + KESİM ──
+     `aci` bakış açısıdır ve TÜM yatay çemberlerin yassılığını belirler
+     (ry = rx·sin(aci)). Kubbe, yarıçapı r olan bir kürenin yatay bir
+     düzlemle kesilmiş üst parçasıdır; `kesim` o parçanın kürenin
+     yüzde kaçı olduğunu söyler:
 
-     2) HALKALARIN AÇISI AYRILDI (yeni: halkaAci). Silüet çember olunca
-        aci artık yassılık bilgisi taşımıyor; halkalar kürenin YATAY
-        dilimleri olduğu için kendi açılarına muhtaç. 30° ≈ 2:1, yani
-        haritanın izometrik yer düzlemiyle aynı yatıklık.
+       kesim 50  → tam yarım küre, taban tam ekvat0r
+       kesim 55  → yarımdan biraz fazla (VARSAYILAN)
+       kesim 100 → tam küre (silüet çember)
 
-     3) ÇEPER NEREDEYSE KALDIRILDI (cep 28 → 5, cepOp 100 → 28).
-        Referansta sert bir kenar çizgisi yok; kenar parlaklığı gövde
-        gradyanının kendisinden geliyor.
+     Kesim yüksekliği z0 = 1 - 2·kesim/100. Taban çemberinin yarıçapı
+     rc = r·√(1-z0²), ekrandaki merkezi cy0 = -r·cos(aci)·z0.
 
-     4) RENK BEYAZA ÇEKİLDİ (kTon 16 → 100, zTon 42 → 100) ve dolgu
-        düşürüldü (95 → 52). ton() rampasının tepesi [205,243,255].
+     BİR ÖNCEKİ DENEMEDE `aci` 90 YAPILMIŞTI — yani silüet çember,
+     tam küre. Bu yanlıştı: 90'da `aci` artık yassılık bilgisi
+     taşımadığı için halkalara `halkaAci` diye İKİNCİ bir açı eklemek
+     gerekmişti. Kesim ayrı bir sayı olunca tek açı yetiyor ve
+     halkalarla silüet kendiliğinden aynı küreye ait oluyor.
+     halkaAci kaldırıldı; geri ekleme.
 
-     Halkalar da artık düz elips değil DALGALI (dalga/dalgaN) ve kürenin
-     tepesinden dibine kadar süpürüyor — referanstaki "dalgalı geliş". */
+     ── HALKALAR ──
+     Kürenin yatay dilimleri. z tepeden (+1) kesim düzlemine (z0)
+     iner — kesimin altına DEĞİL. Altına inseydi halka kırpma yolunun
+     dışında kalır, döngünün yarısında görünmez olur ve ritim
+     bozulurdu.
+
+     Dalga YATAYDA değil DİKEYDE: halkanın yüksekliği açı boyunca
+     sinüsle oynuyor. Sadece yarıçap oynatılınca şekil dalga değil
+     yuvarlak bir çiçek gibi okunuyordu. İki harmonik birden
+     kullanılıyor, tek sinüs fazla düzenli duruyor. Genlik kutuplara
+     doğru rx ile sönüyor; sönmeseydi halka bir noktaya inerken
+     orada çırpınırdı.
+
+     ── RENK ──
+     ton() rampasında 100 = [205,243,255] (beyaza yakın), 67 =
+     [53,224,208] (turkuaz). 94 ikisinin arası: beyazdan yana ama
+     içinde biraz turkuaz var. */
   var AY = {
-    aci: 90, en: 87, dx: 0, dy: 8,
-    kubbeAc: 1, kTon: 100, cep: 5, cepOp: 28, dolu: 52,
+    aci: 30, kesim: 55, en: 87, dx: 0, dy: 8,
+    kubbeAc: 1, kTon: 94, cep: 5, cepOp: 28, dolu: 52,
     cizgiAc: 1, adet: 5, aralik: 100, kal: 2, hiz: 105, sonuk: 30,
-    zTon: 100, zDolu: 34,
-    halkaAci: 30, dalga: 6, dalgaN: 3
+    zTon: 96, zDolu: 34,
+    dalga: 10, dalgaN: 7
   };
   window.KALKAN_AYAR = AY;
 
@@ -9504,6 +9519,40 @@ document.head.appendChild(st);
     return [205,243,255];
   }
   function rgba(c, o) { return "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + o.toFixed(3) + ")"; }
+
+  /* Kubbenin türetilmiş ölçüleri. svgYaz ve kare() AYNI sayıları
+     kullanmalı; iki yerde hesaplansaydı halkalar silüetten kayardı. */
+  function kesimOlcu() {
+    var rad = AY.aci * Math.PI / 180;
+    var kes = Math.max(50, Math.min(100, Number(AY.kesim) || 55));
+    var z0 = 1 - 2 * kes / 100;                 /* 55 → -0.10 */
+    var r = AY.en;
+    return {
+      r: r, S: Math.sin(rad), C: Math.cos(rad), z0: z0,
+      rc: r * Math.sqrt(Math.max(0, 1 - z0 * z0)),
+      cy0: -r * Math.cos(rad) * z0
+    };
+  }
+
+  function kubbeYolu(g) {
+    /* Taban çemberi yok denecek kadar küçükse (kesim ≈ 100) şekil
+       düpedüz kürenin silüeti, yani çember. Genel formül orada
+       sıfıra bölünmeye yakınsıyor, ayrı yazılıyor. */
+    if (g.rc < g.r * 0.02) {
+      return "M " + (-g.r) + ",0 A " + g.r + "," + g.r + " 0 0 1 " + g.r + ",0 " +
+             "A " + g.r + "," + g.r + " 0 0 1 " + (-g.r) + ",0 Z";
+    }
+    /* BÜYÜK YAY BAYRAĞI: taban ekvatorun ALTINDAYSA (cy0 > 0) üstten
+       dolaşan yay 180°'yi aşar, yani BÜYÜK yaydır ve bayrak 1 olmalı.
+       0 bırakılırsa tarayıcı küçük yayı seçer ve kubbe ters dönüp
+       mercimek gibi bir dilime iner. Tam yarım kürede (cy0 = 0) yay
+       tam 180°'dir, iki bayrak da aynı sonucu verir. */
+    var buyuk = g.cy0 > 0.0001 ? 1 : 0;
+    var x = g.rc.toFixed(2), y = g.cy0.toFixed(2);
+    return "M " + (-x) + "," + y +
+           " A " + g.r + "," + g.r + " 0 " + buyuk + " 1 " + x + "," + y +
+           " A " + x + "," + (g.rc * g.S).toFixed(2) + " 0 0 1 " + (-x) + "," + y + " Z";
+  }
   function kaydir(v) {
     var n = Number(v) || 0;
     return n < 0 ? " - " + Math.abs(n) + "%" : " + " + n + "%";
@@ -9541,10 +9590,8 @@ document.head.appendChild(st);
   var _no = 0;
 
   function svgYaz(no) {
-    var rad = AY.aci * Math.PI / 180, S = Math.sin(rad);
-    var r = AY.en, sy = (r * S).toFixed(2);
-    var yol = "M " + (-r) + ",0 A " + r + "," + r + " 0 0 1 " + r + ",0 " +
-              "A " + r + "," + sy + " 0 0 1 " + (-r) + ",0 Z";
+    var g = kesimOlcu();
+    var yol = kubbeYolu(g);
     var kc = ton(AY.kTon), zc = ton(AY.zTon), d = AY.dolu / 100;
     var gid = "kkg" + no, cid = "kkc" + no;
 
@@ -9595,18 +9642,35 @@ document.head.appendChild(st);
     if (_halka.length && !_donuyor) { _donuyor = true; requestAnimationFrame(kare); }
   }
 
-  /* Dalgalı kapalı eğri. Yarıçap açıya göre sinüsle oynatılır:
-     w = 1 + genlik·sin(lob·a + faz). 44 parça gözle düz görünecek
-     kadar sık; daha fazlası her karede boşuna metin üretir. */
-  var DALGA_N = 44;
+  /* Dalgalı kapalı eğri.
 
-  function dalgaliYol(rx, ry, cy, genlik, lob, faz) {
-    var d = "", i, a, w, x, y;
+     DALGA DİKEYDE: halkanın YÜKSEKLİĞİ açı boyunca oynuyor, yarıçapı
+     değil. Yalnız yarıçap oynatıldığında (ilk deneme) şekil dalga
+     değil, yuvarlak bir çiçek yaprağı gibi okunuyordu — "akıcı ama
+     dalga değil" denen şey buydu. Yükseklik oynayınca halka gerçekten
+     bir su dalgası gibi tepe ve çukur yapıyor.
+
+     İKİ HARMONİK: tek sinüs fazla düzenli, mekanik duruyor. İkinci
+     harmonik (2 kat sıklık, farklı hız) tepeleri eşitsizleştiriyor.
+
+     KUTUPLARDA SÖNÜM: genlik rx/r ile çarpılıyor. Çarpılmasaydı halka
+     bir noktaya inerken orada tam genlikle çırpınır, tepede çırpınan
+     bir düğüm görünürdü.
+
+     56 parça: dalga sayısı 8'e kadar çıkabiliyor, her tepeye en az 7
+     parça düşsün ki köşeli görünmesin. */
+  var DALGA_N = 56;
+
+  function dalgaliYol(rx, ry, cy, r, genlik, lob, faz) {
+    var d = "", i, a, x, y, dal;
+    var sonum = r > 0 ? (rx / r) : 0;
+    var dikey = genlik * r * sonum;
     for (i = 0; i <= DALGA_N; i++) {
       a = i / DALGA_N * Math.PI * 2;
-      w = 1 + genlik * Math.sin(lob * a + faz);
-      x = rx * w * Math.cos(a);
-      y = cy + ry * w * Math.sin(a);
+      dal = Math.sin(lob * a + faz) * 0.74 +
+            Math.sin(2 * lob * a + faz * 1.7) * 0.26;
+      x = rx * (1 + genlik * 0.35 * dal) * Math.cos(a);
+      y = cy + ry * Math.sin(a) + dikey * dal;
       d += (i ? "L" : "M") + x.toFixed(2) + "," + y.toFixed(2);
     }
     return d + "Z";
@@ -9615,13 +9679,10 @@ document.head.appendChild(st);
   function kare() {
     if (!_halka.length) { _donuyor = false; return; }
 
-    /* HALKALAR KENDİ AÇISINI KULLANIR, AY.aci'yi DEĞİL.
-       AY.aci artık silüeti çizen değer (90 = çember) ve yassılık
-       bilgisi taşımıyor; buradan okunsaydı halkalar da çember olur,
-       küre düz bir madalyona dönerdi. */
-    var rad = (AY.halkaAci || 30) * Math.PI / 180;
-    var S = Math.sin(rad), C = Math.cos(rad);
-    var r = AY.en, sure = Math.max(0.1, AY.hiz / 10), esik = AY.sonuk / 100;
+    /* Silüetle AYNI ölçüler — tek kaynak kesimOlcu(). */
+    var g = kesimOlcu();
+    var S = g.S, C = g.C, r = g.r;
+    var sure = Math.max(0.1, AY.hiz / 10), esik = AY.sonuk / 100;
     var t = Date.now() / 1000 / sure;
     var genlik = (AY.dalga || 0) / 100;
     var lob = Math.max(1, AY.dalgaN || 3);
@@ -9634,15 +9695,17 @@ document.head.appendChild(st);
       var faz = parseFloat(e.getAttribute("data-faz")) || 0;
       var p = (t + faz) % 1;
 
-      /* z: +1 tepe kutbu → -1 dip kutbu. Eskiden 1 → 0 idi, yani
-         halka yalnız üst yarıda yaşayıp ekvatorda yok oluyordu ve
-         ekvatorda en kalın hâliyle kaybolduğu için ortada duran
-         KALIN BİR ÇİZGİ gibi görünüyordu. Referansta çizgi yok,
-         dalga küreyi baştan sona geçiyor. */
-      var z = 1 - 2 * p;
+      /* z: tepe kutbundan (+1) KESİM DÜZLEMİNE (z0) iner, daha
+         aşağı değil. Daha aşağı inseydi halka kırpma yolunun dışına
+         çıkar, döngünün bir kısmında hiç görünmez, ritim bozulurdu.
+
+         Eski hâlinde z yalnız 1 → 0 arasıydı: halka ekvatorda, EN
+         KALIN hâlindeyken yok oluyordu. Ortada görünen o kalın yatay
+         çizgi, ölmekte olan halkaydı. */
+      var z = 1 - (1 - g.z0) * p;
       var rx = r * Math.sqrt(Math.max(0, 1 - z * z));
 
-      e.setAttribute("d", dalgaliYol(rx, rx * S, -r * C * z, genlik, lob, dFaz + faz * 6.28));
+      e.setAttribute("d", dalgaliYol(rx, rx * S, -r * C * z, r, genlik, lob, dFaz + faz * 6.28));
 
       /* İki uçta da sönsün: kutuplarda halka bir noktaya iner,
          orada tam opaklıkta olursa nokta nokta parlar. */
@@ -9758,8 +9821,11 @@ document.head.appendChild(st);
   var SEKME = [{k:"genel",et:"GENEL"},{k:"kubbe",et:"KUBBE"},{k:"cizgi",et:"ÇİZGİ"}];
   var ALANLAR = {
     genel: [
-      /* 90 = küre (silüet çember). Küçültürsen şekil kubbeye döner. */
-      ["aci","Silüet açı",10,90,1,"°"],
+      /* Bakış açısı: bütün yatay çemberlerin yassılığı. 30 ≈ 2:1,
+         haritanın izometrik yer düzlemiyle aynı. */
+      ["aci","Bakış açısı",10,80,1,"°"],
+      /* Kürenin yüzde kaçı: 50 = tam yarım küre · 100 = tam küre. */
+      ["kesim","Küre oranı",50,100,1,"%"],
       ["en","Boyut",50,150,1,""],
       ["dx","Yatay",-40,40,1,"%"],
       ["dy","Dikey",-40,40,1,"%"]
@@ -9773,9 +9839,7 @@ document.head.appendChild(st);
     ],
     cizgi: [
       ["cizgiAc","Görünür",0,1,1,""],
-      /* Halkaların kendi yatıklığı — silüetten bağımsız (bkz. kare()). */
-      ["halkaAci","Yatıklık",10,80,1,"°"],
-      ["dalga","Dalga",0,20,1,"%"],
+      ["dalga","Dalga",0,25,1,"%"],
       ["dalgaN","Dalga sayısı",1,8,1,""],
       ["adet","Adet",1,8,1,""],
       ["aralik","Aralık",20,100,1,"%"],
