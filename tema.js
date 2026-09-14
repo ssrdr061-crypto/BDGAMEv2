@@ -7225,82 +7225,196 @@ function uygula(){
   try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
 }
 
+/* ── PANELİN GÖRÜNÜMÜ ──
+   Tek bir stil bloğu. Ayarların KENDİSİ sadeleştirilmedi — hepsi
+   duruyor; sadece okunur ve parmakla kullanılır hâle getirildi:
+
+   · Her ayar İKİ SATIR: üstte ad + değer rozeti, altta [-] sürgü [+].
+     Tek satırdayken sürgüye 94 px kalıyordu ve telefonda istenen
+     sayıyı tutturmak imkânsızdı.
+   · Sürgünün dolan kısmı renkli (tazele() içinde her değişimde
+     yeniden yazılır) — nerede olduğun tek bakışta görünüyor.
+   · Gruplar ayrı kartlarda, başlıklar küçük ve aralıklı.
+   · Gövde kaydırılabilir; ayar sayısı ekran boyunu aşıyor.  */
 const pstil = document.createElement("style");
 pstil.textContent =
 "#bdIG{position:fixed;right:8px;top:96px;z-index:99999;" +
- "font-family:'Baloo 2',system-ui,sans-serif;color:#e8f1ff;" +
+ "font-family:'Baloo 2',system-ui,sans-serif;color:#eaf2ff;" +
  "-webkit-tap-highlight-color:transparent;}" +
-"#bdIG .kapak{width:34px;height:34px;border-radius:10px;border:none;" +
- "background:linear-gradient(180deg,#3d7ccc,#22488f);color:#ffd84d;" +
- "font-size:16px;line-height:34px;text-align:center;" +
- "box-shadow:0 2px 6px rgba(0,20,45,.3);transition:.09s;}" +
-"#bdIG .kapak:active{transform:scale(.96);filter:brightness(.93);}" +
-"#bdIG .govde{display:none;width:224px;margin-top:6px;padding:9px 10px 10px;" +
- "border-radius:12px;background:linear-gradient(180deg,#22488f,#152e5e);" +
- "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+
+/* Açma düğmesi */
+"#bdIG .kapak{width:38px;height:38px;border-radius:12px;border:none;" +
+ "background:linear-gradient(180deg,#4a8ada,#24509c);color:#ffd84d;" +
+ "font-size:18px;line-height:38px;text-align:center;" +
+ "box-shadow:0 4px 14px rgba(0,16,40,.45);transition:.09s;}" +
+"#bdIG .kapak:active{transform:scale(.94);}" +
+
+/* Gövde */
+"#bdIG .govde{display:none;width:268px;max-width:calc(100vw - 20px);" +
+ "max-height:76vh;overflow-y:auto;-webkit-overflow-scrolling:touch;" +
+ "margin-top:8px;padding:12px;border-radius:16px;" +
+ "background:linear-gradient(180deg,#1d3f78,#0f2450);" +
+ "box-shadow:0 10px 30px rgba(0,12,32,.5);}" +
 "#bdIG.acik .govde{display:block;}" +
-"#bdIG .bas{font-size:11px;font-weight:700;color:#9fc4f5;letter-spacing:.4px;margin:7px 0 3px;}" +
-"#bdIG .bas:first-child{margin-top:0;}" +
-"#bdIG .sat{display:flex;align-items:center;gap:7px;margin:3px 0;}" +
-"#bdIG .ad{font-size:11px;flex:1;white-space:nowrap;opacity:.9;}" +
-"#bdIG .dg{font-size:11px;font-weight:700;color:#ffd84d;width:32px;" +
- "text-align:right;font-variant-numeric:tabular-nums;}" +
+
+/* Grup başlığı ve açıklaması */
+"#bdIG .bas{font-size:10px;font-weight:800;color:#8fb6e8;letter-spacing:1.2px;" +
+ "margin:16px 0 2px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10);}" +
+"#bdIG .bas:first-child{margin-top:0;padding-top:0;border-top:none;}" +
+"#bdIG .not{font-size:10.5px;line-height:1.45;color:#9dbde4;margin:0 0 8px;}" +
+
+/* Hazır görünüm düğmeleri */
+"#bdIG .hazir{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 2px;}" +
+"#bdIG .hazir button{flex:1 1 46%;padding:10px 4px;border:none;border-radius:11px;" +
+ "font:800 11.5px/1 'Baloo 2',system-ui,sans-serif;color:#eaf3ff;" +
+ "background:rgba(255,255,255,.12);transition:.09s;}" +
+"#bdIG .hazir button:active{transform:scale(.96);background:rgba(255,255,255,.24);}" +
+
+/* Gelişmiş bölümü */
+"#bdIG .gelac{display:block;width:100%;margin:16px 0 2px;padding:10px 4px;border:none;" +
+ "border-radius:11px;font:800 11px/1 'Baloo 2',system-ui,sans-serif;color:#bcd8ff;" +
+ "background:rgba(255,255,255,.09);transition:.09s;}" +
+"#bdIG .gelac:active{transform:scale(.98);}" +
+"#bdIG .gel{display:none;}" +
+"#bdIG.gelismis .gel{display:block;}" +
+
+/* Ayar satırı */
+"#bdIG .sat{margin:10px 0;}" +
+"#bdIG .sat .ust{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;}" +
+"#bdIG .sat .alt{display:flex;align-items:center;gap:8px;}" +
+"#bdIG .ad{font-size:12px;font-weight:600;flex:1;white-space:nowrap;" +
+ "overflow:hidden;text-overflow:ellipsis;color:#dce9fb;}" +
+"#bdIG .dg{font-size:11.5px;font-weight:800;color:#0d2246;background:#ffd84d;" +
+ "min-width:34px;padding:2px 7px;border-radius:99px;text-align:center;" +
+ "font-variant-numeric:tabular-nums;}" +
+
+/* -/+ : 32x32, parmak ucu için en küçük makul ölçü */
+"#bdIG .ek{flex:0 0 32px;height:32px;border:none;border-radius:10px;" +
+ "background:rgba(255,255,255,.13);color:#eaf3ff;" +
+ "font:800 17px/1 'Baloo 2',system-ui,sans-serif;transition:.07s;}" +
+"#bdIG .ek:active{transform:scale(.90);background:rgba(255,255,255,.28);}" +
+
+/* Sürgü — dolan kısmı tazele() boyuyor */
 "#bdIG input[type=range]{-webkit-appearance:none;appearance:none;" +
- "flex:0 0 94px;height:16px;background:transparent;margin:0;}" +
-"#bdIG input[type=range]::-webkit-slider-runnable-track{height:3px;" +
- "border-radius:2px;background:rgba(255,255,255,.22);}" +
+ "flex:1 1 auto;min-width:0;height:32px;background:transparent;margin:0;}" +
+"#bdIG input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;" +
+ "background:rgba(255,255,255,.16);}" +
 "#bdIG input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;" +
- "width:13px;height:13px;margin-top:-5px;border-radius:50%;background:#ffd84d;border:none;}" +
-"#bdIG input[type=range]::-moz-range-track{height:3px;border-radius:2px;" +
- "background:rgba(255,255,255,.22);}" +
-"#bdIG input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;" +
- "border-radius:50%;background:#ffd84d;}" +
-"#bdIG .dgm{display:flex;gap:6px;margin-top:8px;}" +
-"#bdIG .dgm button{flex:1;padding:7px 4px;border:none;border-radius:8px;" +
- "font:700 10px/1 'Baloo 2',system-ui,sans-serif;color:#eaf3ff;background:#3d7ccc;transition:.09s;}" +
+ "width:20px;height:20px;margin-top:-7px;border-radius:50%;background:#fff;" +
+ "border:none;box-shadow:0 2px 6px rgba(0,12,32,.5);}" +
+"#bdIG input[type=range]::-moz-range-track{height:6px;border-radius:99px;" +
+ "background:rgba(255,255,255,.16);}" +
+"#bdIG input[type=range]::-moz-range-progress{height:6px;border-radius:99px;background:#ffd84d;}" +
+"#bdIG input[type=range]::-moz-range-thumb{width:20px;height:20px;border:none;" +
+ "border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,12,32,.5);}" +
+
+/* Alt düğmeler ve çıktı */
+"#bdIG .dgm{display:flex;gap:7px;margin-top:16px;padding-top:12px;" +
+ "border-top:1px solid rgba(255,255,255,.10);}" +
+"#bdIG .dgm button{flex:1;padding:10px 4px;border:none;border-radius:11px;" +
+ "font:800 11px/1 'Baloo 2',system-ui,sans-serif;color:#eaf3ff;" +
+ "background:linear-gradient(180deg,#4a8ada,#2a5aa8);transition:.09s;}" +
 "#bdIG .dgm button:active{transform:scale(.96);filter:brightness(.93);}" +
-"#bdIG .dgm .kirmizi{background:#c0392b;}" +
-"#bdIG .cikti{display:none;margin-top:7px;padding:7px;border-radius:8px;" +
- "background:rgba(4,12,28,.55);font:600 10px/1.5 ui-monospace,monospace;" +
- "color:#cfe4ff;white-space:pre-wrap;word-break:break-all;}";
+"#bdIG .dgm .kirmizi{background:linear-gradient(180deg,#d9534f,#a5312d);}" +
+"#bdIG .cikti{display:none;margin-top:10px;padding:10px;border-radius:11px;" +
+ "background:rgba(4,12,28,.6);font:600 10px/1.6 ui-monospace,monospace;" +
+ "color:#cfe4ff;white-space:pre-wrap;word-break:break-all;" +
+ "max-height:38vh;overflow-y:auto;}";
 document.head.appendChild(pstil);
 
+/* ── PANELİN DÜZENİ ──
+   Satır türleri:
+     ["bas", BAŞLIK]        → grup başlığı
+     ["not", AÇIKLAMA]      → o grubun düz Türkçe bir cümlelik izahı
+     ["gelismis"]           → BURADAN SONRASI gizli; "Gelişmiş" düğmesi açar
+     [anahtar, ad, alt, ust]→ sürgü
+
+   NEDEN İKİYE BÖLÜNDÜ: panel 16 sürgüyle tek listeydi ve adları
+   ("Temiz orta", "Yassılık", "Desen uzat") ne işe yaradığını
+   söylemiyordu. Günlük kullanımda gereken 8 sürgü üstte, geri kalan
+   ince ayarlar altta duruyor. Bir sürgüyü yukarı almak istersen
+   ["gelismis"] satırının üstüne taşıman yeterli. */
 const ALANLAR = [
-  ["bas", "LOŞLUK"],
-  ["losGuc",     "Güç",          0,  90],
-  ["losIc",      "Temiz orta",  25,  80],
-  ["losEnX",     "Genişlik",    40, 130],
-  ["losEnY",     "Yükseklik",   30, 130],
-  ["losY",       "Merkez Y",    15,  75],
-  ["bas", "IŞIK"],
-  ["gradeGuc",   "Güç",          0, 100],
-  ["bas", "KALE GÖLGESİ"],
-  ["kaleGuc",    "Koyuluk",      0, 100],
-  ["golgeEn",    "Genişlik",    20,  95],
-  ["golgeOran",  "Yassılık",    15,  45],
-  ["golgeTaban", "Taban",       65,  95],
-  ["bas", "DÜĞÜM GÖLGESİ"],
-  ["dugumGuc",   "Koyuluk",      0, 100],
-  ["dugumEn",    "Genişlik",    50, 170],
-  ["dugumBoy",   "Yükseklik",   15,  85],
-  ["dugumDy",    "Kayma",        0, 150],
-  ["bas", "ARAZİ"],
-  ["lekeAci",    "Desen açı",     0, 180],
-  ["lekeUzat",   "Desen uzat",   10,  40],
-  ["doyLav",     "Lav doygunluk", 40, 160],
-  ["dokuGuc",    "Tane",          0,  50],
-  ["dokuGenlik", "Tane sertliği",20, 127],
+  ["bas", "HAVA"],
+  ["not", "Haritanın genel ışığı. Kenarları koyulaştırır, her şeyi aynı tonun altına sokar."],
+  ["losGuc",     "Kenar karanlığı", 0,  90],
+  ["gradeGuc",   "Genel ışık",      0, 100],
+
+  ["bas", "GÖLGELER"],
+  ["not", "Cisimlerin altındaki yere yapışık leke. 0 = gölge yok."],
+  ["kaleGuc",    "Kalelerde",       0, 100],
+  ["dugumGuc",   "Kaynak/canavarda",0, 100],
+
+  ["bas", "ZEMİN"],
+  ["not", "Desen yönü: 45 = aşağı/derinlik · 135 = yana. Uzunluk büyüdükçe şeritleşir."],
+  ["lekeAci",    "Desen yönü",      0, 180],
+  ["lekeUzat",   "Desen uzunluğu", 10,  40],
+  ["doyLav",     "Lav canlılığı",  40, 160],
+  ["dokuGuc",    "Zemin tanesi",    0,  50],
+
+  ["gelismis"],
+
+  ["bas", "İNCE AYAR — KENAR KARANLIĞI"],
+  ["losIc",      "Temiz orta",     25,  80],
+  ["losEnX",     "Genişlik",       40, 130],
+  ["losEnY",     "Yükseklik",      30, 130],
+  ["losY",       "Merkez Y",       15,  75],
+
+  ["bas", "İNCE AYAR — KALE GÖLGESİ"],
+  ["golgeEn",    "Genişlik",       20,  95],
+  ["golgeOran",  "Yassılık",       15,  45],
+  ["golgeTaban", "Taban yüksekliği",65, 95],
+
+  ["bas", "İNCE AYAR — DÜĞÜM GÖLGESİ"],
+  ["dugumEn",    "Genişlik",       50, 170],
+  ["dugumBoy",   "Yükseklik",      15,  85],
+  ["dugumDy",    "Aşağı kayma",     0, 150],
+
+  ["bas", "İNCE AYAR — ZEMİN"],
+  ["dokuGenlik", "Tane sertliği",  20, 127],
+];
+
+/* ── HAZIR GÖRÜNÜMLER ──
+   Sürgüleri tek tek anlamaya çalışmak yerine tıklayıp bakılacak
+   hazır setler. Her biri VARSAYILAN'ın üstüne yazılır, yani burada
+   yazılmayan her alan varsayılanında kalır. */
+const HAZIR = [
+  ["Normal",    {}],
+  ["Loş",       { losGuc: 76, gradeGuc: 100 }],
+  ["Aydınlık",  { losGuc: 26, gradeGuc: 62 }],
+  ["Sade",      { losGuc: 0, gradeGuc: 0, dokuGuc: 0, lekeUzat: 14 }],
 ];
 
 const kutu = document.createElement("div");
 kutu.id = "bdIG";
 let ic = '<div class="kapak">&#9728;</div><div class="govde">';
+
+ic += '<div class="bas">HAZIR G\u00d6R\u00dcN\u00dcMLER</div><div class="hazir">';
+HAZIR.forEach((h, i) => { ic += '<button data-h="' + i + '">' + h[0] + '</button>'; });
+ic += '</div>';
+
+let gelismisAcik = false;
 for (const f of ALANLAR) {
-  if (f[0] === "bas") { ic += '<div class="bas">' + f[1] + '</div>'; continue; }
-  ic += '<div class="sat"><span class="ad">' + f[1] + '</span>' +
-        '<input type="range" data-k="' + f[0] + '" min="' + f[2] + '" max="' + f[3] +
-        '" step="1" value="' + A[f[0]] + '">' +
-        '<span class="dg" data-d="' + f[0] + '">' + A[f[0]] + '</span></div>';
+  if (f[0] === "bas")  { ic += '<div class="bas' + (gelismisAcik ? ' gel' : '') + '">' + f[1] + '</div>'; continue; }
+  if (f[0] === "not")  { ic += '<div class="not' + (gelismisAcik ? ' gel' : '') + '">' + f[1] + '</div>'; continue; }
+  if (f[0] === "gelismis") {
+    gelismisAcik = true;
+    ic += '<button class="gelac" data-i="gelismis">Geli\u015fmi\u015f ayarlar \u25be</button>';
+    continue;
+  }
+  /* İKİ SATIR: üstte ad + değer, altta [-] sürgü [+].
+     Tek satırdayken sürgüye 94 px kalıyordu; telefonda parmakla
+     istenen sayıyı tutturmak imkânsızdı. Artık sürgü tam genişlikte
+     ve ±1'lik ince ayar düğmelerle yapılıyor. */
+  ic += '<div class="sat' + (gelismisAcik ? ' gel' : '') + '">' +
+        '<div class="ust"><span class="ad">' + f[1] + '</span>' +
+          '<span class="dg" data-d="' + f[0] + '">' + A[f[0]] + '</span></div>' +
+        '<div class="alt">' +
+          '<button class="ek" data-adim="-1" data-hedef="' + f[0] + '">\u2212</button>' +
+          '<input type="range" data-k="' + f[0] + '" min="' + f[2] + '" max="' + f[3] +
+            '" step="1" value="' + A[f[0]] + '">' +
+          '<button class="ek" data-adim="1" data-hedef="' + f[0] + '">+</button>' +
+        '</div></div>';
 }
 ic += '<div class="dgm"><button data-i="deger">DE\u011EERLER</button>' +
       '<button data-i="sifirla" class="kirmizi">SIFIRLA</button></div>' +
@@ -7313,7 +7427,41 @@ function tazele(){
     if (+el.value !== A[k]) el.value = A[k];
     const d = kutu.querySelector('[data-d="' + k + '"]');
     if (d) d.textContent = A[k];
+
+    /* Sürgünün DOLAN kısmı. Webkit'te ::-moz-range-progress karşılığı
+       yok; tek çare parçanın arka planını değerin oranına göre kesen
+       bir gradyan yazmak. Firefox kendi progress'ini kullanır, bu
+       gradyan orada da zararsız. */
+    const alt = +el.min, ust = +el.max;
+    const o = ust > alt ? ((A[k] - alt) / (ust - alt)) * 100 : 0;
+    el.style.background =
+      "linear-gradient(90deg,#ffd84d 0 " + o.toFixed(1) + "%," +
+      "rgba(255,255,255,.16) " + o.toFixed(1) + "% 100%)";
+    el.style.backgroundSize = "100% 6px";
+    el.style.backgroundPosition = "0 50%";
+    el.style.backgroundRepeat = "no-repeat";
   }
+}
+
+/* -/+ düğmesi: sürgünün kendi sınırları içinde tek adım. Sınırlar
+   ALANLAR'da yazılı, ikinci bir tabloya gerek yok — input'tan okunur. */
+function adimla(anahtar, yon){
+  const el = kutu.querySelector('input[data-k="' + anahtar + '"]');
+  if (!el) return;
+  const v = Math.max(+el.min, Math.min(+el.max, (A[anahtar] | 0) + yon));
+  if (v === A[anahtar]) return;
+  A[anahtar] = v;
+  uygula(); tazele();
+}
+
+/* Hazır görünüm: VARSAYILAN'ın üstüne o setin farklarını yazar.
+   Setin İÇİNDE OLMAYAN her alan varsayılanına döner — yarım
+   uygulanmış bir karışım çıkmasın diye bilerek böyle. */
+function hazirUygula(i){
+  const h = HAZIR[i];
+  if (!h) return;
+  A = Object.assign({}, VARSAYILAN, h[1]);
+  uygula(); tazele();
 }
 
 function yerlestir(){
@@ -7333,7 +7481,19 @@ function yerlestir(){
   });
 
   kutu.addEventListener("pointerup", function(ev){
+    const hedef = ev.target.dataset && ev.target.dataset.hedef;
+    if (hedef) { adimla(hedef, +ev.target.dataset.adim); return; }
+
+    const h = ev.target.dataset && ev.target.dataset.h;
+    if (h != null && h !== "") { hazirUygula(+h); return; }
+
     const i = ev.target.dataset && ev.target.dataset.i;
+    if (i === "gelismis") {
+      const acik = kutu.classList.toggle("gelismis");
+      ev.target.textContent = acik ? "Geli\u015fmi\u015f ayarlar \u25b4"
+                                   : "Geli\u015fmi\u015f ayarlar \u25be";
+      return;
+    }
     if (i === "deger") {
       /* Çıktı doğrudan harita.js → CFG.atmosfer bloğuna yapıştırılacak
          biçimde yazılır; elle çevirme yapılmasın diye sayılar zaten
