@@ -7225,44 +7225,87 @@ function uygula(){
   try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
 }
 
+/* ── PANELİN YERLEŞİMİ — ALT TABAKA ──
+   Eskiden sağ ÜSTTE duran, yüksekliği serbest bir kutuydu. Üç kusuru
+   vardı, üçü de burada çözülüyor:
+
+   1) EKRANIN %75'İNİ KAPATIYORDU. Sürgüyü çevirirken ayarladığın şey
+      (harita) görünmüyordu. Artık ALTTA, yüksekliği en çok 44vh olan
+      bir tabaka: üst yarı her zaman açık kalır.
+   2) ALTTAKİ DÜĞMELERE ERİŞİLEMİYORDU. Kutunun tamamı uzayınca
+      DEĞERLER/SIFIRLA ekranın dışında kalıyordu. Artık gövde üç
+      parça: başlık (sabit) · sürgü listesi (KAYAN) · düğmeler
+      (SABİT). Liste ne kadar uzarsa uzasın düğmeler hep görünür.
+   3) İNCE AYAR YAPILAMIYORDU. Her satırda -/+ var; sürgüyü parmakla
+      tutturmaya gerek kalmadan tek tek oynatılıyor.
+
+   Açma düğmesi sol ALTTA: sağ kenarda oyunun kendi düğmeleri var.  */
 const pstil = document.createElement("style");
 pstil.textContent =
-"#bdIG{position:fixed;right:8px;top:96px;z-index:99999;" +
- "font-family:'Baloo 2',system-ui,sans-serif;color:#e8f1ff;" +
+"#bdIG{font-family:'Baloo 2',system-ui,sans-serif;color:#eaf2ff;" +
  "-webkit-tap-highlight-color:transparent;}" +
-"#bdIG .kapak{width:34px;height:34px;border-radius:10px;border:none;" +
- "background:linear-gradient(180deg,#3d7ccc,#22488f);color:#ffd84d;" +
- "font-size:16px;line-height:34px;text-align:center;" +
- "box-shadow:0 2px 6px rgba(0,20,45,.3);transition:.09s;}" +
-"#bdIG .kapak:active{transform:scale(.96);filter:brightness(.93);}" +
-"#bdIG .govde{display:none;width:224px;margin-top:6px;padding:9px 10px 10px;" +
- "border-radius:12px;background:linear-gradient(180deg,#22488f,#152e5e);" +
- "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
-"#bdIG.acik .govde{display:block;}" +
-"#bdIG .bas{font-size:11px;font-weight:700;color:#9fc4f5;letter-spacing:.4px;margin:7px 0 3px;}" +
-"#bdIG .bas:first-child{margin-top:0;}" +
-"#bdIG .sat{display:flex;align-items:center;gap:7px;margin:3px 0;}" +
-"#bdIG .ad{font-size:11px;flex:1;white-space:nowrap;opacity:.9;}" +
-"#bdIG .dg{font-size:11px;font-weight:700;color:#ffd84d;width:32px;" +
+
+/* Açma düğmesi — panel açıkken gizlenir, yerini başlıktaki ✕ alır */
+"#bdIG .kapak{position:fixed;left:8px;bottom:8px;z-index:99998;" +
+ "width:36px;height:36px;border-radius:11px;border:none;" +
+ "background:linear-gradient(180deg,#4a8ada,#24509c);color:#ffd84d;" +
+ "font-size:17px;line-height:36px;text-align:center;" +
+ "box-shadow:0 3px 10px rgba(0,16,40,.45);}" +
+"#bdIG.acik .kapak{display:none;}" +
+
+/* Alt tabaka */
+"#bdIG .govde{display:none;position:fixed;left:0;right:0;bottom:0;z-index:99999;" +
+ "max-height:44vh;flex-direction:column;" +
+ "background:#14315f;border-top:1px solid rgba(255,255,255,.14);" +
+ "border-radius:14px 14px 0 0;box-shadow:0 -6px 22px rgba(0,10,30,.45);" +
+ "padding-bottom:env(safe-area-inset-bottom,0px);}" +
+"#bdIG.acik .govde{display:flex;}" +
+
+/* Başlık — sabit */
+"#bdIG .tepe{flex:0 0 auto;display:flex;align-items:center;gap:8px;" +
+ "padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.10);}" +
+"#bdIG .tepe .baslik{flex:1;font-size:11px;font-weight:800;letter-spacing:1px;color:#9fc4f5;}" +
+"#bdIG .tepe button{width:30px;height:30px;border:none;border-radius:9px;" +
+ "background:rgba(255,255,255,.13);color:#eaf3ff;font:800 14px/1 'Baloo 2',sans-serif;}" +
+
+/* Sürgü listesi — KAYAN kısım */
+"#bdIG .liste{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;" +
+ "padding:4px 10px 8px;}" +
+"#bdIG .bas{font-size:9.5px;font-weight:800;color:#8fb6e8;letter-spacing:1px;margin:9px 0 2px;}" +
+"#bdIG .bas:first-child{margin-top:2px;}" +
+
+/* Ayar satırı — TEK satır: ad · [-] sürgü [+] · değer */
+"#bdIG .sat{display:flex;align-items:center;gap:6px;margin:2px 0;}" +
+"#bdIG .ad{font-size:11.5px;flex:0 0 96px;white-space:nowrap;overflow:hidden;" +
+ "text-overflow:ellipsis;opacity:.92;}" +
+"#bdIG .dg{font-size:11.5px;font-weight:800;color:#ffd84d;flex:0 0 30px;" +
  "text-align:right;font-variant-numeric:tabular-nums;}" +
+"#bdIG .ek{flex:0 0 28px;height:28px;border:none;border-radius:8px;" +
+ "background:rgba(255,255,255,.14);color:#eaf3ff;" +
+ "font:800 15px/1 'Baloo 2',system-ui,sans-serif;}" +
+"#bdIG .ek:active{background:rgba(255,255,255,.30);}" +
 "#bdIG input[type=range]{-webkit-appearance:none;appearance:none;" +
- "flex:0 0 94px;height:16px;background:transparent;margin:0;}" +
-"#bdIG input[type=range]::-webkit-slider-runnable-track{height:3px;" +
- "border-radius:2px;background:rgba(255,255,255,.22);}" +
+ "flex:1 1 auto;min-width:0;height:28px;background:transparent;margin:0;}" +
+"#bdIG input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:99px;" +
+ "background:rgba(255,255,255,.20);}" +
 "#bdIG input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;" +
- "width:13px;height:13px;margin-top:-5px;border-radius:50%;background:#ffd84d;border:none;}" +
-"#bdIG input[type=range]::-moz-range-track{height:3px;border-radius:2px;" +
- "background:rgba(255,255,255,.22);}" +
-"#bdIG input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;" +
+ "width:16px;height:16px;margin-top:-6px;border-radius:50%;background:#ffd84d;border:none;}" +
+"#bdIG input[type=range]::-moz-range-track{height:4px;border-radius:99px;" +
+ "background:rgba(255,255,255,.20);}" +
+"#bdIG input[type=range]::-moz-range-thumb{width:16px;height:16px;border:none;" +
  "border-radius:50%;background:#ffd84d;}" +
-"#bdIG .dgm{display:flex;gap:6px;margin-top:8px;}" +
-"#bdIG .dgm button{flex:1;padding:7px 4px;border:none;border-radius:8px;" +
- "font:700 10px/1 'Baloo 2',system-ui,sans-serif;color:#eaf3ff;background:#3d7ccc;transition:.09s;}" +
-"#bdIG .dgm button:active{transform:scale(.96);filter:brightness(.93);}" +
+
+/* Düğmeler — SABİT, hiçbir zaman kırpılmaz */
+"#bdIG .dgm{flex:0 0 auto;display:flex;gap:6px;padding:8px 10px;" +
+ "border-top:1px solid rgba(255,255,255,.10);}" +
+"#bdIG .dgm button{flex:1;padding:10px 4px;border:none;border-radius:9px;" +
+ "font:800 10.5px/1 'Baloo 2',system-ui,sans-serif;color:#eaf3ff;background:#3d7ccc;}" +
+"#bdIG .dgm button:active{filter:brightness(.9);}" +
+"#bdIG .dgm .yesil{background:#1f9e46;}" +
 "#bdIG .dgm .kirmizi{background:#c0392b;}" +
-"#bdIG .cikti{display:none;margin-top:7px;padding:7px;border-radius:8px;" +
- "background:rgba(4,12,28,.55);font:600 10px/1.5 ui-monospace,monospace;" +
- "color:#cfe4ff;white-space:pre-wrap;word-break:break-all;}";
+"#bdIG .cikti{display:none;flex:0 0 auto;max-height:22vh;overflow-y:auto;" +
+ "margin:0 10px 8px;padding:7px;border-radius:8px;background:rgba(4,12,28,.6);" +
+ "font:600 10px/1.5 ui-monospace,monospace;color:#cfe4ff;white-space:pre-wrap;}";
 document.head.appendChild(pstil);
 
 const ALANLAR = [
@@ -7294,18 +7337,102 @@ const ALANLAR = [
 
 const kutu = document.createElement("div");
 kutu.id = "bdIG";
-let ic = '<div class="kapak">&#9728;</div><div class="govde">';
+
+/* ÜÇ PARÇA: tepe (sabit) · liste (kayan) · dgm (sabit).
+   Düğmeler listenin İÇİNDE olsaydı liste uzayınca ekranın dışına
+   çıkardı — eski panelde "DEĞERLER'e erişemiyorum" hatası buydu. */
+let ic = '<div class="kapak">&#9728;</div><div class="govde">' +
+  '<div class="tepe"><span class="baslik">HAR\u0130TA AYARLARI</span>' +
+    '<button data-i="kapat">\u2715</button></div>' +
+  '<div class="liste">';
+
 for (const f of ALANLAR) {
   if (f[0] === "bas") { ic += '<div class="bas">' + f[1] + '</div>'; continue; }
   ic += '<div class="sat"><span class="ad">' + f[1] + '</span>' +
+        '<button class="ek" data-adim="-1" data-hedef="' + f[0] + '">\u2212</button>' +
         '<input type="range" data-k="' + f[0] + '" min="' + f[2] + '" max="' + f[3] +
-        '" step="1" value="' + A[f[0]] + '">' +
+          '" step="1" value="' + A[f[0]] + '">' +
+        '<button class="ek" data-adim="1" data-hedef="' + f[0] + '">+</button>' +
         '<span class="dg" data-d="' + f[0] + '">' + A[f[0]] + '</span></div>';
 }
-ic += '<div class="dgm"><button data-i="deger">DE\u011EERLER</button>' +
-      '<button data-i="sifirla" class="kirmizi">SIFIRLA</button></div>' +
-      '<div class="cikti"></div></div>';
+
+ic += '</div>' +
+      '<div class="cikti"></div>' +
+      '<div class="dgm">' +
+        '<button data-i="kopyala" class="yesil">KOPYALA</button>' +
+        '<button data-i="deger">G\u00d6STER</button>' +
+        '<button data-i="sifirla" class="kirmizi">SIFIRLA</button>' +
+      '</div></div>';
 kutu.innerHTML = ic;
+
+/* ── DEĞER METNİ ──
+   Hem GÖSTER hem KOPYALA aynı metni kullanır; iki yerde üretilseydi
+   biri güncellenip öbürü unutulurdu. */
+function degerMetni(){
+  return "harita.js CFG.atmosfer\n" +
+    "  golge: {\n" +
+    "    kaleGuc: "  + (A.kaleGuc   / 100).toFixed(2) + ",\n" +
+    "    dugumGuc: " + (A.dugumGuc  / 100).toFixed(2) + ",\n" +
+    "    dugumEn: "  + (A.dugumEn   / 100).toFixed(2) + ",\n" +
+    "    dugumBoy: " + (A.dugumBoy  / 100).toFixed(2) + ",\n" +
+    "    dugumDy: "  + (A.dugumDy   / 100).toFixed(2) + ",\n" +
+    "    kaleEn: "   + A.golgeEn + ",\n" +
+    "    kaleOran: " + (A.golgeOran / 10).toFixed(1) + ",\n" +
+    "    kaleY: "    + A.golgeTaban + ",\n" +
+    "  },\n" +
+    "  vinyet: {\n" +
+    "    guc: "     + (A.losGuc / 100).toFixed(2) + ",\n" +
+    "    ic: "      + (A.losIc  / 100).toFixed(2) + ",\n" +
+    "    enX: "     + A.losEnX + ", enY: " + A.losEnY + ",\n" +
+    "    merkezY: " + A.losY + ",\n" +
+    "  },\n" +
+    "  grade: { guc: " + (A.gradeGuc / 100).toFixed(2) + " },\n" +
+    "  doku: { guc: "  + (A.dokuGuc / 100).toFixed(2) +
+             ", genlik: " + A.dokuGenlik + " },\n\n" +
+    "harita.js CFG\n" +
+    "  lekeAci: "      + A.lekeAci + ",\n" +
+    "  lekeUzat: "     + (A.lekeUzat / 10).toFixed(1) + ",\n" +
+    "  doygunlukLav: " + (A.doyLav / 100).toFixed(2);
+}
+
+/* ── PANOYA KOPYALA ──
+   Eski "DEĞERLER" düğmesi metni yalnız EKRANA yazıyordu; kopyalamak
+   için elle seçmek gerekiyordu ve kutu kaydığı için seçim kayboluyordu.
+
+   İKİ YOL DENENİYOR: önce navigator.clipboard (güvenli bağlamda
+   çalışır), olmazsa geçici bir <textarea> + execCommand('copy').
+   İkincisi eski WebView'larda tek çalışan yol; ama sayfa görünür
+   alanına eklenirse ekran zıplıyor, o yüzden ekran dışına konuyor. */
+function panoyaYaz(metin, dugme){
+  function bitti(ok){
+    if (!dugme) return;
+    const eski = dugme.textContent;
+    dugme.textContent = ok ? "KOPYALANDI \u2713" : "OLMADI";
+    setTimeout(() => { dugme.textContent = eski; }, 1400);
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(metin).then(() => bitti(true), () => bitti(yedek(metin)));
+      return;
+    }
+  } catch (e) {}
+  bitti(yedek(metin));
+}
+
+function yedek(metin){
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = metin;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, metin.length);
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { return false; }
+}
 
 function tazele(){
   for (const el of kutu.querySelectorAll("input[type=range]")) {
@@ -7332,39 +7459,41 @@ function yerlestir(){
     uygula(); tazele();
   });
 
+  /* -/+ tek adım atar. Sınırlar ALANLAR'da yazılı ve input'a zaten
+     min/max olarak basıldı; buradan okunuyor ki ikinci bir tablo
+     tutulmasın. */
+  function adimla(anahtar, yon){
+    const el = kutu.querySelector('input[data-k="' + anahtar + '"]');
+    if (!el) return;
+    const v = Math.max(+el.min, Math.min(+el.max, (A[anahtar] | 0) + yon));
+    if (v === A[anahtar]) return;
+    A[anahtar] = v;
+    uygula(); tazele();
+  }
+
   kutu.addEventListener("pointerup", function(ev){
+    const hedef = ev.target.dataset && ev.target.dataset.hedef;
+    if (hedef) { adimla(hedef, +ev.target.dataset.adim); return; }
+
     const i = ev.target.dataset && ev.target.dataset.i;
-    if (i === "deger") {
-      /* Çıktı doğrudan harita.js → CFG.atmosfer bloğuna yapıştırılacak
-         biçimde yazılır; elle çevirme yapılmasın diye sayılar zaten
-         dosyadaki birimde (oran/yüzde). */
-      cikti.style.display = cikti.style.display === "block" ? "none" : "block";
-      cikti.textContent =
-        "harita.js CFG.atmosfer\n" +
-        "  golge: {\n" +
-        "    kaleGuc: "  + (A.kaleGuc   / 100).toFixed(2) + ",\n" +
-        "    dugumGuc: " + (A.dugumGuc  / 100).toFixed(2) + ",\n" +
-        "    dugumEn: "  + (A.dugumEn   / 100).toFixed(2) + ",\n" +
-        "    dugumBoy: " + (A.dugumBoy  / 100).toFixed(2) + ",\n" +
-        "    dugumDy: "  + (A.dugumDy   / 100).toFixed(2) + ",\n" +
-        "    kaleEn: "   + A.golgeEn + ",\n" +
-        "    kaleOran: " + (A.golgeOran / 10).toFixed(1) + ",\n" +
-        "    kaleY: "    + A.golgeTaban + ",\n" +
-        "  },\n" +
-        "  vinyet: {\n" +
-        "    guc: "     + (A.losGuc / 100).toFixed(2) + ",\n" +
-        "    ic: "      + (A.losIc  / 100).toFixed(2) + ",\n" +
-        "    enX: "     + A.losEnX + ", enY: " + A.losEnY + ",\n" +
-        "    merkezY: " + A.losY + ",\n" +
-        "  },\n" +
-        "  grade: { guc: " + (A.gradeGuc / 100).toFixed(2) + " },\n" +
-        "  doku: { guc: "  + (A.dokuGuc / 100).toFixed(2) +
-                 ", genlik: " + A.dokuGenlik + " },\n\n" +
-        "harita.js CFG\n" +
-        "  lekeAci: "      + A.lekeAci + ",\n" +
-        "  lekeUzat: "     + (A.lekeUzat / 10).toFixed(1) + ",\n" +
-        "  doygunlukLav: " + (A.doyLav / 100).toFixed(2);
+
+    if (i === "kapat") { kutu.classList.remove("acik"); return; }
+
+    if (i === "kopyala") {
+      /* Metni ayrıca ekrana da basıyoruz: pano izni reddedilirse
+         kullanıcı hiç değilse görüp elle alabilsin. */
+      cikti.textContent = degerMetni();
+      cikti.style.display = "block";
+      panoyaYaz(degerMetni(), ev.target);
+      return;
     }
+
+    if (i === "deger") {
+      cikti.style.display = cikti.style.display === "block" ? "none" : "block";
+      cikti.textContent = degerMetni();
+      return;
+    }
+
     if (i === "sifirla") {
       A = Object.assign({}, VARSAYILAN);
       uygula(); tazele();
