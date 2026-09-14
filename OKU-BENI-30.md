@@ -248,10 +248,21 @@ Kaçış: `?egitimkapat=1`.
     yazıyor, soluk çiziliyor ve HİÇBİR ETKİ UYGULAMIYOR — sahte bonus
     yok. Bir bonus gerçekten yazıldığı gün o satıra `aktif:true`
     yazmak yeter, ekranda başka yer değişmez.
-  - **Görseller oyunun kendi dosyalarından**, yeni varlık üretilmedi:
-    perdeleme · topcu · sovalye · savunucukisla · yetenek_sifa ·
-    yetenek_yasak · yetenek_engel · 25intikal · tasiikon · egitikon.
-    Hepsinde `onerror` emoji yedeği var.
+  - **GÖRSEL UYDURULMAZ — bu bir kez yapıldı ve geri alındı.** İlk
+    turda satırlara oyunun ilgisiz dosyaları (perdeleme, topcu,
+    sovalye…) ikon diye atanmıştı; Serdar reddetti, haklıydı: o
+    çizimler o bonusu anlatmıyor. Artık YALNIZ Kalkan'ın görseli var
+    (`kalkan.webp` — gerçek eşyanın kendisi), kalan on satırda kutu
+    BOŞ çerçeve olarak duruyor. O bonusun kendi çizimi geldiği gün
+    satıra `gor:"dosya.webp"` yazmak yeter.
+  - **RENK TEMADAN OKUNUR, KOPYALANMAZ.** İlk turda panele elle
+    `#0f3252` yazmıştım; oyunun temasıyla tutmuyordu. Ekran artık
+    `tema.js koyuMaviTema` bloğunun `--km-1/2/3` + `--km-yazi`
+    değişkenlerinden besleniyor — çanta ve marketin gövdesiyle aynı
+    üç duraklı gradyan. Sekme ölçüleri de çantanın `.inv-tab`
+    kuralıyla aynı (11,5-12,5px, köşe 10px 10px 0 0, seçili
+    `rgba(233,246,255,.95)` / `#134a86`). Tema değişirse bu ekran da
+    kendiliğinden döner; ikinci palet açılmadı.
   - **Kaydırma yalnız listede** (Tuzak 13: kapsayıcıya `overflow`
     vermek yatayda da kırpar). Başlık ve sekmeler sabit — çanta/market
     kalıbının aynısı, üçüncü bir panel dili açılmadı.

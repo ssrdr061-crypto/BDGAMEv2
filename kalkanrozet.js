@@ -128,9 +128,18 @@
          Tuzak 13 gereği kapsayıcıya `overflow` vermek yatayda da
          kırpar. z=50: paneller hizasında, savaş alanının (60) ve
          kahraman ekranının (400) altında. */
+      /* RENKLER TEMADAN OKUNUR, KOPYALANMAZ: tema.js `koyuMaviTema`
+         bloğu `--km-1/2/3` ve `--km-yazi` değişkenlerini :root'a
+         yazıyor ve panellerin (çanta, market, sandık…) gövdesi de
+         aynı üç duraklı gradyandan besleniyor. Buraya sayı yazmak
+         ikinci bir palet açardı; tema değişince bu ekran da döner.
+         Yedek değerler yalnız tema.js hiç yüklenmediyse devreye
+         girer. */
       "#sehirBonusu{",
       "  position:fixed; inset:0; z-index:50; display:none;",
-      "  flex-direction:column; background:#0f3252; color:#e9f6ff;",
+      "  flex-direction:column;",
+      "  background:linear-gradient(180deg, var(--km-1,#3d7ccc) 0%, var(--km-2,#22488f) 52%, var(--km-3,#152e5e) 100%);",
+      "  color:var(--km-yazi,#eaf4ff);",
       "  font-family:'Baloo 2','Nunito',sans-serif;",
       "}",
       "#sehirBonusu.acik{display:flex;}",
@@ -140,7 +149,7 @@
       "}",
       "#sehirBonusu .sb-geri{",
       "  width:34px; height:34px; flex:0 0 34px; padding:0;",
-      "  background:rgba(233,246,255,.14); color:#e9f6ff; border:none; border-radius:10px;",
+      "  background:rgba(3,16,38,.30); color:var(--km-yazi,#eaf4ff); border:none; border-radius:10px;",
       "  font-size:20px; font-weight:900; line-height:1; cursor:pointer;",
       "  -webkit-tap-highlight-color:transparent;",
       "}",
@@ -148,27 +157,28 @@
       "#sehirBonusu .sb-baslik{font-size:17px; font-weight:900; text-shadow:0 1px 2px rgba(0,20,45,.55);}",
       "#sehirBonusu .sb-sekmeler{flex:0 0 auto; display:flex; gap:6px; padding:0 12px 8px;}",
       "#sehirBonusu .sb-sekme{",
-      "  flex:1 1 0; padding:8px 6px; border:none; border-radius:11px 11px 0 0;",
-      "  background:rgba(233,246,255,.14); color:#cfe6f7;",
-      "  font-family:inherit; font-size:14px; font-weight:800; cursor:pointer;",
+      "  flex:1 1 0; min-width:0; padding:7px 4px 8px; border:none; border-radius:10px 10px 0 0;",
+      "  background:rgba(3,16,38,.30); color:#cfe6f7;",
+      "  font-family:inherit; font-size:12.5px; font-weight:800; cursor:pointer;",
       "  -webkit-tap-highlight-color:transparent;",
       "}",
-      "#sehirBonusu .sb-sekme.secili{background:rgba(233,246,255,.96); color:#0d2a36;}",
+      "#sehirBonusu .sb-sekme.secili{background:rgba(233,246,255,.95); color:#134a86;}",
       "#sehirBonusu .sb-liste{",
       "  flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;",
       "  padding:8px 12px 16px; display:flex; flex-direction:column; gap:8px;",
       "}",
       "#sehirBonusu .sb-kart{",
       "  display:flex; align-items:center; gap:10px; padding:9px 10px;",
-      "  background:rgba(233,246,255,.96); color:#0d2a36; border-radius:12px;",
+      "  background:rgba(3,16,38,.30); color:var(--km-yazi,#eaf4ff); border-radius:12px;",
+      "  border:1px solid rgba(160,215,255,.20);",
       "  box-shadow:0 2px 6px rgba(0,20,45,.3);",
       "}",
-      "#sehirBonusu .sb-kart.sb-pasif{opacity:.62;}",
+      "#sehirBonusu .sb-kart.sb-pasif{opacity:.58;}",
       "#sehirBonusu .sb-gor{",
       "  width:44px; height:44px; flex:0 0 44px; box-sizing:border-box;",
       "  display:flex; align-items:center; justify-content:center;",
       "  border:1.5px solid rgba(255,255,255,.92); border-radius:10px; overflow:hidden;",
-      "  background:rgba(0,20,45,.07); font-size:22px; line-height:1;",
+      "  background:rgba(3,16,38,.35); font-size:22px; line-height:1;",
       "}",
       "#sehirBonusu .sb-gor img{width:100%; height:100%; object-fit:cover; background:none; display:block;}",
       "#sehirBonusu .sb-metin{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px;}",
@@ -179,7 +189,7 @@
       "  background:#2fbf5a; color:#06240f; font-style:normal;",
       "  font-size:13px; font-weight:900; font-variant-numeric:tabular-nums;",
       "}",
-      "#sehirBonusu .sb-sure.sb-sure-yok{background:rgba(0,20,45,.14); color:#0d2a36;}",
+      "#sehirBonusu .sb-sure.sb-sure-yok{background:rgba(3,16,38,.45); color:var(--km-yazi,#eaf4ff);}",
       "#sehirBonusu .sb-sag{flex:0 0 auto; font-size:11.5px; font-weight:800; opacity:.7;}"
     ].join("\n");
     document.head.appendChild(s);
@@ -199,19 +209,24 @@
      yazıyor — sahte bir etki uygulamıyorlar, dokunuşa da kapalılar.
      Bir bonus gerçekten yazıldığı gün burada `aktif:true` yapılır ve
      `deger` işlevi eklenir; ekranda başka hiçbir yer değişmez.
-     Görseller oyunun kendi dosyalarından, yeni varlık üretilmedi. */
+
+     GÖRSEL YOK — BİLEREK. Yalnız Kalkan'ın kendi görseli var
+     (kalkan.webp, gerçek eşyanın kendisi). Kalan satırlara oyunun
+     ilgisiz dosyalarından görsel atanmaz; kutu BOŞ çerçeve olarak
+     durur. O bonusun kendi çizimi geldiği gün satıra `gor:"dosya.webp"`
+     yazmak yeter. */
   var BONUS = [
-    { sekme:"savas",  ad:"Kalkan",              not:"Şehrini tüm düşman saldırılarına karşı korur.", gor:"kalkan.webp",          emoji:"🛡️", aktif:true },
-    { sekme:"savas",  ad:"Gözetleme Önleyen",   not:"Şehrine yönelik gözetleme girişimlerini önler.", gor:"perdeleme.webp",      emoji:"🕶️" },
-    { sekme:"savas",  ad:"Birlik Öldürücülüğü", not:"Tüm birliklerin öldürücülüğünü artırır.",        gor:"topcu.webp",          emoji:"💥" },
-    { sekme:"savas",  ad:"Birlik Saldırısı",    not:"Tüm birliklerin saldırısını artırır.",           gor:"sovalye.webp",        emoji:"⚔️" },
-    { sekme:"savas",  ad:"Birlik Savunması",    not:"Tüm birliklerin savunmasını artırır.",           gor:"savunucukisla.webp",  emoji:"🛡️" },
-    { sekme:"savas",  ad:"Birlik Sağlığı",      not:"Tüm birliklerin sağlığını artırır.",             gor:"yetenek_sifa.webp",   emoji:"❤️" },
-    { sekme:"savas",  ad:"Düşman Saldırısı",    not:"Düşman birlik saldırısını azaltır.",             gor:"yetenek_yasak.webp",  emoji:"🚫" },
-    { sekme:"savas",  ad:"Düşman Savunması",    not:"Düşman birlik savunmasını azaltır.",             gor:"yetenek_engel.webp",  emoji:"🧱" },
-    { sekme:"buyume", ad:"Rastgele Işınlayıcı", not:"Şehrini haritada başka bir konuma ışınlar.",     gor:"25intikal.webp",      emoji:"🌀" },
-    { sekme:"buyume", ad:"Toplama Hızı",        not:"Her türden kaynağı toplama hızını artırır.",     gor:"tasiikon.webp",       emoji:"🚚" },
-    { sekme:"buyume", ad:"Eğitim Kapasitesi",   not:"Tek seferde eğitebileceğin birlik sayısını artırır.", gor:"egitikon.webp",  emoji:"🎖️" }
+    { sekme:"savas",  ad:"Kalkan",              not:"Şehrini tüm düşman saldırılarına karşı korur.", gor:GORSEL, emoji:EMOJI, aktif:true },
+    { sekme:"savas",  ad:"Gözetleme Önleyen",   not:"Şehrine yönelik gözetleme girişimlerini önler." },
+    { sekme:"savas",  ad:"Birlik Öldürücülüğü", not:"Tüm birliklerin öldürücülüğünü artırır." },
+    { sekme:"savas",  ad:"Birlik Saldırısı",    not:"Tüm birliklerin saldırısını artırır." },
+    { sekme:"savas",  ad:"Birlik Savunması",    not:"Tüm birliklerin savunmasını artırır." },
+    { sekme:"savas",  ad:"Birlik Sağlığı",      not:"Tüm birliklerin sağlığını artırır." },
+    { sekme:"savas",  ad:"Düşman Saldırısı",    not:"Düşman birlik saldırısını azaltır." },
+    { sekme:"savas",  ad:"Düşman Savunması",    not:"Düşman birlik savunmasını azaltır." },
+    { sekme:"buyume", ad:"Rastgele Işınlayıcı", not:"Şehrini haritada başka bir konuma ışınlar." },
+    { sekme:"buyume", ad:"Toplama Hızı",        not:"Her türden kaynağı toplama hızını artırır." },
+    { sekme:"buyume", ad:"Eğitim Kapasitesi",   not:"Tek seferde eğitebileceğin birlik sayısını artırır." }
   ];
 
   var SEKMELER = [{ k:"savas", et:"Savaşlar" }, { k:"buyume", et:"Büyüme" }];
@@ -225,7 +240,7 @@
       if (b.sekme !== bonusSekme) continue;
       html +=
         '<div class="sb-kart' + (b.aktif ? " sb-aktif" : " sb-pasif") + '">' +
-          '<span class="sb-gor">' + gorselHTML(b.gor, b.emoji) + '</span>' +
+          '<span class="sb-gor">' + (b.gor ? gorselHTML(b.gor, b.emoji) : "") + '</span>' +
           '<span class="sb-metin">' +
             '<b class="sb-ad">' + b.ad + '</b>' +
             '<i class="sb-not">' + b.not + '</i>' +
