@@ -9496,8 +9496,8 @@ document.head.appendChild(st);
      [53,224,208] (turkuaz). 94 ikisinin arası: beyazdan yana ama
      içinde biraz turkuaz var. */
   var AY = {
-    aci: 30, kesim: 55, en: 87, dx: 0, dy: 8,
-    kubbeAc: 1, kTon: 94, cep: 5, cepOp: 28, dolu: 52,
+    aci: 30, kesim: 55, en: 78, dx: 1, dy: -2,
+    kubbeAc: 1, kTon: 68, cep: 5, cepOp: 28, dolu: 52,
     cizgiAc: 1, adet: 5, aralik: 100, kal: 2, hiz: 105, sonuk: 30,
     zTon: 96, zDolu: 34,
     dalga: 10, dalgaN: 7
@@ -9881,12 +9881,18 @@ document.head.appendChild(st);
       "font:700 11px/1.45 monospace;padding:6px 7px;" +
       "-webkit-user-select:text;user-select:text}";
 
+  /* ÇIKTI HER ALANI YAZMALI. `kesim`, `dalga` ve `dalgaN` sonradan
+     eklenmişti ama bu metne eklenmemişti; panelde ayarlanıp kopyalanan
+     değerler arasında görünmüyorlardı ve dosyaya yazılırken sessizce
+     kayboluyorlardı. AY'ye yeni bir alan eklersen buraya da ekle. */
   function ciktiMetni() {
-    return "GENEL aci" + AY.aci + " en" + AY.en + " dx" + AY.dx + " dy" + AY.dy + "\n" +
+    return "GENEL aci" + AY.aci + " kesim" + AY.kesim + " en" + AY.en +
+             " dx" + AY.dx + " dy" + AY.dy + "\n" +
            "KUBBE " + (AY.kubbeAc ? "" : "KAPALI ") + "ton" + AY.kTon + " cep" + AY.cep +
              " cepOp" + AY.cepOp + " dolu" + AY.dolu + "\n" +
            "CIZGI " + (AY.cizgiAc ? "" : "KAPALI ") + "adet" + AY.adet + " aralik" + AY.aralik +
              " kal" + AY.kal + " hiz" + AY.hiz + " sonuk" + AY.sonuk +
+             " dalga" + AY.dalga + " dalgaN" + AY.dalgaN +
              " ton" + AY.zTon + " dolu" + AY.zDolu;
   }
   function ciktiYaz() {
