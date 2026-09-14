@@ -174,9 +174,85 @@ toplamı · `heroes.js` kartı Satın Al · `sefer.js` hızlandırma penceresi.
 `?olcum=1` `?elmasayar=1` `?kaleayar=1` `?dagayar=1` `?ikonayar=1` `?menu=1`
 `?ayar=1` `?etiket=1` `?fps=1` `?tani=1` `?dugum=1` `?sefertani=1`
 `?egitimtani=1` `?egitimayar=1` `?egitimodul=1` `?birlik=1` `?zaman=1` `?temizle=1`
-Kaçış: `?egitimkapat=1`.
+`?isik=1` (harita atmosferi) · `?kalkanayar=1` (kalkan kubbesi) ·
+`?rozetayar=1` `?zeminayar=1` `?kartayar=1` `?sandikayar=1` `?seferayar=1`
+`?hastaneayar=1` `?botkale=1` `?gelistir=1` `?odulefekt=1` `?ayakizi=1`
+Kaçış: `?egitimkapat=1`. Kapatma: `?atmos=0` (harita atmosferini komple kapatır).
 
 ## 30'da yapılanlar
+
+- **HARİTA ATMOSFERİ + KALKAN KUBBESİ** (`harita.js` `CFG.atmosfer`,
+  `tema.js` `kalkanKubbesi`, `index.html`, `karo.js`).
+
+  **Sorun:** `zeminRengi()` her pikseli KENDİ BAŞINA boyuyor — biyom
+  rengi, gürültü, doygunluk; hepsi yerel. Sahnenin tamamına ait bir
+  ışık yoktu, harita "boyanmış" duruyordu, "aydınlatılmış"
+  durmuyordu. Kaleler de zemine yapıştırılmış gibiydi.
+
+  - **`CFG.atmosfer`** — dördü de ayrı ayrı kapatılabilir, tamamı
+    `?atmos=0` ile. `golge` (temas gölgesi: `dugumGuc` canvas
+    düğümlerinde, `kaleGuc` DOM kalelerinde — TEK anahtar olsaydı
+    birini kapatmak öbürünü de söndürürdü) · `vinyet` (kenar
+    karartması) · `grade` (soft-light ortak ton) · `doku` (zemin
+    tanesi).
+  - **Gölgeler AYRI GEÇİŞTE.** Düğümler arkadan öne sıralı çiziliyor;
+    gölge her düğümün hemen öncesinde basılsaydı öndekinin gölgesi
+    arkadakinin üstüne düşerdi.
+  - **Kale gölgesi YÜZDEYLE** (`.node-avatar::after`). Kale kutusu
+    seviyeye göre 132–252 px; yüzde yazılınca o tabloyu okumadan
+    hepsine oturur. `kaleY: 83` ölçüldü — kale görselleri 1024×683 ve
+    `object-fit:contain` ile kare kutuya oturduğu için sprite'ın
+    tabanı kutunun %83'ünde (5 görselin alfa sınırı: %82,6 – %83,4).
+  - **`lekeYatay` → `lekeAci` + `lekeUzat` (KÖK DÜZELTME).** Gürültü
+    `(gx-gy)` ekseninde, yani ekranın YATAYINDA 2,4 kat eziliyordu.
+    Ama izometrik izdüşüm yatay ezmeyi ZATEN KENDİ YAPIYOR: ızgarada
+    yuvarlak bir leke ekrana 2:1 yatık düşer. İki ezme üst üste
+    binince ekrandaki uzama ~4,8 kata çıkıyor ve arazi, ekranı baştan
+    başa kesen YATAY BANTLARA dönüşüyordu. Yön artık açıyla seçiliyor.
+    Hesap tek yerde (`lekeEkseni`): iki çağıran var (`zeminRengi` ve
+    `cimenKaleRengi`), ayrı dursaydı çimen ile kar/lav farklı yönlere
+    bakar ve sınırda desen kırılırdı.
+  - **`doygunlukLav` ayrıldı.** Lav artık kar/lav ortak
+    doygunluğundan bağımsız. Karışım biyom ağırlığıyla (`w[2]`)
+    yapılıyor, sınırda renk sıçraması olmuyor.
+  - **İKİ ESKİ KALE GÖLGESİ SİLİNDİ (Ezme yok, sil).**
+    `index.html`'deki `filter:drop-shadow` siluetten üretildiği için
+    gölge de kale gibi DİK duruyordu. `tema.js`'teki `--kg-*` taban
+    elipsinin ölçüsü SABİT PİKSELDİ (90×38) — yorumu "kutu 100×100
+    px" diyordu ama kutu çoktan 132–252 px olmuştu; aynı leke hem
+    Sv1'in hem Sv5'in altına giriyordu ve yakınlaştırmayla
+    büyümüyordu. Tabanı da %60'a ayarlıydı, ölçülen gerçek değer %83.
+  - **KALKAN KUBBESİ REFERANSA GÖRE YENİDEN.** `aci` bakış açısıdır
+    (tüm yatay çemberlerin yassılığı), yeni `kesim` ise kürenin yüzde
+    kaçının çizileceği. Kesim yüksekliği `z0 = 1 - 2·kesim/100`, taban
+    çemberi `rc = r·√(1-z0²)`, merkezi `cy0 = -r·cos(aci)·z0`.
+    **Büyük yay bayrağı:** taban ekvatorun altındaysa (`cy0 > 0`)
+    üstten dolaşan yay 180°'yi aşar, yani büyük yaydır; bayrak 0
+    bırakılırsa tarayıcı küçük yayı seçer ve kubbe ters dönüp mercimek
+    gibi bir dilime iner.
+    **Ortadaki kalın çizgi:** halkalar `z: 1 → 0` ile yalnız üst
+    yarıda yaşayıp EKVATORDA, en kalın hâllerinde yok oluyordu —
+    görünen o çizgi ölmekte olan halkaydı. Artık `z: 1 → z0`.
+    **Dalga DİKEYDE:** yalnız yarıçap oynatıldığında şekil dalga
+    değil yuvarlak bir çiçek yaprağı gibi okunuyor. Yükseklik oynuyor,
+    iki harmonik kullanılıyor ve genlik kutuplara doğru `rx` ile
+    sönüyor (sönmeseydi halka bir noktaya inerken orada çırpınırdı).
+  - **`karo.js` seçim çubuğu sarmalayıcıya taşındı.** Atmosfer
+    katmanları `#battleMapScroll` içinde, kalelerin ÜSTÜNDE duruyor;
+    çubuk `#battleMap`'te kalsaydı altında ezilirdi. İkisi birebir
+    aynı dikdörtgeni kapladığı için konum hesabı değişmedi.
+  - **`isolation:isolate` ŞART** (`#battleMapScroll`). `mix-blend-mode`
+    elemanın KENDİ yığın bağlamındaki her şeyle karışır; bağlam
+    açılmazsa karışım panellere ve HUD'a taşar.
+
+  **Ekranda ölçülen değerler:** `doygunlukLav 1.29` · `lekeAci 84` ·
+  `lekeUzat 1.3` · `vinyet.guc 0` (kapalı) · `doku.guc 0` (kapalı,
+  "pürüzlü" göründü) · `golge.kaleGuc 0` · `golge.dugumGuc 0.55` ·
+  kalkan `aci 30 kesim 55 en 78 dx 1 dy -2 kTon 68`.
+
+  **GERİ DÖNÜŞ:** `?atmos=0` ile atmosfer kapanır. Kalıcı dönüş için
+  `CFG.doygunluk` 1.34'e, `lekeAci/lekeUzat` yerine eski
+  `lekeYatay 2.4` davranışı için `lekeAci 135`.
 
 - **SON DÖRT PANEL DE TAM EKRAN** (`tema.js`). Dört yanı boşluklu
   420px kart kalmadı: **güç sıralaması · savaş günlüğü · hastane ·
@@ -1479,7 +1555,21 @@ Kaçış: `?egitimkapat=1`.
    renk **oranıyla** ayır.
 14. İnşaat dengesi ve sefer kapasitesi rakamları oyunla sınanmadı.
 15. Araştırma binası seviyeleniyor ama seviyesi hiçbir şeye bağlı değil.
-16. Terfi sistemi yok (Sv2+ edinilemez) · tedavi süresi ordu ölçeğinde saçmalıyor ·
+16. **Kalkan `dy: -2`** Sv4'te ölçüldü; Sv1/Sv4'te kalenin tabanı kubbenin
+    altından taşıyor. Kale kutusu seviyeye göre 132–252 px ve her görselin
+    şeffaf boşluğu farklı — tek `dy` hepsine oturmayabilir. Ya `dy`yi +4
+    civarına al ya da `en`i 78→84 çıkar; ya da kale gölgesindeki gibi
+    yüzdeye çevir.
+17. **`?isik=1` ve `?kalkanayar=1` panelleri iş bitince silinecek** (geçici
+    tanı bayrakları kuralı). Değerler `harita.js CFG.atmosfer` ve
+    `tema.js AY`'ye zaten sabitlendi.
+18. **`CFG.atmosfer.doku` ölü kod olmasın.** Tane `guc: 0` ile kapalı;
+    zeminin bulanıklığı (`zeminAdim: 10`) hâlâ gerçek bir sorun. Ya doğru
+    ayar bulunup açılacak ya da `dokuKaresi`/`sarmalGurultu`/`chunkUret`
+    çağrısı silinecek.
+19. **`CFG.yansima` tamamen ölü** — `guc: 0`, artık hiçbir panel sürmüyor
+    (`?isik=1` yenilendi). Silinebilir.
+20. Terfi sistemi yok (Sv2+ edinilemez) · tedavi süresi ordu ölçeğinde saçmalıyor ·
     sıralama tüm `accounts`'u çekiyor · `kale2x2.js` bağlanmadı · Blaze +
     Cloud Functions ile sunucu tarafı sefer.
 
