@@ -41,7 +41,7 @@
 (function kalkanRozet() {
   "use strict";
 
-  var SURUM = "kalkanrozet-2";
+  var SURUM = "kalkanrozet-3";
 
   /* BOY tek kaynak: rozetin ölçüsünü, köşesini ve komşularıyla
      arasını belirleyen tek sayı. Değiştirince yerleşim kendiliğinden
@@ -112,16 +112,190 @@
       "#kalkanPencere .kr-sure{",
       "  font-size:14px; font-weight:900; font-variant-numeric:tabular-nums;",
       "  letter-spacing:.2px;",
-      "}"
+      "}",
+      "#kalkanPencere .kr-bonus{",
+      "  display:block; width:100%; margin:10px 0 0; padding:8px 10px;",
+      "  background:#2DC9FC; color:#0d2a36; border:none; border-radius:10px;",
+      "  font-family:'Baloo 2','Nunito',sans-serif; font-size:13.5px; font-weight:900;",
+      "  box-shadow:0 2px 6px rgba(0,20,45,.3); cursor:pointer;",
+      "  -webkit-tap-highlight-color:transparent;",
+      "}",
+      "#kalkanPencere .kr-bonus:active{transform:scale(.96); filter:brightness(.93);}",
+
+      /* ── ŞEHİR BONUSU EKRANI ────────────────────────────────────
+         Tam ekran, çanta/market kalıbı: başlık ve sekmeler ÜSTTE
+         sabit, yalnız liste kayar. Kaydırma kutusu SADECE listede —
+         Tuzak 13 gereği kapsayıcıya `overflow` vermek yatayda da
+         kırpar. z=50: paneller hizasında, savaş alanının (60) ve
+         kahraman ekranının (400) altında. */
+      "#sehirBonusu{",
+      "  position:fixed; inset:0; z-index:50; display:none;",
+      "  flex-direction:column; background:#0f3252; color:#e9f6ff;",
+      "  font-family:'Baloo 2','Nunito',sans-serif;",
+      "}",
+      "#sehirBonusu.acik{display:flex;}",
+      "#sehirBonusu .sb-bas{",
+      "  flex:0 0 auto; display:flex; align-items:center; gap:10px;",
+      "  padding:10px 12px 8px;",
+      "}",
+      "#sehirBonusu .sb-geri{",
+      "  width:34px; height:34px; flex:0 0 34px; padding:0;",
+      "  background:rgba(233,246,255,.14); color:#e9f6ff; border:none; border-radius:10px;",
+      "  font-size:20px; font-weight:900; line-height:1; cursor:pointer;",
+      "  -webkit-tap-highlight-color:transparent;",
+      "}",
+      "#sehirBonusu .sb-geri:active{transform:scale(.96); filter:brightness(.93);}",
+      "#sehirBonusu .sb-baslik{font-size:17px; font-weight:900; text-shadow:0 1px 2px rgba(0,20,45,.55);}",
+      "#sehirBonusu .sb-sekmeler{flex:0 0 auto; display:flex; gap:6px; padding:0 12px 8px;}",
+      "#sehirBonusu .sb-sekme{",
+      "  flex:1 1 0; padding:8px 6px; border:none; border-radius:11px 11px 0 0;",
+      "  background:rgba(233,246,255,.14); color:#cfe6f7;",
+      "  font-family:inherit; font-size:14px; font-weight:800; cursor:pointer;",
+      "  -webkit-tap-highlight-color:transparent;",
+      "}",
+      "#sehirBonusu .sb-sekme.secili{background:rgba(233,246,255,.96); color:#0d2a36;}",
+      "#sehirBonusu .sb-liste{",
+      "  flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;",
+      "  padding:8px 12px 16px; display:flex; flex-direction:column; gap:8px;",
+      "}",
+      "#sehirBonusu .sb-kart{",
+      "  display:flex; align-items:center; gap:10px; padding:9px 10px;",
+      "  background:rgba(233,246,255,.96); color:#0d2a36; border-radius:12px;",
+      "  box-shadow:0 2px 6px rgba(0,20,45,.3);",
+      "}",
+      "#sehirBonusu .sb-kart.sb-pasif{opacity:.62;}",
+      "#sehirBonusu .sb-gor{",
+      "  width:44px; height:44px; flex:0 0 44px; box-sizing:border-box;",
+      "  display:flex; align-items:center; justify-content:center;",
+      "  border:1.5px solid rgba(255,255,255,.92); border-radius:10px; overflow:hidden;",
+      "  background:rgba(0,20,45,.07); font-size:22px; line-height:1;",
+      "}",
+      "#sehirBonusu .sb-gor img{width:100%; height:100%; object-fit:cover; background:none; display:block;}",
+      "#sehirBonusu .sb-metin{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px;}",
+      "#sehirBonusu .sb-ad{font-size:14px; font-weight:900;}",
+      "#sehirBonusu .sb-not{font-style:normal; font-size:11.5px; font-weight:700; opacity:.78; line-height:1.25;}",
+      "#sehirBonusu .sb-sure{",
+      "  margin-top:3px; align-self:flex-start; padding:2px 9px; border-radius:999px;",
+      "  background:#2fbf5a; color:#06240f; font-style:normal;",
+      "  font-size:13px; font-weight:900; font-variant-numeric:tabular-nums;",
+      "}",
+      "#sehirBonusu .sb-sure.sb-sure-yok{background:rgba(0,20,45,.14); color:#0d2a36;}",
+      "#sehirBonusu .sb-sag{flex:0 0 auto; font-size:11.5px; font-weight:800; opacity:.7;}"
     ].join("\n");
     document.head.appendChild(s);
   }
 
   /* Görsel açılmazsa emojiye döner (Emoji ↔ görsel kuralı: burası
      innerHTML, o yüzden görsel; onerror düz metne düşürür). */
-  function gorselHTML() {
-    return '<img src="' + GORSEL + '" alt="" ' +
-           'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' + EMOJI + '\'))">';
+  function gorselHTML(dosya, yedek) {
+    var d = dosya || GORSEL, y = yedek || EMOJI;
+    return '<img src="' + d + '" alt="" ' +
+           'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'' + y + '\'))">';
+  }
+
+  /* ── ŞEHİR BONUSU LİSTESİ ────────────────────────────────────
+     TEK TABLO. `aktif:true` olan satır oyunda GERÇEKTEN var; geri
+     kalanlar referans ekrandaki yerlerini tutuyor ve "Yakında"
+     yazıyor — sahte bir etki uygulamıyorlar, dokunuşa da kapalılar.
+     Bir bonus gerçekten yazıldığı gün burada `aktif:true` yapılır ve
+     `deger` işlevi eklenir; ekranda başka hiçbir yer değişmez.
+     Görseller oyunun kendi dosyalarından, yeni varlık üretilmedi. */
+  var BONUS = [
+    { sekme:"savas",  ad:"Kalkan",              not:"Şehrini tüm düşman saldırılarına karşı korur.", gor:"kalkan.webp",          emoji:"🛡️", aktif:true },
+    { sekme:"savas",  ad:"Gözetleme Önleyen",   not:"Şehrine yönelik gözetleme girişimlerini önler.", gor:"perdeleme.webp",      emoji:"🕶️" },
+    { sekme:"savas",  ad:"Birlik Öldürücülüğü", not:"Tüm birliklerin öldürücülüğünü artırır.",        gor:"topcu.webp",          emoji:"💥" },
+    { sekme:"savas",  ad:"Birlik Saldırısı",    not:"Tüm birliklerin saldırısını artırır.",           gor:"sovalye.webp",        emoji:"⚔️" },
+    { sekme:"savas",  ad:"Birlik Savunması",    not:"Tüm birliklerin savunmasını artırır.",           gor:"savunucukisla.webp",  emoji:"🛡️" },
+    { sekme:"savas",  ad:"Birlik Sağlığı",      not:"Tüm birliklerin sağlığını artırır.",             gor:"yetenek_sifa.webp",   emoji:"❤️" },
+    { sekme:"savas",  ad:"Düşman Saldırısı",    not:"Düşman birlik saldırısını azaltır.",             gor:"yetenek_yasak.webp",  emoji:"🚫" },
+    { sekme:"savas",  ad:"Düşman Savunması",    not:"Düşman birlik savunmasını azaltır.",             gor:"yetenek_engel.webp",  emoji:"🧱" },
+    { sekme:"buyume", ad:"Rastgele Işınlayıcı", not:"Şehrini haritada başka bir konuma ışınlar.",     gor:"25intikal.webp",      emoji:"🌀" },
+    { sekme:"buyume", ad:"Toplama Hızı",        not:"Her türden kaynağı toplama hızını artırır.",     gor:"tasiikon.webp",       emoji:"🚚" },
+    { sekme:"buyume", ad:"Eğitim Kapasitesi",   not:"Tek seferde eğitebileceğin birlik sayısını artırır.", gor:"egitikon.webp",  emoji:"🎖️" }
+  ];
+
+  var SEKMELER = [{ k:"savas", et:"Savaşlar" }, { k:"buyume", et:"Büyüme" }];
+  var bonusKat = null, bonusSekme = "savas", bonusAcik = false, bonusSureEl = null;
+
+  function bonusListeYaz() {
+    var liste = bonusKat.querySelector(".sb-liste");
+    var html = "";
+    for (var i = 0; i < BONUS.length; i++) {
+      var b = BONUS[i];
+      if (b.sekme !== bonusSekme) continue;
+      html +=
+        '<div class="sb-kart' + (b.aktif ? " sb-aktif" : " sb-pasif") + '">' +
+          '<span class="sb-gor">' + gorselHTML(b.gor, b.emoji) + '</span>' +
+          '<span class="sb-metin">' +
+            '<b class="sb-ad">' + b.ad + '</b>' +
+            '<i class="sb-not">' + b.not + '</i>' +
+            (b.aktif ? '<i class="sb-sure">--:--:--</i>' : "") +
+          '</span>' +
+          '<span class="sb-sag">' + (b.aktif ? "" : "Yakında") + '</span>' +
+        '</div>';
+    }
+    liste.innerHTML = html;
+    bonusSureEl = liste.querySelector(".sb-sure");
+    bonusSureYaz();
+  }
+
+  /* Kalkan satırının süresi de rozetle AYNI kapıdan gelir. */
+  function bonusSureYaz() {
+    if (!bonusSureEl) return;
+    var ms = kalanMs();
+    var yeni = ms > 0 ? bicim(ms) : "Kalkanın yok";
+    if (bonusSureEl.textContent !== yeni) bonusSureEl.textContent = yeni;
+    bonusSureEl.className = "sb-sure" + (ms > 0 ? "" : " sb-sure-yok");
+  }
+
+  function bonusSekmeYaz() {
+    var d = bonusKat.querySelectorAll(".sb-sekme");
+    for (var i = 0; i < d.length; i++)
+      d[i].classList.toggle("secili", d[i].dataset.k === bonusSekme);
+  }
+
+  function bonusKur() {
+    if (bonusKat) return;
+    bonusKat = document.createElement("div");
+    bonusKat.id = "sehirBonusu";
+    bonusKat.innerHTML =
+      '<div class="sb-bas">' +
+        '<button class="sb-geri" type="button" aria-label="Geri">←</button>' +
+        '<span class="sb-baslik">Şehir Bonusu</span>' +
+      '</div>' +
+      '<div class="sb-sekmeler">' +
+        SEKMELER.map(function (s) {
+          return '<button class="sb-sekme" type="button" data-k="' + s.k + '">' + s.et + '</button>';
+        }).join("") +
+      '</div>' +
+      '<div class="sb-liste"></div>';
+    document.body.appendChild(bonusKat);
+
+    bonusKat.querySelector(".sb-geri").addEventListener("click", function (e) {
+      e.stopPropagation();
+      bonusKapat();
+    });
+    bonusKat.addEventListener("click", function (e) {
+      var t = e.target.closest ? e.target.closest(".sb-sekme") : null;
+      if (!t || t.dataset.k === bonusSekme) return;
+      bonusSekme = t.dataset.k;
+      bonusSekmeYaz();
+      bonusListeYaz();
+    });
+  }
+
+  function bonusAc() {
+    bonusKur();
+    bonusAcik = true;
+    kapat();                     /* baloncuk kapanır, iki pencere üst üste durmaz */
+    bonusKat.classList.add("acik");
+    bonusSekmeYaz();
+    bonusListeYaz();
+  }
+
+  function bonusKapat() {
+    bonusAcik = false;
+    if (bonusKat) bonusKat.classList.remove("acik");
   }
 
   function kur() {
@@ -143,9 +317,15 @@
         '<span class="kr-gor">' + gorselHTML() + '</span>' +
         '<span class="kr-ad">Kalkan</span>' +
         '<span class="kr-sure">--:--:--</span>' +
-      '</div>';
+      '</div>' +
+      '<button class="kr-bonus" type="button">Şehir Bonusu</button>';
     document.body.appendChild(pencere);
     sureEl = pencere.querySelector(".kr-sure");
+
+    pencere.querySelector(".kr-bonus").addEventListener("click", function (e) {
+      e.stopPropagation();
+      bonusAc();
+    });
 
     rozet.addEventListener("click", function (e) {
       e.stopPropagation();
@@ -186,9 +366,13 @@
 
   /* Biçim de tek kaynaktan (index.html saatBicim). İkinci bir
      biçimlendirici yazılmaz; yoksa yer tutucu kalır. */
+  function bicim(ms) {
+    try { if (typeof saatBicim === "function") return saatBicim(ms); } catch (e) {}
+    return "--:--:--";
+  }
+
   function sureYaz(ms) {
-    var yeni = "--:--:--";
-    try { if (typeof saatBicim === "function") yeni = saatBicim(ms); } catch (e) {}
+    var yeni = bicim(ms);
     if (sureEl && sureEl.textContent !== yeni) sureEl.textContent = yeni;
   }
 
@@ -231,7 +415,10 @@
       panelAcik = !!document.querySelector(".overlay-panel.active");
       var arena = document.getElementById("battleArena");
       if (arena && getComputedStyle(arena).display !== "none") panelAcik = true;
+      if (bonusAcik) panelAcik = true;   /* kendi tam ekranımız da panel sayılır */
     } catch (e) {}
+
+    if (bonusAcik) bonusSureYaz();       /* Şehir Bonusu açıkken Kalkan satırı sayar */
 
     var gorunur = ms > 0 && !panelAcik && document.body.classList.contains("world-active");
 
@@ -255,5 +442,6 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", basla);
   else basla();
 
-  window.KALKAN_ROZET = { SURUM: SURUM, tazele: tazele, ac: ac, kapat: kapat };
+  window.KALKAN_ROZET = { SURUM: SURUM, tazele: tazele, ac: ac, kapat: kapat,
+                          bonusAc: bonusAc, bonusKapat: bonusKapat };
 })();

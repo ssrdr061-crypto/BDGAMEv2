@@ -238,8 +238,34 @@ Kaçış: `?egitimkapat=1`.
   ayrı `node --check` edildi, `tuzak27.py` temiz, fonksiyon adları
   birebir aynı (index.html'e yalnız `<script>` satırı eklendi).
 
+  **ÜÇÜNCÜ TUR — ŞEHİR BONUSU EKRANI.** Pencereye **"Şehir Bonusu"**
+  düğmesi kondu; tam ekran liste açıyor: **Savaşlar** (8 satır) ve
+  **Büyüme** (3 satır) sekmeleri, referanstaki sıra ve metinlerle.
+
+  - **YALNIZ KALKAN GERÇEK.** Tablo tek yerde (`BONUS` dizisi);
+    `aktif:true` olan tek satır Kalkan ve süresi rozetle AYNI kapıdan
+    (`kalkanKalanMs` + `saatBicim`) geliyor. Diğer on satır **"Yakında"**
+    yazıyor, soluk çiziliyor ve HİÇBİR ETKİ UYGULAMIYOR — sahte bonus
+    yok. Bir bonus gerçekten yazıldığı gün o satıra `aktif:true`
+    yazmak yeter, ekranda başka yer değişmez.
+  - **Görseller oyunun kendi dosyalarından**, yeni varlık üretilmedi:
+    perdeleme · topcu · sovalye · savunucukisla · yetenek_sifa ·
+    yetenek_yasak · yetenek_engel · 25intikal · tasiikon · egitikon.
+    Hepsinde `onerror` emoji yedeği var.
+  - **Kaydırma yalnız listede** (Tuzak 13: kapsayıcıya `overflow`
+    vermek yatayda da kırpar). Başlık ve sekmeler sabit — çanta/market
+    kalıbının aynısı, üçüncü bir panel dili açılmadı.
+  - Ekran açıkken rozet gizleniyor, geri okuyla çıkınca dönüyor.
+
+  Ölçüldü (412×820 ve 360×740, 2×): ekran **tam ekran** (412×820 /
+  360×740) · Savaşlar 8 kart, Büyüme 3 kart · kartların hepsi aynı
+  ende (388 / 336) · on bir görselin hepsi yükleniyor · yazı taşması
+  **0** · sayfa yatay kaydırması **0** · Kalkan satırı sayıyor
+  (07:53:56) · geri okuyla ekran kapanıp rozet geri geliyor.
+
   **GERİ DÖNÜŞ TEK HAMLE:** `index.html`den
-  `<script src="kalkanrozet.js"></script>` satırını sil.
+  `<script src="kalkanrozet.js"></script>` satırını sil — rozet,
+  pencere ve Şehir Bonusu ekranı birlikte gider.
 
   **ÖLÇÜM NOTU — eğitim kilidi tıklamayı yutuyor.** Rozete Playwright
   ile basınca hiçbir şey olmuyordu; sebep rozet değil, `egitim.js`
@@ -1365,11 +1391,11 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 `kaleici-58` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
-`gucefekt-2` · `kalkanrozet-2` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
+`gucefekt-2` · `kalkanrozet-3` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
 
 **Tam ekran olan paneller:** çanta (`#panel-inventory`) · market
 (`#panel-shop`) · kahraman listesi ve detayı (`HERO_UI.kartTamEkran`) ·
-birlik eğitim ekranları (`#panel-troops`, üç aile birden).
+birlik eğitim ekranları (`#panel-troops`, üç aile birden) · şehir bonusu (`#sehirBonusu`).
 Hastane ve sandık hâlâ dört yanı boşluklu kart.
 
 **Denetim betiği:** `tuzak27.py` — şablon dizgisi içindeki yorumlarda
