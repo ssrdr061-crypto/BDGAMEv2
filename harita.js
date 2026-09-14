@@ -193,7 +193,9 @@
       koyu: 0.24, acik: 0.24,
       isik: 0.32,
       siklik: 3.6,        // 1 = eski harita deseni · 3.6 = kaleiçi
-      doygunluk: 1.10,
+      /* 1.10 → 1.04: yukarıdaki doygunluk notunun aynısı. Grade
+         katmanı çimeni zaten canlandırıyor. */
+      doygunluk: 1.04,
     },
 
     /* Leke gücü GENEL çarpanı. 0 = tek düze renk. Bölge başına
@@ -208,8 +210,14 @@
        1 = dokunma · 1.2 civarı canlı · 1.5 üstü poster gibi.
        YALNIZ kar ve lav için geçerli — çimenin kendi doygunluğu
        cimenKale.doygunluk. Yansıma kapandıktan sonra kar/lav soluk
-       kaldığı için 1.22 → 1.34. */
-    doygunluk: 1.34,
+       kaldığı için 1.22 → 1.34.
+
+       1.34 → 1.18 (atmosfer katmanı geldi): grade katmanı soft-light
+       ile kontrastı zaten açıyor. İkisi üst üste binince lav turuncu,
+       çimen zehir yeşili çıkıyordu — doygunluk boyaya değil IŞIĞA
+       bırakıldı. Atmosferi kapatırsan (?atmos=0) burayı 1.34'e geri
+       al, yoksa harita soluk görünür. */
+    doygunluk: 1.18,
 
     /* ── BÖLGE BAŞINA LEKE KARAKTERİ ──
        koyu = koyu parçaların gücü · acik = açık parçaların gücü
@@ -249,6 +257,135 @@
 
     /* Geniş yumuşak ışık/gölge dalgası. 0 = kapalı. */
     isik: 0.32,
+
+    /* ═══════════════════════════════════════════════════════════════
+       ATMOSFER — sahnenin ORTAK IŞIĞI
+       ---------------------------------------------------------------
+       NEDEN VAR: zeminRengi() her pikseli KENDİ BAŞINA boyuyor. Biyom
+       rengi + gürültü + doygunluk; hepsi yerel. Ortada sahnenin
+       tamamına ait bir ışık yok, bu yüzden harita "boyanmış" duruyor,
+       "aydınlatılmış" durmuyor. Kaleler de zemine yapıştırılmış gibi
+       görünüyor — altlarında temas gölgesi yok.
+
+       Bu blok üç şeyi ekler, üçü de AYRI AYRI kapatılabilir:
+         golge  → her kalenin/düğümün altına yere yapışık elips
+         vinyet → kenarlara doğru soğuyan/karararak derinleşen hava
+         grade  → sahnenin tamamına tek bir ışık tonu (soft-light)
+
+       CANLI AYAR: konsoldan değer değiştirip
+         HARITA.atmosferUygula(); HARITA.cizUstIste();
+       yazman yeter — sayfayı yenilemeye gerek yok.
+
+       TAMAMEN KAPATMA: adresin sonuna ?atmos=0 ekle. Dosyaya
+       dokunmadan eski görünüme döner; şüphelendiğinde ilk bakılacak
+       yer burasıdır. */
+    atmosfer: {
+      acik: !/[?&]atmos=0/.test(location.search || ""),
+
+      /* ── TEMAS GÖLGESİ ──
+         Cismin zemine DEĞDİĞİ yerde koyu, uzaklaştıkça dağılan elips.
+         Yuvarlak değil YASSI: izometride yer düzlemi ekranda 2:1
+         eziktir, yuvarlak gölge cismi havada asılı gösterir.
+
+         Eski `filter:drop-shadow` bunu YAPAMAZ — o, sprite'ın
+         SİLUETİNİ kopyalayıp kaydırır; yani gölge de kule gibi dik
+         durur. index.html'deki o satır kaldırıldı, yerine bu geldi. */
+      golge: {
+        guc:  0.55,            /* 0 = kapalı · katmanın genel opaklığı */
+        renk: [3, 11, 26],     /* gölge lacivert; saf siyah ölü durur  */
+
+        /* CANVAS DÜĞÜMLERİ (kaynak arazisi + canavar).
+           Sayılar ÇARPANDIR: düğüm yarıçapı r ile çarpılır, böylece
+           yakınlaştırmayla birlikte büyür. */
+        dugumEn:  1.06,        /* elipsin yarı genişliği = r × bu */
+        dugumBoy: 0.40,        /* elipsin yarı yüksekliği = r × bu */
+        dugumDy:  0.70,        /* düğüm merkezinden aşağı kayma = r × bu */
+
+        /* DOM KALELERİ. Sayılar .node-avatar kutusunun YÜZDESİ.
+           Neden yüzde: kale kutusu seviyeye göre 132–252 px ve her
+           seviyenin kendi dy kayması var (index.html). Yüzde yazılınca
+           gölge o tabloyu OKUMADAN hepsine birden oturur — ikinci bir
+           ölçü tablosu tutulmaz, yeni seviye eklenince düzeltme gerekmez.
+
+           kaleY = 82.5 NEREDEN: kale görselleri 1024x683 ve
+           object-fit:contain ile KARE kutuya oturuyor. Kutunun alt-üst
+           %16.7'si boş kalıyor, resmin kendi alt boşluğu ise %0-1.
+           Yani sprite'ın TABANI kutunun %83'ünde. Ölçüldü (5 görselin
+           alfa sınırı: %82.6 – %83.4), ortalaması alındı. */
+        kaleEn:   56,          /* elips genişliği = kutu eni × %       */
+        kaleOran: 2.7,         /* genişlik / yükseklik (yassılık)      */
+        kaleY:    83,          /* elips merkezi = kutu boyu × %        */
+      },
+
+      /* ── VİNYET: LOŞLUK + SOĞUK HAVA ──
+         Referans oyunlardaki "loş" his PARLAMADAN değil KARARMADAN
+         geliyor: merkez olduğu gibi kalır, kenarlar koyulaşıp maviye
+         çalar. Göz bunu hacim diye okur.
+
+         DİKKAT — bu katman EKRANA sabit, dünyaya değil. Dünyaya
+         konsaydı kaydırırken zeminle birlikte kayar ve ışık değil
+         "leke" gibi görünürdü. (Aynı sebeple CFG.yansima da ekran
+         uzayındaydı; o beyaz parlamaydı ve zemini soluklaştırdığı
+         için kapatılmıştı — bu onun tersi, karartma.)
+
+         ic: bu orana kadar HİÇ dokunma. Küçültürsen karartma ortaya
+         doğru sürünür ve harita kirli görünür. 0.40'ın altına inme. */
+      vinyet: {
+        guc:      0.54,        /* 0 = kapalı · en kenardaki koyuluk */
+        renk:     "6,18,44",   /* R,G,B — gece mavisi               */
+        ic:       0.46,        /* temiz merkezin yarıçapı (0-1)     */
+        enX:      82,          /* elipsin genişliği, ekranın %'si   */
+        enY:      68,          /* elipsin yüksekliği, ekranın %'si  */
+        merkezY:  44,          /* elips merkezi, ekran boyunun %'si */
+      },
+
+      /* ── GRADE: SAHNENİN ORTAK IŞIĞI ──
+         soft-light karıştırma: altındaki rengi EZMEZ, eğer. Açık
+         yerleri biraz daha açar, koyu yerleri biraz daha koyar ve
+         hepsini aynı tonun altına sokar. Düz bir renk katmanı
+         (normal karışım) bunun yerine her şeyi soluklaştırırdı —
+         "haritanın üstü beyaz" hatası tam olarak oydu.
+
+         ust/alt: üstte serin gökyüzü ışığı, altta koyu zemin
+         yansıması. İkisi arasındaki fark haritaya derinlik verir.
+
+         kip: soft-light yerine "overlay" yazarsan kontrast sertleşir,
+         "normal" yazarsan düz tül olur (önerilmez). */
+      grade: {
+        guc:      1,                          /* 0 = kapalı */
+        kip:      "soft-light",
+        ustRenk:  "rgba(128,186,255,.26)",
+        altRenk:  "rgba(8,20,52,.34)",
+      },
+
+      /* ── ZEMİN TANESİ ──
+         Zemin 10 dünya pikselinde bir örneklenip (zeminAdim) bilineer
+         BÜYÜTÜLÜYOR. Yani en ince ayrıntı bile 10 px bulanık. Yakından
+         bakınca arazi değil, yeşil bir duman gibi duruyor — "doku
+         basit/çocuksu" hissinin asıl kaynağı bu.
+
+         zeminAdim'i küçültmek doğru çözüm DEĞİL: örnek sayısı karesiyle
+         artar (10→5 dört kat), her örnek ~10 gürültü çağrısı demek ve
+         ilk kaydırmada telefon donar. Bunun yerine hazır bir TANE
+         deseni parçanın üstüne tek fillRect ile basılıyor — maliyeti
+         parça başına bir çağrı, görsel kazancı büyük.
+
+         Desen DÜNYA uzayında: parçanın içine pişirildiği ve dünya
+         koordinatına hizalandığı için kaydırırken zeminle birlikte
+         gider, yakınlaştırınca zeminle birlikte büyür. Ekrana sabit
+         olsaydı "kirli cam" gibi görünürdü.
+
+         guc: 0 = kapalı. 0.30 üstü kum kağıdı gibi olur.
+         genlik: tanenin koyu/açık genliği (0-127).
+         boy: desen karesinin dünya pikseli cinsinden eni. 16'ya
+           bölünebilmeli — kaba katman 16'lık bloklardan üretiliyor,
+           bölünmezse desenin eki dikiş olarak görünür. */
+      doku: {
+        guc:    0.22,
+        genlik: 96,
+        boy:    128,
+      },
+    },
 
     /* Lekeler ekranda YATAY eziliyor. İzometrik zeminde desen yuvarlak
        olursa göz onu dik bir duvar gibi okur; yatay uzayınca yere
@@ -452,6 +589,87 @@
   /* PAY: parça canvas'ının her yanına eklenen boşluk (dünya pikseli).
      Komşu parçalar arasında saç teli boşluk kalmasın diye. */
   const PAY = 1;
+
+  /* ═════════════════════════════════════════════════════════════════════
+     ZEMİN TANESİ DESENİ
+
+     BİR KEZ üretilen, kendi kendine EKLENEBİLEN (seamless) gri bir
+     kare. Parçanın üstüne "overlay" ile basılır: gri 128 hiçbir şey
+     yapmaz, koyusu karartır, açığı aydınlatır. Yani zeminin RENGİNİ
+     bozmaz, yalnız ona tane verir.
+
+     DİKİŞSİZLİK NASIL SAĞLANIYOR: kaba katmanlar küçük bir NxN
+     ızgaradan yumuşatılarak büyütülüyor ve ızgara komşusu aranırken
+     (x+1) YERİNE (x+1) % N okunuyor. Yani desenin sağ kenarı sol
+     kenarıyla, alt kenarı üst kenarıyla matematiksel olarak sürekli.
+     Bu sarmalama olmasaydı desenin eki ince bir çizgi olarak görünür,
+     harita satranç tahtasına dönerdi.
+
+     İLK DENEMEDE BLOK KULLANILMIŞTI (her piksel kendi 16'lık bloğunun
+     değerini okuyordu). Dikişsizdi ama gözle görülür bir MOZAİK
+     çıkardı — 16 pikselin tamamı aynı tonda kalıyordu. Süzme şart;
+     dikişi de sarmalama çözüyor. Blok yaklaşımına dönme.
+
+     Üç katman NİYE: tek piksellik saf gürültü televizyon karıncası
+     gibi durur. Geniş katman lekeyi, orta katman tane öbeğini, tek
+     piksellik katman da keskinliği verir. Üçü toplanınca göz bunu
+     arazi dokusu diye okur. */
+  let _dokuDesen = null;
+  let _dokuImza  = null;   /* atmosferUygula bununla gereksiz pişirmeyi eler */
+
+  /* NxN'lik rastgele ızgaradan PxP'lik YUMUŞAK ve SARMALANAN alan.
+     Dönen değerler -0.5 … +0.5. */
+  function sarmalGurultu(P, N) {
+    const g = new Float32Array(N * N);
+    for (let i = 0; i < g.length; i++) g[i] = Math.random() - 0.5;
+
+    const out = new Float32Array(P * P);
+    const olcek = N / P;
+    for (let y = 0; y < P; y++) {
+      const fy = y * olcek;
+      const y0 = fy | 0, y1 = (y0 + 1) % N;
+      const ty = fy - y0, sy = ty * ty * (3 - 2 * ty);   /* smoothstep */
+      for (let x = 0; x < P; x++) {
+        const fx = x * olcek;
+        const x0 = fx | 0, x1 = (x0 + 1) % N;
+        const tx = fx - x0, sx = tx * tx * (3 - 2 * tx);
+        const ust = g[y0 * N + x0] + (g[y0 * N + x1] - g[y0 * N + x0]) * sx;
+        const alt = g[y1 * N + x0] + (g[y1 * N + x1] - g[y1 * N + x0]) * sx;
+        out[y * P + x] = ust + (alt - ust) * sy;
+      }
+    }
+    return out;
+  }
+
+  function dokuKaresi() {
+    if (_dokuDesen) return _dokuDesen;
+    const D = CFG.atmosfer.doku;
+    const P = Math.max(16, D.boy | 0);
+    const A = Math.max(0, Math.min(127, D.genlik));
+
+    const cv2 = document.createElement("canvas");
+    cv2.width = cv2.height = P;
+    const c = cv2.getContext("2d");
+    const im = c.createImageData(P, P);
+    const px = im.data;
+
+    const kaba = sarmalGurultu(P, Math.max(2, P >> 4));   /* geniş leke */
+    const orta = sarmalGurultu(P, Math.max(4, P >> 2));   /* tane öbeği */
+
+    for (let i = 0, n = P * P; i < n; i++) {
+      /* Kaba katmanların genliği düşük tutuluyor: yüksek olsaydı tane
+         değil, zeminin üstüne serilmiş ikinci bir leke katmanı olurdu
+         — zaten CFG.leke o işi yapıyor. Buranın işi KESKİNLİK. */
+      const v = kaba[i] * 0.34 + orta[i] * 0.34 + (Math.random() - 0.5) * 0.32;
+      const g = Math.max(0, Math.min(255, 128 + v * 2 * A));
+      const k = i * 4;
+      px[k] = px[k + 1] = px[k + 2] = g;
+      px[k + 3] = 255;
+    }
+    c.putImageData(im, 0, 0);
+    _dokuDesen = { cv: cv2, P };
+    return _dokuDesen;
+  }
 
   /* ═════════════════════════════════════════════════════════════════════
      CANVAS KURULUMU
@@ -809,6 +1027,45 @@
     x2.setTransform(s, 0, 0, s, 0, 0);
     x2.drawImage(lo, 1, 1, w / A, h / A, 0, 0, w, h);
 
+    /* ── TANE ──
+       Bulanık büyütmenin hemen ÜSTÜNE, ızgara çizgilerinin ALTINA.
+       Burada olması şart: parçaya pişince önbelleğe girer, kaydırma
+       sırasında bir daha hesaplanmaz.
+
+       HİZALAMA: parçanın yerel (0,0) noktası dünyada (minX,minY).
+       Desen kendi başına yerel koordinattan başlar, yani her parça
+       deseni baştan başlatır ve parça sınırlarında görünür bir kesik
+       oluşur. pattern.setTransform ile desen dünya fazına kaydırılıyor:
+       yerel lx noktasında dünya (minX+lx) okunsun diye -minX kadar.
+       İki komşu parça böylece aynı sonsuz desenin iki penceresi olur.
+
+       ctx zaten setTransform(s,...) altında: desen karesi s ile
+       ölçekleniyor, yani DÜNYA ölçüsünde sabit kalıyor —
+       yakınlaştırınca tane de büyür, arazi dokusu gibi durur. */
+    const D = CFG.atmosfer.doku;
+    if (CFG.atmosfer.acik && D.guc > 0) {
+      const t = dokuKaresi();
+      const des = x2.createPattern(t.cv, "repeat");
+      if (des) {
+        /* JS'te % negatif sayıda negatif döner; iki adımda pozitife
+           çekiliyor, yoksa kaydırma ters yöne kaçar. */
+        const fx = ((-minX % t.P) + t.P) % t.P;
+        const fy = ((-minY % t.P) + t.P) % t.P;
+        /* Eski WebView'larda ikisi de olmayabilir. Yoksa hizalama
+           yapılmaz — desen yine basılır, yalnız parça sınırlarında
+           küçük bir kayma olur. Dokuyu tamamen kaybetmektense. */
+        if (des.setTransform && typeof DOMMatrix !== "undefined") {
+          des.setTransform(new DOMMatrix([1, 0, 0, 1, fx, fy]));
+        }
+        x2.save();
+        x2.globalCompositeOperation = "overlay";
+        x2.globalAlpha = D.guc;
+        x2.fillStyle = des;
+        x2.fillRect(0, 0, w, h);
+        x2.restore();
+      }
+    }
+
     if (CFG.izgaraCizgisi) {
       x2.strokeStyle = "rgba(255,255,255,.18)";
       x2.lineWidth = 1 / s;
@@ -1037,6 +1294,42 @@
     c.fillText(d.ikon, x, y);
   }
 
+  /* ═════════════════════════════════════════════════════════════════════
+     TEMAS GÖLGESİ FIRÇASI
+
+     Tek bir yumuşak daire BİR KEZ küçük bir canvas'a çizilip saklanır;
+     her düğüm onu drawImage ile ELİPS kutusuna gererek kullanır.
+
+     NEDEN ÖNCEDEN: createRadialGradient her çağrıda yeni bir gradyan
+     nesnesi kurar. Ekranda 176 düğüm var ve üst katman saniyede 60
+     kez çiziliyor — kare başına 176 gradyan telefonu dize getirir.
+     Hazır fırçayla aynı iş 176 drawImage'a iner, bu bedava sayılır.
+
+     Fırça GRİ TONLU değil, gölgenin KENDİ RENGİNDE basılır; renk
+     değişince atmosferUygula() bu önbelleği düşürür. */
+  let _golgeFirca = null;
+
+  function golgeFirca() {
+    if (_golgeFirca) return _golgeFirca;
+    const S = 128;
+    const rgb = (CFG.atmosfer.golge.renk || [3, 11, 26]).join(",");
+    const cv2 = document.createElement("canvas");
+    cv2.width = cv2.height = S;
+    const c = cv2.getContext("2d");
+    const g = c.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    /* Ortada dolu, kenarda sıfır. Aradaki basamaklar düz bir
+       doğrusal solmadan daha "yere yapışık" okunuyor: göbek geniş
+       kalıyor, sönüm kenara doğru hızlanıyor. */
+    g.addColorStop(0.00, "rgba(" + rgb + ",1)");
+    g.addColorStop(0.40, "rgba(" + rgb + ",.80)");
+    g.addColorStop(0.72, "rgba(" + rgb + ",.28)");
+    g.addColorStop(1.00, "rgba(" + rgb + ",0)");
+    c.fillStyle = g;
+    c.fillRect(0, 0, S, S);
+    _golgeFirca = cv2;
+    return cv2;
+  }
+
   /* Düğümleri canvas'a çizer. ciz() içinden, zemin parçalarından SONRA
      çağrılır; o noktada ctx zaten pan+zoom dönüşümünde olduğu için
      dönüşüm geçici olarak SIFIRLANIR: düğüm boyu zoom ile ölçeklenmeli
@@ -1055,13 +1348,43 @@
     /* Derinlik sırası: ekranda aşağıdaki üste gelsin (izometri). */
     const sirali = liste.slice().sort((a, b) => (a.kx + a.ky) - (b.kx + b.ky));
 
+    /* Düğümün ekran noktası — iki geçiş de aynı hesabı kullansın diye
+       tek yere yazıldı. Gölge ve düğüm bir piksel bile ayrışamaz. */
+    function nokta(d) {
+      const p = gridToWorld(d.kx, d.ky);
+      return { x: (p.x + HALF_W) * zoom + panX, y: (p.y + HALF_H) * zoom + panY };
+    }
+    function disarida(x, y) {
+      return (x < -PAY || y < -PAY || x > w + PAY || y > h + PAY);
+    }
+
+    /* ── 1. GEÇİŞ: GÖLGELER ──
+       NEDEN AYRI GEÇİŞ: düğümler arkadan öne sıralı çiziliyor. Gölge
+       her düğümün hemen öncesinde basılsaydı, ÖNDEKİ düğümün gölgesi
+       ARKADAKİ düğümün üstüne düşerdi — komşu karolarda kaynak
+       rozetlerinin yarısı kararıyordu. Bütün gölgeler önce, bütün
+       düğümler sonra: gölge asla bir düğümün üstüne gelmez. */
+    const GL = CFG.atmosfer.golge;
+    if (CFG.atmosfer.acik && GL.guc > 0) {
+      const firca = golgeFirca();
+      const rx = r * GL.dugumEn, ry = r * GL.dugumBoy, dy = r * GL.dugumDy;
+      c.save();
+      c.globalAlpha = GL.guc;
+      for (let i = 0; i < sirali.length; i++) {
+        const q = nokta(sirali[i]);
+        if (disarida(q.x, q.y)) continue;
+        c.drawImage(firca, q.x - rx, q.y + dy - ry, rx * 2, ry * 2);
+      }
+      c.restore();
+    }
+
+    /* ── 2. GEÇİŞ: DÜĞÜMLER ── */
     for (let i = 0; i < sirali.length; i++) {
       const d = sirali[i];
-      const p = gridToWorld(d.kx, d.ky);
-      const x = (p.x + HALF_W) * zoom + panX;
-      const y = (p.y + HALF_H) * zoom + panY;
+      const q = nokta(d);
+      const x = q.x, y = q.y;
 
-      if (x < -PAY || y < -PAY || x > w + PAY || y > h + PAY) continue;
+      if (disarida(x, y)) continue;
       cizilen++;
 
       const renk = SV_RENK[d.seviye] || "#5fd98a";
@@ -1798,6 +2121,154 @@
   }
 
   /* ═════════════════════════════════════════════════════════════════════
+     ATMOSFER — TEMAS GÖLGESİ · VİNYET · ORTAK IŞIK
+     ---------------------------------------------------------------------
+     Ayarların tamamı CFG.atmosfer'de; buradaki iş onları ekrana
+     bağlamak. Değer değiştirdikten sonra:
+         HARITA.atmosferUygula(); HARITA.cizUstIste();
+
+     KATMAN SIRASI (hepsi #battleMapScroll'un içinde):
+         z0  isoGround   zemin canvas'ı
+         z1  isoUst      düğümler, sefer yolları
+         z5  battleMap   kaleler (DOM)
+         z6  isoVinyet   loşluk — kenarlara doğru koyulaşan hava
+         z7  isoGrade    ortak ışık — soft-light
+
+     VİNYET VE GRADE NEDEN KALELERİN ÜSTÜNDE: altında kalsalardı
+     kaleler sahnenin ışığından muaf olur, karanlık bir zeminin
+     üstünde parlak birer çıkartma gibi dururdu — düzeltmeye
+     çalıştığımız şeyin ta kendisi.
+
+     isolation:isolate NEDEN ŞART: mix-blend-mode, elemanın KENDİ
+     yığın bağlamındaki her şeyle karışır. Bağlam açılmazsa karışım
+     sayfanın tamamına (panellere, HUD'a) taşar. Bu satır sahayı
+     harita kutusunun içine hapseder.
+     ═════════════════════════════════════════════════════════════════════ */
+
+  /* Katmanı bir kez kurar, sonraki çağrılarda aynısını döndürür. */
+  function atmosKat(ana, id, z) {
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement("div");
+      el.id = id;
+      ana.appendChild(el);
+    }
+    if (el.parentNode !== ana) ana.appendChild(el);
+    el.style.cssText =
+      "position:absolute; inset:0; pointer-events:none; z-index:" + z + ";";
+    return el;
+  }
+
+  function atmosferUygula() {
+    const scroll = document.getElementById("battleMapScroll");
+    if (!scroll) return;
+    const A = CFG.atmosfer;
+
+    /* Fırça gölgenin RENGİNİ pişirip saklıyor; renk değişmiş
+       olabilir, önbelleği düşür. */
+    _golgeFirca = null;
+
+    /* Tane deseni zemin parçalarının İÇİNE pişiyor. Değişince desen
+       de parçalar da düşürülmeli, yoksa konsoldan/panelden yapılan
+       değişiklik ekranda görünmez.
+
+       AMA HER ÇAĞRIDA DEĞİL: ?isik=1 paneli sürgüyü her oynattığında
+       burayı çağırıyor. Koşulsuz boşaltılsaydı sürgüyü sürüklerken
+       ekrandaki ~30 parça saniyede onlarca kez yeniden pişer, telefon
+       kilitlenirdi. Yalnız TANE ayarları değiştiyse boşaltılır;
+       vinyet/grade/gölge zaten parçaya girmiyor, onlar CSS. */
+    const D = A.doku;
+    const imza = (A.acik ? 1 : 0) + "|" + D.guc + "|" + D.genlik + "|" + D.boy;
+    if (imza !== _dokuImza) {
+      _dokuImza = imza;
+      _dokuDesen = null;
+      onbellegiBosalt();
+      cizIste();
+    }
+
+    scroll.style.isolation = "isolate";
+
+    const vin = atmosKat(scroll, "isoVinyet", 6);
+    const gra = atmosKat(scroll, "isoGrade",  7);
+
+    /* ── VİNYET ──
+       Merkez (ic yarıçapına kadar) TAMAMEN dokunulmadan kalır; renk
+       oradan dışarı doğru açılır. Ortadaki durak olmasaydı karartma
+       haritanın göbeğine sürünür, zemin kirli görünürdü. */
+    const V = A.vinyet;
+    if (A.acik && V.guc > 0) {
+      const ic  = Math.max(0, Math.min(0.95, V.ic));
+      const ort = ic + (1 - ic) * 0.55;
+      vin.style.display = "block";
+      vin.style.background =
+        "radial-gradient(ellipse " + V.enX + "% " + V.enY + "% at 50% " + V.merkezY + "%," +
+        " rgba(" + V.renk + ",0) 0%," +
+        " rgba(" + V.renk + ",0) " + (ic * 100).toFixed(1) + "%," +
+        " rgba(" + V.renk + "," + (V.guc * 0.30).toFixed(3) + ") " + (ort * 100).toFixed(1) + "%," +
+        " rgba(" + V.renk + "," + V.guc.toFixed(3) + ") 100%)";
+    } else {
+      vin.style.display = "none";
+    }
+
+    /* ── ORTAK IŞIK ──
+       Ortadaki durak SAYDAM: soft-light saydam renkle hiçbir şey
+       yapmaz, yani haritanın göbeği el değmeden kalır. Etki yalnız
+       üstte (serin gök ışığı) ve altta (koyu zemin yansıması). */
+    const Gr = A.grade;
+    if (A.acik && Gr.guc > 0) {
+      gra.style.display = "block";
+      gra.style.mixBlendMode = Gr.kip;
+      gra.style.opacity = String(Gr.guc);
+      gra.style.background =
+        "linear-gradient(180deg," + Gr.ustRenk + " 0%," +
+        " rgba(0,0,0,0) 46%," + Gr.altRenk + " 100%)";
+    } else {
+      gra.style.display = "none";
+    }
+
+    /* ── KALELERİN TEMAS GÖLGESİ ──
+       DOM kaleleri canvas'ta değil, o yüzden gölgeleri de CSS.
+       Gölge .node-avatar'ın İÇİNE konur: kutunun ölçüsü ve dy
+       kaydırması seviyeye göre değişiyor (index.html), gölge onun
+       içinde durunca bu tabloyu okumadan hepsine birden oturur.
+
+       z-index:-1 ŞART: ::after ağaçta img'den sonra gelir, yani
+       yazılmazsa gölge kalenin ÜSTÜNE basılır. .node-avatar
+       position:relative + z-index:1 taşıdığı için kendi yığın
+       bağlamını açar; -1 gölgeyi img'nin altına indirir ama
+       kutunun dışına (zeminin altına) DÜŞÜRMEZ.
+
+       Yükseklik yüzdesi kutunun KARE olmasına dayanır (132x132,
+       252x252 …). Kutu bir gün dikdörtgen yapılırsa burası
+       aspect-ratio'ya çevrilmeli. */
+    const GL = A.golge;
+    let st = document.getElementById("isoAtmosStil");
+    if (!st) {
+      st = document.createElement("style");
+      st.id = "isoAtmosStil";
+      document.head.appendChild(st);
+    }
+    if (A.acik && GL.guc > 0) {
+      const rgb = GL.renk.join(",");
+      const boy = (GL.kaleEn / GL.kaleOran).toFixed(2);
+      st.textContent =
+        ".map-node.castle-node .node-avatar::after{" +
+        "content:''; position:absolute; z-index:-1; pointer-events:none;" +
+        "left:50%; top:" + GL.kaleY + "%;" +
+        "width:" + GL.kaleEn + "%; height:" + boy + "%;" +
+        "transform:translate(-50%,-50%);" +
+        "opacity:" + GL.guc.toFixed(3) + ";" +
+        "background:radial-gradient(closest-side," +
+        " rgba(" + rgb + ",1) 0%," +
+        " rgba(" + rgb + ",.80) 40%," +
+        " rgba(" + rgb + ",.28) 72%," +
+        " rgba(" + rgb + ",0) 100%);}";
+    } else {
+      st.textContent = "";
+    }
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════
      OYUNA BAĞLANMA
 
      applyMapPan ve clampMapPan oyunun kendi fonksiyonları. Function
@@ -2353,6 +2824,7 @@
   function baslat() {
     if (!kurCanvas()) { setTimeout(baslat, 300); return; }
     stilEnjekte();
+    atmosferUygula();
     /* Doku yükleme kaldırıldı — zemin artık düz renkle boyanıyor. */
     bagla();
     kurArayuz();
@@ -2426,6 +2898,8 @@
                     /* canvas düğüm katmanı */
                     dugumBul, dugumTazele, cizUstIste,
                     ekranaGoreIzgara,
+                    /* atmosfer — CFG.atmosfer değiştirdikten sonra çağır */
+                    atmosferUygula,
                     /* Eski harita modu kaldırıldı; missile.js hâlâ soruyor,
                        cevap her zaman evet. */
                     aktifMi: function () { return true; } };

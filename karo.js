@@ -121,7 +121,18 @@
   }
 
   function cubuk() {
-    const mapEl = harita();
+    /* ÇUBUK #battleMap'in DEĞİL, SARMALAYICININ çocuğu.
+       Sebep: harita.js atmosfer katmanlarını (#isoVinyet / #isoGrade)
+       #battleMapScroll'un içine, kalelerin ÜSTÜNE koyuyor. Çubuk
+       #battleMap'te kalsaydı o katmanların altında ezilir, ekranın
+       kenarına yakın seçimlerde düğmeler vinyetin koyusuna gömülürdü.
+       Sarmalayıcı bu katmanların dışında.
+
+       KONUM HESABI DEĞİŞMEZ: #battleMap, #battleMapScroll'un inset:0
+       çocuğu ve ikisi de sarmalayıcıyla BİREBİR aynı dikdörtgeni
+       kaplıyor. left/top aynı sayılar. (ciz() genişliği zaten
+       sarmal().clientWidth'ten okuyordu — varsayım yeni değil.) */
+    const mapEl = sarmal() || harita();
     if (!mapEl) return null;
     if (!_cubuk) {
       _cubuk = document.createElement("div");

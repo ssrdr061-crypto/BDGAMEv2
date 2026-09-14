@@ -7076,24 +7076,28 @@ document.head.appendChild(st);
       Ayrıca her kale için ikinci bir <img> ve haritayı izleyen bir
       MutationObserver demekti.
 
-   KULLANILAN YOL: tek CSS elipsi (`.castle-avatar::after`).
-   Kalenin taban hizasında yassı, köşeleri yuvarlatılmış bir kare —
-   keskin kenarlı, kısa, hafif. `--kg-yuvarlak` %50 olursa daireye,
-   %0 olursa keskin köşeli dörtgene döner.
+   4) Sabit ölçülü CSS elipsi (`--kg-*`: 90×38 px, taban %60,
+      blur 0, kayma 14 px). BU DOSYADAYDI, KALDIRILDI. İki kusuru
+      vardı:
 
-   Buradaki sayılar `?isik=1` paneliyle ÖLÇÜLDÜ, tahmin değil:
-   90×38 px · taban %60 · köşe %27 · kayma 14 px / 237° (dx -11.7,
-   dy 7.6) · blur 0 · karartı %30. Panelin varsayılanları da aynı
-   sayılara çekildi; panel açılınca ekran değişmez.
+      · ÖLÇÜ PİKSELDİ. Yorumu "kutu 100×100 px" diyordu ama kutu
+        çoktan seviyeye göre 132–252 px olmuştu. Yani aynı 90 px'lik
+        leke hem Sv1'in hem Sv5'in altına giriyordu: küçük kalede
+        taşıyor, büyük kalede kaleden küçük kalıyordu. Yakınlaştırma
+        da gölgeyi büyütmüyordu — kale büyürken gölgesi sabit
+        kalıyordu.
+      · BLUR 0'DI. Keskin kenarlı bir leke gölge gibi değil, zemine
+        yapıştırılmış koyu bir çıkartma gibi okunuyordu.
+      · taban %60 idi; ölçüldü, sprite'ın gerçek tabanı %83.
 
-   Kayma ışığın (72°) tam tersine bakar, yani sol-alta. Gölge o
-   yönde taşar; ışık alan sağ-üst kenarda kalenin altından
-   çıkmaz. DOM'a hiçbir şey eklenmiyor, gözlemci yok, kale seviyesi
-   değişince ayar gerekmiyor.
+   KULLANILAN YOL: gölge artık harita.js'te, CFG.atmosfer.golge
+   altında. Ölçüler YÜZDE (kutuyla birlikte büyür, seviye tablosu
+   okumaz), kenarı radial-gradient ile yumuşak, ve aynı ayar canvas'a
+   çizilen kaynak/canavar düğümlerinde de kullanılıyor — haritadaki
+   her cismin gölgesi tek yerden gelir.
 
-   Ölçüler `--kg-*` değişkenlerinden gelir; `?isik=1` paneli aynı
-   değişkenleri sürer. Kutu 100×100 px (index.html ~1940), kale o
-   kutunun yaklaşık %83'ünde yere basar — `--kg-taban` odur.
+   Bu blokta yalnız gölgenin OTURACAĞI ZEMİN kaldı: kutunun
+   position/overflow'u ve eski silüet kopyasının susturulması.
    ══════════════════════════════════════════════════════════════ */
 (function kaleGolgesi(){
 "use strict";
@@ -7106,25 +7110,11 @@ html body #battleMap .map-node.castle-node .node-avatar{
   overflow:visible !important;
 }
 
-/* Taban elipsi. left/top yüzdesi 100px'lik kutuya göredir; kendi
-   merkezine oturması ve kaymanın eklenmesi margin ile yapılır —
-   transform KULLANILMIYOR, çünkü kale düğümünün kendi transform'u
-   her karede harita.js tarafından yeniden yazılıyor. */
-html body #battleMap .map-node.castle-node .castle-avatar::after{
-  content:"";
-  position:absolute;
-  left:50%;
-  top:var(--kg-taban, 60%);
-  width:var(--kg-en, 90px);
-  height:var(--kg-boy, 38px);
-  margin-left:calc(-0.5 * var(--kg-en, 90px) + var(--kg-dx, -11.7px));
-  margin-top:calc(-0.5 * var(--kg-boy, 38px) + var(--kg-dy, 7.6px));
-  border-radius:var(--kg-yuvarlak, 27%);
-  background:rgba(6,18,38, var(--kg-op, .30));
-  filter:blur(var(--kg-blur, 0px));
-  pointer-events:none;
-  z-index:0;
-}
+/* TABAN ELİPSİ ARTIK BURADA DEĞİL — harita.js → CFG.atmosfer.golge.
+   Buradaki eski kural kaldırıldı; neden olduğu yukarıda yazılı.
+   Buraya ::after gölge kuralı GERİ YAZMA: bu seçici
+   (html body #battleMap …) harita.js'inkinden daha özgül olduğu için
+   sessizce onu ezer ve yeni gölge hiç görünmez. */
 
 /* Gerçek görsel elipsin üstünde. Kendi drop-shadow'u KAPALI:
    silüetten üretildiği için dipteki çıkıntıları yansıtıyordu. */
@@ -7144,36 +7134,48 @@ document.head.appendChild(st);
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   IŞIK & GÖLGE AYAR PANELİ  —  ?isik=1
+   ATMOSFER AYAR PANELİ  —  ?isik=1
    ------------------------------------------------------------
    Adres satırına ?isik=1 eklenmedikçe HİÇBİR ŞEY yapmaz.
 
-     IŞIK  → harita.js CFG.yansima (ekran uzayındaki ışık)
-     GÖLGE → kale görselinin gölge kopyasının duruşu
+   Panelin tamamı harita.js → CFG.atmosfer'i sürer:
+     LOŞLUK → vinyet (kenarlara doğru koyulaşan hava)
+     IŞIK   → grade  (sahnenin tamamına tek ton, soft-light)
+     GÖLGE  → kalelerin ve düğümlerin temas gölgesi
+     DOKU   → zemin tanesi
 
-   Gölge ayarları TÜM kaleler için ortaktır; kale seviyesi
-   değişince yeniden ayar gerekmez, gölge görselden türer.
+   ESKİDEN NE SÜRÜYORDU: CFG.yansima (beyaz radial parlama) ve
+   tema.js'in kendi `--kg-*` kale gölgesi. İkisi de kaldırıldı —
+   yansima zemini soluklaştırdığı için guc:0'a çekilmişti, kale
+   gölgesi de sabit piksel ölçüsüyle seviyelere uymuyordu. Panelin
+   o sürgüleri hiçbir şeye bağlı olmayacaktı; yenilendi.
 
-   "DEĞERLER" son sayıları yazdırır; beğendiğini dosyalara
-   sabitleriz, panel gitse de kalır.
+   Sürgüler CANLI: her oynatmada HARITA.atmosferUygula() çağrılır.
+   O fonksiyon zemin parçalarını yalnız DOKU ayarları değiştiyse
+   yeniden pişirir, yoksa sürükleme sırasında telefon kilitlenirdi.
+
+   "DEĞERLER" son sayıları harita.js'e yapıştırılacak biçimde
+   yazdırır; beğendiğini dosyaya sabitleriz, panel gitse de kalır.
    ══════════════════════════════════════════════════════════════ */
-(function isikGolgeAyar(){
+(function atmosferAyar(){
 "use strict";
 
 if (!/[?&]isik=1(&|$)/.test(location.search)) return;
 
-const ANAHTAR = "bdIsikGolge3";
+/* ANAHTAR 3 → 4: eski kayıtta artık var olmayan alanlar duruyor
+   (golgeAci, golgeYumusak…). Aynı anahtarla okunsaydı Object.assign
+   onları yeni nesneye taşır ve panel ölü sürgülerle açılırdı. */
+const ANAHTAR = "bdAtmosfer1";
+
+/* VARSAYILANLAR harita.js'teki CFG.atmosfer ile BİREBİR aynı olmalı.
+   Aksi halde panel açılır açılmaz harita değişir ve "panel bozuyor"
+   sanılır. harita.js'te bir sayı değiştirirsen buraya da yaz. */
 const VARSAYILAN = {
-  isikAci: 72, isikYuk: 55, isikGuc: 20, koseKarart: 0,
-  bagli: 0,
-  golgeAci: 237,     /* kayma yönü, derece      */
-  golgeKayma: 14,    /* kayma miktarı, px       */
-  golgeEn: 90,       /* leke genişliği, px      */
-  golgeBoy: 38,      /* leke yüksekliği, px     */
-  golgeYuvarlak: 27, /* köşe yuvarlaklığı, %    */
-  golgeTaban: 60,    /* kutu içindeki yer, %    */
-  golgeYumusak: 0,   /* blur, px (0 = keskin)   */
-  golgeKarart: 30,   /* karartı, %              */
+  losGuc: 54, losIc: 46, losEnX: 82, losEnY: 68, losY: 44,
+  gradeGuc: 100,
+  golgeGuc: 55, golgeEn: 56, golgeOran: 27, golgeTaban: 83,
+  dugumEn: 106, dugumBoy: 40, dugumDy: 70,
+  dokuGuc: 22, dokuGenlik: 96,
 };
 
 let A = Object.assign({}, VARSAYILAN);
@@ -7182,41 +7184,33 @@ try {
   if (k) A = Object.assign(A, k);
 } catch (e) {}
 
-const rad = (d) => (d - 90) * Math.PI / 180;
-
-const stil = document.createElement("style");
-stil.id = "temaIsikGolgeAyar";
-document.head.appendChild(stil);
-
 function uygula(){
-  if (A.bagli) A.golgeAci = (A.isikAci + 180) % 360;
-
   try {
-    const C = window.HARITA && HARITA.CFG && HARITA.CFG.yansima;
-    if (C) {
-      const uzak = (1 - A.isikYuk / 100) * 0.55;
-      C.x = 0.5 + Math.cos(rad(A.isikAci)) * uzak;
-      C.y = 0.5 + Math.sin(rad(A.isikAci)) * uzak;
-      C.guc = A.isikGuc / 100;
-      C.koseKarart = A.koseKarart / 100;
-      if (HARITA.cizIste) HARITA.cizIste();
+    const T = window.HARITA && HARITA.CFG && HARITA.CFG.atmosfer;
+    if (T) {
+      T.vinyet.guc     = A.losGuc / 100;
+      T.vinyet.ic      = A.losIc  / 100;
+      T.vinyet.enX     = A.losEnX;
+      T.vinyet.enY     = A.losEnY;
+      T.vinyet.merkezY = A.losY;
+
+      T.grade.guc      = A.gradeGuc / 100;
+
+      T.golge.guc      = A.golgeGuc  / 100;
+      T.golge.kaleEn   = A.golgeEn;
+      T.golge.kaleOran = A.golgeOran / 10;
+      T.golge.kaleY    = A.golgeTaban;
+      T.golge.dugumEn  = A.dugumEn  / 100;
+      T.golge.dugumBoy = A.dugumBoy / 100;
+      T.golge.dugumDy  = A.dugumDy  / 100;
+
+      T.doku.guc       = A.dokuGuc / 100;
+      T.doku.genlik    = A.dokuGenlik;
+
+      if (HARITA.atmosferUygula) HARITA.atmosferUygula();
+      if (HARITA.cizUstIste) HARITA.cizUstIste();
     }
   } catch (e) {}
-
-  const dx = (Math.cos(rad(A.golgeAci)) * A.golgeKayma).toFixed(1);
-  const dy = (Math.sin(rad(A.golgeAci)) * A.golgeKayma).toFixed(1);
-
-  stil.textContent =
-    "html body #battleMap .map-node.castle-node .castle-avatar::after{" +
-      "width:" + A.golgeEn + "px;" +
-      "height:" + A.golgeBoy + "px;" +
-      "top:" + A.golgeTaban + "%;" +
-      "border-radius:" + A.golgeYuvarlak + "%;" +
-      "margin-left:calc(-0.5 * " + A.golgeEn + "px + " + dx + "px);" +
-      "margin-top:calc(-0.5 * " + A.golgeBoy + "px + " + dy + "px);" +
-      "filter:blur(" + A.golgeYumusak + "px);" +
-      "background:rgba(6,18,38," + (A.golgeKarart / 100).toFixed(3) + ");" +
-    "}";
 
   try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
 }
@@ -7262,21 +7256,25 @@ pstil.textContent =
 document.head.appendChild(pstil);
 
 const ALANLAR = [
+  ["bas", "LOŞLUK"],
+  ["losGuc",     "Güç",          0,  90],
+  ["losIc",      "Temiz orta",  25,  80],
+  ["losEnX",     "Genişlik",    40, 130],
+  ["losEnY",     "Yükseklik",   30, 130],
+  ["losY",       "Merkez Y",    15,  75],
   ["bas", "IŞIK"],
-  ["isikAci",      "Açı",         0, 359],
-  ["isikYuk",      "Yükseklik",   0, 100],
-  ["isikGuc",      "Güç",         0,  40],
-  ["koseKarart",   "Köşe karart", 0,  50],
+  ["gradeGuc",   "Güç",          0, 100],
   ["bas", "GÖLGE"],
-  ["bagli",        "Işığa bağlı", 0,   1],
-  ["golgeAci",     "Açı",         0, 359],
-  ["golgeKayma",   "Kayma",       0,  14],
-  ["golgeEn",      "Genişlik",   10,  90],
-  ["golgeBoy",     "Yükseklik",   4,  40],
-  ["golgeYuvarlak","Köşe",        0,  50],
-  ["golgeTaban",   "Taban",      60, 100],
-  ["golgeYumusak", "Yumuşaklık",  0,   8],
-  ["golgeKarart",  "Karartı",     0,  60],
+  ["golgeGuc",   "Koyuluk",      0, 100],
+  ["golgeEn",    "Kale eni",    20,  95],
+  ["golgeOran",  "Yassılık",    15,  45],
+  ["golgeTaban", "Kale tabanı", 65,  95],
+  ["dugumEn",    "Düğüm eni",   50, 170],
+  ["dugumBoy",   "Düğüm boyu",  15,  85],
+  ["dugumDy",    "Düğüm kayma",  0, 150],
+  ["bas", "DOKU"],
+  ["dokuGuc",    "Tane",         0,  50],
+  ["dokuGenlik", "Sertlik",     20, 127],
 ];
 
 const kutu = document.createElement("div");
@@ -7299,10 +7297,8 @@ function tazele(){
     const k = el.dataset.k;
     if (+el.value !== A[k]) el.value = A[k];
     const d = kutu.querySelector('[data-d="' + k + '"]');
-    if (d) d.textContent = (k === "bagli") ? (A[k] ? "a\u00e7\u0131k" : "\u2014") : A[k];
+    if (d) d.textContent = A[k];
   }
-  const ga = kutu.querySelector('[data-k="golgeAci"]');
-  if (ga) { ga.disabled = !!A.bagli; ga.style.opacity = A.bagli ? .35 : 1; }
 }
 
 function yerlestir(){
@@ -7324,25 +7320,30 @@ function yerlestir(){
   kutu.addEventListener("pointerup", function(ev){
     const i = ev.target.dataset && ev.target.dataset.i;
     if (i === "deger") {
-      const C = (window.HARITA && HARITA.CFG && HARITA.CFG.yansima) || {};
-      const dx = (Math.cos(rad(A.golgeAci)) * A.golgeKayma).toFixed(1);
-      const dy = (Math.sin(rad(A.golgeAci)) * A.golgeKayma).toFixed(1);
+      /* Çıktı doğrudan harita.js → CFG.atmosfer bloğuna yapıştırılacak
+         biçimde yazılır; elle çevirme yapılmasın diye sayılar zaten
+         dosyadaki birimde (oran/yüzde). */
       cikti.style.display = cikti.style.display === "block" ? "none" : "block";
       cikti.textContent =
-        "harita.js CFG.yansima\n" +
-        "  guc: " + (A.isikGuc / 100).toFixed(2) + "\n" +
-        "  x: " + (C.x != null ? C.x.toFixed(3) : "?") + "\n" +
-        "  y: " + (C.y != null ? C.y.toFixed(3) : "?") + "\n" +
-        "  koseKarart: " + (A.koseKarart / 100).toFixed(2) + "\n\n" +
-        "tema.js kaleGolgesi --kg-*\n" +
-        "  --kg-en: " + A.golgeEn + "px\n" +
-        "  --kg-boy: " + A.golgeBoy + "px\n" +
-        "  --kg-taban: " + A.golgeTaban + "%\n" +
-        "  --kg-yuvarlak: " + A.golgeYuvarlak + "%\n" +
-        "  --kg-dx: " + dx + "px\n" +
-        "  --kg-dy: " + dy + "px\n" +
-        "  --kg-blur: " + A.golgeYumusak + "px\n" +
-        "  --kg-op: " + (A.golgeKarart / 100).toFixed(2);
+        "harita.js CFG.atmosfer\n" +
+        "  golge: {\n" +
+        "    guc: "      + (A.golgeGuc  / 100).toFixed(2) + ",\n" +
+        "    dugumEn: "  + (A.dugumEn   / 100).toFixed(2) + ",\n" +
+        "    dugumBoy: " + (A.dugumBoy  / 100).toFixed(2) + ",\n" +
+        "    dugumDy: "  + (A.dugumDy   / 100).toFixed(2) + ",\n" +
+        "    kaleEn: "   + A.golgeEn + ",\n" +
+        "    kaleOran: " + (A.golgeOran / 10).toFixed(1) + ",\n" +
+        "    kaleY: "    + A.golgeTaban + ",\n" +
+        "  },\n" +
+        "  vinyet: {\n" +
+        "    guc: "     + (A.losGuc / 100).toFixed(2) + ",\n" +
+        "    ic: "      + (A.losIc  / 100).toFixed(2) + ",\n" +
+        "    enX: "     + A.losEnX + ", enY: " + A.losEnY + ",\n" +
+        "    merkezY: " + A.losY + ",\n" +
+        "  },\n" +
+        "  grade: { guc: " + (A.gradeGuc / 100).toFixed(2) + " },\n" +
+        "  doku: { guc: "  + (A.dokuGuc / 100).toFixed(2) +
+                 ", genlik: " + A.dokuGenlik + " },";
     }
     if (i === "sifirla") {
       A = Object.assign({}, VARSAYILAN);
