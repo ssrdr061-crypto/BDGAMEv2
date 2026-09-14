@@ -221,9 +221,16 @@ Kaçış: `?egitimkapat=1`.
     için ikinci bir alan (ve Tuzak 7 gereği `compactStateForExport`
     bakımı) gerekirdi. Süre rakamla yazıyor.
 
-  Ölçüldü (412×820 ve 360×740, 2×): rozet **30×30**, sol kenardan
-  10px, üst şeridin **3,5px** altında, "Haritaya dön" düğmesinin
-  **4px** üstünde (binme 0) · pencere 274×92,9, rozetin 8px altında,
+  **İKİNCİ TUR — ROZET KÜÇÜLDÜ + BEYAZ İNCE ÇERÇEVE.** 30 → **21px**
+  (%70), çerçeve kutunun kendi `border`ı: 1,5px beyaz, `box-sizing:
+  border-box` olduğu için dış ölçü BOY'u aşmıyor, görsel kenarın
+  altına girmiyor. Köşe ve punto da BOY'dan türetiliyor — tek sayı
+  değişince yerleşim kendiliğinden düzeliyor, ikinci yerde piksel
+  düzeltmesi yok.
+
+  Ölçüldü (412×820 ve 360×740, 2×): rozet **21×21**, sol kenardan
+  10px, üst şeridin **4px** altında, "Haritaya dön" düğmesinin
+  **12,5px** üstünde (binme 0) · pencere 274×92,9, rozetin 8px altında,
   sağdan taşma yok, sayfa yatay kaydırması **0** · sayaç işliyor
   (07:53:57 → 07:53:55) · dışarı dokunuş kapatıyor · çanta açılınca
   rozet gizleniyor, kapanınca geri geliyor · kalkan bitince rozet de
@@ -1358,7 +1365,7 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 `kaleici-58` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
-`gucefekt-2` · `kalkanrozet-1` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
+`gucefekt-2` · `kalkanrozet-2` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
 
 **Tam ekran olan paneller:** çanta (`#panel-inventory`) · market
 (`#panel-shop`) · kahraman listesi ve detayı (`HERO_UI.kartTamEkran`) ·

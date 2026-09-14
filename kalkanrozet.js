@@ -41,9 +41,13 @@
 (function kalkanRozet() {
   "use strict";
 
-  var SURUM = "kalkanrozet-1";
+  var SURUM = "kalkanrozet-2";
 
-  var BOY       = 30;    /* rozetin kenarı, px */
+  /* BOY tek kaynak: rozetin ölçüsünü, köşesini ve komşularıyla
+     arasını belirleyen tek sayı. Değiştirince yerleşim kendiliğinden
+     düzelir, ikinci bir yerde piksel düzeltmesi gerekmez. */
+  var BOY       = 21;    /* rozetin kenarı, px (30 → %70) */
+  var CERCEVE   = 1.5;   /* beyaz ince çerçevenin kalınlığı, px */
   var SOL       = 10;    /* ekranın sol kenarından uzaklık */
   var ARA       = 4;     /* üst şeritle ve komşu düğmeyle arası */
   var HAYALET_MS = 350;  /* pencere açıldıktan sonra tıklamaya kapalı süre */
@@ -64,27 +68,28 @@
     var s = document.createElement("style");
     s.id = "kalkanRozetStil";
     s.textContent = [
-      /* ÇİZİLMİŞ ÇERÇEVE YOK: kalkan.webp 902x902 KARE ve kendi koyu
-         çerçevesini taşıyor. Altına bir kutu daha çizmek iki çerçeveyi
-         üst üste bindirir (hızlandırma kutucuğundaki aynı kök).
+      /* ÇERÇEVE TEK KAT: kalkan.webp 902x902 KARE ve kendi koyu
+         çerçevesini taşıyor; altına ikinci bir KUTU çizilmez
+         (hızlandırma kutucuğundaki aynı kök). Referanstaki beyaz
+         ince hat kutunun `border`ı olarak veriliyor ve görselin
+         dışında kalır — `box-sizing:border-box` sayesinde rozetin
+         dış ölçüsü BOY'u aşmaz, görsel de kenarın altına girmez.
          Kare görsel kare kutuyu contain ile tam doldurur, kesilmez. */
       "#kalkanRozet{",
       "  position:fixed; left:" + SOL + "px; top:52px; z-index:41;",
+      "  box-sizing:border-box;",
       "  width:" + BOY + "px; height:" + BOY + "px; padding:0;",
       "  display:none; align-items:center; justify-content:center;",
-      "  background:none; border:none; border-radius:9px;",
-      "  color:#e9f6ff;",
-      /* Gölge kutuya değil GÖRSELE veriliyor: zemin saydam olduğu için
-         box-shadow, görselin kendi köşesine uymayan bir dikdörtgen
-         çizerdi. drop-shadow saydamlığı izler. */
-      "  box-shadow:none;",
-      "  font-family:'Baloo 2','Nunito',sans-serif; font-size:19px; line-height:1;",
+      "  background:none; color:#e9f6ff;",
+      "  border:" + CERCEVE + "px solid rgba(255,255,255,.92);",
+      "  border-radius:" + Math.round(BOY / 4) + "px; overflow:hidden;",
+      "  box-shadow:0 2px 6px rgba(0,20,45,.3);",
+      "  font-family:'Baloo 2','Nunito',sans-serif; font-size:" + Math.round(BOY * .62) + "px; line-height:1;",
       "  cursor:pointer; -webkit-tap-highlight-color:transparent;",
       "}",
       "#kalkanRozet.acik{display:flex;}",
       "#kalkanRozet:active{transform:scale(.96); filter:brightness(.93);}",
-      "#kalkanRozet img{width:100%; height:100%; object-fit:contain; background:none; display:block;",
-      "  filter:drop-shadow(0 2px 4px rgba(0,20,45,.45));}",
+      "#kalkanRozet img{width:100%; height:100%; object-fit:cover; background:none; display:block;}",
 
       "#kalkanPencere{",
       "  position:fixed; left:" + SOL + "px; top:90px; z-index:41;",
