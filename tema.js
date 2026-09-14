@@ -3347,19 +3347,39 @@ st.textContent = `
     (bu blok SONRA geldiği için, Tuzak 38) sessizce eziliyordu.
     Ezme üstüne ezme yazmak yerine panel listeden alınıyor;
     hastane ve sandık aynen kalıyor. */
+/*  HASTANE ve SANDIK DA TAM EKRAN OLDU — bu listede kimse kalmadı.
+    Eskiden burada 60/12/70 boşluk ve 420px tavan vardı; dört yanı
+    boşluklu kart kalan son iki paneldi. Ezme üstüne ezme yazmak
+    yerine ÖLÇÜLER SİLİNDİ, çanta/market kalıbı yazıldı — tam ekran
+    kararının tek kaynağı bu blok.
+    Kart flex sütun: başlık ve alt şerit sabit, yalnız içerik kayar
+    (hastanede kaydıran zaten .hosp-kaydir, ona dokunulmadı). */
 #panel-hospital,
 #panel-chest{
-  align-items:center !important;
-  justify-content:center !important;
-  padding:60px 12px 70px !important;
+  align-items:stretch !important;
+  justify-content:stretch !important;
+  padding:0 !important;
 }
 #panel-hospital .overlay-card,
 #panel-chest .overlay-card{
   width:100% !important;
-  max-width:420px !important;
-  max-height:100% !important;
-  border-radius:22px !important;
-  border-top:1px solid var(--km-kenar) !important;
+  max-width:none !important;
+  height:100% !important;
+  max-height:none !important;
+  border-radius:0 !important;
+  border-top:none !important;
+  padding:10px 10px 16px !important;
+  animation:none !important;
+  display:flex !important; flex-direction:column !important;
+}
+/* Sandığın gövdesi tek kayan alan; hastanede bu işi #hospitalScroll
+   görüyor, o yüzden burada yalnız sandık sayılıyor. */
+#panel-chest .chest-zone{
+  flex:1 1 auto !important; min-height:0 !important;
+  overflow-y:auto !important; -webkit-overflow-scrolling:touch;
+}
+#panel-hospital .hosp-kaydir{
+  flex:1 1 auto !important; min-height:0 !important;
 }
 
 /*  ── MARKET TAM EKRAN ──
@@ -3986,23 +4006,40 @@ st.textContent = `
 /* ── SAVAŞ GÜNLÜĞÜ + GÜÇ SIRALAMASI HİZASI ──────────────────
    12. bloktaki "ORTALANMIŞ PANELLER" listesine bu ikisi
    girmemişti; alta yapışık duruyorlardı. Ölçüler birebir aynı. */
+/*  SAVAŞ GÜNLÜĞÜ ve GÜÇ SIRALAMASI DA TAM EKRAN.
+    Eskiden ortalanmış 420px karttı. Ölçüler SİLİNDİ (yukarıdaki
+    hastane/sandık bloğuyla aynı kalıp), üstüne yazılmadı.
+    KAYDIRMA KARTTAN LİSTEYE TAŞINDI: kart kayınca başlık ve
+    sekme çubuğu da yukarı gidiyordu. Artık kart flex sütun,
+    yalnız liste kayar; başlık ve sekmeler yerinde kalır. */
 #panel-battlelog,
 #panel-rank{
-  align-items:center !important;
-  justify-content:center !important;
-  padding:60px 12px 70px !important;
+  align-items:stretch !important;
+  justify-content:stretch !important;
+  padding:0 !important;
 }
 #panel-battlelog .overlay-card,
 #panel-rank .overlay-card{
   width:100% !important;
-  max-width:420px !important;
+  max-width:none !important;
   height:100% !important;
-  max-height:100% !important;
-  border-radius:22px !important;
-  border-top:1px solid var(--km-kenar) !important;
-  overflow-y:auto !important;
+  max-height:none !important;
+  border-radius:0 !important;
+  border-top:none !important;
+  padding:10px 10px 16px !important;
+  animation:none !important;
+  display:flex !important; flex-direction:column !important;
+  overflow:visible !important;
+}
+#panel-rank .rank-list,
+#panel-battlelog .log-list,
+#panel-battlelog #battleLogList{
+  flex:1 1 auto !important; min-height:0 !important;
+  overflow-y:auto !important; -webkit-overflow-scrolling:touch;
   scrollbar-width:none !important;
 }
+#panel-rank .rank-list::-webkit-scrollbar,
+#panel-battlelog .log-list::-webkit-scrollbar{ width:0 !important; display:none !important; }
 #panel-battlelog .overlay-card::-webkit-scrollbar,
 #panel-rank .overlay-card::-webkit-scrollbar{ width:0 !important; display:none !important; }
 

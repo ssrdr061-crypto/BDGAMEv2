@@ -178,6 +178,32 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **SON DÖRT PANEL DE TAM EKRAN** (`tema.js`). Dört yanı boşluklu
+  420px kart kalmadı: **güç sıralaması · savaş günlüğü · hastane ·
+  sandık** da çanta/market kalıbına geçti.
+
+  - **EZME DEĞİL SİLME (Tuzak 38).** İki ayrı blokta `60px 12px 70px`
+    boşluk ve `max-width:420px` yazıyordu. Üstüne tam ekran kuralı
+    yazmak yerine O ÖLÇÜLER SİLİNDİ — tam ekran kararının tek
+    kaynağı artık bu iki blok. Üçüncü katman açılmadı.
+  - **KAYDIRMA KARTTAN LİSTEYE TAŞINDI.** Sıralamada `overflow-y`
+    KARTIN üstündeydi; tam ekranda kaydırınca başlık ve
+    GÜÇ/KAHRAMAN/SEVİYE/İTTİFAK sekmeleri de yukarı kayıyordu. Kart
+    artık flex sütun, yalnız `.rank-list` kayar. Hastanede bu işi
+    zaten `.hosp-kaydir` görüyordu, ona DOKUNULMADI.
+  - **NOT — `#panel-battlelog` DOM'da YOK.** `tema.js`teki savaş
+    günlüğü kuralları ölü seçiciye yazıyor (panel index.html'de
+    tanımlı değil); kuralları aynı kalıba çevirdim ama ekranda
+    karşılığı yok. Günlük başka bir yoldan gösteriliyor, ayrı iş.
+
+  Ölçüldü (412×820 ve 360×740, 2×): sıralama · hastane · sandık
+  kartı **412×820 / 360×740 = tam ekran**, köşe **0px**, kartın sol
+  üstü **0,0** · sayfa yatay kaydırması **0** · sıralamada başlık ve
+  dört sekme yerinde kalıyor, yalnız liste kayıyor.
+
+  **GERİ DÖNÜŞ:** iki bloğa `align-items:center` + `padding:60px 12px
+  70px` ve karta `max-width:420px` + `border-radius:22px` geri yaz.
+
 - **ŞEF PROFİLİ + ÜST SAĞDA FOTOĞRAF ÇERÇEVESİ** (yeni dosya
   `profil.js`, `index.html`e tek `<script>` + alt menüden bir satır
   yorum). Üstteki 👤 emojisi kalktı, yerine oyuncunun kendi
@@ -1466,8 +1492,10 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 **Tam ekran olan paneller:** çanta (`#panel-inventory`) · market
 (`#panel-shop`) · kahraman listesi ve detayı (`HERO_UI.kartTamEkran`) ·
-birlik eğitim ekranları (`#panel-troops`, üç aile birden) · şehir bonusu (`#sehirBonusu`).
-Hastane ve sandık hâlâ dört yanı boşluklu kart.
+birlik eğitim ekranları (`#panel-troops`, üç aile birden) · şehir bonusu
+(`#sehirBonusu`) · şef profili (`#profilEkran`) · **güç sıralaması
+(`#panel-rank`) · hastane (`#panel-hospital`) · sandık (`#panel-chest`)**.
+Dört yanı boşluklu kart kalmadı.
 
 **Denetim betiği:** `tuzak27.py` — şablon dizgisi içindeki yorumlarda
 ters tırnak arar (30'da yeniden yazıldı: eski düzenli ifade sürümü
