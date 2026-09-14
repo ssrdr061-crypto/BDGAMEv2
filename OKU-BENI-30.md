@@ -178,6 +178,69 @@ Kaçış: `?egitimkapat=1`.
 
 ## 30'da yapılanlar
 
+- **KALKAN ROZETİ + SÜRE PENCERESİ** (yeni dosya `kalkanrozet.js`,
+  `index.html`e tek `<script>` satırı). Serdar referans oyundan
+  getirdi: kalkan açıkken üst şeridin altında sol köşede küçük bir
+  kalkan düğmesi duruyor, dokununca "Şehrini saldırılardan korur"
+  + kalkan satırı + geri sayım açılıyor.
+
+  - **İKİNCİ SÜRE HESABI AÇILMADI.** Kalan süre `window.kalkanKalanMs()`
+    (index.html) — haritadaki kubbe (`tema.js`), saldırı kilidi
+    (`pvp.js`) ve sefer varışı da aynı kapıdan soruyor. Biçim de
+    kendi kopyası değil, `saatBicim()` (00:00:00, `tabular-nums`).
+    İkisi de yoksa rozet çizilmez / süre "--:--:--" kalır.
+  - **YER ÖLÇÜLEREK BULUNUYOR, sabit `top` YAZILMADI.** Üst şeridin
+    boyu sabit değil: `guchud.js` güç satırını, `tema.js` şeridin
+    kendisini ayar panelinden büyütüp küçültüyor. Rozetin üstü her
+    saniye `.hud-top`un ölçülen alt kenarından türetiliyor.
+    Kaleiçindeki "← Haritaya dön" (`#kaleiciKapat`) soldaki AYNI
+    sütunda: rozet ona binmesin diye o düğme görünürken 4px boşlukla
+    üstüne çekiliyor. Tuzak 19/20 gereği `getBoundingClientRect`.
+  - **ÇİZİLMİŞ ÇERÇEVE KALDIRILDI — hızlandırma kutucuğundaki aynı
+    kök.** İlk hâlde rozet mavi zeminli kutuydu; `kalkan.webp`in
+    KENDİ koyu çerçevesi var (902×902 kare), iki çerçeve üst üste
+    biniyordu. Kutu `background:none; border:none` oldu, kare görsel
+    kare kutuyu `contain` ile tam dolduruyor. Gölge de kutuya değil
+    GÖRSELE veriliyor (`drop-shadow`): zemin saydam olduğu için
+    `box-shadow` görselin köşesine uymayan bir dikdörtgen çizerdi.
+  - **PANEL AÇIKKEN ROZET GİZLENİR — z-sırasına güvenmek yetmedi.**
+    Rozet z=41, paneller z=50, ama ölçtüğümde rozet çantanın ÜSTÜNDE
+    kalıyordu (paneller farklı kaplarda). Sayıyla yarışmak yerine
+    açık panel doğrudan soruluyor (`.overlay-panel.active` +
+    `#battleArena`). Kaleiçi tuvalinin (z=30) üstünde kalmaya devam
+    ediyor.
+  - Pencere zemini çanta/mağaza baloncuğuyla AYNI
+    (`rgba(233,246,255,.96)`) — üçüncü bir pencere dili açılmadı.
+    Dışarı dokunmak kapatır; Tuzak 21 gereği ilk 350 ms hayalet
+    tıklamaya kapalı. Tuzak 11 gereği CSS animasyonu yok.
+  - **REFERANSTAKİ "Şehir Bonusu" DÜĞMESİ YAPILMADI:** oyunda şehir
+    bonusu sistemi (Savaşlar / Büyüme sekmeleri, dokuz bonus satırı)
+    hiç yok; boş bir düğme koymak yerine ayrı bir iş olarak bırakıldı.
+  - **Doluluk çubuğu da yok, bilerek:** `state.kalkanBitis` yalnız
+    BİTİŞ damgasını tutuyor, başlangıç yazılmıyor — oran hesaplamak
+    için ikinci bir alan (ve Tuzak 7 gereği `compactStateForExport`
+    bakımı) gerekirdi. Süre rakamla yazıyor.
+
+  Ölçüldü (412×820 ve 360×740, 2×): rozet **30×30**, sol kenardan
+  10px, üst şeridin **3,5px** altında, "Haritaya dön" düğmesinin
+  **4px** üstünde (binme 0) · pencere 274×92,9, rozetin 8px altında,
+  sağdan taşma yok, sayfa yatay kaydırması **0** · sayaç işliyor
+  (07:53:57 → 07:53:55) · dışarı dokunuş kapatıyor · çanta açılınca
+  rozet gizleniyor, kapanınca geri geliyor · kalkan bitince rozet de
+  pencere de kayboluyor. `index.html`in dört satır içi JS bloğu ayrı
+  ayrı `node --check` edildi, `tuzak27.py` temiz, fonksiyon adları
+  birebir aynı (index.html'e yalnız `<script>` satırı eklendi).
+
+  **GERİ DÖNÜŞ TEK HAMLE:** `index.html`den
+  `<script src="kalkanrozet.js"></script>` satırını sil.
+
+  **ÖLÇÜM NOTU — eğitim kilidi tıklamayı yutuyor.** Rozete Playwright
+  ile basınca hiçbir şey olmuyordu; sebep rozet değil, `egitim.js`
+  `kilitKur()`: rehberlik sürerken ışıklı yer dışındaki HER tıklama
+  yakalama evresinde `stopPropagation` ile susturuluyor. Ölçüm
+  sayfasında `EGITIM.egitimiBitir()` çağrılmalı; `?egitimkapat=1`
+  tek başına yetmiyor (giriş sonrası zincir yeniden kuruluyor).
+
 - **KADEME ROZETİ ALTIGEN OLDU** (`tema.js` `temaKademeAltigen`).
   Bölüm 4'te "riskli" diye bırakılmıştı; Serdar denememi istedi,
   iki engel de çözüldü:
@@ -1295,7 +1358,7 @@ yalnız tek aileye yığmayı cezalandırır. Asıl fren sefer kapasitesi tavan�
 
 `kaleici-58` · `insaat-15` · `uretim-3` · `karo-3` · `kale2x2-1` ·
 `SEFER.SURUM canvas-11` · `DUGUM.SURUM canvas-4-varis` · `BUFF.SURUM 2` ·
-`gucefekt-2` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
+`gucefekt-2` · `kalkanrozet-1` · `istatistik SURUM 2` · `birlik.js v1` (**yüklenmiyor** — `index.html`'de yok)
 
 **Tam ekran olan paneller:** çanta (`#panel-inventory`) · market
 (`#panel-shop`) · kahraman listesi ve detayı (`HERO_UI.kartTamEkran`) ·
@@ -1310,4 +1373,4 @@ aradığı karakterin kendisi yüzünden kör kalıyordu) (`tema.js` · `magaza.
 Yükleme sırası (`index.html` sonu): koordinat · heroes · kahramanlar · gelistir ·
 troops · istatistik · missile · pvp · pve · tema · rehber · harita · dugum ·
 sefer · karo · kale2x2 · temizle · uretim · insaat · **gucefekt** · kaleici · egitim ·
-three.js · magaza · buff.
+three.js · magaza · buff · **kalkanrozet**.
