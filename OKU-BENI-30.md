@@ -1437,8 +1437,21 @@ Kaçış: `?egitimkapat=1`.
 
 ## Sıradaki iş
 
-0. **Birlik ekranı BÖLÜM 2** — altıgen kademe rozetleri, kaynak
-   kutusu 2×2, Bitir/Eğit düğme rengi, ölü `stat-row` CSS'i.
+0. **ŞEHİR BONUSU SATIRLARI GERÇEK DEĞİL.** `kalkanrozet.js BONUS`
+   tablosunda yalnız Kalkan `aktif:true`; on satır "Yakında" yazıyor
+   ve hiçbir etki uygulamıyor. Bir bonus yazıldığında o satıra
+   `aktif:true` + `deger` eklenir, ekranda başka yer değişmez.
+   Satırların kendi çizimleri de yok — kutu boş çerçeve; görsel
+   geldiğinde `gor:"dosya.webp"` yazmak yeter.
+0a. **Şef Profilinde üç ölü alan:** "Öldürme" ve "Eyalet" oyunda yok
+   (sönük, "—"), "Görünümler" düğmesi pasif — arkasında ekran yok.
+   Veri/ekran yazıldığı gün `profil.js` kendiliğinden dolar.
+0b. **`#panel-battlelog` DOM'da YOK.** `tema.js`teki savaş günlüğü
+   kuralları ölü seçiciye yazıyor; günlük başka bir yoldan
+   gösteriliyor. Ya panel tanımlanmalı ya o kurallar silinmeli.
+0c. **Birlik ekranı BÖLÜM 2 kalanı** — Bitir/Eğit düğme rengi, ölü
+   `#panel-troops .stat-row` CSS'i. (Altıgen rozet ve 2×2 kaynak
+   kutusu bu turda bitti.)
 1. **`?botkale=1` deneme kalelerini SİL** (`index.html
    denemeKaleleriHTML`). Kale hizası işi bitti, blok geçiciydi.
 2. **`kale2.webp` / `kale3.webp`** diğer seviyelerle açı olarak
