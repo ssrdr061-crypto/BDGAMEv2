@@ -7164,8 +7164,13 @@ if (!/[?&]isik=1(&|$)/.test(location.search)) return;
 
 /* ANAHTAR 3 → 4: eski kayıtta artık var olmayan alanlar duruyor
    (golgeAci, golgeYumusak…). Aynı anahtarla okunsaydı Object.assign
-   onları yeni nesneye taşır ve panel ölü sürgülerle açılırdı. */
-const ANAHTAR = "bdAtmosfer1";
+   onları yeni nesneye taşır ve panel ölü sürgülerle açılırdı.
+
+   1 → 2: `golgeGuc` ikiye ayrıldı (kaleGuc/dugumGuc) ve tane
+   varsayılanı 0'a çekildi. Anahtar korunsaydı paneli daha önce açmış
+   biri kayıtlı `dokuGuc: 22` ile gelir, yani kapattığımız tane
+   kendiliğinden geri açılırdı. */
+const ANAHTAR = "bdAtmosfer2";
 
 /* VARSAYILANLAR harita.js'teki CFG.atmosfer ile BİREBİR aynı olmalı.
    Aksi halde panel açılır açılmaz harita değişir ve "panel bozuyor"
@@ -7173,9 +7178,10 @@ const ANAHTAR = "bdAtmosfer1";
 const VARSAYILAN = {
   losGuc: 54, losIc: 46, losEnX: 82, losEnY: 68, losY: 44,
   gradeGuc: 100,
-  golgeGuc: 55, golgeEn: 56, golgeOran: 27, golgeTaban: 83,
-  dugumEn: 106, dugumBoy: 40, dugumDy: 70,
-  dokuGuc: 22, dokuGenlik: 96,
+  kaleGuc: 0, golgeEn: 56, golgeOran: 27, golgeTaban: 83,
+  dugumGuc: 55, dugumEn: 106, dugumBoy: 40, dugumDy: 70,
+  dokuGuc: 0, dokuGenlik: 96,
+  doyLav: 95, lekeAci: 45, lekeUzat: 26,
 };
 
 let A = Object.assign({}, VARSAYILAN);
@@ -7196,10 +7202,14 @@ function uygula(){
 
       T.grade.guc      = A.gradeGuc / 100;
 
-      T.golge.guc      = A.golgeGuc  / 100;
+      T.golge.kaleGuc  = A.kaleGuc  / 100;
+      T.golge.dugumGuc = A.dugumGuc / 100;
       T.golge.kaleEn   = A.golgeEn;
       T.golge.kaleOran = A.golgeOran / 10;
       T.golge.kaleY    = A.golgeTaban;
+      HARITA.CFG.doygunlukLav = A.doyLav / 100;
+      HARITA.CFG.lekeAci      = A.lekeAci;
+      HARITA.CFG.lekeUzat     = A.lekeUzat / 10;
       T.golge.dugumEn  = A.dugumEn  / 100;
       T.golge.dugumBoy = A.dugumBoy / 100;
       T.golge.dugumDy  = A.dugumDy  / 100;
@@ -7264,17 +7274,22 @@ const ALANLAR = [
   ["losY",       "Merkez Y",    15,  75],
   ["bas", "IŞIK"],
   ["gradeGuc",   "Güç",          0, 100],
-  ["bas", "GÖLGE"],
-  ["golgeGuc",   "Koyuluk",      0, 100],
-  ["golgeEn",    "Kale eni",    20,  95],
+  ["bas", "KALE GÖLGESİ"],
+  ["kaleGuc",    "Koyuluk",      0, 100],
+  ["golgeEn",    "Genişlik",    20,  95],
   ["golgeOran",  "Yassılık",    15,  45],
-  ["golgeTaban", "Kale tabanı", 65,  95],
-  ["dugumEn",    "Düğüm eni",   50, 170],
-  ["dugumBoy",   "Düğüm boyu",  15,  85],
-  ["dugumDy",    "Düğüm kayma",  0, 150],
-  ["bas", "DOKU"],
-  ["dokuGuc",    "Tane",         0,  50],
-  ["dokuGenlik", "Sertlik",     20, 127],
+  ["golgeTaban", "Taban",       65,  95],
+  ["bas", "DÜĞÜM GÖLGESİ"],
+  ["dugumGuc",   "Koyuluk",      0, 100],
+  ["dugumEn",    "Genişlik",    50, 170],
+  ["dugumBoy",   "Yükseklik",   15,  85],
+  ["dugumDy",    "Kayma",        0, 150],
+  ["bas", "ARAZİ"],
+  ["lekeAci",    "Desen açı",     0, 180],
+  ["lekeUzat",   "Desen uzat",   10,  40],
+  ["doyLav",     "Lav doygunluk", 40, 160],
+  ["dokuGuc",    "Tane",          0,  50],
+  ["dokuGenlik", "Tane sertliği",20, 127],
 ];
 
 const kutu = document.createElement("div");
@@ -7327,7 +7342,8 @@ function yerlestir(){
       cikti.textContent =
         "harita.js CFG.atmosfer\n" +
         "  golge: {\n" +
-        "    guc: "      + (A.golgeGuc  / 100).toFixed(2) + ",\n" +
+        "    kaleGuc: "  + (A.kaleGuc   / 100).toFixed(2) + ",\n" +
+        "    dugumGuc: " + (A.dugumGuc  / 100).toFixed(2) + ",\n" +
         "    dugumEn: "  + (A.dugumEn   / 100).toFixed(2) + ",\n" +
         "    dugumBoy: " + (A.dugumBoy  / 100).toFixed(2) + ",\n" +
         "    dugumDy: "  + (A.dugumDy   / 100).toFixed(2) + ",\n" +
@@ -7343,7 +7359,11 @@ function yerlestir(){
         "  },\n" +
         "  grade: { guc: " + (A.gradeGuc / 100).toFixed(2) + " },\n" +
         "  doku: { guc: "  + (A.dokuGuc / 100).toFixed(2) +
-                 ", genlik: " + A.dokuGenlik + " },";
+                 ", genlik: " + A.dokuGenlik + " },\n\n" +
+        "harita.js CFG\n" +
+        "  lekeAci: "      + A.lekeAci + ",\n" +
+        "  lekeUzat: "     + (A.lekeUzat / 10).toFixed(1) + ",\n" +
+        "  doygunlukLav: " + (A.doyLav / 100).toFixed(2);
     }
     if (i === "sifirla") {
       A = Object.assign({}, VARSAYILAN);

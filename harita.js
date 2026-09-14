@@ -219,6 +219,19 @@
        al, yoksa harita soluk görünür. */
     doygunluk: 1.18,
 
+    /* ── LAVIN KENDİ DOYGUNLUĞU ──
+       Lav taban rengi [186,60,36] zaten çok doygun bir kırmızı.
+       Üstüne kar/lav ortak doygunluğu (1.18) binince arazi neon
+       turuncuya kaçıyor ve çimen sınırında göz alıyordu.
+
+       Karışım biyom ağırlığıyla yapılır (aşağıda w[2]): saf karda
+       `doygunluk`, saf lavda bu değer geçerli, sınır bandında ikisi
+       yumuşak geçer. Ayrı bir `if` ile kesilseydi sınırda görünür bir
+       renk sıçraması olurdu.
+
+       1 = dokunma · <1 soldur · >1 canlandır. */
+    doygunlukLav: 0.95,
+
     /* ── BÖLGE BAŞINA LEKE KARAKTERİ ──
        koyu = koyu parçaların gücü · acik = açık parçaların gücü
        Lav yalnız kararır (acik düşük), çimen iki yönlü, kar koyu
@@ -291,7 +304,16 @@
          SİLUETİNİ kopyalayıp kaydırır; yani gölge de kule gibi dik
          durur. index.html'deki o satır kaldırıldı, yerine bu geldi. */
       golge: {
-        guc:  0.55,            /* 0 = kapalı · katmanın genel opaklığı */
+        /* İKİ AYRI GÜÇ, tek `guc` DEĞİL: kale gölgesi kapatıldı ama
+           düğüm gölgesi duruyor. Tek anahtar olsaydı birini kapatmak
+           öbürünü de söndürürdü. 0 = o taraf tamamen kapalı. */
+        dugumGuc: 0.55,        /* kaynak arazisi + canavar (canvas) */
+        kaleGuc:  0,           /* KALELER — KAPALI, istenerek.
+                                  Kale sprite'larının kendi çizimlerinde
+                                  zaten dipte koyu bir taban var; altına
+                                  ikinci bir elips gelince gölge çift
+                                  görünüyordu. Denemek istersen 0.55
+                                  yaz, ölçüler aşağıda hazır duruyor. */
         renk: [3, 11, 26],     /* gölge lacivert; saf siyah ölü durur  */
 
         /* CANVAS DÜĞÜMLERİ (kaynak arazisi + canavar).
@@ -375,22 +397,53 @@
          gider, yakınlaştırınca zeminle birlikte büyür. Ekrana sabit
          olsaydı "kirli cam" gibi görünürdü.
 
+         VARSAYILAN 0 — YANİ KAPALI. 0.22 ile denendi ve ekran
+         "pürüzlü" göründüğü için kapatıldı: tane bulanıklığı
+         kırıyordu ama telefonda kum kağıdı gibi duruyordu. Kod
+         duruyor çünkü zeminin bulanıklığı hâlâ gerçek bir sorun ve
+         doğru ayarı bulmak tek sayı meselesi — ?isik=1 panelindeki
+         "Tane" sürgüsüyle canlı denenebilir. Kalıcı olarak istemezsen
+         söyle, bloğu ve chunkUret'teki çağrıyı tamamen sileyim.
+
          guc: 0 = kapalı. 0.30 üstü kum kağıdı gibi olur.
          genlik: tanenin koyu/açık genliği (0-127).
          boy: desen karesinin dünya pikseli cinsinden eni. 16'ya
            bölünebilmeli — kaba katman 16'lık bloklardan üretiliyor,
            bölünmezse desenin eki dikiş olarak görünür. */
       doku: {
-        guc:    0.22,
+        guc:    0,
         genlik: 96,
         boy:    128,
       },
     },
 
-    /* Lekeler ekranda YATAY eziliyor. İzometrik zeminde desen yuvarlak
-       olursa göz onu dik bir duvar gibi okur; yatay uzayınca yere
-       serilmiş gibi durur. Büyütürsen daha yatık, 1 = yuvarlak. */
-    lekeYatay: 2.4,
+    /* ── DESEN EKSENİ ──
+       ESKİ HALİ: `lekeYatay: 2.4` — gürültü (gx-gy) ekseninde, yani
+       ekranın YATAYINDA 2.4 kat eziliyordu. Gerekçesi "desen yuvarlak
+       olursa harita dik bir duvar gibi görünür" idi; gerekçe doğru ama
+       ÇARE FAZLAYDI ve hesap iki kez uygulanıyordu:
+
+       İzometrik izdüşüm YATAY EZMEYİ ZATEN KENDİ YAPIYOR. Izgarada
+       yuvarlak bir leke ekrana 2:1 yatık bir elips olarak düşer
+       (gridToWorld: x=(gx-gy)·64, y=(gx+gy)·32). Üstüne bir de 2.4
+       eklenince ekrandaki uzama ~4.8 kata çıkıyordu — leke değil,
+       ekranı baştan başa kesen YATAY BANTLAR oluşuyordu. Referans
+       oyunlarda ise arazi dokusu DERİNLİĞE, yani ekranda aşağı doğru
+       gider.
+
+       YENİ HALİ: yön bir açıyla seçiliyor, ızgara uzayında:
+         45  = (gx+gy) → ekranda DÜZ AŞAĞI, derinlik yönü (varsayılan)
+          0  = gx ekseni → ekranda sağ-aşağı
+         90  = gy ekseni → ekranda sol-aşağı
+        135  = (gx-gy) → ekranda DÜZ YANA (eski davranış)
+
+       uzat: o yöndeki uzama. 1 = yönsüz (ızgarada yuvarlak; ekranda
+       izdüşümün kendi 2:1'i yine de uygular, yani zemin düz durur).
+       3'ü aşma, yine bant olur.
+
+       ?isik=1 panelinde "Desen açı / Desen uzat" ile canlı denenir. */
+    lekeAci:  45,
+    lekeUzat: 2.6,
 
     /* ── DÜĞÜM ETİKETİ İNCE AYAR ──
        Kaynak/canavar düğümünün altındaki "kutucuk + isim" şeridi.
@@ -811,8 +864,9 @@
   /* ── SERPME SAPMASI ──
      Biyom değerine eklenen ince gürültü. Sınır bandı dar tutulduğu
      için bu sapma, sınırı "kaydırmak" yerine ONU BENEKLERE AYIRIR.
-     Izgara koordinatında örneklenir (lekeYatay uygulanmaz): benekler
-     karo ölçüsünde kalsın, yatay şeritlere dönüşmesin. */
+     Ham ızgara koordinatında örneklenir, lekeEkseni'nden GEÇMEZ:
+     benekler karo ölçüsünde kalsın, yöne göre uzayıp şeride
+     dönüşmesin. */
   function serpmeSapma(gx, gy) {
     const S = CFG.serpme;
     if (!S || S.genislik <= 0) return 0;
@@ -845,13 +899,42 @@
      kaleici.js'teki kara zemin hesabının birebir aynısı, harita'nın
      kendi gürültü fonksiyonuyla (smoothNoise) — dikiş ve önbellek
      uyumu bozulmasın diye. Yalnız çimen için çağrılır. */
+  /* ── DESEN EKSENİ ──
+     Izgara hücresini, desenin uzayacağı yöne göre döndürülmüş bir
+     (u,v) çerçevesine taşır. u = uzama yönü (bu yüzden BÖLÜNÜR:
+     örnek koordinatı sıkışınca desen o yönde UZAR), v = ona dik yön.
+
+     KOK2 çarpanı: (gx±gy) biçimindeki eski eksenler ham gx,gy'ye göre
+     √2 uzundu. Çarpan olmasaydı yeni eksen aynı sayılarla ~%40 daha
+     iri desen üretir, CFG'deki bütün frekanslar yeniden ayarlanmak
+     zorunda kalırdı. Eski ölçeği korur.
+
+     İKİ ÇAĞIRAN VAR (cimenKaleRengi ve zeminRengi) — hesap tek yerde
+     durmalı, yoksa çimen ile kar/lav ayrı yönlere bakar ve sınırda
+     desen kırılır. */
+  const KOK2 = Math.SQRT2;
+  let _ekAci = null, _ekCos = 1, _ekSin = 0;
+
+  function lekeEkseni(gx, gy, f) {
+    if (_ekAci !== CFG.lekeAci) {         /* cos/sin piksel başına değil */
+      _ekAci = CFG.lekeAci;
+      const r = _ekAci * Math.PI / 180;
+      _ekCos = Math.cos(r); _ekSin = Math.sin(r);
+    }
+    const uzat = CFG.lekeUzat > 0.01 ? CFG.lekeUzat : 1;
+    const k = KOK2 * (f || 1);
+    return {
+      u: ( gx * _ekCos + gy * _ekSin) * k / uzat,
+      v: (-gx * _ekSin + gy * _ekCos) * k,
+    };
+  }
+
   function cimenKaleRengi(gx, gy) {
     const Z = CFG.cimenKale;
     let c = [Z.renk[0], Z.renk[1], Z.renk[2]];
 
-    const f  = Z.siklik;
-    const eu = (gx - gy) / CFG.lekeYatay * f;
-    const ev = (gx + gy) * f;
+    const e  = lekeEkseni(gx, gy, Z.siklik);
+    const eu = e.u, ev = e.v;
 
     if (Z.isik > 0) {
       const sh = smoothNoise(eu * 0.075 + 41, ev * 0.075 + 17) * 0.65
@@ -897,13 +980,12 @@
       R.kar[2] * w[0] + R.cimen[2] * w[1] + R.lav[2] * w[2],
     ];
 
-    /* ── İZOMETRİK EKSENLER ──
-       eu = ekranda YATAY yön (gx - gy) · ev = DİKEY yön (gx + gy)
-       eu frekansı düşük → lekeler yatay uzar, zemin yere serilmiş
-       gibi durur. Izgara koordinatında örneklenirse yuvarlak çıkıyor
-       ve harita dik bir duvar gibi görünüyor. */
-    const eu = (gx - gy) / CFG.lekeYatay;
-    const ev = (gx + gy);
+    /* ── DESEN EKSENİ ──
+       eu = desenin UZADIĞI yön, ev = ona dik yön. Yönü CFG.lekeAci
+       belirler (varsayılan 45° = ekranda aşağı, yani derinlik).
+       Ayrıntı ve eski "yatay ezme" hikâyesi CFG.lekeAci'nin başında. */
+    const e  = lekeEkseni(gx, gy, 1);
+    const eu = e.u, ev = e.v;
 
     /* 2. Işık — geniş, yumuşak dalga */
     if (CFG.isik > 0) {
@@ -948,8 +1030,10 @@
        farkları büyür. Böylece ışık ve gölge dengesi bozulmaz, renk
        canlanır. Kırpma şart: doygunluk 1'in üstündeyken kanal
        0-255 dışına taşabilir ve taşan kanal renk atlatır. */
-    if (CFG.doygunluk !== 1) {
-      const d = CFG.doygunluk;
+    /* Lav payı kadar doygunlukLav'a kayılır; w[2]=0 ise saf
+       CFG.doygunluk, w[2]=1 ise saf CFG.doygunlukLav. */
+    const d = CFG.doygunluk + (CFG.doygunlukLav - CFG.doygunluk) * w[2];
+    if (d !== 1) {
       const orta = (c[0] + c[1] + c[2]) / 3;
       c = [
         Math.max(0, Math.min(255, orta + (c[0] - orta) * d)),
@@ -1365,11 +1449,11 @@
        rozetlerinin yarısı kararıyordu. Bütün gölgeler önce, bütün
        düğümler sonra: gölge asla bir düğümün üstüne gelmez. */
     const GL = CFG.atmosfer.golge;
-    if (CFG.atmosfer.acik && GL.guc > 0) {
+    if (CFG.atmosfer.acik && GL.dugumGuc > 0) {
       const firca = golgeFirca();
       const rx = r * GL.dugumEn, ry = r * GL.dugumBoy, dy = r * GL.dugumDy;
       c.save();
-      c.globalAlpha = GL.guc;
+      c.globalAlpha = GL.dugumGuc;
       for (let i = 0; i < sirali.length; i++) {
         const q = nokta(sirali[i]);
         if (disarida(q.x, q.y)) continue;
@@ -2178,7 +2262,11 @@
        kilitlenirdi. Yalnız TANE ayarları değiştiyse boşaltılır;
        vinyet/grade/gölge zaten parçaya girmiyor, onlar CSS. */
     const D = A.doku;
-    const imza = (A.acik ? 1 : 0) + "|" + D.guc + "|" + D.genlik + "|" + D.boy;
+    /* doygunlukLav CFG.atmosfer'in DIŞINDA ama parçaya o da pişiyor:
+       imzaya girmezse ?isik=1'deki lav sürgüsü ekranda hiçbir şey
+       yapmaz. Zemine pişen ne varsa buraya eklenmeli. */
+    const imza = (A.acik ? 1 : 0) + "|" + D.guc + "|" + D.genlik + "|" + D.boy +
+                 "|" + CFG.doygunlukLav + "|" + CFG.lekeAci + "|" + CFG.lekeUzat;
     if (imza !== _dokuImza) {
       _dokuImza = imza;
       _dokuDesen = null;
@@ -2248,7 +2336,7 @@
       st.id = "isoAtmosStil";
       document.head.appendChild(st);
     }
-    if (A.acik && GL.guc > 0) {
+    if (A.acik && GL.kaleGuc > 0) {
       const rgb = GL.renk.join(",");
       const boy = (GL.kaleEn / GL.kaleOran).toFixed(2);
       st.textContent =
@@ -2257,7 +2345,7 @@
         "left:50%; top:" + GL.kaleY + "%;" +
         "width:" + GL.kaleEn + "%; height:" + boy + "%;" +
         "transform:translate(-50%,-50%);" +
-        "opacity:" + GL.guc.toFixed(3) + ";" +
+        "opacity:" + GL.kaleGuc.toFixed(3) + ";" +
         "background:radial-gradient(closest-side," +
         " rgba(" + rgb + ",1) 0%," +
         " rgba(" + rgb + ",.80) 40%," +
