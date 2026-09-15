@@ -144,6 +144,9 @@
   var _okumaHatasi = null; /* son okuma neden düştü — ekranda gösterilir */
   var _gorunum = "ana";    /* üye ekranı: "ana" | "uyeler" | "ayarlar" */
   var _gucBilgi = null;    /* { guc, sira } — accounts okunduktan sonra dolar */
+  var _uyeBilgi = {};      /* oyuncuAnahtarı → { guc, sv, gorulme } */
+  var _uyeArama = "";      /* Üyeler ekranındaki arama kutusu */
+  var _kapaliRutbe = {};   /* katlanmış rütbe grupları: { R4:true } */
 
   /* ── KAPILAR ──────────────────────────────────────────────── */
   function st() { return (typeof state === "object" && state) ? state : null; }
@@ -273,10 +276,38 @@
       for (var j = 0; j < sirali.length; j++) {
         if (sirali[j].id === benimId) { _gucBilgi = { guc: sirali[j].guc, sira: j + 1 }; break; }
       }
+
+      /* ÜYE KARTLARININ VERİSİ AYNI OKUMADAN ÇIKAR.
+         Üyeler ekranı güç, kale seviyesi ve son görülme istiyor;
+         üçü de `accounts` içinde. İkinci bir okuma açmak, aynı
+         düğümü panel başına iki kez indirmek olurdu. Kendi
+         satırımı canlı `state`ten kurarım — bulut kaydım birkaç
+         saniye geride olabilir ve oyuncu kendi gücünü yanlış
+         görmek gibi bir hatayı hemen fark eder. */
+      var bk = benKey();
+      _uyeBilgi = {};
+      Object.keys(_benim.uyeler || {}).forEach(function (uk) {
+        var kaynak = (bk && uk === bk && st()) ? st()
+                   : ((hesaplar[uk] || {}).state || null);
+        var guc = 0;
+        try {
+          if (kaynak && typeof computePlayerPower === "function") {
+            guc = computePlayerPower(kaynak) || 0;
+          }
+        } catch (e) {}
+        _uyeBilgi[uk] = {
+          guc: guc,
+          sv: kaynak ? (Number(kaynak.kaleSeviye) || 1) : 0,
+          gorulme: (bk && uk === bk)
+            ? Date.now()
+            : (Number((hesaplar[uk] || {}).lastSeen) || 0)
+        };
+      });
       if (bitince) bitince();
     }).catch(function (e) {
       console.warn("[ittifak] güç okunamadı:", e);
       _gucBilgi = null;
+      _uyeBilgi = {};
       if (bitince) bitince();
     });
   }
@@ -301,20 +332,32 @@
         "display:flex !important;flex-direction:column !important;overflow:hidden !important;" +
         "padding:calc(12px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));}" +
       "#panel-ittifak .it-govde{box-sizing:border-box;}" +
-      ".it-bas{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex:0 0 auto;}" +
-      /* Başlıktaki ittifak arması. Kapsayıcı h2 zaten
-         display:flex + align-items:center + gap:10px (index.html),
-         bu yüzden yazıyla dikey ortası kendiliğinden hizalanır —
-         burada yalnız ÖLÇÜ verilir. flex:0 0 auto şart: onsuz uzun
-         başlıkta arma eziliyor. object-fit:contain kareyi bozmaz.
-         Ölçü 19px'lik başlık yazısına göre seçildi (30px). */
-      "#panel-ittifak .it-bas-ikon{flex:0 0 auto;width:30px;height:30px;" +
-        "object-fit:contain;display:block;" +
-        "filter:drop-shadow(0 2px 3px rgba(0,20,45,.55));}" +
-      "#panel-ittifak .it-bas h2{flex:1 1 auto;margin:0;text-align:left;" +
-        "font-family:'Baloo 2',sans-serif;font-weight:900;color:var(--km-yazi);" +
-        "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
-      "#panel-ittifak .it-bas .overlay-close{position:static !important;flex:0 0 auto;}" +
+      /* Panel zemini referanstaki doygun maviye çekilir. tema.js
+         `.overlay-card` arka planını !important ile veriyor, bu
+         yüzden burada da !important şart — yoksa kural sessizce
+         yutulur ve panel eski lacivertte kalır. */
+      "#panel-ittifak .overlay-card{background:" +
+        "linear-gradient(180deg,#2f8fe4 0%,#1a6ecd 46%,#1057b6 100%) !important;" +
+        "border:0 !important;}" +
+
+      ".it-bas{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex:0 0 auto;}" +
+      /* Geri oku: referanstaki kalın açık mavi ok. Kutusu yok,
+         simgenin kendisi düğmedir; dokunma alanı 40px'te tutuldu. */
+      "#panel-ittifak .it-geri{flex:0 0 40px;width:40px;height:40px;border:0;padding:0;" +
+        "background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}" +
+      "#panel-ittifak .it-geri svg{width:32px;height:32px;fill:#8ddcff;" +
+        "filter:drop-shadow(0 2px 3px rgba(0,25,60,.55));}" +
+      "#panel-ittifak .it-geri:active svg{fill:#c4edff;transform:scale(.92);}" +
+      "#panel-ittifak .it-bas h2{flex:1 1 auto;min-width:0;margin:0;text-align:left;" +
+        "padding-right:0;font-family:'Baloo 2',sans-serif;font-weight:900;font-size:21px;" +
+        "color:#fff;text-shadow:0 2px 4px rgba(0,25,60,.6);" +
+        "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
+      ".it-bas-sag{flex:0 0 auto;display:flex;align-items:center;}" +
+      ".it-bas-bilgi{width:30px;height:30px;border:0;cursor:pointer;border-radius:9px;" +
+        "background:linear-gradient(180deg,#5cb8ef,#2f7fd0);color:#fff;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:16px;line-height:1;" +
+        "padding:0;box-shadow:0 2px 4px rgba(0,25,60,.4);}" +
+      "#panel-ittifak .overlay-close{display:none !important;}" +
 
       ".it-sekmeler{display:flex;gap:4px;align-items:flex-end;flex:0 0 auto;}" +
       ".it-sekme{flex:1 1 0;min-width:0;border:0;cursor:pointer;font-family:'Baloo 2',sans-serif;" +
@@ -375,105 +418,200 @@
       ".it-uyari.iyi{color:#1f7a33;}" +
       ".it-uyari.kotu{color:#a82c2c;}" +
 
-      /* ═══ ÜYE EKRANI — referans düzeni ═══════════════════════
+      /* ═══ KÜNYE — referans düzeni ════════════════════════════
          Ölçüler dar telefona göre: 360 px genişlikte 2 sütunluk
          ızgara ve 5 satırlık künye taşmadan sığar. Yazı boyları
          punto punto denendi; küçültmeden önce ızgaranın sığdığını
          doğrula. */
-      ".ik-kart{padding:10px;border-radius:14px;margin-bottom:8px;" +
-        "background:linear-gradient(180deg,#2e73bd,#1d4f92);" +
-        "box-shadow:0 2px 8px rgba(0,20,45,.35);}" +
-      ".ik-ad{text-align:center;font-family:'Baloo 2',sans-serif;font-weight:900;" +
-        "font-size:16px;color:#eaf4ff;text-shadow:0 1px 3px rgba(0,20,45,.7);" +
-        "margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
-      ".ik-ust{display:flex;align-items:center;gap:10px;}" +
-      /* Flama referanstaki gibi mor; köşeleri kırpılmış bayrak. */
-      ".ik-flama{flex:0 0 66px;width:66px;height:76px;display:flex;" +
+      ".ik-kunye{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}" +
+      /* Flama referanstaki turuncu arma: alt ucu çentikli kalkan. */
+      ".ik-flama{flex:0 0 78px;width:78px;height:92px;display:flex;" +
         "align-items:center;justify-content:center;" +
-        "background:linear-gradient(180deg,#b558d6,#7d2fa8);" +
-        "clip-path:polygon(0 0,100% 0,100% 100%,50% 86%,0 100%);" +
-        "box-shadow:0 2px 6px rgba(0,20,45,.4);}" +
-      ".ik-flama span{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:15px;" +
-        "color:#fff;text-shadow:0 1px 3px rgba(40,0,60,.8);padding-bottom:8px;" +
-        "max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
-      ".ik-bilgi{flex:1 1 auto;min-width:0;}" +
-      ".ik-satir{display:flex;align-items:center;gap:5px;padding:1px 0;font-size:12px;}" +
+        "background:linear-gradient(180deg,#ffb03a,#f2681b 62%,#d8430c);" +
+        "clip-path:polygon(0 0,100% 0,100% 74%,50% 100%,0 74%);" +
+        "filter:drop-shadow(0 3px 5px rgba(0,25,60,.45));}" +
+      ".ik-flama span{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:19px;" +
+        "color:#fff;text-shadow:0 2px 3px rgba(120,40,0,.75);padding-bottom:14px;" +
+        "max-width:68px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
+      ".ik-sag{flex:1 1 auto;min-width:0;}" +
+      ".ik-ad{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:16px;" +
+        "color:#fff;text-shadow:0 2px 3px rgba(0,25,60,.7);margin-bottom:6px;" +
+        "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
+      /* Künye kutusu: zeminden biraz koyu, satırlar ince çizgiyle
+         ayrık (referanstaki iç panel). */
+      ".ik-bilgi{border-radius:11px;padding:3px 9px;" +
+        "background:rgba(6,45,105,.42);box-shadow:inset 0 0 0 1px rgba(150,205,255,.22);}" +
+      ".ik-satir{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;" +
+        "border-top:1px solid rgba(150,205,255,.16);}" +
+      ".ik-satir:first-child{border-top:0;}" +
       ".ik-ikon{flex:0 0 auto;font-size:12px;}" +
-      ".ik-etiket{flex:0 0 auto;color:#cfe4ff;font-weight:700;" +
-        "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      ".ik-etiket{flex:0 0 auto;color:#d6ecff;font-weight:700;" +
+        "text-shadow:0 1px 2px rgba(0,25,60,.55);}" +
       ".ik-deger{flex:1 1 auto;min-width:0;text-align:right;color:#fff;font-weight:800;" +
-        "font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,20,45,.55);" +
+        "font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,25,60,.55);" +
         "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
       ".ik-bekle{opacity:.55;}" +
-      ".ik-sv{display:flex;align-items:center;gap:7px;margin-top:9px;}" +
-      ".ik-svno{flex:0 0 22px;width:22px;height:22px;border-radius:50%;" +
-        "display:flex;align-items:center;justify-content:center;" +
-        "background:linear-gradient(180deg,#f2c14e,#d2932a);color:#4a2c00;" +
-        "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:12px;}" +
-      ".ik-cubuk{flex:1 1 auto;position:relative;height:15px;border-radius:8px;" +
-        "background:rgba(0,20,45,.4);overflow:hidden;}" +
-      ".ik-dolu{height:100%;width:0;background:linear-gradient(180deg,#6fd3ff,#2f9fd8);}" +
+
+      /* Seviye çubuğu: rozet çubuğun sol ucuna BİNER, o yüzden
+         sarmal position:relative ve çubuk soldan boşluklu. */
+      ".ik-sv{position:relative;display:flex;align-items:center;margin-bottom:10px;" +
+        "padding-left:5px;}" +
+      ".ik-svno{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;" +
+        "width:30px;height:30px;border-radius:50%;display:flex;align-items:center;" +
+        "justify-content:center;background:linear-gradient(180deg,#4aa6ee,#1f6bc4);" +
+        "box-shadow:0 0 0 3px #9fdcff,0 2px 4px rgba(0,25,60,.5);color:#fff;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:14px;}" +
+      ".ik-cubuk{flex:1 1 auto;position:relative;height:22px;border-radius:11px;" +
+        "margin-left:20px;background:#0c3f86;overflow:hidden;" +
+        "box-shadow:inset 0 2px 4px rgba(0,15,45,.55);}" +
+      ".ik-dolu{height:100%;background:linear-gradient(180deg,#8bef52,#38b02c);}" +
       ".ik-svyazi{position:absolute;inset:0;display:flex;align-items:center;" +
-        "justify-content:center;font-size:10.5px;font-weight:800;color:#eaf4ff;" +
-        "text-shadow:0 1px 2px rgba(0,20,45,.8);}" +
+        "justify-content:center;font-family:'Baloo 2',sans-serif;font-weight:800;" +
+        "font-size:12px;color:#fff;font-variant-numeric:tabular-nums;" +
+        "text-shadow:0 1px 2px rgba(0,25,60,.85);}" +
 
-      ".ik-duyuru{padding:10px;border-radius:12px;margin-bottom:8px;" +
-        "background:linear-gradient(180deg,#fbfdff,#e8eff8);" +
-        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
-      ".ik-duyuru-metin{font-size:12.5px;font-weight:700;color:#1b2a44;" +
-        "line-height:1.35;white-space:normal;word-break:break-word;}" +
-      ".ik-solgun{color:#6b7a92;}" +
-      ".ik-duyuru-alt{display:flex;align-items:center;gap:6px;margin-top:8px;" +
-        "padding-top:7px;border-top:1px solid rgba(20,60,110,.14);}" +
-      ".ik-duyuru-alt span{flex:1 1 auto;min-width:0;font-size:10.5px;color:#5a6a84;" +
-        "line-height:1.25;}" +
-      ".ik-duzen{flex:0 0 28px;width:28px;height:28px;border:0;cursor:pointer;" +
-        "border-radius:8px;background:#dbe6f4;color:#25406b;font-size:14px;" +
-        "font-weight:900;line-height:1;padding:0;}" +
+      /* Duyuru: açık kutu, düzenleme düğmesi sağ ALT köşede.
+         (Eski "sadece R4 düzenler" ipucu satırı kalktı — referansta
+         yok ve kutuyu iki katına çıkarıyordu.) */
+      ".ik-duyuru{position:relative;padding:12px 44px 12px 13px;border-radius:12px;" +
+        "margin-bottom:11px;min-height:72px;" +
+        "background:linear-gradient(180deg,#f7faff,#dde6f2);" +
+        "box-shadow:0 2px 6px rgba(0,25,60,.3);}" +
+      ".ik-duyuru-metin{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13.5px;" +
+        "color:#22304a;line-height:1.45;white-space:pre-wrap;word-break:break-word;}" +
+      ".ik-solgun{color:#7b89a1;}" +
+      ".ik-duzen{position:absolute;right:9px;bottom:9px;width:30px;height:30px;border:0;" +
+        "cursor:pointer;border-radius:8px;color:#fff;font-size:15px;font-weight:900;" +
+        "line-height:1;padding:0;background:linear-gradient(180deg,#4fb0ec,#2277cd);" +
+        "box-shadow:0 2px 4px rgba(0,25,60,.35);}" +
 
-      ".ik-izgara{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;}" +
-      ".ik-dugme{display:flex;align-items:center;gap:8px;border:0;cursor:pointer;" +
-        "border-radius:12px;padding:11px 9px;min-width:0;text-align:left;" +
-        "background:linear-gradient(180deg,#4f9fe0,#2c68ad);" +
-        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
-      ".ik-dugme:active{filter:brightness(.93);}" +
-      ".ik-dikon{flex:0 0 auto;font-size:19px;line-height:1;" +
-        "filter:drop-shadow(0 1px 2px rgba(0,20,45,.5));}" +
-      ".ik-dad{flex:1 1 auto;min-width:0;font-family:'Baloo 2',sans-serif;" +
-        "font-weight:800;font-size:12px;color:#fff;line-height:1.15;" +
-        "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      /* ═══ IZGARA — referanstaki açık mavi haplar ══════════════
+         Simge SOLDA kendi açık şeridinde, yazı kalan alanda
+         ORTALANIR. Şerit ayrı bir öğe değil: ::before ile çizilen
+         eğik bir dilim, böylece düğme tek kutu kalır. */
+      ".ik-izgara{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px;}" +
+      ".ik-dugme{position:relative;display:flex;align-items:center;gap:6px;border:0;" +
+        "cursor:pointer;border-radius:14px;padding:0 10px 0 0;height:62px;min-width:0;" +
+        "overflow:hidden;background:linear-gradient(180deg,#63c7f6,#3695e2);" +
+        "box-shadow:0 3px 0 rgba(12,60,125,.55),0 3px 7px rgba(0,25,60,.3);}" +
+      ".ik-dugme::before{content:'';position:absolute;left:0;top:0;bottom:0;width:74px;" +
+        "background:linear-gradient(180deg,#8fdcff,#5ab4ef);" +
+        "clip-path:polygon(0 0,100% 0,78% 100%,0 100%);}" +
+      ".ik-dugme:active{transform:translateY(2px);" +
+        "box-shadow:0 1px 0 rgba(12,60,125,.55),0 1px 4px rgba(0,25,60,.3);}" +
+      ".ik-dikon{position:relative;z-index:1;flex:0 0 62px;text-align:center;font-size:27px;" +
+        "line-height:1;filter:drop-shadow(0 2px 3px rgba(0,25,60,.45));}" +
+      ".ik-dad{position:relative;z-index:1;flex:1 1 auto;min-width:0;text-align:center;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13.5px;color:#fff;" +
+        "line-height:1.1;text-shadow:0 2px 3px rgba(0,30,70,.6);}" +
 
-      /* Alt bar referanstaki gibi EKRANIN DİBİNDE dursun diye gövde
-         flex sütun yapılır ve alt bara margin-top:auto verilir.
-         `> *{flex:0 0 auto}` ŞART: onsuz flex sütun uzun listeleri
-         (üye listesi, ittifak arama sonuçları) sıkıştırır — satırlar
-         ezilir. Kısıt hem gövdenin hem sarmalayıcının çocuklarına
-         ayrı ayrı gerekir. */
-      "#panel-ittifak .it-govde{display:flex;flex-direction:column;}" +
-      "#panel-ittifak .it-govde > *{flex:0 0 auto;}" +
-      "#panel-ittifak .it-govde > .ik-sarmal{flex:1 1 auto;display:flex;" +
-        "flex-direction:column;min-height:0;}" +
-      ".ik-sarmal > *{flex:0 0 auto;}" +
-      ".ik-sarmal > .ik-altbar{margin-top:auto;padding-top:4px;}" +
-      ".ik-altbar{display:flex;gap:7px;}" +
-      ".ik-alt{flex:1 1 0;min-width:0;display:flex;flex-direction:column;" +
-        "align-items:center;gap:2px;border:0;cursor:pointer;border-radius:12px;" +
-        "padding:8px 4px;font-family:'Baloo 2',sans-serif;font-weight:800;" +
-        "font-size:11.5px;color:#eaf4ff;text-shadow:0 1px 2px rgba(0,20,45,.55);" +
-        "background:linear-gradient(180deg,#3d7ccc,#22488f);" +
-        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
-      ".ik-alt span{font-size:18px;line-height:1;}" +
-      ".ik-alt:active{filter:brightness(.93);}" +
+      /* ═══ ALT BAR — Üyeler / Zafer / Ayarlar ══════════════════ */
+      ".ik-altbar{display:flex;gap:10px;justify-content:center;padding-top:6px;}" +
+      ".ik-alt{flex:0 1 110px;min-width:0;display:flex;flex-direction:column;" +
+        "align-items:center;gap:3px;border:0;cursor:pointer;background:none;padding:4px 2px;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;" +
+        "text-shadow:0 2px 3px rgba(0,25,60,.6);}" +
+      ".ik-alt span{width:44px;height:44px;border-radius:50%;display:flex;" +
+        "align-items:center;justify-content:center;font-size:23px;" +
+        "background:linear-gradient(180deg,#8fdcff,#3695e2);" +
+        "box-shadow:0 3px 0 rgba(12,60,125,.5),0 3px 6px rgba(0,25,60,.35);}" +
+      ".ik-alt:active span{transform:translateY(2px);" +
+        "box-shadow:0 1px 0 rgba(12,60,125,.5);}" +
 
-      ".ik-geri-bas{display:flex;align-items:center;gap:8px;margin-bottom:8px;}" +
-      ".ik-geri{flex:0 0 34px;width:34px;height:34px;border:0;cursor:pointer;" +
-        "border-radius:10px;background:linear-gradient(180deg,#3d7ccc,#22488f);" +
-        "color:#fff;font-size:17px;font-weight:900;line-height:1;padding:0;" +
-        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
-      ".ik-geri-bas span{flex:1 1 auto;min-width:0;font-family:'Baloo 2',sans-serif;" +
-        "font-weight:900;font-size:15px;color:#eaf4ff;" +
-        "text-shadow:0 1px 2px rgba(0,20,45,.55);overflow:hidden;" +
-        "text-overflow:ellipsis;white-space:nowrap;}" +
+      /* ═══ ÜYELER ═════════════════════════════════════════════ */
+      ".iu-ara{display:flex;gap:7px;align-items:center;margin-bottom:8px;}" +
+      ".iu-giris{flex:1 1 auto;min-width:0;box-sizing:border-box;border:0;border-radius:11px;" +
+        "padding:10px 12px;font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13px;" +
+        "color:#eaf4ff;background:rgba(6,45,105,.45);" +
+        "box-shadow:inset 0 0 0 1px rgba(150,205,255,.3);}" +
+      ".iu-giris::placeholder{color:#a9cdee;}" +
+      ".iu-ara-btn{flex:0 0 40px;width:40px;height:40px;border:0;cursor:pointer;" +
+        "border-radius:11px;font-size:16px;padding:0;" +
+        "background:linear-gradient(180deg,#63c7f6,#3695e2);" +
+        "box-shadow:0 2px 4px rgba(0,25,60,.35);}" +
+      ".iu-cevrimici{align-self:center;margin:0 auto 9px;padding:5px 18px;border-radius:13px;" +
+        "background:rgba(6,45,105,.45);font-family:'Baloo 2',sans-serif;font-weight:800;" +
+        "font-size:12.5px;color:#eaf4ff;text-shadow:0 1px 2px rgba(0,25,60,.55);" +
+        "width:max-content;}" +
+      /* Grup başlığı: dokunulunca grup katlanır. */
+      ".iu-grup{display:flex;align-items:center;gap:8px;cursor:pointer;" +
+        "padding:7px 11px;border-radius:11px;margin:9px 0 7px;" +
+        "background:linear-gradient(180deg,#2e7fd4,#1a5cb0);" +
+        "box-shadow:0 2px 5px rgba(0,25,60,.3);}" +
+      ".iu-grup b{flex:1 1 auto;min-width:0;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:800;font-size:13px;color:#fff;" +
+        "text-shadow:0 1px 2px rgba(0,25,60,.55);" +
+        "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
+      ".iu-rozet{flex:0 0 auto;padding:1px 8px;border-radius:7px;" +
+        "background:linear-gradient(180deg,#ffb03a,#ef7b16);color:#fff;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:11px;" +
+        "font-style:normal;text-shadow:0 1px 2px rgba(120,50,0,.6);}" +
+      ".iu-say{flex:0 0 auto;font-family:'Baloo 2',sans-serif;font-weight:800;" +
+        "font-size:11.5px;color:#cfe6ff;}" +
+      ".iu-ok{flex:0 0 auto;font-size:15px;color:#cfe6ff;line-height:1;" +
+        "transform:translateY(-2px);transition:transform .15s ease;}" +
+      ".iu-ok.kapali{transform:rotate(-90deg);}" +
+      ".iu-izgara{display:grid;grid-template-columns:1fr 1fr;gap:7px;}" +
+      ".iu-izgara.tek{grid-template-columns:1fr;}" +
+      /* Üye kutucuğu: solda yüz + altında son görülme, sağda ad ve
+         iki istatistik. Lider kartı altın çerçeveli. */
+      ".iu-kart{display:flex;align-items:center;gap:7px;padding:6px;border-radius:11px;" +
+        "min-width:0;background:linear-gradient(180deg,#6fcdf7,#3b9ae4);" +
+        "box-shadow:0 2px 5px rgba(0,25,60,.3);}" +
+      ".iu-izgara.iu-lider .iu-kart{background:linear-gradient(180deg,#fff6de,#ffe3a6);" +
+        "box-shadow:0 0 0 3px #f5a623,0 2px 6px rgba(0,25,60,.35);}" +
+      ".iu-izgara.iu-lider .iu-ad{color:#3a2a06;text-shadow:none;}" +
+      ".iu-izgara.iu-lider .iu-stat{color:#6a5216;}" +
+      ".iu-kart.ben{box-shadow:0 0 0 2px #b9ef76,0 2px 5px rgba(0,25,60,.3);}" +
+      ".iu-avatar{flex:0 0 42px;width:42px;text-align:center;}" +
+      ".iu-yuz{display:flex;align-items:center;justify-content:center;width:42px;height:42px;" +
+        "border-radius:9px;font-size:21px;background:rgba(8,50,110,.35);" +
+        "box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);}" +
+      ".iu-durum{display:block;margin-top:2px;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:800;font-size:8.5px;color:#0f3a72;line-height:1.1;" +
+        "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
+      ".iu-durum.iu-yesil{color:#1c7a1c;}" +
+      ".iu-orta{flex:1 1 auto;min-width:0;}" +
+      ".iu-ad{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:13px;color:#fff;" +
+        "text-shadow:0 1px 2px rgba(0,25,60,.5);" +
+        "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
+      ".iu-stat{display:flex;flex-wrap:wrap;gap:2px 8px;margin-top:2px;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:10.5px;color:#eaf6ff;" +
+        "font-variant-numeric:tabular-nums;}" +
+      ".iu-islem{flex:0 0 auto;display:flex;flex-direction:column;gap:3px;}" +
+      ".iu-min{width:23px;height:20px;border:0;cursor:pointer;border-radius:6px;" +
+        "font-size:11px;font-weight:900;line-height:1;padding:0;color:#fff;" +
+        "background:linear-gradient(180deg,#2f7fd0,#1b5399);}" +
+      ".iu-min.iu-kirmizi{background:linear-gradient(180deg,#e85a5a,#b02b2b);}" +
+      ".iu-min.iu-yesilds{background:linear-gradient(180deg,#57c94f,#2e9a37);}" +
+      ".iu-bos{padding:10px;text-align:center;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:700;font-size:11.5px;color:#bcdcfb;" +
+        "text-shadow:0 1px 2px rgba(0,25,60,.5);}" +
+
+      /* ═══ YÖNET — hap düğmeler ═══════════════════════════════ */
+      ".iz-izgara{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}" +
+      ".iz-cikis{margin-top:14px;}" +
+      ".iz-hap{display:flex;align-items:center;gap:6px;border:0;cursor:pointer;" +
+        "border-radius:999px;padding:0 12px 0 6px;height:52px;min-width:0;" +
+        "background:linear-gradient(180deg,#6fcdf7,#3b9ae4);" +
+        "box-shadow:0 3px 0 rgba(12,60,125,.5),0 3px 6px rgba(0,25,60,.3);}" +
+      ".iz-hap:active{transform:translateY(2px);" +
+        "box-shadow:0 1px 0 rgba(12,60,125,.5);}" +
+      ".iz-ikon{flex:0 0 38px;width:38px;height:38px;border-radius:50%;display:flex;" +
+        "align-items:center;justify-content:center;font-size:19px;" +
+        "background:rgba(255,255,255,.26);}" +
+      ".iz-ad{flex:1 1 auto;min-width:0;text-align:center;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:800;font-size:13px;color:#fff;line-height:1.1;" +
+        "text-shadow:0 2px 3px rgba(0,30,70,.55);}" +
+      /* Sönük ikili: referansta da açılmamış. Dokunulamaz ve öyle
+         GÖRÜNÜR — çalışır gibi durup hiçbir şey yapmasın diye. */
+      ".iz-hap.sonuk{background:linear-gradient(180deg,#8ba3ba,#61798f);" +
+        "box-shadow:0 3px 0 rgba(45,65,85,.5);cursor:default;}" +
+      ".iz-hap.sonuk .iz-ad{color:#e6eef6;opacity:.75;}" +
+      ".iz-hap.sonuk:active{transform:none;box-shadow:0 3px 0 rgba(45,65,85,.5);}" +
+      ".iz-hap.iz-turuncu{background:linear-gradient(180deg,#ff9b34,#f05c0c);" +
+        "box-shadow:0 0 0 2px #d63a12,0 3px 0 rgba(150,45,5,.6),0 3px 6px rgba(0,25,60,.3);}" +
+      ".iz-hap.iz-turuncu:active{box-shadow:0 0 0 2px #d63a12,0 1px 0 rgba(150,45,5,.6);}" +
 
       /* ═══ SAVAŞ · SANDIKLAR · MAĞAZA — ORTAK ═════════════════
          Üç ekran da künyeyle aynı sarmalı kullanır: gövde kayar,
@@ -663,12 +801,19 @@
     panel = document.createElement("div");
     panel.className = "overlay-panel";
     panel.id = "panel-ittifak";
+    /* BAŞLIK TEK YERDE. Eskiden her alt ekran kendi geri-başlık
+       satırını gövdenin İÇİNE çiziyordu; referansta başlık panelin
+       tepesinde durur ve yalnız yazısı değişir. İki ayrı başlık
+       çizmek satırı da iki kez kaydırıyordu. */
     panel.innerHTML =
       '<div class="overlay-card">' +
         '<div class="it-bas">' +
-          '<h2><img class="it-bas-ikon" src="ittifakikon.webp" alt="">' +
-            "İTTİFAK</h2>" +
-          '<button class="overlay-close" data-close>✕</button>' +
+          '<button class="it-geri" id="itBasGeri" aria-label="Geri">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+              '<path d="M12.6 3.6 3.1 11.2a1 1 0 0 0 0 1.6l9.5 7.6c.7.5 1.7 0 1.7-.8v-3.9h5.3c.8 0 1.4-.6 1.4-1.4V9.7c0-.8-.6-1.4-1.4-1.4h-5.3V4.4c0-.8-1-1.3-1.7-.8Z"/>' +
+            "</svg></button>" +
+          '<h2 id="itBasAd">İttifak</h2>' +
+          '<div class="it-bas-sag" id="itBasSag"></div>' +
         "</div>" +
         '<div class="it-sekmeler" id="itSekmeler"></div>' +
         '<div class="it-govde" id="itGovde"></div>' +
@@ -676,9 +821,49 @@
     kap.appendChild(panel);
 
     panel.addEventListener("click", function (e) {
-      if (e.target === panel || (e.target.closest && e.target.closest("[data-close]"))) kapat();
+      if (e.target === panel || (e.target.closest && e.target.closest("[data-close]"))) { kapat(); return; }
+      if (e.target.closest && e.target.closest("#itBasGeri")) { geriGit(); return; }
+      if (e.target.closest && e.target.closest("#itBasBilgi")) {
+        uyar("Üyeler mağazadan paket aldıkça ittifak seviyesi yükselir.");
+      }
     });
     document.getElementById("itGovde").addEventListener("click", govdeDokunus);
+  }
+
+  /* Görünüm → başlık yazısı. Üye değilken tek başlık vardır. */
+  var BASLIK = {
+    ana: "İttifak", uyeler: "İttifak Üyeleri", ayarlar: "Yönet",
+    savas: "Savaş", sandik: "Sandıklar", magaza: "Mağaza"
+  };
+
+  function basligiCiz() {
+    var ad = document.getElementById("itBasAd");
+    var sag = document.getElementById("itBasSag");
+    if (!ad || !sag) return;
+    var g = _benim ? _gorunum : "ana";
+    ad.textContent = _benim ? (BASLIK[g] || "İttifak") : "İttifak";
+
+    /* Sağ köşe: mağazada jeton kesesi, başka yerde bilgi düğmesi.
+       Referansta künyede "!" durur, mağazada bakiye. */
+    if (_benim && g === "magaza") {
+      sag.innerHTML = '<div class="im-kese">' + jetonRozetiHTML() + "</div>";
+    } else if (_benim && g === "ana") {
+      sag.innerHTML = '<button class="it-bas-bilgi" id="itBasBilgi">!</button>';
+    } else {
+      sag.innerHTML = "";
+    }
+  }
+
+  /* Geri oku: alt ekrandaysa künyeye, künyedeyse paneli kapatır.
+     Referansta da ✕ yoktur, çıkış aynı oktan olur. */
+  function geriGit() {
+    if (_benim && _gorunum !== "ana") {
+      _gorunum = "ana";
+      sayacDurdur();
+      govdeCiz();
+      return;
+    }
+    kapat();
   }
 
   /* ── SEKMELER ─────────────────────────────────────────────── */
@@ -716,6 +901,7 @@
   function govdeCiz() {
     var el = document.getElementById("itGovde");
     if (!el) return;
+    basligiCiz();
     if (_yukleniyor) { el.innerHTML = '<div class="it-bos">Yükleniyor…</div>'; return; }
     if (!bulutVar()) {
       el.innerHTML = '<div class="it-bos">İttifak için internet bağlantısı gerekli.</div>';
@@ -737,6 +923,7 @@
     else                             { el.innerHTML = seritHTML + davetHTML(); }
 
     isimsizBagla();
+    uyeAramaBagla();
 
     if (!kapaliHareket()) {
       el.animate([{ opacity: 0, transform: "translateY(8px)" },
@@ -972,47 +1159,47 @@
     var it = _benim;
     var sayi = uyeSayisi(it);
 
+    /* Künye satırı: küçük beyaz simge + etiket solda, değer sağda.
+       Simgeler emoji — oyunun kendi künye ikonları yok. */
     function bilgi(ikon, etiket, deger) {
       return '<div class="ik-satir">' +
                '<span class="ik-ikon">' + ikon + "</span>" +
-               '<span class="ik-etiket">' + etiket + "</span>" +
+               '<span class="ik-etiket">' + etiket + ":</span>" +
                '<span class="ik-deger">' + deger + "</span>" +
              "</div>";
     }
     /* Güç ve sıra ayrı bir okumadan gelir; gelene kadar "…" durur.
        Sıfır yazmak yanlış olurdu — 0 güç gerçek bir değer. */
     var gucYazi  = _gucBilgi ? sayiBicim(_gucBilgi.guc) : '<span class="ik-bekle">…</span>';
-    var siraYazi = _gucBilgi ? ("#" + _gucBilgi.sira)   : '<span class="ik-bekle">…</span>';
+    var siraYazi = _gucBilgi ? String(_gucBilgi.sira)   : '<span class="ik-bekle">…</span>';
 
-    var h = '<div class="ik-sarmal"><div class="ik-kart">' +
-      '<div class="ik-ad">[' + kacar(it.etiket) + "]" + kacar(it.ad) + "</div>" +
-      '<div class="ik-ust">' +
+    var sv = seviyeBilgi(sayac().tec);
+    var svYazi = (sv.ust > sv.alt)
+      ? (sayiBicim(sayac().tec - sv.alt) + "/" + sayiBicim(sv.ust - sv.alt))
+      : "MAKS";
+
+    var h = '<div class="ik-sarmal">' +
+      '<div class="ik-kunye">' +
         '<div class="ik-flama"><span>' + kacar(it.etiket) + "</span></div>" +
-        '<div class="ik-bilgi">' +
-          bilgi("🏅", "İttifak Lideri", kacar(it.kurucu || "—")) +
-          bilgi("✊", "Güç", gucYazi) +
-          bilgi("🏆", "Sıra", siraYazi) +
-          bilgi("👤", "Üyeler", sayi + "/" + UYE_SINIRI) +
-          bilgi("💬", "Dil", kacar(it.dil || "Tüm diller")) +
+        '<div class="ik-sag">' +
+          '<div class="ik-ad">[' + kacar(it.etiket) + "]" + kacar(it.ad) + "</div>" +
+          '<div class="ik-bilgi">' +
+            bilgi("🛡️", "İttifak Lideri", kacar(it.kurucu || "—")) +
+            bilgi("✊", "Güç", gucYazi) +
+            bilgi("🏆", "Sıra", siraYazi) +
+            bilgi("👤", "Üyeler", sayi + "/" + UYE_SINIRI) +
+            bilgi("💬", "Dil", kacar(it.dil || "Tüm diller")) +
+          "</div>" +
         "</div>" +
-      "</div>" +
-      /* Seviye çubuğu ARTIK GERÇEK: üyelerin mağazadan aldığı
-         paketlerin elması `sayac.tec`e yazılır (paketAlindi) ve
-         seviye buradan çıkar. Seviye İttifak Mağazası'ndaki
-         kilitli satırların anahtarıdır. Tavana varınca çubuk dolu
-         kalır ve "MAKS" yazar. */
-      (function () {
-        var sv = seviyeBilgi(sayac().tec);
-        var yazi = (sv.ust > sv.alt)
-          ? (sayiBicim(sayac().tec - sv.alt) + "/" + sayiBicim(sv.ust - sv.alt))
-          : "MAKS";
-        return '<div class="ik-sv">' +
-          '<div class="ik-svno">' + sv.sv + "</div>" +
-          '<div class="ik-cubuk"><div class="ik-dolu" style="width:' +
-            (sv.oran * 100).toFixed(2) + '%"></div>' +
-            '<span class="ik-svyazi">' + yazi + "</span></div>" +
-        "</div>";
-      })() +
+      "</div>";
+
+    /* Seviye çubuğu: rozet çubuğun SOL UCUNA BİNER (referans düzeni),
+       o yüzden çubuk kendi kapsayıcısında ve rozet mutlak konumlu. */
+    h += '<div class="ik-sv">' +
+      '<div class="ik-svno">' + sv.sv + "</div>" +
+      '<div class="ik-cubuk"><div class="ik-dolu" style="width:' +
+        (sv.oran * 100).toFixed(2) + '%"></div>' +
+        '<span class="ik-svyazi">' + svYazi + "</span></div>" +
     "</div>";
 
     var duyuru = String(it.manifesto || "").trim();
@@ -1020,27 +1207,23 @@
       '<div class="ik-duyuru-metin' + (duyuru ? "" : " ik-solgun") + '">' +
         (duyuru ? kacar(duyuru) : "İttifak henüz hiçbir duyuru yayınlamadı.") +
       "</div>" +
-      '<div class="ik-duyuru-alt">' +
-        "<span>📝 Düzenlemeleri sadece R4 veya üstü üyeler yapabilir</span>" +
-        '<button class="ik-duzen" data-yakinda="Duyuru düzenleme">⇄</button>' +
-      "</div>" +
+      '<button class="ik-duzen" data-yakinda="Duyuru düzenleme">⇄</button>' +
     "</div>";
 
-    /* Üçüncü alan doluysa düğme O GÖRÜNÜMÜ açar; boşsa eskisi gibi
-       "Yakında" der. Sırayla doldurulacak — sıradaki sistem
-       geldiğinde yalnız buraya görünüm adı yazılır.
-       Rozet: toplanmamış sandık sayısı (referanstaki kırmızı sayaç). */
+    /* Üçüncü alan doluysa düğme O GÖRÜNÜMÜ açar; boşsa "Yakında"
+       der. Sıradaki sistem geldiğinde yalnız görünüm adı yazılır.
+       Dördüncü alan kırmızı rozet sayısıdır. */
     var bekleyenSandik = toplanmamisSayi("ganimet") + toplanmamisSayi("hediye");
     var IZGARA = [
       ["⚔️", "Savaş", "savas"],   ["🎁", "Sandıklar", "sandik", bekleyenSandik],
       ["🚩", "Bölge"],            ["💥", "Çarpışma"],
       ["🏪", "Mağaza", "magaza"], ["🔬", "Teknoloji"],
-      ["🏆", "Güç Sıralamaları"], ["🤝", "Yardım"]
+      ["🏆", "Güç<br>Sıralamaları"], ["🤝", "Yardım"]
     ];
     h += '<div class="ik-izgara">' + IZGARA.map(function (g) {
       var kapi = g[2]
         ? ('data-gorunum="' + g[2] + '"')
-        : ('data-yakinda="' + kacar(g[1]) + '"');
+        : ('data-yakinda="' + kacar(String(g[1]).replace(/<br>/g, " ")) + '"');
       var rozet = (g[3] > 0)
         ? ('<i class="ik-rozet">' + (g[3] > 99 ? "99+" : g[3]) + "</i>") : "";
       return '<button class="ik-dugme" ' + kapi + ">" +
@@ -1058,7 +1241,80 @@
     return h;
   }
 
-  /* ── GÖRÜNÜM 2: ÜYELER ────────────────────────────────────── */
+  /* ── GÖRÜNÜM 2: ÜYELER ───────────────────────────────────────
+     Referans düzeni: arama kutusu, çevrimiçi sayacı, sonra RÜTBE
+     GRUPLARI. Lider (R5) tek başına GENİŞ bir kart; altındaki her
+     rütbe kendi başlık satırında ("R4 · Yönetici · 0/1 · ▾") ve
+     başlığa dokununca grup katlanır. Üyeler iki sütunlu kutucuk.
+
+     GRUP BAŞLIĞI BOŞ GRUPTA DA DURUR — referansta da öyle: "R4 0/1"
+     satırı kimse yokken de görünür, çünkü o satır aynı zamanda
+     rütbenin KONTENJANINI söyler. Boş bırakınca oyuncu R4'ün var
+     olduğunu hiç öğrenemiyordu.
+
+     Kart verisi (güç, kale sv, son görülme) gucHesapla() içinde
+     `accounts` okunurken toplanır; burada ikinci bir okuma yoktur.
+     Veri gelmeden önce "…" yazar. */
+
+  var RUTBE_KONTENJAN = { R5: 1, R4: 1, R3: 54, R2: 50, R1: 50 };
+
+  function gorulmeYazi(ms) {
+    var n = Number(ms) || 0;
+    if (!n) return "";
+    var f = Date.now() - n;
+    if (f < 5 * 60 * 1000) return "Çevrimiçi";
+    var dk = Math.floor(f / 60000);
+    if (dk < 60) return dk + " dakika önce";
+    var sa = Math.floor(dk / 60);
+    if (sa < 24) return sa + " saat önce";
+    return Math.floor(sa / 24) + " gün önce";
+  }
+
+  /* 2.600.000 → "2,6M" (referanstaki kısa biçim). */
+  function gucKisa(n) {
+    n = Number(n) || 0;
+    if (n >= 1000000) {
+      var m = n / 1000000;
+      return (m >= 10 ? Math.round(m) : (Math.round(m * 10) / 10))
+               .toString().replace(".", ",") + "M";
+    }
+    return sayiBicim(n);
+  }
+
+  function uyeKartiHTML(u, benMi, lider, yetki, benimR) {
+    var bilgi = _uyeBilgi[u.key] || null;
+    var gorulme = bilgi ? gorulmeYazi(bilgi.gorulme) : "";
+    var cevrimici = (gorulme === "Çevrimiçi");
+    var no = rutbeNo(u.rutbe);
+
+    var dugmeler = "";
+    /* Rütbe yalnız Lider'in elinde; R5 verilemez (tek lider kuralı),
+       bu yüzden terfi tavanı R4'tür. */
+    if (!benMi && lider && no < 5) {
+      if (no < 4) dugmeler += '<button class="iu-min" data-terfi="' + kacar(u.key) + '">▲</button>';
+      if (no > 1) dugmeler += '<button class="iu-min" data-indir="' + kacar(u.key) + '">▼</button>';
+    }
+    if (!benMi && yetki && no < rutbeNo(benimR)) {
+      dugmeler += '<button class="iu-min iu-kirmizi" data-at="' + kacar(u.key) + '">✕</button>';
+    }
+
+    return '<div class="iu-kart' + (benMi ? " ben" : "") +
+             (cevrimici ? " acik" : "") + '">' +
+      '<div class="iu-avatar">' +
+        '<span class="iu-yuz">' + RUTBE_SIMGE[u.rutbe] + "</span>" +
+        (gorulme ? '<span class="iu-durum' + (cevrimici ? " iu-yesil" : "") + '">' +
+                     gorulme + "</span>" : "") +
+      "</div>" +
+      '<div class="iu-orta">' +
+        '<div class="iu-ad">' + kacar(u.ad) + (benMi ? " (sen)" : "") + "</div>" +
+        '<div class="iu-stat"><span>✊ ' +
+          (bilgi ? gucKisa(bilgi.guc) : "…") + "</span>" +
+          '<span>🏰 Sv. ' + (bilgi && bilgi.sv ? bilgi.sv : "…") + "</span></div>" +
+      "</div>" +
+      (dugmeler ? '<div class="iu-islem">' + dugmeler + "</div>" : "") +
+    "</div>";
+  }
+
   function uyelerEkraniHTML() {
     var it = _benim;
     var benimR = benimRutbem();
@@ -1074,93 +1330,132 @@
       return f !== 0 ? f : (a.at - b.at);
     });
 
-    var h = geriBasligiHTML("Üyeler (" + uyeler.length + "/" + UYE_SINIRI + ")");
+    var ara = _uyeArama.trim().toLowerCase();
+    var suzulmus = ara
+      ? uyeler.filter(function (u) { return u.ad.toLowerCase().indexOf(ara) >= 0; })
+      : uyeler;
 
+    var cevrimici = uyeler.filter(function (u) {
+      var b = _uyeBilgi[u.key];
+      return b && gorulmeYazi(b.gorulme) === "Çevrimiçi";
+    }).length;
+
+    var h = '<div class="ik-sarmal">' +
+      '<div class="iu-ara">' +
+        '<input class="iu-giris" id="itUyeArama" placeholder="Lütfen adıyla ara" value="' +
+          kacar(_uyeArama) + '">' +
+        '<button class="iu-ara-btn" id="itUyeAraBtn">🔍</button>' +
+      "</div>" +
+      '<div class="iu-cevrimici">Çevrimiçi: ' + cevrimici + "/" + uyeler.length + "</div>";
+
+    h += '<div class="iy-govde">';
+
+    /* Başvurular referansta yok ama SİLİNMEZ: onaylanmayı bekleyen
+       başvuru başka hiçbir ekranda görünmüyor. Listenin en üstünde,
+       kendi başlığıyla durur. */
     var basv = Object.keys(it.basvurular || {});
     if (yetki && basv.length) {
-      h += '<div class="it-baslik">Başvurular (' + basv.length + ")</div>";
-      h += basv.map(function (bk) {
+      h += '<div class="iu-grup"><span class="iu-rozet">!</span>' +
+             "<b>Başvurular</b><span class=\"iu-say\">" + basv.length + "</span></div>";
+      h += '<div class="iu-izgara tek">' + basv.map(function (bk) {
         var b = it.basvurular[bk] || {};
-        return '<div class="it-satir">' +
-          '<div class="it-flama">👤</div>' +
-          '<div class="it-orta"><div class="it-ad">' + kacar(b.ad || bk) + "</div>" +
-            '<div class="it-alt">Katılmak istiyor</div></div>' +
-          '<button class="it-dugme it-kucuk" data-onay="' + kacar(bk) + '">Onayla</button>' +
-          '<button class="it-dugme it-kirmizi it-kucuk" data-ret="' + kacar(bk) + '">Ret</button>' +
-        "</div>";
-      }).join("");
+        return '<div class="iu-kart">' +
+          '<div class="iu-avatar"><span class="iu-yuz">👤</span></div>' +
+          '<div class="iu-orta"><div class="iu-ad">' + kacar(b.ad || bk) + "</div>" +
+            '<div class="iu-stat"><span>Katılmak istiyor</span></div></div>' +
+          '<div class="iu-islem">' +
+            '<button class="iu-min iu-yesilds" data-onay="' + kacar(bk) + '">✓</button>' +
+            '<button class="iu-min iu-kirmizi" data-ret="' + kacar(bk) + '">✕</button>' +
+          "</div></div>";
+      }).join("") + "</div>";
     }
 
-    h += '<div class="it-baslik">Üyeler</div>';
-    h += uyeler.map(function (u) {
-      var benMi = (u.key === k);
-      var no = rutbeNo(u.rutbe);
-      var dugmeler = "";
-      /* Rütbe yalnız Lider'in elinde; R5 verilemez (tek lider kuralı),
-         bu yüzden terfi tavanı R4'tür. */
-      if (!benMi && lider && no < 5) {
-        if (no < 4) {
-          dugmeler += '<button class="it-dugme it-mavi it-kucuk" data-terfi="' +
-                      kacar(u.key) + '">▲</button>';
-        }
-        if (no > 1) {
-          dugmeler += '<button class="it-dugme it-mavi it-kucuk" data-indir="' +
-                      kacar(u.key) + '">▼</button>';
-        }
-      }
-      if (!benMi && yetki && no < rutbeNo(benimR)) {
-        dugmeler += '<button class="it-dugme it-kirmizi it-kucuk" data-at="' +
-                    kacar(u.key) + '">At</button>';
-      }
-      return '<div class="it-satir">' +
-        '<div class="it-flama">' + RUTBE_SIMGE[u.rutbe] + "</div>" +
-        '<div class="it-orta"><div class="it-ad">' + kacar(u.ad) +
-          (benMi ? " (sen)" : "") + "</div>" +
-          '<div class="it-rutbe">' + u.rutbe + " · " + RUTBE_AD[u.rutbe] + "</div></div>" +
-        dugmeler +
-      "</div>";
-    }).join("");
+    /* Lider ayrı: referansta altın çerçeveli TEK GENİŞ kart. */
+    var liderler = suzulmus.filter(function (u) { return u.rutbe === "R5"; });
+    if (liderler.length) {
+      h += '<div class="iu-izgara tek iu-lider">' + liderler.map(function (u) {
+        return uyeKartiHTML(u, u.key === k, lider, yetki, benimR);
+      }).join("") + "</div>";
+    }
 
+    ["R4", "R3", "R2", "R1"].forEach(function (r) {
+      var grup = suzulmus.filter(function (u) { return u.rutbe === r; });
+      /* Arama açıkken boş grup başlığı gösterilmez — arama sonucu
+         ekranı başlık listesine çevirirdi. */
+      if (ara && !grup.length) return;
+      var kapali = !!_kapaliRutbe[r];
+      h += '<div class="iu-grup" data-rutbe="' + r + '">' +
+        '<span class="iu-rozet">' + r + "</span>" +
+        "<b>" + kacar(RUTBE_AD[r]) + "</b>" +
+        '<span class="iu-say">👤 ' + grup.length + "/" + (RUTBE_KONTENJAN[r] || 0) + "</span>" +
+        '<span class="iu-ok' + (kapali ? " kapali" : "") + '">⌄</span>' +
+      "</div>";
+      if (kapali) return;
+      if (!grup.length) {
+        h += '<div class="iu-bos">Bu rütbede kimse yok.</div>';
+        return;
+      }
+      h += '<div class="iu-izgara">' + grup.map(function (u) {
+        return uyeKartiHTML(u, u.key === k, lider, yetki, benimR);
+      }).join("") + "</div>";
+    });
+
+    if (ara && !suzulmus.length) {
+      h += '<div class="iy-bos"><img class="iy-bos-ikon" src="ittifakikon.webp" alt="">' +
+           "<span>Aramaya uyan üye yok.</span></div>";
+    }
+
+    h += "</div></div>";
     return h;
   }
 
   /* ── GÖRÜNÜM 3: AYARLAR ───────────────────────────────────── */
+  /* ── GÖRÜNÜM 3: YÖNET ────────────────────────────────────────
+     Referans düzeni: iki sütunlu hap düğmeler, en altta turuncu
+     "İttifaktan Çık". İki düğme (İttifak İlişkileri, İttifak
+     Oylaması) referansta da SÖNÜK durur — orada da açılmamış
+     özellikler. Burada da sönük ve dokunulamaz bırakıldı:
+     çalışır gibi gösterip "Yakında" demek daha kötü olurdu.
+
+     Lider için çıkış düğmesi "İttifakı Dağıt"tır — lider ayrılırsa
+     ittifak sahipsiz kalır, liderlik devri henüz yok. */
   function ayarlarEkraniHTML() {
-    var it = _benim;
     var lider = liderMiyim();
 
-    var h = geriBasligiHTML("Ayarlar");
+    var HAPLAR = [
+      ["📋", "İttifak Kaydı",     "yakinda"],
+      ["🔔", "Mesaj",             "yakinda"],
+      ["📄", "İttifak Listesi",   "yakinda"],
+      ["🏆", "Sıralama",          "yakinda"],
+      ["📝", "İttifak İlişkileri", "sonuk"],
+      ["🗳️", "İttifak Oylaması",  "sonuk"]
+    ];
 
-    h += '<div class="it-kutu">' +
-      '<div class="it-ad" style="font-size:14px;">[' + kacar(it.etiket) + "]" +
-        kacar(it.ad) + "</div>" +
-      '<div class="it-alt" style="margin-top:4px;">Rütben: ' +
-        benimRutbem() + " · " + rutbeAdi(benimRutbem()) + "</div>" +
-      '<div class="it-alt">Katılım: ' +
-        (it.katilim === "basvuru" ? "Başvuruyla" : "Anında katılım") + "</div>" +
-      '<div class="it-alt">Kuruluş: ' + tarihYazi(it.kurulus) + "</div>" +
+    var h = '<div class="ik-sarmal"><div class="iy-govde">' +
+      '<div class="iz-izgara">' + HAPLAR.map(function (x) {
+        var sonuk = (x[2] === "sonuk");
+        return '<button class="iz-hap' + (sonuk ? " sonuk" : "") + '"' +
+          (sonuk ? " disabled" : ' data-yakinda="' + kacar(x[1]) + '"') + ">" +
+          '<span class="iz-ikon">' + x[0] + "</span>" +
+          '<span class="iz-ad">' + x[1] + "</span>" +
+        "</button>";
+      }).join("") + "</div>";
+
+    h += '<div class="iz-izgara iz-cikis">' +
+      (lider
+        ? '<button class="iz-hap iz-turuncu" id="itDagitBtn">' +
+            '<span class="iz-ikon">🚪</span><span class="iz-ad">İttifakı Dağıt</span></button>'
+        : '<button class="iz-hap iz-turuncu" id="itAyrilBtn">' +
+            '<span class="iz-ikon">🚪</span><span class="iz-ad">İttifaktan Çık</span></button>') +
     "</div>";
 
-    h += '<button class="it-ana" data-yakinda="İttifak ayarlarını düzenleme">' +
-         "Ayarları Düzenle</button>";
-
-    h += lider
-      ? '<button class="it-ana" id="itDagitBtn" style="background:linear-gradient(180deg,#e05a5a,#a82c2c);">İttifakı Dağıt</button>'
-      : '<button class="it-ana" id="itAyrilBtn" style="background:linear-gradient(180deg,#e05a5a,#a82c2c);">İttifaktan Ayrıl</button>';
-    return h;
+    return h + "</div></div>";
   }
 
   function tarihYazi(ms) {
     var n = Number(ms) || 0;
     if (!n) return "—";
     try { return new Date(n).toLocaleDateString("tr-TR"); } catch (e) { return "—"; }
-  }
-
-  function geriBasligiHTML(baslik) {
-    return '<div class="ik-geri-bas">' +
-      '<button class="ik-geri" data-gorunum="ana">←</button>' +
-      "<span>" + kacar(baslik) + "</span>" +
-    "</div>";
   }
 
   /* ── ÜYE İŞLEMLERİ ────────────────────────────────────────── */
@@ -1820,7 +2115,7 @@
       { id: "bireysel",    ad: "Bireysel" },
       { id: "etkinlik",    ad: "Etkinlikler" }
     ];
-    var h = geriBasligiHTML("Savaş");
+    var h = "";
     h += '<div class="iy-sekmeler">' + S.map(function (s) {
       return '<button class="iy-sekme' + (s.id === _savasSekme ? " secili" : "") +
              '" data-savas-sekme="' + s.id + '">' + s.ad + "</button>";
@@ -1883,7 +2178,7 @@
     var ganimetBekleyen = toplanmamisSayi("ganimet");
     var hediyeBekleyen  = toplanmamisSayi("hediye");
 
-    var h = geriBasligiHTML("Sandıklar");
+    var h = "";
 
     h += '<div class="is-tepe">' +
       '<img class="is-sandik" src="gunlukkutukapali.webp" alt="">' +
@@ -1965,13 +2260,7 @@
     var sv = ittifakSeviyesi();
     var bitis = (tur === "hafta") ? haftaBitisi() : gunBitisi();
 
-    var h = '<div class="im-bas">' +
-      '<button class="ik-geri" data-gorunum="ana">←</button>' +
-      "<span>Mağaza</span>" +
-      '<div class="im-kese">' + jetonRozetiHTML() + "</div>" +
-    "</div>";
-
-    h += '<div class="im-yenilenme">Yenilenme: 🕐 <b id="itMagazaSayac">' +
+    var h = '<div class="im-yenilenme">Yenilenme: 🕐 <b id="itMagazaSayac">' +
          sureBicimKisa(bitis - Date.now()) + "</b></div>";
 
     /* Açık satırlar ile kilitli satırlar ayrı ızgaralarda: kilit
@@ -2063,6 +2352,15 @@
       govdeCiz();
       /* Geri sayım YALNIZ mağaza ekranında döner. */
       if (_gorunum === "magaza") sayacBaslat(); else sayacDurdur();
+      return;
+    }
+
+    /* ── ÜYELER: rütbe grubunu katla / aç ── */
+    var rg = t.closest("[data-rutbe]");
+    if (rg) {
+      var r = rg.dataset.rutbe;
+      _kapaliRutbe[r] = !_kapaliRutbe[r];
+      govdeCiz();
       return;
     }
 
@@ -2159,6 +2457,25 @@
     if (mn != null && document.getElementById("itManifesto")) document.getElementById("itManifesto").value = mn;
   }
 
+  /* Üyeler ekranındaki arama. İttifak aramasıyla aynı kalıp:
+     yeniden çizim odağı öldürmesin diye imleç yeri geri konur. */
+  function uyeAramaBagla() {
+    var el = document.getElementById("itUyeArama");
+    if (!el || el.dataset.bagli) return;
+    el.dataset.bagli = "1";
+    el.addEventListener("input", function () {
+      _uyeArama = el.value;
+      var yer = el.selectionStart;
+      govdeCiz();
+      var yeni = document.getElementById("itUyeArama");
+      if (yeni) {
+        yeni.focus();
+        try { yeni.setSelectionRange(yer, yer); } catch (e) {}
+        uyeAramaBagla();
+      }
+    });
+  }
+
   /* Arama kutusu her tuşta listeyi süzer (yeniden çizim odağı
      kaybettirmesin diye değer geri yazılıyor). */
   function aramaBagla() {
@@ -2187,6 +2504,8 @@
     panel._hayaletZm = setTimeout(function () { panel.style.pointerEvents = ""; }, 350);
 
     _yukleniyor = true;
+    _uyeArama = "";
+    _kapaliRutbe = {};
     sekmeleriCiz();
     govdeCiz();
     _gorunum = "ana";
