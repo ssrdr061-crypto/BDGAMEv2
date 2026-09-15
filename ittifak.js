@@ -423,14 +423,40 @@
          ızgara ve 5 satırlık künye taşmadan sığar. Yazı boyları
          punto punto denendi; küçültmeden önce ızgaranın sığdığını
          doğrula. */
+      /* ── KÜNYE EKRANI KAYMAZ ──────────────────────────────────
+         Ekran ne kadarsa içerik o kadar: sabit yükseklikler verip
+         "umarım sığar" demek yerine, artan/eksilen yeri IZGARA
+         yutuyor. 360x640'ta da 412x915'te de aynı düzen çıkar,
+         hiçbir yerde kaydırma olmaz.
+
+         Bölüşüm:
+           künye · seviye · alt bar → kendi boyu (esnemez)
+           duyuru                   → esner ama tavanı var
+           ızgara                   → kalan yerin tamamı, 4 satır eşit
+
+         `min-height:0` ŞART: flex çocuğu varsayılan olarak içeriğinin
+         altına inemez, onsuz ızgara taşar ve kaydırma geri gelir. */
+      "#panel-ittifak .it-govde.it-sabit{overflow:hidden;}" +
+      /* height:100% YOK — yüzdelik yükseklik esnek kutuda kesin bir
+         ebeveyn boyu ister; sarmalı zaten üstteki `flex:1 1 auto`
+         geriyor. İkisini birden vermek bazı tarayıcılarda yuvarlama
+         farkı doğuruyordu. */
+      ".ik-sarmal.ik-tam{gap:9px;}" +
+      ".ik-sarmal.ik-tam > *{margin-bottom:0;}" +
+      ".ik-sarmal.ik-tam > .ik-duyuru{flex:0 1 auto;min-height:58px;max-height:104px;" +
+        "overflow:hidden;}" +
+      ".ik-sarmal.ik-tam > .ik-izgara{flex:1 1 auto;min-height:0;" +
+        "grid-template-rows:repeat(4,minmax(0,1fr));}" +
+      ".ik-sarmal.ik-tam > .ik-altbar{flex:0 0 auto;margin-top:0;}" +
+
       ".ik-kunye{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}" +
       /* Flama referanstaki turuncu arma: alt ucu çentikli kalkan. */
-      ".ik-flama{flex:0 0 78px;width:78px;height:92px;display:flex;" +
+      ".ik-flama{flex:0 0 72px;width:72px;height:84px;display:flex;" +
         "align-items:center;justify-content:center;" +
         "background:linear-gradient(180deg,#ffb03a,#f2681b 62%,#d8430c);" +
         "clip-path:polygon(0 0,100% 0,100% 74%,50% 100%,0 74%);" +
         "filter:drop-shadow(0 3px 5px rgba(0,25,60,.45));}" +
-      ".ik-flama span{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:19px;" +
+      ".ik-flama span{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:18px;" +
         "color:#fff;text-shadow:0 2px 3px rgba(120,40,0,.75);padding-bottom:14px;" +
         "max-width:68px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
       ".ik-sag{flex:1 1 auto;min-width:0;}" +
@@ -441,7 +467,7 @@
          ayrık (referanstaki iç panel). */
       ".ik-bilgi{border-radius:11px;padding:3px 9px;" +
         "background:rgba(6,45,105,.42);box-shadow:inset 0 0 0 1px rgba(150,205,255,.22);}" +
-      ".ik-satir{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;" +
+      ".ik-satir{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;" +
         "border-top:1px solid rgba(150,205,255,.16);}" +
       ".ik-satir:first-child{border-top:0;}" +
       ".ik-ikon{flex:0 0 auto;font-size:12px;}" +
@@ -473,8 +499,8 @@
       /* Duyuru: açık kutu, düzenleme düğmesi sağ ALT köşede.
          (Eski "sadece R4 düzenler" ipucu satırı kalktı — referansta
          yok ve kutuyu iki katına çıkarıyordu.) */
-      ".ik-duyuru{position:relative;padding:12px 44px 12px 13px;border-radius:12px;" +
-        "margin-bottom:11px;min-height:72px;" +
+      ".ik-duyuru{position:relative;padding:11px 44px 11px 13px;border-radius:12px;" +
+        "margin-bottom:11px;min-height:58px;" +
         "background:linear-gradient(180deg,#f7faff,#dde6f2);" +
         "box-shadow:0 2px 6px rgba(0,25,60,.3);}" +
       ".ik-duyuru-metin{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13.5px;" +
@@ -489,16 +515,18 @@
          Simge SOLDA kendi açık şeridinde, yazı kalan alanda
          ORTALANIR. Şerit ayrı bir öğe değil: ::before ile çizilen
          eğik bir dilim, böylece düğme tek kutu kalır. */
-      ".ik-izgara{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px;}" +
+      ".ik-izgara{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}" +
+      /* 3B ALT KENAR YOK. Buraya bir zamanlar "0 3px 0" sert gölge
+         konmuştu (düğmeye kalınlık veren kabartma); istenmedi.
+         Yalnız yumuşak bir düşüm gölgesi kaldı. */
       ".ik-dugme{position:relative;display:flex;align-items:center;gap:6px;border:0;" +
-        "cursor:pointer;border-radius:14px;padding:0 10px 0 0;height:62px;min-width:0;" +
+        "cursor:pointer;border-radius:14px;padding:0 10px 0 0;min-width:0;" +
         "overflow:hidden;background:linear-gradient(180deg,#63c7f6,#3695e2);" +
-        "box-shadow:0 3px 0 rgba(12,60,125,.55),0 3px 7px rgba(0,25,60,.3);}" +
+        "box-shadow:0 2px 5px rgba(0,25,60,.22);}" +
       ".ik-dugme::before{content:'';position:absolute;left:0;top:0;bottom:0;width:74px;" +
         "background:linear-gradient(180deg,#8fdcff,#5ab4ef);" +
         "clip-path:polygon(0 0,100% 0,78% 100%,0 100%);}" +
-      ".ik-dugme:active{transform:translateY(2px);" +
-        "box-shadow:0 1px 0 rgba(12,60,125,.55),0 1px 4px rgba(0,25,60,.3);}" +
+      ".ik-dugme:active{filter:brightness(.93);}" +
       ".ik-dikon{position:relative;z-index:1;flex:0 0 62px;text-align:center;font-size:27px;" +
         "line-height:1;filter:drop-shadow(0 2px 3px rgba(0,25,60,.45));}" +
       ".ik-dad{position:relative;z-index:1;flex:1 1 auto;min-width:0;text-align:center;" +
@@ -506,7 +534,7 @@
         "line-height:1.1;text-shadow:0 2px 3px rgba(0,30,70,.6);}" +
 
       /* ═══ ALT BAR — Üyeler / Zafer / Ayarlar ══════════════════ */
-      ".ik-altbar{display:flex;gap:10px;justify-content:center;padding-top:6px;}" +
+      ".ik-altbar{display:flex;gap:10px;justify-content:center;padding-top:2px;}" +
       ".ik-alt{flex:0 1 110px;min-width:0;display:flex;flex-direction:column;" +
         "align-items:center;gap:3px;border:0;cursor:pointer;background:none;padding:4px 2px;" +
         "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;" +
@@ -514,9 +542,8 @@
       ".ik-alt span{width:44px;height:44px;border-radius:50%;display:flex;" +
         "align-items:center;justify-content:center;font-size:23px;" +
         "background:linear-gradient(180deg,#8fdcff,#3695e2);" +
-        "box-shadow:0 3px 0 rgba(12,60,125,.5),0 3px 6px rgba(0,25,60,.35);}" +
-      ".ik-alt:active span{transform:translateY(2px);" +
-        "box-shadow:0 1px 0 rgba(12,60,125,.5);}" +
+        "box-shadow:0 2px 5px rgba(0,25,60,.22);}" +
+      ".ik-alt:active span{filter:brightness(.93);}" +
 
       /* ═══ ÜYELER ═════════════════════════════════════════════ */
       ".iu-ara{display:flex;gap:7px;align-items:center;margin-bottom:8px;}" +
@@ -594,9 +621,8 @@
       ".iz-hap{display:flex;align-items:center;gap:6px;border:0;cursor:pointer;" +
         "border-radius:999px;padding:0 12px 0 6px;height:52px;min-width:0;" +
         "background:linear-gradient(180deg,#6fcdf7,#3b9ae4);" +
-        "box-shadow:0 3px 0 rgba(12,60,125,.5),0 3px 6px rgba(0,25,60,.3);}" +
-      ".iz-hap:active{transform:translateY(2px);" +
-        "box-shadow:0 1px 0 rgba(12,60,125,.5);}" +
+        "box-shadow:0 2px 5px rgba(0,25,60,.22);}" +
+      ".iz-hap:active{filter:brightness(.93);}" +
       ".iz-ikon{flex:0 0 38px;width:38px;height:38px;border-radius:50%;display:flex;" +
         "align-items:center;justify-content:center;font-size:19px;" +
         "background:rgba(255,255,255,.26);}" +
@@ -605,13 +631,10 @@
         "text-shadow:0 2px 3px rgba(0,30,70,.55);}" +
       /* Sönük ikili: referansta da açılmamış. Dokunulamaz ve öyle
          GÖRÜNÜR — çalışır gibi durup hiçbir şey yapmasın diye. */
-      ".iz-hap.sonuk{background:linear-gradient(180deg,#8ba3ba,#61798f);" +
-        "box-shadow:0 3px 0 rgba(45,65,85,.5);cursor:default;}" +
+      ".iz-hap.sonuk{background:linear-gradient(180deg,#8ba3ba,#61798f);cursor:default;}" +
       ".iz-hap.sonuk .iz-ad{color:#e6eef6;opacity:.75;}" +
-      ".iz-hap.sonuk:active{transform:none;box-shadow:0 3px 0 rgba(45,65,85,.5);}" +
-      ".iz-hap.iz-turuncu{background:linear-gradient(180deg,#ff9b34,#f05c0c);" +
-        "box-shadow:0 0 0 2px #d63a12,0 3px 0 rgba(150,45,5,.6),0 3px 6px rgba(0,25,60,.3);}" +
-      ".iz-hap.iz-turuncu:active{box-shadow:0 0 0 2px #d63a12,0 1px 0 rgba(150,45,5,.6);}" +
+      ".iz-hap.sonuk:active{filter:none;}" +
+      ".iz-hap.iz-turuncu{background:linear-gradient(180deg,#ff9b34,#f05c0c);}" +
 
       /* ═══ SAVAŞ · SANDIKLAR · MAĞAZA — ORTAK ═════════════════
          Üç ekran da künyeyle aynı sarmalı kullanır: gövde kayar,
@@ -922,6 +945,12 @@
     else if (aktifSekme === "katil") { el.innerHTML = seritHTML + katilHTML(); }
     else                             { el.innerHTML = seritHTML + davetHTML(); }
 
+    /* Künye kendi yüksekliğini ekrana göre bölüştürüyor; gövdenin
+       kaydırması orada KAPATILIR, yoksa yuvarlamadan doğan 1-2 px
+       yüzünden ekran hafifçe oynar. Alt ekranlar (üyeler, sandık…)
+       gerçekten uzayabilir, onlarda açık kalır. */
+    el.classList.toggle("it-sabit", !!_benim && _gorunum === "ana");
+
     isimsizBagla();
     uyeAramaBagla();
 
@@ -1178,7 +1207,7 @@
       ? (sayiBicim(sayac().tec - sv.alt) + "/" + sayiBicim(sv.ust - sv.alt))
       : "MAKS";
 
-    var h = '<div class="ik-sarmal">' +
+    var h = '<div class="ik-sarmal ik-tam">' +
       '<div class="ik-kunye">' +
         '<div class="ik-flama"><span>' + kacar(it.etiket) + "</span></div>" +
         '<div class="ik-sag">' +
