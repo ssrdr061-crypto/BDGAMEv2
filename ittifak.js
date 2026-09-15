@@ -330,7 +330,7 @@
         "width:100% !important;max-width:none !important;" +
         "height:100% !important;max-height:none !important;border-radius:0 !important;" +
         "display:flex !important;flex-direction:column !important;overflow:hidden !important;" +
-        "padding:calc(12px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom));}" +
+        "padding:calc(8px + env(safe-area-inset-top)) 11px calc(8px + env(safe-area-inset-bottom));}" +
       "#panel-ittifak .it-govde{box-sizing:border-box;}" +
       /* Panel zemini referanstaki doygun maviye çekilir. tema.js
          `.overlay-card` arka planını !important ile veriyor, bu
@@ -340,23 +340,28 @@
         "linear-gradient(180deg,#2f8fe4 0%,#1a6ecd 46%,#1057b6 100%) !important;" +
         "border:0 !important;}" +
 
-      ".it-bas{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex:0 0 auto;}" +
+      /* BAŞLIK SOLA YASLI. h2 flex:1 ile tüm satırı kaplayınca yazı
+         bir şeridin üstünde duruyormuş gibi görünüyordu; artık kendi
+         genişliği kadar yer kaplıyor ve oka yapışık duruyor. Sağdaki
+         düğmeyi `margin-left:auto` iter, araya boşluk konmaz. */
+      ".it-bas{display:flex;align-items:center;gap:4px;margin-bottom:6px;flex:0 0 auto;}" +
       /* Geri oku: referanstaki kalın açık mavi ok. Kutusu yok,
          simgenin kendisi düğmedir; dokunma alanı 40px'te tutuldu. */
-      "#panel-ittifak .it-geri{flex:0 0 40px;width:40px;height:40px;border:0;padding:0;" +
+      "#panel-ittifak .it-geri{flex:0 0 34px;width:34px;height:34px;border:0;padding:0;" +
+        "margin-left:-4px;" +
         "background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;}" +
-      "#panel-ittifak .it-geri svg{width:32px;height:32px;fill:#8ddcff;" +
+      "#panel-ittifak .it-geri svg{width:27px;height:27px;fill:#8ddcff;" +
         "filter:drop-shadow(0 2px 3px rgba(0,25,60,.55));}" +
       "#panel-ittifak .it-geri:active svg{fill:#c4edff;transform:scale(.92);}" +
-      "#panel-ittifak .it-bas h2{flex:1 1 auto;min-width:0;margin:0;text-align:left;" +
-        "padding-right:0;font-family:'Baloo 2',sans-serif;font-weight:900;font-size:21px;" +
-        "color:#fff;text-shadow:0 2px 4px rgba(0,25,60,.6);" +
+      "#panel-ittifak .it-bas h2{flex:0 1 auto;min-width:0;margin:0;text-align:left;" +
+        "padding:0;font-family:'Baloo 2',sans-serif;font-weight:900;font-size:19px;" +
+        "line-height:1.2;color:#fff;text-shadow:0 2px 4px rgba(0,25,60,.55);" +
         "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
-      ".it-bas-sag{flex:0 0 auto;display:flex;align-items:center;}" +
-      ".it-bas-bilgi{width:30px;height:30px;border:0;cursor:pointer;border-radius:9px;" +
+      ".it-bas-sag{flex:0 0 auto;margin-left:auto;display:flex;align-items:center;}" +
+      ".it-bas-bilgi{width:27px;height:27px;border:0;cursor:pointer;border-radius:8px;" +
         "background:linear-gradient(180deg,#5cb8ef,#2f7fd0);color:#fff;" +
-        "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:16px;line-height:1;" +
-        "padding:0;box-shadow:0 2px 4px rgba(0,25,60,.4);}" +
+        "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:15px;line-height:1;" +
+        "padding:0;box-shadow:0 2px 4px rgba(0,25,60,.35);}" +
       "#panel-ittifak .overlay-close{display:none !important;}" +
 
       ".it-sekmeler{display:flex;gap:4px;align-items:flex-end;flex:0 0 auto;}" +
@@ -423,33 +428,13 @@
          ızgara ve 5 satırlık künye taşmadan sığar. Yazı boyları
          punto punto denendi; küçültmeden önce ızgaranın sığdığını
          doğrula. */
-      /* ── KÜNYE EKRANI KAYMAZ ──────────────────────────────────
-         Ekran ne kadarsa içerik o kadar: sabit yükseklikler verip
-         "umarım sığar" demek yerine, artan/eksilen yeri IZGARA
-         yutuyor. 360x640'ta da 412x915'te de aynı düzen çıkar,
-         hiçbir yerde kaydırma olmaz.
-
-         Bölüşüm:
-           künye · seviye · alt bar → kendi boyu (esnemez)
-           duyuru                   → esner ama tavanı var
-           ızgara                   → kalan yerin tamamı, 4 satır eşit
-
-         `min-height:0` ŞART: flex çocuğu varsayılan olarak içeriğinin
-         altına inemez, onsuz ızgara taşar ve kaydırma geri gelir. */
-      "#panel-ittifak .it-govde.it-sabit{overflow:hidden;}" +
-      /* height:100% YOK — yüzdelik yükseklik esnek kutuda kesin bir
-         ebeveyn boyu ister; sarmalı zaten üstteki `flex:1 1 auto`
-         geriyor. İkisini birden vermek bazı tarayıcılarda yuvarlama
-         farkı doğuruyordu. */
-      ".ik-sarmal.ik-tam{gap:9px;}" +
-      ".ik-sarmal.ik-tam > *{margin-bottom:0;}" +
-      ".ik-sarmal.ik-tam > .ik-duyuru{flex:0 1 auto;min-height:58px;max-height:104px;" +
-        "overflow:hidden;}" +
-      ".ik-sarmal.ik-tam > .ik-izgara{flex:1 1 auto;min-height:0;" +
-        "grid-template-rows:repeat(4,minmax(0,1fr));}" +
-      ".ik-sarmal.ik-tam > .ik-altbar{flex:0 0 auto;margin-top:0;}" +
-
-      ".ik-kunye{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}" +
+      /* IZGARAYI KALAN YERE YAYMAYI DENEDİK, GERİ ALINDI.
+         Düğmeleri ekran boyuna göre esnetince uzun ekranda kocaman,
+         kısa ekranda cılız oluyorlardı — kutucukların boyu sabit
+         kalmalı. Ekrana sığdırma işi artık ÇERÇEVEDEN alınıyor:
+         panel kenar boşluğu, başlık şeridi ve künye biraz daraldı,
+         kutucuklar kendi boyunda kaldı. */
+      ".ik-kunye{display:flex;align-items:flex-start;gap:9px;margin-bottom:8px;}" +
       /* Flama referanstaki turuncu arma: alt ucu çentikli kalkan. */
       ".ik-flama{flex:0 0 72px;width:72px;height:84px;display:flex;" +
         "align-items:center;justify-content:center;" +
@@ -460,14 +445,14 @@
         "color:#fff;text-shadow:0 2px 3px rgba(120,40,0,.75);padding-bottom:14px;" +
         "max-width:68px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
       ".ik-sag{flex:1 1 auto;min-width:0;}" +
-      ".ik-ad{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:16px;" +
-        "color:#fff;text-shadow:0 2px 3px rgba(0,25,60,.7);margin-bottom:6px;" +
+      ".ik-ad{font-family:'Baloo 2',sans-serif;font-weight:900;font-size:15px;" +
+        "color:#fff;text-shadow:0 2px 3px rgba(0,25,60,.7);margin-bottom:4px;" +
         "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}" +
       /* Künye kutusu: zeminden biraz koyu, satırlar ince çizgiyle
          ayrık (referanstaki iç panel). */
-      ".ik-bilgi{border-radius:11px;padding:3px 9px;" +
+      ".ik-bilgi{border-radius:11px;padding:2px 9px;" +
         "background:rgba(6,45,105,.42);box-shadow:inset 0 0 0 1px rgba(150,205,255,.22);}" +
-      ".ik-satir{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;" +
+      ".ik-satir{display:flex;align-items:center;gap:6px;padding:2.5px 0;font-size:11.5px;" +
         "border-top:1px solid rgba(150,205,255,.16);}" +
       ".ik-satir:first-child{border-top:0;}" +
       ".ik-ikon{flex:0 0 auto;font-size:12px;}" +
@@ -480,14 +465,14 @@
 
       /* Seviye çubuğu: rozet çubuğun sol ucuna BİNER, o yüzden
          sarmal position:relative ve çubuk soldan boşluklu. */
-      ".ik-sv{position:relative;display:flex;align-items:center;margin-bottom:10px;" +
+      ".ik-sv{position:relative;display:flex;align-items:center;margin-bottom:8px;" +
         "padding-left:5px;}" +
       ".ik-svno{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:2;" +
-        "width:30px;height:30px;border-radius:50%;display:flex;align-items:center;" +
+        "width:28px;height:28px;border-radius:50%;display:flex;align-items:center;" +
         "justify-content:center;background:linear-gradient(180deg,#4aa6ee,#1f6bc4);" +
         "box-shadow:0 0 0 3px #9fdcff,0 2px 4px rgba(0,25,60,.5);color:#fff;" +
         "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:14px;}" +
-      ".ik-cubuk{flex:1 1 auto;position:relative;height:22px;border-radius:11px;" +
+      ".ik-cubuk{flex:1 1 auto;position:relative;height:20px;border-radius:10px;" +
         "margin-left:20px;background:#0c3f86;overflow:hidden;" +
         "box-shadow:inset 0 2px 4px rgba(0,15,45,.55);}" +
       ".ik-dolu{height:100%;background:linear-gradient(180deg,#8bef52,#38b02c);}" +
@@ -499,8 +484,8 @@
       /* Duyuru: açık kutu, düzenleme düğmesi sağ ALT köşede.
          (Eski "sadece R4 düzenler" ipucu satırı kalktı — referansta
          yok ve kutuyu iki katına çıkarıyordu.) */
-      ".ik-duyuru{position:relative;padding:11px 44px 11px 13px;border-radius:12px;" +
-        "margin-bottom:11px;min-height:58px;" +
+      ".ik-duyuru{position:relative;padding:10px 42px 10px 12px;border-radius:12px;" +
+        "margin-bottom:8px;min-height:52px;" +
         "background:linear-gradient(180deg,#f7faff,#dde6f2);" +
         "box-shadow:0 2px 6px rgba(0,25,60,.3);}" +
       ".ik-duyuru-metin{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13.5px;" +
@@ -515,19 +500,19 @@
          Simge SOLDA kendi açık şeridinde, yazı kalan alanda
          ORTALANIR. Şerit ayrı bir öğe değil: ::before ile çizilen
          eğik bir dilim, böylece düğme tek kutu kalır. */
-      ".ik-izgara{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}" +
+      ".ik-izgara{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}" +
       /* 3B ALT KENAR YOK. Buraya bir zamanlar "0 3px 0" sert gölge
          konmuştu (düğmeye kalınlık veren kabartma); istenmedi.
          Yalnız yumuşak bir düşüm gölgesi kaldı. */
       ".ik-dugme{position:relative;display:flex;align-items:center;gap:6px;border:0;" +
-        "cursor:pointer;border-radius:14px;padding:0 10px 0 0;min-width:0;" +
+        "cursor:pointer;border-radius:14px;padding:0 10px 0 0;height:58px;min-width:0;" +
         "overflow:hidden;background:linear-gradient(180deg,#63c7f6,#3695e2);" +
         "box-shadow:0 2px 5px rgba(0,25,60,.22);}" +
       ".ik-dugme::before{content:'';position:absolute;left:0;top:0;bottom:0;width:74px;" +
         "background:linear-gradient(180deg,#8fdcff,#5ab4ef);" +
         "clip-path:polygon(0 0,100% 0,78% 100%,0 100%);}" +
       ".ik-dugme:active{filter:brightness(.93);}" +
-      ".ik-dikon{position:relative;z-index:1;flex:0 0 62px;text-align:center;font-size:27px;" +
+      ".ik-dikon{position:relative;z-index:1;flex:0 0 58px;text-align:center;font-size:25px;" +
         "line-height:1;filter:drop-shadow(0 2px 3px rgba(0,25,60,.45));}" +
       ".ik-dad{position:relative;z-index:1;flex:1 1 auto;min-width:0;text-align:center;" +
         "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13.5px;color:#fff;" +
@@ -537,13 +522,27 @@
       ".ik-altbar{display:flex;gap:10px;justify-content:center;padding-top:2px;}" +
       ".ik-alt{flex:0 1 110px;min-width:0;display:flex;flex-direction:column;" +
         "align-items:center;gap:3px;border:0;cursor:pointer;background:none;padding:4px 2px;" +
-        "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12.5px;color:#fff;" +
         "text-shadow:0 2px 3px rgba(0,25,60,.6);}" +
-      ".ik-alt span{width:44px;height:44px;border-radius:50%;display:flex;" +
-        "align-items:center;justify-content:center;font-size:23px;" +
+      ".ik-alt span{width:40px;height:40px;border-radius:50%;display:flex;" +
+        "align-items:center;justify-content:center;font-size:21px;" +
         "background:linear-gradient(180deg,#8fdcff,#3695e2);" +
         "box-shadow:0 2px 5px rgba(0,25,60,.22);}" +
       ".ik-alt:active span{filter:brightness(.93);}" +
+
+      /* KISA EKRAN EMNİYETİ. Ölçüler ~680 px'lik içerik alanına göre
+         oturtuldu (Android'de tarayıcı çubukları düşünce kalan yer
+         bu). Daha kısa ekranlarda kaydırma çıkmasın diye çerçeve bir
+         tık daha daralır — kutucuklar burada da neredeyse aynı
+         kalır, kısılan yer künye ve duyuru. */
+      "@media (max-height:660px){" +
+        ".ik-flama{width:64px;height:74px;}" +
+        ".ik-flama span{font-size:16px;padding-bottom:12px;}" +
+        ".ik-satir{padding:1.5px 0;}" +
+        ".ik-duyuru{min-height:38px;padding-top:9px;padding-bottom:9px;}" +
+        ".ik-dugme{height:53px;}" +
+        ".ik-alt span{width:36px;height:36px;font-size:19px;}" +
+      "}" +
 
       /* ═══ ÜYELER ═════════════════════════════════════════════ */
       ".iu-ara{display:flex;gap:7px;align-items:center;margin-bottom:8px;}" +
@@ -945,12 +944,6 @@
     else if (aktifSekme === "katil") { el.innerHTML = seritHTML + katilHTML(); }
     else                             { el.innerHTML = seritHTML + davetHTML(); }
 
-    /* Künye kendi yüksekliğini ekrana göre bölüştürüyor; gövdenin
-       kaydırması orada KAPATILIR, yoksa yuvarlamadan doğan 1-2 px
-       yüzünden ekran hafifçe oynar. Alt ekranlar (üyeler, sandık…)
-       gerçekten uzayabilir, onlarda açık kalır. */
-    el.classList.toggle("it-sabit", !!_benim && _gorunum === "ana");
-
     isimsizBagla();
     uyeAramaBagla();
 
@@ -1207,7 +1200,7 @@
       ? (sayiBicim(sayac().tec - sv.alt) + "/" + sayiBicim(sv.ust - sv.alt))
       : "MAKS";
 
-    var h = '<div class="ik-sarmal ik-tam">' +
+    var h = '<div class="ik-sarmal">' +
       '<div class="ik-kunye">' +
         '<div class="ik-flama"><span>' + kacar(it.etiket) + "</span></div>" +
         '<div class="ik-sag">' +
