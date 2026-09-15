@@ -110,6 +110,41 @@
             "ad": { ".validate": "newData.isString() && newData.val().length <= 48" },
             "at": { ".validate": "newData.isNumber()" }
           }
+        },
+
+        "sayac": {
+          "anahtar": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "tec":     { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "$other":  { ".validate": false }
+        },
+
+        "sandiklar": {
+          "$sandik": {
+            "tur":   { ".validate": "newData.val() === 'ganimet' || newData.val() === 'hediye'" },
+            "sebep": { ".validate": "newData.isString() && newData.val().length <= 64" },
+            "kim":   { ".validate": "newData.isString() && newData.val().length <= 48" },
+            "jeton": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000" },
+            "at":    { ".validate": "newData.isNumber()" },
+            "toplayan": { "$uye": { ".validate": "newData.isBoolean()" } },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "carpismalar": {
+          "$carpisma": {
+            "tur":   { ".validate": "newData.val() === 'seferberlik' || newData.val() === 'bireysel' || newData.val() === 'etkinlik'" },
+            "ad":    { ".validate": "newData.isString() && newData.val().length <= 48" },
+            "kim":   { ".validate": "newData.isString() && newData.val().length <= 48" },
+            "at":    { ".validate": "newData.isNumber()" },
+            "biter": { ".validate": "newData.isNumber()" },
+            "katilan": {
+              "$uye": {
+                "ad": { ".validate": "newData.isString() && newData.val().length <= 48" },
+                "at": { ".validate": "newData.isNumber()" }
+              }
+            },
+            "$other": { ".validate": false }
+          }
         }
       }
     }

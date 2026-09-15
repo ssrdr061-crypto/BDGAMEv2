@@ -17,10 +17,31 @@
      uyeler  → başvurular, üye listesi, terfi/indirme, atma
      ayarlar → künye özeti, Ayrıl / Dağıt
 
-   IZGARADAKİ 8 DÜĞMENİN ARKASINDA SİSTEM YOK — "Yakında" der.
-   (Savaş, Sandıklar, Bölge, Çarpışma, Mağaza, Teknoloji, Yardım,
-   Zafer). Yerleri şimdiden ayrıldı ki sistemler geldikçe ekran
+   IZGARADAKİ 8 DÜĞMEDEN ÜÇÜ ARTIK ÇALIŞIYOR:
+     Savaş     → Seferberlik / Bireysel / Etkinlikler sekmeleri,
+                 Oto-Katıl ayarı. Çarpışma ÜRETEN sistem henüz yok,
+                 o yüzden liste normalde boştur (referanstaki boş
+                 durum). Kapı hazır: ITTIFAK.carpismaAc().
+     Sandıklar → anahtar çubuğu + Ganimet Sandığı / İttifak Hediyesi
+                 sekmeleri, Topla / Tümünü Al, günlük ganimet tavanı,
+                 isimsiz hediye seçeneği.
+     Mağaza    → İttifak Jetonu ile Bugün / Hafta katalogları,
+                 dönem sayacı, oyuncu başına stok, seviyeyle açılan
+                 kilitli satırlar.
+   Kalan beşi (Bölge, Çarpışma, Teknoloji, Güç Sıralamaları, Yardım)
+   hâlâ "Yakında" der; yerleri duruyor ki sıra onlara gelince ekran
    yeniden kurulmasın.
+
+   EKONOMİ — TEK GİRİŞ KAPISI PAKET ALIMI
+   magaza.js'teki buyItem sarmalanır (magazaBagla). Oyuncunun
+   harcadığı elmas ittifakın iki sayacına yazılır:
+     sayac.tec     → künyedeki SEVİYE çubuğu (mağaza kilitlerini açar)
+     sayac.anahtar → Sandıklar ekranının tepesindeki çubuk; dolunca
+                     sıfırlanır ve herkese bir Ganimet Sandığı düşer
+   Ayrıca her alım tüm üyelere bir İttifak Hediyesi açar; jetonu
+   paketin bedeline göre değişir. Sandık kaydı BİR TANEDİR, her üye
+   `toplayan` altına kendini yazarak bir kez toplar.
+   Jeton oyuncunun kendi kaydındadır: state.ittifakJeton.
 
    RÜTBELER: R5 Lider · R4 Yönetici · R3 Kıdemli · R2 Üye · R1 Yeni
      R5: her şey (dağıt, rütbe ver, at, başvuru)
@@ -34,7 +55,10 @@
    etiket benzersizdir):
      { ad, adKucuk, etiket, manifesto, katilim:"aninda"|"basvuru",
        kurucu, kurulus, uyeler:{ oyuncuAnahtari:{ad,rutbe,at} },
-       basvurular:{ oyuncuAnahtari:{ad,at} } }
+       basvurular:{ oyuncuAnahtari:{ad,at} },
+       sayac:{ anahtar, tec },
+       sandiklar:{ id:{tur,sebep,kim,jeton,at,toplayan:{oyuncuAnahtari:true}} },
+       carpismalar:{ id:{tur,ad,kim,at,biter,katilan:{oyuncuAnahtari:{ad,at}}} } }
    Oyuncu tarafında yalnız KISAYOL durur: state.ittifak =
    { id, ad, etiket, rutbe }. Çelişki olursa bulut kazanır —
    panel her açılışta buluttan tazelenir ve kısayol düzeltilir.
@@ -65,6 +89,9 @@
      · sohbetin İttifak sekmesi, postanın İttifak sekmesi
      · haritada isim etiketinin yanında [ETİKET]
      · ittifak bonusları, ittifak bölgesi, davet gönderme
+     · SEFERBERLİK ÇAĞRISI ÜRETEN sistem — Savaş ekranı çağrıları
+       gösteriyor ve katılmayı biliyor, ama çağrıyı AÇAN yer henüz
+       bağlanmadı (haritadaki saldırı akışına bağlanacak).
    ═══════════════════════════════════════════════════════════════ */
 (function ittifakSistemi() {
   "use strict";
@@ -446,7 +473,184 @@
       ".ik-geri-bas span{flex:1 1 auto;min-width:0;font-family:'Baloo 2',sans-serif;" +
         "font-weight:900;font-size:15px;color:#eaf4ff;" +
         "text-shadow:0 1px 2px rgba(0,20,45,.55);overflow:hidden;" +
-        "text-overflow:ellipsis;white-space:nowrap;}";
+        "text-overflow:ellipsis;white-space:nowrap;}" +
+
+      /* ═══ SAVAŞ · SANDIKLAR · MAĞAZA — ORTAK ═════════════════
+         Üç ekran da künyeyle aynı sarmalı kullanır: gövde kayar,
+         alt düğme (Oto-Katıl / Tümünü Al / sekme çubuğu) dipte
+         durur. `.iy-govde` min-height:0 OLMADAN flex sütununda
+         kaymaz — liste uzayınca alt düğme ekrandan taşardı. */
+      ".iy-sarmal{display:flex;flex-direction:column;min-height:0;}" +
+      "#panel-ittifak .it-govde > .iy-sarmal{flex:1 1 auto;}" +
+      ".iy-sarmal > *{flex:0 0 auto;}" +
+      ".iy-govde{flex:1 1 auto !important;min-height:0;overflow-y:auto;" +
+        "padding:2px 1px;}" +
+      ".iy-sekmeler{display:flex;gap:5px;margin-bottom:8px;}" +
+      ".iy-sekme{position:relative;flex:1 1 0;min-width:0;border:0;cursor:pointer;" +
+        "border-radius:11px;padding:9px 4px;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:800;font-size:12px;line-height:1;color:#dff0ff;" +
+        "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" +
+        "background:linear-gradient(180deg,#3d7ccc,#22488f);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      ".iy-sekme.secili{background:linear-gradient(180deg,#f4f8ff,#d7e7fb);" +
+        "color:#123a70;text-shadow:none;}" +
+      ".iy-sekme:active{filter:brightness(.93);}" +
+      /* Boş durum: referanstaki gibi solgun arma + tek satır. */
+      ".iy-bos{display:flex;flex-direction:column;align-items:center;" +
+        "justify-content:center;gap:10px;padding:48px 12px;text-align:center;}" +
+      ".iy-bos-ikon{width:76px;height:76px;object-fit:contain;opacity:.22;}" +
+      ".iy-bos span{font-family:'Baloo 2',sans-serif;font-weight:700;" +
+        "font-size:13px;color:#cfe4ff;text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      ".iy-altbilgi{font-size:10.5px;font-weight:700;color:#cfe4ff;" +
+        "text-align:center;line-height:1.3;padding:6px 4px 5px;" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      /* Dipteki geniş düğme: Oto-Katıl ve Tümünü Al ortak. */
+      ".iy-oto{position:relative;display:block;width:100%;border:0;cursor:pointer;" +
+        "border-radius:12px;padding:11px 8px;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:900;font-size:14px;color:#eaf4ff;" +
+        "background:linear-gradient(180deg,#4f9fe0,#2c68ad);" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.55);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".iy-oto.acik{background:linear-gradient(180deg,#57c94f,#2e9a37);" +
+        "text-shadow:0 1px 2px rgba(0,40,10,.45);}" +
+      ".iy-oto.sonuk{background:linear-gradient(180deg,#b9c4d2,#8d9aab);}" +
+      ".iy-oto:active{filter:brightness(.93);}" +
+      ".iy-nokta{position:absolute;top:6px;right:8px;width:9px;height:9px;" +
+        "border-radius:50%;background:#e8342d;box-shadow:0 0 0 2px rgba(255,255,255,.55);}" +
+
+      /* ═══ KÜNYE IZGARASINDAKİ ROZET ══════════════════════════ */
+      ".ik-dugme{position:relative;}" +
+      ".ik-rozet,.is-rozet{position:absolute;top:-5px;right:-4px;min-width:17px;" +
+        "height:17px;padding:0 4px;border-radius:9px;background:#e8342d;color:#fff;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:10px;" +
+        "font-style:normal;line-height:17px;text-align:center;" +
+        "box-shadow:0 0 0 2px rgba(255,255,255,.5);}" +
+      ".is-sekmeler .iy-sekme{overflow:visible;}" +
+      ".is-rozet{top:-6px;right:2px;}" +
+
+      /* ═══ JETON — İTTİFAK PARA BİRİMİ ════════════════════════
+         Simge tek yerde: satırda, kesede ve fiyat düğmesinde aynı
+         daire çizilir, üç ayrı görünüm ayrışmasın. */
+      ".it-jeton{display:inline-flex;align-items:center;justify-content:center;" +
+        "width:16px;height:16px;border-radius:50%;margin-right:3px;font-size:10px;" +
+        "background:linear-gradient(180deg,#6fd3ff,#2f7fd8);" +
+        "box-shadow:inset 0 -1px 2px rgba(0,20,45,.5);vertical-align:-3px;}" +
+      ".it-jeton-sayi{font-family:'Baloo 2',sans-serif;font-weight:900;" +
+        "font-size:13px;color:#fff;text-shadow:0 1px 2px rgba(0,20,45,.6);}" +
+
+      /* ═══ SANDIKLAR ══════════════════════════════════════════ */
+      ".is-tepe{padding:8px 10px 10px;border-radius:14px;margin-bottom:8px;" +
+        "background:linear-gradient(180deg,#5db4ec,#2a74c4);" +
+        "box-shadow:0 2px 8px rgba(0,20,45,.35);text-align:center;}" +
+      ".is-sandik{width:84px;height:84px;object-fit:contain;display:block;" +
+        "margin:0 auto 6px;filter:drop-shadow(0 3px 5px rgba(0,20,45,.45));}" +
+      ".is-cubuk-satir{display:flex;align-items:center;gap:6px;}" +
+      ".is-anahtar{flex:0 0 auto;font-size:15px;" +
+        "filter:drop-shadow(0 1px 2px rgba(0,20,45,.5));}" +
+      ".is-cubuk{flex:1 1 auto;position:relative;height:17px;border-radius:9px;" +
+        "background:rgba(0,20,45,.42);overflow:hidden;}" +
+      ".is-dolu{height:100%;background:linear-gradient(180deg,#8ff06a,#3aa83a);}" +
+      ".is-cubuk span{position:absolute;inset:0;display:flex;align-items:center;" +
+        "justify-content:center;font-family:'Baloo 2',sans-serif;font-weight:800;" +
+        "font-size:11px;color:#fff;text-shadow:0 1px 2px rgba(0,20,45,.85);}" +
+      ".is-bilgi{flex:0 0 22px;width:22px;height:22px;border:0;cursor:pointer;" +
+        "border-radius:50%;background:#1d4f92;color:#fff;font-weight:900;" +
+        "font-size:13px;line-height:1;padding:0;}" +
+      ".is-serit{display:flex;align-items:center;gap:8px;padding:8px 9px;" +
+        "border-radius:11px;margin-bottom:8px;" +
+        "background:linear-gradient(180deg,#2e73bd,#1d4f92);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".is-serit span{flex:1 1 auto;min-width:0;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:800;font-size:11.5px;color:#eaf4ff;line-height:1.25;" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      ".is-git{flex:0 0 auto;border:0;cursor:pointer;border-radius:9px;" +
+        "padding:7px 14px;font-family:'Baloo 2',sans-serif;font-weight:800;" +
+        "font-size:12px;color:#123a70;" +
+        "background:linear-gradient(180deg,#bfe6ff,#7fc4f0);}" +
+      ".is-satir{display:flex;align-items:center;gap:8px;padding:7px 8px;" +
+        "border-radius:12px;margin-bottom:7px;" +
+        "background:linear-gradient(180deg,#fbfdff,#e6eef8);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".is-satir.alindi{opacity:.62;}" +
+      ".is-ikon{flex:0 0 46px;width:46px;text-align:center;}" +
+      ".is-ikon img{width:38px;height:38px;object-fit:contain;display:block;margin:0 auto;}" +
+      ".is-saat{display:block;font-family:'Baloo 2',sans-serif;font-weight:800;" +
+        "font-size:9.5px;color:#3d4a63;font-variant-numeric:tabular-nums;}" +
+      ".is-odul{flex:0 0 auto;display:flex;align-items:center;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:12.5px;" +
+        "color:#14203a;}" +
+      ".is-sinir{text-align:center;font-family:'Baloo 2',sans-serif;font-weight:800;" +
+        "font-size:11.5px;color:#cfe4ff;padding:7px 4px 6px;" +
+        "border-top:1px solid rgba(190,225,255,.28);" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      ".is-isimsiz{display:flex;align-items:center;gap:7px;padding:8px 4px 7px;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:700;font-size:11.5px;" +
+        "color:#cfe4ff;cursor:pointer;text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      ".is-isimsiz input{width:17px;height:17px;accent-color:#3aa83a;cursor:pointer;}" +
+
+      /* ═══ İTTİFAK MAĞAZASI ═══════════════════════════════════ */
+      ".im-bas{display:flex;align-items:center;gap:8px;margin-bottom:8px;}" +
+      ".im-bas > span{flex:1 1 auto;min-width:0;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:900;font-size:15px;color:#eaf4ff;" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      ".im-kese{flex:0 0 auto;display:flex;align-items:center;padding:4px 10px;" +
+        "border-radius:13px;background:linear-gradient(180deg,#2e73bd,#1d4f92);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".im-yenilenme{text-align:center;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:800;font-size:12px;color:#eaf4ff;margin-bottom:8px;" +
+        "padding:5px 4px;border-radius:9px;background:rgba(13,45,90,.42);" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.55);}" +
+      ".im-yenilenme b{color:#ffd257;font-variant-numeric:tabular-nums;}" +
+      ".im-izgara{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}" +
+      ".im-kart{position:relative;display:flex;flex-direction:column;" +
+        "align-items:center;gap:3px;padding:8px 5px 0;border-radius:13px;" +
+        "overflow:hidden;background:linear-gradient(180deg,#fbfdff,#dbe7f6);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".im-kart.bitti{filter:saturate(.25) brightness(.94);}" +
+      ".im-indirim{position:absolute;top:3px;left:3px;z-index:2;padding:1px 6px;" +
+        "border-radius:8px;background:linear-gradient(180deg,#57c94f,#2e9a37);" +
+        "color:#fff;font-family:'Baloo 2',sans-serif;font-weight:900;" +
+        "font-size:9.5px;font-style:normal;" +
+        "text-shadow:0 1px 2px rgba(0,40,10,.5);}" +
+      ".im-kutu{position:relative;width:64%;aspect-ratio:1/1;display:flex;" +
+        "align-items:center;justify-content:center;}" +
+      ".im-gorsel{max-width:100%;max-height:100%;object-fit:contain;" +
+        "filter:drop-shadow(0 2px 3px rgba(0,20,45,.35));}" +
+      ".im-emoji{font-size:26px;line-height:1;}" +
+      ".im-adet{position:absolute;right:0;bottom:0;padding:0 5px;border-radius:6px;" +
+        "background:rgba(10,30,60,.72);color:#fff;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:800;font-size:10px;font-style:normal;}" +
+      ".im-kalan{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:11px;" +
+        "color:#25334d;}" +
+      ".im-fiyat{width:100%;margin-top:2px;border:0;cursor:pointer;" +
+        "display:flex;align-items:center;justify-content:center;" +
+        "padding:6px 2px;font-family:'Baloo 2',sans-serif;font-weight:900;" +
+        "font-size:12px;color:#fff;background:linear-gradient(180deg,#1a3a75,#0e2246);" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.7);}" +
+      ".im-fiyat:active{filter:brightness(.92);}" +
+      ".im-fiyat.kapali{background:linear-gradient(180deg,#8d9aab,#68748a);" +
+        "cursor:not-allowed;}" +
+      /* Kilitli grup: kartlar KALIR, üstüne kırmızı örtü biner —
+         oyuncu neyin kilitli olduğunu görsün (referans düzeni). */
+      ".im-kilitli{position:relative;margin-top:9px;border-radius:13px;" +
+        "overflow:hidden;}" +
+      ".im-kilitli .im-izgara{opacity:.5;}" +
+      ".im-kilitli::after{content:'';position:absolute;inset:0;" +
+        "background:rgba(214,36,92,.42);pointer-events:none;}" +
+      ".im-kilit-yazi{position:absolute;inset:0;z-index:2;display:flex;" +
+        "align-items:center;justify-content:center;text-align:center;padding:0 10px;" +
+        "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:12.5px;" +
+        "color:#fff;text-shadow:0 2px 4px rgba(90,0,30,.85);pointer-events:none;}" +
+      ".im-altsekme{display:flex;gap:6px;padding-top:7px;}" +
+      ".im-altsekme button{flex:1 1 0;border:0;cursor:pointer;border-radius:11px;" +
+        "padding:10px 4px;font-family:'Baloo 2',sans-serif;font-weight:800;" +
+        "font-size:13px;color:#dff0ff;" +
+        "background:linear-gradient(180deg,#3d7ccc,#22488f);" +
+        "text-shadow:0 1px 2px rgba(0,20,45,.55);" +
+        "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+      ".im-altsekme button.secili{background:linear-gradient(180deg,#f4f8ff,#d7e7fb);" +
+        "color:#123a70;text-shadow:none;}";
     document.head.appendChild(s);
   }
 
@@ -531,6 +735,8 @@
     else if (aktifSekme === "kur")   { el.innerHTML = seritHTML + kurHTML(); }
     else if (aktifSekme === "katil") { el.innerHTML = seritHTML + katilHTML(); }
     else                             { el.innerHTML = seritHTML + davetHTML(); }
+
+    isimsizBagla();
 
     if (!kapaliHareket()) {
       el.animate([{ opacity: 0, transform: "translateY(8px)" },
@@ -755,6 +961,9 @@
   function ittifakEkraniHTML() {
     if (_gorunum === "uyeler")  return uyelerEkraniHTML();
     if (_gorunum === "ayarlar") return ayarlarEkraniHTML();
+    if (_gorunum === "savas")   return savasEkraniHTML();
+    if (_gorunum === "sandik")  return sandikEkraniHTML();
+    if (_gorunum === "magaza")  return magazaEkraniHTML();
     return anaEkranHTML();
   }
 
@@ -787,14 +996,23 @@
           bilgi("💬", "Dil", kacar(it.dil || "Tüm diller")) +
         "</div>" +
       "</div>" +
-      /* Seviye çubuğu GÖRSELDİR: ittifak tecrübe sistemi henüz yok,
-         bu yüzden hep Sv1 ve 0/40.000 gösterir. Sistem gelince
-         buradaki iki sayı veriden beslenecek. */
-      '<div class="ik-sv">' +
-        '<div class="ik-svno">1</div>' +
-        '<div class="ik-cubuk"><div class="ik-dolu"></div>' +
-          '<span class="ik-svyazi">0/40.000</span></div>' +
-      "</div>" +
+      /* Seviye çubuğu ARTIK GERÇEK: üyelerin mağazadan aldığı
+         paketlerin elması `sayac.tec`e yazılır (paketAlindi) ve
+         seviye buradan çıkar. Seviye İttifak Mağazası'ndaki
+         kilitli satırların anahtarıdır. Tavana varınca çubuk dolu
+         kalır ve "MAKS" yazar. */
+      (function () {
+        var sv = seviyeBilgi(sayac().tec);
+        var yazi = (sv.ust > sv.alt)
+          ? (sayiBicim(sayac().tec - sv.alt) + "/" + sayiBicim(sv.ust - sv.alt))
+          : "MAKS";
+        return '<div class="ik-sv">' +
+          '<div class="ik-svno">' + sv.sv + "</div>" +
+          '<div class="ik-cubuk"><div class="ik-dolu" style="width:' +
+            (sv.oran * 100).toFixed(2) + '%"></div>' +
+            '<span class="ik-svyazi">' + yazi + "</span></div>" +
+        "</div>";
+      })() +
     "</div>";
 
     var duyuru = String(it.manifesto || "").trim();
@@ -808,16 +1026,26 @@
       "</div>" +
     "</div>";
 
+    /* Üçüncü alan doluysa düğme O GÖRÜNÜMÜ açar; boşsa eskisi gibi
+       "Yakında" der. Sırayla doldurulacak — sıradaki sistem
+       geldiğinde yalnız buraya görünüm adı yazılır.
+       Rozet: toplanmamış sandık sayısı (referanstaki kırmızı sayaç). */
+    var bekleyenSandik = toplanmamisSayi("ganimet") + toplanmamisSayi("hediye");
     var IZGARA = [
-      ["⚔️", "Savaş"],    ["🎁", "Sandıklar"],
-      ["🚩", "Bölge"],    ["💥", "Çarpışma"],
-      ["🏪", "Mağaza"],   ["🔬", "Teknoloji"],
+      ["⚔️", "Savaş", "savas"],   ["🎁", "Sandıklar", "sandik", bekleyenSandik],
+      ["🚩", "Bölge"],            ["💥", "Çarpışma"],
+      ["🏪", "Mağaza", "magaza"], ["🔬", "Teknoloji"],
       ["🏆", "Güç Sıralamaları"], ["🤝", "Yardım"]
     ];
     h += '<div class="ik-izgara">' + IZGARA.map(function (g) {
-      return '<button class="ik-dugme" data-yakinda="' + kacar(g[1]) + '">' +
+      var kapi = g[2]
+        ? ('data-gorunum="' + g[2] + '"')
+        : ('data-yakinda="' + kacar(g[1]) + '"');
+      var rozet = (g[3] > 0)
+        ? ('<i class="ik-rozet">' + (g[3] > 99 ? "99+" : g[3]) + "</i>") : "";
+      return '<button class="ik-dugme" ' + kapi + ">" +
                '<span class="ik-dikon">' + g[0] + "</span>" +
-               '<span class="ik-dad">' + g[1] + "</span>" +
+               '<span class="ik-dad">' + g[1] + "</span>" + rozet +
              "</button>";
     }).join("") + "</div>";
 
@@ -1014,6 +1242,813 @@
       .catch(function (e) { uyar(hataMetni(e, "Dağıtılamadı")); console.warn("[ittifak]", e); });
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     İTTİFAK EKONOMİSİ — JETON · ANAHTAR · SEVİYE
+     ──────────────────────────────────────────────────────────────
+     TEK KAYNAK: oyuncu MAĞAZADAN paket aldıkça (magaza.js →
+     buyItem) harcadığı elmas ittifaka iki ayrı sayaca yazılır:
+
+       sayac.tec      → İTTİFAK TECRÜBESİ. Künyedeki seviye
+                        çubuğunu doldurur; seviye İttifak
+                        Mağazası'ndaki kilitli satırları açar.
+       sayac.anahtar  → SANDIK ÇUBUĞU (Sandıklar ekranının tepesi).
+                        ANAHTAR_HEDEF'e varınca sıfırlanır ve TÜM
+                        üyelere bir Ganimet Sandığı düşer.
+
+     Alan başına iki ödül var, karıştırma:
+       · İttifak Hediyesi → paketi ALAN kişi yüzünden herkese düşer,
+         jetonu paketin BEDELİNE göre değişir (bedel / HEDIYE_BOLEN).
+       · Ganimet Sandığı  → çubuk dolunca düşer, jetonu sabittir.
+
+     Jeton oyuncunun KENDİ kaydında durur (state.ittifakJeton);
+     sandık kaydı buluttadır ve her üye onu BİR KEZ toplar
+     (sandiklar/{id}/toplayan/{oyuncuAnahtari}).
+
+     İKİ SAYAÇ NEDEN `sayac` ALTINDA: ittifak düğümünün tamamı
+     hiçbir yerde .set() ile yazılmıyor (bkz. dosya başı ".set()
+     TUZAĞI"). `sayac` tek parça olduğu için transaction ile
+     güvenle yazılabilir — aynı anda iki üye paket alsa bile
+     ilerleme kaybolmaz.
+     ══════════════════════════════════════════════════════════════ */
+
+  var JETON_ADI            = "İttifak Jetonu";
+  var ANAHTAR_HEDEF        = 75000;   /* sandık çubuğu bu kadar elmasla dolar */
+  var GANIMET_JETON        = 30;      /* çubuk dolunca her üyeye düşen jeton  */
+  var HEDIYE_BOLEN         = 100;     /* hediye jetonu = paket bedeli / 100   */
+  var HEDIYE_MIN           = 10;
+  var HEDIYE_MAX           = 300;
+  var GUNLUK_GANIMET_SINIRI = 500;    /* oyuncu başına günlük ganimet jetonu  */
+  var SANDIK_OMRU_MS       = 24 * 60 * 60 * 1000;
+  var SANDIK_SINIRI        = 50;      /* listede tutulan en fazla sandık      */
+
+  /* Seviye eşikleri: SV_ESIK[n] = (n+1). seviyeye geçmek için gereken
+     TOPLAM tecrübe. Sv1 → Sv2 için 40.000 (referans ekrandaki sayı).
+     Sonu geldiğinde seviye tavanda kalır, çubuk dolu görünür. */
+  var SV_ESIK = [0, 40000, 110000, 220000, 380000, 600000, 900000,
+                 1300000, 1800000, 2400000];
+
+  function sayac() {
+    var s = (_benim && _benim.sayac) ? _benim.sayac : null;
+    return {
+      anahtar: s ? (Number(s.anahtar) || 0) : 0,
+      tec:     s ? (Number(s.tec)     || 0) : 0
+    };
+  }
+
+  /* Tecrübeden seviye: { sv, alt, ust, oran } */
+  function seviyeBilgi(tec) {
+    tec = Number(tec) || 0;
+    var sv = 1;
+    while (sv < SV_ESIK.length && tec >= SV_ESIK[sv]) sv++;
+    var alt = SV_ESIK[sv - 1] || 0;
+    var ust = (sv < SV_ESIK.length) ? SV_ESIK[sv] : alt;   /* tavan: ust===alt */
+    var oran = (ust > alt) ? ((tec - alt) / (ust - alt)) : 1;
+    return { sv: sv, alt: alt, ust: ust, oran: Math.max(0, Math.min(1, oran)) };
+  }
+  function ittifakSeviyesi() { return seviyeBilgi(sayac().tec).sv; }
+
+  /* ── OYUNCU TARAFI: JETON ─────────────────────────────────────
+     `state` içinde durur, hesapla birlikte buluta gider
+     (persistCurrentState tüm state'i yazar). defaultState'e
+     eklenmesi GEREKMEZ: startSessionFor state'i önce tamamen
+     boşaltıyor, o yüzden alan hesaplar arasında sızmaz. */
+  function jeton() {
+    var s = st();
+    return s ? (Number(s.ittifakJeton) || 0) : 0;
+  }
+  function jetonEkle(n) {
+    var s = st();
+    if (!s) return;
+    s.ittifakJeton = Math.max(0, jeton() + (Number(n) || 0));
+    yaz();
+  }
+
+  /* Günlük ganimet tavanı — oyuncu başına, yerel güne göre. */
+  function bugunAnahtari() {
+    var d = new Date();
+    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+  }
+  function ganimetBugun() {
+    var s = st();
+    if (!s || !s.itGanimet || s.itGanimet.gun !== bugunAnahtari()) return 0;
+    return Number(s.itGanimet.toplam) || 0;
+  }
+  function ganimetEkle(n) {
+    var s = st();
+    if (!s) return;
+    if (!s.itGanimet || s.itGanimet.gun !== bugunAnahtari()) {
+      s.itGanimet = { gun: bugunAnahtari(), toplam: 0 };
+    }
+    s.itGanimet.toplam = (Number(s.itGanimet.toplam) || 0) + (Number(n) || 0);
+  }
+
+  /* ── SADECE KENDİ İTTİFAKIMI TAZELE ───────────────────────────
+     tazele() tüm `ittifaklar` düğümünü okur; sandık toplama ya da
+     mağaza alımı sonrası bu gereksiz pahalıdır. Burada yalnız tek
+     ittifak okunur ve _liste'deki kopyası da yerine konur — iki
+     yerde farklı kayıt kalmasın. */
+  function benimiTazele(bitince) {
+    if (!_benim || !bulutVar()) { if (bitince) bitince(); return; }
+    var id = _benim.id;
+    kok().child(id).once("value").then(function (snap) {
+      var v = snap.val();
+      if (v) {
+        v.id = id;
+        _benim = v;
+        for (var i = 0; i < _liste.length; i++) {
+          if (_liste[i].id === id) { _liste[i] = v; break; }
+        }
+      }
+      if (bitince) bitince();
+    }).catch(function (e) {
+      console.warn("[ittifak] tazelenemedi:", e);
+      if (bitince) bitince();
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     SANDIKLAR — VERİ
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Bulut kaydı:
+       sandiklar/{id} = { tur, sebep, kim, jeton, at, toplayan:{} }
+     tur    → "hediye" | "ganimet"
+     kim    → paketi alan oyuncunun adı ("" ise isimsiz gönderildi)
+     sebep  → hediye için paket adı, ganimet için "" (sabit metin)
+     toplayan → her üye kendini BİR KEZ yazar; kayıt herkes için
+                tektir, 50 üyeye 50 kayıt açılmaz. */
+  function sandikListesi(tur) {
+    var s = (_benim && _benim.sandiklar) ? _benim.sandiklar : {};
+    var simdi = Date.now();
+    return Object.keys(s).map(function (id) {
+      var x = s[id] || {};
+      return {
+        id: id, tur: x.tur || "ganimet", sebep: x.sebep || "",
+        kim: x.kim || "", jeton: Number(x.jeton) || 0,
+        at: Number(x.at) || 0,
+        toplandi: !!(x.toplayan && benKey() && x.toplayan[benKey()])
+      };
+    }).filter(function (x) {
+      if (tur && x.tur !== tur) return false;
+      /* Ömrü dolmuş kayıt listede görünmez; silmesi ayrı iş
+         (sandikBudama) — okuma yazmaya bağlı kalmasın. */
+      return !x.at || (simdi - x.at) < SANDIK_OMRU_MS;
+    }).sort(function (a, b) { return b.at - a.at; });
+  }
+
+  function toplanmamisSayi(tur) {
+    return sandikListesi(tur).filter(function (x) { return !x.toplandi; }).length;
+  }
+
+  /* Sandık aç — TÜM üyelere tek kayıt. */
+  function sandikAc(id, kayit) {
+    if (!bulutVar()) return;
+    kok().child(id).child("sandiklar").push(kayit)
+      .catch(function (e) { console.warn("[ittifak] sandık açılamadı:", e); });
+  }
+
+  /* Ömrü dolmuş kayıtları sil. Sessizdir: başarısız olursa ekranda
+     hiçbir şey değişmez, liste zaten onları göstermiyor. */
+  function sandikBudama() {
+    if (!_benim || !bulutVar()) return;
+    var s = _benim.sandiklar || {};
+    var simdi = Date.now();
+    var sil = Object.keys(s).filter(function (k) {
+      var at = Number((s[k] || {}).at) || 0;
+      return at && (simdi - at) > SANDIK_OMRU_MS;
+    });
+    /* Liste tavanı: en eskiden başlayarak fazlalık da düşer. */
+    var kalan = Object.keys(s).length - sil.length;
+    if (kalan > SANDIK_SINIRI) {
+      Object.keys(s).filter(function (k) { return sil.indexOf(k) < 0; })
+        .sort(function (a, b) {
+          return (Number((s[a] || {}).at) || 0) - (Number((s[b] || {}).at) || 0);
+        })
+        .slice(0, kalan - SANDIK_SINIRI)
+        .forEach(function (k) { sil.push(k); });
+    }
+    sil.forEach(function (k) {
+      kok().child(_benim.id).child("sandiklar").child(k).remove().catch(function () {});
+    });
+  }
+
+  /* Tek sandık topla.
+     ÇİFT TOPLAMA KİLİDİ: `toplayan/{ben}` düğümüne transaction ile
+     yazılır ve dolu ise iptal edilir. İki sekme aynı anda "Topla"ya
+     bassa bile jeton bir kez verilir. */
+  function sandikTopla(sid, bitince) {
+    var k = benKey();
+    if (!_benim || !k || !bulutVar()) { if (bitince) bitince(false, 0); return; }
+    var kayit = (_benim.sandiklar || {})[sid];
+    if (!kayit) { if (bitince) bitince(false, 0); return; }
+
+    var kazanc = Number(kayit.jeton) || 0;
+    var ganimetMi = (kayit.tur === "ganimet");
+
+    if (ganimetMi) {
+      var kalan = GUNLUK_GANIMET_SINIRI - ganimetBugun();
+      if (kalan <= 0) { if (bitince) bitince(false, 0, "sinir"); return; }
+      if (kazanc > kalan) kazanc = kalan;
+    }
+
+    kok().child(_benim.id).child("sandiklar").child(sid)
+      .child("toplayan").child(k)
+      .transaction(function (mevcut) {
+        if (mevcut) return;            /* zaten toplanmış → iptal */
+        return true;
+      })
+      .then(function (sonuc) {
+        if (!sonuc.committed) { if (bitince) bitince(false, 0); return; }
+        if (!kayit.toplayan) kayit.toplayan = {};
+        kayit.toplayan[k] = true;      /* yerel kopya da bilsin */
+        jetonEkle(kazanc);
+        if (ganimetMi) ganimetEkle(kazanc);
+        yaz();
+        if (bitince) bitince(true, kazanc);
+      })
+      .catch(function (e) {
+        console.warn("[ittifak] sandık toplanamadı:", e);
+        uyar(hataMetni(e, "Sandık toplanamadı"));
+        if (bitince) bitince(false, 0);
+      });
+  }
+
+  /* Tümünü Al — TEK TEK, SIRAYLA.
+     Paralel toplamak cazip ama YANLIŞ: günlük ganimet tavanı
+     `ganimetBugun()` ile alım ANINDA okunuyor; hepsi aynı anda
+     başlarsa hepsi aynı (eski) toplamı görür ve tavan aşılır.
+     Sıralı akışta her adım bir öncekinin kazancını görmüş olur. */
+  function sandikHepsiniTopla(tur) {
+    var bekleyen = sandikListesi(tur).filter(function (x) { return !x.toplandi; });
+    if (!bekleyen.length) { uyar("Toplanacak sandık yok."); return; }
+    var toplam = 0, sinirDoldu = false, i = 0;
+
+    function sonraki() {
+      if (i >= bekleyen.length) {
+        /* Tavan tam dolarak durduğunda toplanan jeton VARDIR; o
+           yüzden iki haber birbirini ELEMEZ, aynı satırda verilir —
+           yoksa oyuncu neden yarıda kaldığını hiç öğrenemezdi. */
+        if (toplam > 0) {
+          uyar("🪙 " + sayiBicim(toplam) + " " + JETON_ADI + " toplandı!" +
+               (sinirDoldu ? " Günlük ganimet sınırına ulaştın." : ""));
+        } else if (sinirDoldu) {
+          uyar("Günlük ganimet sınırına ulaştın.");
+        }
+        govdeCiz();
+        return;
+      }
+      sandikTopla(bekleyen[i++].id, function (oldu, kazanc, sebep) {
+        if (oldu) toplam += kazanc;
+        if (sebep === "sinir") { sinirDoldu = true; i = bekleyen.length; }
+        sonraki();
+      });
+    }
+    sonraki();
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     PAKET ALIMI — EKONOMİNİN TEK GİRİŞ KAPISI
+     magaza.js'teki buyItem sarmalanır (bkz. magazaBagla). Oyuncu
+     kaç elmas harcadıysa o kadar tecrübe + o kadar anahtar yazılır.
+     ══════════════════════════════════════════════════════════════ */
+  function paketAlindi(paketAdi, bedel) {
+    bedel = Math.max(0, Math.round(Number(bedel) || 0));
+    if (!bedel || !_benim || !bulutVar()) return;
+
+    var id = _benim.id;
+    var ben = benAd() || "Bir üye";
+    var isimsiz = !!(st() && st().itIsimsizHediye);
+
+    /* Çubuğun dolduğunu transaction'ın SON çalışmasından öğreniriz.
+       Firebase güncelleme işlevini birden çok kez çalıştırabilir;
+       işlenen (commit edilen) değer HER ZAMAN son çalışmanınkidir,
+       bu yüzden bayrağı orada kurmak doğrudur. */
+    var doldu = false;
+
+    kok().child(id).child("sayac").transaction(function (m) {
+      m = m || {};
+      var a = (Number(m.anahtar) || 0) + bedel;
+      doldu = false;
+      if (a >= ANAHTAR_HEDEF) { a -= ANAHTAR_HEDEF; doldu = true; }
+      return { anahtar: a, tec: (Number(m.tec) || 0) + bedel };
+    }).then(function (sonuc) {
+      if (!sonuc.committed) return;
+
+      sandikAc(id, {
+        tur: "hediye",
+        sebep: paketAdi || "paket",
+        kim: isimsiz ? "" : ben,
+        jeton: Math.max(HEDIYE_MIN,
+                 Math.min(HEDIYE_MAX, Math.round(bedel / HEDIYE_BOLEN))),
+        at: saat(),
+        toplayan: {}
+      });
+
+      if (doldu) {
+        sandikAc(id, {
+          tur: "ganimet", sebep: "", kim: "",
+          jeton: GANIMET_JETON, at: saat(), toplayan: {}
+        });
+      }
+
+      /* Panel açıksa ekran kendiliğinden tazelensin. */
+      if (panel && panel.classList.contains("active")) {
+        benimiTazele(function () { if (_benim) govdeCiz(); });
+      }
+    }).catch(function (e) {
+      console.warn("[ittifak] paket ilerlemesi yazılamadı:", e);
+    });
+  }
+
+  /* magaza.js'teki buyItem'ı sarmalar. ittifak.js index.html'de
+     magaza.js'ten SONRA yüklenir, o yüzden kapı hazırdır.
+     Alım BAŞARISIZ olsa bile (limit dolu, elmas yetmedi) buyItem
+     sessizce döner — bu yüzden elması ÖNCE ve SONRA okuyup GERÇEK
+     harcamayı ölçüyoruz. Fiyatı burada yeniden hesaplamak
+     (fiyat × adet) limit kırpmasını ıskalardı. */
+  function magazaBagla() {
+    var orij = window.buyItem;
+    if (typeof orij !== "function" || orij.__ittifakWrapped) return;
+    var sarmal = function (idx, count) {
+      var s = st();
+      var once = s ? (Number(s.diamonds) || 0) : 0;
+      var sonuc = orij.apply(this, arguments);
+      try {
+        var sonra = s ? (Number(s.diamonds) || 0) : 0;
+        var harcanan = once - sonra;
+        var urun = (typeof shopItems !== "undefined" && shopItems[idx]) ? shopItems[idx] : null;
+        /* FÜZE DIŞARIDA — bilerek. buyItem füzeyi buluta yazar ve
+           yazma düşerse elması SONRADAN, eşzamansız olarak iade
+           eder. Biz elması burada, iade gelmeden ölçüyoruz: füzeyi
+           saysaydık 400.000'lik bir alım ittifaka hediye açar, sonra
+           oyuncunun elması geri gelir ve hediye ortada kalırdı. */
+        if (harcanan > 0 && _benim && !(urun && urun.isMissile)) {
+          paketAlindi(urun ? urun.name : "paket", harcanan);
+        }
+      } catch (e) { console.warn("[ittifak] paket kancası:", e); }
+      return sonuc;
+    };
+    sarmal.__ittifakWrapped = true;
+    window.buyItem = sarmal;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     İTTİFAK MAĞAZASI — KATALOG
+     ──────────────────────────────────────────────────────────────
+     Ürünün KENDİSİ burada TANIMLANMAZ: `urun` alanı magaza.js'teki
+     shopItems adıyla eşleşir, görsel ve simge oradan okunur. İki
+     yerde ayrı ürün tanımı olsaydı fiyat/görsel kaçınılmaz olarak
+     ayrışırdı. Buradaki `bedel` JETON'dur, elmas değil.
+
+     Alanlar:
+       urun    → shopItems içindeki ad (BİREBİR aynı olmalı)
+       adet    → bir alımda çantaya düşen sayı
+       bedel   → jeton fiyatı
+       kalan   → DÖNEM başına oyuncu başına alım hakkı
+       indirim → yalnız rozet yazısı (0 ise rozet çizilmez)
+       sv      → bu satırın açılması için gereken İTTİFAK SEVİYESİ
+
+     Füze BİLEREK YOK: buluttaki füze sayacına yazılıyor ve geri
+     alma yolu ayrı — jetonla satılması ayrı bir iş.
+     ══════════════════════════════════════════════════════════════ */
+  var MAGAZA = {
+    gun: [
+      { urun: "Tecrübe Kitabı",         adet: 1, bedel: 30,  kalan: 10, indirim: 70 },
+      { urun: "5 Dakika Hızlandırma",   adet: 1, bedel: 40,  kalan: 5,  indirim: 40 },
+      { urun: "Demir Sandığı",          adet: 1, bedel: 60,  kalan: 5,  indirim: 0  },
+      { urun: "Su Sandığı",             adet: 1, bedel: 60,  kalan: 5,  indirim: 0  },
+      { urun: "1 Saat Hızlandırma",     adet: 1, bedel: 260, kalan: 2,  indirim: 40 },
+      { urun: "Can Potu",               adet: 1, bedel: 300, kalan: 2,  indirim: 0  },
+      { urun: "İntikal Hızlandırma %25", adet: 1, bedel: 120, kalan: 2, indirim: 0, sv: 5 },
+      { urun: "Kalkan (6 Saat)",        adet: 1, bedel: 700, kalan: 1,  indirim: 0, sv: 5 },
+      { urun: "Mor Kahraman Parçası",   adet: 1, bedel: 900, kalan: 1,  indirim: 0, sv: 5 }
+    ],
+    hafta: [
+      { urun: "Kalkan (6 Saat)",        adet: 2, bedel: 600,  kalan: 2, indirim: 70 },
+      { urun: "3 Saat Hızlandırma",     adet: 1, bedel: 500,  kalan: 1, indirim: 40 },
+      { urun: "Mor Kahraman Parçası",   adet: 1, bedel: 800,  kalan: 1, indirim: 70 },
+      { urun: "STELLİN Parçası",        adet: 1, bedel: 1500, kalan: 1, indirim: 0, sv: 7 },
+      { urun: "İVANOVNA Parçası",       adet: 1, bedel: 1500, kalan: 1, indirim: 0, sv: 7 },
+      { urun: "REVOLİA Parçası",        adet: 1, bedel: 1500, kalan: 1, indirim: 0, sv: 7 }
+    ]
+  };
+
+  /* ── DÖNEMLER ─────────────────────────────────────────────────
+     Gün YEREL gece yarısında, hafta YEREL pazartesi 00:00'da
+     yenilenir. Alım sayaçları dönem damgasıyla saklanır; damga
+     değişince sayaç kendiliğinden sıfırdan başlar, ayrı bir
+     "sıfırla" işine gerek kalmaz. */
+  function gunBitisi() {
+    var d = new Date();
+    d.setHours(24, 0, 0, 0);
+    return d.getTime();
+  }
+  function haftaBitisi() {
+    var d = new Date();
+    var gun = (d.getDay() + 6) % 7;          /* 0 = pazartesi */
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() + (7 - gun) * 24 * 60 * 60 * 1000;
+  }
+  function donemDamgasi(tur) {
+    return (tur === "hafta") ? String(haftaBitisi()) : String(gunBitisi());
+  }
+  function alimSayaci(tur) {
+    var s = st();
+    if (!s) return {};
+    var alan = (tur === "hafta") ? "itMagazaHafta" : "itMagazaGun";
+    var kutu = s[alan];
+    if (!kutu || kutu.damga !== donemDamgasi(tur)) {
+      kutu = { damga: donemDamgasi(tur), al: {} };
+      s[alan] = kutu;
+    }
+    if (!kutu.al) kutu.al = {};
+    return kutu.al;
+  }
+  function alinan(tur, anahtar) { return Number(alimSayaci(tur)[anahtar]) || 0; }
+  function alimYaz(tur, anahtar, n) {
+    var al = alimSayaci(tur);
+    al[anahtar] = (Number(al[anahtar]) || 0) + n;
+    yaz();
+  }
+
+  /* Katalog satırının benzersiz anahtarı — aynı ürün iki sekmede
+     ayrı satır olabildiği için ad tek başına yetmez. */
+  function magazaAnahtari(tur, i) { return tur + ":" + i; }
+
+  function urunTanimi(ad) {
+    try {
+      if (typeof getItemDef === "function") return getItemDef(ad);
+    } catch (e) {}
+    return null;
+  }
+
+  /* Ürün görseli: önce shopItems'in kendi görseli, parçalarda
+     gelistir.js'in PARCA kapısı, ikisi de yoksa emoji. */
+  function urunGorselHTML(tan) {
+    if (!tan) return '<span class="im-emoji">🎁</span>';
+    var g = tan.gorsel || "";
+    if (!g && tan.isParca && window.PARCA && typeof window.PARCA.gorsel === "function") {
+      g = window.PARCA.gorsel(tan.parcaKey) || "";
+    }
+    if (g) return '<img class="im-gorsel" src="' + kacar(g) + '" alt="">';
+    return '<span class="im-emoji">' + kacar(tan.icon || "🎁") + "</span>";
+  }
+
+  /* ── SATIN ALMA ───────────────────────────────────────────────
+     İttifak Mağazası'nın tüm ürünleri ÇANTAYA düşer (katalogda
+     füze yok, kaynak paketleri de magaza.js'te çantaya düşüyor),
+     bu yüzden buyItem'ın dallanması burada TEKRARLANMAZ:
+     envantere yaz, çantayı çiz, bitti. */
+  function magazaAl(tur, i) {
+    var kayit = (MAGAZA[tur] || [])[i];
+    if (!kayit) return;
+    var tan = urunTanimi(kayit.urun);
+    if (!tan) { uyar("Bu ürün mağazada tanımlı değil."); return; }
+
+    var gerekenSv = Number(kayit.sv) || 0;
+    if (gerekenSv && ittifakSeviyesi() < gerekenSv) {
+      uyar("Açmak için İttifak Sv. " + gerekenSv + " düzeyine ulaş.");
+      return;
+    }
+
+    var anahtar = magazaAnahtari(tur, i);
+    var kaldi = kayit.kalan - alinan(tur, anahtar);
+    if (kaldi <= 0) { uyar("Bu ürünün stoğu bitti. Mağaza yenilenince tekrar alabilirsin."); return; }
+    if (jeton() < kayit.bedel) {
+      uyar("Yeterli " + JETON_ADI + "'n yok (🪙 " + sayiBicim(kayit.bedel) + ").");
+      return;
+    }
+
+    var s = st();
+    if (!s) return;
+    jetonEkle(-kayit.bedel);
+    alimYaz(tur, anahtar, 1);
+    if (!s.inventory) s.inventory = {};
+    s.inventory[tan.name] = (Number(s.inventory[tan.name]) || 0) + kayit.adet;
+    if (typeof renderInventory === "function") renderInventory();
+    yaz();
+    uyar("🪙 " + kayit.adet + "x " + tan.name + " çantana eklendi!");
+    govdeCiz();
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     EKRANLAR — SAVAŞ · SANDIKLAR · MAĞAZA
+     Üçü de künyedeki ızgara düğmelerinden açılır (data-gorunum).
+     ══════════════════════════════════════════════════════════════ */
+
+  var _savasSekme  = "seferberlik";
+  var _sandikSekme = "ganimet";
+  var _magazaSekme = "gun";
+
+  function jetonRozetiHTML() {
+    return '<span class="it-jeton">🪙</span><span class="it-jeton-sayi">' +
+           sayiBicim(jeton()) + "</span>";
+  }
+
+  function sureBicimKisa(ms) {
+    ms = Math.max(0, Number(ms) || 0);
+    var sn = Math.floor(ms / 1000);
+    var g  = Math.floor(sn / 86400); sn -= g * 86400;
+    var sa = Math.floor(sn / 3600);  sn -= sa * 3600;
+    var dk = Math.floor(sn / 60);    sn -= dk * 60;
+    function ik(n) { return (n < 10 ? "0" : "") + n; }
+    return (g ? (g + "g ") : "") + ik(sa) + ":" + ik(dk) + ":" + ik(sn);
+  }
+
+  function saatYazi(ms) {
+    var n = Number(ms) || 0;
+    if (!n) return "—";
+    try {
+      var d = new Date(n);
+      function ik(x) { return (x < 10 ? "0" : "") + x; }
+      return ik(d.getHours()) + ":" + ik(d.getMinutes()) + ":" + ik(d.getSeconds());
+    } catch (e) { return "—"; }
+  }
+
+  /* ── SAVAŞ ────────────────────────────────────────────────────
+     Üç sekme referanstaki gibi: Seferberlik (ittifak çağrıları),
+     Bireysel (tek başına çarpışmalar), Etkinlikler.
+
+     ÇARPIŞMA ÜRETEN SİSTEM HENÜZ YOK — liste `carpismalar`
+     düğümünü okur ve düğüm boşken referanstaki boş durumu
+     gösterir. Çağrı açacak kapı hazır: ITTIFAK.carpismaAc().
+     Oto-Katıl AYARI ÇALIŞIR: hem oyuncunun kaydına hem üye
+     kaydına yazılır, böylece çağrı sistemi geldiğinde kimin
+     otomatik katılacağını buluttan okuyabilir. */
+  function carpismaListesi(tur) {
+    var c = (_benim && _benim.carpismalar) ? _benim.carpismalar : {};
+    var simdi = Date.now();
+    return Object.keys(c).map(function (id) {
+      var x = c[id] || {};
+      return {
+        id: id, tur: x.tur || "seferberlik", ad: x.ad || "Çarpışma",
+        kim: x.kim || "", at: Number(x.at) || 0,
+        biter: Number(x.biter) || 0,
+        katilan: x.katilan ? Object.keys(x.katilan).length : 0
+      };
+    }).filter(function (x) {
+      if (x.tur !== tur) return false;
+      return !x.biter || x.biter > simdi;
+    }).sort(function (a, b) { return b.at - a.at; });
+  }
+
+  function otoKatilAcik() {
+    var s = st();
+    return !!(s && s.itOtoKatil);
+  }
+  function otoKatilDegistir() {
+    var s = st();
+    if (!s) return;
+    s.itOtoKatil = !s.itOtoKatil;
+    yaz();
+    /* Üye kaydına da yazılır: çağrıyı açan taraf kimin otomatik
+       katılacağını buluttan okuyabilsin. Yazma düşerse ayar yerel
+       olarak yine geçerlidir — ekran buna bakar. */
+    var k = benKey();
+    if (_benim && k && bulutVar()) {
+      uyeYolu(k).child("oto").set(!!s.itOtoKatil).catch(function (e) {
+        console.warn("[ittifak] oto-katıl yazılamadı:", e);
+      });
+    }
+    uyar(s.itOtoKatil ? "Oto-Katıl açıldı." : "Oto-Katıl kapatıldı.");
+    govdeCiz();
+  }
+
+  function savasEkraniHTML() {
+    var S = [
+      { id: "seferberlik", ad: "Seferberlik" },
+      { id: "bireysel",    ad: "Bireysel" },
+      { id: "etkinlik",    ad: "Etkinlikler" }
+    ];
+    var h = geriBasligiHTML("Savaş");
+    h += '<div class="iy-sekmeler">' + S.map(function (s) {
+      return '<button class="iy-sekme' + (s.id === _savasSekme ? " secili" : "") +
+             '" data-savas-sekme="' + s.id + '">' + s.ad + "</button>";
+    }).join("") + "</div>";
+
+    var liste = carpismaListesi(_savasSekme);
+    h += '<div class="iy-govde">';
+    if (!liste.length) {
+      h += '<div class="iy-bos">' +
+             '<img class="iy-bos-ikon" src="ittifakikon.webp" alt="">' +
+             "<span>Henüz gösterilecek çarpışma yok.</span>" +
+           "</div>";
+    } else {
+      h += liste.map(function (c) {
+        var kalan = c.biter ? sureBicimKisa(c.biter - Date.now()) : "";
+        return '<div class="it-satir">' +
+          '<div class="it-flama">⚔️</div>' +
+          '<div class="it-orta">' +
+            '<div class="it-ad">' + kacar(c.ad) + "</div>" +
+            '<div class="it-alt">' + kacar(c.kim || "İttifak") +
+              " · 👤 " + c.katilan + (kalan ? (" · ⏳ " + kalan) : "") + "</div>" +
+          "</div>" +
+          '<button class="it-dugme it-kucuk" data-carpisma="' + kacar(c.id) + '">Katıl</button>' +
+        "</div>";
+      }).join("");
+    }
+    h += "</div>";
+
+    var acik = otoKatilAcik();
+    h += '<div class="iy-altbilgi">Etkinleştirildikten sonra ittifakının açtığı ' +
+         "Seferberlik çağrılarına otomatik katılırsın.</div>" +
+         '<button class="iy-oto' + (acik ? " acik" : "") + '" id="itOtoKatil">' +
+           "Oto-Katıl" + (acik ? " · Açık" : "") +
+           (acik ? "" : '<i class="iy-nokta"></i>') +
+         "</button>";
+    return '<div class="ik-sarmal iy-sarmal">' + h + "</div>";
+  }
+
+  function carpismayaKatil(cid) {
+    var k = benKey();
+    if (!_benim || !k || !bulutVar()) return;
+    kok().child(_benim.id).child("carpismalar").child(cid)
+      .child("katilan").child(k).set({ ad: benAd() || k, at: saat() })
+      .then(function () {
+        uyar("Çarpışmaya katıldın.");
+        benimiTazele(govdeCiz);
+      })
+      .catch(function (e) {
+        uyar(hataMetni(e, "Katılınamadı"));
+        console.warn("[ittifak]", e);
+      });
+  }
+
+  /* ── SANDIKLAR ────────────────────────────────────────────────
+     Tepede anahtar çubuğu (paket alımlarıyla dolar), altında iki
+     sekme ve her sekmenin toplanmamış sayısı kırmızı rozette. */
+  function sandikEkraniHTML() {
+    var sy = sayac();
+    var oran = Math.max(0, Math.min(1, sy.anahtar / ANAHTAR_HEDEF));
+    var ganimetBekleyen = toplanmamisSayi("ganimet");
+    var hediyeBekleyen  = toplanmamisSayi("hediye");
+
+    var h = geriBasligiHTML("Sandıklar");
+
+    h += '<div class="is-tepe">' +
+      '<img class="is-sandik" src="gunlukkutukapali.webp" alt="">' +
+      '<div class="is-cubuk-satir">' +
+        '<span class="is-anahtar">🔑</span>' +
+        '<div class="is-cubuk"><div class="is-dolu" style="width:' +
+          (oran * 100).toFixed(2) + '%"></div>' +
+          "<span>" + sayiBicim(sy.anahtar) + "/" + sayiBicim(ANAHTAR_HEDEF) + "</span></div>" +
+        '<button class="is-bilgi" data-bilgi="anahtar">!</button>' +
+      "</div>" +
+    "</div>";
+
+    function rozet(n) { return n > 0 ? ('<i class="is-rozet">' + (n > 99 ? "99+" : n) + "</i>") : ""; }
+    h += '<div class="iy-sekmeler is-sekmeler">' +
+      '<button class="iy-sekme' + (_sandikSekme === "ganimet" ? " secili" : "") +
+        '" data-sandik-sekme="ganimet">Ganimet Sandığı' + rozet(ganimetBekleyen) + "</button>" +
+      '<button class="iy-sekme' + (_sandikSekme === "hediye" ? " secili" : "") +
+        '" data-sandik-sekme="hediye">İttifak Hediyesi' + rozet(hediyeBekleyen) + "</button>" +
+    "</div>";
+
+    h += '<div class="is-serit">' +
+      "<span>" + (_sandikSekme === "ganimet"
+        ? "Ganimet sandıkları için ittifakın anahtar çubuğunu doldurun"
+        : "Mağazadan paket satın almak tüm üyelere bir İttifak Hediyesi verir") +
+      "</span>" +
+      '<button class="is-git" data-git="magaza">Git</button>' +
+    "</div>";
+
+    var liste = sandikListesi(_sandikSekme);
+    h += '<div class="iy-govde">';
+    if (!liste.length) {
+      h += '<div class="iy-bos"><img class="iy-bos-ikon" src="ittifakikon.webp" alt="">' +
+           "<span>Bekleyen sandık yok.</span></div>";
+    } else {
+      h += liste.map(function (x) {
+        var baslik = (x.tur === "ganimet") ? "Ganimet Sandığı" : "İttifak Hediyesi";
+        var alt = (x.tur === "ganimet")
+          ? "Anahtar çubuğu doldu"
+          : (kacar(x.kim || "Bir üye") + ', "' + kacar(x.sebep || "paket") + '" satın aldı');
+        return '<div class="is-satir' + (x.toplandi ? " alindi" : "") + '">' +
+          '<div class="is-ikon">' +
+            '<img src="' + (x.tur === "ganimet" ? "gunlukkutukapali.webp" : "gunlukkutuacik.webp") + '" alt="">' +
+            '<span class="is-saat">' + saatYazi(x.at) + "</span>" +
+          "</div>" +
+          '<div class="it-orta">' +
+            '<div class="it-ad">' + baslik + "</div>" +
+            '<div class="it-alt">' + alt + "</div>" +
+          "</div>" +
+          '<div class="is-odul"><span class="it-jeton">🪙</span>' + sayiBicim(x.jeton) + "</div>" +
+          (x.toplandi
+            ? '<button class="it-dugme it-kapali it-kucuk" disabled>Alındı</button>'
+            : '<button class="it-dugme it-kucuk" data-topla="' + kacar(x.id) + '">Topla</button>') +
+        "</div>";
+      }).join("");
+    }
+    h += "</div>";
+
+    if (_sandikSekme === "ganimet") {
+      h += '<div class="is-sinir">Günlük Ganimet Sandığı Sınırı: ' +
+             sayiBicim(ganimetBugun()) + "/" + sayiBicim(GUNLUK_GANIMET_SINIRI) + "</div>";
+    } else {
+      h += '<label class="is-isimsiz"><input type="checkbox" id="itIsimsiz"' +
+             ((st() && st().itIsimsizHediye) ? " checked" : "") +
+             ">İsimsiz İttifak Hediyesi Gönder</label>";
+    }
+    h += '<button class="iy-oto' + (toplanmamisSayi(_sandikSekme) ? " acik" : " sonuk") +
+         '" id="itHepsiniAl">Tümünü Al</button>';
+
+    return '<div class="ik-sarmal iy-sarmal">' + h + "</div>";
+  }
+
+  /* ── İTTİFAK MAĞAZASI ─────────────────────────────────────────
+     Üç sütunlu ızgara; kilitli satırlar referanstaki gibi kırmızı
+     örtü + kilit yazısıyla ÜSTÜNE biner (kartlar kaldırılmaz,
+     oyuncu neyin kilitli olduğunu görsün). */
+  function magazaEkraniHTML() {
+    var tur = _magazaSekme;
+    var katalog = MAGAZA[tur] || [];
+    var sv = ittifakSeviyesi();
+    var bitis = (tur === "hafta") ? haftaBitisi() : gunBitisi();
+
+    var h = '<div class="im-bas">' +
+      '<button class="ik-geri" data-gorunum="ana">←</button>' +
+      "<span>Mağaza</span>" +
+      '<div class="im-kese">' + jetonRozetiHTML() + "</div>" +
+    "</div>";
+
+    h += '<div class="im-yenilenme">Yenilenme: 🕐 <b id="itMagazaSayac">' +
+         sureBicimKisa(bitis - Date.now()) + "</b></div>";
+
+    /* Açık satırlar ile kilitli satırlar ayrı ızgaralarda: kilit
+       örtüsü YALNIZ kendi ızgarasını kaplasın. */
+    var acik = [], kilitli = [];
+    katalog.forEach(function (k, i) {
+      ((Number(k.sv) || 0) > sv ? kilitli : acik).push({ k: k, i: i });
+    });
+
+    function kartHTML(kayit, i, kilit) {
+      var tan = urunTanimi(kayit.urun);
+      var anahtar = magazaAnahtari(tur, i);
+      var kaldi = kayit.kalan - alinan(tur, anahtar);
+      var bitti = kaldi <= 0;
+      return '<div class="im-kart' + (bitti && !kilit ? " bitti" : "") + '">' +
+        (kayit.indirim ? '<i class="im-indirim">-%' + kayit.indirim + "</i>" : "") +
+        '<div class="im-kutu">' + urunGorselHTML(tan) +
+          (kayit.adet > 1 ? '<i class="im-adet">' + kayit.adet + "</i>" : "") +
+        "</div>" +
+        '<div class="im-kalan">Kalan: ' + Math.max(0, kaldi) + "</div>" +
+        '<button class="im-fiyat' + (bitti || kilit ? " kapali" : "") + '"' +
+          (kilit || bitti ? " disabled" : (' data-magaza="' + tur + ":" + i + '"')) + ">" +
+          '<span class="it-jeton">🪙</span>' + sayiBicim(kayit.bedel) +
+        "</button>" +
+      "</div>";
+    }
+
+    h += '<div class="iy-govde">';
+    if (acik.length) {
+      h += '<div class="im-izgara">' +
+           acik.map(function (x) { return kartHTML(x.k, x.i, false); }).join("") +
+        "</div>";
+    }
+    if (kilitli.length) {
+      var gerek = kilitli.reduce(function (a, x) { return Math.max(a, Number(x.k.sv) || 0); }, 0);
+      h += '<div class="im-kilitli">' +
+        '<div class="im-izgara">' +
+          kilitli.map(function (x) { return kartHTML(x.k, x.i, true); }).join("") +
+        "</div>" +
+        '<div class="im-kilit-yazi">🔒 Açmak için İttifak Sv. ' + gerek + " düzeyine ulaş</div>" +
+      "</div>";
+    }
+    if (!acik.length && !kilitli.length) {
+      h += '<div class="iy-bos"><img class="iy-bos-ikon" src="ittifakikon.webp" alt="">' +
+           "<span>Bu sekmede ürün yok.</span></div>";
+    }
+    h += "</div>";
+
+    h += '<div class="im-altsekme">' +
+      '<button class="' + (tur === "gun" ? "secili" : "") + '" data-magaza-sekme="gun">Bugün</button>' +
+      '<button class="' + (tur === "hafta" ? "secili" : "") + '" data-magaza-sekme="hafta">Hafta</button>' +
+    "</div>";
+
+    return '<div class="ik-sarmal iy-sarmal">' + h + "</div>";
+  }
+
+  /* ── GERİ SAYIM ───────────────────────────────────────────────
+     Mağaza sayacı saniyede bir GÜNCELLENİR ama ekran YENİDEN
+     ÇİZİLMEZ: tam çizim her saniyede bir kaydırma konumunu ve
+     dokunma durumunu bozardı. Yalnız tek metin düğümü değişir. */
+  var _sayacZm = null;
+  function sayacBaslat() {
+    sayacDurdur();
+    _sayacZm = setInterval(function () {
+      var el = document.getElementById("itMagazaSayac");
+      if (!el) { sayacDurdur(); return; }
+      var bitis = (_magazaSekme === "hafta") ? haftaBitisi() : gunBitisi();
+      var kalan = bitis - Date.now();
+      if (kalan <= 0) { govdeCiz(); return; }   /* dönem bitti → stok tazelenir */
+      el.textContent = sureBicimKisa(kalan);
+    }, 1000);
+  }
+  function sayacDurdur() {
+    if (_sayacZm) { clearInterval(_sayacZm); _sayacZm = null; }
+  }
+
+
   /* ── DOKUNUŞ — tek kapı ───────────────────────────────────── */
   function govdeDokunus(e) {
     var t = e.target;
@@ -1023,7 +2058,52 @@
     if (kb) { kurKatilim = kb.dataset.katilim; govdeCizKoru(); return; }
 
     var gb = t.closest("[data-gorunum]");
-    if (gb) { _gorunum = gb.dataset.gorunum; govdeCiz(); return; }
+    if (gb) {
+      _gorunum = gb.dataset.gorunum;
+      govdeCiz();
+      /* Geri sayım YALNIZ mağaza ekranında döner. */
+      if (_gorunum === "magaza") sayacBaslat(); else sayacDurdur();
+      return;
+    }
+
+    /* ── SAVAŞ ── */
+    var ss = t.closest("[data-savas-sekme]");
+    if (ss) { _savasSekme = ss.dataset.savasSekme; govdeCiz(); return; }
+    if (t.closest("#itOtoKatil")) { otoKatilDegistir(); return; }
+
+    /* ── SANDIKLAR ── */
+    var sk = t.closest("[data-sandik-sekme]");
+    if (sk) { _sandikSekme = sk.dataset.sandikSekme; govdeCiz(); return; }
+    if (t.closest("#itHepsiniAl")) { sandikHepsiniTopla(_sandikSekme); return; }
+    if (t.closest("[data-bilgi]")) {
+      uyar("Üyeler mağazadan paket aldıkça çubuk dolar; dolunca tüm " +
+           "üyelere bir Ganimet Sandığı düşer.");
+      return;
+    }
+    var gt = t.closest("[data-git]");
+    if (gt) { magazayaGit(); return; }
+    var tp = t.closest("[data-topla]");
+    if (tp) {
+      sandikTopla(tp.dataset.topla, function (oldu, kazanc, sebep) {
+        if (oldu) uyar("🪙 " + sayiBicim(kazanc) + " " + JETON_ADI + " alındı!");
+        else if (sebep === "sinir") uyar("Günlük ganimet sınırına ulaştın.");
+        govdeCiz();
+      });
+      return;
+    }
+
+    /* ── İTTİFAK MAĞAZASI ── */
+    var ms = t.closest("[data-magaza-sekme]");
+    if (ms) { _magazaSekme = ms.dataset.magazaSekme; govdeCiz(); sayacBaslat(); return; }
+    var ma = t.closest("[data-magaza]");
+    if (ma) {
+      var p = String(ma.dataset.magaza).split(":");
+      magazaAl(p[0], Number(p[1]));
+      return;
+    }
+
+    var cb = t.closest("[data-carpisma]");
+    if (cb) { carpismayaKatil(cb.dataset.carpisma); return; }
 
     /* Arkasında sistem olmayan düğmeler tek kapıdan geçer. */
     var yk = t.closest("[data-yakinda]");
@@ -1041,6 +2121,31 @@
     if ((b = t.closest("[data-terfi]")))  { rutbeVer(b.dataset.terfi, "subay"); return; }
     if ((b = t.closest("[data-indir]")))  { rutbeVer(b.dataset.indir, "uye"); return; }
     if ((b = t.closest("[data-at]")))     { uyeAt(b.dataset.at); return; }
+  }
+
+  /* Oyunun KENDİ mağaza panelini açar (Sandıklar ekranındaki "Git").
+     Paneli burada YENİDEN KURMAYIZ — openOverlayPanel tek kapıdır. */
+  function magazayaGit() {
+    kapat();
+    if (typeof window.openOverlayPanel === "function") window.openOverlayPanel("shop");
+    else uyar("Mağaza açılamadı.");
+  }
+
+  /* İsimsiz hediye kutusu: onay kutusu "change" ile çalışır, gövdenin
+     tıklama kapısıyla değil. Her çizimden sonra yeniden bağlanır. */
+  function isimsizBagla() {
+    var el = document.getElementById("itIsimsiz");
+    if (!el || el.dataset.bagli) return;
+    el.dataset.bagli = "1";
+    el.addEventListener("change", function () {
+      var s = st();
+      if (!s) return;
+      s.itIsimsizHediye = !!el.checked;
+      yaz();
+      uyar(el.checked
+        ? "Hediyelerin bundan sonra isimsiz gönderilecek."
+        : "Hediyelerinde adın görünecek.");
+    });
   }
 
   /* Kur ekranı yeniden çizilirken yazılanlar kaybolmasın */
@@ -1093,7 +2198,12 @@
       aramaBagla();
       /* Güç/sıra ikinci bir okuma ister; ekran onu beklemez, gelince
          kendiliğinden tazelenir. Panel bu arada kapanmış olabilir. */
-      if (_benim) gucHesapla(function () { if (_benim && _gorunum === "ana") govdeCiz(); });
+      if (_benim) {
+        gucHesapla(function () { if (_benim && _gorunum === "ana") govdeCiz(); });
+        /* Ömrü dolmuş sandıklar burada bir kez süpürülür; ekran
+           beklemez, liste onları zaten göstermiyordu. */
+        sandikBudama();
+      }
     });
 
     var kart = panel.querySelector(".overlay-card");
@@ -1104,7 +2214,10 @@
     }
   }
 
-  function kapat() { if (panel) panel.classList.remove("active"); }
+  function kapat() {
+    sayacDurdur();
+    if (panel) panel.classList.remove("active");
+  }
 
   /* Alt menüdeki 5. düğme index.html'de data-panel="ittifak"
      diyor; openOverlayPanel bu anahtarı tanımadığı için sarmalanır. */
@@ -1119,7 +2232,7 @@
     window.openOverlayPanel = sarmal;
   }
 
-  function baslat() { stilBas(); iskelet(); dockBagla(); }
+  function baslat() { stilBas(); iskelet(); dockBagla(); magazaBagla(); }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", baslat);
@@ -1134,6 +2247,38 @@
     /* Başka dosyalar oyuncunun etiketini buradan okur (2. aşama:
        harita etiketi, sohbet kanalı). Bulut değil, kısayol döner. */
     benim: function () { return kisayol(); },
+
+    /* İttifak parası — başka dosyalar okuyup harcayabilsin diye. */
+    jeton: jeton,
+    jetonEkle: jetonEkle,
+    seviye: ittifakSeviyesi,
+
+    /* Paket alımı kancasının EL KAPISI. buyItem zaten sarmalanıyor;
+       bu, elmasla ölçülemeyen bir alım (ileride gerçek para paketi)
+       geldiğinde aynı ekonomiye bağlanabilsin diye açık duruyor. */
+    paketAlindi: paketAlindi,
+
+    /* ÇARPIŞMA AÇ — Savaş ekranının Seferberlik/Bireysel/Etkinlik
+       listeleri bu kayıtları gösterir. Çağrı ÜRETEN sistem henüz
+       yok; kapı burada ki geldiğinde ekran yeniden kurulmasın.
+         tur   → "seferberlik" | "bireysel" | "etkinlik"
+         ad    → listede görünen başlık
+         sureMs→ çağrının açık kalma süresi */
+    carpismaAc: function (tur, ad, sureMs) {
+      if (!_benim || !bulutVar()) return null;
+      var simdi = Date.now();
+      return kok().child(_benim.id).child("carpismalar").push({
+        tur: tur || "seferberlik",
+        ad: String(ad || "Çarpışma").slice(0, 48),
+        kim: benAd() || "",
+        /* `at` ve `biter` AYNI SAATTEN gelmeli: liste ikisini de
+           yerel saatle karşılaştırıyor (sıralama ve süre dolumu).
+           Biri sunucu damgası olsaydı saatler ayrışırdı. */
+        at: simdi,
+        biter: simdi + (Number(sureMs) || 10 * 60 * 1000),
+        katilan: {}
+      });
+    },
     tani: function () {
       return {
         surum: SURUM,

@@ -136,6 +136,54 @@ Kural metni, `ittifak.js`'in yaptığı **her yazma** ile simüle edildi
 
 ---
 
+## GÜNCELLEME — Savaş · Sandıklar · Mağaza ekranları
+
+İttifak künyesindeki ızgaranın üç düğmesi (**Savaş**, **Sandıklar**,
+**Mağaza**) artık gerçekten çalışıyor. Bunlar `ittifaklar/{id}` altına
+**üç yeni düğüm** yazıyor:
+
+| Düğüm | Ne tutar |
+|---|---|
+| `sayac` | `{ anahtar, tec }` — sandık çubuğu ve ittifak tecrübesi |
+| `sandiklar` | Ganimet Sandığı / İttifak Hediyesi kayıtları |
+| `carpismalar` | Savaş ekranındaki çağrılar (henüz üreten sistem yok) |
+
+**Kuralları yeniden yapıştırman gerekiyor.** `firebase-kurallari.json`
+bu üç düğümün doğrulamasını içeriyor; eski kurallar yayındayken
+sandık toplama ve mağaza ilerlemesi **sessizce** düşer (konsolda
+`[ittifak]` uyarısı çıkar, ekranda hiçbir şey olmaz).
+
+Adımlar yukarıdakinin aynısı: Console → Realtime Database → Rules →
+metnin tamamını `firebase-kurallari.json` ile değiştir → Publish.
+
+> Teknik not: `ittifaklar/$id` bloğunda `"$other": { ".validate": false }`
+> **yok**, bu yüzden eski kurallar bu düğümleri reddetmez — ama
+> doğrulamaz da. Kuralları güncellemek, bozuk bir kaydın (örneğin
+> negatif jeton) buluta yazılmasını engeller.
+
+### Ekonomi nasıl işliyor
+
+Tek giriş kapısı **mağazadan paket almak**. Bir üye elmas harcadığında:
+
+1. Harcanan elmas kadar `sayac.tec` artar → künyedeki **seviye çubuğu**
+   dolar. Seviye, İttifak Mağazası'ndaki kilitli satırları açar
+   (Sv. 5 ve Sv. 7).
+2. Aynı miktar `sayac.anahtar`'a yazılır → **Sandıklar** ekranının
+   tepesindeki çubuk dolar. 75.000'e varınca sıfırlanır ve **tüm
+   üyelere** bir Ganimet Sandığı düşer.
+3. Ayrıca **tüm üyelere** bir İttifak Hediyesi düşer; içindeki jeton
+   paketin bedeline göre değişir (bedel ÷ 100, en az 10, en çok 300).
+
+Sandık kaydı **tektir**: 50 üyeye 50 kayıt açılmaz, her üye
+`sandiklar/{id}/toplayan/{oyuncuAnahtari}` altına kendini yazarak
+bir kez toplar.
+
+Toplanan **İttifak Jetonu** oyuncunun kendi kaydında durur
+(`state.ittifakJeton`) ve yalnız İttifak Mağazası'nda harcanır.
+Sayılar tek yerde: `ittifak.js` → "İTTİFAK EKONOMİSİ" bloğu.
+
+---
+
 ## Sorun çıkarsa
 
 **Hâlâ `PERMISSION_DENIED`**
