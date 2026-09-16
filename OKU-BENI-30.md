@@ -18,6 +18,27 @@ Oyun **kaleiçinde** açılır (`KALEICI.ac()`); haritaya "Haritaya dön" ile ge
 - **Ezme yok, sil.** Büyük iş ikiye bölünür; ilki çalışmadan ikincisi verilmez.
 - Bu kopya Serdar'ın canlı dosyasından eski olabilir — satır numarası vermeden önce doğrula.
 
+## SERT KURAL — hayalet dokunma kalkanı
+
+**Ekran/katman açan her yol, açılıştan hemen sonra `hayaletKalkani(öğe)` çağırır.
+İstisna yok.**
+
+Dokunmatikte tek parmak dokunuşu iki olay üretir. Rozetler ve alt menü
+`pointerup` ile bağlı; ekran o anda açılıyor, parmak hâlâ ekranda ve tarayıcı
+aynı dokunuştan doğan `click`'i **aynı koordinata**, artık üstte duran yeni
+ekrana yolluyor.
+
+Bedeli ölçüldü: alt menünün Kahraman düğmesi ekranın altında, kahraman
+listesinin "Kahraman Al" düğmesi de altında. Liste açılır açılmaz aynı dokunuş
+o düğmeye düşüyor ve HALVORSEN kendiliğinden açılıyordu — oyuncu ✕'e basmadan
+kartları göremiyordu. Sebep: `openOverlayPanel`'in kahraman dalı kalkanı
+takmadan `return` ediyordu.
+
+Kalkan **tek yerde** durur (`index.html` → `hayaletKalkani`), herkes onu çağırır;
+kimse kendi kopyasını tutmaz. Kalkanı takmayı atlarsan hata **sessizdir**:
+ekran açılır, üstündeki bir düğmeye kendiliğinden basılmış olur, hiçbir yere
+hata yazılmaz. "Bu katmanda düğme yok" gerekçe değil — yarın düğme kazanır.
+
 ## Görünüm kuralı
 
 3B yok: kalın alt kenar, inset kabartı, kalın kontur, radial parlaklık yok.

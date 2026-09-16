@@ -9753,32 +9753,60 @@ function tumPanelleriKapat(haric) {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════
+   KURAL — EKRAN AÇAN HER YOL BU KALKANI TAKAR. İSTİSNA YOK.
+   ──────────────────────────────────────────────────────────────
+   Dokunmatikte tek bir parmak dokunuşu İKİ olay üretir: rozetler
+   ve alt menü `pointerup` ile bağlı, ekran o anda açılıyor, parmak
+   hâlâ ekranda — tarayıcı aynı dokunuştan doğan `click`'i AYNI
+   KOORDİNATA, artık üstte duran yeni ekrana yollar.
+
+   Bunun bedeli ölçüldü: alt menüdeki Kahraman düğmesi ekranın
+   altında; kahraman listesi açılınca aynı dokunuş listenin yine
+   altta duran "Kahraman Al" düğmesine düşüyor ve ilk kahraman
+   (HALVORSEN) kendiliğinden açılıyordu. Oyuncu ✕'e basıp kapatmadan
+   kartları göremiyordu. Sebebi şuydu: openOverlayPanel'in kahraman
+   dalı kalkanı takmadan `return` ediyordu.
+
+   O YÜZDEN KALKAN TEK BİR YERDE DURUR VE HER YOL ONU ÇAĞIRIR.
+   Yeni bir ekran/katman açan kod yazarken (panel, liste, perde,
+   tam ekran katman) açılıştan hemen sonra hayaletKalkani(öğe)
+   çağır. Çağırmazsan hata SESSİZDİR: ekran açılır, üstünde bir
+   düğmeye kendiliğinden basılmış olur ve sebebi hiçbir yere
+   yazılmaz. Kalkanı "gerek yok" diye atlama — düğmesi olmayan bir
+   katman bile yarın düğme kazanır.
+   ══════════════════════════════════════════════════════════════ */
+function hayaletKalkani(el) {
+  if (!el) return;
+  /* Zamanlayıcı ögenin ÜSTÜNDE tutulur: katman hızlıca kapatılıp
+     yeniden açılırsa eski zamanlayıcı yenisini erken açmasın. */
+  clearTimeout(el._hayaletZm);
+  el.style.pointerEvents = "none";
+  el._hayaletZm = setTimeout(() => { el.style.pointerEvents = ""; }, 350);
+}
+window.hayaletKalkani = hayaletKalkani;
+
 function openOverlayPanel(panelKey) {
   tumPanelleriKapat(panelKey);
   /* Kahraman düğmesi ÖNCE liste ekranını açar (kahramanlar.js).
      Detay/satın alma ekranı oradan bir karta dokununca açılır. */
   if (panelKey === "hero") {
+    /* Kalkanı acKahramanListesi'nin KENDİSİ takar (kahramanlar.js):
+       listeyi açan tek yol bu düğme değil, kahraman ekranı ✕ ile
+       kapanınca da geri geliyor — kalkan orada da gerekli. */
     if (typeof acKahramanListesi === "function") acKahramanListesi();
-    else openHeroDetail(heroSkins[0].id);   /* kahramanlar.js yoksa eski yol */
+    else {
+      openHeroDetail(heroSkins[0].id);      /* kahramanlar.js yoksa eski yol */
+      hayaletKalkani(document.getElementById("heroDetailOverlay"));
+    }
     return;
   }
   const el = document.getElementById("panel-" + panelKey);
   if (!el) return;
   el.classList.add("active");
 
-  /* ── HAYALET DOKUNMA (Tuzak 21) ──
-     Rozetler `pointerup` ile baglaniyor (safeBind). Panel o anda
-     aciliyor, parmak hala ekranda; tarayici ayni dokunustan dogan
-     `click`/`pointerdown` olaylarini AYNI koordinata, artik ustte
-     duran panele gonderiyor. Hastane rozeti tam yaralı surgusunun
-     uzerinde durdugu icin dokunus surguye "sarkiyordu".
-
-     Bu her overlay panelde var; duzeltme tek kapiya, buraya yaziliyor.
-     Zamanlayici oge uzerinde tutuluyor — panel hizlica kapatilip
-     yeniden acilirsa eski zamanlayici yenisini erken acmasin. */
-  clearTimeout(el._hayaletZm);
-  el.style.pointerEvents = "none";
-  el._hayaletZm = setTimeout(() => { el.style.pointerEvents = ""; }, 350);
+  /* Hayalet dokunma kalkanı — yukarıdaki KURAL'a bak. */
+  hayaletKalkani(el);
   if (panelKey === "troops") { renderTroopsPanel(); TroopViewer.show(); }
   if (panelKey === "hospital") renderHospitalPanel();
   if (panelKey === "rank") { rankSekmeBagla(); renderRankPanel(); }

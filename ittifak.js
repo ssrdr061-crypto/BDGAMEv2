@@ -2521,9 +2521,17 @@
     if (typeof tumPanelleriKapat === "function") tumPanelleriKapat("ittifak");
     panel.classList.add("active");
 
-    clearTimeout(panel._hayaletZm);
-    panel.style.pointerEvents = "none";
-    panel._hayaletZm = setTimeout(function () { panel.style.pointerEvents = ""; }, 350);
+    /* Hayalet dokunma kalkanı — kural index.html'de (hayaletKalkani).
+       Kendi kopyasını tutmaz: kalkanın süresi bir gün değişirse tek
+       yerde değişsin. Yardımcı yoksa (dosya tek başına yüklendiyse)
+       aynı işi yerinde yapar. */
+    if (typeof window.hayaletKalkani === "function") {
+      window.hayaletKalkani(panel);
+    } else {
+      clearTimeout(panel._hayaletZm);
+      panel.style.pointerEvents = "none";
+      panel._hayaletZm = setTimeout(function () { panel.style.pointerEvents = ""; }, 350);
+    }
 
     _yukleniyor = true;
     _uyeArama = "";

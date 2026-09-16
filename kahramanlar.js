@@ -525,6 +525,16 @@ function acKahramanListesi() {
   ov.style.cssText = _klistCerceveStili();
   ov.style.display = "flex";
   renderKahramanListesi();
+  /* HAYALET DOKUNMA KALKANI — ŞART (kural: index.html hayaletKalkani).
+     Bu listeyi açan dokunuşun `click`i, liste açıldıktan sonra AYNI
+     koordinatta duran "Kahraman Al" düğmesine düşüyordu: alt menünün
+     Kahraman düğmesi de, Kahraman Al da ekranın altında. Sonuç,
+     listeye basar basmaz HALVORSEN'in açılmasıydı.
+     Kalkan burada, listeyi açan TEK yerde duruyor — düğmeden de,
+     kahraman ekranı kapanınca da aynı koruma geçerli olsun diye.
+     `cssText` yukarıda pointer-events'i sıfırlıyor, o yüzden kalkan
+     ONDAN SONRA takılmalı. */
+  if (typeof hayaletKalkani === "function") hayaletKalkani(ov);
 }
 
 function kapatKahramanListesi() {
@@ -560,6 +570,9 @@ function _klistKahramanAc(id) {
       hata metni ekrana basılır (telefonda konsol yok).            */
   try {
     openHeroDetail(id);
+    if (typeof hayaletKalkani === "function") {
+      hayaletKalkani(document.getElementById("heroDetailOverlay"));
+    }
   } catch (e) {
     _klistDetayda = false;
     _klistPerdeKapat();
