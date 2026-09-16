@@ -1598,12 +1598,16 @@
      ══════════════════════════════════════════════════════════════ */
 
   var JETON_ADI            = "İttifak Jetonu";
-  var ANAHTAR_HEDEF        = 75000;   /* sandık çubuğu bu kadar elmasla dolar */
-  var GANIMET_JETON        = 30;      /* çubuk dolunca her üyeye düşen jeton  */
+  var ANAHTAR_HEDEF        = 75000;   /* sandık çubuğu bu kadar birikimle dolar */
+  var GANIMET_JETON        = 500;     /* çubuk dolunca HER ÜYEYE düşen jeton  */
   var HEDIYE_BOLEN         = 100;     /* hediye jetonu = paket bedeli / 100   */
   var HEDIYE_MIN           = 10;
   var HEDIYE_MAX           = 300;
-  var GUNLUK_GANIMET_SINIRI = 500;    /* oyuncu başına günlük ganimet jetonu  */
+  /* Günlük ganimet tavanı, tek sandığın ödülünden BÜYÜK olmalı.
+     Ödül 500'e çıkınca 500'lük tavan, aynı gün dolan ikinci çubuğu
+     sessizce yutuyordu: sandık listede "Topla" diye duruyor ama
+     dokununca hiçbir şey vermiyordu. Dört sandıklık pay bırakıldı. */
+  var GUNLUK_GANIMET_SINIRI = 2000;   /* oyuncu başına günlük ganimet jetonu */
   var SANDIK_OMRU_MS       = 24 * 60 * 60 * 1000;
   var SANDIK_SINIRI        = 50;      /* listede tutulan en fazla sandık      */
 
@@ -2275,7 +2279,8 @@
        yapıp hediye beklerdi, oysa elmas hediye açmaz. */
     h += '<div class="is-serit">' +
       "<span>" + (_sandikSekme === "ganimet"
-        ? "Anahtar çubuğu dolunca tüm üyelere Ganimet Sandığı düşer"
+        ? ("Anahtar çubuğu dolunca tüm üyelere " + sayiBicim(GANIMET_JETON) +
+           " jetonluk Ganimet Sandığı düşer")
         : "Ücretli paket alan üye TÜM ittifaka bir İttifak Hediyesi kazandırır") +
       "</span>" +
       (_sandikSekme === "ganimet"
@@ -2452,7 +2457,8 @@
     if (t.closest("[data-bilgi]")) {
       uyar("Çubuk ücretli paket alımlarıyla dolar; mağazadan yapılan " +
            "elmas harcaması da %" + Math.round(ELMAS_KATKI * 100) +
-           " oranında katkı verir. Dolunca tüm üyelere Ganimet Sandığı düşer.");
+           " oranında katkı verir. Dolunca TÜM üyelere " +
+           sayiBicim(GANIMET_JETON) + " İttifak Jetonu düşer.");
       return;
     }
     var gt = t.closest("[data-git]");

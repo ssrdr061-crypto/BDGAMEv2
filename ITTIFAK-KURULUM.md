@@ -179,8 +179,13 @@ Sayaca yazılan miktar iki yere birden gider:
 1. `sayac.tec` → künyedeki **seviye çubuğu**. Seviye, İttifak
    Mağazası'ndaki kilitli satırları açar (Sv. 5 ve Sv. 7).
 2. `sayac.anahtar` → **Sandıklar** ekranının tepesindeki çubuk.
-   75.000'e varınca sıfırlanır ve **tüm üyelere** bir Ganimet Sandığı
-   düşer — kaynağı ne olursa olsun.
+   75.000'e varınca sıfırlanır ve **tüm üyelere 500 İttifak Jetonu**
+   değerinde bir Ganimet Sandığı düşer — kaynağı ne olursa olsun.
+   Yani elmas harcaması da bu ödülü tetikleyebilir.
+
+   Günlük ganimet tavanı 2.000 jeton (dört sandık). Tavan tek sandığın
+   ödülünden **büyük olmalı**: eşit olsaydı aynı gün dolan ikinci çubuk
+   sessizce yutulur, sandık listede "Topla" der ama hiçbir şey vermezdi.
 
 Ücretli paket ayrıca **tüm üyelere** bir İttifak Hediyesi açar;
 içindeki jeton bedele göre değişir (bedel ÷ 100, en az 10, en çok 300).
