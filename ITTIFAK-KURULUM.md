@@ -163,16 +163,33 @@ metnin tamamını `firebase-kurallari.json` ile değiştir → Publish.
 
 ### Ekonomi nasıl işliyor
 
-Tek giriş kapısı **mağazadan paket almak**. Bir üye elmas harcadığında:
+İttifak ilerlemesi **asıl olarak ücretli paketlere** aittir. İki kaynak var:
 
-1. Harcanan elmas kadar `sayac.tec` artar → künyedeki **seviye çubuğu**
-   dolar. Seviye, İttifak Mağazası'ndaki kilitli satırları açar
-   (Sv. 5 ve Sv. 7).
-2. Aynı miktar `sayac.anahtar`'a yazılır → **Sandıklar** ekranının
-   tepesindeki çubuk dolar. 75.000'e varınca sıfırlanır ve **tüm
-   üyelere** bir Ganimet Sandığı düşer.
-3. Ayrıca **tüm üyelere** bir İttifak Hediyesi düşer; içindeki jeton
-   paketin bedeline göre değişir (bedel ÷ 100, en az 10, en çok 300).
+| Kaynak | Oran | Hediye sandığı |
+|---|---|---|
+| **Ücretli paket** (gerçek para) | Bedelin tamamı | **Evet**, tüm üyelere |
+| **Oyun içi elmas** (mağaza alışverişi) | Bedelin **%10**'u | Hayır |
+
+Elmasın tam oranla sayılmaması bilinçli: elmas zaten oyun içinden
+kazanılıyor, tam saymak ittifak seviyesini tek kuruş ödemeden tavana
+taşırdı.
+
+Sayaca yazılan miktar iki yere birden gider:
+
+1. `sayac.tec` → künyedeki **seviye çubuğu**. Seviye, İttifak
+   Mağazası'ndaki kilitli satırları açar (Sv. 5 ve Sv. 7).
+2. `sayac.anahtar` → **Sandıklar** ekranının tepesindeki çubuk.
+   75.000'e varınca sıfırlanır ve **tüm üyelere** bir Ganimet Sandığı
+   düşer — kaynağı ne olursa olsun.
+
+Ücretli paket ayrıca **tüm üyelere** bir İttifak Hediyesi açar;
+içindeki jeton bedele göre değişir (bedel ÷ 100, en az 10, en çok 300).
+
+> **Ücretli satın alma sistemi oyunda HENÜZ YOK** — ne IAP ne ödeme
+> sağlayıcısı. `ITTIFAK.paketAlindi(paketAdi, bedel)` kapısı bilerek
+> açık duruyor: o sistem kurulduğunda satın alma **başarıyla bittiği
+> yerden** bu işlevi çağırmak yeterli, sandık/jeton/seviye/mağaza
+> tarafında hiçbir şey değişmez.
 
 Sandık kaydı **tektir**: 50 üyeye 50 kayıt açılmaz, her üye
 `sandiklar/{id}/toplayan/{oyuncuAnahtari}` altına kendini yazarak

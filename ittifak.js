@@ -32,15 +32,22 @@
    hâlâ "Yakında" der; yerleri duruyor ki sıra onlara gelince ekran
    yeniden kurulmasın.
 
-   EKONOMİ — TEK GİRİŞ KAPISI PAKET ALIMI
-   magaza.js'teki buyItem sarmalanır (magazaBagla). Oyuncunun
-   harcadığı elmas ittifakın iki sayacına yazılır:
+   EKONOMİ — İKİ KAYNAK
+   İttifak ilerlemesi ASIL OLARAK ÜCRETLİ PAKETLERE aittir:
+     paketAlindi()   → GERÇEK PARA. Tam oran + TÜM üyelere hediye.
+                       ŞU AN HİÇBİR YERDEN ÇAĞRILMIYOR: oyunda ücretli
+                       satın alma sistemi yok. Kapı bilerek açık.
+     elmasHarcandi() → OYUN İÇİ ELMAS (magaza.js buyItem kancası).
+                       Bedelin yalnız %10'u sayaca yazılır, HEDİYE
+                       AÇMAZ — elmas oyun içinden kazanılıyor, tam
+                       oranla saymak seviyeyi bedavaya tavana taşırdı.
+   İki sayaç:
      sayac.tec     → künyedeki SEVİYE çubuğu (mağaza kilitlerini açar)
      sayac.anahtar → Sandıklar ekranının tepesindeki çubuk; dolunca
                      sıfırlanır ve herkese bir Ganimet Sandığı düşer
-   Ayrıca her alım tüm üyelere bir İttifak Hediyesi açar; jetonu
-   paketin bedeline göre değişir. Sandık kaydı BİR TANEDİR, her üye
-   `toplayan` altına kendini yazarak bir kez toplar.
+                     (kaynağı ne olursa olsun)
+   Sandık kaydı BİR TANEDİR, her üye `toplayan` altına kendini
+   yazarak bir kez toplar.
    Jeton oyuncunun kendi kaydındadır: state.ittifakJeton.
 
    RÜTBELER: R5 Lider · R4 Yönetici · R3 Kıdemli · R2 Üye · R1 Yeni
@@ -846,7 +853,9 @@
       if (e.target === panel || (e.target.closest && e.target.closest("[data-close]"))) { kapat(); return; }
       if (e.target.closest && e.target.closest("#itBasGeri")) { geriGit(); return; }
       if (e.target.closest && e.target.closest("#itBasBilgi")) {
-        uyar("Üyeler mağazadan paket aldıkça ittifak seviyesi yükselir.");
+        uyar("İttifak seviyesi ücretli paket alımlarıyla yükselir; " +
+             "elmas harcaması da düşük oranda katkı verir. Seviye, " +
+             "İttifak Mağazası'ndaki kilitli satırları açar.");
       }
     });
     document.getElementById("itGovde").addEventListener("click", govdeDokunus);
@@ -1828,9 +1837,43 @@
      magaza.js'teki buyItem sarmalanır (bkz. magazaBagla). Oyuncu
      kaç elmas harcadıysa o kadar tecrübe + o kadar anahtar yazılır.
      ══════════════════════════════════════════════════════════════ */
+  /* ── İKİ AYRI KAYNAK, TEK BORU ────────────────────────────────
+     İttifak ilerlemesi ASIL OLARAK ÜCRETLİ PAKETLERE aittir
+     (referans oyundaki "X, Günlük Teklifler satın aldı" satırı).
+     Oyun içi elmas harcaması aynı şey DEĞİLDİR: elmas zaten oyun
+     içinden kazanılıyor, onu tam oranla saymak ittifak seviyesini
+     ücretli paket hiç alınmadan tavana taşırdı.
+
+       paketAlindi()   → GERÇEK PARA. Tam oran + TÜM ÜYELERE hediye.
+       elmasHarcandi() → OYUN İÇİ ELMAS. Bedelin yalnız %ELMAS_KATKI
+                         kadarı sayaca yazılır, HEDİYE AÇILMAZ.
+
+     Ganimet Sandığı ikisinden de gelebilir — o çubuğun dolmasına
+     bağlı, kaynağına değil.
+
+     DİKKAT: paketAlindi ŞU AN HİÇBİR YERDEN ÇAĞRILMIYOR. Oyunda
+     gerçek para ile satın alma sistemi yok (ne IAP, ne ödeme
+     sağlayıcısı). Kapı bilerek açık duruyor: o sistem geldiğinde
+     satın alma başarıyla bittiği yerden bu işlevi çağırmak yeter,
+     sandık/jeton/seviye/mağaza tarafında hiçbir şey değişmez. */
+
+  var ELMAS_KATKI = 0.10;   /* oyun içi elmasın ittifaka geçen payı */
+
+  /* GERÇEK PARA ile alınan paket. */
   function paketAlindi(paketAdi, bedel) {
-    bedel = Math.max(0, Math.round(Number(bedel) || 0));
-    if (!bedel || !_benim || !bulutVar()) return;
+    ekonomiyeYaz(bedel, paketAdi || "paket");
+  }
+
+  /* OYUN İÇİ elmas harcaması — düşük oran, hediye yok. */
+  function elmasHarcandi(bedel) {
+    ekonomiyeYaz(Math.round((Number(bedel) || 0) * ELMAS_KATKI), null);
+  }
+
+  /* `hediye` doluysa paket adıdır ve tüm üyelere İttifak Hediyesi
+     açılır; null ise yalnız sayaçlar ilerler. */
+  function ekonomiyeYaz(miktar, hediye) {
+    miktar = Math.max(0, Math.round(Number(miktar) || 0));
+    if (!miktar || !_benim || !bulutVar()) return;
 
     var id = _benim.id;
     var ben = benAd() || "Bir üye";
@@ -1844,22 +1887,24 @@
 
     kok().child(id).child("sayac").transaction(function (m) {
       m = m || {};
-      var a = (Number(m.anahtar) || 0) + bedel;
+      var a = (Number(m.anahtar) || 0) + miktar;
       doldu = false;
       if (a >= ANAHTAR_HEDEF) { a -= ANAHTAR_HEDEF; doldu = true; }
-      return { anahtar: a, tec: (Number(m.tec) || 0) + bedel };
+      return { anahtar: a, tec: (Number(m.tec) || 0) + miktar };
     }).then(function (sonuc) {
       if (!sonuc.committed) return;
 
-      sandikAc(id, {
-        tur: "hediye",
-        sebep: paketAdi || "paket",
-        kim: isimsiz ? "" : ben,
-        jeton: Math.max(HEDIYE_MIN,
-                 Math.min(HEDIYE_MAX, Math.round(bedel / HEDIYE_BOLEN))),
-        at: saat(),
-        toplayan: {}
-      });
+      if (hediye) {
+        sandikAc(id, {
+          tur: "hediye",
+          sebep: hediye,
+          kim: isimsiz ? "" : ben,
+          jeton: Math.max(HEDIYE_MIN,
+                   Math.min(HEDIYE_MAX, Math.round(miktar / HEDIYE_BOLEN))),
+          at: saat(),
+          toplayan: {}
+        });
+      }
 
       if (doldu) {
         sandikAc(id, {
@@ -1873,7 +1918,7 @@
         benimiTazele(function () { if (_benim) govdeCiz(); });
       }
     }).catch(function (e) {
-      console.warn("[ittifak] paket ilerlemesi yazılamadı:", e);
+      console.warn("[ittifak] ittifak ilerlemesi yazılamadı:", e);
     });
   }
 
@@ -1900,7 +1945,10 @@
            saysaydık 400.000'lik bir alım ittifaka hediye açar, sonra
            oyuncunun elması geri gelir ve hediye ortada kalırdı. */
         if (harcanan > 0 && _benim && !(urun && urun.isMissile)) {
-          paketAlindi(urun ? urun.name : "paket", harcanan);
+          /* elmasHarcandi — paketAlindi DEĞİL. Elmas oyun içinden
+             kazanılıyor; hediye sandığı açtırması ve tam oranla
+             sayılması ittifak seviyesini ücretsiz tavana taşırdı. */
+          elmasHarcandi(harcanan);
         }
       } catch (e) { console.warn("[ittifak] paket kancası:", e); }
       return sonuc;
@@ -2221,12 +2269,18 @@
         '" data-sandik-sekme="hediye">İttifak Hediyesi' + rozet(hediyeBekleyen) + "</button>" +
     "</div>";
 
+    /* Hediye sekmesinin "Git"i HENÜZ BİR YERE GİTMİYOR: İttifak
+       Hediyesi'ni ücretli paket alımı açar ve o sistem oyunda yok.
+       Mağazaya yollamak yanlış olurdu — oyuncu elmasla alışveriş
+       yapıp hediye beklerdi, oysa elmas hediye açmaz. */
     h += '<div class="is-serit">' +
       "<span>" + (_sandikSekme === "ganimet"
-        ? "Ganimet sandıkları için ittifakın anahtar çubuğunu doldurun"
-        : "Mağazadan paket satın almak tüm üyelere bir İttifak Hediyesi verir") +
+        ? "Anahtar çubuğu dolunca tüm üyelere Ganimet Sandığı düşer"
+        : "Ücretli paket alan üye TÜM ittifaka bir İttifak Hediyesi kazandırır") +
       "</span>" +
-      '<button class="is-git" data-git="magaza">Git</button>' +
+      (_sandikSekme === "ganimet"
+        ? '<button class="is-git" data-git="magaza">Git</button>'
+        : '<button class="is-git" data-yakinda="Ücretli paketler">Git</button>') +
     "</div>";
 
     var liste = sandikListesi(_sandikSekme);
@@ -2396,8 +2450,9 @@
     if (sk) { _sandikSekme = sk.dataset.sandikSekme; govdeCiz(); return; }
     if (t.closest("#itHepsiniAl")) { sandikHepsiniTopla(_sandikSekme); return; }
     if (t.closest("[data-bilgi]")) {
-      uyar("Üyeler mağazadan paket aldıkça çubuk dolar; dolunca tüm " +
-           "üyelere bir Ganimet Sandığı düşer.");
+      uyar("Çubuk ücretli paket alımlarıyla dolar; mağazadan yapılan " +
+           "elmas harcaması da %" + Math.round(ELMAS_KATKI * 100) +
+           " oranında katkı verir. Dolunca tüm üyelere Ganimet Sandığı düşer.");
       return;
     }
     var gt = t.closest("[data-git]");
@@ -2602,10 +2657,17 @@
     jetonEkle: jetonEkle,
     seviye: ittifakSeviyesi,
 
-    /* Paket alımı kancasının EL KAPISI. buyItem zaten sarmalanıyor;
-       bu, elmasla ölçülemeyen bir alım (ileride gerçek para paketi)
-       geldiğinde aynı ekonomiye bağlanabilsin diye açık duruyor. */
+    /* ÜCRETLİ PAKET KAPISI — gerçek para ile satın alma sistemi
+       kurulduğunda, alım BAŞARIYLA bittiği yerden çağır:
+         ITTIFAK.paketAlindi("Günlük Teklifler", bedel)
+       Tam oranla sayaca yazar ve TÜM üyelere İttifak Hediyesi açar.
+       Şu an hiçbir yerden çağrılmıyor (oyunda ücretli alım yok). */
     paketAlindi: paketAlindi,
+
+    /* Oyun içi elmas harcaması — düşük oranlı katkı, hediye yok.
+       magaza.js'teki buyItem bunu kendiliğinden çağırır. */
+    elmasHarcandi: elmasHarcandi,
+    ELMAS_KATKI: ELMAS_KATKI,
 
     /* ÇARPIŞMA AÇ — Savaş ekranının Seferberlik/Bireysel/Etkinlik
        listeleri bu kayıtları gösterir. Çağrı ÜRETEN sistem henüz
