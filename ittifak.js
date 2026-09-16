@@ -2533,86 +2533,49 @@
   /* ── TOPLAMA UÇUŞU ───────────────────────────────────────────
      Jetonlar sandık satırından başlığın kesesine akar.
 
-     KENDİ İÇİNDE: odul-efekt.js'teki hazır uçuş motoru cazipti ama
-     o dosya index.html'e HİÇ BAĞLI DEĞİL (geçmişte de bağlanmamış),
-     yani oyunda window.OdulEfekt yok. Sırf bu efekt için onu yüklemek
-     günlük ödül ve keşif ekranlarına da dokunurdu — istenmeyen bir
-     yan etki. Uçuş burada, Web Animations ile, dosyanın kendi
-     hareket kuralına uygun (CSS keyframe yok).
+     MOTOR OYUNUN KENDİSİNİN: rehber.js'teki window.ODUL_UCUS.
+     Günlük ödül ve keşif ödülü zaten onunla uçuyor; jeton da aynı
+     yoldan geçsin ki oyunda iki ayrı uçuş hissi olmasın. (Bir ara
+     burada elle yazılmış ikinci bir animasyon vardı — sökülüp
+     atıldı. odul-efekt.js'teki üçüncü motor ise index.html'e hiç
+     bağlı değil, ondan uzak durulur.)
 
      ÇIKIŞ NOKTASI ÖNCEDEN ALINIR: govdeCiz() satırı yeniden çiziyor,
      eski düğüm DOM'dan düşüyor. Sonradan ölçmeye kalksak uçuş
      ekranın sol üstünden başlardı.
 
-     Sayaç geri sarılıp uçuşla birlikte işletilir — sayı anında
-     zıplarsa akış görülmüyor. Motor çalışamazsa (hareket azaltma,
-     görünmeyen hedef) sayı yine de doğru kalsın diye kısa bir
-     emniyet zamanlayıcısı son değeri yazar. */
+     Sayaç geri sarılıp parçacıklar VARDIKÇA işletilir; sayı tek
+     hamlede zıplarsa akış görülmez, uçuş da anlamsız kalır. */
   function jetonUcusu(kaynak, onceki, kazanc) {
     var kese = panel ? panel.querySelector(".im-kese") : null;
     var sayacEl = kese ? kese.querySelector(".it-jeton-sayi") : null;
     if (!sayacEl) return;
 
-    var hedef = ogeNoktasi(kese);
-    /* Hareket azaltma açıksa ya da ölçüm alınamadıysa: uçuş yok,
-       sayı doğru. Efekt süslemedir, doğruluk değil. */
-    if (!kaynak || !hedef || kapaliHareket() ||
-        typeof document.body.animate !== "function") {
+    var E = window.ODUL_UCUS;
+    /* Motor yoksa ya da çıkış ölçülemediyse: uçuş yok, sayı doğru.
+       Efekt süslemedir, doğruluk değil. */
+    if (!E || typeof E.ucur !== "function" || !kaynak) {
       sayacEl.textContent = sayiBicim(onceki + kazanc);
       return;
     }
 
     sayacEl.textContent = sayiBicim(onceki);          /* geri sar */
+    var adet = Math.max(5, Math.min(10, Math.round(kazanc / 60)));
 
-    var adet = Math.max(6, Math.min(14, Math.round(kazanc / 40)));
-    var SURE = 620, ARALIK = 45, BOY = 22;
-    var varan = 0;
-
-    for (var i = 0; i < adet; i++) {
-      (function (n) {
-        var p = document.createElement("div");
-        /* Parçacık BODY'ye eklenir, panele değil: panel `overflow:hidden`
-           ve uçuş onun dışına, başlıktaki keseye gidiyor. İçeride
-           kalsaydı yolun bir kısmı kırpılırdı. */
-        p.style.cssText =
-          "position:fixed;left:0;top:0;width:" + BOY + "px;height:" + BOY + "px;" +
-          "z-index:100000;pointer-events:none;will-change:transform,opacity;" +
-          "background:url('" + JETON_SVG + "') center/contain no-repeat;";
-        document.body.appendChild(p);
-
-        var bx = kaynak.x - BOY / 2, by = kaynak.y - BOY / 2;
-        var dx = hedef.x - kaynak.x, dy = hedef.y - kaynak.y;
-        var sap = (Math.random() - 0.5) * 70;        /* dağılma */
-        var yay = -45 - Math.random() * 35;          /* yukarı yay */
-
-        var a = p.animate([
-          { transform: "translate(" + bx + "px," + by + "px) scale(.55)", opacity: 0 },
-          { transform: "translate(" + (bx + dx * 0.45 + sap) + "px," +
-                                      (by + dy * 0.45 + yay) + "px) scale(1)",
-            opacity: 1, offset: 0.45 },
-          { transform: "translate(" + (bx + dx) + "px," + (by + dy) + "px) scale(.45)",
-            opacity: .95 }
-        ], {
-          duration: SURE, delay: n * ARALIK,
-          easing: "cubic-bezier(.35,.1,.25,1)", fill: "forwards"
-        });
-
-        /* Sayaç parçacık VARDIKÇA işler — sayı tek hamlede zıplarsa
-           akış görülmüyor, uçuş da anlamsız kalıyor. */
-        a.onfinish = function () {
-          p.remove();
-          varan++;
-          sayacEl.textContent =
-            sayiBicim(onceki + Math.round(kazanc * varan / adet));
-        };
-      })(i);
-    }
-
-    /* Emniyet: animasyon herhangi bir sebeple bitmezse (sekme arkaya
-       atılırsa onfinish gecikir) sayı yine de doğru kalsın. */
-    setTimeout(function () {
-      if (sayacEl.isConnected) sayacEl.textContent = sayiBicim(onceki + kazanc);
-    }, SURE + ARALIK * adet + 300);
+    E.ucur({
+      kaynak: kaynak, hedef: kese,
+      adet: adet, boy: 26, yukari: 95, sure: 780, gecikme: 28,
+      icerik: function () {
+        return '<img src="' + JETON_SVG + '" alt="">';
+      },
+      varista: function (varan, son, toplam) {
+        sayacEl.textContent = sayiBicim(onceki + Math.round(kazanc * varan / toplam));
+        if (typeof E.nabizKutu === "function") E.nabizKutu(kese, son ? 1 : 0.4);
+      },
+      /* Son değer BURADA da yazılır: yuvarlama yüzünden parçacık
+         payları toplamı kazancı tam tutturmayabilir. */
+      bitti: function () { sayacEl.textContent = sayiBicim(onceki + kazanc); }
+    });
   }
 
   /* Bir ögenin ekran ortası — uçuşun çıkış noktası. */
