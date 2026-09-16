@@ -18,10 +18,11 @@
      ayarlar → künye özeti, Ayrıl / Dağıt
 
    IZGARADAKİ 8 DÜĞMEDEN ÜÇÜ ARTIK ÇALIŞIYOR:
-     Savaş     → Seferberlik / Bireysel / Etkinlikler sekmeleri,
-                 Oto-Katıl ayarı. Çarpışma ÜRETEN sistem henüz yok,
-                 o yüzden liste normalde boştur (referanstaki boş
-                 durum). Kapı hazır: ITTIFAK.carpismaAc().
+     Savaş     → Seferberlik: ittifak üyelerinin BAŞKA KALELERE
+                 yaptığı saldırılar. Veri sefer.js'in yazdığı
+                 `seferler` düğümünden OKUNUR, burada üretilmez.
+                 Bireysel: kendi seferlerim. Etkinlikler: ittifakın
+                 `carpismalar` kayıtları — üreten sistem henüz yok.
      Sandıklar → anahtar çubuğu + Ganimet Sandığı / İttifak Hediyesi
                  sekmeleri, Topla / Tümünü Al, günlük ganimet tavanı,
                  isimsiz hediye seçeneği.
@@ -96,9 +97,9 @@
      · sohbetin İttifak sekmesi, postanın İttifak sekmesi
      · haritada isim etiketinin yanında [ETİKET]
      · ittifak bonusları, ittifak bölgesi, davet gönderme
-     · SEFERBERLİK ÇAĞRISI ÜRETEN sistem — Savaş ekranı çağrıları
-       gösteriyor ve katılmayı biliyor, ama çağrıyı AÇAN yer henüz
-       bağlanmadı (haritadaki saldırı akışına bağlanacak).
+     · Etkinlik çarpışmaları — Savaş ekranının üçüncü sekmesi
+       `carpismalar` düğümünü gösteriyor, ama o kaydı AÇAN sistem
+       yok. Kapı hazır: ITTIFAK.carpismaAc("etkinlik", ad, süre).
    ═══════════════════════════════════════════════════════════════ */
 (function ittifakSistemi() {
   "use strict";
@@ -749,6 +750,12 @@
       ".is-odul{flex:0 0 auto;display:flex;align-items:center;" +
         "font-family:'Baloo 2',sans-serif;font-weight:900;font-size:12.5px;" +
         "color:#14203a;}" +
+      /* Sefer satırındaki ok ve geri sayım. */
+      ".is-ok{color:#5a6a84;font-weight:900;}" +
+      ".is-sure{flex:0 0 auto;text-align:right;font-family:'Baloo 2',sans-serif;" +
+        "font-weight:800;font-size:11.5px;color:#22488f;" +
+        "font-variant-numeric:tabular-nums;}" +
+      ".is-sure b{display:block;font-size:12.5px;color:#14203a;}" +
       ".is-sinir{text-align:center;font-family:'Baloo 2',sans-serif;font-weight:800;" +
         "font-size:11.5px;color:#cfe4ff;padding:7px 4px 6px;" +
         "border-top:1px solid rgba(190,225,255,.28);" +
@@ -895,6 +902,7 @@
     if (_benim && _gorunum !== "ana") {
       _gorunum = "ana";
       sayacDurdur();
+      savasSayaciDurdur();
       govdeCiz();
       return;
     }
@@ -2203,6 +2211,93 @@
     govdeCiz();
   }
 
+  /* ── SEFERLER: ORTAK DÜĞÜMDEN OKUNUR ──────────────────────────
+     Seferberlik, ittifak üyelerinin BAŞKA KALELERE yaptığı
+     saldırıları gösterir. Bu veri BURADA ÜRETİLMEZ: sefer.js
+     zaten her seferi `seferler` düğümüne yazıyor. İkinci bir kayıt
+     tutmak, iki listenin ayrışması demekti — ordu haritada geri
+     dönmüş ama ittifak ekranında hâlâ yolda görünürdü.
+
+     Dinleyici AÇILMAZ (Spark planı, sefer.js de açmıyor): ekran
+     açılınca bir kez okunur, sonra sayaç içinde seyrek tazelenir. */
+  var _seferler = [];
+  var _savasZm = null;
+  var _savasTik = 0;
+
+  function seferleriOku(bitince) {
+    if (!bulutVar()) { _seferler = []; if (bitince) bitince(); return; }
+    firebaseDb.ref("seferler").once("value").then(function (snap) {
+      var v = snap.val() || {};
+      _seferler = Object.keys(v).map(function (id) {
+        var x = v[id] || {}; x.id = id; return x;
+      });
+      if (bitince) bitince();
+    }).catch(function (e) {
+      console.warn("[ittifak] seferler okunamadı:", e);
+      _seferler = [];
+      if (bitince) bitince();
+    });
+  }
+
+  /* Yalnız GİDİŞ yolundaki sefer "saldırı"dır. Dönüş ve toplama
+     bitişleri sefer.js'te ayrı alanlardan hesaplanıyor; onları
+     burada tekrar hesaplamak ikinci bir doğruluk kaynağı olurdu. */
+  function seferKalan(x) {
+    return ((Number(x.gidisAt) || 0) + (Number(x.sureMs) || 0)) - Date.now();
+  }
+
+  function birlikToplami(b) {
+    if (!b || typeof b !== "object") return 0;
+    return Object.keys(b).reduce(function (t, k) { return t + (Number(b[k]) || 0); }, 0);
+  }
+
+  function koordYazi(x, y) {
+    try {
+      if (typeof fmtCoord === "function") {
+        return "x:" + fmtCoord(Number(x)) + " y:" + fmtCoord(Number(y));
+      }
+    } catch (e) {}
+    return "";
+  }
+
+  function savasListesi(sekme) {
+    if (sekme === "etkinlik") return null;      /* etkinlikler ayrı düğümden */
+    var k = benKey();
+    var uyeler = (_benim && _benim.uyeler) || {};
+    return _seferler.filter(function (x) {
+      if (x.iptal || x.durum !== "gidis") return false;
+      if (seferKalan(x) <= 0) return false;
+      if (sekme === "seferberlik") {
+        /* İttifak üyelerinin KALE saldırıları. Canavar/kaynak
+           seferleri "başka kaleye saldırı" değildir, girmez. */
+        return x.tur === "kale" && x.sahip && !!uyeler[x.sahip];
+      }
+      return !!k && x.sahip === k;              /* bireysel: kendi seferlerim */
+    }).sort(function (a, b) { return seferKalan(a) - seferKalan(b); });
+  }
+
+  function seferSatiriHTML(x) {
+    var uyeler = (_benim && _benim.uyeler) || {};
+    var ad = x.sahipAd || (uyeler[x.sahip] || {}).ad || x.sahip || "Üye";
+    var benMi = (x.sahip === benKey());
+    var bitis = (Number(x.gidisAt) || 0) + (Number(x.sureMs) || 0);
+    var koor = koordYazi(x.tx, x.ty);
+    var asker = birlikToplami(x.birlikler);
+    var simge = (x.tur === "kale") ? "⚔️" : (x.tur === "canavar" ? "👹" : "⛏️");
+
+    return '<div class="it-satir">' +
+      '<div class="it-flama">' + simge + "</div>" +
+      '<div class="it-orta">' +
+        '<div class="it-ad">' + kacar(ad) + (benMi ? " (sen)" : "") +
+          ' <span class="is-ok">→</span> ' + kacar(x.hedefAd || "hedef") + "</div>" +
+        '<div class="it-alt">' + (koor ? kacar(koor) + " · " : "") +
+          "👤 " + sayiBicim(asker) + "</div>" +
+      "</div>" +
+      '<div class="is-sure">⏳ <b data-bitis="' + bitis + '">' +
+        sureBicimKisa(bitis - Date.now()) + "</b></div>" +
+    "</div>";
+  }
+
   function savasEkraniHTML() {
     var S = [
       { id: "seferberlik", ad: "Seferberlik" },
@@ -2215,37 +2310,84 @@
              '" data-savas-sekme="' + s.id + '">' + s.ad + "</button>";
     }).join("") + "</div>";
 
-    var liste = carpismaListesi(_savasSekme);
+    var seferler = savasListesi(_savasSekme);
     h += '<div class="iy-govde">';
-    if (!liste.length) {
-      h += '<div class="iy-bos">' +
-             '<img class="iy-bos-ikon" src="ittifakikon.webp" alt="">' +
-             "<span>Henüz gösterilecek çarpışma yok.</span>" +
-           "</div>";
+
+    if (seferler === null) {
+      /* Etkinlikler: ittifakın kendi çarpışma kayıtları. Bu kayıtları
+         ÜRETEN sistem henüz yok, o yüzden liste normalde boştur. */
+      var etk = carpismaListesi("etkinlik");
+      if (!etk.length) {
+        h += bosDurumHTML("Henüz gösterilecek etkinlik yok.");
+      } else {
+        h += etk.map(function (c) {
+          var kalan = c.biter ? sureBicimKisa(c.biter - Date.now()) : "";
+          return '<div class="it-satir">' +
+            '<div class="it-flama">🎪</div>' +
+            '<div class="it-orta">' +
+              '<div class="it-ad">' + kacar(c.ad) + "</div>" +
+              '<div class="it-alt">' + kacar(c.kim || "İttifak") +
+                " · 👤 " + c.katilan + (kalan ? (" · ⏳ " + kalan) : "") + "</div>" +
+            "</div>" +
+            '<button class="it-dugme it-kucuk" data-carpisma="' + kacar(c.id) + '">Katıl</button>' +
+          "</div>";
+        }).join("");
+      }
+    } else if (!seferler.length) {
+      h += bosDurumHTML(_savasSekme === "seferberlik"
+        ? "İttifakından kimse saldırıda değil."
+        : "Yolda ordun yok.");
     } else {
-      h += liste.map(function (c) {
-        var kalan = c.biter ? sureBicimKisa(c.biter - Date.now()) : "";
-        return '<div class="it-satir">' +
-          '<div class="it-flama">⚔️</div>' +
-          '<div class="it-orta">' +
-            '<div class="it-ad">' + kacar(c.ad) + "</div>" +
-            '<div class="it-alt">' + kacar(c.kim || "İttifak") +
-              " · 👤 " + c.katilan + (kalan ? (" · ⏳ " + kalan) : "") + "</div>" +
-          "</div>" +
-          '<button class="it-dugme it-kucuk" data-carpisma="' + kacar(c.id) + '">Katıl</button>' +
-        "</div>";
-      }).join("");
+      h += seferler.map(seferSatiriHTML).join("");
     }
     h += "</div>";
 
     var acik = otoKatilAcik();
-    h += '<div class="iy-altbilgi">Etkinleştirildikten sonra ittifakının açtığı ' +
-         "Seferberlik çağrılarına otomatik katılırsın.</div>" +
+    h += '<div class="iy-altbilgi">Seferberlik, ittifak üyelerinin başka ' +
+         "kalelere yaptığı saldırıları gösterir.</div>" +
          '<button class="iy-oto' + (acik ? " acik" : "") + '" id="itOtoKatil">' +
            "Oto-Katıl" + (acik ? " · Açık" : "") +
            (acik ? "" : '<i class="iy-nokta"></i>') +
          "</button>";
     return '<div class="ik-sarmal iy-sarmal">' + h + "</div>";
+  }
+
+  function bosDurumHTML(yazi) {
+    return '<div class="iy-bos">' +
+      '<img class="iy-bos-ikon" src="ittifakikon.webp" alt="">' +
+      "<span>" + kacar(yazi) + "</span></div>";
+  }
+
+  /* ── SAVAŞ EKRANI SAYACI ──────────────────────────────────────
+     Geri sayım YALNIZ sayı düğümlerinde işler; tüm gövdeyi saniyede
+     bir yeniden çizmek kaydırmayı ve dokunmayı bozardı. Bir sefer
+     varınca liste bir kez yeniden çizilir (o satır düşsün).
+     Buluttan tazeleme seyrek: yeni bir sefer yola çıkmış olabilir. */
+  function savasSayaciBaslat() {
+    savasSayaciDurdur();
+    _savasTik = 0;
+    _savasZm = setInterval(function () {
+      if (!_benim || _gorunum !== "savas") { savasSayaciDurdur(); return; }
+      var el = document.getElementById("itGovde");
+      if (!el) { savasSayaciDurdur(); return; }
+
+      if ((++_savasTik % 20) === 0) {          /* 20 sn'de bir buluttan */
+        seferleriOku(function () { if (_gorunum === "savas") govdeCiz(); });
+        return;
+      }
+
+      var dugumler = el.querySelectorAll("[data-bitis]");
+      var varanVar = false;
+      Array.prototype.forEach.call(dugumler, function (n) {
+        var kalan = Number(n.dataset.bitis) - Date.now();
+        if (kalan <= 0) { varanVar = true; return; }
+        n.textContent = sureBicimKisa(kalan);
+      });
+      if (varanVar) govdeCiz();
+    }, 1000);
+  }
+  function savasSayaciDurdur() {
+    if (_savasZm) { clearInterval(_savasZm); _savasZm = null; }
   }
 
   function carpismayaKatil(cid) {
@@ -2451,8 +2593,14 @@
     if (gb) {
       _gorunum = gb.dataset.gorunum;
       govdeCiz();
-      /* Geri sayım YALNIZ mağaza ekranında döner. */
+      /* Her ekranın kendi sayacı; ötekiler durur. */
       if (_gorunum === "magaza") sayacBaslat(); else sayacDurdur();
+      if (_gorunum === "savas") {
+        seferleriOku(function () { if (_gorunum === "savas") govdeCiz(); });
+        savasSayaciBaslat();
+      } else {
+        savasSayaciDurdur();
+      }
       return;
     }
 
@@ -2708,6 +2856,7 @@
 
   function kapat() {
     sayacDurdur();
+    savasSayaciDurdur();
     if (panel) panel.classList.remove("active");
   }
 
