@@ -699,10 +699,12 @@
       /* ═══ JETON — İTTİFAK PARA BİRİMİ ════════════════════════
          Simge tek yerde: satırda, kesede ve fiyat düğmesinde aynı
          daire çizilir, üç ayrı görünüm ayrışmasın. */
-      ".it-jeton{display:inline-flex;align-items:center;justify-content:center;" +
-        "width:16px;height:16px;border-radius:50%;margin-right:3px;font-size:10px;" +
-        "background:linear-gradient(180deg,#6fd3ff,#2f7fd8);" +
-        "box-shadow:inset 0 -1px 2px rgba(0,20,45,.5);vertical-align:-3px;}" +
+      /* Jetonun ARKASINDAKİ KAP KALKTI (maviye boyalı daireydi) —
+         paranın kendisi çiziliyor ve o kap kadar büyük. */
+      ".it-jeton{display:inline-block;width:18px;height:18px;margin-right:4px;" +
+        "vertical-align:-4px;background:url('" + JETON_SVG + "') center/contain no-repeat;}" +
+      /* Fiyat düğmesi dar; orada bir tık küçük durur. */
+      ".im-fiyat .it-jeton{width:15px;height:15px;margin-right:3px;vertical-align:-3px;}" +
       ".it-jeton-sayi{font-family:'Baloo 2',sans-serif;font-weight:900;" +
         "font-size:13px;color:#fff;text-shadow:0 1px 2px rgba(0,20,45,.6);}" +
 
@@ -876,7 +878,9 @@
 
     /* Sağ köşe: mağazada jeton kesesi, başka yerde bilgi düğmesi.
        Referansta künyede "!" durur, mağazada bakiye. */
-    if (_benim && g === "magaza") {
+    if (_benim && (g === "magaza" || g === "sandik")) {
+      /* Sandıklar'da da durur: toplanan jetonlar oraya uçuyor,
+         varacağı yer görünmezse uçuş anlamsız kalırdı. */
       sag.innerHTML = '<div class="im-kese">' + jetonRozetiHTML() + "</div>";
     } else if (_benim && g === "ana") {
       sag.innerHTML = '<button class="it-bas-bilgi" id="itBasBilgi">!</button>';
@@ -1598,6 +1602,18 @@
      ══════════════════════════════════════════════════════════════ */
 
   var JETON_ADI            = "İttifak Jetonu";
+
+  /* JETON SİMGESİ TEK KAYNAK. Hem CSS'teki simge hem toplama
+     uçuşundaki parçacık BU veri-adresinden çizilir; iki ayrı çizim
+     kaçınılmaz olarak ayrışırdı. Emoji DEĞİL: emojinin rengi yazı
+     tipine bağlı, "gri olsun" denince dayatılamıyor. */
+  var JETON_SVG = "data:image/svg+xml," + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">' +
+      '<circle cx="16" cy="16" r="15" fill="#a9b4c2"/>' +
+      '<circle cx="16" cy="16" r="12.4" fill="#dde4ec"/>' +
+      '<path d="M16 8.8l2.1 4.4 4.8.6-3.5 3.3.9 4.8L16 19.6l-4.3 2.3.9-4.8-3.5-3.3 4.8-.6z"' +
+        ' fill="#93a1b1"/>' +
+    "</svg>");
   var ANAHTAR_HEDEF        = 75000;   /* sandık çubuğu bu kadar birikimle dolar */
   var GANIMET_JETON        = 500;     /* çubuk dolunca HER ÜYEYE düşen jeton  */
   var HEDIYE_BOLEN         = 100;     /* hediye jetonu = paket bedeli / 100   */
@@ -1808,9 +1824,10 @@
      `ganimetBugun()` ile alım ANINDA okunuyor; hepsi aynı anda
      başlarsa hepsi aynı (eski) toplamı görür ve tavan aşılır.
      Sıralı akışta her adım bir öncekinin kazancını görmüş olur. */
-  function sandikHepsiniTopla(tur) {
+  function sandikHepsiniTopla(tur, cikis) {
     var bekleyen = sandikListesi(tur).filter(function (x) { return !x.toplandi; });
     if (!bekleyen.length) { uyar("Toplanacak sandık yok."); return; }
+    var oncekiJeton = jeton();
     var toplam = 0, sinirDoldu = false, i = 0;
 
     function sonraki() {
@@ -1825,6 +1842,9 @@
           uyar("Günlük ganimet sınırına ulaştın.");
         }
         govdeCiz();
+        /* Uçuş sandık başına değil, TOPLAM üzerinden bir kez —
+           on sandıkta on ayrı akış ekranı karmakarışık ediyordu. */
+        if (toplam > 0) jetonUcusu(cikis, oncekiJeton, toplam);
         return;
       }
       sandikTopla(bekleyen[i++].id, function (oldu, kazanc, sebep) {
@@ -2110,7 +2130,7 @@
   var _magazaSekme = "gun";
 
   function jetonRozetiHTML() {
-    return '<span class="it-jeton">🪙</span><span class="it-jeton-sayi">' +
+    return '<span class="it-jeton"></span><span class="it-jeton-sayi">' +
            sayiBicim(jeton()) + "</span>";
   }
 
@@ -2308,7 +2328,7 @@
             '<div class="it-ad">' + baslik + "</div>" +
             '<div class="it-alt">' + alt + "</div>" +
           "</div>" +
-          '<div class="is-odul"><span class="it-jeton">🪙</span>' + sayiBicim(x.jeton) + "</div>" +
+          '<div class="is-odul"><span class="it-jeton"></span>' + sayiBicim(x.jeton) + "</div>" +
           (x.toplandi
             ? '<button class="it-dugme it-kapali it-kucuk" disabled>Alındı</button>'
             : '<button class="it-dugme it-kucuk" data-topla="' + kacar(x.id) + '">Topla</button>') +
@@ -2364,7 +2384,7 @@
         '<div class="im-kalan">Kalan: ' + Math.max(0, kaldi) + "</div>" +
         '<button class="im-fiyat' + (bitti || kilit ? " kapali" : "") + '"' +
           (kilit || bitti ? " disabled" : (' data-magaza="' + tur + ":" + i + '"')) + ">" +
-          '<span class="it-jeton">🪙</span>' + sayiBicim(kayit.bedel) +
+          '<span class="it-jeton"></span>' + sayiBicim(kayit.bedel) +
         "</button>" +
       "</div>";
     }
@@ -2453,7 +2473,10 @@
     /* ── SANDIKLAR ── */
     var sk = t.closest("[data-sandik-sekme]");
     if (sk) { _sandikSekme = sk.dataset.sandikSekme; govdeCiz(); return; }
-    if (t.closest("#itHepsiniAl")) { sandikHepsiniTopla(_sandikSekme); return; }
+    if (t.closest("#itHepsiniAl")) {
+      sandikHepsiniTopla(_sandikSekme, ogeNoktasi(t.closest("#itHepsiniAl")));
+      return;
+    }
     if (t.closest("[data-bilgi]")) {
       uyar("Çubuk ücretli paket alımlarıyla dolar; mağazadan yapılan " +
            "elmas harcaması da %" + Math.round(ELMAS_KATKI * 100) +
@@ -2465,10 +2488,13 @@
     if (gt) { magazayaGit(); return; }
     var tp = t.closest("[data-topla]");
     if (tp) {
+      var cikis = ogeNoktasi(tp.closest(".is-satir") || tp);
+      var oncekiJeton = jeton();
       sandikTopla(tp.dataset.topla, function (oldu, kazanc, sebep) {
         if (oldu) uyar("🪙 " + sayiBicim(kazanc) + " " + JETON_ADI + " alındı!");
         else if (sebep === "sinir") uyar("Günlük ganimet sınırına ulaştın.");
         govdeCiz();
+        if (oldu && kazanc > 0) jetonUcusu(cikis, oncekiJeton, kazanc);
       });
       return;
     }
@@ -2502,6 +2528,99 @@
     if ((b = t.closest("[data-terfi]")))  { rutbeVer(b.dataset.terfi, "subay"); return; }
     if ((b = t.closest("[data-indir]")))  { rutbeVer(b.dataset.indir, "uye"); return; }
     if ((b = t.closest("[data-at]")))     { uyeAt(b.dataset.at); return; }
+  }
+
+  /* ── TOPLAMA UÇUŞU ───────────────────────────────────────────
+     Jetonlar sandık satırından başlığın kesesine akar.
+
+     KENDİ İÇİNDE: odul-efekt.js'teki hazır uçuş motoru cazipti ama
+     o dosya index.html'e HİÇ BAĞLI DEĞİL (geçmişte de bağlanmamış),
+     yani oyunda window.OdulEfekt yok. Sırf bu efekt için onu yüklemek
+     günlük ödül ve keşif ekranlarına da dokunurdu — istenmeyen bir
+     yan etki. Uçuş burada, Web Animations ile, dosyanın kendi
+     hareket kuralına uygun (CSS keyframe yok).
+
+     ÇIKIŞ NOKTASI ÖNCEDEN ALINIR: govdeCiz() satırı yeniden çiziyor,
+     eski düğüm DOM'dan düşüyor. Sonradan ölçmeye kalksak uçuş
+     ekranın sol üstünden başlardı.
+
+     Sayaç geri sarılıp uçuşla birlikte işletilir — sayı anında
+     zıplarsa akış görülmüyor. Motor çalışamazsa (hareket azaltma,
+     görünmeyen hedef) sayı yine de doğru kalsın diye kısa bir
+     emniyet zamanlayıcısı son değeri yazar. */
+  function jetonUcusu(kaynak, onceki, kazanc) {
+    var kese = panel ? panel.querySelector(".im-kese") : null;
+    var sayacEl = kese ? kese.querySelector(".it-jeton-sayi") : null;
+    if (!sayacEl) return;
+
+    var hedef = ogeNoktasi(kese);
+    /* Hareket azaltma açıksa ya da ölçüm alınamadıysa: uçuş yok,
+       sayı doğru. Efekt süslemedir, doğruluk değil. */
+    if (!kaynak || !hedef || kapaliHareket() ||
+        typeof document.body.animate !== "function") {
+      sayacEl.textContent = sayiBicim(onceki + kazanc);
+      return;
+    }
+
+    sayacEl.textContent = sayiBicim(onceki);          /* geri sar */
+
+    var adet = Math.max(6, Math.min(14, Math.round(kazanc / 40)));
+    var SURE = 620, ARALIK = 45, BOY = 22;
+    var varan = 0;
+
+    for (var i = 0; i < adet; i++) {
+      (function (n) {
+        var p = document.createElement("div");
+        /* Parçacık BODY'ye eklenir, panele değil: panel `overflow:hidden`
+           ve uçuş onun dışına, başlıktaki keseye gidiyor. İçeride
+           kalsaydı yolun bir kısmı kırpılırdı. */
+        p.style.cssText =
+          "position:fixed;left:0;top:0;width:" + BOY + "px;height:" + BOY + "px;" +
+          "z-index:100000;pointer-events:none;will-change:transform,opacity;" +
+          "background:url('" + JETON_SVG + "') center/contain no-repeat;";
+        document.body.appendChild(p);
+
+        var bx = kaynak.x - BOY / 2, by = kaynak.y - BOY / 2;
+        var dx = hedef.x - kaynak.x, dy = hedef.y - kaynak.y;
+        var sap = (Math.random() - 0.5) * 70;        /* dağılma */
+        var yay = -45 - Math.random() * 35;          /* yukarı yay */
+
+        var a = p.animate([
+          { transform: "translate(" + bx + "px," + by + "px) scale(.55)", opacity: 0 },
+          { transform: "translate(" + (bx + dx * 0.45 + sap) + "px," +
+                                      (by + dy * 0.45 + yay) + "px) scale(1)",
+            opacity: 1, offset: 0.45 },
+          { transform: "translate(" + (bx + dx) + "px," + (by + dy) + "px) scale(.45)",
+            opacity: .95 }
+        ], {
+          duration: SURE, delay: n * ARALIK,
+          easing: "cubic-bezier(.35,.1,.25,1)", fill: "forwards"
+        });
+
+        /* Sayaç parçacık VARDIKÇA işler — sayı tek hamlede zıplarsa
+           akış görülmüyor, uçuş da anlamsız kalıyor. */
+        a.onfinish = function () {
+          p.remove();
+          varan++;
+          sayacEl.textContent =
+            sayiBicim(onceki + Math.round(kazanc * varan / adet));
+        };
+      })(i);
+    }
+
+    /* Emniyet: animasyon herhangi bir sebeple bitmezse (sekme arkaya
+       atılırsa onfinish gecikir) sayı yine de doğru kalsın. */
+    setTimeout(function () {
+      if (sayacEl.isConnected) sayacEl.textContent = sayiBicim(onceki + kazanc);
+    }, SURE + ARALIK * adet + 300);
+  }
+
+  /* Bir ögenin ekran ortası — uçuşun çıkış noktası. */
+  function ogeNoktasi(el) {
+    if (!el || !el.getBoundingClientRect) return null;
+    var r = el.getBoundingClientRect();
+    if (!r.width && !r.height) return null;
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
 
   /* Oyunun KENDİ mağaza panelini açar (Sandıklar ekranındaki "Git").

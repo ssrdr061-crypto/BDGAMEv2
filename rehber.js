@@ -302,17 +302,24 @@
       #welcomeBack .wc-gift{ text-align:center;padding:6px 0 4px; }
       #welcomeBack .wc-gift .amt{ font-weight:900;font-size:34px;color:#fff;
         text-shadow:0 3px 8px rgba(0,40,70,.6);letter-spacing:.5px; }
-      #welcomeBack .wc-next{ display:block;width:100%;margin-top:12px;border:none;cursor:pointer;
-        border-radius:14px;padding:13px;font-family:inherit;font-weight:900;font-size:16px;color:#fff;
-        background:linear-gradient(180deg,#4fd8ff,#1fa3ea);border:1px solid rgba(190,240,255,.9);
-        text-shadow:0 2px 3px rgba(0,40,70,.5);
+      /* Düğme tam genişlik DEĞİL: dar ve ortalanmış. Sola yapışık
+         bırakmak yerine ortalandı — tek düğme kenara çekilince
+         pencere dengesiz görünüyor. */
+      #welcomeBack .wc-next{ display:block;width:auto;min-width:150px;max-width:72%;
+        margin:12px auto 0;border:none;cursor:pointer;
+        border-radius:14px;padding:13px 34px;font-family:inherit;font-weight:900;font-size:16px;color:#fff;
+        background:linear-gradient(180deg,#ff9b34,#f05c0c);border:1px solid rgba(255,214,170,.9);
+        text-shadow:0 2px 3px rgba(90,35,0,.5);
         box-shadow:none; }
       #welcomeBack .wc-next:active{ transform:scale(.96); filter:brightness(.93);box-shadow:none; }
+      /* ARKADAKİ KUTUCUK KALDIRILDI. Parça görselinin kendi çerçevesi
+         zaten var; üstüne bir de yarı saydam kap koymak iki çerçeve
+         üst üste bindiriyordu. Kap gidince görsel biraz büyütüldü,
+         yoksa aynı yerde daha küçük duruyormuş gibi görünüyor. */
       #welcomeBack .wc-parca{ display:flex;align-items:center;justify-content:center;gap:8px;
-        margin:2px auto 0; width:fit-content; padding:8px 14px; border-radius:12px;
-        background:rgba(255,255,255,.12); border:1px solid rgba(190,240,255,.20);
-        box-shadow:0 2px 6px rgba(0,20,45,.3); }
-      #welcomeBack .wc-parca img{ width:44px;height:44px;object-fit:contain; }
+        margin:2px auto 0; width:fit-content; padding:4px 0;
+        background:none; border:none; box-shadow:none; }
+      #welcomeBack .wc-parca img{ width:54px;height:54px;object-fit:contain; }
       #welcomeBack .wc-parca b{ font-weight:900;font-size:18px;color:#fff;
         font-variant-numeric:tabular-nums;
         text-shadow:0 1px 2px rgba(0,20,45,.55); }
