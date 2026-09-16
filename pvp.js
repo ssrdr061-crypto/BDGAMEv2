@@ -2470,7 +2470,7 @@ async function runPvpBattle() {
   const enemyCommanders = (enemy.commanderNames || []);
 
   /* ── GÜNLÜK (mesaj kutusu) ── */
-  state.battleLogHistory.unshift({
+  savasGunluguneEkle({
     enemyName: "🏰 " + enemy.name, win: R.win, diamondDelta: delta, turns: R.turns,
     ganimet: ganimet,
     dmgDealt: R.attacker.damageDealt, dmgAbsorbed: 0, dmgTaken: R.attacker.damageTaken,
@@ -2848,7 +2848,7 @@ function startRaidInbox() {
       if (typeof pullFreshStateFromCloud === "function") pullFreshStateFromCloud();
     }
 
-    state.battleLogHistory.unshift({
+    savasGunluguneEkle({
       enemyName: "🛡️ " + (r.from || "Bilinmeyen") + " (savunma)",
       win: !r.attackerWon,
       diamondDelta: r.attackerWon ? -lost : 0,

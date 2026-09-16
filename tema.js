@@ -8177,13 +8177,17 @@ setTimeout(uygula, 2500);
   var MAX_SV = 5;
 
   var CSS = `
-    #panel-rank .rs-sekmeler{ display:flex; gap:4px; margin:4px 2px 0; }
+    /* BEŞİNCİ SEKME (KO) eklenince tek satır 360 px'e sığmıyordu —
+       dördünde bile punto 12'den 11'e düşürülmüştü. Sığdırmak için
+       daha da küçültmek yerine satır SARILIYOR: dar telefonda 3+2,
+       geniş ekranda tek sıra. Punto okunur kalıyor. */
+    #panel-rank .rs-sekmeler{ display:flex; flex-wrap:wrap; gap:4px; margin:4px 2px 0; }
     /* Dört düğme yan yana: "KAHRAMAN" 8 harf, 13,5 punto ile dar
        telefonda taşıyordu. Punto ve harf aralığı ölçülüp düşürüldü.
        DÖRDÜNCÜ sekme (İTTİFAK) eklenince her düğmeye düşen pay
        1/3'ten 1/4'e indi; punto 12 → 11 ve aradaki boşluk 6 → 4
        yapıldı, yoksa 360 px genişlikte "KAHRAMAN" yine taşıyor. */
-    #panel-rank .rs-sekme{ flex:1 1 0; min-width:0; padding:7px 1px;
+    #panel-rank .rs-sekme{ flex:1 1 28%; min-width:0; padding:7px 1px;
       border:none; border-radius:11px;
       background:rgba(255,255,255,.10); color:#cfe6ff;
       font-family:'Baloo 2','Nunito',sans-serif; font-weight:800; font-size:11px;
@@ -8322,6 +8326,85 @@ setTimeout(uygula, 2500);
 
       liste.sort(function (a, b) { return b.guc - a.guc; });
       el.innerHTML = satirlarHTML(liste);
+    };
+
+    try {
+      if (typeof firebaseReady !== "undefined" && firebaseReady &&
+          typeof firebaseDb !== "undefined" && firebaseDb) {
+        firebaseDb.ref("accounts").once("value")
+          .then(function (snap) { kur(snap.val() || {}); })
+          .catch(function () { kur(null); });
+      } else {
+        kur(null);
+      }
+    } catch (e) { kur(null); }
+  }
+
+  /*  ═══ ÖLDÜRME (KO) SIRALAMASI — EYALET GENELİ ══════════════════
+      Oyuncunun ömrü boyunca öldürdüğü düşman birliği sayısı.
+      Tek kaynak `state.oldurme`; index.html savasGunluguneEkle()
+      yazar (canavar · kale saldırısı · savunma, üçü de oradan
+      geçer). Burada HESAP YAPILMAZ, yalnız okunur.
+
+      Kendi satırım bellekteki state'ten alınır — bulut kaydı birkaç
+      saniye geride olabilir ve oyuncu kendi sayısındaki hatayı
+      hemen fark eder.
+
+      SAYAÇ YENİ: bu sürümden önceki savaşlar sayılmadı, o yüzden
+      liste ilk günlerde çoğunlukla 0 gösterir. Hiç öldürmesi
+      olmayan oyuncu listeye GİRMEZ — 200 kişilik sıfır listesi
+      sıralama değil, gürültü olurdu.
+      ═══════════════════════════════════════════════════════════ */
+  function koSatirlariHTML(liste) {
+    if (!liste.length) {
+      return '<div class="rank-empty">Henüz öldürme kaydı yok.</div>';
+    }
+    var h = "";
+    for (var i = 0; i < liste.length; i++) {
+      var p = liste[i], sira = i + 1;
+      var cls = "rank-row rs-satir";
+      if (sira === 1) cls += " rank-gold";
+      else if (sira === 2) cls += " rank-silver";
+      else if (sira === 3) cls += " rank-bronze";
+      if (p.me) cls += " rank-me";
+      h += '<div class="' + cls + '">' +
+             '<span class="rank-pos">' + sira + '</span>' +
+             '<span class="rank-name">' + kacir(p.name) + '</span>' +
+             '<span class="rank-power">' + sayiYaz(p.ko) + '</span>' +
+           '</div>';
+    }
+    return h;
+  }
+
+  function koListesiCiz() {
+    var el = document.getElementById("rankList");
+    if (!el) return;
+    el.innerHTML = '<div class="rank-loading">Sıralama yükleniyor...</div>';
+
+    var kur = function (hesaplar) {
+      var liste = [];
+      var benim = (typeof currentUsername === "string" && currentUsername) ? currentUsername : "Sen";
+      var benimKo = 0;
+      try {
+        if (typeof state !== "undefined" && state) benimKo = Number(state.oldurme) || 0;
+      } catch (e) {}
+      if (benimKo > 0) liste.push({ name: benim, ko: benimKo, me: true });
+
+      if (hesaplar && typeof hesaplar === "object") {
+        Object.keys(hesaplar).forEach(function (k) {
+          var acc = hesaplar[k];
+          if (!acc || !acc.displayName) return;
+          if (benim && acc.displayName.toLowerCase() === benim.toLowerCase()) return;
+          var ko = Number(acc.state && acc.state.oldurme) || 0;
+          if (ko <= 0) return;
+          liste.push({ name: acc.displayName, ko: ko, me: false });
+        });
+      }
+
+      liste.sort(function (a, b) {
+        return (b.ko - a.ko) || String(a.name).localeCompare(String(b.name), "tr");
+      });
+      el.innerHTML = koSatirlariHTML(liste);
     };
 
     try {
@@ -8505,6 +8588,12 @@ setTimeout(uygula, 2500);
       ittifakListesiCiz();
       return;
     }
+    if (hangi === "ko") {
+      var bas3 = document.getElementById("rankBaslik");
+      if (bas3) bas3.textContent = "💀 Öldürme Sıralaması";
+      koListesiCiz();
+      return;
+    }
     /* GÜÇ ve SEVİYE aynı listeyi çizer, yalnız kip değişir.
        Kip index.html'de tutulur; tek kapı rankKipSec. */
     if (typeof window.rankKipSec === "function") {
@@ -8529,7 +8618,8 @@ setTimeout(uygula, 2500);
       '<button class="rs-sekme etkin" data-sekme="guc">GÜÇ</button>' +
       '<button class="rs-sekme" data-sekme="kahraman">KAHRAMAN</button>' +
       '<button class="rs-sekme" data-sekme="seviye">SEVİYE</button>' +
-      '<button class="rs-sekme" data-sekme="ittifak">İTTİFAK</button>';
+      '<button class="rs-sekme" data-sekme="ittifak">İTTİFAK</button>' +
+      '<button class="rs-sekme" data-sekme="ko">KO</button>';
     liste.parentNode.insertBefore(kutu, liste);
 
     kutu.addEventListener("pointerup", function (e) {

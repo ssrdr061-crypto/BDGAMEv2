@@ -5065,6 +5065,42 @@ document.addEventListener("visibilitychange", function () {
 });
 window.addEventListener("pagehide", bdKaydetSimdi);
 
+/* ══════════════════════════════════════════════════════════════
+   ÖLDÜRME SAYACI — KÜMÜLATİF
+   ──────────────────────────────────────────────────────────────
+   "Bu oyuncu toplam kaç düşman birliği öldürdü" sorusunun tek
+   kaynağı (ittifak ve eyalet KO sıralamaları bunu okur).
+
+   SAVAŞ MATEMATİĞİNE DOKUNMAZ: günlüğe düşen kaydın
+   `enemyLosses.killed` alanını toplar, o kadar. Üç savaş yolu da
+   (canavar · kale saldırısı · savunma) bu alanı aynı biçimde
+   yazıyor, o yüzden tek kapı yetiyor.
+
+   GÜNLÜĞE EKLEME DE BURADAN GEÇER. Sayacı ayrı bir çağrı yapsaydık
+   yarın dördüncü bir savaş yolu eklenip `unshift`i doğrudan
+   çağırdığında sayaç SESSİZCE eksik sayardı; böyle bir hatanın
+   belirtisi "sıralama biraz düşük" olurdu ve kimse fark etmezdi.
+
+   GERİYE DÖNÜK VERİ YOK: sayaç bu sürümden SONRAKİ savaşları sayar.
+   Eski günlükleri taramak cazipti ama günlük yalnız son N kaydı
+   tutuyor — çıkan sayı "toplam" olmazdı, yanlış bir değer doğru
+   görünürdü.
+   ══════════════════════════════════════════════════════════════ */
+function savasGunluguneEkle(kayit) {
+  if (!state.battleLogHistory) state.battleLogHistory = [];
+  try {
+    const k = kayit && kayit.enemyLosses && kayit.enemyLosses.killed;
+    if (k && typeof k === "object") {
+      let t = 0;
+      Object.keys(k).forEach(u => { t += Number(k[u]) || 0; });
+      if (t > 0) state.oldurme = (Number(state.oldurme) || 0) + t;
+    }
+  } catch (e) { console.warn("[öldürme sayacı]", e); }
+  state.battleLogHistory.unshift(kayit);
+  return kayit;
+}
+window.savasGunluguneEkle = savasGunluguneEkle;
+
 function persistCurrentState() {
   if (!currentUsername) return;
   const accounts = loadAccounts();
@@ -9558,7 +9594,7 @@ async function startBattle() {
         <div style="font-size:12.5px;margin-top:8px;">📜 Raporu savaş günlüğüne düştü.</div>`;
     }
 
-    state.battleLogHistory.unshift({
+    savasGunluguneEkle({
       enemyName: enemyForBattle.name,
       enemyIcon: enemyForBattle.avatar || "",
       enemyCount: enemyForBattle.birlik || 0,
