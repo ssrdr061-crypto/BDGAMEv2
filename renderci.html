@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Varlık Render — BDGAME</title>
+<!--
+  ═══════════════════════════════════════════════════════════════
+  renderci.html — 3B MODELİ HARİTANIN AÇISIYLA SPRITE'A ÇEVİRİR
+  ───────────────────────────────────────────────────────────────
+  NEDEN VAR
+  Görsel üreticiler (Tripo, Midjourney…) ortografik kamera
+  kuramaz — gerçek kameraları yok, ezberleri "güzel render"
+  pozları. Ne yazarsan yaz az çok perspektif sızar ve varlık
+  izometrik ızgaraya oturmaz.
+
+  Çözüm: modeli 3B olarak al, kamerayı BİZ kuralım. Burası onu
+  yapar. Blender gerekmez, telefonda çalışır.
+
+  AÇI NEREDEN GELİYOR
+  harita.js'te tileW:64 tileH:32 — yani 2:1 dimetrik izometri.
+  Bu ızgaraya oturan kamera yüksekliği atan(0.5) = 26,57°.
+  Herkesin söylediği 30° GERÇEK izometri içindir (karo oranı
+  1:1,155) ve burada kullanılırsa varlık zemine göre hafif
+  yamuk durur. Varsayılan 26,57; kaydırıcıyla oynanabilir.
+
+  TUTARLILIK
+  Ayarlar tarayıcıda saklanır. İkinci varlığı açtığında aynı
+  açı, aynı ışık gelir — her sprite birbirini tutar. Asıl
+  değerli olan kısım budur, render değil.
+
+  KULLANIM
+  1) Tripo'da görseli 3B modele çevir, .glb indir
+  2) Bu sayfayı aç, dosyayı seç
+  3) Gerekirse döndür / yakınlaştır
+  4) PNG İndir → depoya yükle
+  ═══════════════════════════════════════════════════════════════
+-->
+<style>
+  :root{
+    --kart:#18243f; --kenar:rgba(150,205,255,.22);
+    --yazi:#eaf4ff; --soluk:#9fc0e4; --vurgu:#4f9fe0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:linear-gradient(180deg,#16244a,#0d1830);
+    color:var(--yazi);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    display:flex;flex-direction:column;
+    padding:calc(10px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+    gap:10px;
+  }
+  h1{margin:0;font-size:17px;font-weight:800;letter-spacing:.2px;}
+  h1 small{display:block;font-size:11.5px;font-weight:600;color:var(--soluk);margin-top:3px;}
+
+  .sahne{
+    position:relative;flex:1 1 auto;min-height:220px;border-radius:14px;overflow:hidden;
+    border:1px solid var(--kenar);
+    /* Saydamlığı görebilmek için satranç zemini. Render'a GİRMEZ:
+       arka plan CSS'te, canvas'ın kendisi saydam kalır. */
+    background-color:#22334f;
+    background-image:
+      linear-gradient(45deg,rgba(255,255,255,.05) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.05) 75%),
+      linear-gradient(45deg,rgba(255,255,255,.05) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.05) 75%);
+    background-size:22px 22px;background-position:0 0,11px 11px;
+  }
+  .sahne canvas{display:block;width:100%;height:100%;}
+  .durum{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    text-align:center;padding:20px;font-size:13px;color:var(--soluk);line-height:1.5;
+  }
+
+  .kart{
+    background:var(--kart);border:1px solid var(--kenar);border-radius:14px;
+    padding:11px 12px;display:flex;flex-direction:column;gap:9px;
+  }
+  label.dosya{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:12px;border-radius:11px;cursor:pointer;font-weight:800;font-size:14px;
+    background:linear-gradient(180deg,#5cb8ef,#2f7fd0);color:#fff;
+  }
+  label.dosya input{display:none;}
+
+  .satir{display:flex;align-items:center;gap:9px;font-size:12.5px;}
+  .satir span:first-child{flex:0 0 96px;color:var(--soluk);font-weight:700;}
+  .satir output{flex:0 0 58px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums;}
+  input[type=range]{flex:1 1 auto;min-width:0;accent-color:var(--vurgu);}
+
+  .dugmeler{display:flex;gap:8px;flex-wrap:wrap;}
+  button{
+    flex:1 1 130px;border:0;border-radius:11px;padding:11px 10px;cursor:pointer;
+    font-family:inherit;font-weight:800;font-size:13px;color:#fff;
+    background:linear-gradient(180deg,#3d7ccc,#22488f);
+  }
+  button.ana{background:linear-gradient(180deg,#57c94f,#2e9a37);}
+  button.sade{background:linear-gradient(180deg,#5a6b85,#3c4a60);}
+  button:active{filter:brightness(.92);}
+  button:disabled{opacity:.45;cursor:default;filter:none;}
+
+  .ipucu{font-size:11.5px;color:var(--soluk);line-height:1.45;}
+  .ipucu b{color:var(--yazi);}
+</style>
+</head>
+<body>
+
+<h1>Varlık Render
+  <small>3B modeli haritanın açısıyla saydam PNG'ye çevirir</small>
+</h1>
+
+<div class="sahne" id="sahne">
+  <div class="durum" id="durum">
+    Tripo'dan indirdiğin <b>.glb</b> dosyasını seç.<br>
+    Model haritanın açısıyla çizilecek.
+  </div>
+</div>
+
+<div class="kart">
+  <label class="dosya">
+    📦 Model Seç (.glb / .gltf)
+    <input type="file" id="dosya" accept=".glb,.gltf,model/gltf-binary,model/gltf+json">
+  </label>
+
+  <div class="satir">
+    <span>Yükseklik</span>
+    <input type="range" id="yuk" min="10" max="70" step="0.5" value="26.5">
+    <output id="yukY">26,5°</output>
+  </div>
+  <div class="satir">
+    <span>Döndür</span>
+    <input type="range" id="don" min="0" max="360" step="1" value="45">
+    <output id="donY">45°</output>
+  </div>
+  <div class="satir">
+    <span>Ölçek</span>
+    <input type="range" id="olcek" min="60" max="140" step="1" value="100">
+    <output id="olcekY">%100</output>
+  </div>
+  <div class="satir">
+    <span>Işık yönü</span>
+    <input type="range" id="isik" min="0" max="360" step="1" value="135">
+    <output id="isikY">135°</output>
+  </div>
+  <div class="satir">
+    <span>PNG boyu</span>
+    <input type="range" id="boy" min="256" max="1024" step="128" value="512">
+    <output id="boyY">512</output>
+  </div>
+
+  <div class="dugmeler">
+    <button class="sade" id="sifirla">↺ Harita açısı</button>
+    <button class="ana" id="indir" disabled>⬇ PNG İndir</button>
+  </div>
+
+  <div class="ipucu">
+    <b>Harita açısı 26,5°</b> — karon 64×32, yani 2:1 dimetrik. Herkesin
+    söylediği 30° gerçek izometri içindir, burada varlığı yamuk gösterir.
+    Ayarlar kaydediliyor: sıradaki varlık aynı açıyla açılır.
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var AYAR_ANAHTAR = "bdRenderciAyar";
+  var VARSAYILAN = { yuk: 26.5, don: 45, olcek: 100, isik: 135, boy: 512 };
+
+  var sahneEl = document.getElementById("sahne");
+  var durumEl = document.getElementById("durum");
+  var indirBtn = document.getElementById("indir");
+
+  var G = {};   /* kaydırıcılar */
+  ["yuk", "don", "olcek", "isik", "boy"].forEach(function (k) {
+    G[k] = { girdi: document.getElementById(k), yazi: document.getElementById(k + "Y") };
+  });
+
+  /* ── three.js kurulumu ──────────────────────────────────────
+     alpha:true + clearColor alfa 0 → arka plan SAYDAM çıkar.
+     preserveDrawingBuffer ŞART: onsuz toBlob boş resim verir
+     (tarayıcı çizim tamponunu render'dan sonra atıyor). */
+  var ren = new THREE.WebGLRenderer({
+    antialias: true, alpha: true, preserveDrawingBuffer: true
+  });
+  ren.setClearColor(0x000000, 0);
+  ren.outputEncoding = THREE.sRGBEncoding;
+  ren.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  sahneEl.appendChild(ren.domElement);
+
+  var sahne = new THREE.Scene();
+  var kam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 4000);
+
+  /* ── IŞIK — HER VARLIKTA AYNI ───────────────────────────────
+     Tutarlılığın yarısı buradan geliyor. Gökyüzü/zemin ışığı
+     yumuşak dolguyu, yönlü ışık da siluet ve hacmi verir.
+     Yön kaydırıcısı ile döner ama şiddetleri SABİT. */
+  var ortam = new THREE.HemisphereLight(0xdfeeff, 0x3a4a63, 0.95);
+  sahne.add(ortam);
+  var gunes = new THREE.DirectionalLight(0xffffff, 1.15);
+  sahne.add(gunes);
+  var dolgu = new THREE.DirectionalLight(0xbcd8ff, 0.35);
+  sahne.add(dolgu);
+
+  var kok = new THREE.Group();     /* modelin döndüğü kapsayıcı */
+  sahne.add(kok);
+
+  var model = null;
+  var yaricap = 1;                 /* modelin sınır küresi */
+
+  function ayarOku() {
+    var a = null;
+    try { a = JSON.parse(localStorage.getItem(AYAR_ANAHTAR) || "null"); } catch (e) {}
+    return a && typeof a === "object" ? a : VARSAYILAN;
+  }
+  function ayarYaz() {
+    var a = {};
+    Object.keys(G).forEach(function (k) { a[k] = Number(G[k].girdi.value); });
+    try { localStorage.setItem(AYAR_ANAHTAR, JSON.stringify(a)); } catch (e) {}
+  }
+  function ayarUygula(a) {
+    Object.keys(G).forEach(function (k) {
+      if (a[k] != null) G[k].girdi.value = a[k];
+    });
+    yazilariTazele();
+  }
+  function yazilariTazele() {
+    G.yuk.yazi.textContent   = Number(G.yuk.girdi.value).toFixed(1).replace(".", ",") + "°";
+    G.don.yazi.textContent   = G.don.girdi.value + "°";
+    G.olcek.yazi.textContent = "%" + G.olcek.girdi.value;
+    G.isik.yazi.textContent  = G.isik.girdi.value + "°";
+    G.boy.yazi.textContent   = G.boy.girdi.value;
+  }
+
+  /* Kamerayı açıya göre yerleştirir ve modeli kadraja sığdırır. */
+  function kamerayiKur(g, y) {
+    var yukAci = THREE.MathUtils.degToRad(Number(G.yuk.girdi.value));
+    var uzak = Math.max(yaricap * 6, 10);
+
+    /* Döndürmeyi MODELE uygula, kameraya değil: ışık yönü
+       kameradan bağımsız kalsın diye. */
+    kok.rotation.y = THREE.MathUtils.degToRad(Number(G.don.girdi.value));
+
+    kam.position.set(0, Math.sin(yukAci) * uzak, Math.cos(yukAci) * uzak);
+    kam.lookAt(0, 0, 0);
+
+    /* Ortografik kadraj: sınır küresi tam sığsın, ölçek payı
+       oyuncunun elinde. Küre kullanılıyor çünkü model dönerken
+       kutu ölçüsü değişir, küre değişmez — döndürünce kadraj
+       zıplamaz. */
+    var pay = (100 / Number(G.olcek.girdi.value));
+    var yari = yaricap * 1.08 * pay;
+    var en = g / y;
+    if (en >= 1) { kam.left = -yari * en; kam.right = yari * en; kam.top = yari; kam.bottom = -yari; }
+    else         { kam.left = -yari; kam.right = yari; kam.top = yari / en; kam.bottom = -yari / en; }
+    kam.updateProjectionMatrix();
+
+    var isikAci = THREE.MathUtils.degToRad(Number(G.isik.girdi.value));
+    var d = Math.max(yaricap * 4, 8);
+    gunes.position.set(Math.sin(isikAci) * d, d * 1.1, Math.cos(isikAci) * d);
+    dolgu.position.set(-Math.sin(isikAci) * d, d * 0.4, -Math.cos(isikAci) * d);
+  }
+
+  function ciz() {
+    var g = sahneEl.clientWidth, y = sahneEl.clientHeight;
+    if (!g || !y) return;
+    ren.setSize(g, y, false);
+    kamerayiKur(g, y);
+    ren.render(sahne, kam);
+  }
+
+  /* ── MODELİ YERLEŞTİR ───────────────────────────────────────
+     Model merkeze alınır ve 1 birim ölçeğe indirilir. Böylece
+     Tripo 3 birim, başka araç 300 birim çıkarsa bile kadraj
+     aynı davranır — ölçek kaydırıcısı her modelde aynı anlama
+     gelir. Tutarlılık için şart. */
+  function modeliKur(nesne) {
+    if (model) { kok.remove(model); model = null; }
+
+    var kutu = new THREE.Box3().setFromObject(nesne);
+    var merkez = kutu.getCenter(new THREE.Vector3());
+    var boyut = kutu.getSize(new THREE.Vector3());
+    var enBuyuk = Math.max(boyut.x, boyut.y, boyut.z) || 1;
+
+    nesne.position.sub(merkez);            /* merkeze al */
+    var sar = new THREE.Group();
+    sar.add(nesne);
+    sar.scale.setScalar(1 / enBuyuk);      /* 1 birime indir */
+
+    model = sar;
+    kok.add(model);
+    yaricap = 0.5 * Math.sqrt(3);          /* 1 birim küpün küresi */
+
+    durumEl.style.display = "none";
+    indirBtn.disabled = false;
+    ciz();
+  }
+
+  document.getElementById("dosya").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    durumEl.style.display = "flex";
+    durumEl.innerHTML = "Yükleniyor…";
+    indirBtn.disabled = true;
+
+    var url = URL.createObjectURL(f);
+    new THREE.GLTFLoader().load(url, function (gltf) {
+      URL.revokeObjectURL(url);
+      modeliKur(gltf.scene || gltf.scenes[0]);
+    }, null, function (hata) {
+      URL.revokeObjectURL(url);
+      /* Hata EKRANA yazılır: telefonda konsol yok. */
+      durumEl.innerHTML = "Model açılamadı.<br><br>" +
+        "Yalnız <b>.glb</b> ve <b>.gltf</b> okunur — .fbx / .obj / .usdz olmaz.<br>" +
+        "Tripo'da indirirken <b>GLB</b> seç.<br><br>" +
+        "<small style='opacity:.6'>" + String(hata && hata.message || hata) + "</small>";
+    });
+  });
+
+  /* ── PNG İNDİR ──────────────────────────────────────────────
+     Ekrandaki boyutla değil, seçilen KARE boyutla render edilir;
+     sonra ekran ölçüsüne geri dönülür. Sprite'ın kare olması
+     lazım, yoksa oyunda konumlandırma her varlıkta değişir. */
+  indirBtn.addEventListener("click", function () {
+    if (!model) return;
+    var n = Number(G.boy.girdi.value);
+    var eskiOran = ren.getPixelRatio();
+
+    ren.setPixelRatio(1);
+    ren.setSize(n, n, false);
+    kamerayiKur(n, n);
+    ren.render(sahne, kam);
+
+    ren.domElement.toBlob(function (blob) {
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "varlik_" + n + ".png";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+
+      ren.setPixelRatio(eskiOran);
+      ciz();
+    }, "image/png");
+  });
+
+  document.getElementById("sifirla").addEventListener("click", function () {
+    ayarUygula(VARSAYILAN);
+    ayarYaz();
+    ciz();
+  });
+
+  Object.keys(G).forEach(function (k) {
+    G[k].girdi.addEventListener("input", function () {
+      yazilariTazele();
+      ayarYaz();
+      ciz();
+    });
+  });
+
+  window.addEventListener("resize", ciz);
+
+  ayarUygula(ayarOku());
+  ciz();
+})();
+</script>
+</body>
+</html>
