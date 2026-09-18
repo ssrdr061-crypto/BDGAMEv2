@@ -133,7 +133,18 @@
        arazi değil, çimenin üstüne atılmış GÖLGE diye okur). Geçiş
        bunun yerine `serpme` ile yapılıyor; buradaki değer sadece her
        beneğin kenarını tırtıklı bırakmayacak kadar (~2 karo). */
-    gecisBandi: 0.007,
+    /* 0.007 → 0.002: geçişler "kesin" istendi. Bu bant iki biyomun
+       rengini ORTALIYOR; dar tutulunca sınır tek bir yumuşak çizgiye
+       iner (zemin 10 px'te bir örneklendiği için yine de pürüzsüz). */
+    gecisBandi: 0.013,
+
+    /* ── SINIR YUMUŞAKLIĞI (boyalı zemin) ──
+       Biyom sınırının yarı genişliği, DÜNYA PİKSELİ (karo 128 px).
+       gecisBandi yalnız ESKİ yolda (boya.acik=false) geçerli; boyalı
+       zemin sınırı piksel cinsinden hesaplıyor (chunkUretBoya'da
+       "BİYOM SINIRI, PİKSEL CİNSİNDEN"). 2-6 = keskin, kenarı
+       tırtıksız · 30+ = yumuşak geçiş. */
+    sinirYumusak: 4,
 
     /* ── SERPME GEÇİŞ (benekler) ──
        Sınır çizgisi renk karıştırarak değil, biyom DEĞERİNİ ince
@@ -155,7 +166,12 @@
          bulanıklaşıp yine gri bir pusa döner.
        pay: üç katmanın ağırlığı, toplamı 1 olmalı. */
     serpme: {
-      genislik: 0.055,
+      /* 0.055 → 0.012: ÖLÇÜLEREK. 0.055'te sınır ~15 karoluk bir
+         benek bandına dağılıyordu, geçiş "belirsiz" görünüyordu.
+         0'da sınır cetvelle çekilmiş gibi dümdüz oluyor (sinirDalgasi
+         çok iri dalga). 0.012 sınırı kesin bırakıp kenarını hafif
+         kırıyor. ?zeminayar=1 → "Sınır pürüzü" ile canlı ayarlanır. */
+      genislik: 0.058,
       kaba: 0.30, orta: 0.80, ince: 1.70,
       pay: [0.45, 0.34, 0.21],
     },
@@ -275,6 +291,79 @@
 
     /* Geniş yumuşak ışık/gölge dalgası. 0 = kapalı. */
     isik: 0.32,
+
+    /* ═══════════════════════════════════════════════════════════════
+       BOYALI ZEMİN — referans oyundaki "elle boyanmış kar" görünümü
+       ---------------------------------------------------------------
+       NEDEN: eski yol (ışık + leke) sürekli bir gürültüyü renge
+       çeviriyordu; sonuç her yerde biraz koyu, biraz açık bir
+       "duman"dı. Referansta ise zemin BİRKAÇ DÜZ TONDAN oluşur:
+       büyük, yumuşak kenarlı yığınlar üst üste biner ve her yığının
+       ışığa bakan kenarı parlar, arkası hafif gölgelenir. Göz bunu
+       "kar yığını" diye okur.
+
+       NASIL:
+         1. Yükseklik alanı: tek düşük frekanslı gürültü.
+         2. Kademe: iki eşikte yumuşak smoothstep → 3 düz ton
+            (alt / orta / üst). `yum` kenarın ne kadar yumuşak olduğu.
+         3. Kabartı: aynı alan ışık yönünde biraz kaydırılıp
+            çıkarılır → yığının bir kenarı parlar, öbürü gölgelenir.
+            Görsel dosya yok, dikiş yok, her cihazda birebir aynı.
+         4. İç ton: ton içinde çok hafif geçiş (fırça hissi).
+
+       ALAN TÜM BİYOMLARDA ORTAK, yalnız PALET değişir. Böylece
+       kar↔çimen↔lav sınırında yığınlar kesilmeden devam eder.
+
+       GERİ DÖNÜŞ TEK SATIR: acik:false → eski ışık+leke yoluna döner
+       (o kod silinmedi, aşağıda duruyor).
+       NOT: acik iken çimen de bu yoldan boyanır, yani harita çimeni
+       artık kaleiçi zeminiyle (kaleici.js) birebir aynı değil.
+       ?zeminayar=1 panelinden canlı ayarlanır. */
+    /* TELEFONDA ÖLÇÜLDÜ (?zeminayar=1 → KOPYALA, 18 Eyl):
+       esik1 = esik2 → orta ton kullanılmıyor, zemin İKİ tondan
+       oluşuyor. kabarti 0 → kenar parlaması/gölgesi kapalı; bu
+       yüzden isikAci ve kaydir şu an HİÇBİR ŞEY yapmıyor, kabartı
+       yeniden açılırsa devreye girer. Yumuşaklık icTon (0.58) ile
+       ton içi fırça geçişinden geliyor. */
+    boya: {
+      acik:    true,
+      siklik:  0.101,   /* yığın boyu: küçük = iri yığın            */
+      ayrinti: 0.14,    /* ikinci katmanın payı: kenar kıvrımı      */
+      esik1:   0.30,    /* alt → orta tona geçiş                    */
+      esik2:   0.30,    /* orta → üst tona geçiş                    */
+      yum:     0.070,   /* kenar yumuşaklığı                        */
+      kabarti: 0.00,    /* kenar parlaması / gölgesi gücü           */
+      isikAci: 109,     /* ışığın geldiği yön, ızgara açısı         */
+      kaydir:  0.2,     /* kabartı kaydırması, karo                 */
+      icTon:   0.58,    /* ton içi fırça geçişi                     */
+      /* Piksel döngüsünün çözünürlüğü (0.3-1). 1 = parçanın tam
+         çözünürlüğü; düşürmek hızlandırır, kenarları yumuşatır. */
+      kalite:  1,
+      /* ── BÖLGE BAŞINA AYAR ──
+         keskinlik: ton kenarının keskinliği, `yum`un BÖLENİ
+           (1 = genel ayar, 3 = üç kat keskin, 0.5 = iki kat yumuşak).
+         doygunluk: 1 = dokunma · canlilik: 0 = dokunma (soluk
+           renkleri daha çok doyurur) · parlaklik: -0.5..0.5 ·
+         kontrast: 1 = dokunma.
+         Renk ayarları piksele değil PALETE uygulanır (maliyetsiz). */
+      bolge: {
+        kar:   { keskinlik: 1, doygunluk: 1, canlilik: 0, parlaklik: 0, kontrast: 1 },
+        cimen: { keskinlik: 1, doygunluk: 1, canlilik: 0, parlaklik: 0, kontrast: 1 },
+        lav:   { keskinlik: 1, doygunluk: 1, canlilik: 0, parlaklik: 0, kontrast: 1 },
+      },
+      /* Palet: [gölge, alt, orta, üst, parlak] — RGB.
+         Kar paleti referans AI görselinden örneklendi, biraz daha
+         doyurularak (lila/sıcak). */
+      palet: {
+        kar:   [[140,146,196],[184,190,226],[206,206,234],[228,224,242],[250,244,250]],
+        cimen: [[ 44,104, 52],[ 70,146, 60],[ 92,172, 70],[120,194, 84],[172,222,120]],
+        /* Lav: parlak turuncu yerine "bölüm bölüm" bordo ve doygun
+           kırmızı. alt = bordo, orta = koyu kızıl, üst = doygun
+           kırmızı. Parlak kenar turuncuya kaçmasın diye kırmızıda
+           tutuldu — eskisi (226,128,78) alanı "parlıyor" gösteriyordu. */
+        lav:   [[ 58, 14, 22],[ 98, 22, 32],[138, 26, 32],[174, 32, 32],[198, 62, 54]],
+      },
+    },
 
     /* ═══════════════════════════════════════════════════════════════
        ATMOSFER — sahnenin ORTAK IŞIĞI
@@ -494,6 +583,18 @@
        kaydırma daha akıcı ama RAM artar. */
     CHUNK: 8,
     onbellekBoyu: 48,
+    /* Toplam piksel bütçesi (~4 bayt/piksel → 60e6 ≈ 240 MB üst sınır
+       değil, TAVAN; normalde ekranda 4-8 parça dolaşır). */
+    onbellekPiksel: 60e6,
+
+    /* ── ZEMİN ÇÖZÜNÜRLÜĞÜ ──
+       tavan: parça ölçeğinin üst sınırı. 1 = eski bulanık zemin,
+         2 = dpr 2 telefonda zoom 1'e kadar tam net, 3 = yakınken de
+         tam net. ÖLÇÜLDÜ: 2.5'te ilk çizim eski yolla aynı sürede
+         (~150 ms masaüstü), 3'te ~%60 daha uzun. Yavaşsa 2'ye çek.
+       carpan: gereken yoğunluğun çarpanı (1 = ekran pikseline eşit).
+       ?zeminayar=2 → "Genel" sekmesinden canlı. */
+    zeminHD: { tavan: 2.5, carpan: 1 },
 
     /* Eski düz-renk yedeği. Zemin artık zeminRenk'ten boyandığı için
        KULLANILMIYOR; düğüm/kale kodu okuyor olabilir diye duruyor. */
@@ -832,10 +933,28 @@
 
   const onbellek = new Map();
 
-  function olcekKovasi(zoom) { return zoom > 1.2 ? 2 : 1; }
+  /* ── ÖLÇEK KOVASI ──
+     ESKİ: zoom > 1.2 ? 2 : 1 — ekranın piksel yoğunluğunu (dpr)
+     hesaba katmıyordu. dpr 2'li telefonda zoom 1'de her parça pikseli
+     ekranda 2×2 piksele gerilip bulanık duruyordu ("harita 480p"
+     şikâyeti). Şimdi ekranda GEREKEN yoğunluk (zoom × dpr) hesaplanıp
+     yarımlık adımlara yuvarlanıyor, CFG.zeminHD.tavan ile sınırlı.
+     Tavan 1 yapılırsa eski düşük çözünürlüğe döner (yavaş telefon). */
+  function olcekKovasi(zoom) {
+    const H = CFG.zeminHD || {};
+    const gerek = zoom * (dpr || 1) * (H.carpan || 1);
+    const tavan = Math.max(1, H.tavan || 2);
+    return Math.max(1, Math.min(tavan, Math.ceil(gerek * 2 - 0.3) / 2));
+  }
 
-  function chunkAl(cx, cy, zoom) {
-    const s = olcekKovasi(zoom);
+  /* Yüksek ölçekte parça küçülür: aynı karo sayısında piksel sayısı
+     ölçeğin karesiyle büyüyor, küçük parça hem ilk çizimi hızlı
+     tutar hem de ekran dışında boşuna piksel üretmez. */
+  function chunkBoyu(s) { return s >= 2 ? Math.max(2, CFG.CHUNK >> 1) : CFG.CHUNK; }
+
+  let onbellekPiksel = 0;
+
+  function chunkAl(cx, cy, s) {
     const anahtar = cx + "," + cy + "," + s;
 
     const varOlan = onbellek.get(anahtar);
@@ -848,10 +967,16 @@
 
     const par = chunkUret(cx, cy, s);
     onbellek.set(anahtar, par);
+    onbellekPiksel += par.px || 0;
 
-    /* Bellek sınırı: en eski parçaları at */
-    while (onbellek.size > CFG.onbellekBoyu) {
+    /* Bellek sınırı: hem parça SAYISI hem toplam PİKSEL. Yüksek
+       çözünürlükte tek parça 8-10 milyon piksel olabiliyor; yalnız
+       sayıya bakılsaydı telefon belleği şişerdi. */
+    const butce = CFG.onbellekPiksel || 60e6;
+    while (onbellek.size > 1 &&
+           (onbellek.size > CFG.onbellekBoyu || onbellekPiksel > butce)) {
       const ilk = onbellek.keys().next().value;
+      onbellekPiksel -= onbellek.get(ilk).px || 0;
       onbellek.delete(ilk);
     }
     return par;
@@ -978,6 +1103,64 @@
     return c;
   }
 
+  /* ── BOYALI ZEMİN ──────────────────────────────────────────────────
+     Ayrıntı ve neden: CFG.boya'nın başında. Yükseklik alanı biyomdan
+     BAĞIMSIZ (tek hesap), palet biyom ağırlığıyla karışır — sınır
+     bandında yığınlar kesilmez, yalnız renkleri kayar. */
+  function kademe(a, b, x) {
+    if (x <= a) return 0;
+    if (x >= b) return 1;
+    const t = (x - a) / (b - a);
+    return t * t * (3 - 2 * t);
+  }
+
+  /* Boya yükseklik alanının HAM değeri (0..1). Eşikleme ve renk
+     BURADA YAPILMAZ — chunkUretBoya bu sayıyı alçak çözünürlükte
+     örnekler, çözünürlük yükseltildikten SONRA eşikler. Keskinliğin
+     sırrı bu sıra (aşağıda "NEDEN ALAN, RENK DEĞİL"). */
+  function boyaGurultu(gx, gy) {
+    const B = CFG.boya, f = B.siklik;
+    const e = lekeEkseni(gx, gy, 1);
+    return smoothNoise(e.u * f + 151,      e.v * f + 307)      * (1 - B.ayrinti)
+         + smoothNoise(e.u * f * 2.7 + 19, e.v * f * 2.7 + 83) * B.ayrinti;
+  }
+
+  /* ── BÖLGE BAŞINA RENK AYARI ──
+     Doygunluk / canlılık / parlaklık / kontrast pikselde değil
+     PALETTE uygulanır: piksel rengi zaten paletin karışımı olduğu
+     için sonuç aynıdır, maliyet parça başına 15 renk. Dönen dizi:
+     [biyom(3)][ton(5)][kanal(3)] düz Float32Array. */
+  const BIYOM_AD = ["kar", "cimen", "lav"];
+  function paletHazirla() {
+    const B = CFG.boya, P = B.palet, out = new Float32Array(45);
+    for (let b = 0; b < 3; b++) {
+      const ad = BIYOM_AD[b];
+      const Z = (B.bolge && B.bolge[ad]) || {};
+      const par = Z.parlaklik || 0, kon = Z.kontrast == null ? 1 : Z.kontrast;
+      const doy = Z.doygunluk == null ? 1 : Z.doygunluk, can = Z.canlilik || 0;
+      for (let t = 0; t < 5; t++) {
+        let r = P[ad][t][0], g = P[ad][t][1], bl = P[ad][t][2];
+        r += par * 255; g += par * 255; bl += par * 255;
+        r = 128 + (r - 128) * kon; g = 128 + (g - 128) * kon; bl = 128 + (bl - 128) * kon;
+        let o = (r + g + bl) / 3;
+        r = o + (r - o) * doy; g = o + (g - o) * doy; bl = o + (bl - o) * doy;
+        /* Canlılık: soluk renkleri çok, zaten doygun olanları az doyurur */
+        if (can) {
+          o = (r + g + bl) / 3;
+          const mx = Math.max(r, g, bl), mn = Math.min(r, g, bl);
+          const sat = mx > 0 ? (mx - mn) / mx : 0;
+          const k = 1 + can * (1 - sat);
+          r = o + (r - o) * k; g = o + (g - o) * k; bl = o + (bl - o) * k;
+        }
+        const i = (b * 5 + t) * 3;
+        out[i]     = Math.max(0, Math.min(255, r));
+        out[i + 1] = Math.max(0, Math.min(255, g));
+        out[i + 2] = Math.max(0, Math.min(255, bl));
+      }
+    }
+    return out;
+  }
+
   function zeminRengi(gx, gy) {
     const R = CFG.zeminRenk, A = CFG.lekeAyar;
     /* Serpme YALNIZ boyamada. biyom()/biyomKarisim() ham değeri
@@ -1077,7 +1260,7 @@
      büyütme sırasında komşu parçanın kenarıyla arasında ince çizgi
      kalıyordu (bilineer, sınırdaki pikselin komşusunu bulamıyor). */
   function chunkUret(cx, cy, s) {
-    const C  = CFG.CHUNK;
+    const C  = chunkBoyu(s);
     const tw = CFG.tileW, th = CFG.tileH;
 
     const gx0 = cx * C, gx1 = gx0 + C - 1;
@@ -1090,6 +1273,29 @@
 
     const w = maxX - minX, h = maxY - minY;
 
+    /* Boyalı zemin kendi yolundan gider (alan örnekle → keskin boya) */
+    const c2 = document.createElement("canvas");
+    c2.width  = Math.ceil(w * s);
+    c2.height = Math.ceil(h * s);
+    const x2  = c2.getContext("2d");
+    x2.imageSmoothingEnabled = true;
+    x2.imageSmoothingQuality = "high";
+
+    if (CFG.boya && CFG.boya.acik) {
+      chunkUretBoya(x2, minX, minY, w, h, s);
+      x2.setTransform(s, 0, 0, s, 0, 0);
+    } else {
+      chunkUretEski(x2, minX, minY, w, h, s);
+    }
+
+    tamamla(x2, minX, minY, w, h, s, gx0, gx1, gy0, gy1, tw, th);
+    return { cv: c2, x: minX, y: minY, w, h, px: c2.width * c2.height };
+  }
+
+  /* ── ESKİ YOL (CFG.boya.acik = false) ──
+     Renk alçak çözünürlükte hesaplanıp BÜYÜTÜLÜR. Geri dönüş için
+     duruyor; boyalı zeminde kullanılmaz. */
+  function chunkUretEski(x2, minX, minY, w, h, s) {
     /* ── alçak çözünürlüklü tampon ── */
     const A  = Math.max(4, CFG.zeminAdim);
     const LW = Math.ceil(w / A), LH = Math.ceil(h / A);
@@ -1117,14 +1323,227 @@
     lx.putImageData(veri, 0, 0);
 
     /* ── parça canvas'ına yumuşatarak büyüt ── */
-    const c2 = document.createElement("canvas");
-    c2.width  = Math.ceil(w * s);
-    c2.height = Math.ceil(h * s);
-    const x2  = c2.getContext("2d");
-    x2.imageSmoothingEnabled = true;
-    x2.imageSmoothingQuality = "high";
     x2.setTransform(s, 0, 0, s, 0, 0);
     x2.drawImage(lo, 1, 1, w / A, h / A, 0, 0, w, h);
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════
+     BOYALI ZEMİN — KESKİN PARÇA ÜRETİMİ
+
+     NEDEN ALAN, RENK DEĞİL: eski yol RENGİ 10 dünya pikselinde bir
+     hesaplayıp büyütüyordu. Renk büyütülünce iki arazinin ya da iki
+     tonun sınırı 10 px'lik basamaklar halinde bulanıklaşır — "144p
+     geçiş" şikâyetinin kök sebebi buydu. Burada ise alçak
+     çözünürlükte yalnız SAYILAR (biyom değeri + boya gürültüsü)
+     örneklenir; bunlar yumuşak alanlar olduğu için büyütülmeleri
+     kayıpsızdır. Eşikleme ve renk, parçanın KENDİ çözünürlüğünde,
+     her pikselde yapılır. Sınır artık piksel keskinliğinde bir eğri
+     (yazı fontlarının "mesafe alanı" hilesiyle aynı fikir).
+
+     MALİYET: gürültü yine alçak çözünürlükte (pahalı kısım aynı);
+     piksel döngüsü yalnız çarpma/toplama. CFG.boya.kalite < 1 ise
+     döngü daha küçük tamponda koşar ve sonra büyütülür. */
+  /* ── RENK TABLOSU (LUT) ──
+     Tek bir biyomun rengi yalnız iki sayıya bağlı: boya gürültüsü n
+     ve (kabartı açıksa) kaydırılmış gürültü nk. O halde renk her
+     piksel için yeniden hesaplanmaz; ayarlar değişince BİR KEZ
+     tabloya dökülür, piksel döngüsü yalnız tablodan okur. Piksel
+     döngüsünü ~3 kat hızlandıran adım bu.
+     K: tablo çözünürlüğü. 1024 (kabartısız) / 256×256 (kabartılı);
+     en keskin ayarda bile basamak görünmeyecek kadar ince. */
+  let _lut = null, _lutImza = "";
+  function lutAl() {
+    const B = CFG.boya;
+    const imza = JSON.stringify(B);
+    if (_lut && imza === _lutImza) return _lut;
+
+    const kab = B.kabarti > 0;
+    const K = kab ? 256 : 1024, KK = kab ? K * K : K;
+    const lut = new Uint8ClampedArray(3 * KK * 3);
+    const PAL = paletHazirla();
+    const bol = B.bolge || {};
+    const E1 = B.esik1, E2 = B.esik2, IC = B.icTon, KB = B.kabarti * 2;
+
+    for (let b = 0; b < 3; b++) {
+      const kk = (bol[BIYOM_AD[b]] && bol[BIYOM_AD[b]].keskinlik) || 1;
+      const y = Math.max(0.0005, B.yum / kk);
+      const o = b * 15;
+      const kad = function (e, x) {
+        if (x <= e - y) return 0;
+        if (x >= e + y) return 1;
+        const t = (x - e + y) / (2 * y);
+        return t * t * (3 - 2 * t);
+      };
+      for (let ai = 0; ai < K; ai++) {
+        const n = ai / (K - 1);
+        const t1 = kad(E1, n), t2 = kad(E2, n);
+        let br = PAL[o + 3] + (PAL[o + 6] - PAL[o + 3]) * t1;
+        let bg = PAL[o + 4] + (PAL[o + 7] - PAL[o + 4]) * t1;
+        let bb = PAL[o + 5] + (PAL[o + 8] - PAL[o + 5]) * t1;
+        br += (PAL[o + 9] - br) * t2; bg += (PAL[o + 10] - bg) * t2; bb += (PAL[o + 11] - bb) * t2;
+        if (IC > 0) {
+          const it = (n - 0.5) * 2 * IC;
+          const m = Math.min(1, Math.abs(it)), hd = it > 0 ? o + 12 : o;
+          br += (PAL[hd] - br) * m; bg += (PAL[hd + 1] - bg) * m; bb += (PAL[hd + 2] - bb) * m;
+        }
+        const cN = kab ? K : 1;
+        for (let ci = 0; ci < cN; ci++) {
+          let r = br, g = bg, bl = bb;
+          if (kab) {
+            const nk = ci / (K - 1);
+            const d = ((t1 + t2) - (kad(E1, nk) + kad(E2, nk))) * 0.5 * KB;
+            if (d !== 0) {
+              const m = Math.min(1, Math.abs(d)), hd = d > 0 ? o + 12 : o;
+              r += (PAL[hd] - r) * m; g += (PAL[hd + 1] - g) * m; bl += (PAL[hd + 2] - bl) * m;
+            }
+          }
+          const k = (b * KK + (kab ? ai * K + ci : ai)) * 3;
+          lut[k] = r; lut[k + 1] = g; lut[k + 2] = bl;
+        }
+      }
+    }
+    _lut = { K, lut }; _lutImza = imza;
+    return _lut;
+  }
+
+  function chunkUretBoya(x2, minX, minY, w, h, s) {
+    const B = CFG.boya;
+    const A = Math.max(4, CFG.zeminAdim);
+    const LW = Math.ceil(w / A) + 2, LH = Math.ceil(h / A) + 2;
+    const N = LW * LH;
+
+    const FV = new Float32Array(N);          /* biyom değeri + serpme  */
+    const FN = new Float32Array(N);          /* boya gürültüsü         */
+    const kab = B.kabarti > 0;
+    const FK = kab ? new Float32Array(N) : null;   /* kaydırılmış gürültü */
+
+    const r = (B.isikAci || 0) * Math.PI / 180;
+    const kdx = Math.cos(r) * B.kaydir, kdy = Math.sin(r) * B.kaydir;
+
+    for (let j = 0; j < LH; j++) {
+      const wy = minY + (j - 1 + 0.5) * A;
+      for (let i = 0; i < LW; i++) {
+        const wx = minX + (i - 1 + 0.5) * A;
+        const g = worldToGrid(wx, wy);
+        const k = j * LW + i;
+        FV[k] = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
+        FN[k] = boyaGurultu(g.gx, g.gy);
+        if (kab) FK[k] = boyaGurultu(g.gx + kdx, g.gy + kdy);
+      }
+    }
+
+    /* Biyom değerinin eğimi (değişim / dünya pikseli), merkezi fark.
+       Kenar örneklerinde tek yönlü fark. */
+    const GX = new Float32Array(N), GY = new Float32Array(N);
+    for (let j = 0; j < LH; j++) {
+      for (let i = 0; i < LW; i++) {
+        const k = j * LW + i;
+        const il = i > 0 ? k - 1 : k, ir = i < LW - 1 ? k + 1 : k;
+        const ju = j > 0 ? k - LW : k, jd = j < LH - 1 ? k + LW : k;
+        GX[k] = (FV[ir] - FV[il]) / (((ir - il) || 1) * A);
+        GY[k] = (FV[jd] - FV[ju]) / ((((jd - ju) / LW) || 1) * A);
+      }
+    }
+
+    const L = lutAl();
+    const K = L.K, LUT = L.lut, K1 = K - 1;
+    const eK = CFG.esikKar, eC = CFG.esikCimen;
+    const ORT = (eK + eC) / 2;
+    const SY = Math.max(0.5, CFG.sinirYumusak == null ? 4 : CFG.sinirYumusak);
+    const YAKIN = 0.06;                       /* eğim hesabı bu v farkının içinde */
+
+    const q  = Math.max(0.3, Math.min(1, B.kalite || 1));
+    const OW = Math.max(1, Math.ceil(w * s * q)), OH = Math.max(1, Math.ceil(h * s * q));
+    const olc = s * q;                        /* çıktı pikseli / dünya pikseli */
+
+    const hedef = q < 1 ? document.createElement("canvas") : x2.canvas;
+    if (q < 1) { hedef.width = OW; hedef.height = OH; }
+    const hx = q < 1 ? hedef.getContext("2d") : x2;
+    const im = hx.createImageData(OW, OH);
+    const px = im.data;
+
+    /* Sütun başına alçak tampon indisi ve kesri BİR KEZ hesaplanır;
+       (örnek i, dünyada minX + (i-1+0.5)·A noktasında) */
+    const I0 = new Int32Array(OW), TX = new Float32Array(OW);
+    for (let x = 0; x < OW; x++) {
+      const fx = (x + 0.5) / olc / A + 0.5;
+      let i0 = fx | 0; if (i0 > LW - 2) i0 = LW - 2;
+      I0[x] = i0; TX[x] = fx - i0;
+    }
+
+    /* LUT indisi: tek biyom rengi = LUT[biyom][n][nk] */
+    const KK = kab ? K * K : K;
+    function ind(b, n, nk) {
+      let a = (n * K1 + 0.5) | 0; if (a < 0) a = 0; else if (a > K1) a = K1;
+      if (!kab) return (b * KK + a) * 3;
+      let c = (nk * K1 + 0.5) | 0; if (c < 0) c = 0; else if (c > K1) c = K1;
+      return (b * KK + a * K + c) * 3;
+    }
+
+    for (let y = 0; y < OH; y++) {
+      const fy = (y + 0.5) / olc / A + 0.5;
+      let j0 = fy | 0; if (j0 > LH - 2) j0 = LH - 2;
+      const ty = fy - j0, ty1 = 1 - ty;
+      const r0 = j0 * LW, r1 = r0 + LW;
+      let p = y * OW * 4;
+      for (let x = 0; x < OW; x++, p += 4) {
+        const tx = TX[x], tx1 = 1 - tx;
+        const a = r0 + I0[x], b = r1 + I0[x];
+        const w00 = tx1 * ty1, w10 = tx * ty1, w01 = tx1 * ty, w11 = tx * ty;
+
+        const v = FV[a] * w00 + FV[a + 1] * w10 + FV[b] * w01 + FV[b + 1] * w11;
+        const n = FN[a] * w00 + FN[a + 1] * w10 + FN[b] * w01 + FN[b + 1] * w11;
+        const nk = kab ? FK[a] * w00 + FK[a + 1] * w10 + FK[b] * w01 + FK[b + 1] * w11 : 0;
+
+        /* ── BİYOM SINIRI, PİKSEL CİNSİNDEN ──
+           Biyom değeri çok YAVAŞ değişiyor (karo başına ~0.004). Bant
+           v biriminde verilince (eski gecisBandi) 0.002'lik "dar" bir
+           bant bile ekranda ~1 karo, yani yüzlerce piksel bulanıklık
+           oluyordu — keskin ayarda bile geçişin "144p" görünmesinin
+           asıl sebebi buydu. Burada v'nin yerel eğimi (değişim/px)
+           hesaplanıp eşiğe PİKSEL cinsinden uzaklık bulunuyor; bant
+           CFG.sinirYumusak dünya pikseli. Yazı fontlarının kenar
+           yumuşatmasıyla aynı yöntem. Eğim yalnız eşiğe yakın
+           piksellerde hesaplanır. */
+        let b1, b2 = -1, t = 0;
+        const e = v < ORT ? eK : eC;
+        const fark = v - e;
+        if (fark > -YAKIN && fark < YAKIN) {
+          /* Eğim, önceden hesaplanmış GX/GY alanlarından bilineer —
+             hücre içi fark alınsaydı eğim hücre sınırında SIÇRAR,
+             kenar boyunca ince yatay/dikey çizgiler çıkardı (denendi). */
+          const gx_ = GX[a] * w00 + GX[a + 1] * w10 + GX[b] * w01 + GX[b + 1] * w11;
+          const gy_ = GY[a] * w00 + GY[a + 1] * w10 + GY[b] * w01 + GY[b + 1] * w11;
+          const eg = Math.sqrt(gx_ * gx_ + gy_ * gy_) + 1e-6;
+          const d = fark / eg;                     /* eşiğe uzaklık, dünya px */
+          const alt = e === eK ? 0 : 1;
+          if (d <= -SY)      b1 = alt;
+          else if (d >= SY)  b1 = alt + 1;
+          else { b1 = alt; b2 = alt + 1; t = (d + SY) / (2 * SY); }
+        } else {
+          b1 = v < eK ? 0 : v < eC ? 1 : 2;
+        }
+
+        const k1 = ind(b1, n, nk);
+        if (b2 < 0) {
+          px[p] = LUT[k1]; px[p + 1] = LUT[k1 + 1]; px[p + 2] = LUT[k1 + 2];
+        } else {
+          t = t * t * (3 - 2 * t);
+          const k2 = ind(b2, n, nk), u = 1 - t;
+          px[p]     = LUT[k1] * u     + LUT[k2] * t;
+          px[p + 1] = LUT[k1 + 1] * u + LUT[k2 + 1] * t;
+          px[p + 2] = LUT[k1 + 2] * u + LUT[k2 + 2] * t;
+        }
+        px[p + 3] = 255;
+      }
+    }
+    hx.putImageData(im, 0, 0);
+    if (q < 1) x2.drawImage(hedef, 0, 0, OW, OH, 0, 0, x2.canvas.width, x2.canvas.height);
+  }
+
+  /* Tane + ızgara çizgisi — iki yol için ortak son adım */
+  function tamamla(x2, minX, minY, w, h, s, gx0, gx1, gy0, gy1, tw, th) {
+    x2.setTransform(s, 0, 0, s, 0, 0);
 
     /* ── TANE ──
        Bulanık büyütmenin hemen ÜSTÜNE, ızgara çizgilerinin ALTINA.
@@ -1183,11 +1602,10 @@
       }
     }
 
-    return { cv: c2, x: minX, y: minY, w, h };
   }
 
   /* Dokular sonradan yüklenince eski parçalar geçersiz kalır */
-  function onbellegiBosalt() { onbellek.clear(); }
+  function onbellegiBosalt() { onbellek.clear(); onbellekPiksel = 0; }
 
   function ciz() {
     if (!ctx || !cv) return;
@@ -1249,14 +1667,24 @@
        Karo karo çizmek yerine hazır parçalar basılıyor. Ekranda
        ~1200 karo varsa bu 64 karo/parça hesabıyla ~20 drawImage
        demek — telefon için nefes aldırıcı fark. */
-    const C = CFG.CHUNK;
+    const s = olcekKovasi(zoom);
+    const C = chunkBoyu(s);
     const cx0 = Math.floor(gx0 / C), cx1 = Math.floor(gx1 / C);
     const cy0 = Math.floor(gy0 / C), cy1 = Math.floor(gy1 / C);
 
     let cizilen = 0;
     for (let cy = cy0; cy <= cy1; cy++) {
       for (let cx = cx0; cx <= cx1; cx++) {
-        const par = chunkAl(cx, cy, zoom);
+        /* EKRAN DIŞI PARÇAYI ATLA: ızgara aralığı eşkenar dörtgen
+           ekranı dikdörtgen olarak sarıyor, köşelerdeki parçalar hiç
+           görünmüyor. Eskiden onlar da (pahalıca) üretiliyordu. */
+        const ux = gridToWorld(cx * C, cy * C + C - 1).x;
+        const sx = gridToWorld(cx * C + C - 1, cy * C).x + CFG.tileW;
+        const uy = gridToWorld(cx * C, cy * C).y;
+        const ay = gridToWorld(cx * C + C - 1, cy * C + C - 1).y + CFG.tileH;
+        if (sx < wx0 || ux > wx1 || ay < wy0 || uy > wy1) continue;
+
+        const par = chunkAl(cx, cy, s);
         if (!par) continue;
         /* +1 px: komşu parçalar arasında saç teli boşluk kalmasın */
         ctx.drawImage(par.cv, par.x, par.y, par.w + 1, par.h + 1);
