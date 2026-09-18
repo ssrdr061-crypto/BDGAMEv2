@@ -897,10 +897,29 @@
     const r = cv.getBoundingClientRect();
     if (!r.width || !r.height) return;
 
+    const eskiDpr = dpr;
     dpr = Math.min(window.devicePixelRatio || 1, 2);  // 3x'te bellek boşuna şişiyor
     cv.width  = Math.round(r.width  * dpr);
     cv.height = Math.round(r.height * dpr);
     if (uv) { uv.width = cv.width; uv.height = cv.height; }
+
+    /* ── DPR DEĞİŞTİYSE PARÇA ÖNBELLEĞİ ÇÖPE ────────────────────
+       Parçaların çözünürlüğü olcekKovasi(zoom) ile seçiliyor ve o
+       hesap `dpr`yi kullanıyor. dpr burada değişiyor ama önbellek
+       DOKUNULMADAN duruyordu: eski dpr ile pişmiş parçalar yeni
+       ölçekte ekrana gerilip BULANIK çıkıyordu.
+
+       İlk açılışta dpr 1 ile başlıyor; canvas yerleşene kadar
+       çizilen parçalar 1x pişiyor, sonra dpr 2 oluyor ve o bulanık
+       parçalar önbellekte kalıyor. Belirtisi şuydu: harita düz
+       girişte yumuşak/bulanık, ?zeminayar=1 ile girince net —
+       çünkü panel açılışta onbellegiBosalt() çağırıp hepsini
+       yeniden pişirtiyordu. Panelin "düzeltmesi" bu yan etkiydi.
+
+       Aynı şey telefon döndürüldüğünde ve pencere boyu
+       değiştiğinde de geçerli. */
+    if (eskiDpr !== dpr) onbellegiBosalt();
+
     ciz();
     cizUst();
   }
