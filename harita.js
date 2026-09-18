@@ -371,6 +371,55 @@
     },
 
     /* ═══════════════════════════════════════════════════════════════
+       RÖLYEF — BÜYÜK ÖLÇEKLİ YÜKSEKLİK VE YÖNLÜ IŞIK
+       ---------------------------------------------------------------
+       NEDEN: CFG.boya zemini üç düz tona ayırıyor ama harita yine de
+       KÂĞIT GİBİ DÜZ duruyordu. Sebebi, boyanın gördüğü tek alanın
+       yığın deseni olması: o desen küçük ölçekli, yani gözün "arazi
+       yükseliyor" diye okuyacağı geniş bir eğim hiç yok.
+
+       NE YAPAR: yığın deseninden BAĞIMSIZ, ÇOK DÜŞÜK frekanslı ikinci
+       bir yükseklik alanı üretir (bir dalga boyu ~70 karo) ve zemini
+       bu alanın EĞİMİNE göre aydınlatır. Işığa bakan geniş yamaçlar
+       açılır, arka yüzler koyulaşır. Yığınlar yerinde kalır, üstlerine
+       harita ölçeğinde bir ışık biner — 3B hissi buradan gelir.
+
+       BOYA.KABARTI'DAN FARKI: kabarti, TON kenarında birkaç piksellik
+       bir parlama/gölge (yığının kenarı). Rölyef ise onlarca karoluk
+       yamaç. İkisi aynı anda açık olabilir, biri diğerinin yerine
+       geçmez.
+
+       NASIL ÖLÇÜLÜR: eğim, yükseklik alanının ışık yönünde `kaydir`
+       karo kaydırılmış değeriyle farkı alınarak bulunuyor. Merkezi
+       farkla eğim hesaplamak yerine bu seçildi çünkü fark, tamponun
+       çözünürlüğünden (CFG.zeminAdim) BAĞIMSIZ: aynı ayar her zoom
+       kovasında aynı gölgeyi verir. Merkezi fark kullanılsaydı `guc`
+       zoom'a göre değişirdi.
+
+       MALİYET: piksel başına TEK bilineer örnek (gölge çarpanı alçak
+       çözünürlükte pişirilir). Alan çok düşük frekanslı olduğu için
+       alçak çözünürlükte örneklemek kayıpsız — FV ile aynı gerekçe.
+
+       ?zeminayar=2 → GENEL sekmesinden canlı ayarlanır. */
+    rolyef: {
+      acik:    true,
+      siklik:  0.014,  /* dalga boyu: küçük sayı = geniş tepeler      */
+      ayrinti: 0.35,   /* ikinci katmanın payı: yamaçların kıvrımı    */
+      isikAci: 35,     /* IŞIK YÖNÜ — EKRAN açısı, ızgara değil.
+                          0 = sağdan, 90 = yukarıdan. boya.isikAci
+                          ızgara açısıdır, ikisi aynı sayı değildir. */
+      kaydir:  18,     /* eğim ölçüm mesafesi, karo                   */
+      guc:     1.30,   /* yamaç ışığı/gölgesi şiddeti                 */
+      ao:      0.25,   /* çukurları karart, tepeleri aç (kapalı alan) */
+      tavan:   0.35,   /* en çok ±%35 parlaklık oynaması — GÜVENLİK
+                          FRENİ. Bu ayarlarda 141x141'in tamamında bir
+                          kez bile dayanmıyor (ölçüldü); tepe değerler
+                          0.79..1.27 çarpanında kalıyor. Yalnız guc
+                          veya ao panelden çok yükseltilirse devreye
+                          girer ve rengin patlamasını engeller. */
+    },
+
+    /* ═══════════════════════════════════════════════════════════════
        ATMOSFER — sahnenin ORTAK IŞIĞI
        ---------------------------------------------------------------
        NEDEN VAR: zeminRengi() her pikseli KENDİ BAŞINA boyuyor. Biyom
@@ -1149,6 +1198,17 @@
          + smoothNoise(e.u * f * 2.7 + 19, e.v * f * 2.7 + 83) * B.ayrinti;
   }
 
+  /* Rölyef yükseklik alanı (0..1). Ayrıntı ve neden: CFG.rolyef.
+     lekeEkseni KULLANILMAZ — o eksen yığın desenini biyom yönünde
+     uzatmak için var; rölyefin tepeleri uzatılırsa arazi taranmış
+     gibi çizgilenir (denendi). Burada ham ızgara ekseni kullanılıyor,
+     tepeler her yöne eşit yayılıyor. */
+  function rolyefYuksek(gx, gy) {
+    const R = CFG.rolyef, f = R.siklik, a2 = R.ayrinti || 0;
+    return smoothNoise(gx * f + 911, gy * f + 577) * (1 - a2)
+         + smoothNoise(gx * f * 2.3 + 433, gy * f * 2.3 + 199) * a2;
+  }
+
   /* ── BÖLGE BAŞINA RENK AYARI ──
      Doygunluk / canlılık / parlaklık / kontrast pikselde değil
      PALETTE uygulanır: piksel rengi zaten paletin karışımı olduğu
@@ -1441,6 +1501,27 @@
     const kab = B.kabarti > 0;
     const FK = kab ? new Float32Array(N) : null;   /* kaydırılmış gürültü */
 
+    /* Rölyef: yükseklik + ışık yönünde kaydırılmış yükseklik. Ayrıntı
+       ve neden: CFG.rolyef. */
+    const RL = CFG.rolyef || {};
+    /* ao tek başına da iş yapar (yamaç ışığı kapalı, yalnız çukur
+       karartma), o yüzden ikisinden biri yeterli. */
+    const rol = !!RL.acik && ((RL.guc || 0) > 0 || (RL.ao || 0) > 0);
+    const FR = rol ? new Float32Array(N) : null;   /* yükseklik        */
+    const FRk = rol ? new Float32Array(N) : null;  /* kaydırılmış      */
+    let rdx = 0, rdy = 0;
+    if (rol) {
+      /* Işık yönü EKRAN açısı; ızgaraya çevriliyor. Ekranda y aşağı
+         arttığı için sinüsün işareti ters. */
+      const ra = (RL.isikAci || 0) * Math.PI / 180;
+      const ux = Math.cos(ra) * (RL.kaydir || 1);
+      const uy = -Math.sin(ra) * (RL.kaydir || 1);
+      /* Ekran (x,y) → ızgara (gx,gy): 2:1 dimetrikte gx = (x/2 + y),
+         gy = (y - x/2). Sabit ölçek gerekmiyor, yön yeter. */
+      rdx = ux * 0.5 + uy;
+      rdy = uy - ux * 0.5;
+    }
+
     const r = (B.isikAci || 0) * Math.PI / 180;
     const kdx = Math.cos(r) * B.kaydir, kdy = Math.sin(r) * B.kaydir;
 
@@ -1453,6 +1534,10 @@
         FV[k] = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
         FN[k] = boyaGurultu(g.gx, g.gy);
         if (kab) FK[k] = boyaGurultu(g.gx + kdx, g.gy + kdy);
+        if (rol) {
+          FR[k]  = rolyefYuksek(g.gx, g.gy);
+          FRk[k] = rolyefYuksek(g.gx + rdx, g.gy + rdy);
+        }
       }
     }
 
@@ -1466,6 +1551,26 @@
         const ju = j > 0 ? k - LW : k, jd = j < LH - 1 ? k + LW : k;
         GX[k] = (FV[ir] - FV[il]) / (((ir - il) || 1) * A);
         GY[k] = (FV[jd] - FV[ju]) / ((((jd - ju) / LW) || 1) * A);
+      }
+    }
+
+    /* ── RÖLYEF GÖLGE ÇARPANI ──
+       Alçak çözünürlükte BİR KEZ pişirilir; piksel döngüsünde yalnız
+       tek bir bilineer örnek kalır. FS[k], o noktadaki rengin
+       çarpılacağı sayı (1 = dokunma). */
+    let FS = null;
+    if (rol) {
+      const guc = RL.guc || 0, ao = RL.ao || 0;
+      const tavan = RL.tavan == null ? 0.35 : RL.tavan;
+      FS = new Float32Array(N);
+      for (let k = 0; k < N; k++) {
+        /* Yamaç: ışık yönünde yükseliyorsa aydınlanır, alçalıyorsa
+           gölgelenir. Fark zaten -1..1 aralığında. */
+        let d = (FR[k] - FRk[k]) * guc;
+        /* Kapalı alan (AO): çukurlar koyu, tepeler açık. */
+        d += (FR[k] - 0.5) * ao;
+        if (d > tavan) d = tavan; else if (d < -tavan) d = -tavan;
+        FS[k] = 1 + d;
       }
     }
 
@@ -1549,15 +1654,22 @@
         }
 
         const k1 = ind(b1, n, nk);
+        let cr, cg, cb;
         if (b2 < 0) {
-          px[p] = LUT[k1]; px[p + 1] = LUT[k1 + 1]; px[p + 2] = LUT[k1 + 2];
+          cr = LUT[k1]; cg = LUT[k1 + 1]; cb = LUT[k1 + 2];
         } else {
           t = t * t * (3 - 2 * t);
           const k2 = ind(b2, n, nk), u = 1 - t;
-          px[p]     = LUT[k1] * u     + LUT[k2] * t;
-          px[p + 1] = LUT[k1 + 1] * u + LUT[k2 + 1] * t;
-          px[p + 2] = LUT[k1 + 2] * u + LUT[k2 + 2] * t;
+          cr = LUT[k1] * u     + LUT[k2] * t;
+          cg = LUT[k1 + 1] * u + LUT[k2 + 1] * t;
+          cb = LUT[k1 + 2] * u + LUT[k2 + 2] * t;
         }
+        /* Rölyef gölgesi — px bir Uint8ClampedArray, taşma kırpılır */
+        if (FS) {
+          const sh = FS[a] * w00 + FS[a + 1] * w10 + FS[b] * w01 + FS[b + 1] * w11;
+          cr *= sh; cg *= sh; cb *= sh;
+        }
+        px[p] = cr; px[p + 1] = cg; px[p + 2] = cb;
         px[p + 3] = 255;
       }
     }
