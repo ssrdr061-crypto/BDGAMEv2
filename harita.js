@@ -389,6 +389,14 @@
        yamaç. İkisi aynı anda açık olabilir, biri diğerinin yerine
        geçmez.
 
+       BİYOM BAŞINA AYRI: kar, çimen ve lav için ÜÇ ayrı yükseklik
+       alanı üretilir; piksel rengini hangi biyomdan alıyorsa
+       gölgesini de onun alanından alır. Tek alan kullanıldığında bir
+       çukur kar ile çimenin üstünden kesintisiz geçiyor, iki bölge
+       aynı arazinin devamıymış gibi duruyordu. Alanlar birbirinden
+       çok uzak başlangıç noktalarından üretildiği için desenleri
+       ilgisizdir; sınırda gölge de renkle birlikte değişir.
+
        NASIL ÖLÇÜLÜR: eğim, yükseklik alanının ışık yönünde `kaydir`
        karo kaydırılmış değeriyle farkı alınarak bulunuyor. Merkezi
        farkla eğim hesaplamak yerine bu seçildi çünkü fark, tamponun
@@ -409,6 +417,36 @@
        yükseltmek yalnız gürültüyü sertleştirir.
 
        ?zeminayar=3 → kendi panelinden canlı ayarlanır. */
+    /* ═══════════════════════════════════════════════════════════════
+       MAKRO GEÇİŞ — BİYOM SINIRINDA GENİŞ RENK BANDI
+       ---------------------------------------------------------------
+       SORUN: sinirYumusak (2 px) sınırın KENARINI yumuşatıyor, yani
+       yalnız kenar yumuşatma (anti-alias). Sonuç: koyu yeşil çimenden
+       bembeyaz kara BİR PİKSELDE geçiliyordu. Gerçekte kar bir yere
+       yağarken altındaki çimen önce kurur, solar, ağarır; keskin bir
+       çizgiyle başlamaz. Referansta "kar katmanı havada duruyor"
+       görüntüsünün sebebi buydu.
+
+       NE YAPAR: sınıra `en` dünya pikseli mesafedeki alanda, her iki
+       biyomun rengi KOMŞUSUNA doğru `guc` kadar kaydırılır. Çimen
+       kara yaklaşırken açılıp kuruyor, kar da çimene yaklaşırken
+       hafif yeşile çalıyor.
+
+       KESKİNLİK KAYBOLMUYOR: geçişin `guc` kadarı geniş banda,
+       kalanı eski keskin kenara düşüyor. guc 0 → eskisiyle birebir
+       aynı (hızlı yol da aynen korunuyor), guc 1 → sınır tamamen
+       yumuşar, keskin kenar kalmaz.
+
+       SINIR: `en`, eğim penceresinden (YAKIN) büyük olamaz; o
+       pencere bu haritada ~900 dünya pikseline denk geliyor, yani
+       ~14 karo. Daha genişi bandın dışında kesilir, sınırda basamak
+       görünür. Panelden üst sınır 900'e kapatıldı.
+       ?zeminayar=2 → GENEL sekmesinden canlı ayarlanır. */
+    makroGecis: {
+      en:  320,   /* bandın yarı eni, dünya pikseli (~5 karo)        */
+      guc: 0.35,  /* geçişin ne kadarı geniş banda düşsün (0..1)     */
+    },
+
     rolyef: {
       acik:    true,
       siklik:  0.038,  /* dalga boyu: küçük sayı = geniş tepeler      */
@@ -1509,25 +1547,68 @@
     const kab = B.kabarti > 0;
     const FK = kab ? new Float32Array(N) : null;   /* kaydırılmış gürültü */
 
-    /* Rölyef: yükseklik + ışık yönünde kaydırılmış yükseklik. Ayrıntı
-       ve neden: CFG.rolyef. */
+    /* ── RÖLYEF: BİYOM BAŞINA AYRI, KABA IZGARADA ─────────────────
+       ÖNCE TEK ALANDI, YANLIŞTI: rölyef bütün haritada tek bir
+       yükseklik alanıydı, biyomu hiç görmüyordu. Bir çukur kar ile
+       çimenin üstünden kesintisiz geçiyor, iki bölge aynı arazinin
+       devamıymış gibi duruyordu. Oysa kar ile çimen ayrı bölgeler;
+       çimenin çukuru kara giremez.
+
+       ŞİMDİ: üç biyom için üç AYRI yükseklik alanı üretiliyor (aynı
+       gürültü, birbirinden çok uzak başlangıç noktalarıyla, yani
+       desenleri ilgisiz). Piksel, rengini hangi biyomdan alıyorsa
+       gölgesini de o biyomun alanından alır. Sınırda gölge de renkle
+       birlikte değişir; çukur sınırda biter.
+
+       KABA IZGARA: rölyefin dalga boyu onlarca karo, yani alan çok
+       yavaş değişiyor. Bu yüzden FV/FN'den DÖRT KAT kaba bir
+       ızgarada (AR = A*4) örnekleniyor: örnek sayısı 16 kat azalıyor,
+       üç biyom birden eski tek alandan DAHA UCUZ oluyor. Bilineer
+       büyütme kayıpsız — FV ile aynı gerekçe. */
     const RL = CFG.rolyef || {};
     /* ao tek başına da iş yapar (yamaç ışığı kapalı, yalnız çukur
        karartma), o yüzden ikisinden biri yeterli. */
     const rol = !!RL.acik && ((RL.guc || 0) > 0 || (RL.ao || 0) > 0);
-    const FR = rol ? new Float32Array(N) : null;   /* yükseklik        */
-    const FRk = rol ? new Float32Array(N) : null;  /* kaydırılmış      */
-    let rdx = 0, rdy = 0;
+
+    /* Biyom başına başlangıç kaydırması. Büyük ve birbirine yakın
+       olmayan sayılar: aynı gürültüden ilgisiz üç desen çıksın. */
+    const ROFS = [0, 0, 4096, 1024, 2048, 7168];
+
+    const AR = A * 4;
+    const RW = rol ? Math.ceil(w / AR) + 2 : 0;
+    const RH = rol ? Math.ceil(h / AR) + 2 : 0;
+    /* FS[k*3 + b] = o noktada b biyomunun rengini çarpan sayı (1 = dokunma) */
+    let FS = null;
     if (rol) {
-      /* Işık yönü EKRAN açısı; ızgaraya çevriliyor. Ekranda y aşağı
-         arttığı için sinüsün işareti ters. */
       const ra = (RL.isikAci || 0) * Math.PI / 180;
       const ux = Math.cos(ra) * (RL.kaydir || 1);
       const uy = -Math.sin(ra) * (RL.kaydir || 1);
       /* Ekran (x,y) → ızgara (gx,gy): 2:1 dimetrikte gx = (x/2 + y),
          gy = (y - x/2). Sabit ölçek gerekmiyor, yön yeter. */
-      rdx = ux * 0.5 + uy;
-      rdy = uy - ux * 0.5;
+      const rdx = ux * 0.5 + uy;
+      const rdy = uy - ux * 0.5;
+      const guc = RL.guc || 0, ao = RL.ao || 0;
+      const tavan = RL.tavan == null ? 0.35 : RL.tavan;
+
+      FS = new Float32Array(RW * RH * 3);
+      for (let j = 0; j < RH; j++) {
+        const wy = minY + (j - 1 + 0.5) * AR;
+        for (let i = 0; i < RW; i++) {
+          const wx = minX + (i - 1 + 0.5) * AR;
+          const g = worldToGrid(wx, wy);
+          const k = (j * RW + i) * 3;
+          for (let b = 0; b < 3; b++) {
+            const ox = ROFS[b * 2], oy = ROFS[b * 2 + 1];
+            const h1 = rolyefYuksek(g.gx + ox, g.gy + oy);
+            const h2 = rolyefYuksek(g.gx + ox + rdx, g.gy + oy + rdy);
+            /* Yamaç: ışık yönünde yükseliyorsa aydınlanır, alçalıyorsa
+               gölgelenir. Kapalı alan: çukur koyu, tepe açık. */
+            let d = (h1 - h2) * guc + (h1 - 0.5) * ao;
+            if (d > tavan) d = tavan; else if (d < -tavan) d = -tavan;
+            FS[k + b] = 1 + d;
+          }
+        }
+      }
     }
 
     const r = (B.isikAci || 0) * Math.PI / 180;
@@ -1542,10 +1623,6 @@
         FV[k] = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
         FN[k] = boyaGurultu(g.gx, g.gy);
         if (kab) FK[k] = boyaGurultu(g.gx + kdx, g.gy + kdy);
-        if (rol) {
-          FR[k]  = rolyefYuksek(g.gx, g.gy);
-          FRk[k] = rolyefYuksek(g.gx + rdx, g.gy + rdy);
-        }
       }
     }
 
@@ -1562,32 +1639,18 @@
       }
     }
 
-    /* ── RÖLYEF GÖLGE ÇARPANI ──
-       Alçak çözünürlükte BİR KEZ pişirilir; piksel döngüsünde yalnız
-       tek bir bilineer örnek kalır. FS[k], o noktadaki rengin
-       çarpılacağı sayı (1 = dokunma). */
-    let FS = null;
-    if (rol) {
-      const guc = RL.guc || 0, ao = RL.ao || 0;
-      const tavan = RL.tavan == null ? 0.35 : RL.tavan;
-      FS = new Float32Array(N);
-      for (let k = 0; k < N; k++) {
-        /* Yamaç: ışık yönünde yükseliyorsa aydınlanır, alçalıyorsa
-           gölgelenir. Fark zaten -1..1 aralığında. */
-        let d = (FR[k] - FRk[k]) * guc;
-        /* Kapalı alan (AO): çukurlar koyu, tepeler açık. */
-        d += (FR[k] - 0.5) * ao;
-        if (d > tavan) d = tavan; else if (d < -tavan) d = -tavan;
-        FS[k] = 1 + d;
-      }
-    }
-
     const L = lutAl();
     const K = L.K, LUT = L.lut, K1 = K - 1;
     const eK = CFG.esikKar, eC = CFG.esikCimen;
     const ORT = (eK + eC) / 2;
     const SY = Math.max(0.5, CFG.sinirYumusak == null ? 4 : CFG.sinirYumusak);
     const YAKIN = 0.06;                       /* eğim hesabı bu v farkının içinde */
+
+    /* Makro geçiş. Ayrıntı ve neden: CFG.makroGecis. */
+    const MGC = CFG.makroGecis || {};
+    const MG = Math.max(0, Math.min(1, MGC.guc == null ? 0 : MGC.guc));
+    const ME = Math.max(SY, MGC.en || 1);     /* bant, keskin kenardan dar olamaz */
+    let MGD = false;                          /* bu piksel makro yoldan mı geldi */
 
     const q  = Math.max(0.3, Math.min(1, B.kalite || 1));
     const OW = Math.max(1, Math.ceil(w * s * q)), OH = Math.max(1, Math.ceil(h * s * q));
@@ -1608,6 +1671,17 @@
       I0[x] = i0; TX[x] = fx - i0;
     }
 
+    /* Rölyefin KABA ızgarası için aynı hesap (adım AR = A*4) */
+    const RI0 = rol ? new Int32Array(OW) : null;
+    const RTX = rol ? new Float32Array(OW) : null;
+    if (rol) {
+      for (let x = 0; x < OW; x++) {
+        const fx = (x + 0.5) / olc / AR + 0.5;
+        let i0 = fx | 0; if (i0 > RW - 2) i0 = RW - 2; if (i0 < 0) i0 = 0;
+        RI0[x] = i0; RTX[x] = fx - i0;
+      }
+    }
+
     /* LUT indisi: tek biyom rengi = LUT[biyom][n][nk] */
     const KK = kab ? K * K : K;
     function ind(b, n, nk) {
@@ -1622,10 +1696,19 @@
       let j0 = fy | 0; if (j0 > LH - 2) j0 = LH - 2;
       const ty = fy - j0, ty1 = 1 - ty;
       const r0 = j0 * LW, r1 = r0 + LW;
+
+      let rr0 = 0, rr1 = 0, rty = 0, rty1 = 0;
+      if (rol) {
+        const fyr = (y + 0.5) / olc / AR + 0.5;
+        let jr = fyr | 0; if (jr > RH - 2) jr = RH - 2; if (jr < 0) jr = 0;
+        rty = fyr - jr; rty1 = 1 - rty;
+        rr0 = jr * RW; rr1 = rr0 + RW;
+      }
       let p = y * OW * 4;
       for (let x = 0; x < OW; x++, p += 4) {
         const tx = TX[x], tx1 = 1 - tx;
         const a = r0 + I0[x], b = r1 + I0[x];
+        MGD = false;
         const w00 = tx1 * ty1, w10 = tx * ty1, w01 = tx1 * ty, w11 = tx * ty;
 
         const v = FV[a] * w00 + FV[a + 1] * w10 + FV[b] * w01 + FV[b + 1] * w11;
@@ -1654,9 +1737,24 @@
           const eg = Math.sqrt(gx_ * gx_ + gy_ * gy_) + 1e-6;
           const d = fark / eg;                     /* eşiğe uzaklık, dünya px */
           const alt = e === eK ? 0 : 1;
-          if (d <= -SY)      b1 = alt;
-          else if (d >= SY)  b1 = alt + 1;
-          else { b1 = alt; b2 = alt + 1; t = (d + SY) / (2 * SY); }
+          if (MG <= 0) {
+            /* Makro geçiş kapalı — eski hızlı yol, birebir korundu */
+            if (d <= -SY)      b1 = alt;
+            else if (d >= SY)  b1 = alt + 1;
+            else { b1 = alt; b2 = alt + 1; t = (d + SY) / (2 * SY); }
+          } else {
+            /* ── MAKRO GEÇİŞ ──
+               Geçişin MG kadarı geniş banda (ME), kalanı eski keskin
+               kenara düşüyor. Ayrıntı ve neden: CFG.makroGecis. */
+            let tS = (d + SY) / (2 * SY);
+            tS = tS <= 0 ? 0 : tS >= 1 ? 1 : tS * tS * (3 - 2 * tS);
+            let tM = (d + ME) / (2 * ME);
+            tM = tM <= 0 ? 0 : tM >= 1 ? 1 : tM * tM * (3 - 2 * tM);
+            const tt = tS * (1 - MG) + tM * MG;
+            if (tt <= 0)      b1 = alt;
+            else if (tt >= 1) b1 = alt + 1;
+            else { b1 = alt; b2 = alt + 1; t = tt; MGD = true; }
+          }
         } else {
           b1 = v < eK ? 0 : v < eC ? 1 : 2;
         }
@@ -1666,15 +1764,32 @@
         if (b2 < 0) {
           cr = LUT[k1]; cg = LUT[k1 + 1]; cb = LUT[k1 + 2];
         } else {
-          t = t * t * (3 - 2 * t);
+          /* Keskin yolda t ham; makro yolda tS/tM zaten yumuşatıldı,
+             ikinci kez yumuşatılırsa geniş bant ortada sıkışır. */
+          if (!MGD) t = t * t * (3 - 2 * t);
           const k2 = ind(b2, n, nk), u = 1 - t;
           cr = LUT[k1] * u     + LUT[k2] * t;
           cg = LUT[k1 + 1] * u + LUT[k2 + 1] * t;
           cb = LUT[k1 + 2] * u + LUT[k2 + 2] * t;
         }
-        /* Rölyef gölgesi — px bir Uint8ClampedArray, taşma kırpılır */
+        /* ── RÖLYEF GÖLGESİ ──
+           Gölge, pikselin RENGİNİ aldığı biyomun alanından okunur:
+           b1 (ve sınırda b2). Böylece çimenin çukuru kara geçmez,
+           gölge sınırda renkle birlikte biter. Sınır bandında iki
+           gölge de renkle AYNI oranda karışır; iki alan birbirinden
+           bağımsız üretildiği için tek bir çukurun devamı gibi
+           görünmez. px bir Uint8ClampedArray, taşma kırpılır. */
         if (FS) {
-          const sh = FS[a] * w00 + FS[a + 1] * w10 + FS[b] * w01 + FS[b + 1] * w11;
+          const rtx = RTX[x], rtx1 = 1 - rtx;
+          const ra_ = (rr0 + RI0[x]) * 3, rb_ = (rr1 + RI0[x]) * 3;
+          const q00 = rtx1 * rty1, q10 = rtx * rty1, q01 = rtx1 * rty, q11 = rtx * rty;
+          let sh = FS[ra_ + b1] * q00 + FS[ra_ + 3 + b1] * q10
+                 + FS[rb_ + b1] * q01 + FS[rb_ + 3 + b1] * q11;
+          if (b2 >= 0) {
+            const sh2 = FS[ra_ + b2] * q00 + FS[ra_ + 3 + b2] * q10
+                      + FS[rb_ + b2] * q01 + FS[rb_ + 3 + b2] * q11;
+            sh += (sh2 - sh) * t;
+          }
           cr *= sh; cg *= sh; cb *= sh;
         }
         px[p] = cr; px[p + 1] = cg; px[p + 2] = cb;

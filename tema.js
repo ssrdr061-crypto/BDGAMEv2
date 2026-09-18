@@ -11713,7 +11713,14 @@ var GENEL = [
   ["sinirYumusak",  "Sınır yumuşaklığı (px)", 0.5,  80,   0.5  ],
   ["zeminHD.tavan", "Çözünürlük tavanı",      1,    3,    0.5  ],
   ["boya.kalite",   "Çizim kalitesi",         0.3,  1,    0.05 ],
-  ["zeminAdim",     "Alan örnek adımı (px)",  6,    16,   1    ]
+  ["zeminAdim",     "Alan örnek adımı (px)",  6,    16,   1    ],
+  /* ── MAKRO GEÇİŞ (harita.js CFG.makroGecis) ──
+     Biyom sınırında geniş renk bandı: çimen kara yaklaşırken açılıp
+     kuruyor. "payı" 0 → eski keskin geçiş, 1 → sınır tamamen yumuşar.
+     Eni 900'ü aşamaz; eğim penceresinin dışında bant kesilir ve
+     sınırda basamak görünür. */
+  ["makroGecis.en",  "Makro geçiş eni (px)",   0,    900,  10   ],
+  ["makroGecis.guc", "Makro geçiş payı",       0,    1,    0.01 ]
   /* RÖLYEF BURADA DEĞİL: kendi paneli var → ?zeminayar=3. Bu panelde
      de durursa iki panel aynı değerleri birbirine yazar (ikisinin
      kaydı ayrı anahtarlarda), en son açılan öbürünü ezer. */
@@ -11742,7 +11749,8 @@ var VARSAYILAN = null, D = null, sekme = "genel", zam = null;
 function durumAl(c){
   return { boya: kopya(c.boya), serpme: { genislik: c.serpme.genislik },
            sinirYumusak: c.sinirYumusak, zeminHD: kopya(c.zeminHD || { tavan: 2.5, carpan: 1 }),
-           zeminAdim: c.zeminAdim };
+           zeminAdim: c.zeminAdim,
+           makroGecis: kopya(c.makroGecis || { en: 320, guc: 0 }) };
 }
 
 function uygula(){
@@ -11752,6 +11760,9 @@ function uygula(){
   c.sinirYumusak = D.sinirYumusak;
   c.zeminHD = kopya(D.zeminHD);
   c.zeminAdim = D.zeminAdim;
+  /* c.makroGecis eski bir harita.js'te olmayabilir */
+  if (!c.makroGecis) c.makroGecis = kopya(D.makroGecis);
+  else birlestir(c.makroGecis, kopya(D.makroGecis));
   try { localStorage.setItem(ANAHTAR, JSON.stringify(D)); } catch (e) {}
   /* Sürgü sürüklenirken her adımda yeniden boyamasın: 120 ms bekle */
   clearTimeout(zam);
