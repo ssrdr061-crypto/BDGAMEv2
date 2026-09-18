@@ -144,7 +144,7 @@
        zemin sınırı piksel cinsinden hesaplıyor (chunkUretBoya'da
        "BİYOM SINIRI, PİKSEL CİNSİNDEN"). 2-6 = keskin, kenarı
        tırtıksız · 30+ = yumuşak geçiş. */
-    sinirYumusak: 4,
+    sinirYumusak: 13,   /* panelde ayarlandı (?zeminayar=1), dosyaya sabitlendi */
 
     /* ── SERPME GEÇİŞ (benekler) ──
        Sınır çizgisi renk karıştırarak değil, biyom DEĞERİNİ ince
