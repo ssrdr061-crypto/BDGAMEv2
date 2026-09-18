@@ -11713,17 +11713,10 @@ var GENEL = [
   ["sinirYumusak",  "Sınır yumuşaklığı (px)", 0.5,  80,   0.5  ],
   ["zeminHD.tavan", "Çözünürlük tavanı",      1,    3,    0.5  ],
   ["boya.kalite",   "Çizim kalitesi",         0.3,  1,    0.05 ],
-  ["zeminAdim",     "Alan örnek adımı (px)",  6,    16,   1    ],
-  /* ── RÖLYEF (harita.js CFG.rolyef) ──
-     Yığın deseninden bağımsız, çok geniş yükseklik alanı ve ona
-     vuran yönlü ışık. "guc" 0 yapılırsa rölyef tamamen kapanır. */
-  ["rolyef.guc",     "Rölyef ışığı",          0,     1.5,  0.01 ],
-  ["rolyef.ao",      "Çukur karartma",        0,     1,    0.01 ],
-  ["rolyef.isikAci", "Rölyef ışık yönü (°)",  0,     359,  1    ],
-  ["rolyef.siklik",  "Tepe genişliği",        0.002, 0.06, 0.001],
-  ["rolyef.ayrinti", "Yamaç kıvrımı",         0,     0.70, 0.01 ],
-  ["rolyef.kaydir",  "Eğim ölçüsü (karo)",    1,     20,   0.5  ],
-  ["rolyef.tavan",   "Rölyef tavanı",         0.05,  0.80, 0.01 ]
+  ["zeminAdim",     "Alan örnek adımı (px)",  6,    16,   1    ]
+  /* RÖLYEF BURADA DEĞİL: kendi paneli var → ?zeminayar=3. Bu panelde
+     de durursa iki panel aynı değerleri birbirine yazar (ikisinin
+     kaydı ayrı anahtarlarda), en son açılan öbürünü ezer. */
 ];
 var BOLGE_AYAR = [
   ["keskinlik", "Ton keskinliği",       0.3, 8,   0.1 ],
@@ -11749,9 +11742,7 @@ var VARSAYILAN = null, D = null, sekme = "genel", zam = null;
 function durumAl(c){
   return { boya: kopya(c.boya), serpme: { genislik: c.serpme.genislik },
            sinirYumusak: c.sinirYumusak, zeminHD: kopya(c.zeminHD || { tavan: 2.5, carpan: 1 }),
-           zeminAdim: c.zeminAdim,
-           rolyef: kopya(c.rolyef || { acik: true, siklik: 0.012, ayrinti: 0.35,
-                                       isikAci: 35, kaydir: 6, guc: 0, ao: 0, tavan: 0.35 }) };
+           zeminAdim: c.zeminAdim };
 }
 
 function uygula(){
@@ -11761,8 +11752,6 @@ function uygula(){
   c.sinirYumusak = D.sinirYumusak;
   c.zeminHD = kopya(D.zeminHD);
   c.zeminAdim = D.zeminAdim;
-  /* c.rolyef eski bir harita.js'te olmayabilir; yoksa kur, varsa birleştir */
-  if (!c.rolyef) c.rolyef = kopya(D.rolyef); else birlestir(c.rolyef, kopya(D.rolyef));
   try { localStorage.setItem(ANAHTAR, JSON.stringify(D)); } catch (e) {}
   /* Sürgü sürüklenirken her adımda yeniden boyamasın: 120 ms bekle */
   clearTimeout(zam);
@@ -11979,6 +11968,262 @@ function baslat(){
       try {
         var kayit = JSON.parse(localStorage.getItem(ANAHTAR) || "null");
         if (kayit) D = birlestir(D, kayit);
+      } catch (e) {}
+      ciz();
+      return;
+    }
+    if (++dene > 40) return;
+    setTimeout(bekle, 150);
+  })();
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", baslat);
+else baslat();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   RÖLYEF AYAR PANELİ  —  ?zeminayar=3
+   ------------------------------------------------------------
+   Adres satırına ?zeminayar=3 eklenmedikçe HİÇBİR ŞEY yapmaz.
+   ?zeminayar=1 ve =2 panellerinden bağımsız, üçü aynı anda açılmaz.
+
+   NE SÜRER: yalnız harita.js CFG.rolyef — yığın deseninden bağımsız,
+   dalga boyu ~70 karo olan yükseklik alanı ve ona vuran yönlü ışık.
+   Ne yaptığı ve neden ayrı bir alan olduğu harita.js'te CFG.rolyef'in
+   başında yazılı.
+
+   NEDEN KENDİ PANELİ: rölyef sürgüleri önce ?zeminayar=2'nin GENEL
+   sekmesindeydi. Orada 14 sürgü zaten vardı, 21 olunca liste
+   telefonda taranamaz hale geldi. Ayrıca iki panelin kaydı ayrı
+   localStorage anahtarlarında duruyor; aynı değer iki panelde
+   bulunursa en son açılan öbürünün ayarını sessizce ezer.
+
+   AÇIK/KAPALI düğmesi CFG.rolyef.acik'i çevirir — rölyefli ve
+   rölyefsiz hali aynı yerde kıyaslamak için. "Rölyef ışığı" ve
+   "Çukur karartma" ikisi birden 0 ise rölyef zaten hesaplanmaz.
+
+   NEDEN ÖNBELLEK BOŞALTILIYOR: zemin CHUNK'lar hâlinde BİR KEZ
+   boyanıp saklanıyor; sayıyı değiştirmek yetmez, saklanan parçalar
+   atılmazsa ekranda eski görünüm durur.
+
+   KOPYALA → "ROLYEF {...}" (JSON). YAPIŞTIR → aynı metni geri
+   yükler; Claude'a da bu metin gönderilir, kalıcı yazılır.
+   Başlıktan sürüklenir, ▾ ile küçülür, konumu hatırlanır.
+   İş bitince sayılar dosyaya sabitlenir ve BU BLOK SİLİNİR.
+   ══════════════════════════════════════════════════════════════ */
+(function rolyefAyarPaneli(){
+"use strict";
+
+if (!/[?&]zeminayar=3(&|$)/.test(location.search)) return;
+
+var ANAHTAR = "bdRolyef1", KONUM = "bdRolyefKonum";
+
+/* [alan, etiket, alt, üst, adım] — alan CFG.rolyef içindeki anahtar */
+var SURGU = [
+  ["guc",     "Rölyef ışığı",       0,     1.50, 0.01 ],
+  ["ao",      "Çukur karartma",     0,     1.00, 0.01 ],
+  ["isikAci", "Işık yönü (°)",      0,     359,  1    ],
+  ["siklik",  "Tepe genişliği",     0.002, 0.06, 0.001],
+  ["ayrinti", "Yamaç kıvrımı",      0,     0.70, 0.01 ],
+  ["kaydir",  "Eğim ölçüsü (karo)", 1,     20,   0.5  ],
+  ["tavan",   "Tavan (fren)",       0.05,  0.80, 0.01 ]
+];
+
+/* Eski bir harita.js'te CFG.rolyef hiç olmayabilir; panel yine de
+   açılsın diye yedek. Sayılar harita.js ile BİREBİR aynı olmalı. */
+var YEDEK = { acik: true, siklik: 0.014, ayrinti: 0.35, isikAci: 35,
+              kaydir: 18, guc: 1.30, ao: 0.25, tavan: 0.35 };
+
+function C(){ return (window.HARITA && HARITA.CFG) ? HARITA.CFG : null; }
+function kop(o){ return JSON.parse(JSON.stringify(o)); }
+function ond(adim){ var t = String(adim); return t.indexOf(".") < 0 ? 0 : t.length - t.indexOf(".") - 1; }
+
+var VARSAYILAN = null, D = null, zam = null;
+
+function uygula(){
+  var c = C(); if (!c) return;
+  if (!c.rolyef) c.rolyef = {};
+  for (var a in D) c.rolyef[a] = D[a];
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(D)); } catch (e) {}
+  var t = document.getElementById("z3Ac");
+  if (t) t.textContent = D.acik ? "AÇIK" : "KAPALI";
+  /* Sürgü sürüklenirken her adımda yeniden boyamasın: 120 ms bekle */
+  clearTimeout(zam);
+  zam = setTimeout(function () {
+    try { HARITA.onbellegiBosalt(); HARITA.cizIste(); } catch (e) {}
+  }, 120);
+}
+
+function satir(alan, et, alt, ust, adim){
+  var v = D[alan], od = ond(adim);
+  return "<div class='z3S' data-alan='" + alan + "' data-adim='" + adim + "' data-od='" + od + "'>" +
+    "<div class='z3E'><span>" + et + "</span>" +
+    "<button class='z3B' data-y='-'>−</button><b>" + Number(v).toFixed(od) + "</b>" +
+    "<button class='z3B' data-y='+'>+</button></div>" +
+    "<input type='range' min='" + alt + "' max='" + ust + "' step='" + adim + "' value='" + v + "'></div>";
+}
+
+function govdeCiz(){
+  var h = "";
+  SURGU.forEach(function (r) { h += satir(r[0], r[1], r[2], r[3], r[4]); });
+  document.getElementById("z3Govde").innerHTML = h;
+}
+
+function yaz(s, v){
+  var adim = parseFloat(s.getAttribute("data-adim")), od = +s.getAttribute("data-od");
+  var r = s.querySelector("input");
+  v = Math.max(parseFloat(r.min), Math.min(parseFloat(r.max), v));
+  v = +(Math.round(v / adim) * adim).toFixed(od);
+  D[s.getAttribute("data-alan")] = v;
+  r.value = v;
+  s.querySelector("b").textContent = v.toFixed(od);
+  uygula();
+}
+
+function metin(){ return "ROLYEF " + JSON.stringify(D); }
+
+function ciz(){
+  var st = document.createElement("style");
+  st.id = "temaRolyefStil";
+  st.textContent =
+    "#z3{position:fixed;z-index:99999;width:196px;font:11px/1.25 'Baloo 2',system-ui,sans-serif;" +
+     "color:#e8f4ff;background:rgba(10,20,38,.86);border-radius:10px;" +
+     "box-shadow:0 2px 8px rgba(0,10,30,.35);touch-action:none;user-select:none;-webkit-user-select:none}" +
+    "#z3Bas{display:flex;align-items:center;gap:4px;padding:5px 6px 4px 8px;cursor:move}" +
+    "#z3Bas b{flex:1;font-size:11px;letter-spacing:.5px}" +
+    "#z3 button{font:700 10px system-ui,sans-serif;color:#e8f4ff;background:rgba(255,255,255,.12);" +
+     "border:none;border-radius:5px;padding:3px 6px}" +
+    "#z3 button:active{filter:brightness(1.3)}" +
+    "#z3Govde{max-height:46vh;overflow-y:auto;padding:4px 8px 0;touch-action:pan-y}" +
+    ".z3S{margin:0 0 3px}" +
+    ".z3E{display:flex;align-items:center;gap:3px}" +
+    ".z3E span{flex:1;font-weight:700;font-size:10px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+    ".z3E b{min-width:34px;text-align:center;font-variant-numeric:tabular-nums;font-size:10px}" +
+    "#z3 .z3B{padding:0;width:20px;height:18px;font-size:13px;line-height:18px}" +
+    ".z3S input{width:100%;height:14px;margin:0;touch-action:pan-x}" +
+    "#z3Alt{display:flex;gap:3px;padding:5px 6px 6px}" +
+    "#z3Alt button{flex:1}" +
+    "#z3Yap{display:none;padding:0 6px 6px}" +
+    "#z3Yap textarea{width:100%;height:56px;box-sizing:border-box;font:9px monospace;" +
+     "color:#dfeaff;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.2);border-radius:5px}" +
+    "#z3Not{font-size:9px;color:#9fc3ea;padding:0 8px 5px;min-height:0}";
+  document.head.appendChild(st);
+
+  var p = document.createElement("div");
+  p.id = "z3";
+  p.innerHTML =
+    "<div id='z3Bas'><b>⠿ RÖLYEF</b><button id='z3Ac'></button><button id='z3Kuc'>▾</button></div>" +
+    "<div id='z3Ic'>" +
+      "<div id='z3Govde'></div>" +
+      "<div id='z3Alt'><button id='z3Kop'>KOPYALA</button><button id='z3YapA'>YAPIŞTIR</button>" +
+      "<button id='z3Sif'>SIFIRLA</button></div>" +
+      "<div id='z3Yap'><textarea id='z3Metin' placeholder='ROLYEF {...} metnini buraya yapıştır'></textarea>" +
+      "<button id='z3Uyg' style='width:100%;margin-top:3px'>UYGULA</button></div>" +
+      "<div id='z3Not'></div>" +
+    "</div>";
+  document.body.appendChild(p);
+
+  var k = null; try { k = JSON.parse(localStorage.getItem(KONUM) || "null"); } catch (e) {}
+  function yerlestir(x, y){
+    var r = p.getBoundingClientRect();
+    x = Math.max(0, Math.min(innerWidth - r.width, x));
+    y = Math.max(0, Math.min(innerHeight - 30, y));
+    p.style.left = x + "px"; p.style.top = y + "px";
+  }
+  yerlestir(k ? k.x : 6, k ? k.y : 96);
+
+  function not(t){ document.getElementById("z3Not").textContent = t || ""; }
+
+  var gov = document.getElementById("z3Govde");
+  gov.addEventListener("input", function (e) {
+    if (e.target.type === "range") yaz(e.target.closest(".z3S"), parseFloat(e.target.value));
+  });
+  gov.addEventListener("click", function (e) {
+    var y = e.target.getAttribute && e.target.getAttribute("data-y");
+    if (!y) return;
+    var s = e.target.closest(".z3S");
+    var adim = parseFloat(s.getAttribute("data-adim"));
+    yaz(s, D[s.getAttribute("data-alan")] + (y === "+" ? adim : -adim));
+  });
+
+  document.getElementById("z3Ac").addEventListener("click", function () {
+    D.acik = !D.acik; uygula();
+  });
+
+  var kucuk = false;
+  document.getElementById("z3Kuc").addEventListener("click", function () {
+    kucuk = !kucuk;
+    document.getElementById("z3Ic").style.display = kucuk ? "none" : "block";
+    this.textContent = kucuk ? "▴" : "▾";
+    p.style.width = kucuk ? "auto" : "196px";
+  });
+
+  document.getElementById("z3Kop").addEventListener("click", function () {
+    var t = metin(), ta = document.getElementById("z3Metin");
+    ta.value = t;
+    document.getElementById("z3Yap").style.display = "block";
+    var ok = false;
+    try { if (navigator.clipboard) { navigator.clipboard.writeText(t); ok = true; } } catch (e) {}
+    if (!ok) { try { ta.select(); ok = document.execCommand("copy"); } catch (e) {} }
+    not(ok ? "Kopyalandı — Claude'a bu metni gönder." : "Metni kutudan elle kopyala.");
+  });
+
+  document.getElementById("z3YapA").addEventListener("click", function () {
+    var y = document.getElementById("z3Yap");
+    y.style.display = y.style.display === "block" ? "none" : "block";
+    not("");
+  });
+
+  document.getElementById("z3Uyg").addEventListener("click", function () {
+    var t = document.getElementById("z3Metin").value;
+    var a = t.indexOf("{"), b = t.lastIndexOf("}");
+    try {
+      var yeni = JSON.parse(t.slice(a, b + 1));
+      D = kop(VARSAYILAN);
+      for (var x in yeni) if (x in D) D[x] = yeni[x];
+      uygula(); govdeCiz(); not("Uygulandı.");
+    } catch (e) { not("Metin okunamadı — ROLYEF {...} biçiminde olmalı."); }
+  });
+
+  document.getElementById("z3Sif").addEventListener("click", function () {
+    D = kop(VARSAYILAN); uygula(); govdeCiz(); not("Dosyadaki değerlere dönüldü.");
+  });
+
+  (function surukle(){
+    var bas = document.getElementById("z3Bas"), aktif = false, bx, by, sx, sy;
+    bas.addEventListener("pointerdown", function (e) {
+      if (e.target.tagName === "BUTTON") return;
+      aktif = true;
+      var r = p.getBoundingClientRect();
+      bx = r.left; by = r.top; sx = e.clientX; sy = e.clientY;
+      try { bas.setPointerCapture(e.pointerId); } catch (er) {}
+    });
+    bas.addEventListener("pointermove", function (e) {
+      if (aktif) yerlestir(bx + e.clientX - sx, by + e.clientY - sy);
+    });
+    function birak(){
+      if (!aktif) return; aktif = false;
+      var r = p.getBoundingClientRect();
+      try { localStorage.setItem(KONUM, JSON.stringify({ x: r.left, y: r.top })); } catch (e) {}
+    }
+    bas.addEventListener("pointerup", birak);
+    bas.addEventListener("pointercancel", birak);
+  })();
+
+  govdeCiz();
+  uygula();
+}
+
+function baslat(){
+  var dene = 0;
+  (function bekle(){
+    var c = C();
+    if (c) {
+      VARSAYILAN = kop(c.rolyef || YEDEK);
+      D = kop(VARSAYILAN);
+      try {
+        var kayit = JSON.parse(localStorage.getItem(ANAHTAR) || "null");
+        if (kayit) for (var a in kayit) if (a in D) D[a] = kayit[a];
       } catch (e) {}
       ciz();
       return;

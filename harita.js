@@ -400,7 +400,7 @@
        çözünürlükte pişirilir). Alan çok düşük frekanslı olduğu için
        alçak çözünürlükte örneklemek kayıpsız — FV ile aynı gerekçe.
 
-       ?zeminayar=2 → GENEL sekmesinden canlı ayarlanır. */
+       ?zeminayar=3 → kendi panelinden canlı ayarlanır. */
     rolyef: {
       acik:    true,
       siklik:  0.014,  /* dalga boyu: küçük sayı = geniş tepeler      */
