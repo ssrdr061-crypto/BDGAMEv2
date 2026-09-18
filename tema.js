@@ -11500,8 +11500,43 @@ function uygula(tazele){
   try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
 
   if (tazele !== false) {
-    try { if (HARITA.onbellegiBosalt) HARITA.onbellegiBosalt(); } catch (e) {}
-    try { if (HARITA.cizIste) HARITA.cizIste(); } catch (e) {}
+    /* ── TANI: SESSİZ YUTMA YOK ────────────────────────────────
+       Burada iki `try{}catch(e){}` vardı ve İÇİ BOŞTU. Adım
+       düşerse (HARITA yok, işlev adı değişmiş, çizim atılmış)
+       hiçbir iz kalmıyor, panel çalışıyormuş gibi duruyordu —
+       "sürgüyü oynatıyorum ama harita değişmiyor"un teşhis
+       edilememesinin sebebi buydu.
+
+       Artık her adım ekrana yazılıyor. Telefonda konsol yok;
+       tanı #zaMetin'e düşer (OKU-BENI-30: "Tanı çıktısı ekrana"). */
+    var rapor = [];
+    var C2 = cfg();
+
+    if (!C2)                          rapor.push("✘ HARITA.CFG yok");
+    else {
+      /* Yazma GERÇEKTEN oldu mu: değeri CFG'den GERİ okuyoruz.
+         Panelin kendi A nesnesine bakmak yanıltıcı olurdu. */
+      rapor.push("CFG siklik=" + Number(C2.boya.siklik).toFixed(3) +
+                 " acik=" + (C2.boya.acik ? 1 : 0));
+    }
+
+    if (!window.HARITA)                        rapor.push("✘ HARITA yok");
+    else if (typeof HARITA.onbellegiBosalt !== "function")
+                                               rapor.push("✘ onbellegiBosalt yok");
+    else {
+      try { HARITA.onbellegiBosalt(); rapor.push("önbellek temiz"); }
+      catch (e) { rapor.push("✘ önbellek: " + (e && e.message || e)); }
+    }
+
+    if (window.HARITA && typeof HARITA.cizIste !== "function") {
+      rapor.push("✘ cizIste yok");
+    } else if (window.HARITA) {
+      try { HARITA.cizIste(); rapor.push("çizim istendi"); }
+      catch (e) { rapor.push("✘ çizim: " + (e && e.message || e)); }
+    }
+
+    var m = document.getElementById("zaMetin");
+    if (m) m.textContent = rapor.join(" · ");
   }
 }
 
