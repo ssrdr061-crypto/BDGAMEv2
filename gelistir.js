@@ -244,6 +244,11 @@
     const s = S(); if (!s) return false;
     if (!sahip(id)) { toast("Bu kahraman senin değil."); return false; }
 
+    /* Efekt ekrandayken ikinci yükseltme YOK. Katman açılışta 350 ms
+       hayalet kalkanıyla dokunmaya kapalı; o arada gelen ikinci
+       dokunuş alttaki düğmeye düşüp parçayı ikinci kez harcıyordu. */
+    if (window.YILDIZ_EFEKTI && YILDIZ_EFEKTI.acik && YILDIZ_EFEKTI.acik()) return false;
+
     const sv = seviye(id);
     if (sv >= MAX_SV) { toast("Bu kahraman zaten en yüksek seviyede."); return false; }
 
@@ -1448,6 +1453,13 @@
      cihazda CSS animasyonunu öldürüyor.
    · THREE bu dosyadan SONRA yükleniyor, bu yüzden sahne ilk oynatışta
      kurulur, dosya yüklenirken değil.
+   · KENDİLİĞİNDEN KAPANMAZ. Gösteri bitince son karede bekler
+     (süzmeler akmaya devam eder), ekrana dokununca kapanır.
+   · Kapatma "click" ile, pointerdown ile DEĞİL: pointerdown'da
+     katman gizlenirse aynı dokunuşun pointerup/click'i ALTTAKİ
+     ekrana düşer — parmak tam da "Seviye Yükselt" düğmesinin
+     üstünde olduğu için kahraman bir seviye daha atlıyordu.
+     click dokunuşun SON olayı; ondan sonra alta bir şey gitmez.
    ═══════════════════════════════════════════════════════════════ */
 window.YILDIZ_EFEKTI = (function () {
 
@@ -1463,12 +1475,23 @@ window.YILDIZ_EFEKTI = (function () {
   };
   let paletAnahtar = null;
 
+  /* Yazı tipi TEK YERDE. Çoğu gösterim yazı tipinin tek kalınlığı var;
+     font-weight 800 verilirse tarayıcı sahte kalın çizer, o yüzden
+     kalınlık da buradan gelir. url boşsa (Baloo 2) index.html zaten
+     yüklüyor, ikinci <link> açılmaz. */
+  const YAZI = { aile: "'Bungee',system-ui,sans-serif", kalin: 400,
+                 baslik: "'Bungee',system-ui,sans-serif",               /* SEVİYE ATLADI + ad */
+                 url: "https://fonts.googleapis.com/css2?family=Bungee&display=block" };
+
   const MAX_SV_EF = 5;
   const FOV = 34, UCUS_SURE = 1040;
-  const OLCEK = 0.82, YENI_OLCEK = OLCEK * 1.55;
+  /* Yeni yıldız öbürleriyle AYNI boyda oturur (Serdar istedi); iniş
+     vuruşunda bir an ×1.28 şişip yerine döner. Kadraj ise eski payla
+     kalır — pay da küçülseydi kamera yaklaşır, bütün yıldızlar büyürdü. */
+  const OLCEK = 0.82, YENI_OLCEK = OLCEK, KADRAJ_PAY = OLCEK * 1.55;
 
-  let kuruldu = false, calisiyor = false;
-  let katman, akisTuval, actx, cv, ren, sah, kam, grup, yer, kutu, flas, adEl, statKap;
+  let calisiyor = false, sonHata = "";
+  let katman, akisTuval, actx, cv, ren, sah, kam, grup, yer, kutu, flas, adEl, statKap, ipucu;
   let GEO = null, ENV = null, halka = null, halkaMat = null;
   let ARALIK = 2.35, GORUS_GENISLIK = 10.2, GORUS_YUKSEK = 10, BASLANGIC_Y = -10;
   let yildizlar = [], YENI = null, satir = [];
@@ -1480,13 +1503,19 @@ window.YILDIZ_EFEKTI = (function () {
   /* ── Biçim ──────────────────────────────────────────────────── */
   function stilKur() {
     if (document.getElementById("yeStil")) return;
+    if (YAZI.url && !document.getElementById("yeYaziTipi")) {
+      const ln = document.createElement("link");
+      ln.id = "yeYaziTipi"; ln.rel = "stylesheet"; ln.href = YAZI.url;
+      document.head.appendChild(ln);
+    }
     const st = document.createElement("style");
     st.id = "yeStil";                       /* benzersiz — tema.js kuralı */
     st.textContent =
       "#yeKatman{position:fixed;left:0;top:0;width:100%;height:100%;" +
         "z-index:2147482500;display:none;" +
         "--yz1:#ffb45c;--yz2:#e8722a;--yz3:#c85a18;" +
-        "--yk:#6d3400;--yg:rgba(90,38,0,.88);--yp:rgba(255,220,170,.45)}" +
+        "--yk:#6d3400;--yg:rgba(90,38,0,.88);--yp:rgba(255,220,170,.45);" +
+        "--ye-yazi:" + YAZI.aile + ";--ye-kalin:" + YAZI.kalin + ";--ye-baslik:" + YAZI.baslik + "}" +
       "#yeAkis,#yeSahne{position:absolute;left:0;top:0;display:block}" +
       "#yeSahne{pointer-events:none}" +
       "#yeZemin{position:absolute;left:0;top:0;width:100%;height:100%;" +
@@ -1495,38 +1524,41 @@ window.YILDIZ_EFEKTI = (function () {
         "align-items:center;justify-content:center;pointer-events:none}" +
       "#yeFlas{position:absolute;left:0;top:0;width:100%;height:100%;" +
         "background:#fff6dc;opacity:0;pointer-events:none}" +
-      "#yeKutu{width:min(92vw,420px);text-align:center;opacity:0;" +
-        "font-family:'Baloo 2',system-ui,sans-serif}" +
-      "#yeBaslik{font-weight:800;font-size:13px;letter-spacing:2.4px;color:var(--yk);margin-bottom:4px}" +
-      "#yeAd{font-weight:800;font-size:31px;line-height:1.1;margin-bottom:10px;" +
+      "#yeKutu{width:min(92vw,420px);text-align:center;opacity:0;text-transform:uppercase;" +
+        "font-family:var(--ye-yazi);font-weight:var(--ye-kalin)}" +
+      "#yeBaslik{font-size:11px;letter-spacing:2.2px;color:var(--yk);margin-bottom:2px}" +
+      "#yeAd{font-size:24px;line-height:1.1;margin-bottom:8px;letter-spacing:.5px;" +
         "background:linear-gradient(180deg,#ffffff 0%,#fff0cf 100%);" +
-        "-webkit-background-clip:text;background-clip:text;color:transparent;" +
-        "filter:drop-shadow(0 2px 5px var(--yg)) drop-shadow(0 0 1px var(--yg))}" +
+        "-webkit-background-clip:text;background-clip:text;color:transparent}" +
+      "#yeBaslik,#yeAd{font-family:var(--ye-baslik)}" +
       "#yeYer{height:150px}" +
-      "#yeStatlar{margin-top:12px;display:flex;flex-direction:column;gap:9px;align-items:center}" +
-      "#yeStatlar .ye-s{display:grid;grid-template-columns:1fr 78px 22px 78px;align-items:center;" +
-        "gap:6px;width:min(82vw,336px);opacity:0}" +
-      "#yeStatlar .ye-ad{text-align:left;font-weight:700;font-size:15px;color:var(--yk);" +
-        "text-shadow:0 1px 1px var(--yp)}" +
-      "#yeStatlar .ye-eski{font-weight:700;font-size:19px;color:#fff;" +
-        "font-variant-numeric:tabular-nums;text-shadow:0 2px 3px var(--yg)}" +
-      "#yeStatlar .ye-ok{font-weight:800;font-size:17px;color:var(--yk)}" +
-      "#yeStatlar .ye-yeni{font-weight:800;font-size:21px;font-variant-numeric:tabular-nums;" +
-        "background:linear-gradient(180deg,#8dffb0 0%,#0d8f3c 100%);" +
-        "-webkit-background-clip:text;background-clip:text;color:transparent;" +
-        "filter:drop-shadow(0 2px 3px rgba(0,50,18,.95)) drop-shadow(0 0 1px rgba(0,50,18,.9))}";
+      "#yeIpucu{position:absolute;left:0;right:0;text-transform:uppercase;" +
+        "bottom:calc(46px + env(safe-area-inset-bottom,0px));text-align:center;" +
+        "font-family:var(--ye-yazi);font-weight:var(--ye-kalin);font-size:12px;" +
+        "letter-spacing:.6px;color:#fff;opacity:0;pointer-events:none}" +
+      "#yeStatlar{margin-top:10px;display:flex;flex-direction:column;gap:6px;align-items:center}" +
+      "#yeStatlar .ye-s{display:grid;grid-template-columns:1fr 54px 16px 54px;align-items:center;" +
+        "gap:5px;width:min(86vw,320px);opacity:0}" +
+      "#yeStatlar .ye-ad{text-align:left;font-size:11px;color:var(--yk)}" +
+      "#yeStatlar .ye-eski{font-size:14px;color:#fff;font-variant-numeric:tabular-nums}" +
+      "#yeStatlar .ye-ok{font-size:13px;color:var(--yk)}" +
+      /* Yeni değer: düz açık yeşil, gölgesiz (Serdar istedi). */
+      "#yeStatlar .ye-yeni{font-size:15px;font-variant-numeric:tabular-nums;color:#7dff9e}";
     document.head.appendChild(st);
   }
 
   function dugumKur() {
     katman = document.createElement("div");
     katman.id = "yeKatman";
+    /* Bungee küçük harfi büyük harf gibi çizer: "için" → "ICIN" olurdu.
+       lang=tr + uppercase ile tarayıcı Türkçe büyütür (i → İ). */
+    katman.lang = "tr";
     katman.innerHTML =
       '<div id="yeZemin"></div><canvas id="yeAkis"></canvas><canvas id="yeSahne"></canvas>' +
       '<div id="yePerde"><div id="yeKutu">' +
         '<div id="yeBaslik">SEVİYE ATLADI</div><div id="yeAd"></div>' +
         '<div id="yeYer"></div><div id="yeStatlar"></div>' +
-      '</div></div><div id="yeFlas"></div>';
+      '</div></div><div id="yeIpucu">Devam etmek için dokun</div><div id="yeFlas"></div>';
     document.body.appendChild(katman);
 
     akisTuval = katman.querySelector("#yeAkis");
@@ -1537,9 +1569,14 @@ window.YILDIZ_EFEKTI = (function () {
     flas      = katman.querySelector("#yeFlas");
     adEl      = katman.querySelector("#yeAd");
     statKap   = katman.querySelector("#yeStatlar");
+    ipucu     = katman.querySelector("#yeIpucu");
 
-    /* Dokununca atlanır. Oyuncu bu ekranı yüzlerce kez görecek. */
-    katman.addEventListener("pointerdown", bitir);
+    /* Dokununca kapanır — gösterinin ortasında da (oyuncu bu ekranı
+       yüzlerce kez görecek). click: başlıktaki nota bak. */
+    katman.addEventListener("click", function (e) {
+      e.stopPropagation();
+      bitir();
+    });
   }
 
   /* ── Ölçü: tek kaynak documentElement ────────────────────────
@@ -1674,7 +1711,7 @@ window.YILDIZ_EFEKTI = (function () {
   /* Kadraj yıldız sayısından: en dıştaki kenara değmesin. */
   function kadrajKur() {
     ARALIK = (gosterilen >= 5) ? 2.15 : 2.35;
-    GORUS_GENISLIK = 2 * (((gosterilen - 1) / 2) * ARALIK + YENI_OLCEK) + 1.2;
+    GORUS_GENISLIK = 2 * (((gosterilen - 1) / 2) * ARALIK + KADRAJ_PAY) + 1.2;
   }
 
   function olcule() {
@@ -1722,6 +1759,7 @@ window.YILDIZ_EFEKTI = (function () {
     const sb = ob + 460;
     for (let i = 0; i < satir.length; i++) STAT_AR.push([sb + i * 90, sb + i * 90 + 250]);
     SON = Math.max(ob + 1240, sb + satir.length * 90 + 360);
+    T.ipucu = [SON, SON + 400];
   }
 
   /* ── Statlar: adı ve formülü burada yazılmaz, kapıdan okunur ── */
@@ -1862,20 +1900,28 @@ window.YILDIZ_EFEKTI = (function () {
       satir[i].style.transform = "translateY(" + ((1 - v) * 10).toFixed(2) + "px)";
     });
 
+    ipucu.style.opacity = (yumusa(aralik(n, T.ipucu)) * 0.9).toFixed(3);
+
+    /* Gösteri SON'da bitmez: son kare dokunulana kadar kalır. */
     ren.render(sah, kam);
-    if (n < SON) requestAnimationFrame(kare); else bitir();
+    requestAnimationFrame(kare);
   }
 
   function oynat(id, eskiSv, yeniSv) {
-    if (typeof THREE === "undefined") return false;   /* sessiz yedek yol yok */
-    if (calisiyor) return false;
+    sonHata = "";
+    if (typeof THREE === "undefined") { sonHata = "THREE yok"; return false; }
+    if (calisiyor) { sonHata = "efekt zaten açık"; return false; }
 
     yeniSv = Math.max(1, Math.min(MAX_SV_EF, Number(yeniSv) || 0));
     eskiSv = Math.max(1, Math.min(MAX_SV_EF, Number(eskiSv) || (yeniSv - 1)));
     if (yeniSv <= eskiSv) return false;
 
     try {
-      if (!kuruldu) { stilKur(); dugumKur(); sahneKur(); kuruldu = true; }
+      /* Kurulum ADIM ADIM: sahne kurulamazsa (WebGL yok) katman bir
+         daha yaratılmaz — eskiden her denemede DOM'a yeni bir
+         #yeKatman ekleniyordu. */
+      if (!katman) { stilKur(); dugumKur(); }
+      if (!halka) sahneKur();            /* halka sahnenin SON adımı */
 
       paletKur((typeof window.kahramanNadirlik === "function")
                  ? window.kahramanNadirlik(id) : "mor");
@@ -1896,12 +1942,18 @@ window.YILDIZ_EFEKTI = (function () {
       YENI.position.y = BASLANGIC_Y;
       kutu.style.opacity = 0;
       flas.style.opacity = 0;
+      ipucu.style.opacity = 0;
+
+      /* SERT KURAL: katmanı açan her yol kalkanı takar. Yükselt
+         düğmesinin kendi dokunuşu yeni katmanı kapatmasın. */
+      if (typeof window.hayaletKalkani === "function") hayaletKalkani(katman);
 
       calisiyor = true; t0 = 0;
       requestAnimationFrame(kare);
       return true;
     } catch (e) {
       calisiyor = false;
+      sonHata = (e && e.message) ? e.message : String(e);
       if (katman) katman.style.display = "none";
       return false;
     }
@@ -1912,5 +1964,73 @@ window.YILDIZ_EFEKTI = (function () {
     akisOlcule(); seritKur(); olcule();
   });
 
-  return { oynat: oynat, kapat: bitir };
+  /* ── ?yildizefekt=1 — OYUN İÇİ DENEME PANELİ (geçici tanı bayrağı,
+     iş bitince SİL) ─────────────────────────────────────────────
+     Efekti parça harcamadan oynatır. Kahraman GERÇEK tablodan
+     seçilir: seçilen nadirlikteki ilk kahraman — ad, renk ve stat
+     satırları oyundakinin aynısı, sahte veri yok.
+     HERO_STATS üst düzey const → window'da YOK (Tuzak 10), çıplak
+     adla okunur. */
+  function denemePaneli() {
+    if (!/[?&]yildizefekt=1\b/.test(location.search)) return;
+    let nad = "mor", sv = 3;
+    const p = document.createElement("div");
+    p.id = "yeDeneme";
+    p.style.cssText = "position:fixed;left:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));" +
+      "z-index:2147482000;padding:8px;border-radius:12px;background:rgba(12,52,98,.92);" +
+      "box-shadow:0 2px 6px rgba(0,20,45,.3);font-family:'Baloo 2',system-ui,sans-serif;" +
+      "color:#eaf6ff;font-size:12px;display:grid;gap:6px;width:190px";
+    const dugme = "border:1px solid rgba(190,240,255,.20);border-radius:8px;padding:4px 0;" +
+      "background:rgba(255,255,255,.08);color:#eaf6ff;font:700 12px 'Baloo 2',sans-serif;flex:1";
+    p.innerHTML =
+      '<div style="display:flex;gap:4px" data-g="nad">' +
+        '<button data-v="mor" style="' + dugme + '">Mor</button>' +
+        '<button data-v="ssr" style="' + dugme + '">Turuncu</button></div>' +
+      '<div style="display:flex;gap:4px" data-g="sv">' +
+        [2, 3, 4, 5].map(function (n) { return '<button data-v="' + n + '" style="' + dugme + '">' + n + '</button>'; }).join("") +
+      '</div>' +
+      '<button data-oynat style="' + dugme + ';padding:6px 0;border:none;' +
+        'background:linear-gradient(180deg,#ff9d3c,#ef6f14);color:#fff">Efekti oynat</button>' +
+      '<div data-tani style="font-size:11px;opacity:.85;min-height:14px"></div>';
+    document.body.appendChild(p);
+
+    function isaretle() {
+      p.querySelectorAll("[data-g] button").forEach(function (b) {
+        const g = b.parentNode.getAttribute("data-g");
+        const secili = (g === "nad") ? b.dataset.v === nad : Number(b.dataset.v) === sv;
+        b.style.background = secili ? "rgba(233,246,255,.95)" : "rgba(255,255,255,.08)";
+        b.style.color = secili ? "#134a86" : "#eaf6ff";
+      });
+    }
+    function kahramanBul() {
+      if (typeof HERO_STATS === "undefined") return null;
+      const idler = Object.keys(HERO_STATS);
+      const f = window.kahramanNadirlik;
+      for (let i = 0; i < idler.length; i++) {
+        if (typeof f === "function" && f(idler[i]) === nad) return idler[i];
+      }
+      return null;
+    }
+    p.addEventListener("click", function (e) {
+      const b = e.target.closest("button"); if (!b) return;
+      e.stopPropagation();
+      const tani = p.querySelector("[data-tani]");
+      if (b.hasAttribute("data-oynat")) {
+        const id = kahramanBul();
+        if (!id) { tani.textContent = "Bu nadirlikte kahraman yok"; return; }
+        const ok = oynat(id, sv - 1, sv);
+        tani.textContent = ok ? "" : ("Açılamadı: " + (sonHata || "bilinmiyor"));
+        return;
+      }
+      const g = b.parentNode.getAttribute("data-g");
+      if (g === "nad") nad = b.dataset.v; else sv = Number(b.dataset.v);
+      isaretle();
+    });
+    isaretle();
+  }
+  if (document.readyState === "loading") addEventListener("DOMContentLoaded", denemePaneli);
+  else denemePaneli();
+
+  return { oynat: oynat, kapat: bitir, acik: function () { return calisiyor; },
+           hata: function () { return sonHata; } };
 })();
