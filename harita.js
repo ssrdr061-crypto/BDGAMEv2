@@ -144,7 +144,7 @@
        zemin sınırı piksel cinsinden hesaplıyor (chunkUretBoya'da
        "BİYOM SINIRI, PİKSEL CİNSİNDEN"). 2-6 = keskin, kenarı
        tırtıksız · 30+ = yumuşak geçiş. */
-    sinirYumusak: 13,   /* panelde ayarlandı (?zeminayar=1), dosyaya sabitlendi */
+    sinirYumusak: 0.5,  /* panelde ayarlandı (?zeminayar=2), dosyaya sabitlendi */
 
     /* ── SERPME GEÇİŞ (benekler) ──
        Sınır çizgisi renk karıştırarak değil, biyom DEĞERİNİ ince
@@ -171,7 +171,7 @@
          0'da sınır cetvelle çekilmiş gibi dümdüz oluyor (sinirDalgasi
          çok iri dalga). 0.012 sınırı kesin bırakıp kenarını hafif
          kırıyor. ?zeminayar=1 → "Sınır pürüzü" ile canlı ayarlanır. */
-      genislik: 0.058,
+      genislik: 0.027,
       kaba: 0.30, orta: 0.80, ince: 1.70,
       pay: [0.45, 0.34, 0.21],
     },
@@ -319,23 +319,27 @@
        NOT: acik iken çimen de bu yoldan boyanır, yani harita çimeni
        artık kaleiçi zeminiyle (kaleici.js) birebir aynı değil.
        ?zeminayar=1 panelinden canlı ayarlanır. */
-    /* TELEFONDA ÖLÇÜLDÜ (?zeminayar=1 → KOPYALA, 18 Eyl):
-       esik1 = esik2 → orta ton kullanılmıyor, zemin İKİ tondan
-       oluşuyor. kabarti 0 → kenar parlaması/gölgesi kapalı; bu
-       yüzden isikAci ve kaydir şu an HİÇBİR ŞEY yapmıyor, kabartı
-       yeniden açılırsa devreye girer. Yumuşaklık icTon (0.58) ile
-       ton içi fırça geçişinden geliyor. */
+    /* TELEFONDA ÖLÇÜLDÜ (?zeminayar=2 → KOPYALA):
+       esik1 (0.13) < esik2 (0.27) → zemin artık ÜÇ tondan oluşuyor
+       (alt/orta/üst), önceki ayarda esik1 = esik2 olduğu için orta
+       ton hiç kullanılmıyordu.
+       kabarti 0.27 → kenar parlaması/gölgesi AÇIK; dolayısıyla
+       isikAci (0) ve kaydir (0.1) artık gerçekten iş yapıyor.
+       icTon 0.80 → ton içi fırça geçişi en yumuşak ucunda.
+       Bölge ayarlarında keskinlik 8: ton kenarı `yum`un sekizde
+       birine iniyor, yani kenarlar çok keskin — yumuşaklık artık
+       kenardan değil icTon'dan geliyor. */
     boya: {
       acik:    true,
-      siklik:  0.101,   /* yığın boyu: küçük = iri yığın            */
-      ayrinti: 0.14,    /* ikinci katmanın payı: kenar kıvrımı      */
-      esik1:   0.30,    /* alt → orta tona geçiş                    */
-      esik2:   0.30,    /* orta → üst tona geçiş                    */
-      yum:     0.070,   /* kenar yumuşaklığı                        */
-      kabarti: 0.00,    /* kenar parlaması / gölgesi gücü           */
-      isikAci: 109,     /* ışığın geldiği yön, ızgara açısı         */
-      kaydir:  0.2,     /* kabartı kaydırması, karo                 */
-      icTon:   0.58,    /* ton içi fırça geçişi                     */
+      siklik:  0.099,   /* yığın boyu: küçük = iri yığın            */
+      ayrinti: 0.37,    /* ikinci katmanın payı: kenar kıvrımı      */
+      esik1:   0.13,    /* alt → orta tona geçiş                    */
+      esik2:   0.27,    /* orta → üst tona geçiş                    */
+      yum:     0.073,   /* kenar yumuşaklığı                        */
+      kabarti: 0.27,    /* kenar parlaması / gölgesi gücü           */
+      isikAci: 0,       /* ışığın geldiği yön, ızgara açısı         */
+      kaydir:  0.1,     /* kabartı kaydırması, karo                 */
+      icTon:   0.80,    /* ton içi fırça geçişi                     */
       /* Piksel döngüsünün çözünürlüğü (0.3-1). 1 = parçanın tam
          çözünürlüğü; düşürmek hızlandırır, kenarları yumuşatır. */
       kalite:  1,
@@ -347,9 +351,9 @@
          kontrast: 1 = dokunma.
          Renk ayarları piksele değil PALETE uygulanır (maliyetsiz). */
       bolge: {
-        kar:   { keskinlik: 1, doygunluk: 1, canlilik: 0, parlaklik: 0, kontrast: 1 },
-        cimen: { keskinlik: 1, doygunluk: 1, canlilik: 0, parlaklik: 0, kontrast: 1 },
-        lav:   { keskinlik: 1, doygunluk: 1, canlilik: 0, parlaklik: 0, kontrast: 1 },
+        kar:   { keskinlik: 8, doygunluk: 1.47, canlilik:  0.41, parlaklik:  0.16, kontrast: 0.77 },
+        cimen: { keskinlik: 8, doygunluk: 1.10, canlilik: -0.20, parlaklik: -0.23, kontrast: 0.97 },
+        lav:   { keskinlik: 8, doygunluk: 1.39, canlilik: -0.43, parlaklik: -0.24, kontrast: 0.88 },
       },
       /* Palet: [gölge, alt, orta, üst, parlak] — RGB.
          Kar paleti referans AI görselinden örneklendi, biraz daha
@@ -594,7 +598,7 @@
          (~150 ms masaüstü), 3'te ~%60 daha uzun. Yavaşsa 2'ye çek.
        carpan: gereken yoğunluğun çarpanı (1 = ekran pikseline eşit).
        ?zeminayar=2 → "Genel" sekmesinden canlı. */
-    zeminHD: { tavan: 2.5, carpan: 1 },
+    zeminHD: { tavan: 3, carpan: 1 },
 
     /* Eski düz-renk yedeği. Zemin artık zeminRenk'ten boyandığı için
        KULLANILMIYOR; düğüm/kale kodu okuyor olabilir diye duruyor. */
