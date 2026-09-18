@@ -379,7 +379,7 @@
        yükseliyor" diye okuyacağı geniş bir eğim hiç yok.
 
        NE YAPAR: yığın deseninden BAĞIMSIZ, ÇOK DÜŞÜK frekanslı ikinci
-       bir yükseklik alanı üretir (bir dalga boyu ~70 karo) ve zemini
+       bir yükseklik alanı üretir (bir dalga boyu ~26 karo) ve zemini
        bu alanın EĞİMİNE göre aydınlatır. Işığa bakan geniş yamaçlar
        açılır, arka yüzler koyulaşır. Yığınlar yerinde kalır, üstlerine
        harita ölçeğinde bir ışık biner — 3B hissi buradan gelir.
@@ -400,21 +400,29 @@
        çözünürlükte pişirilir). Alan çok düşük frekanslı olduğu için
        alçak çözünürlükte örneklemek kayıpsız — FV ile aynı gerekçe.
 
+       TELEFONDA ÖLÇÜLDÜ (?zeminayar=3 → KOPYALA): kaydir 1 karoya
+       indirildi, yani yamaç gölgesi (guc) neredeyse kapalı; görünen
+       kabartmanın büyük kısmı artık KAPALI ALAN'dan (ao 0.39)
+       geliyor — tepeler açık, çukurlar koyu. Yönlü ışık şu an ince
+       bir kenar vurgusu. Yamaç gölgesini geri istersen önce kaydir'i
+       büyüt (6-18), guc'u sonra ayarla; kaydir küçükken guc'u
+       yükseltmek yalnız gürültüyü sertleştirir.
+
        ?zeminayar=3 → kendi panelinden canlı ayarlanır. */
     rolyef: {
       acik:    true,
-      siklik:  0.014,  /* dalga boyu: küçük sayı = geniş tepeler      */
-      ayrinti: 0.35,   /* ikinci katmanın payı: yamaçların kıvrımı    */
-      isikAci: 35,     /* IŞIK YÖNÜ — EKRAN açısı, ızgara değil.
+      siklik:  0.038,  /* dalga boyu: küçük sayı = geniş tepeler      */
+      ayrinti: 0.27,   /* ikinci katmanın payı: yamaçların kıvrımı    */
+      isikAci: 337,    /* IŞIK YÖNÜ — EKRAN açısı, ızgara değil.
                           0 = sağdan, 90 = yukarıdan. boya.isikAci
                           ızgara açısıdır, ikisi aynı sayı değildir. */
-      kaydir:  18,     /* eğim ölçüm mesafesi, karo                   */
-      guc:     1.30,   /* yamaç ışığı/gölgesi şiddeti                 */
-      ao:      0.25,   /* çukurları karart, tepeleri aç (kapalı alan) */
+      kaydir:  1,      /* eğim ölçüm mesafesi, karo                   */
+      guc:     0.71,   /* yamaç ışığı/gölgesi şiddeti                 */
+      ao:      0.39,   /* çukurları karart, tepeleri aç (kapalı alan) */
       tavan:   0.35,   /* en çok ±%35 parlaklık oynaması — GÜVENLİK
                           FRENİ. Bu ayarlarda 141x141'in tamamında bir
                           kez bile dayanmıyor (ölçüldü); tepe değerler
-                          0.79..1.27 çarpanında kalıyor. Yalnız guc
+                          0.84..1.16 çarpanında kalıyor. Yalnız guc
                           veya ao panelden çok yükseltilirse devreye
                           girer ve rengin patlamasını engeller. */
     },
