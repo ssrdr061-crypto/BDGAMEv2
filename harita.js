@@ -144,7 +144,7 @@
        zemin sınırı piksel cinsinden hesaplıyor (chunkUretBoya'da
        "BİYOM SINIRI, PİKSEL CİNSİNDEN"). 2-6 = keskin, kenarı
        tırtıksız · 30+ = yumuşak geçiş. */
-    sinirYumusak: 0.5,  /* panelde ayarlandı (?zeminayar=2), dosyaya sabitlendi */
+    sinirYumusak: 2,    /* panelde ayarlandı (?zeminayar=2), dosyaya sabitlendi */
 
     /* ── SERPME GEÇİŞ (benekler) ──
        Sınır çizgisi renk karıştırarak değil, biyom DEĞERİNİ ince
@@ -171,7 +171,7 @@
          0'da sınır cetvelle çekilmiş gibi dümdüz oluyor (sinirDalgasi
          çok iri dalga). 0.012 sınırı kesin bırakıp kenarını hafif
          kırıyor. ?zeminayar=1 → "Sınır pürüzü" ile canlı ayarlanır. */
-      genislik: 0.027,
+      genislik: 0.046,
       kaba: 0.30, orta: 0.80, ince: 1.70,
       pay: [0.45, 0.34, 0.21],
     },
@@ -320,7 +320,7 @@
        artık kaleiçi zeminiyle (kaleici.js) birebir aynı değil.
        ?zeminayar=1 panelinden canlı ayarlanır. */
     /* TELEFONDA ÖLÇÜLDÜ (?zeminayar=2 → KOPYALA):
-       esik1 (0.13) < esik2 (0.27) → zemin artık ÜÇ tondan oluşuyor
+       esik1 (0.10) < esik2 (0.34) → zemin artık ÜÇ tondan oluşuyor
        (alt/orta/üst), önceki ayarda esik1 = esik2 olduğu için orta
        ton hiç kullanılmıyordu.
        kabarti 0.27 → kenar parlaması/gölgesi AÇIK; dolayısıyla
@@ -331,10 +331,10 @@
        kenardan değil icTon'dan geliyor. */
     boya: {
       acik:    true,
-      siklik:  0.099,   /* yığın boyu: küçük = iri yığın            */
-      ayrinti: 0.37,    /* ikinci katmanın payı: kenar kıvrımı      */
-      esik1:   0.13,    /* alt → orta tona geçiş                    */
-      esik2:   0.27,    /* orta → üst tona geçiş                    */
+      siklik:  0.090,   /* yığın boyu: küçük = iri yığın            */
+      ayrinti: 0.19,    /* ikinci katmanın payı: kenar kıvrımı      */
+      esik1:   0.10,    /* alt → orta tona geçiş                    */
+      esik2:   0.34,    /* orta → üst tona geçiş                    */
       yum:     0.073,   /* kenar yumuşaklığı                        */
       kabarti: 0.27,    /* kenar parlaması / gölgesi gücü           */
       isikAci: 0,       /* ışığın geldiği yön, ızgara açısı         */
@@ -353,7 +353,7 @@
       bolge: {
         kar:   { keskinlik: 8, doygunluk: 1.47, canlilik:  0.41, parlaklik:  0.16, kontrast: 0.77 },
         cimen: { keskinlik: 8, doygunluk: 1.10, canlilik: -0.20, parlaklik: -0.23, kontrast: 0.97 },
-        lav:   { keskinlik: 8, doygunluk: 1.39, canlilik: -0.43, parlaklik: -0.24, kontrast: 0.88 },
+        lav:   { keskinlik: 8, doygunluk: 1.05, canlilik: -0.50, parlaklik: -0.24, kontrast: 0.88 },
       },
       /* Palet: [gölge, alt, orta, üst, parlak] — RGB.
          Kar paleti referans AI görselinden örneklendi, biraz daha
@@ -362,10 +362,11 @@
         kar:   [[140,146,196],[184,190,226],[206,206,234],[228,224,242],[250,244,250]],
         cimen: [[ 44,104, 52],[ 70,146, 60],[ 92,172, 70],[120,194, 84],[172,222,120]],
         /* Lav: parlak turuncu yerine "bölüm bölüm" bordo ve doygun
-           kırmızı. alt = bordo, orta = koyu kızıl, üst = doygun
-           kırmızı. Parlak kenar turuncuya kaçmasın diye kırmızıda
+           kırmızı. Gölge ve alt ton panelde koyulaştırıldı (neredeyse
+           siyah bordo), böylece lav alanı kar/çimenin yanında daha
+           ağır duruyor. Parlak kenar turuncuya kaçmasın diye kırmızıda
            tutuldu — eskisi (226,128,78) alanı "parlıyor" gösteriyordu. */
-        lav:   [[ 58, 14, 22],[ 98, 22, 32],[138, 26, 32],[174, 32, 32],[198, 62, 54]],
+        lav:   [[ 64,  0,  0],[122,  9,  9],[138, 26, 32],[174, 32, 32],[198, 62, 54]],
       },
     },
 
