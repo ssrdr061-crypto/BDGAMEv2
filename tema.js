@@ -11418,19 +11418,23 @@ document.head.appendChild(st);
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   ZEMİN AYAR PANELİ  —  ?zeminayar=1
+   ZEMİN AYAR PANELİ  —  ?zeminayar=1   (BOYALI ZEMİN)
    ------------------------------------------------------------
    Adres satırına ?zeminayar=1 eklenmedikçe HİÇBİR ŞEY yapmaz.
 
-   Neyi sürer: harita.js CFG'sindeki LAV bölgesi sayıları.
-     · Kırmızı / Yeşil / Mavi → CFG.zeminRenk.lav (taban renk)
-     · Doygunluk              → CFG.doygunluk   (kar + lav ortak)
-     · Leke koyu / Leke açık  → CFG.lekeAyar.lav
-     · Işık                   → CFG.isik        (geniş dalga)
+   Neyi sürer: harita.js CFG.boya (boyalı zemin: yığın boyu,
+   kademe eşikleri, kenar yumuşaklığı, kabartı, ışık yönü) ve
+   biyom sınırı: CFG.serpme.genislik + CFG.gecisBandi.
+   ESKİ/YENİ düğmesi CFG.boya.acik'i çevirir — iki görünümü aynı
+   yerde kıyaslamak için.
+
+   ESKİ PANEL SİLİNDİ (ezme yok, sil): lav rengini ve CFG'de artık
+   olmayan `lekeSiklik`i sürüyordu, varsayılanları da harita.js ile
+   ayrışmıştı (panel açılınca lav rengi zıplıyordu).
 
    NEDEN ÖNBELLEK BOŞALTILIYOR: zemin CHUNK'lar hâlinde BİR KEZ
    boyanıp saklanıyor. Sayıyı değiştirmek yetmez, saklanan
-   parçalar atılmazsa ekranda eski renk durur.
+   parçalar atılmazsa ekranda eski görünüm durur.
 
    KOPYALA, harita.js'e yapıştırılacak satırları yazar. İş bitince
    sayılar dosyaya sabitlenir ve BU BLOK SİLİNİR.
@@ -11440,21 +11444,30 @@ document.head.appendChild(st);
 
 if (!/[?&]zeminayar=1(&|$)/.test(location.search)) return;
 
-/* Anahtar 1 → 2: sıklık sürgüsü eklendi ve varsayılanlar değişti.
-   Eski anahtar kalsaydı telefonda kayıtlı eski (sonuna kadar açık)
-   sayılar geri yüklenip yeni varsayılanları ezerdi. */
-var ANAHTAR = "bdZeminAyar2";
+/* Yeni anahtar: eski panelin kayıtları (bdZeminAyar2) bu panele
+   karışmasın. */
+var ANAHTAR = "bdZeminBoya1";
 
-/* Varsayılanlar harita.js'teki YENİ değerlerle birebir aynı olmalı;
-   panel açılınca ekran değişmesin diye. */
-var VARSAYILAN = {
-  lavR: 162, lavG: 96, lavB: 84,
-  doygunluk: 110,   /* yüzde, /100 uygulanır */
-  lekeKoyu: 30,
-  lekeAcik: 20,
-  isik: 32,
-  siklik: 100      /* yüzde; 100 = CFG.lekeSiklik 1.0 */
-};
+/* Tam sayı birimleri; bolen ile CFG'ye çevrilir. Varsayılanlar
+   harita.js CFG.boya ile BİREBİR aynı olmalı — yoksa panel
+   açılınca zemin zıplar. */
+var SURGU = [
+  { ad: "siklik",  etiket: "Yığın sıklığı",   alt: 30, ust: 300, bolen: 1000, v: 100 },
+  { ad: "ayrinti", etiket: "Kenar kıvrımı",   alt: 0,  ust: 70,  bolen: 100,  v: 30  },
+  { ad: "esik1",   etiket: "Koyu alan (eşik 1)", alt: 10, ust: 80, bolen: 100, v: 36 },
+  { ad: "esik2",   etiket: "Açık alan (eşik 2)", alt: 20, ust: 90, bolen: 100, v: 55 },
+  { ad: "yum",     etiket: "Kenar yumuşaklığı", alt: 5, ust: 200, bolen: 1000, v: 45  },
+  { ad: "kabarti", etiket: "Kabartı",         alt: 0,  ust: 150, bolen: 100,  v: 55  },
+  { ad: "isikAci", etiket: "Işık yönü (°)",   alt: 0,  ust: 359, bolen: 1,    v: 225 },
+  { ad: "kaydir",  etiket: "Kabartı eni",     alt: 2,  ust: 30,  bolen: 10,   v: 9   },
+  { ad: "icTon",   etiket: "Fırça geçişi",    alt: 0,  ust: 60,  bolen: 100,  v: 18  },
+  /* Biyom sınırı — CFG.boya'da DEĞİL, hedef alanıyla ayrılıyor */
+  { ad: "serpme",  etiket: "Sınır pürüzü",    alt: 0,  ust: 80,  bolen: 1000, v: 12, hedef: "serpme" },
+  { ad: "gecis",   etiket: "Sınır yumuşaklığı", alt: 1, ust: 20, bolen: 1000, v: 2,  hedef: "gecis"  }
+];
+
+var VARSAYILAN = { acik: 1 };
+SURGU.forEach(function (s) { VARSAYILAN[s.ad] = s.v; });
 
 var A = Object.assign({}, VARSAYILAN);
 try {
@@ -11463,21 +11476,23 @@ try {
 } catch (e) {}
 
 function cfg(){
-  return (window.HARITA && HARITA.CFG) ? HARITA.CFG : null;
+  return (window.HARITA && HARITA.CFG && HARITA.CFG.boya) ? HARITA.CFG : null;
 }
 
 function uygula(tazele){
   var C = cfg();
   if (!C) return;
+  var B = C.boya;
+  SURGU.forEach(function (s) {
+    var d = A[s.ad] / s.bolen;
+    if (s.hedef === "serpme")     { if (C.serpme) C.serpme.genislik = d; }
+    else if (s.hedef === "gecis") C.gecisBandi = d;
+    else B[s.ad] = d;
+  });
+  B.acik = !!A.acik;
 
-  C.zeminRenk.lav = [A.lavR, A.lavG, A.lavB];
-  C.doygunluk     = A.doygunluk / 100;
-  C.lekeAyar.lav  = { koyu: A.lekeKoyu / 100, acik: A.lekeAcik / 100 };
-  C.isik          = A.isik / 100;
-  C.lekeSiklik    = A.siklik / 100;
-
-  var ku = document.getElementById("zaKutu");
-  if (ku) ku.style.background = "rgb(" + A.lavR + "," + A.lavG + "," + A.lavB + ")";
+  var dg = document.getElementById("zaAcik");
+  if (dg) dg.textContent = A.acik ? "YENİ ✔" : "ESKİ";
 
   try { localStorage.setItem(ANAHTAR, JSON.stringify(A)); } catch (e) {}
 
@@ -11487,28 +11502,14 @@ function uygula(tazele){
   }
 }
 
-var SURGU = [
-  { ad: "lavR",      etiket: "Kırmızı",    alt: 0,  ust: 255 },
-  { ad: "lavG",      etiket: "Yeşil",      alt: 0,  ust: 255 },
-  { ad: "lavB",      etiket: "Mavi",       alt: 0,  ust: 255 },
-  { ad: "doygunluk", etiket: "Doygunluk",  alt: 50, ust: 160 },
-  { ad: "lekeKoyu",  etiket: "Leke koyu",  alt: 0,  ust: 70  },
-  { ad: "lekeAcik",  etiket: "Leke açık",  alt: 0,  ust: 70  },
-  { ad: "isik",      etiket: "Işık",       alt: 0,  ust: 70  },
-  /* Deseni sıklaştırır. Asıl işe yarayan sürgü bu — güç sürgüleri
-     sıklık düşükken ekranı bütün olarak koyultup açmaktan başka
-     bir şey yapmıyor. */
-  { ad: "siklik",    etiket: "Leke sıklığı", alt: 50, ust: 400 }
-];
-
 function kopyaMetni(){
-  return "harita.js CFG:\n" +
-    "lav:   [" + A.lavR + ", " + A.lavG + ", " + A.lavB + "],\n" +
-    "doygunluk: " + (A.doygunluk / 100).toFixed(2) + ",\n" +
-    "lav:   { koyu: " + (A.lekeKoyu / 100).toFixed(2) +
-      ", acik: " + (A.lekeAcik / 100).toFixed(2) + " },\n" +
-    "isik: " + (A.isik / 100).toFixed(2) + ",\n" +
-    "lekeSiklik: " + (A.siklik / 100).toFixed(2) + ",";
+  var t = "harita.js CFG.boya:\n";
+  SURGU.forEach(function (s) {
+    var d = A[s.ad] / s.bolen;
+    var ad = s.hedef === "serpme" ? "serpme.genislik" : s.hedef === "gecis" ? "gecisBandi" : s.ad;
+    t += ad + ": " + (s.bolen === 1 ? d : d.toFixed(s.bolen >= 1000 ? 3 : 2)) + ",\n";
+  });
+  return t;
 }
 
 function ciz(){
@@ -11518,10 +11519,9 @@ function ciz(){
     "#zaPanel{position:fixed;left:8px;top:120px;z-index:99999;width:210px;" +
      "font-family:'Baloo 2',system-ui,sans-serif;color:#e8f4ff;" +
      "background:rgba(10,22,40,.94);border-radius:10px;padding:8px 10px 10px;" +
-     "box-shadow:0 2px 6px rgba(0,20,45,.3);}" +
+     "box-shadow:0 2px 6px rgba(0,20,45,.3);max-height:calc(100vh - 140px);overflow-y:auto;}" +
     "#zaPanel .zaBas{display:flex;align-items:center;gap:6px;font-weight:700;" +
      "font-size:13px;margin-bottom:6px;touch-action:none;}" +
-    "#zaKutu{width:18px;height:18px;border-radius:4px;flex:0 0 18px;}" +
     "#zaPanel .zaSat{margin-bottom:5px;}" +
     "#zaPanel .zaEt{font-weight:700;font-size:11px;color:#e8f4ff;" +
      "display:flex;justify-content:space-between;}" +
@@ -11529,7 +11529,7 @@ function ciz(){
     "#zaPanel input[type=range]{width:100%;margin:0;}" +
     "#zaPanel button{font-family:inherit;font-weight:700;font-size:12px;" +
      "color:#e8f4ff;background:rgba(255,255,255,.12);border:none;" +
-     "border-radius:6px;padding:5px 8px;margin-right:5px;}" +
+     "border-radius:6px;padding:5px 8px;margin:0 5px 4px 0;}" +
     "#zaPanel button:active{transform:scale(.96);filter:brightness(.93);}" +
     "#zaMetin{font-size:10px;white-space:pre-wrap;margin-top:6px;" +
      "color:#bcd6f2;line-height:1.35;}";
@@ -11538,9 +11538,10 @@ function ciz(){
   var p = document.createElement("div");
   p.id = "zaPanel";
 
-  var html = "<div class='zaBas' id='zaTut'><span id='zaKutu'></span>" +
+  var html = "<div class='zaBas' id='zaTut'>" +
              "<span>ZEMİN</span><span style='flex:1'></span>" +
-             "<span id='zaTopla'>▾</span></div><div id='zaGovde'>";
+             "<span id='zaTopla'>▾</span></div><div id='zaGovde'>" +
+             "<button id='zaAcik'></button>";
   for (var i = 0; i < SURGU.length; i++) {
     var s = SURGU[i];
     html += "<div class='zaSat'><div class='zaEt'><span>" + s.etiket +
@@ -11561,6 +11562,11 @@ function ciz(){
       document.getElementById("zaD-" + s.ad).textContent = A[s.ad];
       uygula();
     });
+  });
+
+  document.getElementById("zaAcik").addEventListener("click", function () {
+    A.acik = A.acik ? 0 : 1;
+    uygula();
   });
 
   document.getElementById("zaKopya").addEventListener("click", function () {

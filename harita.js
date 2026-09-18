@@ -133,7 +133,10 @@
        arazi değil, çimenin üstüne atılmış GÖLGE diye okur). Geçiş
        bunun yerine `serpme` ile yapılıyor; buradaki değer sadece her
        beneğin kenarını tırtıklı bırakmayacak kadar (~2 karo). */
-    gecisBandi: 0.007,
+    /* 0.007 → 0.002: geçişler "kesin" istendi. Bu bant iki biyomun
+       rengini ORTALIYOR; dar tutulunca sınır tek bir yumuşak çizgiye
+       iner (zemin 10 px'te bir örneklendiği için yine de pürüzsüz). */
+    gecisBandi: 0.002,
 
     /* ── SERPME GEÇİŞ (benekler) ──
        Sınır çizgisi renk karıştırarak değil, biyom DEĞERİNİ ince
@@ -155,7 +158,12 @@
          bulanıklaşıp yine gri bir pusa döner.
        pay: üç katmanın ağırlığı, toplamı 1 olmalı. */
     serpme: {
-      genislik: 0.055,
+      /* 0.055 → 0.012: ÖLÇÜLEREK. 0.055'te sınır ~15 karoluk bir
+         benek bandına dağılıyordu, geçiş "belirsiz" görünüyordu.
+         0'da sınır cetvelle çekilmiş gibi dümdüz oluyor (sinirDalgasi
+         çok iri dalga). 0.012 sınırı kesin bırakıp kenarını hafif
+         kırıyor. ?zeminayar=1 → "Sınır pürüzü" ile canlı ayarlanır. */
+      genislik: 0.012,
       kaba: 0.30, orta: 0.80, ince: 1.70,
       pay: [0.45, 0.34, 0.21],
     },
@@ -275,6 +283,58 @@
 
     /* Geniş yumuşak ışık/gölge dalgası. 0 = kapalı. */
     isik: 0.32,
+
+    /* ═══════════════════════════════════════════════════════════════
+       BOYALI ZEMİN — referans oyundaki "elle boyanmış kar" görünümü
+       ---------------------------------------------------------------
+       NEDEN: eski yol (ışık + leke) sürekli bir gürültüyü renge
+       çeviriyordu; sonuç her yerde biraz koyu, biraz açık bir
+       "duman"dı. Referansta ise zemin BİRKAÇ DÜZ TONDAN oluşur:
+       büyük, yumuşak kenarlı yığınlar üst üste biner ve her yığının
+       ışığa bakan kenarı parlar, arkası hafif gölgelenir. Göz bunu
+       "kar yığını" diye okur.
+
+       NASIL:
+         1. Yükseklik alanı: tek düşük frekanslı gürültü.
+         2. Kademe: iki eşikte yumuşak smoothstep → 3 düz ton
+            (alt / orta / üst). `yum` kenarın ne kadar yumuşak olduğu.
+         3. Kabartı: aynı alan ışık yönünde biraz kaydırılıp
+            çıkarılır → yığının bir kenarı parlar, öbürü gölgelenir.
+            Görsel dosya yok, dikiş yok, her cihazda birebir aynı.
+         4. İç ton: ton içinde çok hafif geçiş (fırça hissi).
+
+       ALAN TÜM BİYOMLARDA ORTAK, yalnız PALET değişir. Böylece
+       kar↔çimen↔lav sınırında yığınlar kesilmeden devam eder.
+
+       GERİ DÖNÜŞ TEK SATIR: acik:false → eski ışık+leke yoluna döner
+       (o kod silinmedi, aşağıda duruyor).
+       NOT: acik iken çimen de bu yoldan boyanır, yani harita çimeni
+       artık kaleiçi zeminiyle (kaleici.js) birebir aynı değil.
+       ?zeminayar=1 panelinden canlı ayarlanır. */
+    boya: {
+      acik:    true,
+      siklik:  0.10,    /* yığın boyu: küçük = iri yığın            */
+      ayrinti: 0.30,    /* ikinci katmanın payı: kenar kıvrımı      */
+      esik1:   0.36,    /* alt → orta tona geçiş                    */
+      esik2:   0.55,    /* orta → üst tona geçiş                    */
+      yum:     0.045,   /* kenar yumuşaklığı                        */
+      kabarti: 0.55,    /* kenar parlaması / gölgesi gücü           */
+      isikAci: 225,     /* ışığın geldiği yön, ızgara açısı         */
+      kaydir:  0.9,     /* kabartı kaydırması, karo                 */
+      icTon:   0.18,    /* ton içi fırça geçişi                     */
+      /* Palet: [gölge, alt, orta, üst, parlak] — RGB.
+         Kar paleti referans AI görselinden örneklendi, biraz daha
+         doyurularak (lila/sıcak). */
+      palet: {
+        kar:   [[140,146,196],[184,190,226],[206,206,234],[228,224,242],[250,244,250]],
+        cimen: [[ 44,104, 52],[ 70,146, 60],[ 92,172, 70],[120,194, 84],[172,222,120]],
+        /* Lav: parlak turuncu yerine "bölüm bölüm" bordo ve doygun
+           kırmızı. alt = bordo, orta = koyu kızıl, üst = doygun
+           kırmızı. Parlak kenar turuncuya kaçmasın diye kırmızıda
+           tutuldu — eskisi (226,128,78) alanı "parlıyor" gösteriyordu. */
+        lav:   [[ 58, 14, 22],[ 98, 22, 32],[138, 26, 32],[174, 32, 32],[198, 62, 54]],
+      },
+    },
 
     /* ═══════════════════════════════════════════════════════════════
        ATMOSFER — sahnenin ORTAK IŞIĞI
@@ -978,12 +1038,76 @@
     return c;
   }
 
+  /* ── BOYALI ZEMİN ──────────────────────────────────────────────────
+     Ayrıntı ve neden: CFG.boya'nın başında. Yükseklik alanı biyomdan
+     BAĞIMSIZ (tek hesap), palet biyom ağırlığıyla karışır — sınır
+     bandında yığınlar kesilmez, yalnız renkleri kayar. */
+  function kademe(a, b, x) {
+    if (x <= a) return 0;
+    if (x >= b) return 1;
+    const t = (x - a) / (b - a);
+    return t * t * (3 - 2 * t);
+  }
+
+  function boyaAlan(gx, gy) {
+    const B = CFG.boya, f = B.siklik;
+    const e = lekeEkseni(gx, gy, 1);
+    const n = smoothNoise(e.u * f + 151,       e.v * f + 307)       * (1 - B.ayrinti)
+            + smoothNoise(e.u * f * 2.7 + 19,  e.v * f * 2.7 + 83)  * B.ayrinti;
+    const t1 = kademe(B.esik1 - B.yum, B.esik1 + B.yum, n);
+    const t2 = kademe(B.esik2 - B.yum, B.esik2 + B.yum, n);
+    return { n, t1, t2, h: (t1 + t2) * 0.5 };
+  }
+
+  let _bAci = null, _bDx = 0, _bDy = 0;
+  function boyaRenk(gx, gy, w) {
+    const B = CFG.boya, P = B.palet;
+
+    /* Palet bir kez karışır, sonra tek palet üzerinden boyanır */
+    const pal = [];
+    for (let i = 0; i < 5; i++) {
+      pal.push([
+        P.kar[i][0] * w[0] + P.cimen[i][0] * w[1] + P.lav[i][0] * w[2],
+        P.kar[i][1] * w[0] + P.cimen[i][1] * w[1] + P.lav[i][1] * w[2],
+        P.kar[i][2] * w[0] + P.cimen[i][2] * w[1] + P.lav[i][2] * w[2],
+      ]);
+    }
+
+    const a = boyaAlan(gx, gy);
+    let c = renkKaris(pal[1], pal[2], a.t1);
+    c = renkKaris(c, pal[3], a.t2);
+
+    /* İç ton: aynı düz tonun içinde çok hafif fırça geçişi */
+    if (B.icTon > 0) {
+      const it = (a.n - 0.5) * 2 * B.icTon;
+      c = it > 0 ? renkKaris(c, pal[4], Math.min(1, it))
+                 : renkKaris(c, pal[0], Math.min(1, -it));
+    }
+
+    /* Kabartı: alanı ışık yönünde kaydırıp farkını al */
+    if (B.kabarti > 0) {
+      if (_bAci !== B.isikAci) {
+        _bAci = B.isikAci;
+        const r = _bAci * Math.PI / 180;
+        _bDx = Math.cos(r); _bDy = Math.sin(r);
+      }
+      const b2 = boyaAlan(gx + _bDx * B.kaydir, gy + _bDy * B.kaydir);
+      const k = (a.h - b2.h) * 2 * B.kabarti;
+      if (k > 0)      c = renkKaris(c, pal[4], Math.min(1, k));
+      else if (k < 0) c = renkKaris(c, pal[0], Math.min(1, -k));
+    }
+    return c;
+  }
+
   function zeminRengi(gx, gy) {
     const R = CFG.zeminRenk, A = CFG.lekeAyar;
     /* Serpme YALNIZ boyamada. biyom()/biyomKarisim() ham değeri
        okumaya devam eder — kale/düğüm arazisi kaymasın. */
     const v = biyomDeger(gx, gy) + serpmeSapma(gx, gy);
     const w = biyomAgirlik(v);
+
+    /* Boyalı zemin açıksa eski ışık+leke yolu hiç çalışmaz */
+    if (CFG.boya && CFG.boya.acik) return boyaRenk(gx, gy, w);
 
     /* Saf çimen: kar/lav hesabına hiç girme */
     if (w[1] >= 0.999) return cimenKaleRengi(gx, gy);
