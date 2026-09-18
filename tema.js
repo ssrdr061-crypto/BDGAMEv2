@@ -11713,7 +11713,17 @@ var GENEL = [
   ["sinirYumusak",  "Sınır yumuşaklığı (px)", 0.5,  80,   0.5  ],
   ["zeminHD.tavan", "Çözünürlük tavanı",      1,    3,    0.5  ],
   ["boya.kalite",   "Çizim kalitesi",         0.3,  1,    0.05 ],
-  ["zeminAdim",     "Alan örnek adımı (px)",  6,    16,   1    ]
+  ["zeminAdim",     "Alan örnek adımı (px)",  6,    16,   1    ],
+  /* ── RÖLYEF (harita.js CFG.rolyef) ──
+     Yığın deseninden bağımsız, çok geniş yükseklik alanı ve ona
+     vuran yönlü ışık. "guc" 0 yapılırsa rölyef tamamen kapanır. */
+  ["rolyef.guc",     "Rölyef ışığı",          0,     1.5,  0.01 ],
+  ["rolyef.ao",      "Çukur karartma",        0,     1,    0.01 ],
+  ["rolyef.isikAci", "Rölyef ışık yönü (°)",  0,     359,  1    ],
+  ["rolyef.siklik",  "Tepe genişliği",        0.002, 0.06, 0.001],
+  ["rolyef.ayrinti", "Yamaç kıvrımı",         0,     0.70, 0.01 ],
+  ["rolyef.kaydir",  "Eğim ölçüsü (karo)",    1,     20,   0.5  ],
+  ["rolyef.tavan",   "Rölyef tavanı",         0.05,  0.80, 0.01 ]
 ];
 var BOLGE_AYAR = [
   ["keskinlik", "Ton keskinliği",       0.3, 8,   0.1 ],
@@ -11739,7 +11749,9 @@ var VARSAYILAN = null, D = null, sekme = "genel", zam = null;
 function durumAl(c){
   return { boya: kopya(c.boya), serpme: { genislik: c.serpme.genislik },
            sinirYumusak: c.sinirYumusak, zeminHD: kopya(c.zeminHD || { tavan: 2.5, carpan: 1 }),
-           zeminAdim: c.zeminAdim };
+           zeminAdim: c.zeminAdim,
+           rolyef: kopya(c.rolyef || { acik: true, siklik: 0.012, ayrinti: 0.35,
+                                       isikAci: 35, kaydir: 6, guc: 0, ao: 0, tavan: 0.35 }) };
 }
 
 function uygula(){
@@ -11749,6 +11761,8 @@ function uygula(){
   c.sinirYumusak = D.sinirYumusak;
   c.zeminHD = kopya(D.zeminHD);
   c.zeminAdim = D.zeminAdim;
+  /* c.rolyef eski bir harita.js'te olmayabilir; yoksa kur, varsa birleştir */
+  if (!c.rolyef) c.rolyef = kopya(D.rolyef); else birlestir(c.rolyef, kopya(D.rolyef));
   try { localStorage.setItem(ANAHTAR, JSON.stringify(D)); } catch (e) {}
   /* Sürgü sürüklenirken her adımda yeniden boyamasın: 120 ms bekle */
   clearTimeout(zam);
