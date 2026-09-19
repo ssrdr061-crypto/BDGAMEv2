@@ -11720,7 +11720,20 @@ var GENEL = [
      Eni 900'ü aşamaz; eğim penceresinin dışında bant kesilir ve
      sınırda basamak görünür. */
   ["makroGecis.en",  "Makro geçiş eni (px)",   0,    900,  10   ],
-  ["makroGecis.guc", "Makro geçiş payı",       0,    1,    0.01 ]
+  ["makroGecis.guc", "Makro geçiş payı",       0,    1,    0.01 ],
+  /* ── SINIR KATMANI (harita.js CFG.sinirKatman) ──
+     makroGecis iki biyomun rengini KARIŞTIRIR. Bu ise her biyomun
+     KENDİ kenar rengini değiştirir: çimen kara yaklaşırken kurur
+     (sarımsı → hafif kirli beyaz), lava yaklaşırken kavrulur; lavın
+     kenarı açık bordo başlar. Sınır çizgisi keskin kalır.
+     Renkler dosyadan (harita.js CFG.sinirKatman) değişir, buradaki
+     sürgüler bandın enini ve şiddetini ayarlar. */
+  ["sinirKatman.bant.0",   "KAR/ÇİM katman eni (px)", 0, 900, 10   ],
+  ["sinirKatman.ustGuc.0", "Çim kar'a kururken",      0, 1,   0.01 ],
+  ["sinirKatman.altGuc.0", "Kar çime kirlenirken",    0, 1,   0.01 ],
+  ["sinirKatman.bant.1",   "ÇİM/LAV katman eni (px)", 0, 900, 10   ],
+  ["sinirKatman.altGuc.1", "Çim lava kavrulurken",    0, 1,   0.01 ],
+  ["sinirKatman.ustGuc.1", "Lav kenarı bordo",        0, 1,   0.01 ]
   /* RÖLYEF BURADA DEĞİL: kendi paneli var → ?zeminayar=3. Bu panelde
      de durursa iki panel aynı değerleri birbirine yazar (ikisinin
      kaydı ayrı anahtarlarda), en son açılan öbürünü ezer. */
@@ -11750,7 +11763,12 @@ function durumAl(c){
   return { boya: kopya(c.boya), serpme: { genislik: c.serpme.genislik },
            sinirYumusak: c.sinirYumusak, zeminHD: kopya(c.zeminHD || { tavan: 2.5, carpan: 1 }),
            zeminAdim: c.zeminAdim,
-           makroGecis: kopya(c.makroGecis || { en: 320, guc: 0 }) };
+           makroGecis: kopya(c.makroGecis || { en: 320, guc: 0 }),
+           sinirKatman: kopya(c.sinirKatman || {
+             acik: true, bant: [420, 300],
+             altGuc: [0.28, 0.70], ustGuc: [0.85, 0.55],
+             altRenk: [[[214,214,222],[226,222,214]], [[62,110,50],[84,70,44]]],
+             ustRenk: [[[168,188,88],[208,208,190]], [[130,34,36],[146,58,58]]] }) };
 }
 
 function uygula(){
@@ -11763,6 +11781,9 @@ function uygula(){
   /* c.makroGecis eski bir harita.js'te olmayabilir */
   if (!c.makroGecis) c.makroGecis = kopya(D.makroGecis);
   else birlestir(c.makroGecis, kopya(D.makroGecis));
+  /* c.sinirKatman eski bir harita.js'te olmayabilir */
+  if (!c.sinirKatman) c.sinirKatman = kopya(D.sinirKatman);
+  else birlestir(c.sinirKatman, kopya(D.sinirKatman));
   try { localStorage.setItem(ANAHTAR, JSON.stringify(D)); } catch (e) {}
   /* Sürgü sürüklenirken her adımda yeniden boyamasın: 120 ms bekle */
   clearTimeout(zam);
