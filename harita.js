@@ -418,7 +418,10 @@
 
        ?zeminayar=3 → kendi panelinden canlı ayarlanır. */
     rolyef: {
-      acik:    true,
+      /* KAPALI: geniş yamaç gölgesi zemini dalgalı/mermer damarlı
+         gösteriyordu, istenmedi. Motor duruyor, tek bayrakla geri
+         gelir — ?zeminayar=3 başlığındaki AÇIK/KAPALI düğmesi. */
+      acik:    false,
       siklik:  0.038,  /* dalga boyu: küçük sayı = geniş tepeler      */
       ayrinti: 0.27,   /* ikinci katmanın payı: yamaçların kıvrımı    */
       isikAci: 337,    /* IŞIK YÖNÜ — EKRAN açısı, ızgara değil.
