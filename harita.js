@@ -343,6 +343,35 @@
       /* Piksel döngüsünün çözünürlüğü (0.3-1). 1 = parçanın tam
          çözünürlüğü; düşürmek hızlandırır, kenarları yumuşatır. */
       kalite:  1,
+      /* ── KAT ÇİZGİSİ (KONTUR) ──
+         SORUN: ton kenarları eşikte keskin olsa da icTon her tonun
+         İÇİNE ayrıca sürekli bir degrade bindiriyor; göz o yüzden
+         katları değil tek bir yumuşak yıkama görüyor. Katın nerede
+         bittiği belli olmuyordu.
+
+         NE YAPAR: her eşiğin tam üstüne ince bir çizgi çizer —
+         eşiğin ALTINDA gölge rengine, ÜSTÜNDE parlak renge doğru.
+         Yani bir teras basamağı: altı koyu, üstü ışıklı. Harita
+         konturu gibi okunur, kat sınırı ortaya çıkar.
+
+         KAT: esik1/esik2 yalnız iki çizgi verir. `kat` > 0 ise
+         aralara eşit aralıklı o kadar çizgi daha konur (n ekseninde
+         (i+1)/(kat+1)), yani arazi kat kat teraslanır.
+
+         MALİYETSİZ: hepsi renk tablosunda (LUT) pişiyor, piksel
+         döngüsüne tek bir işlem bile eklemiyor.
+
+         ÇÖZÜNÜRLÜK SINIRI: tablo kabartı açıkken 256 basamak, yani
+         n ekseninde en küçük adım ~0.004. `en` bunun altına inerse
+         çizgi basamaklanır; panelde alt sınır 0.004.
+         ?zeminayar=4 → ÇİZGİ sekmesinden ayarlanır. */
+      hat: {
+        acik:   true,
+        en:     0.020,  /* çizginin yarı kalınlığı, n birimi        */
+        koyu:   0.55,   /* eşiğin ALTINDA gölgeye çekme (0..1)      */
+        parlak: 0.30,   /* eşiğin ÜSTÜNDE parlağa çekme (0..1)      */
+        kat:    0,      /* esik1/esik2 dışında kaç ara çizgi        */
+      },
       /* ── BÖLGE BAŞINA AYAR ──
          keskinlik: ton kenarının keskinliği, `yum`un BÖLENİ
            (1 = genel ayar, 3 = üç kat keskin, 0.5 = iki kat yumuşak).
@@ -1467,6 +1496,19 @@
     const bol = B.bolge || {};
     const E1 = B.esik1, E2 = B.esik2, IC = B.icTon, KB = B.kabarti * 2;
 
+    /* Kat çizgisi eşikleri: iki ton eşiği + `kat` kadar eşit aralıklı
+       ara çizgi. Ayrıntı ve neden: CFG.boya.hat. */
+    const HT = B.hat || {};
+    const HTa = !!HT.acik && (HT.en || 0) > 0 &&
+                ((HT.koyu || 0) > 0 || (HT.parlak || 0) > 0);
+    const HTen = HT.en || 0, HTk = HT.koyu || 0, HTp = HT.parlak || 0;
+    const HES = [];
+    if (HTa) {
+      HES.push(E1, E2);
+      const kat = Math.max(0, Math.min(24, Math.round(HT.kat || 0)));
+      for (let i = 0; i < kat; i++) HES.push((i + 1) / (kat + 1));
+    }
+
     for (let b = 0; b < 3; b++) {
       const kk = (bol[BIYOM_AD[b]] && bol[BIYOM_AD[b]].keskinlik) || 1;
       const y = Math.max(0.0005, B.yum / kk);
@@ -1488,6 +1530,17 @@
           const it = (n - 0.5) * 2 * IC;
           const m = Math.min(1, Math.abs(it)), hd = it > 0 ? o + 12 : o;
           br += (PAL[hd] - br) * m; bg += (PAL[hd + 1] - bg) * m; bb += (PAL[hd + 2] - bb) * m;
+        }
+        /* ── KAT ÇİZGİSİ ── altı gölgeye, üstü parlağa: teras basamağı */
+        for (let q = 0; q < HES.length; q++) {
+          const sd = n - HES[q], ad = sd < 0 ? -sd : sd;
+          if (ad >= HTen) continue;
+          let m = 1 - ad / HTen;
+          m = m * m * (3 - 2 * m);
+          const g = (sd < 0 ? HTk : HTp) * m;
+          if (g <= 0) continue;
+          const hd = sd < 0 ? o : o + 12;
+          br += (PAL[hd] - br) * g; bg += (PAL[hd + 1] - bg) * g; bb += (PAL[hd + 2] - bb) * g;
         }
         const cN = kab ? K : 1;
         for (let ci = 0; ci < cN; ci++) {

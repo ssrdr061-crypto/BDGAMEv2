@@ -12704,3 +12704,380 @@ html body #panel-troops .uv-portrait .kp-sv{
 `;
 document.head.appendChild(st);
 })();
+
+/* ═══════════════════════════════════════════════════════════════════
+   ?zeminayar=4 — KAT ÇİZGİSİ AYARI
+   -------------------------------------------------------------------
+   NE İÇİN: zeminin içindeki açık/koyu katların BİRBİRİNE GEÇTİĞİ
+   çizgiyi ayarlamak. Şikâyet "geçişler çok yumuşak, keskinleştirmek
+   istiyorum" idi; bu panel o çizgiyi doğuran ne varsa tek yerde
+   topluyor:
+     ÇİZGİ     → CFG.boya.hat (kontur çizgisinin kendisi)
+     KESKİNLİK → icTon, yum, biyom başına keskinlik
+     KATLAR    → eşikler, kat genişliği, kenar kıvrımı
+     KABARTI   → kenar parlaması/gölgesi
+
+   KAYIT ÇAKIŞMASI YOK: bu panel ?zeminayar=2 ile AYNI localStorage
+   anahtarını ("bdZemin2") kullanır ve kendi alanlarını oraya
+   birleştirir. Ayrı anahtar kullansaydı iki panel aynı değerleri
+   birbirine yazar, en son açılan öbürünü sessizce ezerdi (rölyef
+   panelinde yaşanan sorun).
+
+   BÜYÜK SÜRGÜ: sağdaki dikey sürgü SEÇİLİ satırı sürer. Satırın
+   adına dokununca o satır seçilir. İnce ayar için ± düğmeleri. */
+(function katCizgiPaneli(){
+"use strict";
+
+if (!/[?&]zeminayar=4(&|$)/.test(location.search)) return;
+
+var ANAHTAR = "bdZemin2", KONUM = "bdZemin4Konum";
+
+/* [yol, etiket, alt, üst, adım] — yol CFG.boya içindeki nokta yolu */
+var SEKME = [
+  { k: "cizgi", et: "ÇİZGİ", s: [
+    ["hat.en",      "Çizgi kalınlığı", 0.004, 0.120, 0.001],
+    ["hat.koyu",    "Altı gölge",      0,     1,     0.01 ],
+    ["hat.parlak",  "Üstü parlama",    0,     1,     0.01 ],
+    ["hat.kat",     "Ara kat sayısı",  0,     12,    1    ]
+  ]},
+  { k: "keskin", et: "KESKİN", s: [
+    ["icTon",                 "Fırça geçişi",    0,     0.80, 0.005],
+    ["yum",                   "Ton yumuşaklığı", 0.002, 0.20, 0.001],
+    ["bolge.kar.keskinlik",   "Kar keskinliği",  0.3,   12,   0.1  ],
+    ["bolge.cimen.keskinlik", "Çim keskinliği",  0.3,   12,   0.1  ],
+    ["bolge.lav.keskinlik",   "Lav keskinliği",  0.3,   12,   0.1  ]
+  ]},
+  { k: "katlar", et: "KATLAR", s: [
+    ["esik1",   "Alt kat eşiği", 0.02,  0.90, 0.005],
+    ["esik2",   "Üst kat eşiği", 0.02,  0.95, 0.005],
+    ["siklik",  "Kat genişliği", 0.010, 0.30, 0.001],
+    ["ayrinti", "Kenar kıvrımı", 0,     0.70, 0.01 ]
+  ]},
+  { k: "kabarti", et: "KABARTI", s: [
+    ["kabarti", "Kenar kabartısı", 0,    1.50, 0.01],
+    ["isikAci", "Işık yönü (°)",   0,    359,  1   ],
+    ["kaydir",  "Kabartı eni",     0.05, 3,    0.05]
+  ]}
+];
+
+/* Yol → [alt, üst, adım, ondalık] — dikey sürgü ve ± için */
+var BILGI = {};
+SEKME.forEach(function (sk) {
+  sk.s.forEach(function (r) {
+    var t = String(r[4]);
+    BILGI[r[0]] = [r[2], r[3], r[4], t.indexOf(".") < 0 ? 0 : t.length - t.indexOf(".") - 1];
+  });
+});
+
+/* Eski bir harita.js'te CFG.boya.hat hiç olmayabilir. Sayılar
+   harita.js ile BİREBİR aynı olmalı. */
+var HAT_YEDEK = { acik: true, en: 0.020, koyu: 0.55, parlak: 0.30, kat: 0 };
+
+function C(){ return (window.HARITA && HARITA.CFG && HARITA.CFG.boya) ? HARITA.CFG : null; }
+function kop(o){ return JSON.parse(JSON.stringify(o)); }
+function al(o, yol){ var p = yol.split("."); for (var i = 0; i < p.length; i++) { if (o == null) return undefined; o = o[p[i]]; } return o; }
+function koy(o, yol, v){ var p = yol.split("."); for (var i = 0; i < p.length - 1; i++) { if (o[p[i]] == null) o[p[i]] = {}; o = o[p[i]]; } o[p[p.length - 1]] = v; }
+
+var VARSAYILAN = null, D = null, sekme = "cizgi", secili = "hat.en", zam = null;
+
+/* Panelin sürdüğü alanların TAMAMI, CFG.boya ile aynı şekil */
+function durumAl(b){
+  var d = { hat: kop(b.hat || HAT_YEDEK), bolge: {} };
+  ["icTon", "yum", "esik1", "esik2", "siklik", "ayrinti",
+   "kabarti", "isikAci", "kaydir"].forEach(function (a) { d[a] = b[a]; });
+  ["kar", "cimen", "lav"].forEach(function (a) {
+    d.bolge[a] = { keskinlik: (b.bolge && b.bolge[a] && b.bolge[a].keskinlik) || 1 };
+  });
+  return d;
+}
+
+/* Kayıtta VAR OLAN alanları D'ye taşı; D'de olmayan anahtara dokunma
+   (kayıt ?zeminayar=2 ile paylaşılıyor, palet vb. oradan geliyor) */
+function tasi(hedef, kaynak){
+  for (var a in hedef) {
+    if (!(a in kaynak)) continue;
+    if (hedef[a] && typeof hedef[a] === "object") tasi(hedef[a], kaynak[a] || {});
+    else if (typeof kaynak[a] === typeof hedef[a]) hedef[a] = kaynak[a];
+  }
+}
+
+function kaydet(){
+  var kayit = null;
+  try { kayit = JSON.parse(localStorage.getItem(ANAHTAR) || "null"); } catch (e) {}
+  if (!kayit || typeof kayit !== "object") kayit = {};
+  if (!kayit.boya || typeof kayit.boya !== "object") kayit.boya = {};
+  var d = kop(D);
+  for (var a in d) {
+    if (a === "bolge") {
+      if (!kayit.boya.bolge) kayit.boya.bolge = {};
+      for (var b in d.bolge) {
+        if (!kayit.boya.bolge[b]) kayit.boya.bolge[b] = {};
+        kayit.boya.bolge[b].keskinlik = d.bolge[b].keskinlik;
+      }
+    } else kayit.boya[a] = d[a];
+  }
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(kayit)); } catch (e) {}
+}
+
+function uygula(){
+  var c = C(); if (!c) return;
+  var b = c.boya;
+  if (!b.hat) b.hat = {};
+  for (var a in D.hat) b.hat[a] = D.hat[a];
+  ["icTon", "yum", "esik1", "esik2", "siklik", "ayrinti",
+   "kabarti", "isikAci", "kaydir"].forEach(function (k) { b[k] = D[k]; });
+  if (!b.bolge) b.bolge = {};
+  ["kar", "cimen", "lav"].forEach(function (k) {
+    if (!b.bolge[k]) b.bolge[k] = {};
+    b.bolge[k].keskinlik = D.bolge[k].keskinlik;
+  });
+  kaydet();
+  var t = document.getElementById("z4Ac");
+  if (t) t.textContent = D.hat.acik ? "ÇİZGİ AÇIK" : "ÇİZGİ KAPALI";
+  /* Sürgü sürüklenirken her adımda yeniden boyamasın: 120 ms bekle */
+  clearTimeout(zam);
+  zam = setTimeout(function () {
+    try { HARITA.onbellegiBosalt(); HARITA.cizIste(); } catch (e) {}
+  }, 120);
+}
+
+function satir(r){
+  var yol = r[0], b = BILGI[yol], v = Number(al(D, yol));
+  return "<div class='z4S" + (yol === secili ? " sec" : "") + "' data-yol='" + yol + "'>" +
+    "<div class='z4E'><span>" + r[1] + "</span>" +
+    "<button class='z4B' data-y='-'>−</button><b>" + v.toFixed(b[3]) + "</b>" +
+    "<button class='z4B' data-y='+'>+</button></div>" +
+    "<input type='range' min='" + b[0] + "' max='" + b[1] + "' step='" + b[2] + "' value='" + v + "'></div>";
+}
+
+function aktifSekme(){
+  for (var i = 0; i < SEKME.length; i++) if (SEKME[i].k === sekme) return SEKME[i];
+  return SEKME[0];
+}
+
+function dikeyKur(){
+  var d = document.getElementById("z4Dik"), e = document.getElementById("z4DikEt");
+  if (!d) return;
+  var b = BILGI[secili];
+  if (!b) { d.disabled = true; return; }
+  d.disabled = false;
+  d.min = b[0]; d.max = b[1]; d.step = b[2];
+  d.value = Number(al(D, secili));
+  var et = "";
+  SEKME.forEach(function (sk) { sk.s.forEach(function (r) { if (r[0] === secili) et = r[1]; }); });
+  e.textContent = et;
+}
+
+function govdeCiz(){
+  var h = "";
+  aktifSekme().s.forEach(function (r) { h += satir(r); });
+  document.getElementById("z4Govde").innerHTML = h;
+  var sek = document.getElementById("z4Sek");
+  sek.innerHTML = SEKME.map(function (s) {
+    return "<button class='z4T" + (s.k === sekme ? " on" : "") + "' data-k='" + s.k + "'>" + s.et + "</button>";
+  }).join("");
+  dikeyKur();
+}
+
+function yaz(yol, v, satirEl){
+  var b = BILGI[yol];
+  v = Math.max(b[0], Math.min(b[1], v));
+  v = +(Math.round(v / b[2]) * b[2]).toFixed(b[3]);
+  koy(D, yol, v);
+  var s = satirEl || document.querySelector(".z4S[data-yol='" + yol + "']");
+  if (s) { s.querySelector("input").value = v; s.querySelector("b").textContent = v.toFixed(b[3]); }
+  var d = document.getElementById("z4Dik");
+  if (d && yol === secili) d.value = v;
+  uygula();
+}
+
+function metin(){ return "ZEMIN4 " + JSON.stringify(D); }
+
+function ciz(){
+  var st = document.createElement("style");
+  st.id = "temaKatCizgiStil";
+  st.textContent =
+    "#z4{position:fixed;z-index:99999;width:224px;font:11px/1.25 'Baloo 2',system-ui,sans-serif;" +
+     "color:#e8f4ff;background:rgba(10,20,38,.88);border-radius:10px;" +
+     "box-shadow:0 2px 10px rgba(0,10,30,.40);touch-action:none;user-select:none;-webkit-user-select:none}" +
+    "#z4Bas{display:flex;align-items:center;gap:4px;padding:5px 6px 4px 8px;cursor:move}" +
+    "#z4Bas b{flex:1;font-size:11px;letter-spacing:.5px}" +
+    "#z4 button{font:700 10px system-ui,sans-serif;color:#e8f4ff;background:rgba(255,255,255,.12);" +
+     "border:none;border-radius:5px;padding:3px 6px}" +
+    "#z4 button:active{filter:brightness(1.35)}" +
+    "#z4Sek{display:flex;gap:2px;padding:0 6px 4px}" +
+    "#z4Sek .z4T{flex:1;padding:4px 0;font-size:9px;opacity:.65}" +
+    "#z4Sek .z4T.on{opacity:1;background:rgba(120,190,255,.30)}" +
+    "#z4Orta{display:flex;gap:5px;padding:0 6px}" +
+    "#z4Govde{flex:1;max-height:42vh;overflow-y:auto;touch-action:pan-y;min-width:0}" +
+    "#z4Dikey{display:flex;flex-direction:column;align-items:center;gap:3px;padding-bottom:2px}" +
+    "#z4DikEt{font-size:8px;opacity:.75;max-width:52px;text-align:center;line-height:1.1}" +
+    "#z4Dik{-webkit-appearance:slider-vertical;writing-mode:vertical-lr;direction:rtl;" +
+     "width:30px;height:150px;margin:0;touch-action:pan-y;accent-color:#7fd0ff}" +
+    ".z4S{margin:0 0 4px;border-radius:5px;padding:1px 3px}" +
+    ".z4S.sec{background:rgba(120,190,255,.18);box-shadow:inset 0 0 0 1px rgba(120,190,255,.45)}" +
+    ".z4E{display:flex;align-items:center;gap:3px}" +
+    ".z4E span{flex:1;font-weight:700;font-size:10px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+    ".z4E b{min-width:36px;text-align:center;font-variant-numeric:tabular-nums;font-size:10px}" +
+    "#z4 .z4B{padding:0;width:22px;height:19px;font-size:14px;line-height:19px}" +
+    ".z4S input{width:100%;height:14px;margin:0;touch-action:pan-x;accent-color:#7fd0ff}" +
+    "#z4Alt{display:flex;gap:3px;padding:5px 6px 6px}" +
+    "#z4Alt button{flex:1}" +
+    "#z4Yap{display:none;padding:0 6px 6px}" +
+    "#z4Yap textarea{width:100%;height:60px;box-sizing:border-box;font:9px monospace;" +
+     "color:#dfeaff;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.2);border-radius:5px}" +
+    "#z4Not{font-size:9px;color:#9fc3ea;padding:0 8px 5px}";
+  document.head.appendChild(st);
+
+  var p = document.createElement("div");
+  p.id = "z4";
+  p.innerHTML =
+    "<div id='z4Bas'><b>⠿ KAT ÇİZGİSİ</b><button id='z4Ac'></button><button id='z4Kuc'>▾</button></div>" +
+    "<div id='z4Ic'>" +
+      "<div id='z4Sek'></div>" +
+      "<div id='z4Orta'>" +
+        "<div id='z4Govde'></div>" +
+        "<div id='z4Dikey'><input id='z4Dik' type='range'><div id='z4DikEt'></div></div>" +
+      "</div>" +
+      "<div id='z4Alt'><button id='z4Kop'>KOPYALA</button><button id='z4YapA'>YAPIŞTIR</button>" +
+      "<button id='z4Sif'>SIFIRLA</button></div>" +
+      "<div id='z4Yap'><textarea id='z4Metin' placeholder='ZEMIN4 {...} metnini buraya yapıştır'></textarea>" +
+      "<button id='z4Uyg' style='width:100%;margin-top:3px'>UYGULA</button></div>" +
+      "<div id='z4Not'></div>" +
+    "</div>";
+  document.body.appendChild(p);
+
+  var k = null; try { k = JSON.parse(localStorage.getItem(KONUM) || "null"); } catch (e) {}
+  function yerlestir(x, y){
+    var r = p.getBoundingClientRect();
+    x = Math.max(0, Math.min(innerWidth - r.width, x));
+    y = Math.max(0, Math.min(innerHeight - 30, y));
+    p.style.left = x + "px"; p.style.top = y + "px";
+  }
+  yerlestir(k ? k.x : 6, k ? k.y : 96);
+
+  function not(t){ document.getElementById("z4Not").textContent = t || ""; }
+
+  var gov = document.getElementById("z4Govde");
+  gov.addEventListener("input", function (e) {
+    if (e.target.type !== "range") return;
+    var s = e.target.closest(".z4S");
+    yaz(s.getAttribute("data-yol"), parseFloat(e.target.value), s);
+  });
+  gov.addEventListener("click", function (e) {
+    var s = e.target.closest && e.target.closest(".z4S");
+    if (!s) return;
+    var yol = s.getAttribute("data-yol");
+    var y = e.target.getAttribute && e.target.getAttribute("data-y");
+    if (y) { yaz(yol, Number(al(D, yol)) + (y === "+" ? BILGI[yol][2] : -BILGI[yol][2]), s); return; }
+    if (e.target.tagName === "INPUT") return;
+    /* Satırın adına dokunmak onu SEÇER — büyük dikey sürgü onu sürer */
+    secili = yol;
+    Array.prototype.forEach.call(gov.querySelectorAll(".z4S"), function (o) {
+      o.classList.toggle("sec", o.getAttribute("data-yol") === yol);
+    });
+    dikeyKur();
+  });
+
+  document.getElementById("z4Dik").addEventListener("input", function () {
+    yaz(secili, parseFloat(this.value));
+  });
+
+  document.getElementById("z4Sek").addEventListener("click", function (e) {
+    var kk = e.target.getAttribute && e.target.getAttribute("data-k");
+    if (!kk) return;
+    sekme = kk;
+    var ilk = aktifSekme().s[0][0];
+    if (!aktifSekme().s.some(function (r) { return r[0] === secili; })) secili = ilk;
+    govdeCiz();
+  });
+
+  document.getElementById("z4Ac").addEventListener("click", function () {
+    D.hat.acik = !D.hat.acik; uygula();
+  });
+
+  var kucuk = false;
+  document.getElementById("z4Kuc").addEventListener("click", function () {
+    kucuk = !kucuk;
+    document.getElementById("z4Ic").style.display = kucuk ? "none" : "block";
+    this.textContent = kucuk ? "▴" : "▾";
+    p.style.width = kucuk ? "auto" : "224px";
+  });
+
+  document.getElementById("z4Kop").addEventListener("click", function () {
+    var t = metin(), ta = document.getElementById("z4Metin");
+    ta.value = t;
+    document.getElementById("z4Yap").style.display = "block";
+    var ok = false;
+    try { if (navigator.clipboard) { navigator.clipboard.writeText(t); ok = true; } } catch (e) {}
+    if (!ok) { try { ta.select(); ok = document.execCommand("copy"); } catch (e) {} }
+    not(ok ? "Kopyalandı — Claude'a bu metni gönder." : "Metni kutudan elle kopyala.");
+  });
+
+  document.getElementById("z4YapA").addEventListener("click", function () {
+    var y = document.getElementById("z4Yap");
+    y.style.display = y.style.display === "block" ? "none" : "block";
+    not("");
+  });
+
+  document.getElementById("z4Uyg").addEventListener("click", function () {
+    var t = document.getElementById("z4Metin").value;
+    var a = t.indexOf("{"), b = t.lastIndexOf("}");
+    try {
+      var yeni = JSON.parse(t.slice(a, b + 1));
+      D = kop(VARSAYILAN); tasi(D, yeni);
+      uygula(); govdeCiz(); not("Uygulandı.");
+    } catch (e) { not("Metin okunamadı — ZEMIN4 {...} biçiminde olmalı."); }
+  });
+
+  document.getElementById("z4Sif").addEventListener("click", function () {
+    D = kop(VARSAYILAN); uygula(); govdeCiz(); not("Dosyadaki değerlere dönüldü.");
+  });
+
+  (function surukle(){
+    var bas = document.getElementById("z4Bas"), aktif = false, bx, by, sx, sy;
+    bas.addEventListener("pointerdown", function (e) {
+      if (e.target.tagName === "BUTTON") return;
+      aktif = true;
+      var r = p.getBoundingClientRect();
+      bx = r.left; by = r.top; sx = e.clientX; sy = e.clientY;
+      try { bas.setPointerCapture(e.pointerId); } catch (er) {}
+    });
+    bas.addEventListener("pointermove", function (e) {
+      if (aktif) yerlestir(bx + e.clientX - sx, by + e.clientY - sy);
+    });
+    function birak(){
+      if (!aktif) return; aktif = false;
+      var r = p.getBoundingClientRect();
+      try { localStorage.setItem(KONUM, JSON.stringify({ x: r.left, y: r.top })); } catch (e) {}
+    }
+    bas.addEventListener("pointerup", birak);
+    bas.addEventListener("pointercancel", birak);
+  })();
+
+  govdeCiz();
+  uygula();
+}
+
+function baslat(){
+  var dene = 0;
+  (function bekle(){
+    var c = C();
+    if (c) {
+      VARSAYILAN = durumAl(c.boya);
+      D = kop(VARSAYILAN);
+      try {
+        var kayit = JSON.parse(localStorage.getItem(ANAHTAR) || "null");
+        if (kayit && kayit.boya) tasi(D, kayit.boya);
+      } catch (e) {}
+      ciz();
+      return;
+    }
+    if (++dene > 40) return;
+    setTimeout(bekle, 150);
+  })();
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", baslat);
+else baslat();
+})();
