@@ -2462,7 +2462,7 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <!-- Koordinat çevrimi için tek kapı. DOM/harita bağımlılığı yok, en başta yüklenir. -->
-<script src="koordinat.js?s=36"></script>
+<script src="koordinat.js?s=37"></script>
 <style id="scEmojiStil">
 /* Mağaza kartındaki emoji simge — sarı kutuyu SVG gibi doldurur. */
 .shop-card2 .sc-emoji{
@@ -2882,14 +2882,14 @@ body.kaleici-acik .floating-hospital-btn{ z-index:41; }
      sürüm numarasını dosyanın İÇİNDEKİ başlıkta tut.
      Bu HTML'e bir daha dokunman gerekmez.
      ═══════════════════════════════════════════════════════ -->
-<script src="heroes.js?s=36"></script>
+<script src="heroes.js?s=37"></script>
 <!-- KAHRAMAN LİSTESİ EKRANI: heroes.js'ten SONRA yüklenmeli (HERO_STATS/HERO_IMG/openHeroDetail'i kullanır). -->
-<script src="kahramanlar.js?s=36"></script>
-<script src="gelistir.js?s=36"></script>
+<script src="kahramanlar.js?s=37"></script>
+<script src="gelistir.js?s=37"></script>
 <!-- BİRLİK DOSYASI: her zaman "troops.js" adıyla yüklenir (heroes.js ile aynı kural). -->
-<script src="troops.js?s=36"></script>
+<script src="troops.js?s=37"></script>
 <!-- İSTATİSTİK KATMANI: troops.js'ten SONRA yüklenmeli (UNIT_TYPES + KADEME okur). -->
-<script src="istatistik.js?s=36"></script>
+<script src="istatistik.js?s=37"></script>
 <script>
 
 const ensure = (val, min = 0) => Math.max(min, val);
@@ -11121,7 +11121,7 @@ setInterval(() => {
 </script>
 
 <!-- ══════════════════════════════════════════════════════════════
-     SÜRÜM DAMGASI  ?s=36   —  DOKUNMADAN ÖNCE OKU
+     SÜRÜM DAMGASI  ?s=37   —  DOKUNMADAN ÖNCE OKU
      --------------------------------------------------------------
      Her yerel .js'in sonunda ?s=NN var. NN bir sürüm sayısı; dosyanın
      içeriğiyle ilgisi yok, TARAYICI ÖNBELLEĞİNİ kırmak için duruyor.
@@ -11142,24 +11142,24 @@ setInterval(() => {
      bütün ?s=NN'leri tek seferde bir artır (ör. sed ile 30 → 31).
      Hepsi aynı sayıda kalsın; tek tek farklı sayı taşımasınlar.
      ══════════════════════════════════════════════════════════════ -->
-<script src="missile.js?s=36"></script>
-<script src="pvp.js?s=36"></script>
-<script src="pve.js?s=36"></script>
-<script src="tema.js?s=36"></script>
-<script src="rehber.js?s=36"></script>
-<script src="harita.js?s=36"></script>
-<script src="dugum.js?s=36"></script>
-<script src="sefer.js?s=36"></script>
-<script src="karo.js?s=36"></script>
-<script src="kale2x2.js?s=36"></script>
-<script src="temizle.js?s=36"></script>
-<script src="uretim.js?s=36"></script>
-<script src="insaat.js?s=36"></script>
+<script src="missile.js?s=37"></script>
+<script src="pvp.js?s=37"></script>
+<script src="pve.js?s=37"></script>
+<script src="tema.js?s=37"></script>
+<script src="rehber.js?s=37"></script>
+<script src="harita.js?s=37"></script>
+<script src="dugum.js?s=37"></script>
+<script src="sefer.js?s=37"></script>
+<script src="karo.js?s=37"></script>
+<script src="kale2x2.js?s=37"></script>
+<script src="temizle.js?s=37"></script>
+<script src="uretim.js?s=37"></script>
+<script src="insaat.js?s=37"></script>
 <!-- Ekran ortası "Güç +N" şeridi. kaleici.js'ten ÖNCE: kışla
      baloncuğu bunu çağırıyor. -->
-<script src="gucefekt.js?s=36"></script>
-<script src="kaleici.js?s=36"></script>
-<script src="egitim.js?s=36"></script>
+<script src="gucefekt.js?s=37"></script>
+<script src="kaleici.js?s=37"></script>
+<script src="egitim.js?s=37"></script>
 
 <!-- ═══════════════════════════════════════════════════════════
      3D BİRLİK VIEWER — Three.js ile OBJ/MTL/Texture
@@ -11424,57 +11424,57 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 </script>
 <!-- ═══ MAĞAZA EKLENTİSİ: görünüm + haftalık limit sistemi (ayrı dosyalar) ═══ -->
 
-<script src="magaza.js?s=36"></script>
+<script src="magaza.js?s=37"></script>
 
 <!-- ═══ KAHRAMAN GÜÇLENDİRMELERİ (mağaza buffları) ═══
      magaza.js'ten SONRA yüklenir: shopItems listesini okur.
      pvp.js/pve.js window.BUFF'ı çalışma anında arar, sıra onlar
      için önemli değil. -->
-<script src="buff.js?s=36"></script>
+<script src="buff.js?s=37"></script>
 
 <!-- ═══ ÜST MENÜ KAYNAK DÜĞMESİ + LİSTE PANELİ ═══
      5'li kaynak şeridini üst satırdaki tek düğmeye indirir; düğme
      30 sn'de bir başka kaynağı gösterir, basınca liste açılır.
      tema.js'ten (şerit stili + webp ikon) ve uretim.js/insaat.js'ten
      (üretim/dk) SONRA yüklenmeli. -->
-<script src="kaynakhud.js?s=36"></script>
+<script src="kaynakhud.js?s=37"></script>
 
 <!-- ═══ ETKİNLİKLER (kale içi ikonu + haftalık takvim ekranı) ═══
      Kendi kendine yeter; kale içi görünürlüğü body.kaleici-acik
      sınıfına bağlı olduğu için kaleici.js'ten SONRA yüklenir. -->
-<script src="etkinlik.js?s=36"></script>
+<script src="etkinlik.js?s=37"></script>
 
 <!-- ═══ POSTA (mesaj kutusu) ═══
      5 sekmeli posta paneli. Eski Savaş Günlüğü paneli ve
      renderBattleLogPanel() buradan kaldırıldı; liste artık
      posta.js'te çiziliyor. tema.js'ten SONRA yüklenir
      (rapor penceresi entryToReport/openReportModal oradan). -->
-<script src="posta.js?s=36"></script>
+<script src="posta.js?s=37"></script>
 
 <!-- ═══ İTTİFAK ═══
      Alt menünün 5. düğmesi (data-panel="ittifak") bunu açar;
      posta artık sağ alt köşedeki yüzen düğmede (posta.js).
      Firebase kuralına `ittifaklar` düğümü eklenmeli. -->
-<script src="ittifak.js?s=36"></script>
+<script src="ittifak.js?s=37"></script>
 
 <!-- ÜST MENÜ GÜÇ SATIRI — .hud-top'a ikinci satır ekler (✊ + güç puanı),
      üst satır kendiliğinden yukarı kayar. Değer computePlayerPower()'dan
      okunur, ikinci hesap yoktur. İnce ayar: ?guc=1 -->
-<script src="guchud.js?s=36"></script>
+<script src="guchud.js?s=37"></script>
 
 <!-- KALKAN ROZETİ — kalkan açıkken üst şeridin altında, sol köşede
      küçük kalkan düğmesi; dokununca süre penceresi açılır. Süre
      window.kalkanKalanMs()'ten, biçim saatBicim()'den okunur —
      ikinci bir hesap yoktur. Silinirse rozet de pencere de gider,
      başka hiçbir yer etkilenmez. -->
-<script src="kalkanrozet.js?s=36"></script>
+<script src="kalkanrozet.js?s=37"></script>
 
 <!-- ŞEF PROFİLİ — üst sağdaki 👤 yerine fotoğraf çerçevesi, dokununca
      profil ekranı. Sıralama paneli de buradaki "Liderlik Tablosu"
      düğmesinden açılıyor (alt menüden kaldırıldı). Değerler
      computePlayerPower / kaleSeviyesi / ITTIFAK.benim / state.stamina
      kapılarından okunur, ikinci hesap yoktur. -->
-<script src="profil.js?s=36"></script>
+<script src="profil.js?s=37"></script>
 
 </body>
 </html>

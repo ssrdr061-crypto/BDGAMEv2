@@ -1513,9 +1513,26 @@
     const N = LW * LH;
 
     const FV = new Float32Array(N);          /* biyom değeri + serpme  */
-    const FN = new Float32Array(N);          /* boya gürültüsü         */
+    /* ── BOYA DESENİ: BİYOM BAŞINA AYRI ───────────────────────────
+       ÖNCE TEK ALANDI, YANLIŞTI: FN bütün haritada tek bir gürültü
+       alanıydı. Kar ile çimen AYNI lekeyi paylaşıyor, yalnız farklı
+       palete boyanıyordu: koskoca bir yuvarlak leke sınırdan
+       kesintisiz geçip öbür zeminde devam ediyor, iki bölge tek
+       arazinin devamıymış gibi duruyordu. Rölyef biyoma ayrıldıktan
+       sonra ekranda görünmeye devam eden leke buydu — rölyefin
+       dalga boyu ~26 karo, bu desen ise ~11 karo, yani gözün
+       "çukur/kabartı" diye okuduğu asıl desen.
+
+       ŞİMDİ: üç biyom için üç AYRI desen (aynı gürültü, birbirinden
+       çok uzak başlangıç noktalarıyla → ilgisiz). Piksel, tonunu
+       hangi biyomdan alıyorsa desenini de onun alanından okur.
+       Leke sınırda biter, öbür tarafta bambaşka bir leke başlar.
+
+       DİZİLİM: FN[k*3 + b] = k noktasında b biyomunun deseni. */
+    const BOFS = [0, 0, 3072, 6144, 9216, 1536];
+    const FN = new Float32Array(N * 3);      /* boya gürültüsü, biyom başına */
     const kab = B.kabarti > 0;
-    const FK = kab ? new Float32Array(N) : null;   /* kaydırılmış gürültü */
+    const FK = kab ? new Float32Array(N * 3) : null;  /* kaydırılmış gürültü */
 
     /* ── RÖLYEF: BİYOM BAŞINA AYRI, KABA IZGARADA ─────────────────
        ÖNCE TEK ALANDI, YANLIŞTI: rölyef bütün haritada tek bir
@@ -1591,8 +1608,12 @@
         const g = worldToGrid(wx, wy);
         const k = j * LW + i;
         FV[k] = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
-        FN[k] = boyaGurultu(g.gx, g.gy);
-        if (kab) FK[k] = boyaGurultu(g.gx + kdx, g.gy + kdy);
+        const k3 = k * 3;
+        for (let b = 0; b < 3; b++) {
+          const ox = BOFS[b * 2], oy = BOFS[b * 2 + 1];
+          FN[k3 + b] = boyaGurultu(g.gx + ox, g.gy + oy);
+          if (kab) FK[k3 + b] = boyaGurultu(g.gx + ox + kdx, g.gy + oy + kdy);
+        }
       }
     }
 
@@ -1675,8 +1696,9 @@
         const w00 = tx1 * ty1, w10 = tx * ty1, w01 = tx1 * ty, w11 = tx * ty;
 
         const v = FV[a] * w00 + FV[a + 1] * w10 + FV[b] * w01 + FV[b + 1] * w11;
-        const n = FN[a] * w00 + FN[a + 1] * w10 + FN[b] * w01 + FN[b + 1] * w11;
-        const nk = kab ? FK[a] * w00 + FK[a + 1] * w10 + FK[b] * w01 + FK[b + 1] * w11 : 0;
+        /* n/nk biyoma bağlı (FN[k*3 + b]), o yüzden biyom seçildikten
+           SONRA, seçilen biyom(lar) için okunuyor. */
+        const a3 = a * 3, b3 = b * 3;
 
         /* ── BİYOM SINIRI, PİKSEL CİNSİNDEN ──
            Biyom değeri çok YAVAŞ değişiyor (karo başına ~0.004). Bant
@@ -1707,13 +1729,21 @@
           b1 = v < eK ? 0 : v < eC ? 1 : 2;
         }
 
-        const k1 = ind(b1, n, nk);
+        const n1  = FN[a3 + b1] * w00 + FN[a3 + 3 + b1] * w10
+                  + FN[b3 + b1] * w01 + FN[b3 + 3 + b1] * w11;
+        const nk1 = kab ? FK[a3 + b1] * w00 + FK[a3 + 3 + b1] * w10
+                        + FK[b3 + b1] * w01 + FK[b3 + 3 + b1] * w11 : 0;
+        const k1 = ind(b1, n1, nk1);
         let cr, cg, cb;
         if (b2 < 0) {
           cr = LUT[k1]; cg = LUT[k1 + 1]; cb = LUT[k1 + 2];
         } else {
+          const n2  = FN[a3 + b2] * w00 + FN[a3 + 3 + b2] * w10
+                    + FN[b3 + b2] * w01 + FN[b3 + 3 + b2] * w11;
+          const nk2 = kab ? FK[a3 + b2] * w00 + FK[a3 + 3 + b2] * w10
+                          + FK[b3 + b2] * w01 + FK[b3 + 3 + b2] * w11 : 0;
           t = t * t * (3 - 2 * t);
-          const k2 = ind(b2, n, nk), u = 1 - t;
+          const k2 = ind(b2, n2, nk2), u = 1 - t;
           cr = LUT[k1] * u     + LUT[k2] * t;
           cg = LUT[k1 + 1] * u + LUT[k2 + 1] * t;
           cb = LUT[k1 + 2] * u + LUT[k2 + 2] * t;
