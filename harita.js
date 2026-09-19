@@ -417,90 +417,6 @@
        yükseltmek yalnız gürültüyü sertleştirir.
 
        ?zeminayar=3 → kendi panelinden canlı ayarlanır. */
-    /* ═══════════════════════════════════════════════════════════════
-       MAKRO GEÇİŞ — BİYOM SINIRINDA GENİŞ RENK BANDI
-       ---------------------------------------------------------------
-       SORUN: sinirYumusak (2 px) sınırın KENARINI yumuşatıyor, yani
-       yalnız kenar yumuşatma (anti-alias). Sonuç: koyu yeşil çimenden
-       bembeyaz kara BİR PİKSELDE geçiliyordu. Gerçekte kar bir yere
-       yağarken altındaki çimen önce kurur, solar, ağarır; keskin bir
-       çizgiyle başlamaz. Referansta "kar katmanı havada duruyor"
-       görüntüsünün sebebi buydu.
-
-       NE YAPAR: sınıra `en` dünya pikseli mesafedeki alanda, her iki
-       biyomun rengi KOMŞUSUNA doğru `guc` kadar kaydırılır. Çimen
-       kara yaklaşırken açılıp kuruyor, kar da çimene yaklaşırken
-       hafif yeşile çalıyor.
-
-       KESKİNLİK KAYBOLMUYOR: geçişin `guc` kadarı geniş banda,
-       kalanı eski keskin kenara düşüyor. guc 0 → eskisiyle birebir
-       aynı (hızlı yol da aynen korunuyor), guc 1 → sınır tamamen
-       yumuşar, keskin kenar kalmaz.
-
-       SINIR: `en`, eğim penceresinden (YAKIN) büyük olamaz; o
-       pencere bu haritada ~900 dünya pikseline denk geliyor, yani
-       ~14 karo. Daha genişi bandın dışında kesilir, sınırda basamak
-       görünür. Panelden üst sınır 900'e kapatıldı.
-       ?zeminayar=2 → GENEL sekmesinden canlı ayarlanır. */
-    makroGecis: {
-      en:  320,   /* bandın yarı eni, dünya pikseli (~5 karo)        */
-      guc: 0,     /* geçişin ne kadarı geniş banda düşsün (0..1)     */
-      /* VARSAYILAN 0: iki biyomun rengini birbirine karıştırmak
-         istenen şey değildi (yeşil + beyaz = soluk bir bulanıklık).
-         Geçiş işini artık CFG.sinirKatman yapıyor: sınır çizgisi
-         keskin kalıyor, ama çimen kara yaklaşırken KENDİ rengi
-         kuruyup ağarıyor. Bu sürgü panelde duruyor, istenirse
-         ikisi birlikte de kullanılabilir. */
-    },
-
-    /* ═══════════════════════════════════════════════════════════════
-       SINIR KATMANI — HER BİYOMUN KENDİ KENAR RENGİ
-       ---------------------------------------------------------------
-       SORUN: makroGecis sınırda iki biyomun rengini birbirine
-       karıştırıyordu. Koyu yeşil ile bembeyaz karışınca ortaya
-       ne çimen ne kar olan gri-yeşil bir şerit çıkıyor. Doğada
-       olan bu değil: kar sınırında çimen KARLA KARIŞMAZ, çimenin
-       KENDİSİ kurur — önce sarıya döner, sonra ağarır. Lav
-       sınırında da çimen yeşil kalmaz, kavrulup koyulaşır.
-
-       NE YAPAR: sınıra `bant` dünya pikseli mesafedeki alanda her
-       biyomun rengi, O SINIRA ÖZEL iki duraklı bir rampaya doğru
-       çekilir. Rampa: bandın ortasında durak1, tam sınırda durak2.
-         kar↔çimen · çimen tarafı: açık sarımsı yeşil → çok hafif
-           kirli beyaz · kar tarafı: neredeyse dokunulmaz, sınırda
-           bir tık kirlenir.
-         çimen↔lav · çimen tarafı: koyu, kavruk, bordoya hazırlık ·
-           lav tarafı: kenarda açık bordo, içeri girdikçe kendi
-           koyu rengine iner.
-
-       KESKİNLİK KAYBOLMUYOR: sınır çizgisinin kendisi eskisi gibi
-       piksel keskinliğinde. Değişen yalnız her biyomun kendi
-       kenarındaki rengi — yani geçiş "katmanı" var ama "bulanıklık"
-       yok.
-
-       SINIR: `bant`, eğim penceresinden (YAKIN, ~900 dünya pikseli)
-       büyük olamaz; daha genişi kesilir ve basamak görünür.
-       ?zeminayar=2 → GENEL sekmesinden bant ve şiddet ayarlanır,
-       renkler buradan (dosyadan) değiştirilir. */
-    sinirKatman: {
-      acik: true,
-      /* [0] = kar↔çimen sınırı, [1] = çimen↔lav sınırı.
-         alt = sınırın DÜŞÜK biyomu (0: kar, 1: çimen)
-         ust = sınırın YÜKSEK biyomu (0: çimen, 1: lav)
-         durak1 = bandın ortası, durak2 = tam sınır. */
-      bant:    [420, 300],   /* yarı en, dünya pikseli */
-      altGuc:  [0.28, 0.70],
-      ustGuc:  [0.85, 0.55],
-      altRenk: [
-        [[214,214,222],[226,222,214]],   /* kar: soğuk gri → sınırda hafif kirli */
-        [[ 62,110, 50],[ 84, 70, 44]],   /* çimen: koyu çim → kavruk, bordoya hazırlık */
-      ],
-      ustRenk: [
-        [[168,188, 88],[208,208,190]],   /* çimen: sarımsı açık yeşil → çok hafif kirli beyaz */
-        [[130, 34, 36],[146, 58, 58]],   /* lav: kendi koyusu → sınırda açık bordo */
-      ],
-    },
-
     rolyef: {
       acik:    true,
       siklik:  0.038,  /* dalga boyu: küçük sayı = geniş tepeler      */
@@ -1700,35 +1616,6 @@
     const SY = Math.max(0.5, CFG.sinirYumusak == null ? 4 : CFG.sinirYumusak);
     const YAKIN = 0.06;                       /* eğim hesabı bu v farkının içinde */
 
-    /* Makro geçiş. Ayrıntı ve neden: CFG.makroGecis. */
-    const MGC = CFG.makroGecis || {};
-    const MG = Math.max(0, Math.min(1, MGC.guc == null ? 0 : MGC.guc));
-    const ME = Math.max(SY, MGC.en || 1);     /* bant, keskin kenardan dar olamaz */
-
-    /* ── SINIR KATMANI TABLOLARI ──
-       Piksel döngüsünde nesne/dizi gezinmesi olmasın diye düz
-       dizilere açılıyor. Ayrıntı ve neden: CFG.sinirKatman.
-       SKG[bi*2 + yan] : şiddet (yan 0 = alt biyom, 1 = üst biyom)
-       SKC[(bi*2 + yan)*6 + 0..2] = durak1 rgb, + 3..5 = durak2 rgb */
-    const SKC_ = CFG.sinirKatman || {};
-    const SK = !!SKC_.acik;
-    const SKB = new Float32Array(2), SKG = new Float32Array(4);
-    const SKC = new Float32Array(2 * 2 * 6);
-    if (SK) {
-      for (let bi = 0; bi < 2; bi++) {
-        SKB[bi] = Math.max(1, (SKC_.bant && SKC_.bant[bi]) || 1);
-        SKG[bi * 2]     = (SKC_.altGuc && SKC_.altGuc[bi]) || 0;
-        SKG[bi * 2 + 1] = (SKC_.ustGuc && SKC_.ustGuc[bi]) || 0;
-        const kay = [SKC_.altRenk, SKC_.ustRenk];
-        for (let yan = 0; yan < 2; yan++) {
-          const par = (kay[yan] && kay[yan][bi]) || [[0, 0, 0], [0, 0, 0]];
-          const o = (bi * 2 + yan) * 6;
-          for (let d = 0; d < 2; d++)
-            for (let c = 0; c < 3; c++) SKC[o + d * 3 + c] = par[d][c];
-        }
-      }
-    }
-
     const q  = Math.max(0.3, Math.min(1, B.kalite || 1));
     const OW = Math.max(1, Math.ceil(w * s * q)), OH = Math.max(1, Math.ceil(h * s * q));
     const olc = s * q;                        /* çıktı pikseli / dünya pikseli */
@@ -1802,10 +1689,6 @@
            yumuşatmasıyla aynı yöntem. Eğim yalnız eşiğe yakın
            piksellerde hesaplanır. */
         let b1, b2 = -1, t = 0;
-        /* tR: RÖLYEF için keskin karışım. SD: sınıra işaretli uzaklık
-           (dünya px). SBI: hangi sınır (0 = kar↔çimen, 1 = çimen↔lav),
-           -1 = sınır bandının dışında. */
-        let tR = 0, SD = 0, SBI = -1;
         const e = v < ORT ? eK : eC;
         const fark = v - e;
         if (fark > -YAKIN && fark < YAKIN) {
@@ -1817,103 +1700,43 @@
           const eg = Math.sqrt(gx_ * gx_ + gy_ * gy_) + 1e-6;
           const d = fark / eg;                     /* eşiğe uzaklık, dünya px */
           const alt = e === eK ? 0 : 1;
-          SD = d; SBI = alt;
-          /* KESKİN karışım: yalnız sinirYumusak (≈2 px) genişliğinde.
-             Rölyef bunu kullanır → çukur/kabartı sınırda KESİLİR. */
-          let tS = (d + SY) / (2 * SY);
-          tS = tS <= 0 ? 0 : tS >= 1 ? 1 : tS * tS * (3 - 2 * tS);
-          /* RENK karışımı: makroGecis açıksa geçişin MG kadarı geniş
-             banda (ME) düşer. Varsayılan MG = 0 → tt = tS, yani renk
-             sınırı da keskin; yumuşaklık CFG.sinirKatman'dan gelir. */
-          let tt = tS;
-          if (MG > 0) {
-            let tM = (d + ME) / (2 * ME);
-            tM = tM <= 0 ? 0 : tM >= 1 ? 1 : tM * tM * (3 - 2 * tM);
-            tt = tS * (1 - MG) + tM * MG;
-          }
-          if (tt <= 0)      { b1 = alt;     tR = 0; }
-          else if (tt >= 1) { b1 = alt + 1; tR = 0; }
-          else { b1 = alt; b2 = alt + 1; t = tt; tR = tS; }
+          if (d <= -SY)      b1 = alt;
+          else if (d >= SY)  b1 = alt + 1;
+          else { b1 = alt; b2 = alt + 1; t = (d + SY) / (2 * SY); }
         } else {
           b1 = v < eK ? 0 : v < eC ? 1 : 2;
         }
 
         const k1 = ind(b1, n, nk);
-        let cr = LUT[k1], cg = LUT[k1 + 1], cb = LUT[k1 + 2];
-        let c2r = 0, c2g = 0, c2b = 0;
-        if (b2 >= 0) {
-          const k2 = ind(b2, n, nk);
-          c2r = LUT[k2]; c2g = LUT[k2 + 1]; c2b = LUT[k2 + 2];
+        let cr, cg, cb;
+        if (b2 < 0) {
+          cr = LUT[k1]; cg = LUT[k1 + 1]; cb = LUT[k1 + 2];
+        } else {
+          t = t * t * (3 - 2 * t);
+          const k2 = ind(b2, n, nk), u = 1 - t;
+          cr = LUT[k1] * u     + LUT[k2] * t;
+          cg = LUT[k1 + 1] * u + LUT[k2 + 1] * t;
+          cb = LUT[k1 + 2] * u + LUT[k2 + 2] * t;
         }
 
-        /* ── SINIR KATMANI ──
-           Sınıra yaklaştıkça her biyom KENDİ kenar rampasına çekilir.
-           İki biyomun rengi birbirine karıştırılmaz; çimen kurur,
-           lav kenarı açık bordo olur. Ayrıntı: CFG.sinirKatman.
-           Yalnız sınır bandındaki piksellerde çalışır. */
-        if (SK && SBI >= 0) {
-          const bw = SKB[SBI];
-          let wE = 1 - (SD < 0 ? -SD : SD) / bw;
-          if (wE > 0) {
-            if (wE > 1) wE = 1;
-            const m0 = wE * wE * (3 - 2 * wE);
-            /* Sınırın düşük biyomunun indisi = sınır indisi (0→kar,
-               1→çimen), yani b1 === SBI ise b1 alt yandadır. */
-            const yan1 = b1 === SBI ? 0 : 1;
-            const g1 = SKG[SBI * 2 + yan1] * m0;
-            if (g1 > 0) {
-              const o = (SBI * 2 + yan1) * 6;
-              let hr = SKC[o], hg = SKC[o + 1], hb = SKC[o + 2];
-              if (wE > 0.5) {
-                const u2 = (wE - 0.5) * 2;
-                hr += (SKC[o + 3] - hr) * u2;
-                hg += (SKC[o + 4] - hg) * u2;
-                hb += (SKC[o + 5] - hb) * u2;
-              }
-              cr += (hr - cr) * g1; cg += (hg - cg) * g1; cb += (hb - cb) * g1;
-            }
-            if (b2 >= 0) {
-              /* b2 her zaman sınırın ÜST biyomu → yan 1 */
-              const g2 = SKG[SBI * 2 + 1] * m0;
-              if (g2 > 0) {
-                const o = (SBI * 2 + 1) * 6;
-                let hr = SKC[o], hg = SKC[o + 1], hb = SKC[o + 2];
-                if (wE > 0.5) {
-                  const u2 = (wE - 0.5) * 2;
-                  hr += (SKC[o + 3] - hr) * u2;
-                  hg += (SKC[o + 4] - hg) * u2;
-                  hb += (SKC[o + 5] - hb) * u2;
-                }
-                c2r += (hr - c2r) * g2; c2g += (hg - c2g) * g2; c2b += (hb - c2b) * g2;
-              }
-            }
-          }
-        }
-
-        if (b2 >= 0) {
-          const u = 1 - t;
-          cr = cr * u + c2r * t; cg = cg * u + c2g * t; cb = cb * u + c2b * t;
-        }
         /* ── RÖLYEF GÖLGESİ — SINIRDA KESİLİR ──
-           Gölge, pikselin ait olduğu biyomun alanından okunur.
-           Karışım için RENGİN t'si değil tR kullanılıyor: tR yalnız
+           Gölge, pikselin RENGİNİ aldığı biyomun alanından okunur:
+           b1 (ve sınır bandında b2). Sınır bandı yalnız
            sinirYumusak (≈2 px) genişliğinde, yani gölge sınırda
-           KESİLİYOR. Renk sınırı CFG.sinirKatman ile onlarca piksele
-           yayılsa bile çimenin çukuru kara/lava BİR PİKSEL bile
-           taşmaz. t kullanılsaydı geniş renk bandı boyunca iki
-           biyomun kabartısı üst üste biner, tek bir yuvarlak iki
-           zemine birden geçiyormuş gibi görünürdü — şikâyet buydu.
-           px bir Uint8ClampedArray, taşma kırpılır. */
+           KESİLİYOR: çimenin çukuru/kabartısı kar veya lav alanına
+           bir piksel bile taşmıyor. Üç alan birbirinden bağımsız
+           üretildiği için de tek bir yuvarlağın devamı gibi
+           görünmüyor. px bir Uint8ClampedArray, taşma kırpılır. */
         if (FS) {
           const rtx = RTX[x], rtx1 = 1 - rtx;
           const ra_ = (rr0 + RI0[x]) * 3, rb_ = (rr1 + RI0[x]) * 3;
           const q00 = rtx1 * rty1, q10 = rtx * rty1, q01 = rtx1 * rty, q11 = rtx * rty;
           let sh = FS[ra_ + b1] * q00 + FS[ra_ + 3 + b1] * q10
                  + FS[rb_ + b1] * q01 + FS[rb_ + 3 + b1] * q11;
-          if (b2 >= 0 && tR > 0) {
+          if (b2 >= 0) {
             const sh2 = FS[ra_ + b2] * q00 + FS[ra_ + 3 + b2] * q10
                       + FS[rb_ + b2] * q01 + FS[rb_ + 3 + b2] * q11;
-            sh += (sh2 - sh) * tR;
+            sh += (sh2 - sh) * t;
           }
           cr *= sh; cg *= sh; cb *= sh;
         }
