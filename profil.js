@@ -125,6 +125,37 @@
       /* ÜST ŞERİTTEKİ ÇERÇEVE. Kutu kare, fotoğraf kareyi `cover` ile
          tam doldurur; fotoğraf yokken içeride ince bir kişi çizimi
          durur (emoji değil — çerçevenin içinde emoji kirli duruyor). */
+      /* BOY = ŞERİDİN BOYU. Şeridin yüksekliği guchud.js'te
+         calc(--hud-h + --guc-buyume); kutu aynı iki değişkenden
+         beslenir, üstten/alttan 3'er px pay bırakır. Böylece ?menu=1
+         veya ?guc=1 ile şerit boyu değişince kutu kendiliğinden
+         uyar, ikinci bir sayı tutulmaz.
+         Kutu AKIŞTAN ÇIKARILDI (position:absolute): akışta kalsaydı
+         satırı kendi boyuna zorlar, şerit uzardı. Yerini #logoutBtn
+         ayırır (aşağıda), şeridin overflow:hidden'ı da taşmayı
+         keser. */
+      "html body #worldScreen .hud-top{ position:relative !important; }",
+      "html body #worldScreen .hud-top #profilAvatar{",
+      "  --pa-boy:calc(var(--hud-h, 30.5px) + var(--guc-buyume, 16px) - 6px);",
+      "  position:absolute !important;",
+      "  top:calc(env(safe-area-inset-top, 0px) + 2px) !important;",
+      "  right:var(--pa-sag, 7px) !important;",
+      "  width:var(--pa-boy) !important; height:var(--pa-boy) !important;",
+      "  flex:none !important; transform:none !important; z-index:3 !important;",
+      "  border-radius:10px !important; border-width:2px !important;",
+      "}",
+      /* #logoutBtn artık kutuyu TAŞIMAZ, yerini AYIRIR: kutu kadar
+         genişlikte boş bir paydır. Ayraç çizgisi kaldırıldı (şeritte
+         çerçevenin solunda çizgi olmasın), ad yazısı gizlendi (ad
+         zaten profil ekranında yazıyor; pay kutu kadar dar, yazı
+         çerçevenin altından sızıyordu). */
+      "html body #worldScreen .hud-top > #logoutBtn{",
+      "  flex:0 0 calc(var(--hud-h, 30.5px) + var(--guc-buyume, 16px) - 6px",
+      "              + var(--pa-sag, 7px) + 3px) !important;",
+      "  padding:0 !important; border-left:none !important; min-width:0 !important;",
+      "  overflow:visible !important;",
+      "}",
+      "html body #worldScreen .hud-top > #logoutBtn #currentUserLabel{ display:none !important; }",
       "#profilAvatar{",
       "  display:inline-flex; align-items:center; justify-content:center;",
       "  box-sizing:border-box; width:22px; height:22px; padding:0;",
