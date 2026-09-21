@@ -105,6 +105,19 @@ const DRAG_PX = 12;
   color:#0d2a36 !important; font-weight:800; letter-spacing:.2px;
 }
 
+/* CAN SİMGESİ — ❤️ emojisi yerine canikon.webp.
+   Boy em biriminde: şerit yazısı (--hud-f1) büyüyüp küçülünce simge de
+   onunla gider, ikinci bir ölçü tutulmaz. Emoji yaklaşık 1.2em
+   yer kaplıyordu; 1.5em biraz daha dolgun ama şeridi uzatmaz —
+   şeridin yüksekliği sabit (guchud.js). */
+html body .hud-top #staminaPill #canIkonHud{
+  width:1.5em !important; height:1.5em !important;
+  object-fit:contain !important; display:inline-block !important;
+  vertical-align:-0.34em !important; margin-right:.18em !important;
+  background:none !important; flex:0 0 auto !important;
+  filter:drop-shadow(0 1px 1px rgba(0,12,32,.55)) !important;
+}
+
 /* ── ELMAS ROZETİ: mağazayla aynı açık mavi ── */
 .hud-pill.diamond-pill{
   background:#2DC9FC !important;
@@ -2094,7 +2107,24 @@ function hookStaminaPill() {
       const st = (typeof state === "object" && state) ? state.stamina : null;
       const txt = document.getElementById("staminaText");
       if (st && txt && st.max > 0) {
-        txt.textContent = "❤️ " + Math.round((st.current / st.max) * 100);
+        /* Simge YAZIYA GÖMÜLMEZ, ayrı bir <img> olarak bir kez
+           kurulur. textContent her saniye yeniden yazılıyor; simge
+           de yazının içinde olsaydı her yazışta görsel düğümü
+           yeniden kurulur, boşuna iş çıkardı. Görsel yüklenmezse
+           onerror ❤️ emojisine düşer — rozet boş kalmaz. */
+        const kap = txt.parentNode;
+        if (kap && !document.getElementById("canIkonHud")) {
+          const im = document.createElement("img");
+          im.id = "canIkonHud";
+          im.src = "canikon.webp";
+          im.alt = "";
+          im.onerror = function () {
+            this.onerror = null;
+            this.replaceWith(document.createTextNode("❤️ "));
+          };
+          kap.insertBefore(im, txt);
+        }
+        txt.textContent = Math.round((st.current / st.max) * 100);
       }
     } catch (e) {}
     return r;

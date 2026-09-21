@@ -189,7 +189,8 @@
     st.textContent = [
       /* ── Kale içi ikonu ────────────────────────────────────
          Sağdaki yüzen düğme yığınına katılır (index.html):
-           günlük 78 · sandık 128 · ETKİNLİK 174 · hastane 220
+           ETKİNLİK 78 · sandık 128 · günlük 174 · hastane 220
+           (etkinlik ile günlük giriş yer değiştirdi)
          Ölçü onlarla aynı: 45px genişlik, ikon 34px.
          z-index de aynı (18 / kale içinde 41) — paneller 50'de,
          böylece ikon artık açık panelin üstünde kalmaz. */
@@ -197,7 +198,7 @@
          idi, yalnız `body.kaleici-acik` açıyordu; artık ikisinde de
          duruyor (hastane düğmesi gibi). Kale içinde z-index 41'e
          çıkar — kale katmanı 30'da, paneller 50'de. */
-      "#etkIkon{position:absolute; right:5px; top:174px; z-index:18; display:flex;",
+      "#etkIkon{position:absolute; right:5px; top:78px; z-index:18; display:flex;",
       "  flex-direction:column; align-items:center; gap:1px; width:45px;",
       "  background:none; border:none; padding:0; cursor:pointer;",
       "  filter:drop-shadow(0 8px 12px rgba(0,0,0,.55));",

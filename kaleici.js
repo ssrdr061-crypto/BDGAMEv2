@@ -2535,7 +2535,20 @@
     ciz();
   }
 
+  /* HARİTAYA DÖNÜŞ — sis perdesinin arkasında.
+     Asıl iş kapatIsi()'nde; kapat() yalnız onu sisin en yoğun
+     anına denk getirir (sisgecis.js). SISGECIS yoksa ya da geçiş
+     zaten oynuyorsa iş beklemeden yapılır — perde süstür, kapıyı
+     tutmasına izin verilmez. */
   function kapat() {
+    var acikti = !!(document.body && document.body.classList.contains('kaleici-acik'));
+    if (acikti && window.SISGECIS && typeof window.SISGECIS.oynat === 'function') {
+      try { window.SISGECIS.oynat(kapatIsi); return; } catch (e) {}
+    }
+    kapatIsi();
+  }
+
+  function kapatIsi() {
     duraklat = false;
     panelKapat();
     secili = null; tasinan = null; tasiModu = false; tasiDokunus = 0;
