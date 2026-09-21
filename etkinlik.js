@@ -193,22 +193,32 @@
          Ölçü onlarla aynı: 45px genişlik, ikon 34px.
          z-index de aynı (18 / kale içinde 41) — paneller 50'de,
          böylece ikon artık açık panelin üstünde kalmaz. */
-      "#etkIkon{position:absolute; right:5px; top:174px; z-index:18; display:none;",
+      /* HEM DÜNYA HARİTASINDA HEM KALE İÇİNDE. Eskiden display:none
+         idi, yalnız `body.kaleici-acik` açıyordu; artık ikisinde de
+         duruyor (hastane düğmesi gibi). Kale içinde z-index 41'e
+         çıkar — kale katmanı 30'da, paneller 50'de. */
+      "#etkIkon{position:absolute; right:5px; top:174px; z-index:18; display:flex;",
       "  flex-direction:column; align-items:center; gap:1px; width:45px;",
       "  background:none; border:none; padding:0; cursor:pointer;",
       "  filter:drop-shadow(0 8px 12px rgba(0,0,0,.55));",
       "  font-family:'Baloo 2','Nunito',sans-serif;}",
-      "body.kaleici-acik #etkIkon{display:flex; z-index:41;}",
+      "body.kaleici-acik #etkIkon{z-index:41;}",
       /* KUTU ve ALT YAZI KALDIRILDI — sandık/hastane düğmeleri gibi
          çıplak simge duruyor. Kutu gidince 22px'lik simge yalnız
          kalıp küçük göründüğü için 34px'e çıkarıldı; dokunma alanı
          yine 40px'lik kapta, yalnız çizim büyüdü.
          .etk-i-yazi artık üretilmiyor (bkz. iskelet()), kuralı da
          kaldırıldı — ölü stil bırakılmadı. */
+      /* Simge artık emoji değil, etkinlikikon.webp. Çizim 34px'ten
+         30px'e indi (bir tık küçük); dokunma alanı 40px'lik kapta
+         kaldı. font-size kuralı duruyor: görsel yüklenmezse
+         onerror emojiye düşüyor, o zaman ölçü oradan geliyor. */
       "#etkIkon .etk-i-kutu{width:40px; height:40px; display:flex;",
       "  align-items:center; justify-content:center;",
-      "  font-size:34px; line-height:1;",
+      "  font-size:30px; line-height:1;",
       "  background:none; border:none; border-radius:0;}",
+      "#etkIkon .etk-i-kutu img{width:30px; height:30px; object-fit:contain;",
+      "  display:block; background:none;}",
       "#etkIkon:active{transform:scale(.96); filter:brightness(.93);}",
 
       /* ── Pencere kabı: ekranı KAPLAMAZ, ortada kart ── */
@@ -335,7 +345,8 @@
        aria-label eklendi ki ekran okuyucu için ad kaybolmasın. */
     btn.setAttribute("aria-label", "Etkinlikler");
     btn.title = "Etkinlikler";
-    btn.innerHTML = '<span class="etk-i-kutu">📋</span>';
+    btn.innerHTML = '<span class="etk-i-kutu"><img src="etkinlikikon.webp" alt="" ' +
+      'onerror="this.onerror=null;this.replaceWith(document.createTextNode(\'📋\'))"></span>';
     btn.addEventListener("click", ac);
     /* Rozet sütununun İÇİNE girer — top/right değerleri hastane
        düğmesiyle AYNI kapsayıcıya göre ölçülüyor, yoksa hizalama

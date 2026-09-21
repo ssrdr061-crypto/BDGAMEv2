@@ -235,14 +235,23 @@
          içinde 41'e çıkarılır — kale katmanının ve alt menünün
          üstünde, ama panellerin (50) hâlâ altında. etkinlik.js
          #etkIkon için birebir aynı sıçramayı yapıyor. */
-      "#postaYuzenBtn{position:fixed;right:10px;bottom:96px;z-index:20;width:42px;height:42px;" +
-        "padding:0;cursor:pointer;border-radius:11px;border:0;" +
+      /* KUTU 42 → 36px. Görsel kutunun tam ortasında: kutu flex,
+         hizalama zaten ortalıydı (ölçüldü: sapma 0/0) — kayma
+         GÖRSELİN KENDİSİNDEN geliyordu. gorsel15.webp 188x181'lik
+         tuvalde 151x103'lük bir zarf taşıyordu, saydam kenar payı
+         eşit değildi (üstte 46px, altta 32px) ve `contain` o payı
+         da ölçeklediği için zarf hem küçülüyor hem aşağı kayıyordu.
+         Görsel saydam payından kırpıldı (151x103); artık kutu
+         ortası = zarf ortası. Yükseklik `auto`: zarf geniş bir
+         dikdörtgen, kareye zorlanmaz. */
+      "#postaYuzenBtn{position:fixed;right:10px;bottom:96px;z-index:20;width:36px;height:36px;" +
+        "padding:0;cursor:pointer;border-radius:10px;border:0;" +
         "display:flex;align-items:center;justify-content:center;" +
         "background:linear-gradient(180deg,var(--km-1),var(--km-2) 55%,var(--km-3));" +
         "filter:drop-shadow(0 2px 4px rgba(0,0,0,.30));}" +
       "body.kaleici-acik #postaYuzenBtn{z-index:41;}" +
       "#postaYuzenBtn:active{transform:scale(.96);filter:brightness(.93);}" +
-      "#postaYuzenBtn img{width:26px;height:26px;object-fit:contain;display:block;}" +
+      "#postaYuzenBtn img{width:24px;height:auto;object-fit:contain;display:block;}" +
       "#postaYuzenBtn .py-emoji{font-size:22px;line-height:1;}" +
       "#postaYuzenBtn .py-rozet{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;" +
         "padding:0 5px;border-radius:10px;background:#e03a3a;color:#fff;font-family:'Baloo 2',sans-serif;" +
