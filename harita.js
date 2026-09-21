@@ -382,12 +382,32 @@
          doygunluk: 1 = dokunma · canlilik: 0 = dokunma (soluk
            renkleri daha çok doyurur) · parlaklik: -0.5..0.5 ·
          kontrast: 1 = dokunma.
-         Renk ayarları piksele değil PALETE uygulanır (maliyetsiz). */
+         Renk ayarları piksele değil PALETE uygulanır (maliyetsiz).
+         desenOlcek: leke BOYU (sıklığın çarpanı, 1 = genel ayar;
+           büyük = daha küçük/sık leke) · esikKay: koyu ton alanının
+           kayması (eksi = zemin açılır, artı = koyulaşır).
+         BU İKİSİ NEDEN VAR: üç biyom zaten ayrı gürültü alanından
+         besleniyordu ama leke BOYU ve KOYULUK DAĞILIMI üçünde de
+         aynıydı; aynı boy ve aynı ağırlıktaki lekeler sınırın iki
+         yanında tek arazinin devamı gibi okunuyordu. Ölçülerin
+         ayrılması ile her zeminin kendi çukur karakteri oluyor. */
       bolge: {
-        kar:   { keskinlik: 8, doygunluk: 1.47, canlilik:  0.41, parlaklik:  0.16, kontrast: 0.77 },
-        cimen: { keskinlik: 8, doygunluk: 1.10, canlilik: -0.20, parlaklik: -0.23, kontrast: 0.97 },
-        lav:   { keskinlik: 8, doygunluk: 1.05, canlilik: -0.50, parlaklik: -0.24, kontrast: 0.88 },
+        kar:   { keskinlik: 8, doygunluk: 1.47, canlilik:  0.41, parlaklik:  0.16, kontrast: 0.77,
+                 desenOlcek: 1.00, esikKay:  0.00 },
+        cimen: { keskinlik: 8, doygunluk: 1.10, canlilik: -0.20, parlaklik: -0.23, kontrast: 0.97,
+                 desenOlcek: 1.55, esikKay: -0.05 },
+        lav:   { keskinlik: 8, doygunluk: 1.05, canlilik: -0.50, parlaklik: -0.24, kontrast: 0.88,
+                 desenOlcek: 0.68, esikKay:  0.04 },
       },
+
+      /* ── GEÇİŞ KIYISI ──
+         İki zemin sınırda birbirine KOYU tonlarıyla dayanıyordu;
+         sınır çamur gibi duruyordu. Artık sınırın iki yanında `en`
+         dünya pikseli genişliğinde bir şerit, o pikselin KENDİ
+         biyomunun PARLAK tonuna çekiliyor — her zemin kendi
+         sınırını kendi açık rengiyle çiziyor.
+         acik:false ya da guc:0 → eski hâl. */
+      gecis: { acik: true, en: 34, guc: 0.52 },
       /* Palet: [gölge, alt, orta, üst, parlak] — RGB.
          Kar paleti referans AI görselinden örneklendi, biraz daha
          doyurularak (lila/sıcak). */
@@ -1243,8 +1263,14 @@
      BURADA YAPILMAZ — chunkUretBoya bu sayıyı alçak çözünürlükte
      örnekler, çözünürlük yükseltildikten SONRA eşikler. Keskinliğin
      sırrı bu sıra (aşağıda "NEDEN ALAN, RENK DEĞİL"). */
-  function boyaGurultu(gx, gy) {
-    const B = CFG.boya, f = B.siklik;
+  /* olc: BİYOM BAŞINA DESEN ÖLÇEĞİ (bkz. CFG.boya.bolge.*.desenOlcek).
+     Sıklığı çarpar: 1'den büyük = daha küçük/sık leke. Üç biyom
+     yalnız başlangıç noktasıyla ayrılınca desenler ilgisiz oluyordu
+     ama BOYLARI aynı kalıyordu; göz aynı boy lekeyi tek arazinin
+     devamı diye okuyor. Ölçek de ayrılınca her zeminin kendi leke
+     boyu oluyor. */
+  function boyaGurultu(gx, gy, olc) {
+    const B = CFG.boya, f = B.siklik * (olc || 1);
     const e = lekeEkseni(gx, gy, 1);
     return smoothNoise(e.u * f + 151,      e.v * f + 307)      * (1 - B.ayrinti)
          + smoothNoise(e.u * f * 2.7 + 19, e.v * f * 2.7 + 83) * B.ayrinti;
@@ -1498,7 +1524,7 @@
     const lut = new Uint8ClampedArray(3 * KK * 3);
     const PAL = paletHazirla();
     const bol = B.bolge || {};
-    const E1 = B.esik1, E2 = B.esik2, IC = B.icTon, KB = B.kabarti * 2;
+    const _E1 = B.esik1, _E2 = B.esik2, IC = B.icTon, KB = B.kabarti * 2;
 
     /* Kat çizgisi eşikleri: iki ton eşiği + `kat` kadar eşit aralıklı
        ara çizgi. Ayrıntı ve neden: CFG.boya.hat. */
@@ -1508,14 +1534,21 @@
     const HTen = HT.en || 0, HTk = HT.koyu || 0, HTp = HT.parlak || 0;
     const HES = [];
     if (HTa) {
-      HES.push(E1, E2);
+      HES.push(_E1, _E2);
       const kat = Math.max(0, Math.min(24, Math.round(HT.kat || 0)));
       for (let i = 0; i < kat; i++) HES.push((i + 1) / (kat + 1));
     }
 
     for (let b = 0; b < 3; b++) {
-      const kk = (bol[BIYOM_AD[b]] && bol[BIYOM_AD[b]].keskinlik) || 1;
+      const _z = bol[BIYOM_AD[b]] || {};
+      const kk = _z.keskinlik || 1;
       const y = Math.max(0.0005, B.yum / kk);
+      /* esikKay: BİYOM BAŞINA eşik kaydırması. Eksi = koyu ton alanı
+         küçülür (zemin açılır), artı = büyür. Desen ölçeğiyle
+         birlikte her zemine kendi karakterini verir; ölçek lekenin
+         BOYUNU, bu KOYULUK DAĞILIMINI ayırır. */
+      const kay = _z.esikKay || 0;
+      const E1 = _E1 + kay, E2 = _E2 + kay;
       const o = b * 15;
       const kad = function (e, x) {
         if (x <= e - y) return 0;
@@ -1562,7 +1595,7 @@
         }
       }
     }
-    _lut = { K, lut }; _lutImza = imza;
+    _lut = { K, lut, pal: PAL }; _lutImza = imza;
     return _lut;
   }
 
@@ -1590,6 +1623,13 @@
 
        DİZİLİM: FN[k*3 + b] = k noktasında b biyomunun deseni. */
     const BOFS = [0, 0, 3072, 6144, 9216, 1536];
+    /* Biyom başına desen ölçeği (CFG.boya.bolge.*.desenOlcek). */
+    const _bol = B.bolge || {};
+    const DOLC = [0, 1, 2].map(function (i) {
+      const z = _bol[BIYOM_AD[i]];
+      const o = z && z.desenOlcek;
+      return o > 0 ? o : 1;
+    });
     const FN = new Float32Array(N * 3);      /* boya gürültüsü, biyom başına */
     const kab = B.kabarti > 0;
     const FK = kab ? new Float32Array(N * 3) : null;  /* kaydırılmış gürültü */
@@ -1670,9 +1710,9 @@
         FV[k] = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
         const k3 = k * 3;
         for (let b = 0; b < 3; b++) {
-          const ox = BOFS[b * 2], oy = BOFS[b * 2 + 1];
-          FN[k3 + b] = boyaGurultu(g.gx + ox, g.gy + oy);
-          if (kab) FK[k3 + b] = boyaGurultu(g.gx + ox + kdx, g.gy + oy + kdy);
+          const ox = BOFS[b * 2], oy = BOFS[b * 2 + 1], ol = DOLC[b];
+          FN[k3 + b] = boyaGurultu(g.gx + ox, g.gy + oy, ol);
+          if (kab) FK[k3 + b] = boyaGurultu(g.gx + ox + kdx, g.gy + oy + kdy, ol);
         }
       }
     }
@@ -1691,7 +1731,12 @@
     }
 
     const L = lutAl();
-    const K = L.K, LUT = L.lut, K1 = K - 1;
+    const K = L.K, LUT = L.lut, K1 = K - 1, PAL = L.pal;
+    /* Geçiş kıyısı: en = şeridin yarı genişliği (dünya px),
+       guc = parlak tona çekme oranı (0..1). Ayrıntı: CFG.boya.gecis */
+    const _GC = B.gecis || {};
+    const GE = _GC.acik === false ? 0 : (_GC.en || 0);
+    const GG = Math.max(0, Math.min(1, _GC.guc == null ? 0 : _GC.guc));
     const eK = CFG.esikKar, eC = CFG.esikCimen;
     const ORT = (eK + eC) / 2;
     const SY = Math.max(0.5, CFG.sinirYumusak == null ? 4 : CFG.sinirYumusak);
@@ -1770,7 +1815,7 @@
            CFG.sinirYumusak dünya pikseli. Yazı fontlarının kenar
            yumuşatmasıyla aynı yöntem. Eğim yalnız eşiğe yakın
            piksellerde hesaplanır. */
-        let b1, b2 = -1, t = 0;
+        let b1, b2 = -1, t = 0, rim = 0;
         const e = v < ORT ? eK : eC;
         const fark = v - e;
         if (fark > -YAKIN && fark < YAKIN) {
@@ -1785,6 +1830,20 @@
           if (d <= -SY)      b1 = alt;
           else if (d >= SY)  b1 = alt + 1;
           else { b1 = alt; b2 = alt + 1; t = (d + SY) / (2 * SY); }
+          /* ── GEÇİŞ KIYISI ──
+             Sınırın iki yanında GE dünya pikseli genişliğinde bir
+             şerit, o pikselin KENDİ biyomunun PARLAK tonuna çekilir.
+             İki zemin birbirine koyu tonla dayanınca sınır çamur
+             gibi duruyordu; kıyı açılınca her zemin kendi sınırını
+             kendi açık rengiyle çiziyor. Maliyet: yalnız eşiğe yakın
+             piksellerde, birkaç çarpma. */
+          if (GE > 0) {
+            const ad2 = d < 0 ? -d : d;
+            if (ad2 < GE) {
+              let m = 1 - ad2 / GE;
+              rim = m * m * (3 - 2 * m) * GG;
+            }
+          }
         } else {
           b1 = v < eK ? 0 : v < eC ? 1 : 2;
         }
@@ -1807,6 +1866,21 @@
           cr = LUT[k1] * u     + LUT[k2] * t;
           cg = LUT[k1 + 1] * u + LUT[k2 + 1] * t;
           cb = LUT[k1 + 2] * u + LUT[k2 + 2] * t;
+        }
+
+        /* Kıyı açma: pikselin kendi biyomunun parlak tonuna çek.
+           Sınır bandındaysa (b2 >= 0) iki parlak ton da t ile
+           karışır, yoksa kıyıda ikinci bir renk sıçraması olurdu. */
+        if (rim > 0) {
+          const p1 = b1 * 15 + 12;
+          let hr = PAL[p1], hg = PAL[p1 + 1], hb = PAL[p1 + 2];
+          if (b2 >= 0) {
+            const p2 = b2 * 15 + 12;
+            hr += (PAL[p2] - hr) * t;
+            hg += (PAL[p2 + 1] - hg) * t;
+            hb += (PAL[p2 + 2] - hb) * t;
+          }
+          cr += (hr - cr) * rim; cg += (hg - cg) * rim; cb += (hb - cb) * rim;
         }
 
         /* ── RÖLYEF GÖLGESİ — SINIRDA KESİLİR ──
