@@ -113,10 +113,12 @@ const shopItems = [
      kaçınılmaz olarak ayrışır.
      `isExpKitap` bayrağını gelistir.js kitapUrunAdi() arar; ürünün
      adı değişse bile bağ kopmaz. Bayrağı başka ürüne kopyalama.
-     GÖRSEL BEKLENİYOR: `gorsel` satırı eklenmeden önce dosya
-     sunucuya yüklenmeli — dosya yokken kart kırık resim gösterir,
-     emojiye DÜŞMEZ (index.html:5644). */
+     GÖRSEL GELDİ: kahramankitabi.webp — aynı dosya kahraman
+     yükseltme ekranındaki YÜKSELT düğmesinde de kullanılıyor
+     (gelistir.js KITAP_GORSEL). Tek dosya, iki yer: ad değişirse
+     iki yerde de değişmeli. */
   { name: "Tecrübe Kitabı", price: 200, isExpKitap: true, icon: "📘",
+    gorsel: "kahramankitabi.webp",
     expDesc: "Kahramanın tecrübe seviyesini yükseltir. Kahraman ekranındaki YÜKSELT düğmesiyle harcanır: kahramanın tecrübe seviyesini yükseltir, sefer kapasitesini ve gücünü artırır. Yıldızla ilgisi yoktur, yıldız parçayla yükselir." },
 
   /* MAĞAZA GÖRSELİ BEKLENİYOR: `missile.js`teki fuze_Fuze-roket.webp

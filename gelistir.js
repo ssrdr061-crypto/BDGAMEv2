@@ -336,7 +336,7 @@
       girer ve kırık resim yerine yazı işareti görünür — bu yüzden
       dosya yüklenmeden de ekran bozulmaz. */
   const OK_GORSEL    = "ok.webp";
-  const KITAP_GORSEL = "kitap.webp";
+  const KITAP_GORSEL = "kahramankitabi.webp";
 
   function kutucuklar(gizle) {
     /* Yetenek kutucukları ve üstteki yıldız şeridi panelle birlikte
