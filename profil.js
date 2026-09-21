@@ -125,33 +125,33 @@
       /* ÜST ŞERİTTEKİ ÇERÇEVE. Kutu kare, fotoğraf kareyi `cover` ile
          tam doldurur; fotoğraf yokken içeride ince bir kişi çizimi
          durur (emoji değil — çerçevenin içinde emoji kirli duruyor). */
-      /* BOY = ŞERİDİN BOYU. Şeridin yüksekliği guchud.js'te
-         calc(--hud-h + --guc-buyume); kutu aynı iki değişkenden
-         beslenir, üstten/alttan 3'er px pay bırakır. Böylece ?menu=1
-         veya ?guc=1 ile şerit boyu değişince kutu kendiliğinden
-         uyar, ikinci bir sayı tutulmaz.
-         Kutu AKIŞTAN ÇIKARILDI (position:absolute): akışta kalsaydı
-         satırı kendi boyuna zorlar, şerit uzardı. Yerini #logoutBtn
-         ayırır (aşağıda), şeridin overflow:hidden'ı da taşmayı
-         keser. */
+      /* BOY = ŞERİDİN ÖLÇÜLEN BOYU (bkz. boyAyarla).
+         Değişkenden (--hud-h + --guc-buyume) hesaplamayı DENEDİK,
+         tutmadı: şeridin gerçek yüksekliğini o iki değişken tek
+         başına vermiyor. Ölçü artık getBoundingClientRect'ten
+         geliyor, yükseklik/genişlik JS ile yazılıyor.
+
+         ÇAPA .hud-top OLMAK ZORUNDA: kutu akışta kalsaydı üst satırı
+         kendi boyuna zorlar, şerit uzardı. Ama guchud.js şeridin
+         DOĞRUDAN ÇOCUKLARINA transform veriyor; transform'lu öğe
+         kendisi çapa olur — kutu bu yüzden #logoutBtn'e göre
+         konumlanıp aşağı kaymış ve sağ kenara yapışmıştı (ölçüldü).
+         Çözüm: #logoutBtn'in transform'u kapatılır, tek çapa
+         .hud-top kalır. O düğme artık yalnız yer ayıran boş pay,
+         kayması gereken bir içeriği yok. */
       "html body #worldScreen .hud-top{ position:relative !important; }",
       "html body #worldScreen .hud-top #profilAvatar{",
-      "  --pa-boy:calc(var(--hud-h, 30.5px) + var(--guc-buyume, 16px) - 6px);",
       "  position:absolute !important;",
-      "  top:calc(env(safe-area-inset-top, 0px) + 2px) !important;",
       "  right:var(--pa-sag, 7px) !important;",
-      "  width:var(--pa-boy) !important; height:var(--pa-boy) !important;",
       "  flex:none !important; transform:none !important; z-index:3 !important;",
       "  border-radius:10px !important; border-width:2px !important;",
       "}",
-      /* #logoutBtn artık kutuyu TAŞIMAZ, yerini AYIRIR: kutu kadar
-         genişlikte boş bir paydır. Ayraç çizgisi kaldırıldı (şeritte
-         çerçevenin solunda çizgi olmasın), ad yazısı gizlendi (ad
-         zaten profil ekranında yazıyor; pay kutu kadar dar, yazı
-         çerçevenin altından sızıyordu). */
+      /* #logoutBtn artık kutuyu TAŞIMAZ, yerini AYIRIR. Genişliği de
+         boyAyarla yazar (kutu kadar + boşluk). Ayraç çizgisi
+         kaldırıldı, ad yazısı gizlendi (pay kutu kadar dar, yazı
+         çerçevenin altından sızıyordu; ad profil ekranında duruyor). */
       "html body #worldScreen .hud-top > #logoutBtn{",
-      "  flex:0 0 calc(var(--hud-h, 30.5px) + var(--guc-buyume, 16px) - 6px",
-      "              + var(--pa-sag, 7px) + 3px) !important;",
+      "  transform:none !important;",
       "  padding:0 !important; border-left:none !important; min-width:0 !important;",
       "  overflow:visible !important;",
       "}",
@@ -283,6 +283,38 @@
      konur. Ad yazısı (#currentUserLabel) ve düğmenin kendisi
      DURUR — onu besleyen kod (startSessionFor) değişmedi. Düğmenin
      eski işi (çıkış onayı) profildeki "Ayarlar"a taşındı. */
+  /* ── KUTU BOYU = ŞERİT BOYU ───────────────────────────────────
+     Şeridin yüksekliği CSS'te tek bir değişkenden okunamıyor:
+     guchud.js, tema.js ve güvenli alan payı üst üste biniyor.
+     O yüzden ölçülür. clientHeight DOLGU KUTUSUDUR — absolute
+     konumun "top"u da ona göredir, ikisi aynı kutu; üstten ve
+     alttan 3'er px pay bırakılır, kutu kare olur.
+     PAY = kutu + sağ boşluk + 3px; #logoutBtn akışta bu kadar yer
+     tutar ki şeritteki diğer öğeler çerçevenin altına girmesin. */
+  function boyAyarla() {
+    var ust = document.querySelector("#worldScreen .hud-top");
+    var pil = document.getElementById("logoutBtn");
+    if (!ust || !pilAvatar) return;
+    var h = ust.clientHeight;
+    if (!h) return;                       /* henüz çizilmemiş */
+    var boy = Math.max(18, Math.round((h - 6) * 10) / 10);
+    var sag = 7;
+    pilAvatar.style.width  = boy + "px";
+    pilAvatar.style.height = boy + "px";
+    pilAvatar.style.top    = Math.round((h - boy) / 2 * 10) / 10 + "px";
+    pilAvatar.style.right  = sag + "px";
+    if (pil) {
+      pil.style.flex = "0 0 " + (boy + sag + 3) + "px";
+      /* guchud.js şeridin doğrudan çocuklarına transform yazıyor ve
+         o seçicinin özgüllüğü daha yüksek (:not(#id) kimlik sayılır)
+         — CSS'ten kapatmak yetmedi, ölçüldü: kutu 11px şerit dışına
+         taşıyordu. Satır içi !important tek kazanan yol. Transform
+         kalkmazsa #logoutBtn kendisi çapa olur, kutu şeride değil
+         düğmeye göre yerleşir. */
+      pil.style.setProperty("transform", "none", "important");
+    }
+  }
+
   function pilKur() {
     var pil = document.getElementById("logoutBtn");
     if (!pil || pil.dataset.profil) return false;
@@ -298,6 +330,16 @@
     pilAvatar.id = "profilAvatar";
     pilAvatar.innerHTML = gorselKutu(fotoOku());
     pil.insertBefore(pilAvatar, pil.firstChild);
+
+    boyAyarla();
+    if (window.ResizeObserver) {
+      var ust = document.querySelector("#worldScreen .hud-top");
+      if (ust) new ResizeObserver(boyAyarla).observe(ust);
+    }
+    window.addEventListener("resize", boyAyarla);
+    window.addEventListener("orientationchange", boyAyarla);
+    setTimeout(boyAyarla, 300);
+    setTimeout(boyAyarla, 1500);
 
     /* Çıkış onayı yerine profil açılır. ESKİ DİNLEYİCİ SİLİNMEZ,
        önüne geçilir — ama dinleyici DÜĞMENİN ÜSTÜNE konamaz:
