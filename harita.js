@@ -366,7 +366,11 @@
          çizgi basamaklanır; panelde alt sınır 0.004.
          ?zeminayar=4 → ÇİZGİ sekmesinden ayarlanır. */
       hat: {
-        acik:   true,
+        /* KAPALI: eşik çevresine binen koyu/parlak halka zemini
+           çamurlu gösteriyordu, istenmedi. Motor duruyor, tek
+           bayrakla geri gelir — ?zeminayar=4 başlığındaki
+           ÇİZGİ AÇIK/KAPALI düğmesi. */
+        acik:   false,
         en:     0.020,  /* çizginin yarı kalınlığı, n birimi        */
         koyu:   0.55,   /* eşiğin ALTINDA gölgeye çekme (0..1)      */
         parlak: 0.30,   /* eşiğin ÜSTÜNDE parlağa çekme (0..1)      */
