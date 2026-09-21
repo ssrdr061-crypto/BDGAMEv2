@@ -110,6 +110,13 @@ const DRAG_PX = 12;
    onunla gider, ikinci bir ölçü tutulmaz. Emoji yaklaşık 1.2em
    yer kaplıyordu; 1.5em biraz daha dolgun ama şeridi uzatmaz —
    şeridin yüksekliği sabit (guchud.js). */
+html body .hud-top #mslHudPill .msl-ikon{
+  width:1.5em !important; height:1.5em !important;
+  object-fit:contain !important; display:inline-block !important;
+  vertical-align:-0.34em !important; margin-right:.18em !important;
+  background:none !important; flex:0 0 auto !important;
+  filter:drop-shadow(0 1px 1px rgba(0,12,32,.55)) !important;
+}
 html body .hud-top #staminaPill #canIkonHud{
   width:1.5em !important; height:1.5em !important;
   object-fit:contain !important; display:inline-block !important;

@@ -798,7 +798,28 @@
       pill.className = "hud-pill";
       anchor.parentNode.insertBefore(pill, anchor);
     }
-    pill.textContent = "🚀 " + myMissiles();
+    /* Simge YAZIYA GÖMÜLMEZ: bu satır sık sık yeniden yazılıyor,
+       görsel yazının içinde olsaydı her yazışta düğüm yeniden
+       kurulurdu. <img> bir kez kurulur, yalnız sayı tazelenir.
+       Yüklenmezse onerror 🚀 emojisine düşer. (can simgesiyle
+       aynı yol — tema.js #canIkonHud) */
+    var sayi = pill.querySelector(".msl-sayi");
+    if (!sayi) {
+      pill.textContent = "";
+      var im = document.createElement("img");
+      im.className = "msl-ikon";
+      im.src = "fuzeikon.webp";
+      im.alt = "";
+      im.onerror = function () {
+        this.onerror = null;
+        this.replaceWith(document.createTextNode("🚀 "));
+      };
+      pill.appendChild(im);
+      sayi = document.createElement("span");
+      sayi.className = "msl-sayi";
+      pill.appendChild(sayi);
+    }
+    sayi.textContent = myMissiles();
   }
 
   /* ---------- ÖZEL ONAY PANELİ ---------- */

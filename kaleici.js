@@ -2516,7 +2516,18 @@
     setInterval(butonuGuncelle, 400);
   }
 
+  /* KALEYE GİRİŞ — dönüşle aynı sis perdesi (sisgecis.js).
+     Asıl iş acIsi()'nde; ac() yalnız onu sisin en yoğun anına
+     denk getirir. Perde yoksa ya da hata çıkarsa iş beklemez. */
   function ac() {
+    var kapali = !(document.body && document.body.classList.contains('kaleici-acik'));
+    if (kapali && window.SISGECIS && typeof window.SISGECIS.oynat === 'function') {
+      try { window.SISGECIS.oynat(acIsi); return; } catch (e) {}
+    }
+    acIsi();
+  }
+
+  function acIsi() {
     kur();
     duraklat = false;
     panelKapat();
