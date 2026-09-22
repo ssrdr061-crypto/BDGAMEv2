@@ -735,7 +735,15 @@
          (~150 ms masaüstü), 3'te ~%60 daha uzun. Yavaşsa 2'ye çek.
        carpan: gereken yoğunluğun çarpanı (1 = ekran pikseline eşit).
        ?zeminayar=2 → "Genel" sekmesinden canlı. */
-    zeminHD: { tavan: 3, carpan: 1 },
+    /* TAVAN 3 → 2 (ÖLÇÜLDÜ). Tavan 3'te kaydırma sırasında kareler
+       tekrar tekrar 155-309 ms'ye çıkıyordu; 2'de en kötü ikinci ve
+       üçüncü kare 11 ms, ortanca 5 ms (aynı 40 karelik kaydırma
+       ölçümü). İki sebep: (1) parça pikseli ölçeğin KARESİYLE artar,
+       3 → 2 piksel sayısını 2.25 kat azaltır; (2) her ölçek kovası
+       ayrı önbellek anahtarıdır, tavan yükseldikçe kova sayısı artar
+       ve parçalar birbirini atıp yeniden pişmeye başlar.
+       Bedeli: en yakın zoom'da zemin bir tık yumuşak. */
+    zeminHD: { tavan: 2, carpan: 1 },
 
     /* Eski düz-renk yedeği. Zemin artık zeminRenk'ten boyandığı için
        KULLANILMIYOR; düğüm/kale kodu okuyor olabilir diye duruyor. */
@@ -1716,15 +1724,42 @@
     const r = (B.isikAci || 0) * Math.PI / 180;
     const kdx = Math.cos(r) * B.kaydir, kdy = Math.sin(r) * B.kaydir;
 
+    /* ── YALNIZ GEREKEN BİYOMUN DESENİ ─────────────────────────────
+       ÖLÇÜLDÜ: pişirmenin pahalı kısmı piksel döngüsü DEĞİL, gürültü
+       örneklemesi. boya.kalite 1 → 0.25 (piksel sayısı 16'da bire
+       iner) tam çizimi yalnız 320 ms'den 200 ms'ye indirdi; kalan
+       maliyet bu döngüde.
+
+       Her örnekte ÜÇ biyomun da deseni hesaplanıyordu (kabartı
+       açıkken örnek başına 6 boyaGurultu = 12 smoothNoise = 48
+       Math.sin). Oysa bir piksel rengini TEK biyomdan alır; ikinci
+       biyom yalnız sınır bandında okunur.
+
+       Artık örnek, biyom değerine (FV) göre hangi biyomları
+       gerektiriyorsa yalnız onları hesaplıyor. MARJ eşiğe yakınlık
+       payı: piksel döngüsünün gerçekte ihtiyaç duyduğu bant
+       ~0.0002 v birimi (sinirYumusak 2 px) artı bir ızgara hücresi
+       (~0.0006); 0.02 bunun ~25 katı, yani sınırda iki biyom da
+       kesinlikle hazır. Hesaplanmayan gözler 0 kalır ve hiç
+       okunmaz. */
+    const MARJ = 0.02;
+    const eKar = CFG.esikKar, eCim = CFG.esikCimen;
     for (let j = 0; j < LH; j++) {
       const wy = minY + (j - 1 + 0.5) * A;
       for (let i = 0; i < LW; i++) {
         const wx = minX + (i - 1 + 0.5) * A;
         const g = worldToGrid(wx, wy);
         const k = j * LW + i;
-        FV[k] = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
+        const v = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
+        FV[k] = v;
+        const yKar = v > eKar - MARJ && v < eKar + MARJ;
+        const yCim = v > eCim - MARJ && v < eCim + MARJ;
         const k3 = k * 3;
         for (let b = 0; b < 3; b++) {
+          const gerek = b === 0 ? (v < eKar || yKar)
+                      : b === 1 ? ((v >= eKar && v < eCim) || yKar || yCim)
+                                : (v >= eCim || yCim);
+          if (!gerek) continue;
           const ox = BOFS[b * 2], oy = BOFS[b * 2 + 1], ol = DOLC[b];
           FN[k3 + b] = boyaGurultu(g.gx + ox, g.gy + oy, ol);
           if (kab) FK[k3 + b] = boyaGurultu(g.gx + ox + kdx, g.gy + oy + kdy, ol);
@@ -2059,33 +2094,97 @@
     const cy0 = Math.floor(gy0 / C), cy1 = Math.floor(gy1 / C);
 
     let cizilen = 0;
-    /* Bu karede kaç parça pişirilebilir; 0 = sınırsız (eski yol) */
+    /* Bu karede kaç TAM parça pişirilebilir; 0 = sınırsız (eski yol) */
     let butce = (CFG.kareParca | 0) > 0 ? (CFG.kareParca | 0) : Infinity;
     let eksik = false;
     const PALd = lutAl().pal;   /* düz dolgu rengi paletten */
+
+    /* Parçanın DÜNYA dikdörtgeni; görünürlük ve dolgu için. */
+    function parcaKutu(cx, cy, C) {
+      return {
+        ux: gridToWorld(cx * C, cy * C + C - 1).x,
+        sx: gridToWorld(cx * C + C - 1, cy * C).x + CFG.tileW,
+        uy: gridToWorld(cx * C, cy * C).y,
+        ay: gridToWorld(cx * C + C - 1, cy * C + C - 1).y + CFG.tileH
+      };
+    }
+    /* EKRAN DIŞI PARÇAYI ATLA: ızgara aralığı eşkenar dörtgen ekranı
+       dikdörtgen olarak sarıyor, köşelerdeki parçalar hiç görünmüyor. */
+    function gorunur(q) {
+      return !(q.sx < wx0 || q.ux > wx1 || q.ay < wy0 || q.uy > wy1);
+    }
+    function duzDoldur(cx, cy, C, q) {
+      const gm = biyomDeger(cx * C + C / 2, cy * C + C / 2);
+      const bi = gm < CFG.esikKar ? 0 : gm < CFG.esikCimen ? 1 : 2;
+      const o = bi * 15 + 6;                       /* orta ton */
+      ctx.fillStyle = "rgb(" + (PALd[o] | 0) + "," + (PALd[o + 1] | 0) +
+                      "," + (PALd[o + 2] | 0) + ")";
+      ctx.fillRect(q.ux, q.uy, q.sx - q.ux + 1, q.ay - q.uy + 1);
+    }
+
+    /* ── KABA KATMAN ───────────────────────────────────────────────
+       Pişmemiş parçanın yerine DÜZ RENK basılıyordu; ekranda kocaman
+       tek renk bloklar görünüyordu (ölçüldü, ekran görüntüsüyle
+       doğrulandı). Artık o yere aynı bölgenin EN DÜŞÜK ÖLÇEKTEKİ
+       (s = 1) parçası gerilerek basılıyor: piksel sayısı ölçeğin
+       karesiyle azaldığı için maliyeti tam parçanın dörtte birinden
+       az, görüntüsü blok değil "biraz yumuşak zemin".
+
+       Kaba parçalar da önbellekte durur ve HER ZOOM SEVİYESİNDE aynı
+       anahtarla kullanılır — bir kez pişer, sonra bedava.
+
+       Izgarası ayrı: chunkBoyu(1) = CHUNK, tam parçalarınki ise
+       s >= 2 iken CHUNK/2. Bu yüzden kendi döngüsü var. */
+    const KABA = 1;
+    const kabaVar = s > KABA;
+    /* KABA PARÇA DA UCUZ DEĞİL: ızgarası CHUNK (8 karo), tam
+       parçanınki s>=2 iken CHUNK/2 (4 karo). Alan 4 kat, ölçek 1/2
+       → piksel sayısı kabaca AYNI. Kare başına 3 denendi, kaydırma
+       ölçümünde 359/227/182 ms sıçramaları çıktı; 1'e indirildi. */
+    let kabaButce = kabaVar ? 1 : 0;
+
+    function kabaKatman() {
+      const Ck = chunkBoyu(KABA);
+      const kx0 = Math.floor(gx0 / Ck), kx1 = Math.floor(gx1 / Ck);
+      const ky0 = Math.floor(gy0 / Ck), ky1 = Math.floor(gy1 / Ck);
+      for (let cy = ky0; cy <= ky1; cy++) {
+        for (let cx = kx0; cx <= kx1; cx++) {
+          const q = parcaKutu(cx, cy, Ck);
+          if (!gorunur(q)) continue;
+          const hazir = onbellek.has(cx + "," + cy + "," + KABA);
+          if (!hazir && kabaButce <= 0) { eksik = true; duzDoldur(cx, cy, Ck, q); continue; }
+          const par = chunkAl(cx, cy, KABA);
+          if (!par) continue;
+          if (!hazir) kabaButce--;
+          ctx.drawImage(par.cv, par.x, par.y, par.w + 1, par.h + 1);
+        }
+      }
+    }
+
+    /* Önce tara: tam parçalardan eksik var mı? Varsa KABA katman
+       ALTA serilir, tam parçalar üstüne biner. Sıra önemli. */
+    let tamEksik = false;
+    for (let cy = cy0; cy <= cy1 && !tamEksik; cy++) {
+      for (let cx = cx0; cx <= cx1; cx++) {
+        const q = parcaKutu(cx, cy, C);
+        if (!gorunur(q)) continue;
+        if (!onbellek.has(cx + "," + cy + "," + s)) { tamEksik = true; break; }
+      }
+    }
+    if (tamEksik && kabaVar) kabaKatman();
+
     for (let cy = cy0; cy <= cy1; cy++) {
       for (let cx = cx0; cx <= cx1; cx++) {
-        /* EKRAN DIŞI PARÇAYI ATLA: ızgara aralığı eşkenar dörtgen
-           ekranı dikdörtgen olarak sarıyor, köşelerdeki parçalar hiç
-           görünmüyor. Eskiden onlar da (pahalıca) üretiliyordu. */
-        const ux = gridToWorld(cx * C, cy * C + C - 1).x;
-        const sx = gridToWorld(cx * C + C - 1, cy * C).x + CFG.tileW;
-        const uy = gridToWorld(cx * C, cy * C).y;
-        const ay = gridToWorld(cx * C + C - 1, cy * C + C - 1).y + CFG.tileH;
-        if (sx < wx0 || ux > wx1 || ay < wy0 || uy > wy1) continue;
+        const q = parcaKutu(cx, cy, C);
+        if (!gorunur(q)) continue;
 
         /* Önbellekte yoksa PİŞECEK demektir. Bütçe bittiyse pişirme:
-           yerine o bölgenin düz biyom rengi basılır, bir kare daha
-           istenir. Anahtar chunkAl ile birebir aynı olmalı. */
+           altındaki kaba katman görünür, bir kare daha istenir.
+           Anahtar chunkAl ile birebir aynı olmalı. */
         const hazir = onbellek.has(cx + "," + cy + "," + s);
         if (!hazir && butce <= 0) {
           eksik = true;
-          const gm = biyomDeger(cx * C + C / 2, cy * C + C / 2);
-          const bi = gm < CFG.esikKar ? 0 : gm < CFG.esikCimen ? 1 : 2;
-          const o = bi * 15 + 6;                 /* orta ton */
-          ctx.fillStyle = "rgb(" + (PALd[o] | 0) + "," + (PALd[o + 1] | 0) +
-                          "," + (PALd[o + 2] | 0) + ")";
-          ctx.fillRect(ux, uy, sx - ux + 1, ay - uy + 1);
+          if (!kabaVar) duzDoldur(cx, cy, C, q);   /* kaba katman yoksa */
           continue;
         }
 
@@ -2099,7 +2198,7 @@
     }
 
     /* Pişmeyi bekleyen parça kaldıysa bir kare daha iste — zemin
-       kare kare dolar. cizIste aynı karede ikinci çizimi zaten
+       kare kare keskinleşir. cizIste aynı karede ikinci çizimi zaten
        engelliyor, döngüye girmez. */
     if (eksik) cizIste();
 
