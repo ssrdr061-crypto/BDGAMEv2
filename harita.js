@@ -144,7 +144,14 @@
        zemin sınırı piksel cinsinden hesaplıyor (chunkUretBoya'da
        "BİYOM SINIRI, PİKSEL CİNSİNDEN"). 2-6 = keskin, kenarı
        tırtıksız · 30+ = yumuşak geçiş. */
-    sinirYumusak: 2,    /* panelde ayarlandı (?zeminayar=2), dosyaya sabitlendi */
+    /* SINIR YUMUŞAKLIĞI — DÜNYA PİKSELİ.
+       2 idi; zemin dünya pikselinde pişip ekrana büyütüldüğü için
+       (zeminHD.tavan 1) bu 2 px yakınlaşınca 4-6 ekran pikseline
+       yayılıyor ve sınır bulanık görünüyordu. 0.6'ya indirildi:
+       pişmiş görüntüde kenar neredeyse sert, büyütmenin kendi
+       yumuşaması kalıyor — keskin ama tırtıklı değil.
+       0 yazma: kenar merdiven olur. */
+    sinirYumusak: 0.6,
 
     /* ── SERPME GEÇİŞ (benekler) ──
        Sınır çizgisi renk karıştırarak değil, biyom DEĞERİNİ ince
@@ -331,6 +338,15 @@
        kenardan değil icTon'dan geliyor. */
     boya: {
       acik:    true,
+      /* ── DÜZ ZEMİN ──
+         Zemin üç tonlu yığınlardan (girinti/çıkıntı katmanları)
+         oluşuyordu. İstenmedi: her zemin TEK, canlı bir renk olsun.
+         Yan etkisi büyük — katmanlar kalkınca örnek başına 6
+         boyaGurultu (12 smoothNoise ≈ 48 Math.sin) ve renk tablosu
+         indekslemesi tamamen düşer; pişirme ucuzlar, o ucuzlukla
+         çözünürlük tavanı yükseltilip SINIR KESKİNLEŞTİRİLİR.
+         false → eski katmanlı zemin (kod duruyor). */
+      duz:     true,
       siklik:  0.090,   /* yığın boyu: küçük = iri yığın            */
       ayrinti: 0.19,    /* ikinci katmanın payı: kenar kıvrımı      */
       esik1:   0.10,    /* alt → orta tona geçiş                    */
@@ -1677,7 +1693,9 @@
       return o > 0 ? o : 1;
     });
     const FN = new Float32Array(N * 3);      /* boya gürültüsü, biyom başına */
-    const kab = B.kabarti > 0;
+    /* DÜZ ZEMİN: desen ve kabartı okunmaz, üretilmez. */
+    const DUZ = !!B.duz;
+    const kab = !DUZ && B.kabarti > 0;
     const FK = kab ? new Float32Array(N * 3) : null;  /* kaydırılmış gürültü */
 
     /* ── RÖLYEF: BİYOM BAŞINA AYRI, KABA IZGARADA ─────────────────
@@ -1767,6 +1785,18 @@
        okunmaz. */
     const MARJ = 0.02;
     const eKar = CFG.esikKar, eCim = CFG.esikCimen;
+    /* Desen okunmayacaksa hiç üretilmiyor — pişirmenin en pahalı
+       kısmı buydu. Biyom değeri (FV) yine gerekli: sınırı o çiziyor. */
+    if (DUZ) {
+      for (let j = 0; j < LH; j++) {
+        const wy = minY + (j - 1 + 0.5) * A;
+        for (let i = 0; i < LW; i++) {
+          const wx = minX + (i - 1 + 0.5) * A;
+          const g = worldToGrid(wx, wy);
+          FV[j * LW + i] = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
+        }
+      }
+    } else
     for (let j = 0; j < LH; j++) {
       const wy = minY + (j - 1 + 0.5) * A;
       for (let i = 0; i < LW; i++) {
@@ -1921,12 +1951,28 @@
           b1 = v < eK ? 0 : v < eC ? 1 : 2;
         }
 
+        let cr, cg, cb;
+        /* ── DÜZ ZEMİN ──
+           Renk doğrudan paletin ORTA tonundan; desen, renk tablosu
+           ve indeks hesabı yok. Sınırda iki rengin karışımı aynı t
+           ile yapılıyor, yani sınırın kendisi katmanlı zemindeki
+           kadar keskin kalır. */
+        if (DUZ) {
+          const p1 = b1 * 15 + 6;
+          cr = PAL[p1]; cg = PAL[p1 + 1]; cb = PAL[p1 + 2];
+          if (b2 >= 0) {
+            t = t * t * (3 - 2 * t);
+            const p2 = b2 * 15 + 6;
+            cr += (PAL[p2] - cr) * t;
+            cg += (PAL[p2 + 1] - cg) * t;
+            cb += (PAL[p2 + 2] - cb) * t;
+          }
+        } else {
         const n1  = FN[a3 + b1] * w00 + FN[a3 + 3 + b1] * w10
                   + FN[b3 + b1] * w01 + FN[b3 + 3 + b1] * w11;
         const nk1 = kab ? FK[a3 + b1] * w00 + FK[a3 + 3 + b1] * w10
                         + FK[b3 + b1] * w01 + FK[b3 + 3 + b1] * w11 : 0;
         const k1 = ind(b1, n1, nk1);
-        let cr, cg, cb;
         if (b2 < 0) {
           cr = LUT[k1]; cg = LUT[k1 + 1]; cb = LUT[k1 + 2];
         } else {
@@ -1939,6 +1985,7 @@
           cr = LUT[k1] * u     + LUT[k2] * t;
           cg = LUT[k1 + 1] * u + LUT[k2 + 1] * t;
           cb = LUT[k1 + 2] * u + LUT[k2 + 2] * t;
+        }
         }
 
         /* Kıyı açma: pikselin kendi biyomunun parlak tonuna çek.
