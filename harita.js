@@ -735,7 +735,27 @@
          (~150 ms masaüstü), 3'te ~%60 daha uzun. Yavaşsa 2'ye çek.
        carpan: gereken yoğunluğun çarpanı (1 = ekran pikseline eşit).
        ?zeminayar=2 → "Genel" sekmesinden canlı. */
-    /* TAVAN 3 → 2 (ÖLÇÜLDÜ). Tavan 3'te kaydırma sırasında kareler
+    /* TAVAN 3 → 2 → 1 (ÖLÇÜLDÜ, İKİ TUR).
+       Telefonda tavan 2 ile de kasıyordu: ?olcu=1 kaydırırken kare
+       başına 120-180 ms gösterdi. Masaüstünde 60 karelik kaydırmanın
+       TOPLAM maliyeti:
+         tavan 2 → 1331 ms (en kötü kare 759, ortanca 8)
+         tavan 1 →  105 ms (en kötü kare  10, ortanca 0)
+       12 kat. Üç sebep birden düzeliyor:
+         · Parça pikseli ölçeğin karesiyle artar: 2 → 1, dörtte bir.
+         · Tek ölçek kovası kalır (s hep 1); parçalar birbirini atıp
+           yeniden pişmez, tarayıcı tuvalleri yeniden yüklemez —
+           arada gelen 800 ms'lik drawImage sıçraması da buradan
+           geliyordu.
+         · Kaba katman devreye girmez (kabaVar = s > 1), yani hızlı
+           kaydırırken "harita bozuluyor" diye görülen iki katmanlı
+           geçiş ortadan kalkar.
+       BEDELİ: zemin dpr 2 telefonda dünya pikselinde pişip
+       büyütülüyor, yani bir tık yumuşak. Zemin zaten yumuşak boyalı
+       bir yüzey olduğu için kabul edildi. Keskinlik istenirse tek
+       sayı: tavan 2.
+
+       ESKİ NOT (tavan 3 → 2): tavan 3'te kaydırma sırasında kareler
        tekrar tekrar 155-309 ms'ye çıkıyordu; 2'de en kötü ikinci ve
        üçüncü kare 11 ms, ortanca 5 ms (aynı 40 karelik kaydırma
        ölçümü). İki sebep: (1) parça pikseli ölçeğin KARESİYLE artar,
@@ -743,7 +763,7 @@
        ayrı önbellek anahtarıdır, tavan yükseldikçe kova sayısı artar
        ve parçalar birbirini atıp yeniden pişmeye başlar.
        Bedeli: en yakın zoom'da zemin bir tık yumuşak. */
-    zeminHD: { tavan: 2, carpan: 1 },
+    zeminHD: { tavan: 1, carpan: 1 },
 
     /* Eski düz-renk yedeği. Zemin artık zeminRenk'ten boyandığı için
        KULLANILMIYOR; düğüm/kale kodu okuyor olabilir diye duruyor. */
