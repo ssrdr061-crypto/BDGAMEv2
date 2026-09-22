@@ -111,18 +111,37 @@
     if (kut) return;
     var st = document.createElement("style");
     st.textContent =
-      "#olcuKutu{position:fixed;left:6px;top:calc(env(safe-area-inset-top,0px) + 56px);" +
-      "z-index:99999;max-width:min(92vw,360px);padding:7px 8px;border-radius:9px;" +
-      "background:rgba(4,10,22,.90);border:1px solid #2f5f7a;color:#dff0ff;" +
-      "font:700 10.5px/1.35 ui-monospace,Menlo,Consolas,monospace;" +
-      "white-space:pre;overflow:auto;max-height:52vh;}" +
+      /* SOL ÜSTTE DEĞİL, SOL ALTTA. Üstte "Haritaya dön" düğmesinin
+         tam üzerine oturuyordu — ölçüm için oyuna dokunulamıyordu.
+         Alt şeritler (sohbet + menü) yaklaşık 150px; kutu onların
+         üstünde duruyor.
+         pointer-events: metin GEÇİRGEN, yalnız düğmeler dokunuşu
+         alır — kutunun arkasındaki haritaya basılabilir.
+         BAŞLIĞA DOKUNUNCA küçülür (tek satır kalır), tekrar
+         dokununca açılır; ölçüm arka planda sürer. */
+      "#olcuKutu{position:fixed;left:6px;" +
+      "bottom:calc(env(safe-area-inset-bottom,0px) + 150px);" +
+      "z-index:99999;max-width:min(78vw,330px);padding:6px 7px;border-radius:9px;" +
+      "background:rgba(4,10,22,.86);border:1px solid #2f5f7a;color:#dff0ff;" +
+      "font:700 10px/1.32 ui-monospace,Menlo,Consolas,monospace;" +
+      "white-space:pre;overflow:auto;max-height:34vh;pointer-events:none;}" +
+      "#olcuKutu.kapali{max-height:26px;overflow:hidden;opacity:.78;}" +
+      "#olcuKutu .olcu-bas{pointer-events:auto;color:#ffd257;font-weight:900;" +
+      "padding:1px 0 3px;}" +
       "#olcuKutu b{color:#ffd257;font-weight:900;}" +
-      "#olcuKutu button{margin-top:6px;padding:4px 9px;border:0;border-radius:7px;" +
-      "background:#2f7fa8;color:#fff;font:900 11px/1 inherit;}";
+      "#olcuKutu button{pointer-events:auto;margin-top:5px;padding:4px 9px;border:0;" +
+      "border-radius:7px;background:#2f7fa8;color:#fff;font:900 11px/1 inherit;}";
     document.head.appendChild(st);
 
     kut = document.createElement("div");
     kut.id = "olcuKutu";
+
+    var bas = document.createElement("div");
+    bas.className = "olcu-bas";
+    bas.textContent = "ÖLÇER — dokun: aç/kapa";
+    bas.onclick = function () { kut.classList.toggle("kapali"); };
+    kut.appendChild(bas);
+
     gov = document.createElement("div");
     var dug = document.createElement("button");
     dug.type = "button";
