@@ -708,6 +708,21 @@
        onbellekBoyu: bellekte tutulacak parça sayısı. Artırırsan
        kaydırma daha akıcı ama RAM artar. */
     CHUNK: 8,
+    /* ── KARE BAŞINA PİŞİRME BÜTÇESİ ──
+       ÖLÇÜLDÜ (telefon, ?olcu=1): kareIste'nin karesi 12.8 saniyede
+       99 kez koştu, TOPLAM 10994 ms — kare başına ortalama 111 ms,
+       en kötüsü 1006 ms. Çizimin kendisi ucuz (masaüstünde sıcak
+       önbellekte 11-16 ms); pahalı olan PARÇA PİŞİRME. Kaydırırken
+       görüş alanına giren her yeni parça AYNI KAREDE pişiyordu, yani
+       bir karede 5-6 parça = saniyelik donma.
+
+       ARTIK: bir karede en çok `kareParca` parça pişer. Pişmemiş
+       parçanın yerine o bölgenin düz biyom rengi basılır ve bir kare
+       daha istenir — zemin birkaç kare içinde dolar, ekran donmaz.
+       İş toplamı aynı, KAREYE YAYILDI.
+
+       0 yazarsan eski davranış (hepsi tek karede) geri gelir. */
+    kareParca: 1,
     onbellekBoyu: 48,
     /* Toplam piksel bütçesi (~4 bayt/piksel → 60e6 ≈ 240 MB üst sınır
        değil, TAVAN; normalde ekranda 4-8 parça dolaşır). */
@@ -2044,6 +2059,10 @@
     const cy0 = Math.floor(gy0 / C), cy1 = Math.floor(gy1 / C);
 
     let cizilen = 0;
+    /* Bu karede kaç parça pişirilebilir; 0 = sınırsız (eski yol) */
+    let butce = (CFG.kareParca | 0) > 0 ? (CFG.kareParca | 0) : Infinity;
+    let eksik = false;
+    const PALd = lutAl().pal;   /* düz dolgu rengi paletten */
     for (let cy = cy0; cy <= cy1; cy++) {
       for (let cx = cx0; cx <= cx1; cx++) {
         /* EKRAN DIŞI PARÇAYI ATLA: ızgara aralığı eşkenar dörtgen
@@ -2055,13 +2074,34 @@
         const ay = gridToWorld(cx * C + C - 1, cy * C + C - 1).y + CFG.tileH;
         if (sx < wx0 || ux > wx1 || ay < wy0 || uy > wy1) continue;
 
+        /* Önbellekte yoksa PİŞECEK demektir. Bütçe bittiyse pişirme:
+           yerine o bölgenin düz biyom rengi basılır, bir kare daha
+           istenir. Anahtar chunkAl ile birebir aynı olmalı. */
+        const hazir = onbellek.has(cx + "," + cy + "," + s);
+        if (!hazir && butce <= 0) {
+          eksik = true;
+          const gm = biyomDeger(cx * C + C / 2, cy * C + C / 2);
+          const bi = gm < CFG.esikKar ? 0 : gm < CFG.esikCimen ? 1 : 2;
+          const o = bi * 15 + 6;                 /* orta ton */
+          ctx.fillStyle = "rgb(" + (PALd[o] | 0) + "," + (PALd[o + 1] | 0) +
+                          "," + (PALd[o + 2] | 0) + ")";
+          ctx.fillRect(ux, uy, sx - ux + 1, ay - uy + 1);
+          continue;
+        }
+
         const par = chunkAl(cx, cy, s);
         if (!par) continue;
+        if (!hazir) butce--;
         /* +1 px: komşu parçalar arasında saç teli boşluk kalmasın */
         ctx.drawImage(par.cv, par.x, par.y, par.w + 1, par.h + 1);
         cizilen += C * C;
       }
     }
+
+    /* Pişmeyi bekleyen parça kaldıysa bir kare daha iste — zemin
+       kare kare dolar. cizIste aynı karede ikinci çizimi zaten
+       engelliyor, döngüye girmez. */
+    if (eksik) cizIste();
 
     /* ── IŞIK YANSIMASI ──
        Dünya dönüşümü sıfırlanıp EKRAN uzayına dönülüyor; yansıma
