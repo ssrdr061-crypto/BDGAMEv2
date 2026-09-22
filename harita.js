@@ -723,6 +723,9 @@
 
        0 yazarsan eski davranış (hepsi tek karede) geri gelir. */
     kareParca: 1,
+    /* Pişmemiş parçanın yerine basılan bulanık katmanın ölçeği.
+       0 = kapalı (düz renk). Ayrıntı: ciz() içindeki KABA. */
+    kabaOlcek: 0.35,
     onbellekBoyu: 48,
     /* Toplam piksel bütçesi (~4 bayt/piksel → 60e6 ≈ 240 MB üst sınır
        değil, TAVAN; normalde ekranda 4-8 parça dolaşır). */
@@ -2155,13 +2158,23 @@
 
        Izgarası ayrı: chunkBoyu(1) = CHUNK, tam parçalarınki ise
        s >= 2 iken CHUNK/2. Bu yüzden kendi döngüsü var. */
-    const KABA = 1;
+    /* KABA ÖLÇEK: tam parçanın ölçeğinden bağımsız, sabit ve küçük.
+       Tavan 1'e indikten sonra s de 1 olduğu için eski "KABA = 1"
+       kuralı kaba katmanı tamamen kapatıyordu; pişmemiş yerlere düz
+       renk basılıyordu ve hızlı kaydırırken zemin "piksel piksel /
+       blok blok" geliyordu (telefonda görüldü).
+       0.35 → piksel sayısı tam parçanın %12'si, yani bir kaba parça
+       tam parçanın sekizde biri kadar. Ekranda blok değil, bulanık
+       zemin görünür ve üstüne tam parça biner. */
+    const KABA = CFG.kabaOlcek > 0 ? CFG.kabaOlcek : 0.35;
     const kabaVar = s > KABA;
     /* KABA PARÇA DA UCUZ DEĞİL: ızgarası CHUNK (8 karo), tam
        parçanınki s>=2 iken CHUNK/2 (4 karo). Alan 4 kat, ölçek 1/2
        → piksel sayısı kabaca AYNI. Kare başına 3 denendi, kaydırma
        ölçümünde 359/227/182 ms sıçramaları çıktı; 1'e indirildi. */
-    let kabaButce = kabaVar ? 1 : 0;
+    /* Kaba parça tam parçanın ~sekizde biri kadar; karede 2 tanesi
+       bir tam parçanın dörtte biri eder. */
+    let kabaButce = kabaVar ? 2 : 0;
 
     function kabaKatman() {
       const Ck = chunkBoyu(KABA);
