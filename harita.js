@@ -366,7 +366,29 @@
          örneklenip bilineer büyütüldüğü için kenarı yok, banding
          yapmaz; yumuşaklık bedavaya gelir.
          guc: 0 → kapalı, düz renge döner. */
-      yikama: { guc: 0.07, siklik: 0.030 },
+      /* ÖLÇÜLDÜ: siklik 0.03 bir ekranda gürültünün ancak üçte
+         birini kat ediyordu, yani ekranda neredeyse düz görünüyordu
+         (guc 0.25'te bile parlaklık aralığı 53-58). İki katman:
+         geniş dalga (0.05 ≈ 20 karo) + orta dalga (0.13 ≈ 8 karo),
+         ikisi de yumuşak. guc toplam parlaklık oynaması. */
+      yikama: { guc: 0.22, siklik: 0.050, siklik2: 0.130, pay2: 0.35 },
+
+      /* ── VEKTÖR SINIR ──
+         Zemin parçalara pişiyordu; parça DÜNYA pikselinde pişip
+         ekrana büyütüldüğü için sınır yakınlaşınca basamaklanıyordu.
+         Keskinlik ile pürüzsüzlük aynı anda olmuyordu.
+
+         Açıkken sınır zeminsinir.js'teki EĞRİLERDEN çiziliyor:
+         tarayıcı ekran çözünürlüğünde, kendi kenar yumuşatmasıyla
+         dolduruyor — her yakınlıkta hem keskin hem pürüzsüz,
+         çözünürlük kavramı ortadan kalkıyor. Ton yıkaması ayrı,
+         çok kaba bir tampondan gerilerek basılıyor (yumuşaklık
+         büyütmenin kendisinden geliyor).
+
+         Parça pişirme bu yolda HİÇ çalışmaz: kare başına üç dolgu
+         ve bir drawImage. zeminsinir.js yoksa ya da imzası
+         tutmuyorsa eski piksel yoluna sessizce dönülür. */
+      vektor:  true,
       siklik:  0.090,   /* yığın boyu: küçük = iri yığın            */
       ayrinti: 0.19,    /* ikinci katmanın payı: kenar kıvrımı      */
       esik1:   0.10,    /* alt → orta tona geçiş                    */
@@ -2132,6 +2154,172 @@
   /* Dokular sonradan yüklenince eski parçalar geçersiz kalır */
   function onbellegiBosalt() { onbellek.clear(); onbellekPiksel = 0; }
 
+  /* ═══════════════════════════════════════════════════════════════
+     VEKTÖR ZEMİN
+     ---------------------------------------------------------------
+     Zemin üç dolgu + bir yıkama karesinden ibaret:
+       1. Görünen alan KAR rengiyle doldurulur.
+       2. zeminsinir.js'teki "kar" halkaları ÇİMEN rengiyle doldurulur
+          (u >= 0.33 bölgesi).
+       3. "cimen" halkaları LAV rengiyle doldurulur (u >= 0.67).
+       4. Üstüne ton yıkaması: çok kaba bir tampon gerilerek basılır.
+
+     DOLGU KURALI "evenodd" OLMAK ZORUNDA: halkaların yönü tutarlı
+     değil (marching squares yön garantisi vermez). evenodd iç içe
+     halkaları delik yapar, ada içindeki göl doğru çıkar. nonzero
+     yazılırsa delikler dolar.
+
+     KIRPMA: tüm halkalar her karede yola eklenmez; görünür kutuyla
+     kesişmeyenler atlanır (halka başına dört karşılaştırma). Harita
+     genelinde 634 halka var, ekranda tipik olarak onlarca tanesi.
+
+     YIKAMA neden ayrı tampon: gürültüyü piksel piksel hesaplamak
+     yine pahalı olurdu. Çok kaba bir ızgarada (≈24 dünya pikseli)
+     hesaplanıp `drawImage` ile gerilir; yumuşaklık büyütmenin
+     kendisinden gelir, bedava. Çarpma kipiyle bindirildiği için
+     yalnız koyulaştırır; palet bu yüzden yıkamanın yarısı kadar
+     açılır (aşağıda telafi).
+
+     İMZA: veri alanın sabitlerine bağlı. Tutmuyorsa false döner ve
+     çağıran eski piksel yoluna düşer — sessizce yanlış harita
+     çizilmez. */
+  var _yikamaTuval = null, _yikamaCtx = null;
+  var _vsUyari = false;
+
+  function vektorZeminCiz(wx0, wy0, wx1, wy1, ggx0, ggy0, ggx1, ggy1) {
+    const B = CFG.boya;
+    if (!B || !B.acik || !B.vektor) return false;
+    const D = window.ZEMIN_SINIR;
+    if (!D || !D.kar || !D.cimen) {
+      if (!_vsUyari) { _vsUyari = true; TANI("zeminsinir.js yok — piksel yoluna dönüldü"); }
+      return false;
+    }
+    if (D.imza !== VS_IMZA) {
+      if (!_vsUyari) { _vsUyari = true; TANI("zeminsinir.js imzası tutmuyor — piksel yolu"); }
+      return false;
+    }
+
+    const PAL = lutAl().pal;
+    const Y = B.yikama || {};
+    const YG = Y.guc || 0;
+    /* Yıkama yalnız koyulaştırdığı için palet yarı yıkama kadar
+       açılır; ortalama parlaklık değişmez. */
+    const ac = 1 + YG * 0.5;
+    function renk(b) {
+      const o = b * 15 + 6;
+      return "rgb(" + Math.min(255, PAL[o] * ac | 0) + "," +
+                      Math.min(255, PAL[o + 1] * ac | 0) + "," +
+                      Math.min(255, PAL[o + 2] * ac | 0) + ")";
+    }
+
+    ctx.fillStyle = renk(0);
+    ctx.fillRect(wx0, wy0, wx1 - wx0, wy1 - wy0);
+
+    /* KIRPMA HALKANIN KUTUSUYLA: ilk noktasına bakmak YANLIŞTI —
+       ekranı baştan başa geçen büyük halkanın ilk noktası ekran
+       dışında kalıyor ve koca bölge çizilmiyordu (ekranda parça
+       parça yeşil lekeler olarak görüldü). Artık her halkanın
+       ızgara kutusu bir kez hesaplanıp saklanıyor ve görünür ızgara
+       kutusuyla kesişmeyen halka atlanıyor. */
+    function kutular(halkalar) {
+      if (halkalar._kutu) return halkalar._kutu;
+      const k = new Float32Array(halkalar.length * 4);
+      for (let h = 0; h < halkalar.length; h++) {
+        const y = halkalar[h];
+        let ax = Infinity, ay = Infinity, bx = -Infinity, by = -Infinity;
+        for (let i = 0; i < y.length; i += 2) {
+          if (y[i] < ax) ax = y[i]; if (y[i] > bx) bx = y[i];
+          if (y[i + 1] < ay) ay = y[i + 1]; if (y[i + 1] > by) by = y[i + 1];
+        }
+        k[h * 4] = ax; k[h * 4 + 1] = ay; k[h * 4 + 2] = bx; k[h * 4 + 3] = by;
+      }
+      try { Object.defineProperty(halkalar, "_kutu", { value: k }); }
+      catch (e) { halkalar._kutu = k; }
+      return k;
+    }
+    function katman(halkalar, b) {
+      const K = kutular(halkalar);
+      ctx.beginPath();
+      let ciz = 0;
+      for (let h = 0; h < halkalar.length; h++) {
+        const y = halkalar[h];
+        if (y.length < 6) continue;
+        if (K[h * 4 + 2] < ggx0 || K[h * 4] > ggx1 ||
+            K[h * 4 + 3] < ggy0 || K[h * 4 + 1] > ggy1) continue;
+        /* ── DÜZ ÇİZGİ DEĞİL, EĞRİ ──
+           Eğri örnekleme adımı 0.25 karo; düz çizgiyle bağlanınca
+           yakın zoom'da kenar çokgen duruyordu (ekranda ~30 px'lik
+           düz kesitler). Her köşe DENETİM NOKTASI, ardışık köşelerin
+           ORTASI çapa yapılıp quadratic eğriyle geçiliyor — köşeler
+           yarım kesit kadar yuvarlanıyor, şekil korunuyor, kenar
+           organik oluyor. Maliyeti düz çizgiyle aynı: nokta başına
+           tek çağrı. */
+        const n = y.length;
+        let ax = gridToWorld(y[0], y[1]);
+        let bx = gridToWorld(y[2], y[3]);
+        ctx.moveTo((ax.x + bx.x) / 2, (ax.y + bx.y) / 2);
+        for (let i = 2; i < n; i += 2) {
+          const c = gridToWorld(y[i], y[i + 1]);
+          const d = gridToWorld(y[(i + 2) % n], y[(i + 3) % n]);
+          ctx.quadraticCurveTo(c.x, c.y, (c.x + d.x) / 2, (c.y + d.y) / 2);
+        }
+        const c0 = gridToWorld(y[0], y[1]);
+        ctx.quadraticCurveTo(c0.x, c0.y, (c0.x + bx.x) / 2, (c0.y + bx.y) / 2);
+        ctx.closePath();
+        ciz++;
+      }
+      if (!ciz) return;
+      ctx.fillStyle = renk(b);
+      ctx.fill("evenodd");
+    }
+    katman(D.kar, 1);
+    katman(D.cimen, 2);
+
+    /* ── TON YIKAMASI ── */
+    if (YG > 0) {
+      const ADIM = 24;                       /* dünya pikseli / örnek */
+      const w = Math.max(2, Math.ceil((wx1 - wx0) / ADIM) + 2);
+      const h = Math.max(2, Math.ceil((wy1 - wy0) / ADIM) + 2);
+      if (!_yikamaTuval) {
+        _yikamaTuval = document.createElement("canvas");
+        _yikamaCtx = _yikamaTuval.getContext("2d");
+      }
+      if (_yikamaTuval.width !== w || _yikamaTuval.height !== h) {
+        _yikamaTuval.width = w; _yikamaTuval.height = h;
+      }
+      const im = _yikamaCtx.createImageData(w, h);
+      const px = im.data;
+      const f = Y.siklik || 0.05;
+      const f2 = Y.siklik2 || 0.13;
+      const p2 = Y.pay2 == null ? 0.35 : Y.pay2;
+      for (let j = 0; j < h; j++) {
+        const wy = wy0 + (j - 0.5) * ADIM;
+        for (let i = 0; i < w; i++) {
+          const wx = wx0 + (i - 0.5) * ADIM;
+          const g = worldToGrid(wx, wy);
+          const n = smoothNoise(g.gx * f + 271, g.gy * f + 613) * (1 - p2)
+                  + smoothNoise(g.gx * f2 + 97, g.gy * f2 + 349) * p2;
+          const v = 255 * (1 - YG * (1 - n));
+          const k = (j * w + i) * 4;
+          px[k] = px[k + 1] = px[k + 2] = v; px[k + 3] = 255;
+        }
+      }
+      _yikamaCtx.putImageData(im, 0, 0);
+      ctx.save();
+      ctx.globalCompositeOperation = "multiply";
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(_yikamaTuval, 0, 0, w, h,
+                    wx0 - ADIM * 0.5, wy0 - ADIM * 0.5, w * ADIM, h * ADIM);
+      ctx.restore();
+    }
+    return true;
+  }
+
+  /* Vektör verisinin bağlı olduğu sabitler. Biri değişirse
+     zeminsinir.js eskir; imza tutmaz ve piksel yoluna dönülür. */
+  const VS_IMZA = "seed20260803|G141|frek0.05|dalga0.12|serp0.046,0.3,0.8,1.7|esik0.33,0.67";
+
   function ciz() {
     if (!ctx || !cv) return;
 
@@ -2188,6 +2376,15 @@
     ctx.translate(panX, panY);
     ctx.scale(zoom, zoom);
 
+    /* ── VEKTÖR ZEMİN ──
+       Varsa parça pişirme hiç çalışmaz; sınır eğrilerden dolar.
+       Koşullar tutmazsa aşağıdaki eski yola düşülür. Yansıma ve üst
+       katman iki yolda da aynı; o yüzden return YOK, yalnız parça
+       bölümü atlanıyor. */
+    let cizilen = 0;
+    const vektorOldu = vektorZeminCiz(wx0, wy0, wx1, wy1, gx0, gy0, gx1, gy1);
+    if (!vektorOldu) {
+
     /* ── CHUNK ÇİZİMİ ──
        Karo karo çizmek yerine hazır parçalar basılıyor. Ekranda
        ~1200 karo varsa bu 64 karo/parça hesabıyla ~20 drawImage
@@ -2197,7 +2394,6 @@
     const cx0 = Math.floor(gx0 / C), cx1 = Math.floor(gx1 / C);
     const cy0 = Math.floor(gy0 / C), cy1 = Math.floor(gy1 / C);
 
-    let cizilen = 0;
     /* Bu karede kaç TAM parça pişirilebilir; 0 = sınırsız (eski yol) */
     let butce = (CFG.kareParca | 0) > 0 ? (CFG.kareParca | 0) : Infinity;
     let eksik = false;
@@ -2315,6 +2511,8 @@
        kare kare keskinleşir. cizIste aynı karede ikinci çizimi zaten
        engelliyor, döngüye girmez. */
     if (eksik) cizIste();
+
+    }  /* ← vektör yolu çalıştıysa parça bölümü hiç koşmaz */
 
     /* ── IŞIK YANSIMASI ──
        Dünya dönüşümü sıfırlanıp EKRAN uzayına dönülüyor; yansıma
