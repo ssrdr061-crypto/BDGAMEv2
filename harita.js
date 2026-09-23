@@ -373,6 +373,27 @@
          ikisi de yumuşak. guc toplam parlaklık oynaması. */
       yikama: { guc: 0.22, siklik: 0.050, siklik2: 0.130, pay2: 0.35 },
 
+      /* ── KIYI AÇILMASI ──
+         İki kural birden:
+         1) Zemin sınıra yaklaşırken AÇILIR (çimen kara değerken
+            koyu değil, açık yeşil olur).
+         2) Çukurlar sınıra DAYANAMAZ — kıyı bandı çukurların
+            üstüne çizildiği için koyu leke kenardan içeri itilir.
+            Ayrı bir "aşındırma" hesabı yapılmıyor; tek bant iki işi
+            de görüyor.
+
+         NASIL: bölge sınırı, gittikçe incelen ve saydamlığı sabit
+         birkaç çizgiyle taranıyor; yol bölgeye kırpıldığı için
+         yalnız İÇ yarısı görünüyor. Üst üste binen çizgiler kenarda
+         neredeyse tam örtü, içeride sıfır veren bir rampa yapıyor.
+         Tek geçişte degrade yapmanın canvas'ta ucuz yolu yok
+         (blur pahalı, radial gradient eğriye uymaz).
+
+         en: maske hücresi (dünya pikseli). Bant kabaca bir-iki
+         hücre genişliğinde olur; büyütürsen kıyı genişler.
+         guc: bandın en koyu yerdeki örtme oranı, 0 → kıyı kapalı. */
+      kiyi: { guc: 0.9, en: 56, kat: 3 },
+
       /* ── VEKTÖR SINIR ──
          Zemin parçalara pişiyordu; parça DÜNYA pikselinde pişip
          ekrana büyütüldüğü için sınır yakınlaşınca basamaklanıyordu.
@@ -2184,6 +2205,7 @@
      çağıran eski piksel yoluna düşer — sessizce yanlış harita
      çizilmez. */
   var _yikamaTuval = null, _yikamaCtx = null;
+  var _kiyiTuval = null, _kiyiCtx = null;
   var _vsUyari = false;
 
   function vektorZeminCiz(wx0, wy0, wx1, wy1, ggx0, ggy0, ggx1, ggy1) {
@@ -2205,6 +2227,18 @@
     /* Yıkama yalnız koyulaştırdığı için palet yarı yıkama kadar
        açılır; ortalama parlaklık değişmez. */
     const ac = 1 + YG * 0.5;
+    function parlakRenk(b) {
+      const o = b * 15 + 12;                       /* parlak ton */
+      return "rgb(" + Math.min(255, PAL[o] * ac | 0) + "," +
+                      Math.min(255, PAL[o + 1] * ac | 0) + "," +
+                      Math.min(255, PAL[o + 2] * ac | 0) + ")";
+    }
+    function acikRenk(b) {
+      const o = b * 15 + 9;                        /* üst ton */
+      return "rgb(" + Math.min(255, PAL[o] * ac | 0) + "," +
+                      Math.min(255, PAL[o + 1] * ac | 0) + "," +
+                      Math.min(255, PAL[o + 2] * ac | 0) + ")";
+    }
     function cukurRenk(b) {
       const o = b * 15 + 3;                        /* alt ton */
       return "rgb(" + Math.min(255, PAL[o] * ac | 0) + "," +
@@ -2295,17 +2329,28 @@
        ölçülü bir kademe çıkıyor — eski iki eşikli, kenarında 2-3
        sıra halka görünen hâl değil.
        CFG.boya.cukur = false ile kapanır. */
+    /* Bölge yolları hem çukur kırpmasında hem kıyı bandında
+       kullanılıyor; bir kez kurulup paylaşılıyorlar. */
+    let _bKar = null, _bCim = null;
+    function bolgeKar() {
+      if (!_bKar) {
+        _bKar = new Path2D();
+        _bKar.rect(wx0, wy0, wx1 - wx0, wy1 - wy0);
+        _bKar.addPath(yKar);
+      }
+      return _bKar;
+    }
+    function bolgeCim() {
+      if (!_bCim) {
+        _bCim = new Path2D();
+        _bCim.addPath(yKar); _bCim.addPath(yCim);
+      }
+      return _bCim;
+    }
+
     const CK = D.cukur;
     if (CK && B.cukur !== false) {
-      const bolge = [];
-      const b0 = new Path2D();
-      b0.rect(wx0, wy0, wx1 - wx0, wy1 - wy0);
-      b0.addPath(yKar);
-      bolge[0] = b0;
-      const b1 = new Path2D();
-      b1.addPath(yKar); b1.addPath(yCim);
-      bolge[1] = b1;
-      bolge[2] = yCim;
+      const bolge = [bolgeKar(), bolgeCim(), yCim];
       for (let b = 0; b < 3; b++) {
         const h = CK["b" + b];
         if (!h || !h.length) continue;
@@ -2317,6 +2362,79 @@
         ctx.fill(yc, "evenodd");
         ctx.restore();
       }
+    }
+
+    /* ── KIYI AÇILMASI ──
+       Çukurlardan SONRA çiziliyor: kenara yakın çukurların üstünü
+       örtüyor, böylece koyu leke sınıra dayanamıyor.
+
+       ÇİZGİYLE TARAMA DENENDİ, OLMADI: gittikçe incelen birkaç
+       çizgi üst üste bindirilince kenarda halka halka bantlar
+       çıkıyordu — tam da istenmeyen "2-3 sıra katman" görüntüsü.
+       Çizgi sayısını artırmak bandı yumuşatıyor ama kare başına
+       onlarca `stroke` demek, telefonda pahalı.
+
+       ŞİMDİKİ YOL — KÜÇÜK MASKEYİ BÜYÜTMEK:
+         1. Görünen alanın K katı küçüğü bir tuvale açık renk basılır.
+         2. `destination-out` ile bölge yolu çizilir → açık renk
+            yalnız bölgenin DIŞINDA kalır (kenar sert, ama 1/K
+            çözünürlükte).
+         3. Bu küçük tuval ana tuvale bölgeye KIRPILARAK, yumuşatma
+            açık şekilde gerilir. Büyütme sert kenarı kendiliğinden
+            rampaya çevirir: sınırda en güçlü, içeri doğru sıfıra
+            iner. Kırpma dış yarıyı keser.
+       Yani bant tek drawImage; halka yok, degrade bedava.
+       Genişlik K ile ayarlanır (bir-iki hücre kadar). */
+    const KY = B.kiyi || {};
+    if (KY.guc > 0 && (nKar || nCim)) {
+      const K = Math.max(8, KY.en || 56);           /* dünya px / örnek */
+      const kat = Math.max(1, Math.min(6, KY.kat | 0 || 3));
+      const kw = Math.max(2, Math.ceil((wx1 - wx0) / K) + 2);
+      const kh = Math.max(2, Math.ceil((wy1 - wy0) / K) + 2);
+      if (!_kiyiTuval) {
+        _kiyiTuval = document.createElement("canvas");
+        _kiyiCtx = _kiyiTuval.getContext("2d");
+      }
+      if (_kiyiTuval.width !== kw || _kiyiTuval.height !== kh) {
+        _kiyiTuval.width = kw; _kiyiTuval.height = kh;
+      }
+      const kx = _kiyiCtx;
+      const bolgeler = [bolgeKar(), bolgeCim(), yCim];
+      ctx.save();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.globalAlpha = Math.min(1, KY.guc);
+      for (let b = 0; b < 3; b++) {
+        if (b === 1 && !nKar && !nCim) continue;
+        if (b === 2 && !nCim) continue;
+        kx.setTransform(1, 0, 0, 1, 0, 0);
+        kx.clearRect(0, 0, kw, kh);
+        kx.fillStyle = parlakRenk(b);
+        kx.fillRect(0, 0, kw, kh);
+        /* Dünya → küçük tuval: bir hücre yarısı pay bırakılıyor ki
+           gerilirken kenarda boşluk kalmasın. */
+        kx.setTransform(1 / K, 0, 0, 1 / K,
+                        -(wx0 - K * 0.5) / K, -(wy0 - K * 0.5) / K);
+        kx.globalCompositeOperation = "destination-out";
+        kx.fill(bolgeler[b], "evenodd");
+        kx.globalCompositeOperation = "source-over";
+        kx.setTransform(1, 0, 0, 1, 0, 0);
+
+        /* AYNI BANT BİRKAÇ KEZ: tek geçişte sınırdaki örtme oranı
+           ancak ~0.5 oluyor (büyütülen maskenin kenardaki değeri);
+           çukurun ucu kenara dayanmaya devam ediyordu. Üst üste
+           binen geçişler kenarı 1'e yaklaştırıyor, içeri doğru
+           rampa bozulmuyor: 1-(1-a)^kat. Maliyeti küçük tuvalin
+           birkaç kez basılması. */
+        ctx.save();
+        ctx.clip(bolgeler[b], "evenodd");
+        for (let g = 0; g < kat; g++) {
+          ctx.drawImage(_kiyiTuval, 0, 0, kw, kh,
+                        wx0 - K * 0.5, wy0 - K * 0.5, kw * K, kh * K);
+        }
+        ctx.restore();
+      }
+      ctx.restore();
     }
 
     /* ── TON YIKAMASI ── */
