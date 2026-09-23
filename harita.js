@@ -373,6 +373,38 @@
          ikisi de yumuşak. guc toplam parlaklık oynaması. */
       yikama: { guc: 0.22, siklik: 0.050, siklik2: 0.130, pay2: 0.35 },
 
+      /* ── VEKTÖR PALETİ (profesyonel ton rampası) ──
+         Düz "orta ton" doldurma CSS gibi, cansız duruyordu: tek bir
+         doygun yeşil, tek bir lila. Resimli oyun haritalarında renk
+         TON KAYDIRMALI rampadır — gölge yalnız koyulaşmaz, SOĞUR
+         (maviye/mora kayar); ışık yalnız açılmaz, ISINIR (sarıya
+         kayar). Göz bunu "boya" olarak okur, düz rengi "grafik
+         şablonu" olarak.
+           zemin : bölgenin ana rengi
+           cukur : tek kademe çukur (zeminden koyu VE soğuk)
+           golge : iç gölge rengi (en koyu, en soğuk; alfası ayrı)
+         Değerler sRGB. Parlaklık/doygunluk ayarları (?zeminayar)
+         bu yolu ETKİLEMEZ — bu palet yalnız vektör zemin için. */
+      vpalet: {
+        kar:   { zemin: [226, 231, 247], cukur: [203, 211, 240], golge: [ 92, 104, 178] },
+        cimen: { zemin: [ 76, 160,  52], cukur: [ 55, 133,  52], golge: [ 12,  64,  46] },
+        lav:   { zemin: [158,  34,  38], cukur: [120,  20,  34], golge: [ 52,   4,  22] },
+      },
+
+      /* ── İÇ GÖLGE (derinlik) ──
+         Keskin renk sınırı + yumuşak gölge düşüşü: kenar hem cam
+         gibi keskin hem yumuşak kalır. Kar yüksek, çimen ondan
+         alçak, lav çukurda duruyor; ışık sol-üstten. Her alçak
+         bölgenin, yükseğe bakan kenarında içe doğru sönen bir gölge
+         var. Çukurlar da kendi içlerine hafif gölge alıyor —
+         "yapıştırma leke" değil, zemine gömülü görünüyorlar.
+         Tarayıcının kendi gölge motoru (shadowBlur) kullanılıyor;
+         vektörden hesaplanıyor, yani kaydırınca yüzmez, parlamaz.
+         en: yumuşaklık (dünya pikseli) · kay: ışık yönünde kayma
+         alfa: koyuluk · cukurAlfa: çukur içi gölge.
+         acik:false → kapalı. */
+      golge: { acik: true, en: 34, kay: 10, alfa: 0.42, cukurEn: 16, cukurAlfa: 0.30 },
+
       /* ── VEKTÖR SINIR ──
          Zemin parçalara pişiyordu; parça DÜNYA pikselinde pişip
          ekrana büyütüldüğü için sınır yakınlaşınca basamaklanıyordu.
@@ -2199,24 +2231,26 @@
       return false;
     }
 
-    const PAL = lutAl().pal;
     const Y = B.yikama || {};
     const YG = Y.guc || 0;
-    /* Yıkama yalnız koyulaştırdığı için palet yarı yıkama kadar
-       açılır; ortalama parlaklık değişmez. */
-    const ac = 1 + YG * 0.5;
-    function cukurRenk(b) {
-      const o = b * 15 + 3;                        /* alt ton */
-      return "rgb(" + Math.min(255, PAL[o] * ac | 0) + "," +
-                      Math.min(255, PAL[o + 1] * ac | 0) + "," +
-                      Math.min(255, PAL[o + 2] * ac | 0) + ")";
+    /* Renkler vpalet'ten (ton kaydırmalı rampa). vpalet yoksa eski
+       paletin orta/alt tonuna düşülür. */
+    const VP = B.vpalet;
+    const PAL = lutAl().pal;
+    const AD = ["kar", "cimen", "lav"];
+    function rgb(c, a) {
+      return a == null ? "rgb(" + (c[0] | 0) + "," + (c[1] | 0) + "," + (c[2] | 0) + ")"
+                       : "rgba(" + (c[0] | 0) + "," + (c[1] | 0) + "," + (c[2] | 0) + "," + a + ")";
     }
-    function renk(b) {
-      const o = b * 15 + 6;                        /* orta ton */
-      return "rgb(" + Math.min(255, PAL[o] * ac | 0) + "," +
-                      Math.min(255, PAL[o + 1] * ac | 0) + "," +
-                      Math.min(255, PAL[o + 2] * ac | 0) + ")";
+    function palOku(b, ton) {
+      const o = b * 15 + ton * 3;
+      return [PAL[o], PAL[o + 1], PAL[o + 2]];
     }
+    function renk(b)      { return rgb(VP && VP[AD[b]] ? VP[AD[b]].zemin : palOku(b, 2)); }
+    function cukurRenk(b) { return rgb(VP && VP[AD[b]] ? VP[AD[b]].cukur : palOku(b, 1)); }
+    function golgeRenk(b, a) { return rgb(VP && VP[AD[b]] ? VP[AD[b]].golge : palOku(b, 0), a); }
+    const zoomV = (typeof mapZoom !== "undefined" && mapZoom > 0) ? mapZoom : 1;
+    const olcekV = zoomV * (dpr || 1);   /* dünya px → cihaz px (gölge cihaz uzayında) */
 
     ctx.fillStyle = renk(0);
     ctx.fillRect(wx0, wy0, wx1 - wx0, wy1 - wy0);
@@ -2295,9 +2329,51 @@
        ölçülü bir kademe çıkıyor — eski iki eşikli, kenarında 2-3
        sıra halka görünen hâl değil.
        CFG.boya.cukur = false ile kapanır. */
-    const CK = D.cukur;
-    if (CK && B.cukur !== false) {
-      const bolge = [];
+    /* ── İÇ GÖLGE ──
+       Klasik teknik: bölgeye kırp, bölgenin DIŞINI (büyük dikdörtgen
+       + bölge halkaları, evenodd) gölgeli doldur. Dolgunun kendisi
+       kırpmanın dışında kaldığı için görünmez; yalnız gölgesi
+       kenardan İÇERİ taşar. Gölge cihaz pikseliyle çalıştığı için
+       yumuşaklık ve kayma zoom × dpr ile çarpılıyor — yakınlaşınca
+       dünyayla birlikte büyüyor, kaymıyor.
+       Dikdörtgen görünen alandan gölge yarıçapı kadar geniş; yoksa
+       ekran kenarında sahte gölge çıkar. */
+    const GL = B.golge || {};
+    const golgeAcik = GL.acik !== false && (GL.alfa || 0) > 0;
+    function icGolge(bolgeYol, disHalkalar, renkStr, enW, kayW) {
+      const pay = (enW + Math.abs(kayW)) * 3;
+      const dis = new Path2D();
+      dis.rect(wx0 - pay, wy0 - pay, (wx1 - wx0) + pay * 2, (wy1 - wy0) + pay * 2);
+      for (const hy of disHalkalar) dis.addPath(hy);
+      ctx.save();
+      ctx.clip(bolgeYol, "evenodd");
+      golgeYalniz(dis, renkStr, enW, kayW);
+      ctx.restore();
+    }
+
+    /* YALNIZ GÖLGE: şeklin kendisi ekrandan UZAĞA (UZAK dünya
+       pikseli sağa) çizilir, gölge ters kaydırmayla yerine düşer.
+       Şekil kırpmanın dışında kalsa bile kenar yumuşatmasında
+       kısmen örtülen pikseller siyah sızdırıyor, sınırda kıl
+       inceliğinde koyu çizgi bırakıyordu (ekran görüntüsünde
+       görüldü). Şekil hiç görünür alana girmediği için sızıntı
+       yok. Gölge kayması cihaz pikselinde — dönüşümden etkilenmez,
+       o yüzden UZAK·ölçek kadar geri alınıyor. */
+    const UZAK = 100000;
+    function golgeYalniz(yol, renkStr, enW, kayW) {
+      ctx.save();
+      ctx.translate(UZAK, 0);
+      ctx.shadowColor = renkStr;
+      ctx.shadowBlur = enW * olcekV;
+      ctx.shadowOffsetX = (kayW - UZAK) * olcekV;
+      ctx.shadowOffsetY = kayW * olcekV;
+      ctx.fillStyle = "#000";
+      ctx.fill(yol, "evenodd");
+      ctx.restore();
+    }
+
+    const bolge = [];
+    {
       const b0 = new Path2D();
       b0.rect(wx0, wy0, wx1 - wx0, wy1 - wy0);
       b0.addPath(yKar);
@@ -2306,6 +2382,10 @@
       b1.addPath(yKar); b1.addPath(yCim);
       bolge[1] = b1;
       bolge[2] = yCim;
+    }
+
+    const CK = D.cukur;
+    if (CK && B.cukur !== false) {
       for (let b = 0; b < 3; b++) {
         const h = CK["b" + b];
         if (!h || !h.length) continue;
@@ -2315,15 +2395,51 @@
         ctx.clip(bolge[b], "evenodd");
         ctx.fillStyle = cukurRenk(b);
         ctx.fill(yc, "evenodd");
+        /* Çukurun içine hafif gölge: kenar keskin, gölge içe doğru
+           yumuşak söner — çukur zemine GÖMÜLÜ görünür. */
+        if (golgeAcik && (GL.cukurAlfa || 0) > 0) {
+          const pay = (GL.cukurEn || 16) * 3;
+          const dis = new Path2D();
+          dis.rect(wx0 - pay, wy0 - pay, (wx1 - wx0) + pay * 2, (wy1 - wy0) + pay * 2);
+          dis.addPath(yc);
+          ctx.clip(yc, "evenodd");
+          golgeYalniz(dis, golgeRenk(b, GL.cukurAlfa),
+                      GL.cukurEn || 16, (GL.kay || 10) * 0.6);
+        }
         ctx.restore();
       }
     }
 
-    /* ── TON YIKAMASI ── */
+    /* Bölge sınırlarında iç gölge: çimen, kara bakan kenarında;
+       lav, çimene bakan kenarında gölge alır (yüksekten alçağa). */
+    if (golgeAcik) {
+      /* Çimenin dışı olarak YALNIZ kar halkaları veriliyor: lav
+         çimenin içinde kalır, onun kenarından çimene gölge düşmesin. */
+      if (nKar) icGolge(bolge[1], [yKar], golgeRenk(1, GL.alfa), GL.en || 34, GL.kay || 10);
+      if (nCim) icGolge(bolge[2], [yCim], golgeRenk(2, GL.alfa), GL.en || 34, GL.kay || 10);
+    }
+
+    /* ── TON YIKAMASI ──
+       İKİ HATA DÜZELTİLDİ:
+       1) ÖRNEKLER EKRANA BAĞLIYDI: örnek noktası wx0 + i·ADIM idi;
+          wx0 ekranın sol kenarı. Kaydırınca aynı dünya noktası her
+          karede başka bir örnekten okunuyor, yıkama zeminin üstünde
+          YÜZÜYOR ve parlıyordu ("oynattıkça beyazlıklar parlıyor"
+          şikâyetinin bir ayağı buydu). Artık örnek ızgarası DÜNYAYA
+          çakılı: başlangıç ADIM'ın katına yuvarlanıyor, aynı dünya
+          noktası her karede aynı örnekten okunuyor.
+       2) GRİ ÇARPMA yalnız koyulaştırıyor ve rengi soldurıyordu.
+          Artık "soft-light" ile TON KAYDIRMALI: aydınlık tarafı
+          sıcağa (sarı), koyu tarafı soğuğa (mavi) çekiyor. 128 =
+          dokunma. Resimli haritalardaki ışık hissi buradan geliyor.
+       Maliyet: ekran başına birkaç yüz gürültü örneği + tek
+       drawImage. */
     if (YG > 0) {
       const ADIM = 24;                       /* dünya pikseli / örnek */
-      const w = Math.max(2, Math.ceil((wx1 - wx0) / ADIM) + 2);
-      const h = Math.max(2, Math.ceil((wy1 - wy0) / ADIM) + 2);
+      const sx0 = Math.floor(wx0 / ADIM) * ADIM - ADIM;
+      const sy0 = Math.floor(wy0 / ADIM) * ADIM - ADIM;
+      const w = Math.max(2, Math.ceil((wx1 - sx0) / ADIM) + 2);
+      const h = Math.max(2, Math.ceil((wy1 - sy0) / ADIM) + 2);
       if (!_yikamaTuval) {
         _yikamaTuval = document.createElement("canvas");
         _yikamaCtx = _yikamaTuval.getContext("2d");
@@ -2336,25 +2452,39 @@
       const f = Y.siklik || 0.05;
       const f2 = Y.siklik2 || 0.13;
       const p2 = Y.pay2 == null ? 0.35 : Y.pay2;
+      /* Ekranda gürültü tipik olarak 0.3-0.7 aralığında gezer;
+         ±1'e açmak için 2.4 ile genişletilip kırpılıyor. */
+      const A = 128 * Math.min(1, YG * 2.4);
       for (let j = 0; j < h; j++) {
-        const wy = wy0 + (j - 0.5) * ADIM;
+        const wy = sy0 + j * ADIM;
         for (let i = 0; i < w; i++) {
-          const wx = wx0 + (i - 0.5) * ADIM;
+          const wx = sx0 + i * ADIM;
           const g = worldToGrid(wx, wy);
           const n = smoothNoise(g.gx * f + 271, g.gy * f + 613) * (1 - p2)
                   + smoothNoise(g.gx * f2 + 97, g.gy * f2 + 349) * p2;
-          const v = 255 * (1 - YG * (1 - n));
+          let t = (n - 0.5) * 2.4;
+          if (t > 1) t = 1; else if (t < -1) t = -1;
           const k = (j * w + i) * 4;
-          px[k] = px[k + 1] = px[k + 2] = v; px[k + 3] = 255;
+          if (t >= 0) {                        /* ışık: sıcak */
+            px[k]     = 128 + t * A;
+            px[k + 1] = 128 + t * A * 0.90;
+            px[k + 2] = 128 + t * A * 0.62;
+          } else {                             /* gölge: soğuk */
+            px[k]     = 128 + t * A;
+            px[k + 1] = 128 + t * A * 0.86;
+            px[k + 2] = 128 + t * A * 0.55;
+          }
+          px[k + 3] = 255;
         }
       }
       _yikamaCtx.putImageData(im, 0, 0);
       ctx.save();
-      ctx.globalCompositeOperation = "multiply";
+      ctx.globalCompositeOperation = "soft-light";
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
+      /* Doku hücresi i'nin MERKEZİ dünyada sx0 + i·ADIM'a denk gelsin */
       ctx.drawImage(_yikamaTuval, 0, 0, w, h,
-                    wx0 - ADIM * 0.5, wy0 - ADIM * 0.5, w * ADIM, h * ADIM);
+                    sx0 - ADIM * 0.5, sy0 - ADIM * 0.5, w * ADIM, h * ADIM);
       ctx.restore();
     }
     return true;
