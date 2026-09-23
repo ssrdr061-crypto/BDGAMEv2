@@ -2205,8 +2205,14 @@
     /* Yıkama yalnız koyulaştırdığı için palet yarı yıkama kadar
        açılır; ortalama parlaklık değişmez. */
     const ac = 1 + YG * 0.5;
+    function cukurRenk(b) {
+      const o = b * 15 + 3;                        /* alt ton */
+      return "rgb(" + Math.min(255, PAL[o] * ac | 0) + "," +
+                      Math.min(255, PAL[o + 1] * ac | 0) + "," +
+                      Math.min(255, PAL[o + 2] * ac | 0) + ")";
+    }
     function renk(b) {
-      const o = b * 15 + 6;
+      const o = b * 15 + 6;                        /* orta ton */
       return "rgb(" + Math.min(255, PAL[o] * ac | 0) + "," +
                       Math.min(255, PAL[o + 1] * ac | 0) + "," +
                       Math.min(255, PAL[o + 2] * ac | 0) + ")";
@@ -2237,9 +2243,11 @@
       catch (e) { halkalar._kutu = k; }
       return k;
     }
-    function katman(halkalar, b) {
+    /* Halkaları bir Path2D'ye ekler. Yol hem DOLGU hem KIRPMA için
+       kullanılıyor (çukurlar kendi biyomuna kırpılıyor), o yüzden
+       ctx.beginPath değil Path2D. Dönen sayı: kaç halka eklendi. */
+    function yolaEkle(yol, halkalar) {
       const K = kutular(halkalar);
-      ctx.beginPath();
       let ciz = 0;
       for (let h = 0; h < halkalar.length; h++) {
         const y = halkalar[h];
@@ -2252,28 +2260,64 @@
            düz kesitler). Her köşe DENETİM NOKTASI, ardışık köşelerin
            ORTASI çapa yapılıp quadratic eğriyle geçiliyor — köşeler
            yarım kesit kadar yuvarlanıyor, şekil korunuyor, kenar
-           organik oluyor. Maliyeti düz çizgiyle aynı: nokta başına
-           tek çağrı. */
+           organik oluyor. Maliyeti düz çizgiyle aynı. */
         const n = y.length;
-        let ax = gridToWorld(y[0], y[1]);
-        let bx = gridToWorld(y[2], y[3]);
-        ctx.moveTo((ax.x + bx.x) / 2, (ax.y + bx.y) / 2);
+        const ax = gridToWorld(y[0], y[1]);
+        const bx = gridToWorld(y[2], y[3]);
+        yol.moveTo((ax.x + bx.x) / 2, (ax.y + bx.y) / 2);
         for (let i = 2; i < n; i += 2) {
           const c = gridToWorld(y[i], y[i + 1]);
           const d = gridToWorld(y[(i + 2) % n], y[(i + 3) % n]);
-          ctx.quadraticCurveTo(c.x, c.y, (c.x + d.x) / 2, (c.y + d.y) / 2);
+          yol.quadraticCurveTo(c.x, c.y, (c.x + d.x) / 2, (c.y + d.y) / 2);
         }
         const c0 = gridToWorld(y[0], y[1]);
-        ctx.quadraticCurveTo(c0.x, c0.y, (c0.x + bx.x) / 2, (c0.y + bx.y) / 2);
-        ctx.closePath();
+        yol.quadraticCurveTo(c0.x, c0.y, (c0.x + bx.x) / 2, (c0.y + bx.y) / 2);
+        yol.closePath();
         ciz++;
       }
-      if (!ciz) return;
-      ctx.fillStyle = renk(b);
-      ctx.fill("evenodd");
+      return ciz;
     }
-    katman(D.kar, 1);
-    katman(D.cimen, 2);
+
+    if (typeof Path2D === "undefined") return false;
+    const yKar = new Path2D(), yCim = new Path2D();
+    const nKar = yolaEkle(yKar, D.kar), nCim = yolaEkle(yCim, D.cimen);
+    if (nKar) { ctx.fillStyle = renk(1); ctx.fill(yKar, "evenodd"); }
+    if (nCim) { ctx.fillStyle = renk(2); ctx.fill(yCim, "evenodd"); }
+
+    /* ── ÇUKURLAR ──
+       Her biyomun çukuru KENDİ bölgesine kırpılarak çizilir; yoksa
+       çimenin çukuru karın üstüne taşar. Bölgeler elimizdeki
+       yollardan çıkıyor:
+         kar   = görünen dikdörtgen EKSİ kar halkaları  (evenodd)
+         çimen = kar halkaları EKSİ lav halkaları       (evenodd)
+         lav   = lav halkaları
+       Renk paletin "alt" tonu; zemin "orta" olduğu için tek ve
+       ölçülü bir kademe çıkıyor — eski iki eşikli, kenarında 2-3
+       sıra halka görünen hâl değil.
+       CFG.boya.cukur = false ile kapanır. */
+    const CK = D.cukur;
+    if (CK && B.cukur !== false) {
+      const bolge = [];
+      const b0 = new Path2D();
+      b0.rect(wx0, wy0, wx1 - wx0, wy1 - wy0);
+      b0.addPath(yKar);
+      bolge[0] = b0;
+      const b1 = new Path2D();
+      b1.addPath(yKar); b1.addPath(yCim);
+      bolge[1] = b1;
+      bolge[2] = yCim;
+      for (let b = 0; b < 3; b++) {
+        const h = CK["b" + b];
+        if (!h || !h.length) continue;
+        const yc = new Path2D();
+        if (!yolaEkle(yc, h)) continue;
+        ctx.save();
+        ctx.clip(bolge[b], "evenodd");
+        ctx.fillStyle = cukurRenk(b);
+        ctx.fill(yc, "evenodd");
+        ctx.restore();
+      }
+    }
 
     /* ── TON YIKAMASI ── */
     if (YG > 0) {
