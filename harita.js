@@ -347,6 +347,26 @@
          çözünürlük tavanı yükseltilip SINIR KESKİNLEŞTİRİLİR.
          false → eski katmanlı zemin (kod duruyor). */
       duz:     true,
+
+      /* ── TON YIKAMASI ──
+         Düz renk tek başına "mat ve basit" duruyordu. Referans
+         oyunlarda zeminde İNCE DETAY YOK; büyük, yumuşak ton
+         geçişleri var — zemin düz ama ölü değil.
+
+         Eski katmanlar (esik1/esik2 + icTon + kabartı) bunu
+         yapmaya çalışıyordu ama ölçeği küçük, kontrastı yüksekti;
+         "çamur gibi" görünmesinin sebebi buydu. Yıkama onun tersi:
+         TEK gürültü, çok düşük frekans (siklik 0.03 ≈ 33 karoda bir
+         dalga), çok düşük genlik (±%7 parlaklık). Göz desen değil
+         "ışık" olarak okur.
+
+         MALİYET: örnek başına TEK smoothNoise. Eski katmanlı yol
+         örnek başına 6 boyaGurultu (12 smoothNoise) istiyordu —
+         yani bu, onun on ikide biri. Ayrıca kaba ızgarada
+         örneklenip bilineer büyütüldüğü için kenarı yok, banding
+         yapmaz; yumuşaklık bedavaya gelir.
+         guc: 0 → kapalı, düz renge döner. */
+      yikama: { guc: 0.07, siklik: 0.030 },
       siklik:  0.090,   /* yığın boyu: küçük = iri yığın            */
       ayrinti: 0.19,    /* ikinci katmanın payı: kenar kıvrımı      */
       esik1:   0.10,    /* alt → orta tona geçiş                    */
@@ -1696,6 +1716,13 @@
     /* DÜZ ZEMİN: desen ve kabartı okunmaz, üretilmez. */
     const DUZ = !!B.duz;
     const kab = !DUZ && B.kabarti > 0;
+    /* Ton yıkaması: tek düşük frekanslı alan, biyomdan bağımsız —
+       sınırda kesilmez, ışık gibi üstünden geçer. */
+    const _Y = B.yikama || {};
+    const YG = DUZ ? (_Y.guc || 0) : 0;
+    const YIK = YG > 0;
+    const YF = _Y.siklik || 0.03;
+    const FW = YIK ? new Float32Array(N) : null;
     const FK = kab ? new Float32Array(N * 3) : null;  /* kaydırılmış gürültü */
 
     /* ── RÖLYEF: BİYOM BAŞINA AYRI, KABA IZGARADA ─────────────────
@@ -1793,7 +1820,9 @@
         for (let i = 0; i < LW; i++) {
           const wx = minX + (i - 1 + 0.5) * A;
           const g = worldToGrid(wx, wy);
-          FV[j * LW + i] = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
+          const k = j * LW + i;
+          FV[k] = biyomDeger(g.gx, g.gy) + serpmeSapma(g.gx, g.gy);
+          if (YIK) FW[k] = smoothNoise(g.gx * YF + 271, g.gy * YF + 613);
         }
       }
     } else
@@ -1966,6 +1995,11 @@
             cr += (PAL[p2] - cr) * t;
             cg += (PAL[p2 + 1] - cg) * t;
             cb += (PAL[p2 + 2] - cb) * t;
+          }
+          if (YIK) {
+            const wv = FW[a] * w00 + FW[a + 1] * w10 + FW[b] * w01 + FW[b + 1] * w11;
+            const f = 1 + (wv - 0.5) * 2 * YG;
+            cr *= f; cg *= f; cb *= f;
           }
         } else {
         const n1  = FN[a3 + b1] * w00 + FN[a3 + 3 + b1] * w10
