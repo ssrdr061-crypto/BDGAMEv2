@@ -4252,6 +4252,33 @@ html body .hud-top #staminaPill{
   color:#f2fbff !important;
   text-shadow:0 1px 2px rgba(0,12,32,.85) !important;
 }
+/* ── ÜST ŞERİT KAYMASIN ───────────────────────────────────────
+   Ödül alınınca elmas sayacı uçuş boyunca sayıyor (odul-efekt.js).
+   Rakam büyüyünce ("83,5K" → "133,5K") öğenin genişliği değişiyor,
+   şerit space-between ile dizildiği için SOLDAKİ VE SAĞDAKİ her
+   şey anlık kayıyordu — ekranda "titreme" olarak görülüyor.
+
+   ÇÖZÜM: dört değer rozeti EŞİT PAYLI hücre olur (flex:1 1 0) ve
+   içerik hücrenin SOLUNA yaslanır. Rakam büyüdüğünde yalnız kendi
+   hücresinin içinde sağa doğru uzar; hücre sınırları sabit olduğu
+   için ne ikonu ne de komşuları kımıldar. min-width:0 + overflow
+   taşmayı keser, tabular-nums zaten rakam genişliğini sabitliyor.
+   #logoutBtn dışarıda: genişliğini profil çerçevesi belirliyor. */
+html body #worldScreen .hud-top > .hud-pill.diamond-pill,
+html body #worldScreen .hud-top > #staminaPill,
+html body #worldScreen .hud-top > #kaynakPill,
+html body #worldScreen .hud-top > #mslHudPill{
+  flex:1 1 0 !important;
+  min-width:0 !important;
+  justify-content:flex-start !important;
+  overflow:hidden !important;
+}
+html body #worldScreen .hud-top > .hud-pill.diamond-pill .amount,
+html body #worldScreen .hud-top > #staminaPill #staminaText,
+html body #worldScreen .hud-top > #mslHudPill .msl-sayi{
+  font-variant-numeric:tabular-nums !important;
+}
+
 html body .hud-top .hud-pill.diamond-pill .amount,
 html body .hud-top #staminaPill #staminaText,
 html body .hud-top .user-pill #currentUserLabel{
